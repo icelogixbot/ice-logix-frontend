@@ -1,7 +1,7 @@
 // ICE LOGIX — Онбординг-сторис (Vanilla JS, browser-ready)
 // Интеграция: подключить как <script src="./onboarding.js"></script>
 // Использование: window.iceLogixOnboarding.open()
-// Версия: 2026.05.08.01
+// Версия: 2026.05.23.01 — Glassmorphism Redesign
 
 (function (global) {
   'use strict';
@@ -12,41 +12,60 @@
   const STYLES = `
 .ice-stories-overlay {
   position: fixed; inset: 0; z-index: 9999;
-  background: rgba(0,0,0,0.95);
+  background: rgba(10, 22, 40, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   display: flex; align-items: center; justify-content: center;
-  animation: iceFadeIn 0.2s ease-out;
+  animation: iceFadeIn 0.3s ease-out;
 }
 @keyframes iceFadeIn { from { opacity: 0; } to { opacity: 1; } }
 .ice-story-frame {
   position: relative;
   width: 100%; max-width: 420px; height: 100%; max-height: 100vh;
-  background: linear-gradient(135deg, #0c4a6e 0%, #155e75 50%, #0e7490 100%);
+  background: linear-gradient(165deg, #0A1628 0%, #0F2847 50%, #1A3A5C 100%);
   overflow: hidden;
   display: flex; flex-direction: column;
 }
 @media (min-width: 768px) {
-  .ice-story-frame { max-height: 90vh; border-radius: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+  .ice-story-frame { 
+    max-height: 90vh; 
+    border-radius: 32px; 
+    box-shadow: 0 25px 80px rgba(0,0,0,0.6), 0 0 80px rgba(91,191,235,0.15);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
 }
 .ice-progress-container {
-  position: absolute; top: 12px; left: 12px; right: 12px; z-index: 10;
-  display: flex; gap: 4px;
+  position: absolute; top: 16px; left: 16px; right: 16px; z-index: 10;
+  display: flex; gap: 6px;
 }
 .ice-progress-bar {
-  flex: 1; height: 3px; background: rgba(255,255,255,0.25);
-  border-radius: 2px; overflow: hidden;
+  flex: 1; height: 4px; background: rgba(255,255,255,0.2);
+  border-radius: 4px; overflow: hidden;
 }
 .ice-progress-fill {
-  height: 100%; width: 0; background: white;
+  height: 100%; width: 0; 
+  background: linear-gradient(90deg, #5BBFEB, #2E9ED4);
+  border-radius: 4px;
   transition: width 0.1s linear;
+  box-shadow: 0 0 8px rgba(91,191,235,0.5);
 }
 .ice-progress-fill.complete { width: 100% !important; }
 .ice-close-btn {
-  position: absolute; top: 18px; right: 18px; z-index: 11;
-  width: 32px; height: 32px;
-  background: rgba(255,255,255,0.15); backdrop-filter: blur(10px);
-  border-radius: 50%; border: 0; color: white;
-  font-size: 20px; cursor: pointer;
+  position: absolute; top: 24px; right: 20px; z-index: 11;
+  width: 36px; height: 36px;
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.2);
+  color: white;
+  font-size: 18px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
+  transition: all 0.3s ease;
+}
+.ice-close-btn:hover {
+  background: rgba(255,255,255,0.2);
+  transform: scale(1.05);
 }
 .ice-tap-zone-left, .ice-tap-zone-right {
   position: absolute; top: 0; bottom: 0; width: 35%; z-index: 5;
@@ -56,77 +75,139 @@
 .ice-slide {
   position: absolute; inset: 0;
   display: flex; flex-direction: column; justify-content: center; align-items: center;
-  padding: 60px 32px 100px;
+  padding: 70px 28px 110px;
   text-align: center;
   opacity: 0; pointer-events: none;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  transform: scale(0.95);
 }
-.ice-slide.active { opacity: 1; pointer-events: auto; }
-.ice-slide-emoji { font-size: 80px; margin-bottom: 16px; line-height: 1; }
+.ice-slide.active { 
+  opacity: 1; 
+  pointer-events: auto;
+  transform: scale(1);
+}
+.ice-slide-emoji { 
+  font-size: 72px; 
+  margin-bottom: 20px; 
+  line-height: 1;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+  animation: iceFloat 3s ease-in-out infinite;
+}
+@keyframes iceFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
 .ice-slide-title {
-  font-size: 28px; font-weight: 800; color: white;
-  margin-bottom: 12px; line-height: 1.2;
+  font-size: 26px; font-weight: 800; color: white;
+  margin-bottom: 14px; line-height: 1.2;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.3);
 }
 .ice-slide-subtitle {
-  font-size: 16px; color: rgba(255,255,255,0.85);
-  line-height: 1.5; margin-bottom: 16px;
+  font-size: 15px; color: rgba(255,255,255,0.8);
+  line-height: 1.6; margin-bottom: 16px;
 }
 .ice-slide-list {
   list-style: none; padding: 0; margin: 16px 0 0 0; text-align: left;
-  color: rgba(255,255,255,0.95); font-size: 15px;
+  color: rgba(255,255,255,0.9); font-size: 14px;
 }
-.ice-slide-list li { padding: 6px 0; line-height: 1.4; }
+.ice-slide-list li { 
+  padding: 10px 0; 
+  line-height: 1.5;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.ice-slide-list li:last-child { border-bottom: none; }
 .ice-slide-card {
-  background: rgba(255,255,255,0.15); backdrop-filter: blur(10px);
-  border-radius: 16px; padding: 14px 18px;
-  border: 1px solid rgba(255,255,255,0.2);
-  color: white; font-size: 14px; line-height: 1.5;
-  margin-top: 12px; max-width: 100%; word-wrap: break-word;
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 20px;
+  padding: 16px 20px;
+  border: 1px solid rgba(255,255,255,0.15);
+  color: white; font-size: 14px; line-height: 1.6;
+  margin-top: 16px;
+  max-width: 100%;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
 }
 .ice-slide-pre {
-  background: rgba(0,0,0,0.3); border-radius: 12px;
-  padding: 10px 14px; font-family: 'JetBrains Mono', Menlo, monospace;
-  font-size: 12px; color: white; white-space: pre; text-align: left;
-  max-width: 100%; overflow-x: auto;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(8px);
+  border-radius: 16px;
+  padding: 14px 18px;
+  font-family: 'JetBrains Mono', Menlo, monospace;
+  font-size: 12px;
+  color: rgba(255,255,255,0.9);
+  white-space: pre;
+  text-align: left;
+  max-width: 100%;
+  overflow-x: auto;
   margin-top: 16px;
+  border: 1px solid rgba(255,255,255,0.1);
 }
 .ice-slide-table {
   width: 100%; border-collapse: collapse; color: white; font-size: 13px;
 }
 .ice-slide-table th, .ice-slide-table td {
-  padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.15);
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
   text-align: left;
 }
-.ice-slide-table th { font-weight: 600; color: rgba(255,255,255,0.7); }
+.ice-slide-table th { 
+  font-weight: 700; 
+  color: rgba(255,255,255,0.6);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
 .ice-slide-cta {
-  position: absolute; bottom: 30px; left: 32px; right: 32px;
-  display: flex; flex-direction: column; gap: 10px;
+  position: absolute; bottom: 32px; left: 24px; right: 24px;
+  display: flex; flex-direction: column; gap: 12px;
 }
 .ice-btn-primary {
-  width: 100%; padding: 14px 20px;
-  background: white; color: #0c4a6e;
-  border: 0; border-radius: 14px;
+  width: 100%; padding: 16px 24px;
+  background: linear-gradient(135deg, #5BBFEB 0%, #2E9ED4 100%);
+  color: white;
+  border: none; border-radius: 18px;
   font-size: 16px; font-weight: 700;
-  cursor: pointer; transition: transform 0.1s;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 20px rgba(91,191,235,0.4);
+}
+.ice-btn-primary:hover { 
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 6px 30px rgba(91,191,235,0.5);
 }
 .ice-btn-primary:active { transform: scale(0.98); }
 .ice-btn-secondary {
-  width: 100%; padding: 12px 20px;
-  background: rgba(255,255,255,0.15); color: white;
-  border: 1px solid rgba(255,255,255,0.3); border-radius: 14px;
+  width: 100%; padding: 14px 20px;
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(8px);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 16px;
   font-size: 14px; font-weight: 600;
   cursor: pointer;
+  transition: all 0.3s ease;
+}
+.ice-btn-secondary:hover {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.35);
 }
 .ice-btn-text {
-  background: transparent; border: 0; color: rgba(255,255,255,0.7);
-  font-size: 13px; cursor: pointer; padding: 6px;
+  background: transparent; border: none;
+  color: rgba(255,255,255,0.6);
+  font-size: 14px; font-weight: 500;
+  cursor: pointer;
+  padding: 8px;
+  transition: color 0.2s ease;
 }
+.ice-btn-text:hover { color: white; }
 .ice-next-hint {
-  position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-  color: rgba(255,255,255,0.6); font-size: 12px;
+  position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
+  color: rgba(255,255,255,0.5); font-size: 13px;
   animation: icePulse 2s infinite;
+  display: flex; align-items: center; gap: 6px;
 }
-@keyframes icePulse { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
+@keyframes icePulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
 `;
 
   function injectStyles() {
@@ -138,98 +219,66 @@
   }
 
   // =====================================================================
-  // 2. КОНТЕНТ СЛАЙДОВ
+  // 2. КОНТЕНТ СЛАЙДОВ - Ice Theme
   // =====================================================================
   const SLIDES = [
     {
-      emoji: '👋',
-      title: 'Привет! Мы — ICE LOGIX 🧊',
-      subtitle: 'Покупаем за тебя на Poizon, Dewu, Taobao, Zalando, ASOS и других площадках мира',
-      bg: 'linear-gradient(135deg, #0c4a6e 0%, #155e75 50%, #0e7490 100%)',
+      emoji: '❄️',
+      title: 'Добро пожаловать в ICE LOGIX!',
+      subtitle: 'Доставляем мечту из любой точки мира. Poizon, Taobao, Zalando, ASOS и 50+ площадок',
+      bg: 'linear-gradient(165deg, #0A1628 0%, #0F2847 50%, #1A3A5C 100%)',
     },
     {
       emoji: '🛍️',
-      title: 'Ты выбираешь — мы покупаем',
+      title: 'Как это работает?',
       subtitle: '',
-      bg: 'linear-gradient(135deg, #0c4a6e 0%, #1e40af 100%)',
+      bg: 'linear-gradient(165deg, #0A1628 0%, #0F2847 100%)',
       list: [
-        '🔗 Скидываешь нам ссылку на товар',
-        '📦 Мы покупаем, проверяем, отправляем домой',
-        '💰 Платишь только итоговую цену — без сюрпризов',
+        '🔗 Находишь товар и скидываешь нам ссылку',
+        '💰 Мы считаем полную стоимость — без сюрпризов',
+        '📦 Покупаем, проверяем, доставляем до двери',
       ],
     },
     {
       emoji: '🌍',
-      title: 'География — 4 страны на старте',
+      title: 'Доставляем из 4+ стран',
       subtitle: '',
-      bg: 'linear-gradient(135deg, #134e4a 0%, #0f766e 100%)',
+      bg: 'linear-gradient(165deg, #0A1628 0%, #0F2847 100%)',
       list: [
-        '🇨🇳 <b>Китай</b> — Poizon, Dewu, Taobao, 1688, Tmall',
-        '🇵🇱🇪🇺 <b>Польша / ЕС</b> — Zalando, ASOS, About You, H&M',
-        '🇷🇺 <b>Россия</b> — Lamoda, WB, Ozon, Avito, ЦУМ',
+        '🇨🇳 <b>Китай</b> — Poizon, Dewu, Taobao, 1688',
+        '🇵🇱 <b>Польша / ЕС</b> — Zalando, ASOS, H&M',
+        '🇷🇺 <b>Россия</b> — Lamoda, WB, Ozon',
       ],
-      card: '🕒 США, Япония, Корея, ОАЭ, Турция, Вьетнам — <b>скоро будем доставлять</b>',
+      card: '🕒 США, Япония, Корея, ОАЭ — <b>скоро добавим</b>',
     },
     {
-      emoji: '🔎',
-      title: 'Шаг 1: Найди товар',
-      subtitle: '',
-      bg: 'linear-gradient(135deg, #312e81 0%, #4338ca 100%)',
-      list: [
-        '🛒 Открой нужный магазин (например, Poizon)',
-        '📋 Скопируй ссылку на товар',
-        '💬 В нашем боте нажми «Новый заказ»',
-      ],
-      card: '💡 <i>Можно пользоваться калькулятором без регистрации, чтобы прикинуть цену.</i>',
-    },
-    {
-      emoji: '💰',
-      title: 'Шаг 2: Получи цену',
-      subtitle: '',
-      bg: 'linear-gradient(135deg, #14532d 0%, #15803d 100%)',
-      list: [
-        '🤖 Бот посчитает: цена + доставка + комиссия — всё включено',
-        '👀 Сразу видишь полную разбивку',
-        '💵 Цена в BYN (1 BYN = 1 ICE)',
-      ],
-      pre: `📦 Цена товара:        281 BYN
-✈️ Доставка ShopbyShop: 42 BYN
-🤝 Наша комиссия:       58 BYN
+      emoji: '💎',
+      title: 'Честные цены',
+      subtitle: 'Всё включено в итоговую стоимость',
+      bg: 'linear-gradient(165deg, #0A1628 0%, #0F2847 100%)',
+      pre: `📦 Товар:              281 BYN
+✈️ Доставка:            42 BYN
+🤝 Комиссия:           58 BYN
 ═══════════════════════════
-💵 ИТОГО:              381 BYN`,
+💵 ИТОГО:             381 BYN`,
     },
     {
-      emoji: '💳',
-      title: 'Шаг 3: Оплати',
-      subtitle: '',
-      bg: 'linear-gradient(135deg, #581c87 0%, #7e22ce 100%)',
-      list: [
-        '🏦 Карта (bePaid — Visa/Mastercard/Belkart)',
-        '📱 ExpressPay (банковские приложения)',
-        '🏛️ ЕРИП — поиск «ICE LOGIX»',
-        '⭐ Telegram Stars',
-        '🧊 Айсами с баланса (до 50% от заказа)',
-      ],
-      card: '💡 <i>Предоплата 75%, остаток — после прибытия товара на наш склад.</i>',
-    },
-    {
-      emoji: '🧊',
-      title: 'Что такое айсы (ICE)',
-      subtitle: 'Внутренняя валюта сервиса',
-      bg: 'linear-gradient(135deg, #0c4a6e 0%, #06b6d4 100%)',
+      emoji: '❄️',
+      title: 'Что такое ICE?',
+      subtitle: 'Наша внутренняя валюта = ваша выгода',
+      bg: 'linear-gradient(165deg, #0A1628 0%, #1A7BB5 100%)',
       list: [
         '⚖️ <b>1 BYN = 1 ICE</b> — простой курс',
-        '💸 Копейки = дробные ICE (0.5 ICE = 50 копеек)',
-        '🎁 Получаешь айсы за каждый заказ (кэшбэк)',
-        '💰 Тратишь на следующие заказы — до 50% от цены',
+        '🎁 Кэшбэк с каждого заказа',
+        '💰 Тратишь на следующие покупки (до 50%)',
+        '👥 Бонусы за приглашённых друзей',
       ],
-      card: '<b>Источники айсов:</b> ✅ кэшбэк, 👥 рефералы, ⭐ отзывы, 🎉 акции',
     },
     {
       emoji: '📈',
-      title: 'Уровни клиентов',
-      subtitle: 'Чем больше заказов — тем выгоднее',
-      bg: 'linear-gradient(135deg, #831843 0%, #be185d 100%)',
+      title: 'Программа лояльности',
+      subtitle: 'Больше заказов = больше выгоды',
+      bg: 'linear-gradient(165deg, #0A1628 0%, #0F2847 100%)',
       table: [
         ['Уровень', 'Заказов', 'Бонус'],
         ['🆕 Новичок', '1-3', 'Стандарт'],
@@ -238,30 +287,30 @@
       ],
     },
     {
-      emoji: '⏰',
-      title: 'Сколько ждать',
+      emoji: '⏱️',
+      title: 'Сроки доставки',
       subtitle: '',
-      bg: 'linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%)',
+      bg: 'linear-gradient(165deg, #0A1628 0%, #0F2847 100%)',
       list: [
-        '🇨🇳 <b>Китай</b>: 10-15 дней (быстрая) или 30-45 (морем)',
-        '🇵🇱🇪🇺 <b>Польша / ЕС</b>: 5-10 дней',
+        '🇨🇳 <b>Китай</b>: 10-15 дней (авиа) или 30-45 (море)',
+        '🇵🇱 <b>Польша</b>: 5-10 дней',
         '🇷🇺 <b>Россия</b>: 3-7 дней',
       ],
-      card: '⚠️ <i>Сроки — рабочие дни. Считаем с момента поступления товара на склад партнёра ShopbyShop.</i>',
+      card: '📍 Доставка до любого города Беларуси',
     },
     {
       emoji: '🚀',
-      title: 'Поехали!',
-      subtitle: 'Готов сделать первый заказ?',
-      bg: 'linear-gradient(135deg, #0e7490 0%, #06b6d4 60%, #22d3ee 100%)',
+      title: 'Готовы начать?',
+      subtitle: 'Создайте первый заказ прямо сейчас',
+      bg: 'linear-gradient(165deg, #0A1628 0%, #1A7BB5 60%, #5BBFEB 100%)',
       list: [
         '⚡ Регистрация за 30 секунд',
-        '🎁 Приветственный бонус: 15 ICE на баланс',
+        '🎁 Приветственный бонус: <b>15 ICE</b>',
         '🧮 Калькулятор работает без регистрации',
       ],
       cta: [
-        { type: 'primary', text: '✨ Сделать первый заказ', action: 'newOrder' },
-        { type: 'secondary', text: '🧮 Сначала посчитать', action: 'calculator' },
+        { type: 'primary', text: '✨ Создать заказ', action: 'newOrder' },
+        { type: 'secondary', text: '🧮 Посчитать стоимость', action: 'calculator' },
         { type: 'text', text: 'Закрыть', action: 'close' },
       ],
     },
