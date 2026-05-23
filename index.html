@@ -266,17 +266,18 @@
       left: 12px;
       right: 12px;
       z-index: 100;
-      padding: 8px 12px;
+      padding: 8px 6px;
       background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%);
       backdrop-filter: blur(var(--glass-blur));
       -webkit-backdrop-filter: blur(var(--glass-blur));
       border: 1px solid var(--glass-border-strong);
       border-radius: 28px;
       box-shadow: var(--shadow-island);
-      display: flex;
-      justify-content: space-around;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
       align-items: center;
       animation: slideUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+      overflow: visible;
     }
     
     @keyframes slideUp {
@@ -288,13 +289,16 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
       gap: 2px;
-      padding: 8px 12px;
+      padding: 8px 4px;
       color: var(--text-muted);
       cursor: pointer;
       border-radius: 16px;
       transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
       position: relative;
+      min-width: 0;
+      overflow: hidden;
     }
     
     .tab-item:hover {
@@ -331,15 +335,22 @@
       transform: scale(1.15) translateY(-2px);
     }
     
-    .tab-label { font-size: 10px; font-weight: 600; }
+    .tab-label {
+      font-size: 10px;
+      font-weight: 600;
+      max-width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
     
     /* Central CTA Button */
     .tab-item.new-order {
       background: linear-gradient(135deg, var(--ice-primary) 0%, var(--ice-deep) 100%);
       color: white;
-      padding: 12px 20px;
+      padding: 10px 8px;
       border-radius: 22px;
-      margin-top: -20px;
+      margin: -20px 4px 0;
       box-shadow: 0 4px 20px rgba(91, 191, 235, 0.5), 0 0 40px rgba(91, 191, 235, 0.2);
       border: 2px solid rgba(255,255,255,0.3);
       animation: pulse-glow 3s ease-in-out infinite;
@@ -927,9 +938,7 @@
     <div class="app-header">
       <div class="header-left">
         <img id="logoImg" class="logo-img" src="./assets/logo.png" alt="ICE LOGIX">
-      </div>
-      <div class="header-right">
-        <!-- Balance Island Widget -->
+        <!-- Balance Island Widget — moved to left of header for cleaner right cluster -->
         <div class="balance-island" id="balanceIsland">
           <div class="balance-amount">
             <span id="headerBalance">0</span>
@@ -937,6 +946,8 @@
           </div>
           <button class="balance-add" id="addBalanceBtn" title="Пополнить баланс">+</button>
         </div>
+      </div>
+      <div class="header-right">
         <button class="icon-btn" id="notificationsBtn" title="Уведомления">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -1057,7 +1068,7 @@
       { value: 'Ботинки',    icon: '🥾', broad: 'Обувь',       defaultWeight: 1.4 },
       { value: 'Сандалии',   icon: '🩴', broad: 'Обувь',       defaultWeight: 0.6 },
       { value: 'Туфли',      icon: '👞', broad: 'Обувь',       defaultWeight: 0.9 },
-      // Од��жда
+      // Одежда
       { value: 'Футболка',   icon: '👕', broad: 'Одежда',      defaultWeight: 0.3 },
       { value: 'Поло',       icon: '👕', broad: 'Одежда',      defaultWeight: 0.35 },
       { value: 'Худи',       icon: '🧥', broad: 'Одежда',      defaultWeight: 0.7 },
@@ -1087,7 +1098,7 @@
       { value: 'Электроника',icon: '📱', broad: 'Аксессуары',  defaultWeight: 1.0 },
       { value: 'Другое',     icon: '📦', broad: 'Аксессуары',  defaultWeight: 0.5 },
     ];
-    // Иерархическая выборка через optgroup: 3 группы (Обув�� / Одежда / Аксессуары)
+    // Иерархическая выборка через optgroup: 3 группы (Обувь / Одежда / Аксессуары)
     function renderCategoryOptions() {
       const groups = ['Обувь', 'Одежда', 'Аксессуары'];
       const groupIcons = { 'Обувь': '👟', 'Одежда': '👕', 'Аксессуары': '💼' };
@@ -1246,7 +1257,7 @@
           if (u.protocol !== 'http:' && u.protocol !== 'https:') {
             errors.push('Ссылка должна начинаться с http:// или https://');
           } else {
-            // Проверка доме��а (warning, не ошибка — мы не хотим блокировать неизвестные площадки)
+            // Проверка домена (warning, не ошибка — мы не хотим блокировать неизвестные площадки)
             const host = u.hostname.toLowerCase().replace(/^www\./, '');
             const isKnown = ALLOWED_MARKETPLACE_HOSTS.some(h => host === h || host.endsWith('.' + h));
             if (!isKnown && !window.confirm(`Площадка ${host} не из нашего списка. Продолжить?`)) {
@@ -1279,7 +1290,7 @@
       const opts = Array.from(selectEl.options);
       const exact = opts.find(o => o.value === raw);
       if (exact) return exact;
-      // Сравним без регистр��
+      // Сравним без регистра
       const ci = opts.find(o => o.value.toLowerCase() === String(raw).toLowerCase());
       if (ci) return ci;
       // Если raw = широкая категория — берём первое наименование с таким broad
@@ -1623,7 +1634,7 @@ const MAX_REQUESTS_TRUSTED = 100;
         userLimits.dailyCount = data.daily_requests_count || 0;
         userLimits.lastDate = data.last_request_date ? new Date(data.last_request_date).toDateString() : null;
         userLimits.isTrusted = data.is_trusted || false;
-        document.getElementById('headerBalance').innerText = balance + ' ❄️';
+        document.getElementById('headerBalance').innerText = balance;
       }
       // Apply saved theme in a separate resilient call — column may not exist yet
       try {
@@ -2691,7 +2702,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             break;
           }
           if (checkData?.status === 'error') {
-            throw new Error(checkData.error_message || 'Ошибка парсин��а');
+            throw new Error(checkData.error_message || 'Ошибка парсинга');
           }
         }
 
@@ -5058,7 +5069,7 @@ async function renderAcademy() {
             if (e1) throw e1;
             await supabaseClient.from('user_courses').upsert({ user_id: userId, course_id: courseId }, { onConflict: 'user_id,course_id' });
             balance -= price;
-            document.getElementById('headerBalance').innerText = balance + ' ❄️';
+            document.getElementById('headerBalance').innerText = balance;
             tgUtil.alert('🎉 Курс куплен! Приятного обучения!');
             renderCurrentScreen();
           } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }
@@ -5167,7 +5178,7 @@ async function renderAcademy() {
           </select>
           <div class="flex items-center gap-2 mb-4">
             <input type="checkbox" id="mCourseActive" ${course?.is_active !== false ? 'checked' : ''}>
-            <label for="mCourseActive" class="text-white/70 text-sm">Активе��</label>
+            <label for="mCourseActive" class="text-white/70 text-sm">Активен</label>
           </div>
           <div class="flex gap-3">
             <button id="mCourseSave" class="flex-1 bg-cyan-500 hover:bg-cyan-600 py-2.5 rounded-xl font-bold">Сохранить</button>
@@ -5670,7 +5681,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           modal.innerHTML = `
             <div class="bg-white/10 backdrop-blur-md rounded-2xl max-w-md w-full p-5">
               <h3 class="text-white font-bold text-lg mb-4">✍️ Оставить отзыв</h3>
-              <select id="reviewOrder" class="w-full p-3 rounded-xl bg-white/20 border border-white/30 mb-3"><option value="">Выберите заказ</option>${orders.map(o => `<option value="${o.id}">��аказ #${o.id.slice(0,8)}</option>`).join('')}</select>
+              <select id="reviewOrder" class="w-full p-3 rounded-xl bg-white/20 border border-white/30 mb-3"><option value="">Выберите заказ</option>${orders.map(o => `<option value="${o.id}">Заказ #${o.id.slice(0,8)}</option>`).join('')}</select>
               <select id="reviewRating" class="w-full p-3 rounded-xl bg-white/20 border border-white/30 mb-3"><option value="5">★★★★★ (5)</option><option value="4">★★★★☆ (4)</option><option value="3">★★★☆☆ (3)</option><option value="2">★★☆☆☆ (2)</option><option value="1">★☆☆☆☆ (1)</option></select>
               <textarea id="reviewText" class="w-full p-3 rounded-xl bg-white/20 border border-white/30 mb-3" placeholder="Ваш отзыв" rows="4"></textarea>
               <div class="flex gap-3 mt-4"><button id="submitReviewBtn" class="flex-1 bg-cyan-500 py-2 rounded-xl">Отправить</button><button id="cancelReviewBtn" class="flex-1 bg-white/20 py-2 rounded-xl">Отмена</button></div>
@@ -6802,7 +6813,7 @@ async function openPromotionForm(promotion = null) {
       </div>
       <div class="p-5 border-t border-white/20">
         <div class="flex gap-3">
-          <button id="savePromotionBtn" class="flex-1 bg-cyan-500 py-2 rounded-xl">${isEdit ? 'С��хранить' : 'Создать'}</button>
+          <button id="savePromotionBtn" class="flex-1 bg-cyan-500 py-2 rounded-xl">${isEdit ? 'Сохранить' : 'Создать'}</button>
           <button id="cancelPromotionBtn" class="flex-1 bg-white/20 py-2 rounded-xl">Отмена</button>
         </div>
       </div>
@@ -7940,7 +7951,7 @@ async function showAccountRecovery() {
     const errEl = modal.querySelector('#recoveryPhoneError');
     if (!phone) { errEl.textContent = 'Введите номер телефона'; errEl.classList.remove('hidden'); return; }
     errEl.classList.add('hidden');
-    // Проверяем, есть ли номе�� в базе
+    // Проверяем, есть ли номер в базе
     const { data: userRow } = await supabaseClient.from('users').select('user_id').eq('phone', phone).maybeSingle();
     if (!userRow) { errEl.textContent = 'Пользователь с таким номером не найден'; errEl.classList.remove('hidden'); return; }
     // Генерируем код
