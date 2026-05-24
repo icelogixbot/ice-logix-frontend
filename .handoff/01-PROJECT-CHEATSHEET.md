@@ -333,11 +333,21 @@ All in `public` schema. RLS enabled on most; some temporarily disabled for dev (
 - `#13` Fix 4 factual errors in skills
 - `#14` Fix AGENTS.md / tg-handlers contradiction
 - `#15` **Legit-check Tier 1 reference DB** (brands + models + markers + 100 reference photos)
+- `#18` v0.dev full UI redesign rollout (large-scale visual rewrite; introduced some functional regressions, fixed by #19)
+- `#19` **PR-1 design-pair / functional fixes**: removed 9 mojibake byte sequences (Ошибка парсинга / Заказ # / Сохранить / Активен etc.), fixed double snowflake in balance widget (HTML had ❄️ + JS appended ' ❄️' → kept HTML one, removed JS suffix), replaced bottom-nav `flex space-around` with `grid 5×1fr` so the 5 tab buttons fit inside the capsule, moved balance widget from right side of header to left (next to logo, Life.by / Tinkoff convention)
+- `#20` **PR-2 design-pair / glassmorphism pass**: full glassmorphism overhaul (Life.by-style). Three new systems:
+  - **SVG icon system** — constant `ICON_PATHS` (~80 icons, 24×24 viewBox, currentColor stroke) + helper `ix(name, opts)`. Replaces 420+ emoji across the app. **Country flags (🇨🇳🇵🇱🇪🇺🇷🇺 etc.) kept** as UX convention. **v0.dev top-bar and bottom-nav icons kept** as reference per user request.
+  - **Glass modal** — replaces `tgUtil.alert` / `tgUtil.confirm` / `tgUtil.popup` with a bottom-sheet (mobile) / centered (desktop) glass dialog, 28px backdrop-blur, kind-aware icon (info/success/warning/error/confirm), Telegram-native popup fallback retained.
+  - **Glass select picker** — replaces 21 native `<select>` elements with a full-screen bottom-sheet picker with search (>8 opts), optgroup support, and per-option icons via `data-icon`. Native `<select>` kept in DOM for form compatibility + accessibility. `enhanceAllSelects()` + MutationObserver auto-upgrades dynamically inserted selects.
+  - Plus: `glassToast()` for transient feedback, snowflake-in-balance migrated to inline SVG with sparkle animation, `CATEGORY_MAP` switched from emoji to icon names with `data-icon` attrs propagated through `renderCategoryOptions`.
 
 ### Top of the backlog (in priority order)
 
 | # | Task | Estimate | Type |
 |---|---|---|---|
+| **Bug #5 (HOT)** | Home «Все» / «Каталог» buttons land on the wrong sub-screen — `currentSubScreen = '…'; switchTab('catalogs')` is wrong because `switchTab()` resets `currentSubScreen = null` on line 2822. Fix: pass sub-screen into `switchTab(tab, subScreen)` or set `currentSubScreen` AFTER `switchTab()` then call `renderCurrentScreen()` again | 20min | Bug |
+| **Bug #6 (HOT)** | Remove «Бренды» catalog tile entirely (line ~8339, the `<div class="glass-card ... onclick="tgUtil.alert('Бренды появятся скоро!')">` block in `Каталоги` screen). User decided not to ship brands catalog at all. Remove the tile and any related state — but keep brand filter dropdown inside Products catalog (line ~7981, that filters products by brand). | 10min | Cleanup |
+| **Bug #7 (HOT)** | Design audit after PR-2: there are still multiple visually-broken spots (alignment, contrast, leftover non-glass styling, etc.) that PR-2 did not catch. Walk the app screen-by-screen on the Vercel preview, take screenshots of each visually-off spot, then fix them in one consolidated design-cleanup PR. | 2-4h | Design |
 | **PR-B** | Edge Function `legit-check` (Gemini Vision pipeline: photo → brand/model detect → lookup auth_markers → score 0-100 + RU explanation) | 1-2h agent | Backend |
 | **PR-C** | UI «AI Проверка» button + disclaimer + result UI in calculator | 1h agent | Frontend |
 | Bug #1 | Navigation lags after photo search / long session — bottom menu unresponsive | 30min | Bug |
