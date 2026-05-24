@@ -159,10 +159,29 @@ claude "Перепиши функцию enhanceQuery в search-products чтоб
 ### Telegram Mini App специфика
 
 Mini App ограничен мобильным экраном (≤480px ширина). Когда просишь у v0 — добавляй:
-- «Mobile-only design, viewport 375x812 (iPhone 14)»
+- «Mobile-only design, viewport 393x852 (iPhone 14 Pro)»
 - «Dark mode primary (Telegram default theme)»
 - «Use --tg-theme-bg-color, --tg-theme-text-color CSS vars»
 - «Touch-friendly: button height ≥44px»
+- «Glassmorphism style: backdrop-filter blur, rgba(255,255,255,0.08) panel fill, rgba(255,255,255,0.12) borders. Reference: Life.by app»
+- «Ice palette: primary #5BBFEB, deep #2E9ED4»
+
+### ⚠ После генерации v0.dev — ОБЯЗАТЕЛЬНО
+
+В нашем `index.html` уже есть полноценная glass-дизайн-система (после PR #19/#20): SVG-иконки через `ix(name)`, glass-modal вместо `alert`, glass-select вместо `<select>`. Когда даёшь агенту код v0 на адаптацию — добавляй:
+
+```
+@file .handoff/07-DESIGN-SYSTEM.md
+
+Адаптируй этот v0.dev-сниппет под наш index.html. Замени:
+- Все inline <svg> → ix('<имя из ICON_PATHS>'). Если иконки нет — добавь в ICON_PATHS.
+- Все эмодзи → ix() (кроме флагов стран — оставь).
+- Любые alert/confirm → tgUtil.alert/confirm (они уже идут через glassModal).
+- React/JSX → vanilla template literals. className → class. onClick → addEventListener.
+- <select> оставь обычным <select> — он сам станет glass-picker'ом.
+```
+
+Без этой инструкции агент натащит inline SVG / новые модалки / свои стили, и у тебя будет два параллельных дизайна.
 
 ### Готовый промпт для v0 (копируй-вставляй)
 

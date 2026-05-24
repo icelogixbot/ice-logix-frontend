@@ -110,7 +110,13 @@
 3. Когда v0 покажет вариант — скопируй код (`Copy code`)
 4. В Antigravity создай агента:
    ```
-   Я сгенерировал UI через v0.dev. Адаптируй его под наш `index.html` (vanilla JS + Tailwind CDN, без React). Замени React JSX на DOM-методы. Стиль и логика должны соответствовать существующим компонентам.
+   @file .handoff/07-DESIGN-SYSTEM.md
+   
+   Я сгенерировал UI через v0.dev. Адаптируй его под наш `index.html` (vanilla JS + Tailwind CDN, без React). Замени React JSX на DOM-методы. Стиль должен использовать НАШУ glass-дизайн-систему (см. 07-DESIGN-SYSTEM.md):
+   - Все иконки — через `ix('name')` из ICON_PATHS, а не inline <svg>
+   - Все alert/confirm — через `tgUtil.alert()` / `tgUtil.confirm()` (они уже glass)
+   - Все <select> — оставь нативными (авто-апгрейд в glass-picker)
+   - Никаких эмодзи кроме флагов стран
    
    Вот код от v0:
    
@@ -121,7 +127,7 @@
    Куда вставить: новый экран `screenLegitCheck` после `screenCalculator`. Кнопка перехода — в Calculator под кнопкой «Сохранить заказ».
    ```
 
-Antigravity сам разберётся как сконвертить React в vanilla JS.
+**ВАЖНО:** без `@file .handoff/07-DESIGN-SYSTEM.md` агент натащит inline `<svg>` / новые модалки / параллельные стили — и у тебя получатся два дизайна в одном приложении (как было после первой попытки v0.dev — пришлось делать PR-2 чтобы починить).
 
 ## Параллельная работа
 
