@@ -9934,7 +9934,8 @@ async function sendNotification(userId, message, orderId = null) {
 
     productsTotalPages = Math.ceil((count || 0) / 20);
 
-    let isVipUnlocked = false;
+    let isVipUnlocked = true; // Открыто для всех по запросу клиента
+    /*
     if (userId) {
       try {
         const { data: userOrders } = await supabaseClient.from('orders')
@@ -9947,6 +9948,7 @@ async function sendNotification(userId, message, orderId = null) {
         }
       } catch (e) { console.error(e); }
     }
+    */
 
     const categories = [...new Set(data.map(p => p.category).filter(Boolean))];
     const brands = [...new Set(data.map(p => p.brand).filter(Boolean))];
