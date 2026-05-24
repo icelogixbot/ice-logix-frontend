@@ -2813,13 +2813,13 @@ const MAX_REQUESTS_TRUSTED = 100;
       });
     }
 
-    function switchTab(tabName) {
+    function switchTab(tabName, subScreen = null) {
       if (tabName !== 'neworder') {
       window.tempOrder = null;
       }
       if (currentTab && currentTab !== tabName) previousTab = currentTab;
       currentTab = tabName;
-      currentSubScreen = null;
+      currentSubScreen = subScreen;
       if (tabName !== 'calculator') clearBlobUrls('calc:');
       if (tabName !== 'neworder') clearBlobUrls('order:');
       document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
@@ -3053,12 +3053,10 @@ function attachHomeHandlers() {
       document.querySelector('[data-story="drops"]')?.addEventListener('click', () => tgUtil.alert('Дропы будут позже'));
       document.querySelector('[data-story="referral"]')?.addEventListener('click', () => switchTab('profile'));
       document.getElementById('moreMarketplacesBtn')?.addEventListener('click', () => {
-        currentSubScreen = 'marketplaces';
-        switchTab('catalogs');
+        switchTab('catalogs', 'marketplaces');
       });
       document.getElementById('moreProductsBtn')?.addEventListener('click', () => {
-        currentSubScreen = 'productsCatalog';
-        switchTab('catalogs');
+        switchTab('catalogs', 'productsCatalog');
       });
       document.querySelectorAll('.marketplace-story').forEach(el => {
         el.addEventListener('click', () => {
@@ -8336,18 +8334,7 @@ async function renderCatalogs() {
             </svg>
           </div>
         </div>
-        <div class="glass-card cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all opacity-70" onclick="tgUtil.alert('Бренды появятся скоро!')">
-          <div class="flex items-center gap-4">
-            <div class="w-16 h-16 rounded-2xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(167,139,250,0.25), rgba(139,92,246,0.15));">
-              <span class="text-3xl" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zM5 20h14"/></svg></span></span>
-            </div>
-            <div class="flex-1">
-              <h3 class="text-white font-bold text-lg mb-1">Бренды</h3>
-              <p class="text-sm" style="color: var(--text-secondary);">Nike, Adidas, Supreme и другие</p>
-            </div>
-            <span class="px-2 py-1 rounded-full text-xs font-semibold" style="background: rgba(251,191,36,0.2); color: #FBBF24;">Скоро</span>
-          </div>
-        </div>
+
       </div>
     </div>
     ${renderFooter()}
