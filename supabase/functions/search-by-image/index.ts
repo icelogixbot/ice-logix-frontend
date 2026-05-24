@@ -455,7 +455,13 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-  const descriptionHint = (body.descriptionHint || "").trim();
+  const descriptionHint = (body.descriptionHint || '').trim();
+
+  let authenticity_tier: string | null = null;
+  const descLower = descriptionHint.toLowerCase();
+  if (descLower.includes('копия') || descLower.includes('реплика') || descLower.includes('1:1') || descLower.includes('aaa') || descLower.includes('fake')) {
+    authenticity_tier = 'replica';
+  }
 
   const requestedPlatforms = (Array.isArray(body.platforms) && body.platforms.length > 0)
     ? body.platforms
@@ -517,7 +523,10 @@ Deno.serve(async (req) => {
   if (fusedQuery) {
     try {
       const sp = await callSearchProducts(fusedQuery, requestedPlatforms);
-      const spData = sp as { ok?: boolean; results?: Array<Record<string, unknown>> };
+      const spData = sp as { ok?: boolean; results?: Array<Record<string, unknown>>; authenticity_tier?: string | null };
+      if (spData.authenticity_tier) {
+        authenticity_tier = spData.authenticity_tier;
+      }
       if (spData.ok && Array.isArray(spData.results)) {
         for (const r of spData.results) {
           const url = String(r.url || "");
@@ -556,6 +565,7 @@ Deno.serve(async (req) => {
         platforms: requestedPlatforms,
         total: combined.length,
         results: combined,
+        authenticity_tier,
         apify_raw_count: apifyResp.raw_count,
         apify_direct: directMatches.length,
         from_search: searchProductsResults.length,
@@ -587,6 +597,7 @@ Deno.serve(async (req) => {
         source: "vision-fallback",
         error: "Не удалось распознать товар на фото. Попробуйте более чёткое изображение или используйте поиск по описанию.",
         vision_query: visionResult.query,
+      authenticity_tier: authenticity_tier || (searchResp as any)?.authenticity_tier || null,
         apify_error: apifyResp.error || null,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
