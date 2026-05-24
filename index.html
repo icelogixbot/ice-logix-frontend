@@ -2582,7 +2582,7 @@ const MAX_REQUESTS_TRUSTED = 100;
           if (tg?.BackButton) document.body.classList.add('tg-native-back');
           const user = tg.initDataUnsafe?.user;
           userId = user ? user.id : null;
-          userName = user ? (user.first_name || user.username) : 'Гость';
+          userName = user ? (user.first_name || user.username || 'Гость') : 'Гость';
           userAvatarUrl = user?.photo_url || null;
         } else {
           console.warn('Telegram WebApp is not available. Running in browser preview mode.');
@@ -2625,7 +2625,7 @@ const MAX_REQUESTS_TRUSTED = 100;
         
         const avatarDiv = document.querySelector('#avatar');
         if (avatarDiv) {
-          avatarDiv.innerHTML = userAvatarUrl ? `<img src="${userAvatarUrl}">` : userName.charAt(0).toUpperCase();
+          avatarDiv.innerHTML = userAvatarUrl ? `<img src="${userAvatarUrl}">` : (userName || 'Гость').charAt(0).toUpperCase();
         }
         const userNameHeader = document.querySelector('#userNameHeader');
         if (userNameHeader) {
@@ -5365,7 +5365,7 @@ async function renderMyOrders() {
     <div class="relative mx-auto w-28 h-28 mb-4">
       <div class="w-28 h-28 rounded-full overflow-hidden" style="background: linear-gradient(135deg, var(--ice-primary), var(--ice-arctic)); padding: 3px;">
         <div class="w-full h-full rounded-full overflow-hidden flex items-center justify-center text-4xl font-bold" style="background: var(--bg-gradient-mid);" id="profileAvatar">
-          ${userAvatarUrl ? `<img src="${userAvatarUrl}" class="w-full h-full object-cover">` : userName.charAt(0).toUpperCase()}
+          ${userAvatarUrl ? `<img src="${userAvatarUrl}" class="w-full h-full object-cover">` : (userName || 'Гость').charAt(0).toUpperCase()}
         </div>
       </div>
       <button id="changeAvatarBtn" class="absolute bottom-0 right-0 w-10 h-10 rounded-full flex items-center justify-center text-lg border-2" style="background: linear-gradient(135deg, var(--ice-primary), var(--ice-deep)); border-color: var(--bg-gradient-mid); box-shadow: 0 2px 10px rgba(91,191,235,0.4);">
@@ -8849,7 +8849,7 @@ async function loadProfileExtras() {
     }
     if (data.full_name) {
       document.getElementById('profileNameDisplay').innerText = data.full_name;
-      userName = data.full_name;
+      userName = data.full_name || userName || 'Гость';
     }
   }
   // Загружаем последние транзакции
