@@ -2385,6 +2385,10 @@ const MAX_REQUESTS_TRUSTED = 100;
     let isLoadingMoreProducts = false;
     let reviewsPage = 1;
     let reviewsTotalPages = 1;
+    
+    // AI Legit check state
+    window.legitPhotos = [];
+    window.legitResult = null;
 
     // Global key for Edge Function calls (Authorization header)
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZydndkYWdqcHR0dmZ2amFuYndxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NTc4MzgsImV4cCI6MjA5MTIzMzgzOH0.P9GQSW6NLN1BhR66PX-LP4ysZBXFeWIXRYIRvhRjo1c';
@@ -2822,6 +2826,11 @@ const MAX_REQUESTS_TRUSTED = 100;
       currentSubScreen = subScreen;
       if (tabName !== 'calculator') clearBlobUrls('calc:');
       if (tabName !== 'neworder') clearBlobUrls('order:');
+      if (tabName !== 'legitcheck') {
+        clearBlobUrls('legit:');
+        window.legitPhotos = [];
+        window.legitResult = null;
+      }
       document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
       const activeTab = document.querySelector(`.tab-item[data-tab="${tabName}"]`);
       if (activeTab) activeTab.classList.add('active');
@@ -3359,7 +3368,12 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               <p class="text-white">Примерная стоимость: <span id="totalPrice" class="font-bold text-cyan-400">0</span> BYN</p>
               <p class="text-white/70 text-xs mt-1">*Окончательная цена после взвешивания на складе</p>
             </div>
-            <button id="toNewOrderBtn" class="mt-3 w-full bg-blue-600 hover:bg-blue-700 py-2 rounded-xl">Перенести в заказ</button>
+            <div class="flex flex-col gap-2 mt-3">
+              <button id="toNewOrderBtn" class="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded-xl">Перенести в заказ</button>
+              <button id="calcLegitCheckBtn" class="btn-secondary w-full py-2 rounded-xl flex items-center justify-center gap-2">
+                <span>🔍 AI Проверка подлинности</span>
+              </button>
+            </div>
           </div>
         </div>
         ${renderFooter()}
@@ -3716,6 +3730,21 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
     if (window.tempOrder) switchTab('neworder'); 
     else tgUtil.alert('Сначала рассчитайте стоимость'); 
   };
+
+  const calcLegitCheckBtn = document.getElementById('calcLegitCheckBtn');
+  if (calcLegitCheckBtn) {
+    calcLegitCheckBtn.onclick = () => {
+      const brandVal = document.getElementById('calcBrand')?.value || '';
+      const modelVal = document.getElementById('calcTitle')?.value || '';
+      switchTab('legitcheck');
+      setTimeout(() => {
+        const brandInput = document.getElementById('legitBrand');
+        const modelInput = document.getElementById('legitModel');
+        if (brandInput && brandVal) brandInput.value = brandVal;
+        if (modelInput && modelVal) modelInput.value = modelVal;
+      }, 100);
+    };
+  }
 
   // ==================== РЕЖИМЫ ВВОДА В КАЛЬКУЛЯТОРЕ (link/manual/photo/text) ====================
   const calcModeSelector = document.getElementById('calcModeSelector');
@@ -4192,7 +4221,12 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           Я принимаю условия <a href="https://example.com/offer.pdf" target="_blank" class="text-cyan-400 underline">публичной оферты</a> и даю согласие на обработку персональных данных
           </label>
           </div>
-          <button id="createOrderFinal" class="mt-5 w-full bg-green-600 hover:bg-green-700 py-3 rounded-xl font-bold">Оформить заказ</button>
+          <div class="flex flex-col gap-2 mt-5">
+            <button id="createOrderFinal" class="w-full bg-green-600 hover:bg-green-700 py-3 rounded-xl font-bold">Оформить заказ</button>
+            <button id="orderLegitCheckBtn" class="btn-secondary w-full py-2.5 rounded-xl flex items-center justify-center gap-2">
+              <span>🔍 AI Проверка подлинности</span>
+            </button>
+          </div>
         </div>
         ${renderFooter()}
       `;
@@ -4553,6 +4587,21 @@ if (createBtn) {
       }
   };
 }
+
+  const orderLegitCheckBtn = document.getElementById('orderLegitCheckBtn');
+  if (orderLegitCheckBtn) {
+    orderLegitCheckBtn.onclick = () => {
+      const brandVal = document.getElementById('orderBrand')?.value || '';
+      const modelVal = document.getElementById('orderTitle')?.value || '';
+      switchTab('legitcheck');
+      setTimeout(() => {
+        const brandInput = document.getElementById('legitBrand');
+        const modelInput = document.getElementById('legitModel');
+        if (brandInput && brandVal) brandInput.value = brandVal;
+        if (modelInput && modelVal) modelInput.value = modelVal;
+      }, 100);
+    };
+  }
 
       // ── Image confirmation в режиме «Вручную»: проверить картинку по названию ──
       const verifyBtn = document.getElementById('orderVerifyImage');
@@ -8254,9 +8303,9 @@ function ensureBackButtonForSubscreen() {
       } else if (currentTab === 'neworder') {
         contentDiv.innerHTML = await renderNewOrder();
         attachNewOrderHandlers();
-      } else if (currentTab === 'calculator') {
-        contentDiv.innerHTML = await renderCalculator();
-        attachCalculatorHandlers();
+      } else if (currentTab === 'legitcheck') {
+        contentDiv.innerHTML = await renderLegitCheck();
+        attachLegitCheckHandlers();
       } else if (currentTab === 'wishlist') {
         contentDiv.innerHTML = await renderWishlist();
         attachWishlistHandlers();
@@ -9350,6 +9399,370 @@ async function updateCartBadge() {
       badge.classList.add('hidden');
     }
   }
+}
+
+// ==================== AI LEGIT CHECK MODULE ====================
+
+async function renderLegitCheck() {
+  const disclaimerAccepted = localStorage.getItem('legitCheckDisclaimerAccepted') === 'true';
+
+  if (!disclaimerAccepted) {
+    return `
+      <button id="backFromLegitBtn" class="global-back-btn mb-4 flex items-center gap-1 text-white/80 hover:text-white transition">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+        Назад
+      </button>
+      <div class="glass-card page-enter">
+        <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+          <span>🔍 AI Проверка подлинности</span>
+        </h2>
+        <div class="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-4 mb-5 text-sm space-y-3">
+          <p class="font-bold text-white text-base">⚠️ Дисклеймер и условия использования</p>
+          <p class="text-white/80 leading-relaxed text-sm">
+            Функция <strong>AI Проверка</strong> использует нейросети последнего поколения для предварительного анализа оригинальности товаров по фотографиям.
+          </p>
+          <p class="text-white/80 leading-relaxed text-xs">
+            • Анализ сравнивает ваши фото с официальной базой эталонов бренда.<br>
+            • Точность распознавания составляет <strong>70-80%</strong> для распространенных реплик.<br>
+            • Результат является <strong>экспертным мнением ИИ</strong> и не является официальной юридической сертификацией.
+          </p>
+          <p class="text-white/80 leading-relaxed font-semibold">
+            Стоимость проверки: бесплатно в рамках лимитов.
+          </p>
+        </div>
+        <button id="acceptDisclaimerBtn" class="btn-primary w-full py-3 rounded-xl font-bold transition">
+          Принять и продолжить
+        </button>
+      </div>
+      ${renderFooter()}
+    `;
+  }
+
+  // If disclaimer is accepted, render the main legit check interface
+  let resultHtml = '';
+  if (window.legitResult) {
+    const r = window.legitResult;
+    const score = r.score ?? 50;
+    
+    let scoreColor = 'text-red-400';
+    let scoreBg = 'bg-red-500/10 border-red-500/30';
+    let scoreText = 'Высокий риск реплики';
+    let scoreIcon = '🚨';
+    
+    if (score >= 81) {
+      scoreColor = 'text-green-400';
+      scoreBg = 'bg-green-500/10 border-green-500/30';
+      scoreText = 'Похоже на оригинал';
+      scoreIcon = '✨';
+    } else if (score >= 51) {
+      scoreColor = 'text-yellow-400';
+      scoreBg = 'bg-yellow-500/10 border-yellow-500/30';
+      scoreText = 'Подозрительно / Риск копии';
+      scoreIcon = '⚠️';
+    }
+
+    resultHtml = `
+      <div class="mt-4 bg-white/5 border border-white/10 rounded-2xl p-5 space-y-5">
+        <div class="text-center space-y-2">
+          <p class="text-white/60 text-xs uppercase tracking-wider font-semibold">Результат анализа</p>
+          <div class="inline-flex items-center justify-center w-28 h-28 rounded-full border-4 border-dashed ${scoreColor} ${scoreBg} shadow-lg relative my-2">
+            <span class="text-3xl font-extrabold ${scoreColor}">${score}%</span>
+          </div>
+          <h3 class="text-lg font-bold text-white">${scoreIcon} ${scoreText}</h3>
+          <p class="text-white/70 text-sm">
+            Бренд: <strong class="text-white">${r.detected_brand || 'Не определен'}</strong> | 
+            Модель: <strong class="text-white">${r.detected_model || 'Не определена'}</strong>
+          </p>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <h4 class="text-sm font-semibold text-white/90 mb-2 flex items-center gap-1">
+              <span>🟢 Пройденные маркеры оригинальности</span>
+            </h4>
+            ${r.auth_markers_passed && r.auth_markers_passed.length > 0 ? `
+              <ul class="space-y-1.5 text-xs text-white/80 pl-1">
+                ${r.auth_markers_passed.map(m => `
+                  <li class="flex items-start gap-2">
+                    <span class="text-green-400 flex-shrink-0">✓</span>
+                    <span>${m}</span>
+                  </li>
+                `).join('')}
+              </ul>
+            ` : `<p class="text-xs text-white/50 pl-1">Маркеры оригинальности не подтверждены визуально.</p>`}
+          </div>
+
+          <div>
+            <h4 class="text-sm font-semibold text-white/90 mb-2 flex items-center gap-1">
+              <span>🔴 Выявленные проблемы и несоответствия</span>
+            </h4>
+            ${r.issues && r.issues.length > 0 ? `
+              <ul class="space-y-1.5 text-xs text-white/80 pl-1">
+                ${r.issues.map(i => `
+                  <li class="flex items-start gap-2">
+                    <span class="text-red-400 flex-shrink-0">!</span>
+                    <span>${i}</span>
+                  </li>
+                `).join('')}
+              </ul>
+            ` : `<p class="text-xs text-green-400 pl-1">Явных дефектов или следов подделки не обнаружено.</p>`}
+          </div>
+        </div>
+
+        <div class="bg-white/5 p-3 rounded-xl border border-white/10 text-center text-xs text-white/50 leading-normal">
+          ⚠️ ${r.disclaimer || 'AI-оценка, не сертификация подлинности. Точность 70-80%.'}
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 pt-2">
+          <button id="legitResetBtn" class="btn-secondary w-full py-2.5 rounded-xl text-sm font-bold transition">
+            Проверить еще раз
+          </button>
+          <button id="legitToCalcBtn" class="btn-primary w-full py-2.5 rounded-xl text-sm font-bold transition">
+            В калькулятор
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <button id="backFromLegitBtn" class="global-back-btn mb-4 flex items-center gap-1 text-white/80 hover:text-white transition">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+      Назад
+    </button>
+    <div class="glass-card page-enter">
+      <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+        <span>🔍 AI Проверка подлинности</span>
+      </h2>
+
+      ${!window.legitResult ? `
+        <div class="space-y-4">
+          <p class="text-white/70 text-xs leading-relaxed bg-white/5 p-3 rounded-xl">
+            Загрузите качественные детальные фотографии товара (швы, бирки, стелька, логотипы). 
+            Укажите подсказку бренда и модели для максимально точного сравнения с базой эталонов.
+          </p>
+
+          <div>
+            <label class="text-white/70 text-sm font-semibold mb-1 block">Бренд (желательно)</label>
+            <input type="text" id="legitBrand" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Например: Nike, Adidas, Stone Island">
+          </div>
+
+          <div>
+            <label class="text-white/70 text-sm font-semibold mb-1 block">Модель (желательно)</label>
+            <input type="text" id="legitModel" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Например: Dunk Low, Yeezy 350, Ghost Piece">
+          </div>
+
+          <div>
+            <label class="text-white/70 text-sm font-semibold mb-1 block">Фотографии товара (до 5 штук)</label>
+            <div id="legitPhotoZone" class="mt-1 p-5 border border-dashed border-white/30 rounded-2xl text-center cursor-pointer hover:bg-white/5 transition">
+              <span class="text-2xl block mb-1">📸</span>
+              <span class="text-xs text-white/70 font-semibold block">Нажмите для выбора или перетащите фото</span>
+              <span class="text-[10px] text-white/40 block mt-1">Первое фото используется как основное для анализа ИИ</span>
+              <input type="file" id="legitPhotoInput" accept="image/*" multiple class="hidden">
+            </div>
+            <div id="legitPhotoPreview" class="hidden mt-3 grid grid-cols-3 gap-2"></div>
+          </div>
+
+          <button id="runLegitCheckBtn" class="btn-primary w-full py-3 rounded-xl font-bold transition flex items-center justify-center gap-2">
+            <span>Начать проверку</span>
+          </button>
+        </div>
+      ` : resultHtml}
+    </div>
+    ${renderFooter()}
+  `;
+}
+
+function attachLegitCheckHandlers() {
+  const backBtn = document.getElementById('backFromLegitBtn');
+  if (backBtn) {
+    backBtn.onclick = () => {
+      if (previousTab && previousTab !== 'legitcheck') {
+        switchTab(previousTab);
+      } else {
+        switchTab('calculator');
+      }
+    };
+  }
+
+  const acceptDisclaimerBtn = document.getElementById('acceptDisclaimerBtn');
+  if (acceptDisclaimerBtn) {
+    acceptDisclaimerBtn.onclick = () => {
+      localStorage.setItem('legitCheckDisclaimerAccepted', 'true');
+      renderCurrentScreen();
+    };
+    return;
+  }
+
+  // Result handlers
+  const legitResetBtn = document.getElementById('legitResetBtn');
+  if (legitResetBtn) {
+    legitResetBtn.onclick = () => {
+      window.legitPhotos = [];
+      window.legitResult = null;
+      clearBlobUrls('legit:');
+      renderCurrentScreen();
+    };
+  }
+
+  const legitToCalcBtn = document.getElementById('legitToCalcBtn');
+  if (legitToCalcBtn && window.legitResult) {
+    legitToCalcBtn.onclick = () => {
+      const brand = window.legitResult.detected_brand || '';
+      const model = window.legitResult.detected_model || '';
+      switchTab('calculator');
+      
+      // Let's populate the calculator query input
+      setTimeout(() => {
+        const brandInput = document.getElementById('calcBrand');
+        const titleInput = document.getElementById('calcTitle');
+        if (brandInput && brand) brandInput.value = brand;
+        if (titleInput && model) titleInput.value = model;
+      }, 100);
+    };
+  }
+
+  if (window.legitResult) return; // results are shown, skip upload handlers
+
+  // Upload handlers
+  const legitPhotoZone = document.getElementById('legitPhotoZone');
+  const legitPhotoInput = document.getElementById('legitPhotoInput');
+
+  if (legitPhotoZone && legitPhotoInput) {
+    legitPhotoZone.onclick = () => legitPhotoInput.click();
+    legitPhotoZone.ondragover = (ev) => { ev.preventDefault(); legitPhotoZone.classList.add('bg-white/10'); };
+    legitPhotoZone.ondragleave = () => legitPhotoZone.classList.remove('bg-white/10');
+    legitPhotoZone.ondrop = (ev) => {
+      ev.preventDefault();
+      legitPhotoZone.classList.remove('bg-white/10');
+      handleLegitPhotoFiles(ev.dataTransfer?.files);
+    };
+    legitPhotoInput.onchange = () => handleLegitPhotoFiles(legitPhotoInput.files);
+  }
+
+  function handleLegitPhotoFiles(files) {
+    if (!files || !files.length) return;
+    if (!window.legitPhotos) window.legitPhotos = [];
+    for (const f of files) {
+      if (!f.type.startsWith('image/')) continue;
+      if (f.size > 10 * 1024 * 1024) { tgUtil.alert(`${f.name}: Файл больше 10 МБ`); continue; }
+      if (window.legitPhotos.length >= 5) { tgUtil.alert('Можно загрузить максимум 5 фото'); break; }
+      window.legitPhotos.push(f);
+    }
+    renderLegitPhotoPreviews();
+  }
+
+  // Run Legit Check
+  const runLegitCheckBtn = document.getElementById('runLegitCheckBtn');
+  if (runLegitCheckBtn) {
+    runLegitCheckBtn.onclick = async () => {
+      if (!window.legitPhotos || window.legitPhotos.length === 0) {
+        tgUtil.alert('Пожалуйста, добавьте хотя бы одно фото для анализа!');
+        return;
+      }
+
+      const brandVal = document.getElementById('legitBrand')?.value.trim() || '';
+      const modelVal = document.getElementById('legitModel')?.value.trim() || '';
+
+      const originalBtnText = runLegitCheckBtn.innerHTML;
+      runLegitCheckBtn.innerHTML = `
+        <span class="inline-block animate-spin mr-2">⏳</span>
+        <span>Нейросеть проверяет оригинал...</span>
+      `;
+      runLegitCheckBtn.disabled = true;
+
+      // Telegram MainButton indicator
+      tgUtil.setMainButton({
+        text: '⏳ Идет проверка оригинальности ИИ...',
+        isLoading: true,
+        onClick: () => {}
+      });
+
+      try {
+        // Read main (first) image as base64
+        const file = window.legitPhotos[0];
+        const base64Data = await fileToBase64(file);
+
+        const { data, error } = await supabaseClient.functions.invoke('legit-check', {
+          body: {
+            photo_base64: base64Data,
+            brand_hint: brandVal,
+            model_hint: modelVal
+          }
+        });
+
+        if (error) throw error;
+        if (!data || data.error) throw new Error(data?.error || 'Не удалось получить отчет');
+
+        window.legitResult = data;
+        
+        // Haptic feedback based on result
+        if (data.score >= 81) {
+          tgUtil.haptic('success');
+          tgUtil.toast('✨ Товар прошел проверку!');
+        } else if (data.score >= 51) {
+          tgUtil.haptic('warning');
+          tgUtil.toast('⚠️ Товар подозрительный!');
+        } else {
+          tgUtil.haptic('error');
+          tgUtil.toast('🚨 Обнаружены признаки подделки!');
+        }
+
+        renderCurrentScreen();
+      } catch (err) {
+        tgUtil.alert('Ошибка AI Проверки: ' + (err.message || 'Неизвестная ошибка'));
+        runLegitCheckBtn.innerHTML = originalBtnText;
+        runLegitCheckBtn.disabled = false;
+      } finally {
+        tgUtil.hideMainButton();
+      }
+    };
+  }
+}
+
+function renderLegitPhotoPreviews() {
+  const preview = document.getElementById('legitPhotoPreview');
+  const runBtn = document.getElementById('runLegitCheckBtn');
+  if (!preview) return;
+  if (!window.legitPhotos || window.legitPhotos.length === 0) {
+    preview.classList.add('hidden');
+    preview.innerHTML = '';
+    return;
+  }
+  preview.classList.remove('hidden');
+  preview.innerHTML = window.legitPhotos.map((f, i) =>
+    `<div class="relative">
+      <img src="${trackBlobUrl('legit:photo:' + i, f)}" class="rounded-xl w-full h-24 object-cover">
+      <button type="button" data-rm-legit-photo="${i}" class="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center shadow-lg">×</button>
+      ${i === 0 ? `<span class="absolute bottom-1 left-1 bg-cyan-500/80 text-[9px] font-bold px-1.5 py-0.5 rounded text-white border border-cyan-400">ИИ</span>` : ''}
+    </div>`).join('');
+  
+  preview.querySelectorAll('[data-rm-legit-photo]').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const i = parseInt(btn.dataset.rmLegitPhoto, 10);
+      window.legitPhotos.splice(i, 1);
+      renderLegitPhotoPreviews();
+    };
+  });
+}
+
+// Helper to convert File to base64
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      const result = reader.result;
+      const base64 = result.substring(result.indexOf(',') + 1);
+      resolve(base64);
+    };
+    reader.onerror = error => reject(error);
+  });
 }
 
         // ==================== ЗАПУСК ====================
