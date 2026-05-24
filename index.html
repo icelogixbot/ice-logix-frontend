@@ -2255,6 +2255,384 @@
       return null;
     }
 
+    // ==================== PREMIUM CODES & CONSTANTS ====================
+    const PVS_DATA = {
+      europoshta: {
+        'Минск': [
+          'ОПС №119: пр-т Дзержинского, 119',
+          'ОПС №11: ул. Петра Мстиславца, 11 (Dana Mall)',
+          'ОПС №29: ул. Притыцкого, 29',
+          'ОПС №9: пр-т Победителей, 9 (Galleria)',
+          'ОПС №159: ул. Лобанка, 94',
+          'ОПС №76: ул. Романовская Слобода, 13'
+        ],
+        'Гомель': [
+          'ОПС №97: ул. Советская, 97',
+          'ОПС №3: пр-т Ленина, 3',
+          'ОПС №22: Речицкий проспект, 5А'
+        ],
+        'Брест': [
+          'ОПС №273: ул. Московская, 273А',
+          'ОПС №16: пр-т Машерова, 16',
+          'ОПС №4: ул. Гоголя, 65'
+        ],
+        'Гродно': [
+          'ОПС №81: ул. Космонавтов, 81',
+          'ОПС №91: ул. Советских Пограничников, 91',
+          'ОПС №5: пр-т Янки Купалы, 87'
+        ],
+        'Витебск': [
+          'ОПС №26: ул. Ленина, 26А',
+          'ОПС №81: пр-т Фрунзе, 81',
+          'ОПС №10: ул. Богатырева, 15'
+        ],
+        'Могилев': [
+          'ОПС №57: ул. Первомайская, 57',
+          'ОПС №30: пр-т Пушкинский, 30',
+          'ОПС №12: ул. Якубовского, 44'
+        ],
+        'default': [
+          'Центральное отделение (Европочта)',
+          'Второе отделение (Европочта)'
+        ]
+      },
+      sdek: {
+        'Минск': [
+          'МСК1: ул. Притыцкого, 79',
+          'МСК2: ул. Левкова, 9',
+          'МСК3: пр-т Независимости, 95',
+          'МСК4: ул. Сурганова, 50'
+        ],
+        'Гомель': [
+          'ГМЛ1: ул. Кирова, 55',
+          'ГМЛ2: Речицкий проспект, 80'
+        ],
+        'Брест': [
+          'БРТ1: бульвар Космонавтов, 40',
+          'БРТ2: ул. Карьерная, 12'
+        ],
+        'Гродно': [
+          'ГРД1: ул. Карла Маркса, 29',
+          'ГРД2: ул. Горького, 91'
+        ],
+        'Витебск': [
+          'ВТБ1: пр-т Строителей, 11А',
+          'ВТБ2: ул. Ленина, 54'
+        ],
+        'Могилев': [
+          'МГЛ1: ул. Первомайская, 12',
+          'МГЛ2: ул. Гагарина, 83'
+        ],
+        'default': [
+          'Центральный пункт выдачи СДЭК'
+        ]
+      },
+      belpochta: {
+        'Минск': [
+          'ПО-100: пр-т Независимости, 10',
+          'ПО-1: ул. Главная, 25',
+          'ПО-50: ул. Кирова, 8'
+        ],
+        'default': [
+          'Главпочтамт (до востребования)'
+        ]
+      }
+    };
+
+    const FORTUNE_REWARDS = [
+      { text: '5 ❄️', type: 'ice', value: 5, color: '#3A86F0', weight: 40 },
+      { text: '10 ❄️', type: 'ice', value: 10, color: '#00F2FE', weight: 25 },
+      { text: '20 ❄️', type: 'ice', value: 20, color: '#7000FF', weight: 10 },
+      { text: 'Скидка 5%', type: 'promo', value: 'ICE5', color: '#FF007F', weight: 10 },
+      { text: 'Скидка 10%', type: 'promo', value: 'ICE10', color: '#FF7F00', weight: 5 },
+      { text: 'Доставка 0', type: 'delivery', value: 'FREE', color: '#00FF7F', weight: 5 },
+      { text: 'Повезет завтра', type: 'try_again', value: null, color: '#7F7F7F', weight: 5 }
+    ];
+
+    function getFortuneSpinCooldown() {
+      const lastSpin = window.userSettings?.last_fortune_spin;
+      if (!lastSpin) return 0;
+      const elapsed = Date.now() - new Date(lastSpin).getTime();
+      const cooldown = 24 * 60 * 60 * 1000;
+      return Math.max(0, cooldown - elapsed);
+    }
+
+    function getAISizeRecommendation(category, height, weight, measure, brand = '') {
+      if (!height && !weight && !measure) return null;
+      
+      const isShoes = ['Обувь', 'Кеды', 'Кроссовки', 'Ботинки', 'Сланцы', 'shoes', 'sneakers', 'boots', 'sandals'].some(keyword => 
+        category.toLowerCase().includes(keyword.toLowerCase())
+      );
+      
+      if (isShoes) {
+        if (measure) {
+          const cm = parseFloat(measure);
+          let eu = 35 + Math.round((cm - 22) * 1.5);
+          let us = 4 + Math.round((cm - 22) * 1.0);
+          return `Рекомендуем размер **EU ${eu}** / **US ${us}** (длина стельки ${cm} см).`;
+        }
+        return `Укажите длину стельки в см для точного подбора обуви.`;
+      }
+      
+      if (height && weight) {
+        const h = parseInt(height);
+        const w = parseFloat(weight);
+        
+        let size = 'M';
+        if (h < 165 && w < 55) size = 'XS';
+        else if (h < 172 && w < 65) size = 'S';
+        else if (h < 178 && w < 75) size = 'M';
+        else if (h < 185 && w < 85) size = 'L';
+        else if (h < 192 && w < 95) size = 'XL';
+        else size = 'XXL';
+        
+        let advice = `Рекомендуем размер **${size}** на основе вашего роста (${h} см) и веса (${w} кг).`;
+        if (brand) {
+          advice += ` Внимание: бренд ${brand} может маломерить, если сомневаетесь — берите на размер больше.`;
+        }
+        return advice;
+      }
+      
+      return `Заполните рост и вес (для одежды) или стельку (для обуви) для автоподбора размера.`;
+    }
+
+    async function showWheelOfFortuneModal() {
+      const cd = getFortuneSpinCooldown();
+      if (cd > 0) {
+        glassToast('Колесо Фортуны доступно один раз в 24 часа!', { kind: 'error' });
+        return;
+      }
+
+      tgUtil.haptic('impact');
+
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center z-[120] p-4';
+      modal.innerHTML = `
+        <div class="glass-card max-w-sm w-full p-5 text-center flex flex-col items-center relative overflow-hidden border border-white/20 shadow-2xl" style="background: rgba(15, 23, 42, 0.9);">
+          <div class="absolute -left-20 -top-20 w-44 h-44 rounded-full blur-3xl opacity-30" style="background: var(--ice-primary);"></div>
+          <div class="absolute -right-20 -bottom-20 w-44 h-44 rounded-full blur-3xl opacity-20" style="background: #8B5CF6;"></div>
+
+          <div class="w-full flex justify-between items-center mb-4 relative z-10">
+            <h3 class="text-white font-bold text-base flex items-center gap-1.5">
+              🔮 Колесо Удачи
+            </h3>
+            <button id="closeFortuneModalBtn" class="text-white/50 hover:text-white transition-colors text-lg">&times;</button>
+          </div>
+
+          <div class="relative w-[300px] h-[300px] my-4 flex items-center justify-center">
+            <canvas id="fortuneWheelCanvas" width="300" height="300" class="w-[300px] h-[300px]"></canvas>
+          </div>
+
+          <p id="fortuneStatusText" class="text-white/80 text-sm font-semibold mb-5 h-5 relative z-10">Испытайте вашу удачу!</p>
+
+          <button id="startFortuneSpinBtn" class="btn-primary w-full py-3 rounded-xl font-bold text-sm transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5 shadow-lg relative z-10" style="background: linear-gradient(135deg, var(--ice-primary), #8B5CF6); border: none;">
+            🔮 ЗАПУСТИТЬ КОЛЕСО!
+          </button>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      const canvas = document.getElementById('fortuneWheelCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      
+      const drawWheel = (rotation) => {
+        const size = 300;
+        const radius = size / 2;
+        ctx.clearRect(0, 0, size, size);
+        
+        ctx.save();
+        ctx.translate(radius, radius);
+        ctx.rotate(rotation);
+        
+        const N = FORTUNE_REWARDS.length;
+        const segmentAngle = (2 * Math.PI) / N;
+        
+        for (let i = 0; i < N; i++) {
+          const r = FORTUNE_REWARDS[i];
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.arc(0, 0, radius - 10, i * segmentAngle, (i + 1) * segmentAngle);
+          ctx.closePath();
+          
+          const grad = ctx.createRadialGradient(0, 0, 10, 0, 0, radius);
+          grad.addColorStop(0, '#0F172A');
+          grad.addColorStop(1, r.color);
+          ctx.fillStyle = grad;
+          ctx.fill();
+          
+          ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          
+          ctx.save();
+          ctx.rotate(i * segmentAngle + segmentAngle / 2);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = 'bold 11px Nunito';
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'middle';
+          ctx.shadowColor = 'rgba(0,0,0,0.6)';
+          ctx.shadowBlur = 4;
+          ctx.fillText(r.text, radius - 25, 0);
+          ctx.restore();
+        }
+        
+        ctx.restore();
+        
+        ctx.beginPath();
+        ctx.arc(radius, radius, 22, 0, 2 * Math.PI);
+        ctx.fillStyle = 'rgba(255,255,255,0.12)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.arc(radius, radius, 8, 0, 2 * Math.PI);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.moveTo(radius - 10, 10);
+        ctx.lineTo(radius + 10, 10);
+        ctx.lineTo(radius, 28);
+        ctx.closePath();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fill();
+        ctx.strokeStyle = '#0F172A';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      };
+
+      let currentRotation = 0;
+      drawWheel(currentRotation);
+
+      const closeModal = () => modal.remove();
+      document.getElementById('closeFortuneModalBtn').onclick = closeModal;
+
+      const spinBtn = document.getElementById('startFortuneSpinBtn');
+      if (spinBtn) {
+        spinBtn.onclick = async () => {
+          spinBtn.disabled = true;
+          spinBtn.innerText = 'Крутится...';
+          spinBtn.style.opacity = '0.7';
+          const closeBtn = document.getElementById('closeFortuneModalBtn');
+          if (closeBtn) closeBtn.style.display = 'none';
+
+          const rand = Math.random() * 100;
+          let sum = 0;
+          let targetIndex = 0;
+          for (let i = 0; i < FORTUNE_REWARDS.length; i++) {
+            sum += FORTUNE_REWARDS[i].weight;
+            if (rand <= sum) {
+              targetIndex = i;
+              break;
+            }
+          }
+          const reward = FORTUNE_REWARDS[targetIndex];
+
+          const N = FORTUNE_REWARDS.length;
+          const segmentAngle = (2 * Math.PI) / N;
+          const stopAngle = (1.5 * Math.PI) - (targetIndex + 0.5) * segmentAngle + (10 * Math.PI);
+
+          let startTime = null;
+          const duration = 4000;
+          let lastSpunSegment = -1;
+
+          const animate = async (timestamp) => {
+            if (!startTime) startTime = timestamp;
+            const elapsed = timestamp - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            const easeOut = 1 - Math.pow(1 - progress, 3);
+            currentRotation = easeOut * stopAngle;
+            
+            const currentSegment = Math.floor(((1.5 * Math.PI - currentRotation) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) / segmentAngle);
+            if (currentSegment !== lastSpunSegment) {
+              tgUtil.haptic('light');
+              lastSpunSegment = currentSegment;
+            }
+
+            drawWheel(currentRotation);
+
+            if (progress < 1) {
+              requestAnimationFrame(animate);
+            } else {
+              tgUtil.haptic('success');
+              
+              try {
+                const nowStr = new Date().toISOString();
+                const updatedSettings = {
+                  ...window.userSettings,
+                  last_fortune_spin: nowStr
+                };
+
+                let updateData = { settings: updatedSettings };
+                let resultText = '';
+
+                if (reward.type === 'ice') {
+                  const addedIce = reward.value;
+                  const newBalance = balance + addedIce;
+                  updateData.ices_balance = newBalance;
+                  balance = newBalance;
+                  document.getElementById('headerBalance').innerText = newBalance;
+                  resultText = `🎉 Вы выиграли ${addedIce} ICE!`;
+                } else if (reward.type === 'promo') {
+                  const promoPercent = reward.value === 'ICE5' ? 5 : 10;
+                  const generatedPromo = 'ICE' + promoPercent + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+                  
+                  const { error: promoErr } = await supabaseClient.from('promocodes').insert({
+                    code: generatedPromo,
+                    discount_type: 'percent',
+                    discount_value: promoPercent,
+                    is_active: true
+                  });
+                  if (promoErr) throw promoErr;
+                  
+                  resultText = `🎉 Промокод на ${promoPercent}%: ${generatedPromo}`;
+                } else if (reward.type === 'delivery') {
+                  updatedSettings.free_delivery_tokens = (updatedSettings.free_delivery_tokens || 0) + 1;
+                  updateData.settings = updatedSettings;
+                  resultText = `🎉 Бесплатная доставка на следующий заказ!`;
+                } else {
+                  resultText = `🍀 Повезет завтра! Удачи!`;
+                }
+
+                const { error: userUpErr } = await supabaseClient.from('users').update(updateData).eq('user_id', userId);
+                if (userUpErr) throw userUpErr;
+
+                window.userSettings = updatedSettings;
+
+                const statusTextEl = document.getElementById('fortuneStatusText');
+                if (statusTextEl) {
+                  statusTextEl.innerHTML = `<span class="text-green-400 font-bold">${resultText}</span>`;
+                  statusTextEl.classList.add('scale-105');
+                }
+                
+                spinBtn.innerText = 'Отлично!';
+                spinBtn.disabled = false;
+                spinBtn.style.opacity = '1';
+                spinBtn.onclick = () => {
+                  closeModal();
+                  renderCurrentScreen();
+                };
+
+              } catch (dbErr) {
+                console.error('Error saving fortune reward:', dbErr);
+                glassToast('Ошибка награды: ' + dbErr.message, { kind: 'error' });
+                spinBtn.innerText = 'Закрыть';
+                spinBtn.disabled = false;
+                spinBtn.onclick = closeModal;
+              }
+            }
+          };
+
+          requestAnimationFrame(animate);
+        };
+      }
+    }
+
     let tg = null, userId = null, userName = 'Гость', userAvatarUrl = null, isOwner = false, supabaseClient = null;
     let currentTab = 'home', previousTab = null, currentSubScreen = null;
 
@@ -2701,6 +3079,7 @@ const MAX_REQUESTS_TRUSTED = 100;
         
         // Save user's sizes in a global variable for auto-population
         window.userSizing = data.settings?.sizing || null;
+        window.userSettings = data.settings || {};
         
         document.getElementById('headerBalance').innerText = balance;
         applyTheme(data.settings?.theme || 'dark');
@@ -3603,6 +3982,14 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 <input type="number" id="calcMeasure" class="btn-secondary w-full p-2 text-xs text-center border border-white/20 rounded-lg bg-white/5 text-white" placeholder="27">
               </div>
             </div>
+            
+            <div id="calcAiSizeAdvisorBanner" class="mt-3 p-3 rounded-xl border border-violet-500/30 bg-violet-500/10 text-xs text-white/80 hidden cursor-pointer">
+              <p class="text-violet-400 font-bold flex items-center gap-1">
+                <span>🔮 ИИ-Советник по размеру</span>
+              </p>
+              <p class="mt-1 font-medium" id="calcAiSizeAdvisorText">Рекомендуем вам размер ... на основе ваших замеров.</p>
+              <p class="text-white/40 text-[9px] mt-1 leading-normal">✨ Нажмите, чтобы применить рекомендованный размер</p>
+            </div>
           </div>
 
           <label class="text-white/70 text-sm block">Вес товара (кг)</label>
@@ -3643,6 +4030,57 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
     if (w && window.userSizing.weight) w.value = window.userSizing.weight;
     if (m && window.userSizing.measure) m.value = window.userSizing.measure;
   }
+
+  // Calc Size Advisor logic
+  const updateCalcAiSizeAdvice = () => {
+    const category = document.getElementById('calcCategory')?.value || '';
+    const height = document.getElementById('calcHeight')?.value || '';
+    const weight = document.getElementById('calcWeightKg')?.value || '';
+    const measure = document.getElementById('calcMeasure')?.value || '';
+    
+    const advice = getAISizeRecommendation(category, height, weight, measure);
+    const banner = document.getElementById('calcAiSizeAdvisorBanner');
+    const textEl = document.getElementById('calcAiSizeAdvisorText');
+    
+    if (advice && banner && textEl) {
+      banner.classList.remove('hidden');
+      textEl.innerHTML = advice.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    } else if (banner) {
+      banner.classList.add('hidden');
+    }
+  };
+
+  ['calcCategory', 'calcHeight', 'calcWeightKg', 'calcMeasure'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', updateCalcAiSizeAdvice);
+      el.addEventListener('change', updateCalcAiSizeAdvice);
+    }
+  });
+  
+  const calcBanner = document.getElementById('calcAiSizeAdvisorBanner');
+  if (calcBanner) {
+    calcBanner.onclick = () => {
+      const category = document.getElementById('calcCategory')?.value || '';
+      const height = document.getElementById('calcHeight')?.value || '';
+      const weight = document.getElementById('calcWeightKg')?.value || '';
+      const measure = document.getElementById('calcMeasure')?.value || '';
+      const advice = getAISizeRecommendation(category, height, weight, measure);
+      if (advice) {
+        const sizeMatch = advice.match(/\*\*(.*?)\*\*/);
+        if (sizeMatch && sizeMatch[1]) {
+          const sizeInput = document.getElementById('calcSize');
+          if (sizeInput) {
+            sizeInput.value = sizeMatch[1];
+            tgUtil.haptic('light');
+            glassToast(`Размер ${sizeMatch[1]} применён!`, { kind: 'success' });
+          }
+        }
+      }
+    };
+  }
+
+  updateCalcAiSizeAdvice();
 
   // Проверяем, есть ли активированная акция (через баннер или сохранённую)
   if (window.activePromotionId) {
@@ -4469,6 +4907,35 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         }
       }
 
+      // Add domestic shipping fee (PVS fee)
+      const pvsMethod = document.getElementById('pvsMethodSelect')?.value || window.tempOrder?.pvs?.method || 'none';
+      const pvsCity = document.getElementById('pvsCitySelect')?.value || window.tempOrder?.pvs?.city || 'Минск';
+      const pvsPoint = document.getElementById('pvsPointSelect')?.value || window.tempOrder?.pvs?.point || '';
+      
+      const costMap = { none: 0, europoshta: 5, belpochta: 5, sdek: 8 };
+      const pvsCost = costMap[pvsMethod] || 0;
+      
+      const useFreeDelivery = document.getElementById('orderUseFreeDelivery')?.checked || window.tempOrder?.useFreeDelivery || false;
+      if (window.tempOrder) window.tempOrder.useFreeDelivery = useFreeDelivery;
+      
+      let deliveryDiscount = 0;
+      if (useFreeDelivery && window.userSettings?.free_delivery_tokens > 0) {
+        deliveryDiscount = pvsCost; // sets domestic fee to 0
+      }
+      
+      aggregatedBreakdown.delivery_cost_byn += pvsCost - deliveryDiscount;
+      aggregatedTotal += pvsCost - deliveryDiscount;
+      
+      // Update window.tempOrder.pvs
+      if (window.tempOrder) {
+        window.tempOrder.pvs = {
+          method: pvsMethod,
+          city: pvsCity,
+          point: pvsPoint,
+          cost: pvsCost
+        };
+      }
+
       window.tempOrder.total = aggregatedTotal;
       window.tempOrder.weight = aggregatedWeight;
       window.tempOrder.price = aggregatedOriginalPrice;
@@ -4635,6 +5102,48 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               <input type="checkbox" id="orderInsurance" ${window.tempOrder.insurance ? 'checked' : ''}>
               <label for="orderInsurance" class="text-white/70 text-sm"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span> Страховка (+2% от стоимости товаров)</label>
             </div>
+          </div>
+
+          <!-- Pick-up Point (PVS) Selector -->
+          <div class="bg-white/5 p-4 rounded-xl mb-4 space-y-3">
+            <p class="text-white/60 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5">
+              <span>🚚 Доставка по Беларуси:</span>
+            </p>
+            <div>
+              <label class="text-white/50 text-[10px] block mb-1">Служба доставки</label>
+              <select id="pvsMethodSelect" class="w-full p-3 rounded-xl border border-white/20 text-sm bg-slate-900 text-white">
+                <option value="none" ${(!window.tempOrder.pvs || window.tempOrder.pvs.method === 'none') ? 'selected' : ''}>Самовывоз / Почта (Без дополнительной платы)</option>
+                <option value="europoshta" ${(window.tempOrder.pvs?.method === 'europoshta') ? 'selected' : ''}>Европочта (до отделения) — 5.00 BYN</option>
+                <option value="belpochta" ${(window.tempOrder.pvs?.method === 'belpochta') ? 'selected' : ''}>Белпочта (до отделения) — 5.00 BYN</option>
+                <option value="sdek" ${(window.tempOrder.pvs?.method === 'sdek') ? 'selected' : ''}>СДЭК (до отделения) — 8.00 BYN</option>
+              </select>
+            </div>
+            
+            <div id="pvsDetailContainer" class="${(!window.tempOrder.pvs || window.tempOrder.pvs.method === 'none') ? 'hidden' : ''} space-y-3">
+              <div>
+                <label class="text-white/50 text-[10px] block mb-1">Город</label>
+                <select id="pvsCitySelect" class="w-full p-3 rounded-xl border border-white/20 text-sm bg-slate-900 text-white">
+                  ${['Минск', 'Гомель', 'Брест', 'Гродно', 'Витебск', 'Могилев', 'Барановичи', 'Бобруйск', 'Борисов', 'Лида', 'Мозырь', 'Новополоцк', 'Орша', 'Пинск', 'Солигорск'].map(c => `
+                    <option value="${c}" ${(window.tempOrder.pvs?.city === c) ? 'selected' : ''}>${c}</option>
+                  `).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="text-white/50 text-[10px] block mb-1">Пункт выдачи / Отделение</label>
+                <select id="pvsPointSelect" class="w-full p-3 rounded-xl border border-white/20 text-sm bg-slate-900 text-white">
+                  <!-- Will be populated dynamically -->
+                </select>
+              </div>
+            </div>
+            
+            ${(window.userSettings?.free_delivery_tokens > 0) ? `
+              <div class="flex items-center justify-between p-3 rounded-xl border border-green-500/30 bg-green-500/10 mt-3">
+                <div class="flex items-center gap-2 text-left">
+                  <input type="checkbox" id="orderUseFreeDelivery" class="w-5 h-5 accent-green-500" ${window.tempOrder.useFreeDelivery ? 'checked' : ''}>
+                  <label for="orderUseFreeDelivery" class="text-white text-xs font-semibold leading-snug">Использовать купон на бесплатную доставку (осталось: ${window.userSettings.free_delivery_tokens})</label>
+                </div>
+              </div>
+            ` : ''}
           </div>
 
           <!-- Promo Code -->
@@ -4853,6 +5362,14 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                     <input type="number" id="orderMeasure" class="btn-secondary w-full p-2 text-xs text-center border border-white/20 rounded-lg" placeholder="27">
                   </div>
                 </div>
+                
+                <div id="aiSizeAdvisorBanner" class="mt-3 p-3 rounded-xl border border-violet-500/30 bg-violet-500/10 text-xs text-white/80 hidden cursor-pointer">
+                  <p class="text-violet-400 font-bold flex items-center gap-1">
+                    <span>🔮 ИИ-Советник по размеру</span>
+                  </p>
+                  <p class="mt-1 font-medium" id="aiSizeAdvisorText">Рекомендуем вам размер ... на основе ваших замеров.</p>
+                  <p class="text-white/40 text-[9px] mt-1 leading-normal">✨ Нажмите, чтобы применить рекомендованный размер</p>
+                </div>
               </div>
             </div>
             
@@ -4942,6 +5459,69 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           });
         }
 
+        // PVS Selection Handlers
+        const pvsMethodSelect = document.getElementById('pvsMethodSelect');
+        const pvsCitySelect = document.getElementById('pvsCitySelect');
+        const pvsPointSelect = document.getElementById('pvsPointSelect');
+        const pvsDetailContainer = document.getElementById('pvsDetailContainer');
+        const orderUseFreeDelivery = document.getElementById('orderUseFreeDelivery');
+
+        const populatePvsPoints = () => {
+          const method = pvsMethodSelect?.value || 'none';
+          const city = pvsCitySelect?.value || 'Минск';
+          if (!pvsPointSelect) return;
+          
+          if (method === 'none') {
+            if (pvsDetailContainer) pvsDetailContainer.classList.add('hidden');
+            return;
+          }
+          
+          if (pvsDetailContainer) pvsDetailContainer.classList.remove('hidden');
+          
+          const list = PVS_DATA[method]?.[city] || PVS_DATA[method]?.['default'] || ['Основное отделение'];
+          const currentSavedPoint = window.tempOrder?.pvs?.point;
+          
+          pvsPointSelect.innerHTML = list.map(p => `
+            <option value="${p}" ${currentSavedPoint === p ? 'selected' : ''}>${p}</option>
+          `).join('');
+          
+          const costMap = { none: 0, europoshta: 5, belpochta: 5, sdek: 8 };
+          window.tempOrder.pvs = {
+            method: method,
+            city: city,
+            point: pvsPointSelect.value,
+            cost: costMap[method] || 0
+          };
+        };
+
+        if (pvsMethodSelect) {
+          pvsMethodSelect.addEventListener('change', () => {
+            populatePvsPoints();
+            recalculateOrderTotals();
+          });
+        }
+        if (pvsCitySelect) {
+          pvsCitySelect.addEventListener('change', () => {
+            populatePvsPoints();
+            recalculateOrderTotals();
+          });
+        }
+        if (pvsPointSelect) {
+          pvsPointSelect.addEventListener('change', () => {
+            if (window.tempOrder?.pvs) {
+              window.tempOrder.pvs.point = pvsPointSelect.value;
+            }
+            recalculateOrderTotals();
+          });
+        }
+        if (orderUseFreeDelivery) {
+          orderUseFreeDelivery.addEventListener('change', () => {
+            if (window.tempOrder) window.tempOrder.useFreeDelivery = orderUseFreeDelivery.checked;
+            recalculateOrderTotals();
+          });
+        }
+
+        populatePvsPoints();
         recalculateOrderTotals();
 
         // Promo code application
@@ -5055,6 +5635,12 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
             try {
               const bk = window.tempOrder.breakdown || {};
+              const pvs = window.tempOrder.pvs || { method: 'none' };
+              let pvsAddress = '';
+              if (pvs.method !== 'none') {
+                pvsAddress = `${pvs.method === 'europoshta' ? 'Европочта' : pvs.method === 'sdek' ? 'СДЭК' : 'Белпочта'} | ${pvs.city} | ${pvs.point}`;
+              }
+
               const { data, error } = await supabaseClient.from('orders').insert({
                 user_id: userId,
                 source_url: consolidatedOrder.url,
@@ -5077,10 +5663,21 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 prepayment_amount: window.tempOrder.total_byn * 0.75,
                 status: 'pending',
                 discount_applied: window.tempOrder.discountAmount || 0,
-                promo_code: window.tempOrder.appliedPromo?.code || null
+                promo_code: window.tempOrder.appliedPromo?.code || null,
+                tracking_number_by: pvsAddress || null
               }).select();
 
               if (error) throw error;
+
+              // Consume free delivery token if checked
+              if (window.tempOrder.useFreeDelivery && window.userSettings?.free_delivery_tokens > 0) {
+                const updatedSettings = {
+                  ...window.userSettings,
+                  free_delivery_tokens: window.userSettings.free_delivery_tokens - 1
+                };
+                await supabaseClient.from('users').update({ settings: updatedSettings }).eq('user_id', userId);
+                window.userSettings = updatedSettings;
+              }
 
               tgUtil.haptic('success');
               tgUtil.alert(`Заказ создан! Номер: ${data[0].id}. Сумма предоплаты: ${(window.tempOrder.total_byn * 0.75).toFixed(2)} BYN`);
@@ -5116,6 +5713,60 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           if (w && window.userSizing.weight) w.value = window.userSizing.weight;
           if (m && window.userSizing.measure) m.value = window.userSizing.measure;
         }
+
+        // New Order Size Advisor logic
+        const updateAiSizeAdvice = () => {
+          const category = document.getElementById('orderCategory')?.value || '';
+          const brand = document.getElementById('orderBrand')?.value || '';
+          const height = document.getElementById('orderHeight')?.value || '';
+          const weight = document.getElementById('orderWeightKg')?.value || '';
+          const measure = document.getElementById('orderMeasure')?.value || '';
+          
+          const advice = getAISizeRecommendation(category, height, weight, measure, brand);
+          const banner = document.getElementById('aiSizeAdvisorBanner');
+          const textEl = document.getElementById('aiSizeAdvisorText');
+          
+          if (advice && banner && textEl) {
+            banner.classList.remove('hidden');
+            textEl.innerHTML = advice.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+          } else if (banner) {
+            banner.classList.add('hidden');
+          }
+        };
+
+        ['orderCategory', 'orderBrand', 'orderHeight', 'orderWeightKg', 'orderMeasure'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.addEventListener('input', updateAiSizeAdvice);
+            el.addEventListener('change', updateAiSizeAdvice);
+          }
+        });
+
+        const manualBanner = document.getElementById('aiSizeAdvisorBanner');
+        if (manualBanner) {
+          manualBanner.onclick = () => {
+            const category = document.getElementById('orderCategory')?.value || '';
+            const brand = document.getElementById('orderBrand')?.value || '';
+            const height = document.getElementById('orderHeight')?.value || '';
+            const weight = document.getElementById('orderWeightKg')?.value || '';
+            const measure = document.getElementById('orderMeasure')?.value || '';
+            const advice = getAISizeRecommendation(category, height, weight, measure, brand);
+            if (advice) {
+              const sizeMatch = advice.match(/\*\*(.*?)\*\*/);
+              if (sizeMatch && sizeMatch[1]) {
+                const sizeInput = document.getElementById('orderSize');
+                if (sizeInput) {
+                  sizeInput.value = sizeMatch[1];
+                  tgUtil.haptic('light');
+                  glassToast(`Размер ${sizeMatch[1]} применён!`, { kind: 'success' });
+                }
+              }
+            }
+          };
+        }
+
+        updateAiSizeAdvice();
+
         const urlInp = document.getElementById('orderUrl');
         const analyzeOrderBtn = document.getElementById('analyzeOrderLinkBtn');
 
@@ -5681,15 +6332,61 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       }
     }
     // ==================== РЕНДЕР МОИХ ЗАКАЗОВ (ДЛЯ ПРОФИЛЯ) ====================
-function getTimelineProgress(status) {
-  const progressMap = {
-    'pending': 0, 'paid': 0,
-    'bought': 25,
-    'on_sklad_cn': 50, 'in_transit': 50,
-    'in_belarus': 75,
-    'delivered': 100, 'cancelled': 0
+function getStatusSteps(status) {
+  const steps = [
+    { label: 'Оплачен', active: ['paid', 'bought', 'on_sklad_cn', 'in_transit', 'in_belarus', 'delivered'] },
+    { label: 'Выкуплен', active: ['bought', 'on_sklad_cn', 'in_transit', 'in_belarus', 'delivered'] },
+    { label: 'В пути', active: ['in_transit', 'in_belarus', 'delivered'] },
+    { label: 'Прибыл', active: ['in_belarus', 'delivered'] }
+  ];
+  return steps;
+}
+
+function getDeliveryCountdownText(order) {
+  if (order.status === 'delivered') {
+    return '<span class="text-green-400 font-bold">🎉 Доставлен!</span>';
+  }
+  if (order.status === 'cancelled') {
+    return '<span class="text-red-400">❌ Отменен</span>';
+  }
+  
+  const createdDate = new Date(order.created_at);
+  let daysMin = 10;
+  let daysMax = 15;
+  if (order.source_country === 'PL') {
+    daysMin = 14;
+    daysMax = 20;
+  } else if (order.source_country === 'RU') {
+    daysMin = 3;
+    daysMax = 5;
+  }
+  
+  if (window.buyerVacation && window.buyerVacation.active) {
+    const vDays = window.buyerVacation.days || 0;
+    daysMin += vDays;
+    daysMax += vDays;
+  }
+  
+  const addDays = (date, days) => {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
   };
-  return progressMap[status] || 0;
+  
+  const minEstDate = addDays(createdDate, daysMin);
+  const maxEstDate = addDays(createdDate, daysMax);
+  
+  const now = new Date();
+  const diffTime = maxEstDate - now;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  const formattedRange = `${minEstDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} — ${maxEstDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}`;
+  
+  if (diffDays <= 0) {
+    return `<span class="text-cyan-400">⏳ Ожидается со дня на день (${formattedRange})</span>`;
+  }
+  
+  return `<span class="text-cyan-400">⏳ Ожидается: ~${diffDays} дн. (${formattedRange})</span>`;
 }
 
 async function renderMyOrders() {
@@ -5731,17 +6428,40 @@ async function renderMyOrders() {
                 </div>
               </div>
             ` : ''}
-            <div class="mt-3">
-              <div class="flex items-center justify-between text-xs text-white/50 mb-1">
-                <span><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span> Выкуплен</span>
-                <span><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.2.6-.6.5-1.1z"/></svg></span> В пути</span>
-                <span>🇧🇾 В РБ</span>
-                <span><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Доставлен</span>
+            
+            <!-- Modern Premium Timeline Widget -->
+            <div class="mt-4 bg-white/5 p-4 rounded-xl border border-white/10">
+              <p class="text-white/60 text-xs font-semibold mb-2">Статус доставки:</p>
+              <div class="flex items-center justify-between gap-1 mb-2">
+                ${getStatusSteps(order.status).map((step, sIdx) => {
+                  const isActive = step.active.includes(order.status);
+                  const circleHtml = `
+                    <div class="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold transition-all duration-500 ${isActive ? 'bg-cyan-500 text-slate-900 shadow-[0_0_10px_rgba(6,182,212,0.5)]' : 'bg-white/10 text-white/50'}" style="border: 1px solid ${isActive ? 'var(--ice-primary)' : 'rgba(255,255,255,0.1)'}">
+                      ${sIdx + 1}
+                    </div>
+                  `;
+                  const labelHtml = `<span class="text-[9px] mt-1 text-center font-medium ${isActive ? 'text-white' : 'text-white/40'}">${step.label}</span>`;
+                  return `
+                    <div class="flex-1 flex flex-col items-center">
+                      ${circleHtml}
+                      ${labelHtml}
+                    </div>
+                  `;
+                }).join('<div class="h-[1.5px] w-4 bg-white/10 -mt-5 flex-shrink-0"></div>')}
               </div>
-              <div class="btn-secondary h-2 w-full overflow-hidden">
-                <div class="btn-primary h-full transition-all" style="width: ${getTimelineProgress(order.status)}%;"></div>
+              
+              <div class="text-xs text-white/70 border-t border-white/5 pt-2 mt-2 flex justify-between items-center">
+                <span>Оценка доставки:</span>
+                <span class="font-semibold">${getDeliveryCountdownText(order)}</span>
               </div>
+              ${order.tracking_number_by ? `
+                <div class="text-[10px] text-white/60 mt-1.5 flex justify-between items-center border-t border-white/5 pt-1.5">
+                  <span>Доставка по РБ:</span>
+                  <span class="font-semibold text-white/80">${order.tracking_number_by}</span>
+                </div>
+              ` : ''}
             </div>
+
             <button class="btn-secondary mt-3 w-full text-white" onclick="window.open('https://t.me/icelogix_bot?text=Вопрос по заказу ${order.id.slice(0,8)}', '_blank')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> Написать в поддержку</button>
           </div>
         `).join('')}
@@ -5852,6 +6572,33 @@ async function renderMyOrders() {
           Скопировать ссылку
         </button>
       ` : ''}
+    </div>
+  </div>
+  
+  <!-- Wheel of Fortune Section -->
+  <div class="glass-card mb-5 page-enter overflow-hidden relative" style="background: linear-gradient(135deg, rgba(91,191,235,0.15), rgba(139,92,246,0.15)); border: 1px solid rgba(139,92,246,0.25);">
+    <div class="absolute -right-10 -top-10 w-32 h-32 rounded-full blur-2xl" style="background: rgba(139,92,246,0.3);"></div>
+    <div class="flex items-center justify-between p-4 relative z-10">
+      <div class="space-y-0.5 text-left">
+        <h3 class="text-white font-bold text-sm flex items-center gap-1.5">
+          <span>🔮 Колесо Фортуны</span>
+        </h3>
+        <p class="text-white/60 text-[10px]">Выигрывайте ICE, промокоды и доставку ежедневно!</p>
+      </div>
+      ${(() => {
+        const cooldownMs = getFortuneSpinCooldown();
+        if (cooldownMs > 0) {
+          const hours = Math.floor(cooldownMs / (1000 * 60 * 60));
+          const minutes = Math.floor((cooldownMs % (1000 * 60 * 60)) / (1000 * 60));
+          return `<button id="spinFortuneWheelBtn" disabled class="py-2 px-4 rounded-xl text-xs font-bold bg-white/10 text-white/40 cursor-not-allowed border border-white/5 flex items-center gap-1">
+            ⏳ ${hours}ч ${minutes}м
+          </button>`;
+        } else {
+          return `<button id="spinFortuneWheelBtn" class="btn-primary py-2 px-4 rounded-xl text-xs font-bold shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-1" style="background: linear-gradient(135deg, var(--ice-primary), #8B5CF6); border: none;">
+            🔮 Крутить!
+          </button>`;
+        }
+      })()}
     </div>
   </div>
   
@@ -5975,6 +6722,11 @@ async function renderMyOrders() {
     myOrdersBtn.onclick = () => { currentSubScreen = 'myOrders'; renderCurrentScreen(); };
   } else {
     console.error('myOrdersBtn NOT found');
+  }
+
+  const spinFortuneBtn = document.getElementById('spinFortuneWheelBtn');
+  if (spinFortuneBtn) {
+    spinFortuneBtn.onclick = () => showWheelOfFortuneModal();
   }
 
   const wishlistBtn = document.getElementById('wishlistBtn');
