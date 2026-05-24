@@ -6640,18 +6640,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
   };
 });
 
-  async function addToCart(productId, quantity = 1) {
-  if (!userId) { tgUtil.alert('Авторизуйтесь'); return; }
-  // Проверяем, есть ли уже такой товар
-  const { data: existing } = await supabaseClient.from('cart').select('id, quantity').eq('user_id', userId).eq('product_id', productId).maybeSingle();
-  if (existing) {
-    await supabaseClient.from('cart').update({ quantity: existing.quantity + quantity, updated_at: new Date() }).eq('id', existing.id);
-  } else {
-    await supabaseClient.from('cart').insert({ user_id: userId, product_id: productId, quantity });
-  }
-  updateCartBadge();
-  tgUtil.alert('Товар добавлен в корзину');
-}
+
 
 }
 
@@ -6808,32 +6797,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       }
     }
 
-    // ==================== РЕНДЕР АДМИНКИ (С ПРОВЕРКАМИ) ====================
-    async function renderMarketplacesAdminList() {
-  try {
-    const { data, error } = await supabaseClient.from('marketplaces').select('*').order('sort_order', { ascending: true });
-    if (error) throw error;
-    if (!data || data.length === 0) return '<p class="text-white/70 text-center py-2">Нет площадок</p>';
-    
-    return data.map(mp => `
-      <div class="flex items-center justify-between p-2 bg-white/5 rounded-lg">
-        <div class="flex items-center gap-2">
-          ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-8 h-8 object-contain rounded">` : '<span class="btn-secondary w-8 h-8 flex items-center justify-center"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span></span>'}
-          <div>
-            <span class="text-white">${mp.name}</span>
-            <span class="text-white/50 text-xs block">${mp.country}</span>
-          </div>
-        </div>
-        <div>
-          <button class="editMarketplaceBtn text-cyan-400 mr-2" data-id="${mp.id}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span></button>
-          <button class="deleteMarketplaceBtn text-red-400" data-id="${mp.id}"><span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></span></button>
-        </div>
-      </div>
-    `).join('');
-  } catch (err) {
-    return '<p class="text-red-400">Ошибка загрузки</p>';
-  }
-}
+
 
 async function renderAdminOrdersList() {
   try {
