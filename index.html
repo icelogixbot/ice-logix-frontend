@@ -370,10 +370,12 @@
       50% { box-shadow: 0 4px 30px rgba(91, 191, 235, 0.7), 0 0 60px rgba(91, 191, 235, 0.4); }
     }
     
+    @media (hover: hover) {
     .tab-item.new-order:hover {
       transform: scale(1.05) translateY(-2px);
       box-shadow: 0 8px 30px rgba(91, 191, 235, 0.6), 0 0 50px rgba(91, 191, 235, 0.3);
     }
+  }
     
     .tab-item.new-order::after { display: none; }
     
@@ -752,10 +754,12 @@
       transition: all 0.3s ease;
       margin-bottom: 16px;
     }
+    @media (hover: hover) {
     .global-back-btn:hover {
       background: var(--glass-bg-strong);
       transform: translateX(-4px);
     }
+  }
     body.tg-native-back .global-back-btn { display: none !important; }
     
     /* Review & Course Cards */
@@ -3388,7 +3392,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
       return `
         <div class="glass-card">
-          <h2 class="text-xl font-bold mb-4"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Калькулятор стоимости</h2>
+          
           <div id="activePromoInfo" class="btn-primary mb-3 p-3 /10 rounded-xl border border-cyan-500/30 hidden">
           <p class="text-cyan-400 font-bold"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></span> Акция: <span id="promoTitle"></span></p>
           <p class="text-white/70 text-sm" id="promoDesc"></p>
@@ -3509,7 +3513,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             <div class="flex flex-col gap-2 mt-3">
               <button id="toNewOrderBtn" class="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded-xl">Перенести в заказ</button>
               <button id="calcLegitCheckBtn" class="btn-secondary w-full py-2 rounded-xl flex items-center justify-center gap-2">
-                <span>🔍 AI Проверка подлинности</span>
+                <span><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> AI Проверка подлинности</span>
               </button>
             </div>
           </div>
@@ -3519,6 +3523,13 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
     }
 
     async function attachCalculatorHandlers() {
+  window.selectCalcCountry = (c) => {
+    window.calcCountry = c;
+    renderCurrentScreen();
+  };
+
+  if (!window.calcCountry) return;
+
   // Проверяем, есть ли активированная акция (через баннер или сохранённую)
   if (window.activePromotionId) {
     const { data: promo } = await supabaseClient.from('promotions').select('*').eq('id', window.activePromotionId).single();
@@ -3815,13 +3826,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             }
           }
         }
-        if (result.country) {
-          const countrySel = document.getElementById('calcSourceCountry');
-          if (countrySel) {
-            const opt = Array.from(countrySel.options).find(o => o.value === result.country);
-            if (opt) { countrySel.value = result.country; countrySel.dispatchEvent(new Event('change')); }
-          }
-        }
+        
         const currencySymbols = { GBP: '£', USD: '$', EUR: '€', CNY: '¥', RUB: '₽', BYN: 'Br' };
         const currLabel = document.getElementById('calcPriceCurrency');
         if (currLabel) {
@@ -4383,7 +4388,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         // Step 1: Country Selection
         return `
           <div class="glass-card page-enter">
-            <h2 class="text-xl font-bold mb-4 text-center">🌍 Выберите страну доставки</h2>
+            <h2 class="text-xl font-bold mb-4 text-center"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span> Выберите страну доставки</h2>
             <p class="text-white/60 text-sm text-center mb-6">От страны зависят тарифы на доставку, сроки и таможенные пошлины.</p>
             
             <div class="grid grid-cols-1 gap-4">
@@ -4395,7 +4400,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                   <p class="text-xs text-white/50 mt-0.5">Огромный выбор, лучшие цены на оригиналы</p>
                   <div class="flex gap-4 mt-2 text-xs">
                     <span class="text-cyan-400 font-semibold">⚡ $10 / кг</span>
-                    <span class="text-white/60">🕒 10-15 дней</span>
+                    <span class="text-white/60"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> 10-15 дней</span>
                   </div>
                 </div>
               </div>
@@ -4408,7 +4413,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                   <p class="text-xs text-white/50 mt-0.5">100% оригинальные европейские коллекции</p>
                   <div class="flex gap-4 mt-2 text-xs">
                     <span class="text-cyan-400 font-semibold">⚡ $15 / кг</span>
-                    <span class="text-white/60">🕒 14-20 дней</span>
+                    <span class="text-white/60"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> 14-20 дней</span>
                   </div>
                 </div>
               </div>
@@ -4421,7 +4426,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                   <p class="text-xs text-white/50 mt-0.5">Сверхбыстрая доставка, без пошлин ЕАЭС</p>
                   <div class="flex gap-4 mt-2 text-xs">
                     <span class="text-cyan-400 font-semibold">⚡ $5 / кг</span>
-                    <span class="text-white/60">🕒 3-5 дней</span>
+                    <span class="text-white/60"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> 3-5 дней</span>
                   </div>
                 </div>
               </div>
@@ -4444,7 +4449,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         if (window.tempOrder.items.length === 0) {
           itemsHtml = `
             <div class="text-center py-8 text-white/40 text-sm bg-white/5 rounded-2xl border border-dashed border-white/10">
-              📭 У вас пока нет добавленных товаров.<br>Нажмите «➕ Добавить товар» ниже 👇
+              <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7V4h16v3M4 7l8 4 8-4M4 7v13h16V7"/></svg></span> У вас пока нет добавленных товаров.<br>Нажмите «➕ Добавить товар» ниже 👇
             </div>
           `;
         } else {
@@ -4458,7 +4463,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                   <div class="text-xs text-white/60 mt-0.5">Размер: ${item.size || 'не указан'} · Категория: ${item.category}</div>
                   <div class="text-xs text-cyan-400 font-bold mt-1">${item.price} ${item.currency} (${item.total_byn.toFixed(2)} BYN)</div>
                 </div>
-                <button type="button" class="bg-red-500/20 hover:bg-red-500/40 text-red-400 rounded-full w-8 h-8 flex items-center justify-center transition" onclick="deleteOrderItem(${idx})">🗑</button>
+                <button type="button" class="bg-red-500/20 hover:bg-red-500/40 text-red-400 rounded-full w-8 h-8 flex items-center justify-center transition" onclick="deleteOrderItem(${idx})"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button>
               </div>
             `;
           }).join('');
@@ -4514,7 +4519,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             </div>
 
             <button id="createOrderFinal" class="w-full bg-green-600 hover:bg-green-700 py-3 rounded-xl font-bold flex items-center justify-center gap-2">
-              🚀 Оформить заказ
+              <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></span> Оформить заказ
             </button>
           </div>
         ` : '';
@@ -4522,9 +4527,9 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         return `
           <div class="glass-card page-enter">
             <div class="flex justify-between items-center mb-4">
-              <h2 class="text-lg font-bold">📦 Оформление заказа</h2>
+              <h2 class="text-lg font-bold"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></span> Оформление заказа</h2>
               <button class="text-xs text-cyan-400 bg-white/5 px-3 py-1.5 rounded-full hover:bg-white/10 transition" onclick="resetOrderCountry()">
-                ${window.orderCountry === 'CN' ? '🇨🇳 Китай' : window.orderCountry === 'PL' ? '🇵🇱 Польша' : '🇷🇺 Россия'} 🔄 Сменить
+                ${window.orderCountry === 'CN' ? '🇨🇳 Китай' : window.orderCountry === 'PL' ? '🇵🇱 Польша' : '🇷🇺 Россия'} <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></span> Сменить
               </button>
             </div>
             
@@ -4565,13 +4570,13 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             <p class="text-white/60 text-xs mb-2">Ввод данных (если вы сами нашли товар):</p>
             <div class="grid grid-cols-2 gap-2 mb-4">
               <button type="button" class="order-mode-btn ${subMode === 'manual' ? 'btn-primary' : 'btn-secondary'} transition text-xs font-bold py-2.5" onclick="setOrderAddSubMode('manual')">✍️ Вручную</button>
-              <button type="button" class="order-mode-btn ${subMode === 'link' ? 'btn-primary' : 'btn-secondary'} transition text-xs font-bold py-2.5" onclick="setOrderAddSubMode('link')">🔗 По ссылке / Скриншоту</button>
+              <button type="button" class="order-mode-btn ${subMode === 'link' ? 'btn-primary' : 'btn-secondary'} transition text-xs font-bold py-2.5" onclick="setOrderAddSubMode('link')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span> По ссылке / Скриншоту</button>
             </div>
             
             <p class="text-white/60 text-xs mb-2">Поиск товара (если хотите найти через ИИ):</p>
             <div class="grid grid-cols-2 gap-2">
-              <button type="button" class="order-mode-btn ${subMode === 'photo' ? 'btn-primary' : 'btn-secondary'} transition text-xs font-bold py-2.5" onclick="setOrderAddSubMode('photo')">📸 По фото</button>
-              <button type="button" class="order-mode-btn ${subMode === 'text' ? 'btn-primary' : 'btn-secondary'} transition text-xs font-bold py-2.5" onclick="setOrderAddSubMode('text')">📝 По описанию</button>
+              <button type="button" class="order-mode-btn ${subMode === 'photo' ? 'btn-primary' : 'btn-secondary'} transition text-xs font-bold py-2.5" onclick="setOrderAddSubMode('photo')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span> По фото</button>
+              <button type="button" class="order-mode-btn ${subMode === 'text' ? 'btn-primary' : 'btn-secondary'} transition text-xs font-bold py-2.5" onclick="setOrderAddSubMode('text')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span> По описанию</button>
             </div>
           </div>
           
@@ -4581,7 +4586,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             <label class="text-white/70 text-sm block mb-1">Ссылка на товар</label>
             <div class="flex gap-2">
               <input type="text" id="orderUrl" class="btn-secondary flex-1 p-3 rounded-xl border border-white/30 text-sm" placeholder="Вставьте ссылку на Poizon, Taobao...">
-              <button id="analyzeOrderLinkBtn" class="btn-primary whitespace-nowrap transition flex-shrink-0">🔍 Найти</button>
+              <button id="analyzeOrderLinkBtn" class="btn-primary whitespace-nowrap transition flex-shrink-0"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Найти</button>
             </div>
             <p class="text-white/40 text-xs mt-1.5">Если ссылка не распознается, мы предложим загрузить скриншот.</p>
           </div>
@@ -4590,15 +4595,15 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           <div id="paneOrderPhoto" class="mode-pane ${subMode === 'photo' ? '' : 'hidden'} mb-4">
             <label class="text-white/70 text-sm block mb-1">Фото товара (можно до 5)</label>
             <div id="orderPhotoUploadZone" class="screenshot-upload-zone p-4 border-2 border-dashed border-white/30 rounded-xl text-center cursor-pointer hover:bg-white/5 transition">
-              <span class="text-3xl mb-1 block">📸</span>
+              <span class="text-3xl mb-1 block"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span></span>
               <span class="text-sm font-semibold block text-white">Загрузить фото товара</span>
               <span class="text-xs text-white/50 block mt-1">До 5 детальных фото для точного поиска</span>
               <input type="file" id="orderPhotoInput" accept="image/*" multiple class="hidden">
             </div>
-            <div id="orderPhotoPreview" class="hidden mt-2 grid grid-cols-3 gap-2"></div>
+            <div id="orderPhotoPreview" class="hidden mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2"></div>
             <label class="text-white/70 text-xs mt-2 block">Описание (опционально) — улучшит поиск</label>
             <input id="orderPhotoHint" type="text" placeholder="Напр. Calvin Klein zip hoodie серый M" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm">
-            <button id="orderPhotoSearchBtn" class="btn-primary w-full mt-2 transition">🔍 Найти этот товар</button>
+            <button id="orderPhotoSearchBtn" class="btn-primary w-full mt-2 transition"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Найти этот товар</button>
           </div>
           
           <!-- Text Mode Pane -->
@@ -4606,7 +4611,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             <label class="text-white/70 text-sm block mb-1">Описание товара</label>
             <input type="text" id="orderTextQuery" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Например: Nike Dunk Low Panda кроссовки">
             <p class="text-white/40 text-xs mt-1">ИИ распознает бренд, модель и категорию автоматически.</p>
-            <button id="orderTextSearchBtn" class="btn-primary w-full mt-2 transition">🔍 Искать товар</button>
+            <button id="orderTextSearchBtn" class="btn-primary w-full mt-2 transition"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Искать товар</button>
           </div>
           
           <!-- Shared Search Results Box -->
@@ -4656,8 +4661,8 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               <div class="mb-3">
                 <label class="text-white/50 text-xs block mb-1">Пол</label>
                 <div class="flex gap-2" id="orderGenderSelector">
-                  <button type="button" data-gender="male" class="filter-chip flex-1 py-2 text-center text-xs border border-white/10 hover:bg-white/5 transition" onclick="selectOrderGender('male')">👨 Мужской</button>
-                  <button type="button" data-gender="female" class="filter-chip flex-1 py-2 text-center text-xs border border-white/10 hover:bg-white/5 transition" onclick="selectOrderGender('female')">👩 Женский</button>
+                  <button type="button" data-gender="male" class="filter-chip flex-1 py-2 text-center text-xs border border-white/10 hover:bg-white/5 transition" onclick="selectOrderGender('male')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> Мужской</button>
+                  <button type="button" data-gender="female" class="filter-chip flex-1 py-2 text-center text-xs border border-white/10 hover:bg-white/5 transition" onclick="selectOrderGender('female')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> Женский</button>
                   <button type="button" data-gender="unisex" class="filter-chip flex-1 py-2 text-center text-xs border border-white/10 hover:bg-white/5 transition" onclick="selectOrderGender('unisex')">⚧️ Унисекс</button>
                   <input type="hidden" id="orderGender" value="">
                 </div>
@@ -4683,7 +4688,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               
               <!-- Sizing helper inputs block -->
               <div class="border border-cyan-500/20 bg-cyan-500/5 p-3 rounded-xl">
-                <p class="text-cyan-400 text-xs font-bold mb-1 flex items-center gap-1">📐 Ввод замеров для ИИ-подбора размера (Рекомендуется)</p>
+                <p class="text-cyan-400 text-xs font-bold mb-1 flex items-center gap-1"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 21H3L21 3v18z"/><path d="M15 15l2-2"/><path d="M11 19l2-2"/><path d="M13 13l2-2"/></svg></span> Ввод замеров для ИИ-подбора размера (Рекомендуется)</p>
                 <p class="text-white/50 text-[10px] mb-2">Наш партнер подберет размер идеально на основе этих данных</p>
                 <div class="grid grid-cols-3 gap-2">
                   <div>
@@ -4702,6 +4707,16 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               </div>
             </div>
             
+            
+            <!-- Product Weight -->
+            <div class="mb-4">
+              <label class="text-white/70 text-sm block">Вес товара (кг) <span class="text-white/40 text-xs">- влияет на стоимость доставки</span></label>
+              <div class="flex items-center gap-3 mt-1">
+                <input type="range" id="orderWeight" min="0.1" max="30" step="0.1" value="1" class="flex-1 accent-cyan-500">
+                <span id="orderWeightVal" class="text-white/80 bg-white/10 px-3 py-1 rounded-full whitespace-nowrap text-xs font-bold">1.0 кг</span>
+              </div>
+            </div>
+
             <!-- Price & Currency combined in a single row -->
             <div class="mb-4">
               <label class="text-white/70 text-sm block mb-1">Цена с валютой</label>
@@ -4723,7 +4738,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             </div>
             
             <button id="orderSaveItemBtn" class="btn-primary w-full py-3.5 rounded-xl font-bold transition flex items-center justify-center gap-2">
-              💾 Добавить товар в заказ
+              <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></span> Добавить товар в заказ
             </button>
           </div>
         </div>
@@ -4836,6 +4851,15 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           };
         }
 
+        
+        const orderWeightInp = document.getElementById('orderWeight');
+        const orderWeightVal = document.getElementById('orderWeightVal');
+        if (orderWeightInp && orderWeightVal) {
+          orderWeightInp.addEventListener('input', () => {
+            orderWeightVal.innerText = parseFloat(orderWeightInp.value).toFixed(1) + ' кг';
+          });
+        }
+
         // Submit final order to Supabase
         const createBtn = document.getElementById('createOrderFinal');
         if (createBtn) {
@@ -4852,7 +4876,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             const consolidatedOrder = {
               price: window.tempOrder.price || 0,
               currency: window.tempOrder.items?.[0]?.currency || 'CNY',
-              weight: window.tempOrder.weight || 1,
+              weight: document.getElementById('orderWeight') ? parseFloat(document.getElementById('orderWeight').value) : (window.tempOrder.weight || 1),
               category: window.tempOrder.items?.[0]?.category || '',
               country: window.orderCountry,
               url: window.tempOrder.items?.[0]?.url || '',
