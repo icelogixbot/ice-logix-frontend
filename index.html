@@ -3377,34 +3377,96 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
     // ==================== РЕНДЕР КАЛЬКУЛЯТОРА ====================
     async function renderCalculator() {
       const limitInfo = await checkAndUpdateLimit();
-  let limitMessage = '';
-  if (!limitInfo.allowed) {
-    limitMessage = `<div class="bg-red-500/20 border border-red-500/50 rounded-xl p-3 mb-4 text-center">
-      <p class="text-red-400 font-bold"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></span> Дневной лимит исчерпан (${limitInfo.currentCount}/${limitInfo.maxRequests})</p>
-      <p class="text-white/70 text-sm mt-1">Оформите заказ, чтобы снять ограничение</p>
-    </div>`;
-  } else {
-    const remaining = limitInfo.maxRequests - limitInfo.currentCount;
-    limitMessage = `<div class="bg-white/5 rounded-xl p-3 mb-4 text-center">
-      <p class="text-white/70 text-sm">Осталось расчётов сегодня: <span class="text-cyan-400 font-bold">${remaining}</span> из ${limitInfo.maxRequests}</p>
-    </div>`;
-  }
+      let limitMessage = '';
+      if (!limitInfo.allowed) {
+        limitMessage = `<div class="bg-red-500/20 border border-red-500/50 rounded-xl p-3 mb-4 text-center">
+          <p class="text-red-400 font-bold"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></span> Дневной лимит исчерпан (${limitInfo.currentCount}/${limitInfo.maxRequests})</p>
+          <p class="text-white/70 text-sm mt-1">Оформите заказ, чтобы снять ограничение</p>
+        </div>`;
+      } else {
+        const remaining = limitInfo.maxRequests - limitInfo.currentCount;
+        limitMessage = `<div class="bg-white/5 rounded-xl p-3 mb-4 text-center">
+          <p class="text-white/70 text-sm">Осталось расчётов сегодня: <span class="text-cyan-400 font-bold">${remaining}</span> из ${limitInfo.maxRequests}</p>
+        </div>`;
+      }
+
+      // ── Step 1: Country Selection ──
+      if (!window.calcCountry) {
+        return `
+          <div class="glass-card page-enter">
+            <h2 class="text-xl font-bold mb-4 text-center"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Калькулятор стоимости</h2>
+            <p class="text-white/60 text-sm text-center mb-6">Выберите страну, откуда будет отправлен товар. От этого зависят тарифы и сроки.</p>
+            ${limitMessage}
+            <div class="grid grid-cols-1 gap-4">
+              <!-- China -->
+              <div class="glass-card p-4 border border-white/10 hover:border-cyan-500/50 cursor-pointer transition flex items-center gap-4" onclick="selectCalcCountry('CN')">
+                <div class="text-4xl">🇨🇳</div>
+                <div class="flex-1">
+                  <h3 class="font-bold text-white text-base">Китай (Poizon, Taobao, 1688)</h3>
+                  <p class="text-xs text-white/50 mt-0.5">Огромный выбор, лучшие цены на оригиналы</p>
+                  <div class="flex gap-4 mt-2 text-xs">
+                    <span class="text-cyan-400 font-semibold"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span> $10 / кг</span>
+                    <span class="text-white/60"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> 10-15 дней</span>
+                  </div>
+                </div>
+              </div>
+              <!-- Poland/EU -->
+              <div class="glass-card p-4 border border-white/10 hover:border-cyan-500/50 cursor-pointer transition flex items-center gap-4" onclick="selectCalcCountry('PL')">
+                <div class="text-4xl">🇵🇱</div>
+                <div class="flex-1">
+                  <h3 class="font-bold text-white text-base">Польша / ЕС (Zalando, ASOS, Farfetch)</h3>
+                  <p class="text-xs text-white/50 mt-0.5">100% оригинальные европейские коллекции</p>
+                  <div class="flex gap-4 mt-2 text-xs">
+                    <span class="text-cyan-400 font-semibold"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span> $15 / кг</span>
+                    <span class="text-white/60"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> 14-20 дней</span>
+                  </div>
+                </div>
+              </div>
+              <!-- Russia -->
+              <div class="glass-card p-4 border border-white/10 hover:border-cyan-500/50 cursor-pointer transition flex items-center gap-4" onclick="selectCalcCountry('RU')">
+                <div class="text-4xl">🇷🇺</div>
+                <div class="flex-1">
+                  <h3 class="font-bold text-white text-base">Россия (WB, Lamoda, Ozon)</h3>
+                  <p class="text-xs text-white/50 mt-0.5">Сверхбыстрая доставка, без пошлин ЕАЭС</p>
+                  <div class="flex gap-4 mt-2 text-xs">
+                    <span class="text-cyan-400 font-semibold"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span> $5 / кг</span>
+                    <span class="text-white/60"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> 3-5 дней</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          ${renderFooter()}
+        `;
+      }
+
+      // ── Step 2: Calculator Form ──
+      const countryLabel = window.calcCountry === 'CN' ? '🇨🇳 Китай' : window.calcCountry === 'PL' ? '🇵🇱 Польша / ЕС' : '🇷🇺 Россия';
+      const defaultCurrency = window.calcCountry === 'CN' ? 'CNY' : window.calcCountry === 'RU' ? 'RUB' : 'EUR';
 
       return `
-        <div class="glass-card">
-          
-          <div id="activePromoInfo" class="btn-primary mb-3 p-3 /10 rounded-xl border border-cyan-500/30 hidden">
-          <p class="text-cyan-400 font-bold"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></span> Акция: <span id="promoTitle"></span></p>
-          <p class="text-white/70 text-sm" id="promoDesc"></p>
-          <p class="text-green-400 text-sm mt-1" id="promoDiscount"></p>
+        <div class="glass-card page-enter">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-bold"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Расчёт стоимости</h2>
+            <button class="text-xs text-cyan-400 bg-white/5 px-3 py-1.5 rounded-full hover:bg-white/10 transition" onclick="window.calcCountry=null; renderCurrentScreen()">
+              ${countryLabel} <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></span> Сменить
+            </button>
           </div>
+          ${limitMessage}
+
+          <div id="activePromoInfo" class="mb-3 p-3 rounded-xl border border-cyan-500/30 bg-cyan-500/10 hidden">
+            <p class="text-cyan-400 font-bold"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></span> Акция: <span id="promoTitle"></span></p>
+            <p class="text-white/70 text-sm" id="promoDesc"></p>
+            <p class="text-green-400 text-sm mt-1" id="promoDiscount"></p>
+          </div>
+
           <!-- 4-режимный селектор ввода товара -->
           <label class="text-white/70 text-xs mb-2 block">Как добавить товар?</label>
           <div id="calcModeSelector" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-            <button type="button" data-calc-mode="manual" class="btn-secondary calc-mode-btn bg-white/10 hover: font-bold transition flex flex-col items-center gap-1"><span class="text-lg"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span></span><span>Вручную</span></button>
+            <button type="button" data-calc-mode="manual" class="btn-secondary calc-mode-btn bg-white/10 font-bold transition flex flex-col items-center gap-1"><span class="text-lg"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span></span><span>Вручную</span></button>
             <button type="button" data-calc-mode="link" class="btn-primary calc-mode-btn transition flex flex-col items-center gap-1"><span class="text-lg"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span></span><span>По ссылке</span></button>
-            <button type="button" data-calc-mode="photo" class="btn-secondary calc-mode-btn bg-white/10 hover: font-bold transition flex flex-col items-center gap-1"><span class="text-lg"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span></span><span>По фото</span></button>
-            <button type="button" data-calc-mode="text" class="btn-secondary calc-mode-btn bg-white/10 hover: font-bold transition flex flex-col items-center gap-1"><span class="text-lg"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span></span><span>По описанию</span></button>
+            <button type="button" data-calc-mode="photo" class="btn-secondary calc-mode-btn bg-white/10 font-bold transition flex flex-col items-center gap-1"><span class="text-lg"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span></span><span>По фото</span></button>
+            <button type="button" data-calc-mode="text" class="btn-secondary calc-mode-btn bg-white/10 font-bold transition flex flex-col items-center gap-1"><span class="text-lg"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span></span><span>По описанию</span></button>
           </div>
 
           <!-- Mode: link & manual — общее URL-поле -->
@@ -3458,34 +3520,28 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           <input type="text" id="calcMarketplace" class="btn-secondary w-full mt-1 p-3 rounded-xl border border-white/30 mb-3" placeholder="Poizon, Zalando, Taobao...">
           <label class="text-white/70 text-sm block mt-2">Описание <span class="text-white/40 text-xs">(необязательно)</span></label>
           <textarea id="calcDescription" rows="2" class="btn-secondary w-full mt-1 p-3 rounded-xl border border-white/30 mb-3" placeholder="Цвет, размер, материал, особенности"></textarea>
-          <label class="text-white/70 text-sm block mt-2">Цена (<span id="calcPriceCurrency">¥</span>)</label>
-          <input type="number" id="calcPrice" class="btn-secondary w-full mt-1 p-3 rounded-xl border border-white/30 mb-3" placeholder="0">
-          <label class="text-white/70 text-sm block mt-2">Валюта</label>
-          <select id="calcCurrency" class="btn-secondary w-full mt-1 p-3 rounded-xl border border-white/30 mb-3">
-            <option value="">—</option>
-            <option value="CNY">CNY (¥)</option>
-            <option value="USD">USD ($)</option>
-            <option value="EUR">EUR (€)</option>
-            <option value="GBP">GBP (£)</option>
-            <option value="PLN">PLN (zł)</option>
-            <option value="RUB">RUB (₽)</option>
-            <option value="BYN">BYN (Br)</option>
-            <option value="JPY">JPY (¥)</option>
-            <option value="KRW">KRW (₩)</option>
-          </select>
-          <label class="text-white/70 text-sm block mt-2">Откуда заказываете</label>
-          <select id="calcSourceCountry" class="btn-secondary w-full mt-1 p-3 rounded-xl border border-white/30 mb-3">
-            <option value="CN">🇨🇳 Китай (Poizon, Dewu, Taobao, 1688, Tmall)</option>
-            <option value="PL">🇵🇱 Польша / ЕС (Zalando, ASOS, About You, H&amp;M)</option>
-            <option value="EU">🇪🇺 Европа (через PL-склад)</option>
-            <option value="RU">🇷🇺 Россия (Lamoda, WB, Ozon, Avito, ЦУМ)</option>
-            <option value="US" disabled><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> 🇺🇸 США — скоро</option>
-            <option value="JP" disabled><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> 🇯🇵 Япония — скоро</option>
-            <option value="KR" disabled><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> 🇰🇷 Южная Корея — скоро</option>
-            <option value="AE" disabled><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> 🇦🇪 ОАЭ — скоро</option>
-            <option value="TR" disabled><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> 🇹🇷 Турция — скоро</option>
-            <option value="VN" disabled><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> 🇻🇳 Вьетнам — скоро</option>
-          </select>
+
+          <!-- Price & Currency — single row -->
+          <div class="mb-3">
+            <label class="text-white/70 text-sm block mb-1">Цена с валютой</label>
+            <div class="flex gap-2">
+              <div class="flex-1 min-w-0">
+                <input type="number" id="calcPrice" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Укажите цену товара">
+              </div>
+              <div class="w-[110px] flex-shrink-0">
+                <select id="calcCurrency" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" style="padding: 14px 10px !important;">
+                  <option value="CNY" ${defaultCurrency === 'CNY' ? 'selected' : ''}>CNY (¥)</option>
+                  <option value="USD">USD ($)</option>
+                  <option value="EUR" ${defaultCurrency === 'EUR' ? 'selected' : ''}>EUR (€)</option>
+                  <option value="GBP">GBP (£)</option>
+                  <option value="PLN">PLN (zł)</option>
+                  <option value="RUB" ${defaultCurrency === 'RUB' ? 'selected' : ''}>RUB (₽)</option>
+                  <option value="BYN">BYN (Br)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           <label class="text-white/70 text-sm block mt-2">Наименование (для автоподбора веса)</label>
           <select id="calcCategory" class="btn-secondary w-full mt-1 p-3 rounded-xl border border-white/30 mb-3">${renderCategoryOptions()}</select>
           <label class="text-white/70 text-sm block">Размер</label>
@@ -3494,8 +3550,8 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             <input type="checkbox" id="keepBox">
             <label for="keepBox" class="text-white/70 text-sm">Сохранить оригинальную коробку</label>
           </div>
-          <label class="text-white/70 text-sm block">Вес (кг)</label>
-          <div class="flex items-center gap-3 mt-1"><input type="range" id="calcWeight" min="0.1" max="30" step="0.1" value="1" class="flex-1" data-packaging="0.3"><span id="weightVal" class="text-white/80 bg-white/10 px-3 py-1 rounded-full">1.0 кг</span></div>
+          <label class="text-white/70 text-sm block">Вес товара (кг)</label>
+          <div class="flex items-center gap-3 mt-1"><input type="range" id="calcWeight" min="0.1" max="30" step="0.1" value="1" class="flex-1 accent-cyan-500" data-packaging="0.3"><span id="weightVal" class="text-white/80 bg-white/10 px-3 py-1 rounded-full whitespace-nowrap text-sm font-bold">1.0 кг</span></div>
           <div class="flex items-center gap-2 mt-3">
             <input type="checkbox" id="calcInsurance">
             <label for="calcInsurance" class="text-white/70 text-sm"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span> Страховка (+2% от стоимости товара)</label>
@@ -3504,16 +3560,16 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             <input type="checkbox" id="calcLegitCheck">
             <label for="calcLegitCheck" class="text-white/70 text-sm"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Legit Check (+15 BYN — проверка подлинности)</label>
           </div>
-          <button id="calcBtn" class="btn-primary mt-5 w-full transition">Рассчитать</button>
+          <button id="calcBtn" class="btn-primary mt-5 w-full transition"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Рассчитать</button>
           <div id="calcResult" class="mt-5 hidden">
-            <div id="calcBreakdown" class="bg-white/5 p-4 rounded-xl">
-              <p class="text-white">Примерная стоимость: <span id="totalPrice" class="font-bold text-cyan-400">0</span> BYN</p>
+            <div id="calcBreakdown" class="bg-cyan-500/10 border border-cyan-500/30 p-4 rounded-xl">
+              <p class="text-white font-bold">Примерная стоимость: <span id="totalPrice" class="font-bold text-cyan-400 text-xl">0</span> <span class="text-sm">BYN</span></p>
               <p class="text-white/70 text-xs mt-1">*Окончательная цена после взвешивания на складе</p>
             </div>
             <div class="flex flex-col gap-2 mt-3">
-              <button id="toNewOrderBtn" class="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded-xl">Перенести в заказ</button>
+              <button id="toNewOrderBtn" class="btn-primary w-full py-3 rounded-xl flex items-center justify-center gap-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span> Перенести в заказ</button>
               <button id="calcLegitCheckBtn" class="btn-secondary w-full py-2 rounded-xl flex items-center justify-center gap-2">
-                <span><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> AI Проверка подлинности</span>
+                <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> AI Проверка подлинности
               </button>
             </div>
           </div>
@@ -3656,7 +3712,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
     const price = parseFloat(document.getElementById('calcPrice')?.value) || 0;
     const weight = parseFloat(slider?.value || 1);
     const currency = document.getElementById('calcCurrency')?.value || 'CNY';
-    const country = document.getElementById('calcSourceCountry')?.value || 'CN';
+    const country = window.calcCountry || 'CN';
     const category = document.getElementById('calcCategory')?.value || '';
     const insurance = document.getElementById('calcInsurance')?.checked || false;
     const legitCheck = document.getElementById('calcLegitCheck')?.checked || false;
@@ -4449,7 +4505,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         if (window.tempOrder.items.length === 0) {
           itemsHtml = `
             <div class="text-center py-8 text-white/40 text-sm bg-white/5 rounded-2xl border border-dashed border-white/10">
-              <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7V4h16v3M4 7l8 4 8-4M4 7v13h16V7"/></svg></span> У вас пока нет добавленных товаров.<br>Нажмите «➕ Добавить товар» ниже 👇
+              <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7V4h16v3M4 7l8 4 8-4M4 7v13h16V7"/></svg></span> У вас пока нет добавленных товаров.<br>Нажмите «<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить товар» ниже
             </div>
           `;
         } else {
@@ -4544,7 +4600,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             
             <div class="flex flex-col gap-3 mt-4">
               <button type="button" class="btn-secondary w-full py-3 rounded-xl flex items-center justify-center gap-2 border border-dashed border-cyan-500/30 text-cyan-400 font-bold hover:bg-cyan-500/10 transition" onclick="startOrderAddMode()">
-                ➕ Добавить товар
+                <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить товар
               </button>
               
               ${checkoutOptionsAndTotals}
@@ -4559,9 +4615,9 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       return `
         <div class="glass-card page-enter">
           <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-bold">➕ Добавить новый товар</h2>
+            <h2 class="text-lg font-bold"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить новый товар</h2>
             <button class="text-xs text-white/50 hover:text-white" onclick="stopOrderAddMode()">
-              ⬅️ Назад к списку
+              <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg></span> Назад к списку
             </button>
           </div>
           
@@ -4569,7 +4625,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           <div class="mb-4">
             <p class="text-white/60 text-xs mb-2">Ввод данных (если вы сами нашли товар):</p>
             <div class="grid grid-cols-2 gap-2 mb-4">
-              <button type="button" class="order-mode-btn ${subMode === 'manual' ? 'btn-primary' : 'btn-secondary'} transition text-xs font-bold py-2.5" onclick="setOrderAddSubMode('manual')">✍️ Вручную</button>
+              <button type="button" class="order-mode-btn ${subMode === 'manual' ? 'btn-primary' : 'btn-secondary'} transition text-xs font-bold py-2.5" onclick="setOrderAddSubMode('manual')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span> Вручную</button>
               <button type="button" class="order-mode-btn ${subMode === 'link' ? 'btn-primary' : 'btn-secondary'} transition text-xs font-bold py-2.5" onclick="setOrderAddSubMode('link')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span> По ссылке / Скриншоту</button>
             </div>
             
@@ -4630,7 +4686,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             <div class="mb-3">
               <label class="text-white/70 text-sm block mb-1">Фото товара (необязательно)</label>
               <div id="orderManualPhotoUploadZone" class="screenshot-upload-zone p-3 border border-dashed border-white/30 rounded-xl text-center cursor-pointer hover:bg-white/5 transition">
-                <span class="text-sm text-white/70">➕ Загрузить скриншот / фото товара</span>
+                <span class="text-sm text-white/70"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Загрузить скриншот / фото товара</span>
                 <input type="file" id="orderManualPhotoInput" accept="image/*" multiple class="hidden">
               </div>
               <div id="orderManualPhotoPreview" class="hidden mt-2 grid grid-cols-3 gap-2"></div>
@@ -4663,7 +4719,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 <div class="flex gap-2" id="orderGenderSelector">
                   <button type="button" data-gender="male" class="filter-chip flex-1 py-2 text-center text-xs border border-white/10 hover:bg-white/5 transition" onclick="selectOrderGender('male')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> Мужской</button>
                   <button type="button" data-gender="female" class="filter-chip flex-1 py-2 text-center text-xs border border-white/10 hover:bg-white/5 transition" onclick="selectOrderGender('female')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> Женский</button>
-                  <button type="button" data-gender="unisex" class="filter-chip flex-1 py-2 text-center text-xs border border-white/10 hover:bg-white/5 transition" onclick="selectOrderGender('unisex')">⚧️ Унисекс</button>
+                  <button type="button" data-gender="unisex" class="filter-chip flex-1 py-2 text-center text-xs border border-white/10 hover:bg-white/5 transition" onclick="selectOrderGender('unisex')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> Унисекс</button>
                   <input type="hidden" id="orderGender" value="">
                 </div>
               </div>
@@ -9916,7 +9972,7 @@ async function renderLegitCheck() {
           <div>
             <label class="text-white/70 text-sm font-semibold mb-1 block">Фотографии товара (до 5 штук)</label>
             <div id="legitPhotoZone" class="mt-1 p-5 border border-dashed border-white/30 rounded-2xl text-center cursor-pointer hover:bg-white/5 transition">
-              <span class="text-2xl block mb-1">📸</span>
+              <span class="text-2xl block mb-1 text-cyan-400"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span></span>
               <span class="text-xs text-white/70 font-semibold block">Нажмите для выбора или перетащите фото</span>
               <span class="text-[10px] text-white/40 block mt-1">Первое фото используется как основное для анализа ИИ</span>
               <input type="file" id="legitPhotoInput" accept="image/*" multiple class="hidden">
