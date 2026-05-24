@@ -5948,6 +5948,9 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                   : `Самовывоз | 🛡️ РАЗДЕЛЕНИЕ: ${secName}`;
               }
 
+              const fam = window.userSettings?.family || {};
+              const isFamilyMember = fam.role === 'member' && fam.head_id;
+
               const { data, error } = await supabaseClient.from('orders').insert({
                 user_id: userId,
                 source_url: consolidatedOrder.url,
@@ -5969,6 +5972,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 product_currency: consolidatedOrder.currency,
                 prepayment_amount: window.tempOrder.total_byn * 0.75,
                 status: 'pending',
+                auto_cancel_reason: isFamilyMember ? 'family_approval_pending' : null,
                 discount_applied: window.tempOrder.discountAmount || 0,
                 promo_code: window.tempOrder.appliedPromo?.code || null,
                 tracking_number_by: pvsAddress || null
@@ -6769,7 +6773,7 @@ async function renderMyOrders() {
               ` : ''}
             </div>
 
-            <button class="btn-secondary mt-3 w-full text-white" onclick="window.open('https://t.me/icelogix_bot?text=Вопрос по заказу ${order.id.slice(0,8)}', '_blank')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> Написать в поддержку</button>
+            <button class="btn-secondary mt-3 w-full text-white" onclick="window.openSupportChat('${order.id}')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> 💬 Чат по заказу</button>
           </div>
         `).join('')}
       </div>
@@ -6804,13 +6808,29 @@ async function renderMyOrders() {
       
       const shareLink = userReferralCode ? `https://t.me/${tg.initDataUnsafe?.user?.username ? tg.initDataUnsafe.user.username : 'icelogix_bot'}?start=ref_${userReferralCode}` : '';
       
+      let displayedBalance = balance;
+      let balanceLabel = 'Баланс';
+      const fam = window.userSettings?.family || {};
+      
+      if (fam.role === 'member' && fam.head_id) {
+        try {
+          const { data: headUser } = await supabaseClient.from('users').select('ices_balance').eq('user_id', fam.head_id).single();
+          if (headUser) {
+            displayedBalance = headUser.ices_balance || 0;
+            balanceLabel = 'Семейный баланс (Глава)';
+          }
+        } catch(e) {}
+      } else if (fam.role === 'head') {
+        balanceLabel = 'Семейный баланс (Вы глава)';
+      }
+
       return `
   <!-- Profile Header Card -->
   <div class="glass-card text-center mb-5 page-enter">
     <div class="relative mx-auto w-28 h-28 mb-4">
       <div class="w-28 h-28 rounded-full overflow-hidden" style="background: linear-gradient(135deg, var(--ice-primary), var(--ice-arctic)); padding: 3px;">
         <div class="w-full h-full rounded-full overflow-hidden flex items-center justify-center text-4xl font-bold" style="background: var(--bg-gradient-mid);" id="profileAvatar">
-          ${userAvatarUrl ? `<img src="${userAvatarUrl}" class="w-full h-full object-cover">` : (userName || 'Гость').charAt(0).toUpperCase()}
+          \${userAvatarUrl ? '<img src="' + userAvatarUrl + '" class="w-full h-full object-cover">' : (userName || 'Гость').charAt(0).toUpperCase()}
         </div>
       </div>
       <button id="changeAvatarBtn" class="absolute bottom-0 right-0 w-10 h-10 rounded-full flex items-center justify-center text-lg border-2" style="background: linear-gradient(135deg, var(--ice-primary), var(--ice-deep)); border-color: var(--bg-gradient-mid); box-shadow: 0 2px 10px rgba(91,191,235,0.4);">
@@ -6818,7 +6838,7 @@ async function renderMyOrders() {
       </button>
     </div>
     <div class="flex items-center justify-center gap-2 mb-2">
-      <h2 class="text-xl font-bold" id="profileNameDisplay">${userName}</h2>
+      <h2 class="text-xl font-bold" id="profileNameDisplay">\${userName}</h2>
       <button id="editNameBtn" class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--glass-bg); border: 1px solid var(--glass-border);">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -6831,8 +6851,8 @@ async function renderMyOrders() {
     <div class="inline-flex items-center gap-3 px-5 py-3 rounded-2xl mb-4" style="background: linear-gradient(135deg, rgba(91,191,235,0.2), rgba(46,158,212,0.1)); border: 1px solid rgba(91,191,235,0.3);">
       <span class="text-2xl animate-float"><span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></span>
       <div class="text-left">
-        <p class="text-xs" style="color: var(--text-secondary);">Баланс</p>
-        <p class="text-xl font-bold" style="color: var(--ice-primary);">${balance} ICE</p>
+        <p class="text-xs" style="color: var(--text-secondary);">\${balanceLabel}</p>
+        <p class="text-xl font-bold" style="color: var(--ice-primary);">\${displayedBalance} ICE</p>
       </div>
     </div>
     
@@ -6977,6 +6997,22 @@ async function renderMyOrders() {
         </div>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
+      <button id="familySettingsBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition">
+        <span class="text-xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span></span>
+        <div class="flex-1">
+          <p class="font-semibold text-white text-sm">Семейный бюджет</p>
+          <p class="text-xs" style="color: var(--text-muted);">Общий баланс и совместные покупки</p>
+        </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <button id="currencyAlertsBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition">
+        <span class="text-xl"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span></span>
+        <div class="flex-1">
+          <p class="font-semibold text-white text-sm">Трекер курсов & Алерты</p>
+          <p class="text-xs" style="color: var(--text-muted);">Графики валют и уведомления при падении</p>
+        </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
       <button id="academyBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition">
         <span class="text-xl"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></span></span>
         <div class="flex-1">
@@ -7103,6 +7139,16 @@ async function renderMyOrders() {
   if (appSettingsBtn2) appSettingsBtn2.onclick = () => showAppSettings('notifications');
   const accountRecoveryBtn = document.getElementById('accountRecoveryBtn');
   if (accountRecoveryBtn) accountRecoveryBtn.onclick = () => showAccountRecovery();
+
+  const familySettingsBtn = document.getElementById('familySettingsBtn');
+  if (familySettingsBtn) {
+    familySettingsBtn.onclick = () => showFamilySettingsModal();
+  }
+
+  const currencyAlertsBtn = document.getElementById('currencyAlertsBtn');
+  if (currencyAlertsBtn) {
+    currencyAlertsBtn.onclick = () => showCurrencyAlertsModal();
+  }
 
   const cartBtn = document.getElementById('cartBtn');
   if (cartBtn) cartBtn.onclick = () => switchTab('cart');
@@ -8489,6 +8535,14 @@ async function renderAdmin() {
         <div class="glass-card">
           <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></span> Отзывы на модерации</h3>
           ${reviews.length === 0 ? '<p class="text-white/70">Нет отзывов</p>' : reviews.map(r => `<div class="p-2 bg-white/5 rounded-lg mb-2"><div class="stars">${'<span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>'.repeat(r.rating)}${'<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>'.repeat(5-r.rating)}</div><p class="text-white/80 text-sm">${r.text}</p><p class="text-white/50 text-xs">${r.user_name||'Пользователь'} | ${new Date(r.created_at).toLocaleDateString()}</p><div class="flex gap-2 mt-2"><button class="approveReviewBtn bg-green-600 px-3 py-1 rounded text-sm" data-id="${r.id}"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Одобрить</button><button class="rejectReviewBtn bg-red-600 px-3 py-1 rounded text-sm" data-id="${r.id}"><span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span> Отклонить</button></div></div>`).join('')}
+        </div>
+        
+        <!-- Встроенный чат (Тикеты поддержки) -->
+        <div class="glass-card">
+          <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> Чат поддержки & Тикеты</h3>
+          <div class="space-y-2 max-h-60 overflow-y-auto" id="adminTicketsList">
+            ${await renderAdminTicketsList()}
+          </div>
         </div>
         
         <!-- Управление товарами -->
@@ -9880,6 +9934,20 @@ async function sendNotification(userId, message, orderId = null) {
 
     productsTotalPages = Math.ceil((count || 0) / 20);
 
+    let isVipUnlocked = false;
+    if (userId) {
+      try {
+        const { data: userOrders } = await supabaseClient.from('orders')
+          .select('id')
+          .eq('user_id', userId)
+          .in('status', ['paid', 'bought', 'on_sklad_cn', 'in_transit', 'in_belarus', 'delivered'])
+          .limit(1);
+        if (userOrders && userOrders.length > 0) {
+          isVipUnlocked = true;
+        }
+      } catch (e) { console.error(e); }
+    }
+
     const categories = [...new Set(data.map(p => p.category).filter(Boolean))];
     const brands = [...new Set(data.map(p => p.brand).filter(Boolean))];
 
@@ -9891,6 +9959,43 @@ async function sendNotification(userId, message, orderId = null) {
 
     return `
       <button id="backFromProductsCatalogBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
+      
+      <!-- VIP Section Banner -->
+      ${isVipUnlocked ? `
+        <!-- Unlocked VIP Section Card -->
+        <div class="glass-card mb-5 overflow-hidden relative border border-green-500/20 bg-gradient-to-br from-slate-900 via-emerald-950/10 to-slate-900 p-4 page-enter cursor-pointer hover:scale-[1.01] transition-all" onclick="window.showVipSectionModal()">
+          <div class="absolute -right-8 -top-8 w-24 h-24 rounded-full blur-2xl" style="background: rgba(16,185,129,0.2);"></div>
+          <div class="flex items-center justify-between gap-4 relative z-10">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0" style="background: linear-gradient(135deg, rgba(16,185,129,0.25), rgba(4,120,87,0.15));">
+                🔥
+              </div>
+              <div class="flex-1 min-w-0 text-left">
+                <h3 class="text-green-400 font-extrabold text-sm uppercase tracking-wider mb-0.5">🔥 VIP-Раздел открыт!</h3>
+                <p class="text-white/70 text-[10px] leading-relaxed">Вам доступны эксклюзивные товары с максимальными скидками до 70%!</p>
+              </div>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-green-400 flex-shrink-0">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+        </div>
+      ` : `
+        <!-- Locked VIP Section Card -->
+        <div class="glass-card mb-5 overflow-hidden relative border border-yellow-500/20 bg-gradient-to-br from-slate-900 via-amber-950/10 to-slate-900 p-4 page-enter cursor-pointer hover:scale-[1.01] transition-all" onclick="tgUtil.alert('Секретный VIP-раздел заблокирован! Оформите и оплатите хотя бы один заказ, чтобы разблокировать доступ к уникальным скидкам до 70%!')">
+          <div class="absolute -right-8 -top-8 w-24 h-24 rounded-full blur-2xl" style="background: rgba(251,191,36,0.15);"></div>
+          <div class="flex items-center gap-4 relative z-10">
+            <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0 animate-pulse" style="background: linear-gradient(135deg, rgba(251,191,36,0.25), rgba(245,158,11,0.15));">
+              🔒
+            </div>
+            <div class="flex-1 min-w-0 text-left">
+              <h3 class="text-amber-400 font-extrabold text-sm uppercase tracking-wider mb-0.5">🔒 VIP-Раздел закрыт</h3>
+              <p class="text-white/60 text-[10px] leading-relaxed">Оплатите свой первый заказ, чтобы открыть доступ к эксклюзивным VIP-товарам со скидками до 70%!</p>
+            </div>
+          </div>
+        </div>
+      `}
+
       <div class="flex items-center gap-3 mb-4">
         <button id="openFilterModalBtn" class="btn-secondary flex items-center gap-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></span> Фильтры</button>
         ${activeFilters ? `<p class="text-white/50 text-xs truncate flex-1">Активно: ${activeFilters}</p><button id="resetFiltersBtn" class="text-cyan-400 text-xs flex-shrink-0">Сбросить</button>` : '<p class="text-white/50 text-xs">Все товары</p>'}
@@ -10973,6 +11078,923 @@ async function showCommissionContractModal() {
     `;
   }
 }
+
+async function showFamilySettingsModal() {
+  tgUtil.haptic('medium');
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[110] p-4 overflow-y-auto';
+  modal.id = 'familySettingsModal';
+  
+  const fam = window.userSettings?.family || {};
+  let modalContent = '';
+
+  const _esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]));
+
+  const renderModalContent = async () => {
+    const freshFam = window.userSettings?.family || {};
+    
+    if (!freshFam.role) {
+      return `
+        <div class="space-y-4">
+          <p class="text-white/70 text-xs leading-relaxed">
+            Объединяйте баланс с близкими, друзьями или закупщиками. Члены группы смогут предлагать товары, а Глава аккаунта одобряет оплату в один клик с общего кошелька!
+          </p>
+          
+          <button id="createFamilyBtn" class="btn-primary w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2" style="background: linear-gradient(135deg, var(--ice-primary), var(--ice-deep)); border: none;">
+            ${ix('users')} Создать семейную группу
+          </button>
+          
+          <div class="flex items-center gap-2 my-4">
+            <div class="h-px bg-white/10 flex-1"></div>
+            <span class="text-[10px] text-white/40 uppercase font-bold tracking-wider">или присоединиться</span>
+            <div class="h-px bg-white/10 flex-1"></div>
+          </div>
+          
+          <div class="space-y-2">
+            <label class="text-white/60 text-xs block font-semibold">Введите код приглашения главы:</label>
+            <div class="flex gap-2">
+              <input type="text" id="familyTokenInput" placeholder="FAM-XX-XXXX" class="flex-1 p-3 rounded-xl bg-slate-900 border border-white/20 text-white text-sm focus:border-cyan-500 focus:outline-none">
+              <button id="joinFamilyBtn" class="bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold px-4 rounded-xl text-sm transition">Войти</button>
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (freshFam.role === 'head') {
+      let pendingOrders = [];
+      let groupMembers = [];
+      try {
+        const { data } = await supabaseClient.from('orders')
+          .select('*')
+          .eq('status', 'pending')
+          .eq('auto_cancel_reason', 'family_approval_pending')
+          .order('created_at', { ascending: false });
+        if (data) pendingOrders = data;
+        
+        if (freshFam.members && freshFam.members.length > 0) {
+          const { data: memberUsers } = await supabaseClient.from('users')
+            .select('user_id, full_name, phone')
+            .in('user_id', freshFam.members);
+          if (memberUsers) groupMembers = memberUsers;
+        }
+      } catch (e) { console.error(e); }
+
+      const membersList = groupMembers.map(m => `
+        <div class="flex justify-between items-center bg-white/5 p-2.5 rounded-xl border border-white/5">
+          <div>
+            <p class="text-xs font-bold text-white">${_esc(m.full_name || 'Без имени')}</p>
+            <p class="text-[10px] text-white/50">${_esc(m.phone || '')}</p>
+          </div>
+          <button class="bg-red-500/10 hover:bg-red-500/30 text-red-400 text-[10px] font-bold px-2 py-1 rounded transition" onclick="window.removeFamilyMember('${m.user_id}')">Удалить</button>
+        </div>
+      `).join('') || '<p class="text-xs text-white/40 text-center py-2">Пока нет присоединенных участников</p>';
+
+      const pendingOrdersList = pendingOrders.map(o => {
+        const oItems = o.items || [];
+        const itemsSummary = oItems.map(i => `${i.title} (${i.size || 'TBD'})`).join(', ');
+        return `
+          <div class="bg-white/5 p-3 rounded-xl border border-cyan-500/30 space-y-2 page-enter">
+            <div class="flex justify-between items-baseline">
+              <span class="text-white/60 text-[10px]">От: ID ${o.user_id}</span>
+              <span class="text-cyan-400 font-bold text-sm">${o.total_byn.toFixed(2)} BYN</span>
+            </div>
+            <p class="text-xs text-white font-semibold truncate">${_esc(itemsSummary)}</p>
+            <div class="flex gap-2 mt-2 pt-1 border-t border-white/5">
+              <button class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-1.5 rounded-lg text-xs transition" onclick="window.approveFamilyOrder('${o.id}')">Одобрить</button>
+              <button class="flex-1 bg-red-600/20 hover:bg-red-600/40 text-red-400 font-bold py-1.5 rounded-lg text-xs transition" onclick="window.declineFamilyOrder('${o.id}')">Отклонить</button>
+            </div>
+          </div>
+        `;
+      }).join('') || '<p class="text-xs text-white/40 text-center py-4">Нет новых запросов на покупки</p>';
+
+      return `
+        <div class="space-y-4">
+          <div class="bg-cyan-500/10 border border-cyan-500/30 p-3.5 rounded-xl text-center">
+            <p class="text-[10px] text-cyan-400 uppercase font-bold tracking-wider mb-1">Код вашей семейной группы:</p>
+            <p class="text-xl font-mono font-bold text-white tracking-widest cursor-pointer select-all" id="copyFamCodeBtn" title="Кликните для копирования">${_esc(freshFam.token)}</p>
+            <p class="text-[9px] text-white/40 mt-1">Отправьте этот код близким, чтобы они вошли в группу</p>
+          </div>
+
+          <div class="space-y-2">
+            <h4 class="text-xs font-bold text-white/60 uppercase tracking-wider">Запросы на покупки (${pendingOrders.length}):</h4>
+            <div class="space-y-2.5 max-h-[30vh] overflow-y-auto">
+              ${pendingOrdersList}
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <h4 class="text-xs font-bold text-white/60 uppercase tracking-wider">Участники группы:</h4>
+            <div class="space-y-2">
+              ${membersList}
+            </div>
+          </div>
+
+          <button id="disbandFamilyBtn" class="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-2 rounded-xl text-xs transition">Распустить группу</button>
+        </div>
+      `;
+    } else {
+      let headName = 'Глава аккаунта';
+      try {
+        const { data: headUser } = await supabaseClient.from('users')
+          .select('full_name')
+          .eq('user_id', freshFam.head_id)
+          .single();
+        if (headUser) headName = headUser.full_name || 'Глава аккаунта';
+      } catch(e) {}
+
+      let myPendingOrders = [];
+      try {
+        const { data } = await supabaseClient.from('orders')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('status', 'pending')
+          .eq('auto_cancel_reason', 'family_approval_pending');
+        if (data) myPendingOrders = data;
+      } catch(e) {}
+
+      const myPendingList = myPendingOrders.map(o => {
+        const oItems = o.items || [];
+        const itemsSummary = oItems.map(i => `${i.title}`).join(', ');
+        return `
+          <div class="bg-white/5 p-3 rounded-xl border border-white/5 flex justify-between items-center gap-2">
+            <div class="min-w-0 flex-1">
+              <p class="text-xs text-white font-bold truncate">${_esc(itemsSummary)}</p>
+              <p class="text-[10px] text-amber-400 mt-0.5">⏱️ Ожидает одобрения</p>
+            </div>
+            <span class="text-white font-mono text-xs font-bold text-right">${o.total_byn.toFixed(2)} BYN</span>
+          </div>
+        `;
+      }).join('') || '<p class="text-xs text-white/40 text-center py-2">Нет активных запросов</p>';
+
+      return `
+        <div class="space-y-4">
+          <div class="bg-white/5 p-3.5 rounded-xl border border-white/10 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center text-lg">${ix('users', { cls: 'text-cyan-400' })}</div>
+            <div>
+              <p class="text-xs font-bold text-white">Вы состоите в семейном бюджете</p>
+              <p class="text-[10px] text-white/50">Глава: ${_esc(headName)}</p>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <h4 class="text-xs font-bold text-white/60 uppercase tracking-wider">Мои запросы на согласовании (${myPendingOrders.length}):</h4>
+            <div class="space-y-2 max-h-[30vh] overflow-y-auto">
+              ${myPendingList}
+            </div>
+          </div>
+
+          <button id="leaveFamilyBtn" class="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-2 rounded-xl text-xs transition">Выйти из группы</button>
+        </div>
+      `;
+    }
+  };
+
+  const updateModalHTML = async () => {
+    modal.innerHTML = `
+      <div class="bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden page-enter">
+        <div class="p-5 border-b border-white/10 flex justify-between items-center bg-white/5">
+          <div>
+            <h3 class="text-white font-bold text-lg flex items-center gap-2">
+              ${ix('users', { cls: 'text-cyan-400' })}
+              <span>Семейный бюджет</span>
+            </h3>
+            <p class="text-white/50 text-xs mt-0.5">Управление совместными покупками</p>
+          </div>
+          <button id="closeFamilyModalBtn" class="text-white/50 hover:text-white transition-colors text-lg">${ix('x')}</button>
+        </div>
+        
+        <div class="p-5 overflow-y-auto flex-1" id="familyModalBody">
+          <div class="flex items-center justify-center py-10">
+            <div class="animate-spin rounded-full h-8 w-8 border-2 border-cyan-500 border-t-transparent"></div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    const bodyEl = document.getElementById('familyModalBody');
+    if (bodyEl) {
+      bodyEl.innerHTML = await renderModalContent();
+    }
+
+    const closeBtn = document.getElementById('closeFamilyModalBtn');
+    if (closeBtn) closeBtn.onclick = () => modal.remove();
+
+    const createBtn = document.getElementById('createFamilyBtn');
+    if (createBtn) createBtn.onclick = () => window.createFamilyGroup();
+
+    const joinBtn = document.getElementById('joinFamilyBtn');
+    const tokenInput = document.getElementById('familyTokenInput');
+    if (joinBtn && tokenInput) {
+      joinBtn.onclick = () => window.joinFamilyGroup(tokenInput.value.trim());
+    }
+
+    const copyBtn = document.getElementById('copyFamCodeBtn');
+    if (copyBtn) {
+      copyBtn.onclick = () => {
+        navigator.clipboard.writeText(copyBtn.innerText);
+        glassToast('Семейный код скопирован!', { kind: 'success' });
+      };
+    }
+
+    const leaveBtn = document.getElementById('leaveFamilyBtn');
+    if (leaveBtn) {
+      leaveBtn.onclick = () => window.leaveFamilyGroup();
+    }
+
+    const disbandBtn = document.getElementById('disbandFamilyBtn');
+    if (disbandBtn) {
+      disbandBtn.onclick = () => window.disbandFamilyGroup();
+    }
+  };
+
+  window.createFamilyGroup = async () => {
+    tgUtil.haptic('success');
+    const token = 'FAM-IL-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    const updatedSettings = {
+      ...window.userSettings,
+      family: { role: 'head', token: token, members: [] }
+    };
+    
+    const { error } = await supabaseClient.from('users').update({ settings: updatedSettings }).eq('user_id', userId);
+    if (!error) {
+      window.userSettings = updatedSettings;
+      glassToast('Семейная группа успешно создана!', { kind: 'success' });
+      const bodyEl = document.getElementById('familyModalBody');
+      if (bodyEl) bodyEl.innerHTML = await renderModalContent();
+      renderCurrentScreen();
+    } else {
+      glassToast('Ошибка создания группы', { kind: 'error' });
+    }
+  };
+
+  window.joinFamilyGroup = async (token) => {
+    if (!token || !token.startsWith('FAM-')) {
+      glassToast('Неверный формат кода!', { kind: 'error' });
+      return;
+    }
+    tgUtil.haptic('medium');
+    
+    const { data: headUser, error } = await supabaseClient.from('users')
+      .select('user_id, settings')
+      .eq('settings->family->>token', token)
+      .eq('settings->family->>role', 'head')
+      .maybeSingle();
+
+    if (error || !headUser) {
+      glassToast('Группа с таким кодом не найдена!', { kind: 'error' });
+      return;
+    }
+
+    if (headUser.user_id === userId) {
+      glassToast('Вы не можете вступить в свою собственную группу!', { kind: 'error' });
+      return;
+    }
+
+    const headSettings = headUser.settings || {};
+    headSettings.family = headSettings.family || {};
+    headSettings.family.members = headSettings.family.members || [];
+    if (!headSettings.family.members.includes(userId)) {
+      headSettings.family.members.push(userId);
+    }
+
+    await supabaseClient.from('users').update({ settings: headSettings }).eq('user_id', headUser.user_id);
+
+    const memberSettings = {
+      ...window.userSettings,
+      family: { role: 'member', head_id: headUser.user_id, token: token }
+    };
+    const { error: mErr } = await supabaseClient.from('users').update({ settings: memberSettings }).eq('user_id', userId);
+
+    if (!mErr) {
+      window.userSettings = memberSettings;
+      glassToast('Вы успешно вошли в группу!', { kind: 'success' });
+      const bodyEl = document.getElementById('familyModalBody');
+      if (bodyEl) bodyEl.innerHTML = await renderModalContent();
+      renderCurrentScreen();
+    } else {
+      glassToast('Ошибка вступления в группу', { kind: 'error' });
+    }
+  };
+
+  window.leaveFamilyGroup = async () => {
+    tgUtil.haptic('medium');
+    const fam = window.userSettings?.family || {};
+    if (!fam.head_id) return;
+
+    const { data: headUser } = await supabaseClient.from('users').select('settings').eq('user_id', fam.head_id).single();
+    if (headUser) {
+      const headSettings = headUser.settings || {};
+      headSettings.family = headSettings.family || {};
+      headSettings.family.members = headSettings.family.members || [];
+      headSettings.family.members = headSettings.family.members.filter(id => id !== userId);
+      await supabaseClient.from('users').update({ settings: headSettings }).eq('user_id', fam.head_id);
+    }
+
+    const memberSettings = { ...window.userSettings, family: null };
+    const { error } = await supabaseClient.from('users').update({ settings: memberSettings }).eq('user_id', userId);
+    
+    if (!error) {
+      window.userSettings = memberSettings;
+      glassToast('Вы вышли из группы!', { kind: 'success' });
+      const bodyEl = document.getElementById('familyModalBody');
+      if (bodyEl) bodyEl.innerHTML = await renderModalContent();
+      renderCurrentScreen();
+    }
+  };
+
+  window.disbandFamilyGroup = async () => {
+    tgUtil.haptic('medium');
+    const fam = window.userSettings?.family || {};
+    if (fam.members && fam.members.length > 0) {
+      for (const mId of fam.members) {
+        const { data: mUser } = await supabaseClient.from('users').select('settings').eq('user_id', mId).single();
+        if (mUser) {
+          const mSettings = mUser.settings || {};
+          mSettings.family = null;
+          await supabaseClient.from('users').update({ settings: mSettings }).eq('user_id', mId);
+        }
+      }
+    }
+
+    const headSettings = { ...window.userSettings, family: null };
+    const { error } = await supabaseClient.from('users').update({ settings: headSettings }).eq('user_id', userId);
+
+    if (!error) {
+      window.userSettings = headSettings;
+      glassToast('Семейная группа распущена!', { kind: 'success' });
+      const bodyEl = document.getElementById('familyModalBody');
+      if (bodyEl) bodyEl.innerHTML = await renderModalContent();
+      renderCurrentScreen();
+    }
+  };
+
+  window.removeFamilyMember = async (memberId) => {
+    tgUtil.haptic('medium');
+    const { data: mUser } = await supabaseClient.from('users').select('settings').eq('user_id', memberId).single();
+    if (mUser) {
+      const mSettings = mUser.settings || {};
+      mSettings.family = null;
+      await supabaseClient.from('users').update({ settings: mSettings }).eq('user_id', memberId);
+    }
+
+    const headSettings = { ...window.userSettings };
+    headSettings.family.members = headSettings.family.members.filter(id => id !== memberId);
+    
+    const { error } = await supabaseClient.from('users').update({ settings: headSettings }).eq('user_id', userId);
+    if (!error) {
+      window.userSettings = headSettings;
+      glassToast('Участник удален из группы!', { kind: 'success' });
+      const bodyEl = document.getElementById('familyModalBody');
+      if (bodyEl) bodyEl.innerHTML = await renderModalContent();
+      renderCurrentScreen();
+    }
+  };
+
+  window.approveFamilyOrder = async (orderId) => {
+    tgUtil.haptic('success');
+    
+    const { data: order } = await supabaseClient.from('orders').select('*').eq('id', orderId).single();
+    if (!order) {
+      glassToast('Заказ не найден!', { kind: 'error' });
+      return;
+    }
+
+    const { data: headUser } = await supabaseClient.from('users').select('ices_balance').eq('user_id', userId).single();
+    const headBalance = headUser?.ices_balance || 0;
+    
+    if (headBalance < order.total_byn) {
+      glassToast('Недостаточно средств на семейном балансе!', { kind: 'error' });
+      return;
+    }
+
+    const newHeadBalance = headBalance - order.total_byn;
+    await supabaseClient.from('users').update({ ices_balance: newHeadBalance }).eq('user_id', userId);
+
+    await supabaseClient.from('orders').update({
+      status: 'paid',
+      auto_cancel_reason: null
+    }).eq('id', orderId);
+
+    glassToast('Покупка успешно одобрена и оплачена!', { kind: 'success' });
+    const bodyEl = document.getElementById('familyModalBody');
+    if (bodyEl) bodyEl.innerHTML = await renderModalContent();
+    renderCurrentScreen();
+  };
+
+  window.declineFamilyOrder = async (orderId) => {
+    tgUtil.haptic('medium');
+    await supabaseClient.from('orders').update({
+      status: 'cancelled',
+      auto_cancel_reason: 'Отклонено главой семейного бюджета'
+    }).eq('id', orderId);
+
+    glassToast('Покупка отклонена!', { kind: 'success' });
+    const bodyEl = document.getElementById('familyModalBody');
+    if (bodyEl) bodyEl.innerHTML = await renderModalContent();
+    renderCurrentScreen();
+  };
+
+  await updateModalHTML();
+}
+
+async function showCurrencyAlertsModal() {
+  tgUtil.haptic('medium');
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[110] p-4 overflow-y-auto';
+  modal.id = 'currencyAlertsModal';
+
+  const _esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]));
+
+  const renderModalContent = () => {
+    const alerts = window.userSettings?.currency_alerts || [];
+    const alertsListHtml = alerts.map((a, idx) => `
+      <div class="flex justify-between items-center bg-white/5 p-2.5 rounded-xl border border-white/5">
+        <div>
+          <span class="font-bold text-white">${a.currency === 'CNY' ? '🇨🇳 CNY' : '🇵🇱 EUR'}</span>
+          <span class="text-xs text-white/50 ml-1">при курсе ≤</span>
+          <span class="font-mono font-bold text-cyan-400 ml-1">${a.target.toFixed(2)} BYN</span>
+        </div>
+        <button class="text-red-400 hover:text-red-300 text-xs font-bold" onclick="window.deleteCurrencyAlert(${idx})">Удалить</button>
+      </div>
+    `).join('') || '<p class="text-xs text-white/40 text-center py-2">У вас пока нет активных алертов</p>';
+
+    const cnyPts = [0.46, 0.455, 0.452, 0.448, 0.451, 0.449, 0.45];
+    const eurPts = [3.62, 3.60, 3.58, 3.57, 3.61, 3.59, 3.59];
+
+    const buildSVGPath = (pts) => {
+      const min = Math.min(...pts);
+      const max = Math.max(...pts);
+      const range = max - min || 1;
+      const height = 80;
+      const width = 330;
+      const stepX = width / (pts.length - 1);
+      
+      const coords = pts.map((p, idx) => {
+        const x = idx * stepX;
+        const y = height - ((p - min) / range) * (height - 20) - 10;
+        return { x, y };
+      });
+
+      const linePath = 'M ' + coords.map(c => `${c.x.toFixed(1)} ${c.y.toFixed(1)}`).join(' L ');
+      const fillPath = linePath + ` L ${width} ${height} L 0 ${height} Z`;
+      return { linePath, fillPath, coords };
+    };
+
+    const cnyChart = buildSVGPath(cnyPts);
+    const eurChart = buildSVGPath(eurPts);
+
+    return `
+      <div class="space-y-4">
+        <div class="bg-white/5 p-3 rounded-xl border border-white/10">
+          <p class="text-xs font-bold text-white mb-2 flex items-center justify-between">
+            <span>🇨🇳 Динамика CNY/BYN (7 дней)</span>
+            <span class="text-cyan-400 font-mono text-xs">текущий ~0.45</span>
+          </p>
+          <div class="relative h-20 w-full overflow-hidden mt-1 bg-slate-950/40 rounded-lg">
+            <svg class="w-full h-full" viewBox="0 0 330 80" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="cnyGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="rgba(34,211,238,0.25)"/>
+                  <stop offset="100%" stop-color="rgba(34,211,238,0)"/>
+                </linearGradient>
+              </defs>
+              <path d="${cnyChart.fillPath}" fill="url(#cnyGrad)"/>
+              <path d="${cnyChart.linePath}" fill="none" stroke="#22d3ee" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              ${cnyChart.coords.map((c, i) => `<circle cx="${c.x}" cy="${c.y}" r="3" fill="#22d3ee"/>`).join('')}
+            </svg>
+          </div>
+        </div>
+
+        <div class="bg-white/5 p-3 rounded-xl border border-white/10">
+          <p class="text-xs font-bold text-white mb-2 flex items-center justify-between">
+            <span>🇵🇱🇪🇺 Динамика EUR/BYN (7 дней)</span>
+            <span class="text-violet-400 font-mono text-xs">текущий ~3.59</span>
+          </p>
+          <div class="relative h-20 w-full overflow-hidden mt-1 bg-slate-950/40 rounded-lg">
+            <svg class="w-full h-full" viewBox="0 0 330 80" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="eurGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="rgba(167,139,250,0.25)"/>
+                  <stop offset="100%" stop-color="rgba(167,139,250,0)"/>
+                </linearGradient>
+              </defs>
+              <path d="${eurChart.fillPath}" fill="url(#eurGrad)"/>
+              <path d="${eurChart.linePath}" fill="none" stroke="#a78bfa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              ${eurChart.coords.map((c, i) => `<circle cx="${c.x}" cy="${c.y}" r="3" fill="#a78bfa"/>`).join('')}
+            </svg>
+          </div>
+        </div>
+
+        <div class="bg-white/5 p-4 rounded-xl border border-white/10 space-y-3">
+          <h4 class="text-xs font-bold text-white/70 uppercase tracking-wider">🔔 Установить новое уведомление:</h4>
+          
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[10px] text-white/50 block mb-1">Валюта</label>
+              <select id="alertCurrency" class="w-full p-2.5 rounded-xl border border-white/20 text-xs bg-slate-900 text-white">
+                <option value="CNY">🇨🇳 Юань (CNY)</option>
+                <option value="EUR">🇵🇱 Евро (EUR)</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[10px] text-white/50 block mb-1">Целевой курс (BYN)</label>
+              <input type="number" step="0.01" id="alertTarget" placeholder="напр. 0.44" class="w-full p-2.5 rounded-xl border border-white/20 text-xs bg-slate-900 text-white">
+            </div>
+          </div>
+          
+          <button id="addAlertBtn" class="w-full btn-primary py-2.5 rounded-xl text-xs font-bold" style="background: linear-gradient(135deg, var(--ice-primary), var(--ice-deep)); border: none;">
+            🔔 Уведомить меня при падении
+          </button>
+        </div>
+
+        <div class="space-y-2">
+          <h4 class="text-xs font-bold text-white/60 uppercase tracking-wider">Ваши активные алерты:</h4>
+          <div class="space-y-2 max-h-[25vh] overflow-y-auto">
+            ${alertsListHtml}
+          </div>
+        </div>
+      </div>
+    `;
+  };
+
+  const updateModalHTML = () => {
+    modal.innerHTML = `
+      <div class="bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden page-enter">
+        <div class="p-5 border-b border-white/10 flex justify-between items-center bg-white/5">
+          <div>
+            <h3 class="text-white font-bold text-lg flex items-center gap-2">
+              <span>📈 Трекер курсов и уведомления</span>
+            </h3>
+            <p class="text-white/50 text-xs mt-0.5">Следите за лучшим курсом для выкупа</p>
+          </div>
+          <button id="closeAlertsModalBtn" class="text-white/50 hover:text-white transition-colors text-lg">${ix('x')}</button>
+        </div>
+        
+        <div class="p-5 overflow-y-auto flex-1" id="alertsModalBody">
+          ${renderModalContent()}
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    const closeBtn = document.getElementById('closeAlertsModalBtn');
+    if (closeBtn) closeBtn.onclick = () => modal.remove();
+
+    const addBtn = document.getElementById('addAlertBtn');
+    if (addBtn) {
+      addBtn.onclick = () => {
+        const ccy = document.getElementById('alertCurrency').value;
+        const target = parseFloat(document.getElementById('alertTarget').value);
+        if (isNaN(target) || target <= 0) {
+          glassToast('Пожалуйста, введите корректный курс!', { kind: 'error' });
+          return;
+        }
+        window.addCurrencyAlert(ccy, target);
+      };
+    }
+  };
+
+  window.addCurrencyAlert = async (ccy, target) => {
+    tgUtil.haptic('success');
+    const alerts = window.userSettings?.currency_alerts || [];
+    alerts.push({ currency: ccy, target: target, active: true });
+    
+    const updatedSettings = {
+      ...window.userSettings,
+      currency_alerts: alerts
+    };
+
+    const { error } = await supabaseClient.from('users').update({ settings: updatedSettings }).eq('user_id', userId);
+    if (!error) {
+      window.userSettings = updatedSettings;
+      glassToast('Алерт успешно установлен!', { kind: 'success' });
+      document.getElementById('alertsModalBody').innerHTML = renderModalContent();
+    } else {
+      glassToast('Ошибка сохранения алерта', { kind: 'error' });
+    }
+  };
+
+  window.deleteCurrencyAlert = async (index) => {
+    tgUtil.haptic('medium');
+    const alerts = window.userSettings?.currency_alerts || [];
+    alerts.splice(index, 1);
+
+    const updatedSettings = {
+      ...window.userSettings,
+      currency_alerts: alerts
+    };
+
+    const { error } = await supabaseClient.from('users').update({ settings: updatedSettings }).eq('user_id', userId);
+    if (!error) {
+      window.userSettings = updatedSettings;
+      glassToast('Алерт удален!', { kind: 'success' });
+      document.getElementById('alertsModalBody').innerHTML = renderModalContent();
+    }
+  };
+
+  updateModalHTML();
+}
+
+async function renderAdminTicketsList() {
+  try {
+    const { data: msgs, error } = await supabaseClient.from('order_messages')
+      .select('order_id, user_id, message_text, created_at, sender_role')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    if (!msgs || msgs.length === 0) {
+      return '<p class="text-xs text-white/40 text-center py-4">Нет активных обращений в чат</p>';
+    }
+
+    const threads = {};
+    for (const m of msgs) {
+      if (!threads[m.order_id]) {
+        threads[m.order_id] = m;
+      }
+    }
+
+    const _esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]));
+
+    return Object.values(threads).map(t => {
+      const isUnread = t.sender_role === 'client';
+      return `
+        <div class="p-2.5 bg-white/5 rounded-xl flex justify-between items-center border border-white/5 hover:border-cyan-500/20 transition-all mb-2">
+          <div class="min-w-0 flex-1 text-left">
+            <div class="flex items-center gap-1.5">
+              <span class="font-bold text-xs text-white">Заказ #${t.order_id.slice(0, 8)}</span>
+              ${isUnread ? '<span class="bg-cyan-500 text-slate-900 font-extrabold text-[8px] px-1 py-0.5 rounded uppercase tracking-wider animate-pulse">Новое</span>' : ''}
+            </div>
+            <p class="text-[10px] text-white/50 truncate mt-0.5">${isUnread ? 'Клиент: ' : 'Вы: '}${_esc(t.message_text)}</p>
+          </div>
+          <button class="bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold px-3 py-1.5 rounded-lg text-[10px] transition ml-2" onclick="window.openSupportChat('${t.order_id}', true)">Ответить</button>
+        </div>
+      `;
+    }).join('');
+  } catch (e) {
+    console.error(e);
+    return '<p class="text-xs text-red-400 text-center py-2">Ошибка загрузки тикетов</p>';
+  }
+}
+
+window.openSupportChat = (orderId, isAdmin = false) => {
+  tgUtil.haptic('medium');
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[130] p-4';
+  modal.id = 'supportChatModal';
+  
+  const _esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]));
+  
+  let chatInterval = null;
+
+  const fetchAndRenderMessages = async () => {
+    try {
+      const { data: messages, error } = await supabaseClient.from('order_messages')
+        .select('*')
+        .eq('order_id', orderId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      
+      const messagesContainer = document.getElementById('chatMessagesContainer');
+      if (!messagesContainer) return;
+
+      const isAtBottom = messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight < 40;
+
+      const messagesHtml = messages.map(m => {
+        const isMe = isAdmin ? m.sender_role === 'manager' : m.sender_role === 'client';
+        const senderName = m.sender_role === 'manager' ? 'Поддержка' : 'Вы';
+        const dateStr = new Date(m.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        
+        return `
+          <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} space-y-1 page-enter">
+            <span class="text-[9px] text-white/40 px-1">${senderName}</span>
+            <div class="max-w-[80%] rounded-2xl px-3.5 py-2 text-xs leading-relaxed text-left border ${
+              isMe 
+                ? 'bg-cyan-500 text-slate-900 border-cyan-400/20 rounded-tr-none' 
+                : 'bg-white/5 text-white/95 border-white/10 rounded-tl-none'
+            }">
+              ${_esc(m.message_text)}
+            </div>
+            <span class="text-[8px] text-white/30 px-1 font-mono">${dateStr}</span>
+          </div>
+        `;
+      }).join('') || '<p class="text-xs text-white/40 text-center py-10">Напишите первое сообщение, менеджер ответит вам в ближайшее время!</p>';
+
+      messagesContainer.innerHTML = messagesHtml;
+      
+      if (isAtBottom || messagesContainer.scrollTop === 0) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+    } catch (e) {
+      console.error('Error fetching messages:', e);
+    }
+  };
+
+  modal.innerHTML = `
+    <div class="bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-2xl max-w-md w-full h-[80vh] flex flex-col shadow-2xl overflow-hidden page-enter">
+      <div class="p-4.5 border-b border-white/10 flex justify-between items-center bg-white/5">
+        <div class="min-w-0">
+          <h3 class="text-white font-bold text-sm flex items-center gap-2 truncate">
+            <span>💬 Чат по заказу #${orderId.slice(0, 8)}</span>
+          </h3>
+          <p class="text-cyan-400 text-[10px] mt-0.5">${isAdmin ? 'Режим менеджера' : 'Ответ в течение 5-15 минут'}</p>
+        </div>
+        <button id="closeChatModalBtn" class="text-white/50 hover:text-white transition-colors text-lg">${ix('x')}</button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4 space-y-3" id="chatMessagesContainer">
+        <div class="flex items-center justify-center py-10">
+          <div class="animate-spin rounded-full h-6 w-6 border-2 border-cyan-500 border-t-transparent"></div>
+        </div>
+      </div>
+
+      <div class="p-3 border-t border-white/10 bg-white/5 flex gap-2 items-center">
+        <input type="text" id="chatMessageInput" placeholder="Введите сообщение..." class="flex-1 p-2.5 rounded-xl bg-slate-900 border border-white/20 text-white text-xs focus:border-cyan-500 focus:outline-none">
+        <button id="sendChatMessageBtn" class="bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold px-4 py-2.5 rounded-xl text-xs transition">Отправить</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  const closeBtn = document.getElementById('closeChatModalBtn');
+  if (closeBtn) {
+    closeBtn.onclick = () => {
+      clearInterval(chatInterval);
+      modal.remove();
+    };
+  }
+
+  const sendBtn = document.getElementById('sendChatMessageBtn');
+  const inputEl = document.getElementById('chatMessageInput');
+
+  const sendMessage = async () => {
+    const text = inputEl.value.trim();
+    if (!text) return;
+    
+    tgUtil.haptic('light');
+    inputEl.value = '';
+    
+    try {
+      const { error } = await supabaseClient.from('order_messages').insert({
+        order_id: orderId,
+        user_id: userId,
+        sender_role: isAdmin ? 'manager' : 'client',
+        message_text: text
+      });
+
+      if (error) throw error;
+      fetchAndRenderMessages();
+    } catch (e) {
+      glassToast('Ошибка отправки сообщения', { kind: 'error' });
+    }
+  };
+
+  if (sendBtn && inputEl) {
+    sendBtn.onclick = sendMessage;
+    inputEl.onkeydown = (e) => {
+      if (e.key === 'Enter') sendMessage();
+    };
+  }
+
+  fetchAndRenderMessages();
+  chatInterval = setInterval(fetchAndRenderMessages, 4000);
+};
+
+window.showVipSectionModal = () => {
+  tgUtil.haptic('success');
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[120] p-4 overflow-y-auto';
+  modal.id = 'vipSectionModal';
+  
+  const hasCelebrated = localStorage.getItem('vipUnlockCelebrated') === 'true';
+  
+  const _esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]));
+
+  const vipItems = [
+    { id: 'vip-1', title: 'Nike Air Jordan 1 Low Travis Scott "Reverse Mocha"', price: 280, oldPrice: 650, img: 'https://vrvwdagjpttvfvjanbwq.supabase.co/storage/v1/object/public/legit-references/nike/air-jordan-1-low-travis-scott/side.jpg', brand: 'Nike', platform: 'Poizon' },
+    { id: 'vip-2', title: 'Stone Island Hoodie Sweatshirt Black', price: 220, oldPrice: 520, img: 'https://vrvwdagjpttvfvjanbwq.supabase.co/storage/v1/object/public/legit-references/stone-island/stone-island-hoodie/side.jpg', brand: 'Stone Island', platform: 'Poizon' },
+    { id: 'vip-3', title: 'Arc\'teryx Beta LT Jacket Black', price: 340, oldPrice: 850, img: 'https://vrvwdagjpttvfvjanbwq.supabase.co/storage/v1/object/public/legit-references/stone-island/stone-island-softshell/side.jpg', brand: 'Arc\'teryx', platform: 'Zalando' }
+  ];
+
+  const renderVipGrid = () => {
+    return `
+      <div class="space-y-4 page-enter">
+        <div class="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl text-center mb-2">
+          <p class="text-xs text-amber-300 font-semibold flex items-center justify-center gap-1">
+            🔥 VIP-СКИДКИ ДО 70%
+          </p>
+          <p class="text-[10px] text-white/50 mt-0.5">Лимитированная подборка горящих товаров, обновляемая ботом</p>
+        </div>
+        
+        <div class="grid grid-cols-1 gap-4.5">
+          ${vipItems.map(item => `
+            <div class="bg-white/5 border border-white/10 rounded-2xl overflow-hidden flex gap-3 p-3 relative hover:scale-[1.01] transition-all">
+              <div class="w-24 h-24 rounded-xl overflow-hidden bg-white/10 flex-shrink-0">
+                <img src="${item.img}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/150'">
+              </div>
+              <div class="flex-1 min-w-0 flex flex-col justify-between text-left">
+                <div>
+                  <span class="bg-red-500/20 text-red-400 font-bold px-1.5 py-0.5 rounded text-[8px] uppercase tracking-wider">${item.brand}</span>
+                  <h4 class="text-white font-bold text-xs mt-1 leading-snug line-clamp-2">${_esc(item.title)}</h4>
+                </div>
+                <div class="flex justify-between items-end mt-2">
+                  <div>
+                    <span class="text-[9px] text-white/40 line-through font-mono">${item.oldPrice} BYN</span>
+                    <p class="text-green-400 font-bold font-mono text-sm leading-none mt-0.5">${item.price} BYN</p>
+                  </div>
+                  <button class="bg-green-600 hover:bg-green-700 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] transition flex items-center gap-1" onclick="window.buyVipItem('${item.id}')">
+                    Купить
+                  </button>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  };
+
+  const renderCelebration = () => {
+    return `
+      <div class="text-center py-6 space-y-5 page-enter">
+        <div class="relative mx-auto w-24 h-24 mb-2 flex items-center justify-center text-6xl">
+          🎉
+          <div class="absolute inset-0 border border-amber-400/50 rounded-full animate-ping opacity-75"></div>
+        </div>
+        <div>
+          <h3 class="text-amber-400 text-lg font-extrabold uppercase tracking-wider">Поздравляем с разблокировкой!</h3>
+          <p class="text-white/80 text-xs mt-2 leading-relaxed px-4">
+            Вы совершили свой первый заказ и официально разблокировали **Секретный VIP-раздел** каталога ICE LOGIX!
+          </p>
+        </div>
+        <div class="bg-amber-400/10 border border-amber-400/30 p-3 rounded-xl max-w-xs mx-auto">
+          <p class="text-xs text-amber-300 font-bold">✨ Доступ повышен до VIP</p>
+          <p class="text-[9px] text-white/50 mt-0.5">Вам доступны максимальные скидки на редкие релизы</p>
+        </div>
+        <button id="vipCelebrateContinueBtn" class="btn-primary w-full max-w-xs py-3 rounded-xl font-bold text-xs" style="background: linear-gradient(135deg, #F59E0B, #D97706); border: none;">
+          ⚡ Войти в VIP-Раздел
+        </button>
+      </div>
+    `;
+  };
+
+  modal.innerHTML = `
+    <div class="bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden page-enter">
+      <div class="p-5 border-b border-white/10 flex justify-between items-center bg-white/5">
+        <div>
+          <h3 class="text-amber-400 font-extrabold text-lg flex items-center gap-2">
+            <span>🔥 VIP-Горящие товары</span>
+          </h3>
+          <p class="text-white/50 text-xs mt-0.5">Эксклюзивные предложения от ICE LOGIX</p>
+        </div>
+        <button id="closeVipModalBtn" class="text-white/50 hover:text-white transition-colors text-lg">${ix('x')}</button>
+      </div>
+      
+      <div class="p-5 overflow-y-auto flex-1" id="vipModalBody">
+        ${hasCelebrated ? renderVipGrid() : renderCelebration()}
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  const closeBtn = document.getElementById('closeVipModalBtn');
+  if (closeBtn) closeBtn.onclick = () => modal.remove();
+
+  const continueBtn = document.getElementById('vipCelebrateContinueBtn');
+  if (continueBtn) {
+    continueBtn.onclick = () => {
+      tgUtil.haptic('selection');
+      localStorage.setItem('vipUnlockCelebrated', 'true');
+      const bodyEl = document.getElementById('vipModalBody');
+      if (bodyEl) bodyEl.innerHTML = renderVipGrid();
+    };
+  }
+
+  window.buyVipItem = (itemId) => {
+    tgUtil.haptic('success');
+    const selected = vipItems.find(i => i.id === itemId);
+    if (!selected) return;
+    
+    modal.remove();
+    window.tempOrder = {
+      items: [{
+        title: selected.title,
+        price: selected.price,
+        currency: 'BYN',
+        total_byn: selected.price,
+        quantity: 1,
+        platform: selected.platform,
+        category: 'Одежда',
+        size: 'L'
+      }],
+      total_byn: selected.price,
+      discountAmount: 0,
+      appliedPromo: null
+    };
+    switchTab('neworder');
+    glassToast('Товар добавлен в заказ!', { kind: 'success' });
+  };
+};
 
 async function showPersonalDataForm() {
   const modal = document.createElement('div');
