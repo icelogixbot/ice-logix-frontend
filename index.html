@@ -2566,86 +2566,115 @@ const MAX_REQUESTS_TRUSTED = 100;
     }
 
     async function init() {
-      tg = window.Telegram.WebApp;
-      tg.ready();
-      tg.expand();
-      // Enable closing-confirmation so accidental swipes don't kill the WebApp mid-checkout.
-      try { tg.enableClosingConfirmation?.(); } catch {}
-      // Match the Telegram chrome (header + background) to our dark gradient so the WebApp blends in seamlessly.
-      try { tg.setHeaderColor?.('#0f172a'); } catch {}
-      try { tg.setBackgroundColor?.('#0f172a'); } catch {}
-      // Mark <body> so CSS hides duplicate in-page back buttons when native BackButton is available.
-      if (tg?.BackButton) document.body.classList.add('tg-native-back');
-      const user = tg.initDataUnsafe?.user;
-      userId = user ? user.id : null;
-      userName = user ? (user.first_name || user.username) : 'Гость';
-      userAvatarUrl = user?.photo_url || null;
-      const SUPABASE_URL = 'https://vrvwdagjpttvfvjanbwq.supabase.co';
-      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZydndkYWdqcHR0dmZ2amFuYndxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NTc4MzgsImV4cCI6MjA5MTIzMzgzOH0.P9GQSW6NLN1BhR66PX-LP4ysZBXFeWIXRYIRvhRjo1c';
-      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      
       try {
-        await loadUserData();
-      } catch (err) {
-        console.error('Error loading user data:', err);
+        // Safe Telegram check
+        if (window.Telegram && window.Telegram.WebApp) {
+          tg = window.Telegram.WebApp;
+          try { tg.ready(); } catch {}
+          try { tg.expand(); } catch {}
+          // Enable closing-confirmation so accidental swipes don't kill the WebApp mid-checkout.
+          try { tg.enableClosingConfirmation?.(); } catch {}
+          // Match the Telegram chrome (header + background) to our dark gradient so the WebApp blends in seamlessly.
+          try { tg.setHeaderColor?.('#0f172a'); } catch {}
+          try { tg.setBackgroundColor?.('#0f172a'); } catch {}
+          // Mark <body> so CSS hides duplicate in-page back buttons when native BackButton is available.
+          if (tg?.BackButton) document.body.classList.add('tg-native-back');
+          const user = tg.initDataUnsafe?.user;
+          userId = user ? user.id : null;
+          userName = user ? (user.first_name || user.username) : 'Гость';
+          userAvatarUrl = user?.photo_url || null;
+        } else {
+          console.warn('Telegram WebApp is not available. Running in browser preview mode.');
+        }
+
+        // Safe Supabase check
+        const SUPABASE_URL = 'https://vrvwdagjpttvfvjanbwq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZydndkYWdqcHR0dmZ2amFuYndxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NTc4MzgsImV4cCI6MjA5MTIzMzgzOH0.P9GQSW6NLN1BhR66PX-LP4ysZBXFeWIXRYIRvhRjo1c';
+        
+        if (window.supabase) {
+          supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } else {
+          console.error('Supabase SDK failed to load. Database calls will be disabled.');
+        }
+
+        if (supabaseClient) {
+          try {
+            await loadUserData();
+          } catch (err) {
+            console.error('Error loading user data:', err);
+          }
+          try {
+            await migrateGuestCart();
+          } catch (err) {
+            console.error('Error migrating guest cart:', err);
+          }
+          try {
+            await initReferralCode();
+          } catch (err) {
+            console.error('Error initializing referral code:', err);
+          }
+          try {
+            await loadWishlist();
+          } catch (err) {
+            console.error('Error loading wishlist:', err);
+          }
+        }
+        
+        attachEventListeners();
+        
+        const avatarDiv = document.querySelector('#avatar');
+        if (avatarDiv) {
+          avatarDiv.innerHTML = userAvatarUrl ? `<img src="${userAvatarUrl}">` : userName.charAt(0).toUpperCase();
+        }
+        const userNameHeader = document.querySelector('#userNameHeader');
+        if (userNameHeader) {
+          userNameHeader.innerText = userName;
+        }
+        const logoImg = document.getElementById('logoImg');
+        if (logoImg) {
+          logoImg.onclick = () => switchTab('home');
+        }
+        const userCard = document.getElementById('userCard');
+        if (userCard) {
+          userCard.onclick = () => switchTab('profile');
+        }
+        const settingsBtn = document.getElementById('settingsBtn');
+        if (settingsBtn) {
+          settingsBtn.onclick = () => tgUtil.alert('Настройки будут позже');
+        }
+        const notificationsBtn = document.getElementById('notificationsBtn');
+        if (notificationsBtn) {
+          notificationsBtn.onclick = () => tgUtil.alert('Уведомлений пока нет');
+        }
+        
+        // Прогреваем кэш курсов НБРБ (1 час) — для quickEstimate в списках
+        if (window.iceLogixPricing?.warmRates) window.iceLogixPricing.warmRates();
+        // Автоматически открываем онбординг для новых пользователей
+        if (!localStorage.getItem('ice_onboarding_shown') && window.iceLogixOnboarding) {
+          setTimeout(() => window.iceLogixOnboarding.open(), 800);
+        }
+      } catch (globalInitErr) {
+        console.error('CRITICAL ERROR during init():', globalInitErr);
+      } finally {
+        // ALWAYS call switchTab('home') to force the UI to boot and replace the loading skeletons!
+        try {
+          switchTab('home');
+        } catch (tabErr) {
+          console.error('Failed to switch tab to home:', tabErr);
+        }
       }
-      try {
-        await migrateGuestCart();
-      } catch (err) {
-        console.error('Error migrating guest cart:', err);
-      }
-      try {
-        await initReferralCode();
-      } catch (err) {
-        console.error('Error initializing referral code:', err);
-      }
-      try {
-        await loadWishlist();
-      } catch (err) {
-        console.error('Error loading wishlist:', err);
-      }
-      
-      attachEventListeners();
-      
-      const avatarDiv = document.querySelector('#avatar');
-      if (avatarDiv) {
-        avatarDiv.innerHTML = userAvatarUrl ? `<img src="${userAvatarUrl}">` : userName.charAt(0).toUpperCase();
-      }
-      const userNameHeader = document.querySelector('#userNameHeader');
-      if (userNameHeader) {
-        userNameHeader.innerText = userName;
-      }
-      const logoImg = document.getElementById('logoImg');
-      if (logoImg) {
-        logoImg.onclick = () => switchTab('home');
-      }
-      const userCard = document.getElementById('userCard');
-      if (userCard) {
-        userCard.onclick = () => switchTab('profile');
-      }
-      const settingsBtn = document.getElementById('settingsBtn');
-      if (settingsBtn) {
-        settingsBtn.onclick = () => tgUtil.alert('Настройки будут позже');
-      }
-      const notificationsBtn = document.getElementById('notificationsBtn');
-      if (notificationsBtn) {
-        notificationsBtn.onclick = () => tgUtil.alert('Уведомлений пока нет');
-      }
-      
-      // Прогреваем кэш курсов НБРБ (1 час) — для quickEstimate в списках
-      if (window.iceLogixPricing?.warmRates) window.iceLogixPricing.warmRates();
-      // Автоматически открываем онбординг для новых пользователей
-      if (!localStorage.getItem('ice_onboarding_shown') && window.iceLogixOnboarding) {
-        setTimeout(() => window.iceLogixOnboarding.open(), 800);
-      }
-      switchTab('home');
+
       // Watch for category selects to apply 2-step UI enhancement
-      const enhanceAllCategorySelects = () => {
-        ['calcCategory', 'orderCategory', 'productCategory'].forEach(enhanceCategoryTwoStep);
-      };
-      enhanceAllCategorySelects();
-      const moEnhance = new MutationObserver(enhanceAllCategorySelects);
-      moEnhance.observe(document.body, { childList: true, subtree: true });
+      try {
+        const enhanceAllCategorySelects = () => {
+          ['calcCategory', 'orderCategory', 'productCategory'].forEach(enhanceCategoryTwoStep);
+        };
+        enhanceAllCategorySelects();
+        const moEnhance = new MutationObserver(enhanceAllCategorySelects);
+        moEnhance.observe(document.body, { childList: true, subtree: true });
+      } catch (observerErr) {
+        console.error('Failed to initialize category select observer:', observerErr);
+      }
     }
 
     async function loadUserData() {
