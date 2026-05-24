@@ -17,9 +17,9 @@
     insurance_pct: 2,             // 2% если включено
     legit_check_byn: 15,          // фикс
     currency_buffer_pct: 3,       // буфер на колебания курса
-    customs_limit_eur: 1000,      // беспошлинный лимит
+    customs_limit_eur: 200,       // беспошлинный лимит РБ (200€)
     customs_limit_kg: 31,
-    customs_duty_pct: 30,
+    customs_duty_pct: 15,         // пошлина РБ (15% от превышения)
     first_order_discount_byn: 15, // скидка на первый заказ
     level_multipliers: {          // множитель комиссии по уровню
       newbie: 1.0,
@@ -171,8 +171,9 @@
     let warning = null;
     if (exceedsValue) {
       const overage = productCostBYN - limitBYN;
-      dutyBYN += overage * (CONFIG.customs_duty_pct / 100);
-      warning = `⚠️ Превышен беспошлинный лимит €${CONFIG.customs_limit_eur} (текущая стоимость ${productCostBYN.toFixed(2)} BYN, пошлина 30% от превышения)`;
+      // В РБ пошлина = 15% от превышения лимита + 10 BYN таможенный сбор
+      dutyBYN += (overage * (CONFIG.customs_duty_pct / 100)) + 10;
+      warning = `⚠️ Превышен лимит беспошлинного ввоза в РБ €${CONFIG.customs_limit_eur} (пошлина 15% от превышения + 10 BYN сбор)`;
     }
     if (exceedsWeight) {
       // По весу — отдельная логика, упрощённо: фикс 5 BYN/кг сверх лимита
@@ -251,7 +252,13 @@
     const route = SHOPBYSHOP_RATES[countryInfo.delivery] ?? { rate_usd_per_kg: 10, lead_days: [10, 15] };
     const deliveryUSD = weightKg * route.rate_usd_per_kg;
     const deliveryBYN = round2(deliveryUSD * (rates.USD_to_BYN || FALLBACK_RATES.USD_to_BYN));
-    const deliveryDays = route.lead_days;
+    
+    // Прибавляем дни отпуска байеров к срокам доставки, если отпуск активен
+    let deliveryDays = [...route.lead_days];
+    if (global.buyerVacation && global.buyerVacation.active) {
+      const extra = parseInt(global.buyerVacation.days) || 0;
+      deliveryDays = deliveryDays.map(d => d + extra);
+    }
 
     // 6. Комиссия ICE LOGIX
     const commissionBYN = round2(
