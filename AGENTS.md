@@ -187,10 +187,21 @@ Stored via `supabase secrets set` — never committed to repo:
 
 ## Current legit-check feature status (as of 2026-05-04)
 
-- ✅ PR #15 open: reference DB with 5 brands × 10 models seeded + 4 fix-migrations applied to prod
-- ⏳ PR-A.5 pending: collect ~100 reference photos, upload to Supabase Storage `legit-references` bucket
+- ✅ PR #15 merged: reference DB with 5 brands × 10 models seeded + 4 fix-migrations applied to prod, 100 reference photos uploaded to Supabase Storage `legit-references` bucket
 - ⏳ PR-B pending: Edge Function `legit-check` (Gemini Vision pipeline)
 - ⏳ PR-C pending: UI «AI Проверка» button + disclaimer
-- 🐛 Known bugs: navigation lag (#1), search-by-image ignores authenticity_tier (#2b), «Проверить изображение» missing in Calculator + garbage results (#3+#4)
 
 Tier-1 MVP pricing model: 5 BYN/check, cost ~$0.10-0.30, target accuracy 70-80% on common counterfeits.
+
+## Recent design-pair PRs and resulting hot-fix backlog
+
+- ✅ `#18` v0.dev full UI redesign rolled out
+- ✅ `#19` (PR-1 of design pair) — fixed v0.dev functional regressions: 9 mojibake byte sequences, double snowflake in balance widget, bottom-nav overflow (replaced flex with grid 5×1fr), moved balance from right side of header to left
+- ✅ `#20` (PR-2 of design pair) — glassmorphism pass: SVG icon system (`ICON_PATHS` + `ix()` helper, 420+ emoji replaced), glass modal replacing `tgUtil.alert/confirm/popup`, glass select picker replacing native `<select>` elements (auto-upgraded via MutationObserver), `glassToast()`, balance snowflake migrated to inline SVG, `CATEGORY_MAP` switched to icon names
+- 🐛 **Hot bugs after PR-2 (priority 0, see `.handoff/05-PENDING-WORK.md` PRIORITY 0 section):**
+  - Bug #5 — Home «Все/Каталог» buttons wrong target (`switchTab()` resets `currentSubScreen = null`, so setting it before is futile)
+  - Bug #6 — Remove «Бренды» catalog tile entirely (keep brand-filter dropdown inside Products catalog)
+  - Bug #7 — Design audit: walk app screen-by-screen, find/fix visual inconsistencies PR-2 missed
+- 🐛 Older known bugs: navigation lag (#1), search-by-image ignores authenticity_tier (#2b), «Проверить изображение» missing in Calculator + garbage results (#3+#4)
+
+**Always read `.handoff/05-PENDING-WORK.md` PRIORITY 0 section before starting any new task** — those hot-fixes block clean release.
