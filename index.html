@@ -2941,7 +2941,7 @@ const MAX_REQUESTS_TRUSTED = 100;
         // Фоновый поиск: image confirmation + price comparison
         if (title && supabaseClient && window.iceLogixPricing) {
           const q = [brand, title].filter(Boolean).join(' ').trim();
-          supabaseClient.functions.invoke('search-products', { body: { query: q, topN: 3 } })
+          supabaseClient.functions.invoke('search-products', { body: { query: q, topN: 3, user_id: userId } })
             .then(({ data, error }) => {
               if (error || !data?.ok || !Array.isArray(data.results) || data.results.length === 0) return;
               const first = data.results.find(r => r.image_url || r.title) || data.results[0];
@@ -4049,10 +4049,6 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             </div>
             <div class="flex flex-col gap-2 mt-3">
               <button id="toNewOrderBtn" class="btn-primary w-full py-3 rounded-xl flex items-center justify-center gap-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span> Перенести в заказ</button>
-              <button id="openLegitCheckBtnCalc" class="btn-secondary w-full py-3 rounded-xl flex items-center justify-center gap-2 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/10 transition">
-                <span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 8v6h6"/></svg></span>
-                AI Проверка подлинности
-              </button>
             </div>
           </div>
         </div>
@@ -4259,7 +4255,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
     const country = window.calcCountry || 'CN';
     const category = document.getElementById('calcCategory')?.value || '';
     const insurance = document.getElementById('calcInsurance')?.checked || false;
-    const legitCheck = document.getElementById('calcLegitCheck')?.checked || false;
+    const legitCheck = false;
 
     // Промо/акция: считаем скидку до вызова движка, затем передаём как extra_discount_byn
     let promotionId = null;
@@ -4342,7 +4338,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       url: document.getElementById('calcUrl')?.value || '',
       price, weight,
       currency, country, category,
-      insurance, legitCheck,
+      insurance,
       total: result.total_byn,
       total_byn: result.total_byn,
       total_ice: result.total_ice,
@@ -4531,7 +4527,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
     const currency = document.getElementById('calcCurrency')?.value || 'CNY';
     const category = document.getElementById('calcCategory')?.value || '';
     const insurance = document.getElementById('calcInsurance')?.checked || false;
-    const legitCheck = document.getElementById('calcLegitCheck')?.checked || false;
+    const legitCheck = false;
     const title = document.getElementById('calcTitle')?.value || '';
     const brand = document.getElementById('calcBrand')?.value || '';
     const marketplace = document.getElementById('calcMarketplace')?.value || '';
@@ -4552,7 +4548,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
     }
 
     const calcObj = {
-      price, weight, currency, category, insurance, legitCheck,
+      price, weight, currency, category, insurance,
       title, brand, marketplace_name: marketplace,
       description: desc, size, url,
       promotion_id: promotionId,
@@ -4580,24 +4576,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
     switchTab('neworder');
   };
 
-  const openLegitCheckBtnCalc = document.getElementById('openLegitCheckBtnCalc');
-  if (openLegitCheckBtnCalc) openLegitCheckBtnCalc.onclick = () => {
-    switchTab('legitcheck');
-  }; 
-  const calcLegitCheckBtn = document.getElementById('calcLegitCheckBtn');
-  if (calcLegitCheckBtn) {
-    calcLegitCheckBtn.onclick = () => {
-      const brandVal = document.getElementById('calcBrand')?.value || '';
-      const modelVal = document.getElementById('calcTitle')?.value || '';
-      switchTab('legitcheck');
-      setTimeout(() => {
-        const brandInput = document.getElementById('legitBrand');
-        const modelInput = document.getElementById('legitModel');
-        if (brandInput && brandVal) brandInput.value = brandVal;
-        if (modelInput && modelVal) modelInput.value = modelVal;
-      }, 100);
-    };
-  }
+
 
   // ==================== РЕЖИМЫ ВВОДА В КАЛЬКУЛЯТОРЕ (link/manual/photo/text) ====================
   const calcModeSelector = document.getElementById('calcModeSelector');
@@ -4913,7 +4892,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           renderCalcSearchResults(data);
         } else {
           const { data, error } = await supabaseClient.functions.invoke('search-products', {
-            body: { query: q },
+            body: { query: q, user_id: userId },
           });
           if (error) throw new Error(error.message);
           if (!data?.ok) throw new Error(data?.error || 'Не удалось найти');
@@ -5830,10 +5809,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               <button id="orderSaveItemBtn" class="btn-primary w-full py-3.5 rounded-xl font-bold transition flex items-center justify-center gap-2">
                 <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></span> Добавить товар в заказ
               </button>
-              <button id="openLegitCheckBtnOrder" class="btn-secondary w-full py-3.5 rounded-xl flex items-center justify-center gap-2 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/10 transition">
-                <span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 8v6h6"/></svg></span>
-                AI Проверка подлинности
-              </button>
+
             </div>
           </div>
         </div>
@@ -6633,7 +6609,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 renderOrderSearchResults(data);
               } else {
                 const { data, error } = await supabaseClient.functions.invoke('search-products', {
-                  body: { query: q },
+                  body: { query: q, user_id: userId },
                 });
                 if (error) throw new Error(error.message);
                 if (!data?.ok) throw new Error(data?.error || 'Не удалось найти');
@@ -6697,10 +6673,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           });
         }
 
-        const openLegitCheckBtnOrder = document.getElementById('openLegitCheckBtnOrder');
-        if (openLegitCheckBtnOrder) openLegitCheckBtnOrder.addEventListener('click', () => {
-          switchTab('legitcheck');
-        });
+
 
         const saveBtn = document.getElementById('orderSaveItemBtn');
         if (saveBtn) {
@@ -7243,7 +7216,15 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
         </div>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
-      <button id="accountRecoveryBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition">
+      <button id="marketplaceWhitelistBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition border-t border-white/5">
+        <span class="text-xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span></span>
+        <div class="flex-1">
+          <p class="font-semibold text-white text-sm">Поиск: Маркетплейсы</p>
+          <p class="text-xs" style="color: var(--text-muted);">Настроить список площадок</p>
+        </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <button id="accountRecoveryBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition border-t border-white/5">
         <span class="text-xl"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg></span></span>
         <div class="flex-1">
           <p class="font-semibold text-white text-sm">Восстановление</p>
@@ -7378,6 +7359,9 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
   const myPersonalDataBtn = document.getElementById('myPersonalDataBtn');
   if (myPersonalDataBtn) myPersonalDataBtn.onclick = () => showPersonalDataForm();
 
+  const marketplaceWhitelistBtn = document.getElementById('marketplaceWhitelistBtn');
+  if (marketplaceWhitelistBtn) marketplaceWhitelistBtn.onclick = () => showMarketplaceWhitelistModal();
+
   // Скачать договор
   const downloadAgreementBtn = document.getElementById('downloadAgreementBtn');
   if (downloadAgreementBtn) downloadAgreementBtn.onclick = () => downloadAgreement();
@@ -7460,7 +7444,11 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
       const totalEarned = referralOrders.reduce((sum, order) => sum + (order.drop_margin || 0), 0);
       const availableForPayout = totalEarned - payoutRequests.filter(r => r.status === 'approved' || r.status === 'completed').reduce((sum, r) => sum + r.amount, 0);
 
-      const referralLink = userReferralCode ? `https://t.me/icelogix_bot?start=ref_${userReferralCode}` : null;
+      const totalTurnover = referralOrders.reduce((sum, order) => sum + (Number(order.total_byn) || Number(order.total) || 0), 0);
+      const referralOrdersCount = referralOrders.length;
+      const averageCheck = referralOrdersCount > 0 ? (totalTurnover / referralOrdersCount).toFixed(2) : 0;
+
+      const referralLink = userReferralCode ? \`https://t.me/icelogix_bot?start=ref_\${userReferralCode}\` : null;
 
       const contentHubItems = [
         { title: 'Баннер 1200x628', image: 'https://via.placeholder.com/300x200?text=Banner', text: 'Лучшие кроссовки из Китая! Скидка 10% по коду DROP10' },
@@ -7468,14 +7456,14 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
       ];
       const contentHubHtml = contentHubItems.map(item => {
         const imgBlock = item.image
-          ? `<img src="${item.image}" class="w-full h-32 object-cover rounded-lg mb-2">`
+          ? \`<img src="\${item.image}" class="w-full h-32 object-cover rounded-lg mb-2">\`
           : '<div class="w-full h-20 bg-white/10 rounded-lg mb-2 flex items-center justify-center text-4xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span></div>';
         const dlBtn = item.image
-          ? `<button class="btn-primary content-download-btn flex-1 bg-cyan-500/30 hover:/50 py-2 rounded-lg text-xs" data-url="${item.image}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></span> Скачать</button>`
+          ? \`<button class="btn-primary content-download-btn flex-1 bg-cyan-500/30 hover:bg-cyan-500/50 py-2 rounded-lg text-xs" data-url="\${item.image}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></span> Скачать</button>\`
           : '';
         const preview = item.text.slice(0, 100) + (item.text.length > 100 ? '...' : '');
         const safeText = item.text.replace(/"/g, '&quot;');
-        return `<div class="bg-white/5 rounded-xl p-3 mb-3">${imgBlock}<p class="text-white font-bold text-sm mb-1">${item.title}</p><p class="text-white/70 text-xs mb-3">${preview}</p><div class="flex gap-2"><button class="btn-secondary content-copy-btn flex-1" data-text="${safeText}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span> Копировать текст</button>${dlBtn}</div></div>`;
+        return \`<div class="bg-white/5 rounded-xl p-3 mb-3">\${imgBlock}<p class="text-white font-bold text-sm mb-1">\${item.title}</p><p class="text-white/70 text-xs mb-3">\${preview}</p><div class="flex gap-2"><button class="btn-secondary content-copy-btn flex-1" data-text="\${safeText}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span> Копировать текст</button>\${dlBtn}</div></div>\`;
       }).join('');
 
       const payoutHistoryHtml = payoutRequests.length === 0
@@ -7483,16 +7471,16 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
         : payoutRequests.map(req => {
             const sc = req.status === 'pending' ? 'text-yellow-400' : req.status === 'approved' ? 'text-green-400' : req.status === 'completed' ? 'text-blue-400' : 'text-red-400';
             const st = req.status === 'pending' ? 'В обработке' : req.status === 'approved' ? 'Одобрен' : req.status === 'completed' ? 'Выплачен' : 'Отклонён';
-            return `<div class="p-2 border-b border-white/10 last:border-0"><div class="flex justify-between items-center"><span class="text-white/80 text-sm font-bold">${req.amount} <span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></span><span class="text-xs ${sc}">${st}</span></div><p class="text-white/50 text-xs mt-0.5">${new Date(req.created_at).toLocaleDateString('ru-RU')}</p></div>`;
+            return \`<div class="p-2 border-b border-white/10 last:border-0"><div class="flex justify-between items-center"><span class="text-white/80 text-sm font-bold">\${req.amount} <span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></span><span class="text-xs \${sc}">\${st}</span></div><p class="text-white/50 text-xs mt-0.5">\${new Date(req.created_at).toLocaleDateString('ru-RU')}</p></div>\`;
           }).join('');
 
-      return `
+      return \`
         <button id="backToProfileBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
         <div class="space-y-4">
           <div class="glass-card">
             <h3 class="text-white font-bold text-lg mb-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span> Ваша реферальная ссылка</h3>
-            ${referralLink
-              ? `<div class="flex items-center gap-2"><p class="text-cyan-400 text-sm truncate flex-1">${referralLink}</p><button id="copyReferralLinkBtn" data-link="${referralLink}" class="btn-secondary flex-shrink-0 text-white"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span> Скопировать</button></div>`
+            \${referralLink
+              ? \`<div class="flex items-center gap-2"><p class="text-cyan-400 text-sm truncate flex-1">\${referralLink}</p><button id="copyReferralLinkBtn" data-link="\${referralLink}" class="btn-secondary flex-shrink-0 text-white"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span> Скопировать</button></div>\`
               : '<p class="text-white/50 text-sm">Код не сгенерирован</p>'}
           </div>
           <div class="flex gap-2">
@@ -7502,12 +7490,21 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
           <div id="statsContainer">
             <div class="space-y-4">
               <div class="glass-card">
-                <h3 class="text-white font-bold text-lg mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Статистика</h3>
+                <h3 class="text-white font-bold text-lg mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Статистика продаж</h3>
                 <div class="grid grid-cols-2 gap-3">
-                  <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/70 text-xs">Приведено клиентов</p><p class="text-white text-xl font-bold">${referrals.length}</p></div>
-                  <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/70 text-xs">Заработано</p><p class="text-green-400 text-xl font-bold">${totalEarned} <span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></p></div>
-                  <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/70 text-xs">Доступно к выводу</p><p class="text-cyan-400 text-xl font-bold">${availableForPayout} <span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></p></div>
-                  <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/70 text-xs">Порог вывода</p><p class="text-white text-xl font-bold">${settings.payout_threshold} <span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></p></div>
+                  <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Оборот</p><p class="text-cyan-400 text-lg font-bold">\${totalTurnover.toFixed(2)} BYN</p></div>
+                  <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Всего заказов</p><p class="text-white text-lg font-bold">\${referralOrdersCount}</p></div>
+                  <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Средний чек</p><p class="text-white text-lg font-bold">\${averageCheck} BYN</p></div>
+                  <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Клиентов</p><p class="text-white text-lg font-bold">\${referrals.length}</p></div>
+                </div>
+              </div>
+              
+              <div class="glass-card">
+                <h3 class="text-white font-bold text-lg mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span> Финансы</h3>
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="bg-[var(--ice-primary)]/10 border border-[var(--ice-primary)]/20 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Заработано</p><p class="text-green-400 text-xl font-bold">\${totalEarned} <span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></p></div>
+                  <div class="bg-white/5 border border-white/10 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Доступно к выводу</p><p class="text-cyan-400 text-xl font-bold">\${availableForPayout} <span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></p></div>
+                  <div class="bg-white/5 border border-white/10 rounded-xl p-3 text-center col-span-2"><p class="text-white/70 text-[10px] uppercase tracking-wider">Порог вывода</p><p class="text-white text-lg font-bold">\${settings.payout_threshold} <span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></p></div>
                 </div>
               </div>
               <div class="glass-card">
@@ -7842,7 +7839,8 @@ async function renderAcademy() {
               <video id="lessonVideo" src="${data.content}" class="w-full rounded-xl" controls controlsList="nodownload" oncontextmenu="return false"></video>
               <div class="absolute bottom-10 right-2 text-white/20 text-xs pointer-events-none select-none">ID:${userId}</div>
             </div>
-            <p class="text-white/40 text-xs mt-1 text-center"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></span> Только для личного использования · ID: ${userId}</p>`;
+            <p class="text-white/40 text-xs mt-1 text-center"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></span> Только для личного использования · ID: ${userId}</p>
+            <button class="markDoneBtn mt-4 w-full bg-green-600 hover:bg-green-700 py-2.5 rounded-xl font-bold" data-lid="${data.id}" data-cid="${courseId}"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Отметить как пройденное</button>`;
         } else if (data.content_type === 'quiz') {
           try {
             const quiz = JSON.parse(data.content);
@@ -7911,10 +7909,35 @@ async function renderAcademy() {
           checkBtn.onclick = async () => {
             const questions = JSON.parse(checkBtn.dataset.questions);
             const threshold = parseInt(checkBtn.dataset.threshold);
+            
+            // Check all questions answered
+            let allAnswered = true;
+            questions.forEach((q, qi) => {
+              const sel = modal.querySelector(`input[name="q${qi}"]:checked`);
+              const qBlock = modal.querySelectorAll('#quizForm > div')[qi];
+              if (!sel) {
+                allAnswered = false;
+                if (qBlock) { qBlock.classList.add('border', 'border-red-500/50'); qBlock.style.animation = 'shake 0.3s'; }
+              } else {
+                if (qBlock) qBlock.classList.remove('border', 'border-red-500/50');
+              }
+            });
+            if (!allAnswered) {
+              glassToast('Ответьте на все вопросы', { kind: 'warning' });
+              return;
+            }
+
             let correct = 0;
             questions.forEach((q, qi) => {
               const sel = modal.querySelector(`input[name="q${qi}"]:checked`);
-              if (sel && parseInt(sel.value) === q.correct) correct++;
+              const qBlock = modal.querySelectorAll('#quizForm > div')[qi];
+              const isCorrect = sel && parseInt(sel.value) === q.correct;
+              if (isCorrect) {
+                correct++;
+                if (qBlock) { qBlock.classList.remove('border-red-500/50'); qBlock.classList.add('border', 'border-green-500/50'); }
+              } else {
+                if (qBlock) { qBlock.classList.remove('border-green-500/50'); qBlock.classList.add('border', 'border-red-500/50'); }
+              }
             });
             const score = Math.round(correct / questions.length * 100);
             const resultDiv = modal.querySelector('#quizResult');
@@ -11532,9 +11555,16 @@ async function showCommissionContractModal() {
     
     let p = null;
     if (userRow) {
-      if (userRow.encrypted_passport) {
+      // Try Vault first
+      try {
+        const { data: vaultData } = await supabaseClient.rpc('get_passport_secure', { p_user_id: userId });
+        if (vaultData) p = JSON.parse(vaultData);
+      } catch (vaultErr) {
+        console.warn('Vault read failed in contract, using JS fallback:', vaultErr);
+      }
+      if (!p && userRow.encrypted_passport) {
         p = decryptData(userRow.encrypted_passport);
-      } else if (userRow.passport_data) {
+      } else if (!p && userRow.passport_data) {
         try { p = JSON.parse(userRow.passport_data); } catch {}
       }
     }
@@ -12713,6 +12743,176 @@ window.showVipSectionModal = () => {
   };
 };
 
+const AVAILABLE_PLATFORMS_LIST = [
+  { id: "poizon", label: "Poizon / Dewu", flag: "🇨🇳" },
+  { id: "taobao", label: "Taobao", flag: "🇨🇳" },
+  { id: "tmall", label: "Tmall", flag: "🇨🇳" },
+  { id: "1688", label: "1688", flag: "🇨🇳" },
+  { id: "jd", label: "JD.com", flag: "🇨🇳" },
+  { id: "dhgate", label: "DHGate", flag: "🇨🇳" },
+  { id: "aliexpress", label: "AliExpress", flag: "🇨🇳" },
+  { id: "zalando", label: "Zalando", flag: "🇵🇱" },
+  { id: "aboutyou", label: "About You", flag: "🇩🇪" },
+  { id: "asos", label: "ASOS", flag: "🇬🇧" },
+  { id: "farfetch", label: "Farfetch", flag: "🇬🇧" },
+  { id: "endclothing", label: "END.", flag: "🇬🇧" },
+  { id: "mrporter", label: "MR PORTER", flag: "🇬🇧" },
+  { id: "mytheresa", label: "Mytheresa", flag: "🇩🇪" },
+  { id: "ssense", label: "SSENSE", flag: "🇨🇦" },
+  { id: "vinted", label: "Vinted", flag: "🇵🇱" },
+  { id: "sneakerstudio", label: "SneakerStudio", flag: "🇵🇱" },
+  { id: "goat", label: "GOAT", flag: "🇺🇸" },
+  { id: "stockx", label: "StockX", flag: "🇺🇸" },
+  { id: "mercari", label: "Mercari", flag: "🇯🇵" }
+];
+
+async function showMarketplaceWhitelistModal() {
+  if (!userId) {
+    glassToast('Ошибка', 'Пользователь не найден', 'error');
+    return;
+  }
+  
+  // Create overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'fixed inset-0 z-50 flex items-end justify-center sm:items-center bg-black/60 backdrop-blur-sm transition-opacity opacity-0';
+  
+  const modal = document.createElement('div');
+  modal.className = 'w-full sm:max-w-md bg-[var(--bg-gradient-end)] rounded-t-3xl sm:rounded-3xl border border-white/10 shadow-2xl flex flex-col transition-transform translate-y-full sm:translate-y-10 sm:scale-95';
+  modal.style.maxHeight = '90vh';
+  
+  // Loading state
+  modal.innerHTML = `
+    <div class="p-6 text-center">
+      <div class="inline-block w-8 h-8 border-4 border-[var(--ice-primary)] border-t-transparent rounded-full animate-spin"></div>
+      <p class="mt-4 text-white/70">Загрузка настроек...</p>
+    </div>
+  `;
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  // Animate in
+  requestAnimationFrame(() => {
+    overlay.classList.remove('opacity-0');
+    modal.classList.remove('translate-y-full', 'sm:translate-y-10', 'sm:scale-95');
+  });
+
+  try {
+    const { data: whitelistData, error } = await supabaseClient
+      .from('user_marketplace_whitelist')
+      .select('platform_slug, enabled')
+      .eq('user_id', userId);
+      
+    if (error) throw new Error(error.message);
+    
+    // Default: all platforms enabled if not in DB
+    const state = {};
+    AVAILABLE_PLATFORMS_LIST.forEach(p => { state[p.id] = true; });
+    
+    if (whitelistData && whitelistData.length > 0) {
+      whitelistData.forEach(row => {
+        state[row.platform_slug] = row.enabled;
+      });
+    }
+    
+    const renderList = () => {
+      return AVAILABLE_PLATFORMS_LIST.map(p => `
+        <label class="flex items-center justify-between p-3 mb-2 rounded-xl border border-white/5 bg-white/5 cursor-pointer hover:bg-white/10 transition">
+          <div class="flex items-center gap-3">
+            <span class="text-2xl">${p.flag}</span>
+            <span class="text-white font-medium">${p.label}</span>
+          </div>
+          <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+            <input type="checkbox" name="wl_${p.id}" id="wl_${p.id}" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 top-0 left-0 transition-transform duration-200 ${state[p.id] ? 'translate-x-6 border-[var(--ice-primary)]' : 'border-white/20'}" ${state[p.id] ? 'checked' : ''} style="border-color: ${state[p.id] ? 'var(--ice-primary)' : 'var(--text-muted)'}; margin:0;" />
+            <div class="toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-200 ${state[p.id] ? 'bg-[var(--ice-primary)]/50' : 'bg-white/10'}"></div>
+          </div>
+        </label>
+      `).join('');
+    };
+
+    modal.innerHTML = `
+      <div class="p-6 pb-4 border-b border-white/10 flex justify-between items-center">
+        <h3 class="text-lg font-bold text-white">Маркетплейсы</h3>
+        <button id="closeWlBtn" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/70 hover:bg-white/20">
+          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+        </button>
+      </div>
+      <div class="p-6 overflow-y-auto flex-1 custom-scrollbar">
+        <p class="text-sm text-white/60 mb-4">Выберите площадки, по которым будет работать поиск:</p>
+        <div id="wlPlatformsContainer">
+          ${renderList()}
+        </div>
+      </div>
+      <div class="p-6 border-t border-white/10">
+        <button id="saveWlBtn" class="btn-primary w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2">
+          Сохранить настройки
+        </button>
+      </div>
+    `;
+    
+    // Add handlers to toggles manually because CSS-only toggle is tricky in raw HTML
+    AVAILABLE_PLATFORMS_LIST.forEach(p => {
+      const checkbox = modal.querySelector(`#wl_${p.id}`);
+      if (checkbox) {
+        checkbox.addEventListener('change', (e) => {
+          state[p.id] = e.target.checked;
+          const isChecked = e.target.checked;
+          e.target.className = `toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 top-0 left-0 transition-transform duration-200 ${isChecked ? 'translate-x-6 border-[var(--ice-primary)]' : 'border-white/20'}`;
+          e.target.style.borderColor = isChecked ? 'var(--ice-primary)' : 'var(--text-muted)';
+          e.target.nextElementSibling.className = `toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-200 ${isChecked ? 'bg-[var(--ice-primary)]/50' : 'bg-white/10'}`;
+        });
+      }
+    });
+
+    const close = () => {
+      overlay.classList.add('opacity-0');
+      modal.classList.add('translate-y-full', 'sm:translate-y-10', 'sm:scale-95');
+      setTimeout(() => overlay.remove(), 300);
+    };
+
+    modal.querySelector('#closeWlBtn').onclick = close;
+    
+    modal.querySelector('#saveWlBtn').onclick = async () => {
+      const btn = modal.querySelector('#saveWlBtn');
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="animate-spin"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10"/></svg></span> Сохранение...';
+      btn.disabled = true;
+      
+      try {
+        const upsertData = AVAILABLE_PLATFORMS_LIST.map(p => ({
+          user_id: userId,
+          platform_slug: p.id,
+          enabled: state[p.id]
+        }));
+        
+        const { error: upsertErr } = await supabaseClient
+          .from('user_marketplace_whitelist')
+          .upsert(upsertData, { onConflict: 'user_id, platform_slug' });
+          
+        if (upsertErr) throw new Error(upsertErr.message);
+        glassToast('Успех', 'Настройки поиска сохранены', 'success');
+        close();
+      } catch (err) {
+        glassToast('Ошибка', err.message, 'error');
+        btn.innerHTML = orig;
+        btn.disabled = false;
+      }
+    };
+
+  } catch (err) {
+    modal.innerHTML = `
+      <div class="p-6 text-center">
+        <p class="text-[var(--status-error)] mb-4">${escHtmlC(err.message)}</p>
+        <button id="closeErrWlBtn" class="btn-secondary px-6 py-2 rounded-xl">Закрыть</button>
+      </div>
+    `;
+    modal.querySelector('#closeErrWlBtn').onclick = () => {
+      overlay.classList.add('opacity-0');
+      modal.classList.add('translate-y-full');
+      setTimeout(() => overlay.remove(), 300);
+    };
+  }
+}
+
 async function showPersonalDataForm() {
   const modal = document.createElement('div');
   modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[110] p-4 overflow-y-auto';
@@ -12870,11 +13070,17 @@ async function showPersonalDataForm() {
       document.getElementById('pdWeight').value = sizing.weight || '';
       document.getElementById('pdMeasure').value = sizing.measure || '';
 
-      // Passport
+      // Passport — try Vault first, fallback to JS-encrypted, then legacy
       let p = null;
-      if (userRow.encrypted_passport) {
+      try {
+        const { data: vaultData } = await supabaseClient.rpc('get_passport_secure', { p_user_id: userId });
+        if (vaultData) p = JSON.parse(vaultData);
+      } catch (vaultErr) {
+        console.warn('Vault read failed, using JS fallback:', vaultErr);
+      }
+      if (!p && userRow.encrypted_passport) {
         p = decryptData(userRow.encrypted_passport);
-      } else if (userRow.passport_data) {
+      } else if (!p && userRow.passport_data) {
         try { p = JSON.parse(userRow.passport_data); } catch {}
       }
       if (p) {
@@ -13033,6 +13239,18 @@ async function showPersonalDataForm() {
         passport_data: null, // clear plain legacy field
         settings: updatedSettings
       }).eq('user_id', userId);
+
+      // Also save via server-side Vault encryption (pgsodium)
+      if (isPassportFilled) {
+        try {
+          await supabaseClient.rpc('save_passport_secure', {
+            p_user_id: userId,
+            p_passport: JSON.stringify(passportObj)
+          });
+        } catch (vaultErr) {
+          console.warn('Vault encryption fallback — данные сохранены в JS-encrypted формате:', vaultErr);
+        }
+      }
 
       if (error) throw error;
 
