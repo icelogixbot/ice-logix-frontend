@@ -14369,7 +14369,7 @@ async function renderLegitCheck() {
             • Вы получите официальный вердикт: Оригинал или Подделка с комментариями эксперта.
           </p>
           <p class="text-cyan-400 leading-relaxed font-bold text-sm">
-            Стоимость проверки: 5 BYN (списывается с вашего баланса).
+            Стоимость проверки: 5 ICE (списывается с вашего баланса).
           </p>
         </div>
         <button id="acceptDisclaimerBtn" class="btn-primary w-full py-3 rounded-xl font-bold transition uppercase tracking-wider text-xs font-sans">
@@ -14468,7 +14468,7 @@ async function renderLegitCheck() {
       <div class="space-y-4 font-sans">
         <p class="text-white/70 text-xs leading-relaxed bg-white/5 p-3 rounded-xl">
           Загрузите качественные фотографии (бирки, швы, стелька, логотипы) и укажите бренд/модель. 
-          Стоимость: <strong>5 BYN</strong> с баланса.
+          Стоимость: <strong>5 ICE</strong> с баланса.
         </p>
 
         <div>
@@ -14493,7 +14493,7 @@ async function renderLegitCheck() {
         </div>
 
         <button id="runLegitCheckBtn" class="btn-primary w-full py-3 rounded-xl font-bold transition flex items-center justify-center gap-2">
-          <span>Отправить экспертам (5 BYN)</span>
+          <span>Отправить экспертам (5 ICE)</span>
         </button>
       </div>
     </div>
@@ -14584,11 +14584,11 @@ function attachLegitCheckHandlers() {
       }
       const balance = userRec ? (userRec.ices_balance || 0) : 0;
       if (balance < cost) {
-        tgUtil.alert(`❌ Недостаточно средств на балансе!\n\nСтоимость ручной проверки: 5.00 BYN.\nВаш баланс: ${balance.toFixed(2)} BYN.\n\nПожалуйста, пополните баланс в личном кабинете.`);
+        tgUtil.alert(`❌ Недостаточно средств на балансе!\n\nСтоимость ручной проверки: 5 ICE.\nВаш баланс: ${balance.toFixed(2)} ICE.\n\nПожалуйста, пополните баланс в шапке приложения.`);
         return;
       }
 
-      if (!(await tgUtil.confirm(`Заказать ручную проверку подлинности ${brandVal} ${modelVal} за 5.00 BYN?`))) {
+      if (!(await tgUtil.confirm(`Заказать ручную проверку подлинности ${brandVal} ${modelVal} за 5 ICE?`))) {
         return;
       }
 
@@ -14626,6 +14626,11 @@ function attachLegitCheckHandlers() {
           .update({ ices_balance: newBalance })
           .eq('user_id', userId);
         if (balErr) throw balErr;
+        
+        // Обновляем локальный UI баланс
+        window.balance = newBalance;
+        const balEl = document.getElementById('headerBalance');
+        if (balEl) balEl.innerText = newBalance;
 
         // 4. Log transaction
         await supabaseClient.from('transactions').insert({
