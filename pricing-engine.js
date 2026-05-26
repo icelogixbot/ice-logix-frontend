@@ -14,7 +14,7 @@
     base_commission_pct: 20,      // % от стоимости товара
     min_commission_byn: 9,        // минимум для маленьких заказов
     min_commission_threshold_byn: 60, // если итог ≤ 60 BYN → берём minimum
-    insurance_pct: 2,             // 2% если включено
+    insurance_pct: 1.5,             // 1.5% если включено
     legit_check_byn: 15,          // фикс
     currency_buffer_pct: 3,       // буфер на колебания курса
     customs_limit_eur: 200,       // беспошлинный лимит РБ (200€)
