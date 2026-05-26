@@ -161,29 +161,34 @@
     }
     
     .balance-amount {
-      font-size: 14px;
-      font-weight: 700;
+      font-size: 15px;
+      font-weight: 800;
       color: var(--snow-white);
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
     
     .balance-icon {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 18px;
-      height: 18px;
-      color: var(--ice-light);
-      filter: drop-shadow(0 0 6px rgba(184, 224, 246, 0.5));
-      animation: sparkle 2s ease-in-out infinite;
+      width: 22px;
+      height: 22px;
+      color: #0A1628;
+      background: linear-gradient(135deg, #ffffff 0%, #B8E0F6 50%, #5BBFEB 100%);
+      border: 1px solid rgba(255,255,255,0.8);
+      border-radius: 6px;
+      box-shadow: 0 0 12px rgba(91,191,235,0.8), inset 0 2px 6px rgba(255,255,255,0.9), inset 0 -2px 4px rgba(46,158,212,0.5);
+      transform-style: preserve-3d;
+      animation: crystal-spin 3s ease-in-out infinite alternate;
     }
-    .balance-icon svg { width: 100%; height: 100%; display: block; }
+    .balance-icon svg { width: 14px; height: 14px; display: block; filter: drop-shadow(0 1px 1px rgba(255,255,255,0.8)); }
     
-    @keyframes sparkle {
-      0%, 100% { transform: scale(1) rotate(0deg); filter: brightness(1); }
-      50% { transform: scale(1.1) rotate(10deg); filter: brightness(1.3); }
+    @keyframes crystal-spin {
+      0% { transform: perspective(200px) rotateY(-20deg) scale(1); filter: brightness(1) contrast(1.1); }
+      100% { transform: perspective(200px) rotateY(20deg) scale(1.1); filter: brightness(1.3) contrast(1.2); }
     }
     
     .balance-add {
@@ -1463,7 +1468,7 @@
         <div class="balance-island" id="balanceIsland">
           <div class="balance-amount">
             <span id="headerBalance">0</span>
-            <span class="balance-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span>
+            <span class="balance-icon" aria-hidden="true" title="ICE Валюта"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
           </div>
           <button class="balance-add" id="addBalanceBtn" title="Пополнить баланс">+</button>
         </div>
@@ -1475,7 +1480,7 @@
             <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
           </svg>
         </button>
-        <button class="icon-btn" id="settingsBtn" title="Настройки">
+        <button class="icon-btn" id="settingsBtn" title="Настройки / О нас" onclick="currentSubScreen = 'about'; renderCurrentScreen();">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="3"/>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -3369,7 +3374,25 @@ const MAX_REQUESTS_TRUSTED = 100;
     }
 
     function attachEventListeners() {
-      document.getElementById('addBalanceBtn').onclick = () => tgUtil.alert('Пополнение баланса будет позже');
+      document.getElementById('addBalanceBtn').onclick = () => {
+        tgUtil.haptic('medium');
+        const amount = prompt('Введите сумму пополнения (в ICE / BYN):', '50');
+        if (amount && !isNaN(amount) && Number(amount) > 0) {
+          tgUtil.alert(`Готовим счет на ${amount} Telegram Stars...`);
+          // Здесь будет вызов bot api для генерации инвойса Telegram Stars
+          // Временно симулируем пополнение для тестирования
+          setTimeout(async () => {
+            const addedIce = Number(amount);
+            const { data: u } = await supabaseClient.from('users').select('ices_balance').eq('user_id', userId).single();
+            const newBal = (u.ices_balance || 0) + addedIce;
+            await supabaseClient.from('users').update({ ices_balance: newBal }).eq('user_id', userId);
+            balance = newBal;
+            document.getElementById('headerBalance').innerText = balance;
+            tgUtil.haptic('success');
+            tgUtil.alert(`Баланс успешно пополнен на ${addedIce} ICE!`);
+          }, 1500);
+        }
+      };
       document.querySelectorAll('.tab-item').forEach(tab => {
         tab.onclick = () => {
           const tabName = tab.getAttribute('data-tab');
@@ -10848,6 +10871,84 @@ async function loadMoreProducts() {
   }
 }
 
+// ==================== О НАС (ABOUT US) ====================
+async function renderAboutUs() {
+  return `
+  <button id="backFromAboutBtn" class="global-back-btn mb-4">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+    Назад
+  </button>
+  
+  <div class="space-y-4 page-enter pb-10">
+    <div class="glass-card text-center relative overflow-hidden">
+      <div class="absolute inset-0 bg-gradient-to-b from-cyan-500/20 to-transparent pointer-events-none"></div>
+      <img src="./assets/logo.png" class="h-20 mx-auto mb-4 drop-shadow-2xl relative z-10" alt="ICE LOGIX">
+      <h2 class="text-2xl font-black text-white mb-2 relative z-10">ICE LOGIX</h2>
+      <p class="text-cyan-300 font-bold mb-4 relative z-10">Твой проводник в мир глобального шоппинга</p>
+      
+      <div class="flex flex-wrap justify-center gap-2 relative z-10">
+        <span class="status-badge bg-white/10 border-white/20 text-white">📍 Беларусь, г. Несвиж</span>
+        <span class="status-badge bg-white/10 border-white/20 text-white">📦 Выкуп и Доставка</span>
+        <span class="status-badge bg-cyan-500/20 border-cyan-500/50 text-cyan-300">🧊 1 ICE = 1 BYN</span>
+      </div>
+    </div>
+
+    <div class="glass-card">
+      <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+        <span class="text-xl">🤝</span> Наши условия и комиссии
+      </h3>
+      <div class="space-y-4">
+        <div class="p-3 bg-white/5 rounded-xl border border-white/10">
+          <h4 class="font-bold text-white mb-1">Комиссия сервиса — 20%</h4>
+          <p class="text-sm text-white/70 leading-relaxed">
+            Мы берем фиксированную комиссию 20% за выкуп, консолидацию и организацию логистики. С этой комиссии мы официально платим налоги в РБ. Никаких скрытых платежей!
+          </p>
+        </div>
+        
+        <div class="p-3 bg-white/5 rounded-xl border border-white/10">
+          <h4 class="font-bold text-white mb-1">Логистика из Китая — 10$ / кг</h4>
+          <p class="text-sm text-white/70 leading-relaxed">
+            Наш официальный партнер — <strong class="text-cyan-400">ShopbyShop</strong>. Доставка из Китая имеет фиксированный тариф 10$ за килограмм (оплата по фактическому или объемному весу). Сроки: 10-15 дней.
+          </p>
+        </div>
+        
+        <div class="p-3 bg-white/5 rounded-xl border border-white/10">
+          <h4 class="font-bold text-white mb-1">Другие страны</h4>
+          <p class="text-sm text-white/70 leading-relaxed">
+            На данный момент мы стабильно возим из <strong>Китая (Poizon, Taobao)</strong>, <strong>Европы (Zalando)</strong> и <strong>России (Lamoda)</strong>. 
+            <br><br>
+            В будущем мы откроем прямую доставку из США, Японии, Южной Кореи, ОАЭ и Турции.
+          </p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="glass-card bg-gradient-to-br from-cyan-900/30 to-blue-900/30">
+      <h3 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
+        <span class="text-xl">📜</span> Юридическая прозрачность
+      </h3>
+      <p class="text-sm text-white/80 leading-relaxed mb-4">
+        Мы работаем официально. При регистрации вы принимаете условия публичной оферты. Бот автоматически генерирует счета и инвойсы, чтобы гарантировать безопасность ваших средств и посылок.
+      </p>
+      <button class="btn-primary w-full" onclick="tgUtil.alert('Тут будет PDF файл публичной оферты')">Читать договор (Оферта)</button>
+    </div>
+    
+    <p class="text-center text-xs text-white/40 mt-6">
+      ICE LOGIX © 2026<br>Создано с 🧊 в Беларуси
+    </p>
+  </div>
+  `;
+}
+
+function attachAboutUsHandlers() {
+  document.getElementById('backFromAboutBtn').onclick = () => {
+    currentSubScreen = null;
+    renderCurrentScreen();
+  };
+}
+
 async function migrateGuestCart() {
   if (!userId) return;
   let guestCart;
@@ -10909,6 +11010,13 @@ function ensureBackButtonForSubscreen() {
     async function renderCurrentScreen() {
       const contentDiv = document.getElementById('content');
       syncTelegramBackButton();
+
+      if (currentSubScreen === 'about') {
+        contentDiv.innerHTML = await renderAboutUs();
+        attachAboutUsHandlers();
+        ensureBackButtonForSubscreen();
+        return;
+      }
 
       if (currentSubScreen === 'myOrders') {
   contentDiv.innerHTML = await renderMyOrders();
