@@ -60,6 +60,12 @@ serve(async (req) => {
       throw orderError
     }
 
+    // 3. Trigger notify-status Edge Function
+    // We don't await this strictly so we don't block the webhook response
+    supabaseClient.functions.invoke('notify-status', {
+      body: { order_id, new_status: status }
+    }).catch(err => console.error('Failed to invoke notify-status:', err))
+
     return new Response(
       JSON.stringify({ success: true, message: 'Logistics event recorded' }),
       {
