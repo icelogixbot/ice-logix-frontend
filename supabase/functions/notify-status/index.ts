@@ -78,7 +78,7 @@ serve(async (req) => {
     const readableStatus = statusMap[new_status] || new_status
     const shortOrderId = orderData.id.slice(0, 8).toUpperCase()
     
-    const message = `🔔 *Обновление статуса заказа*\n\nВаш заказ \`#${shortOrderId}\` изменил статус:\n**${readableStatus}**\n\nОтслеживайте детали в приложении!`
+    const message = `🔔 *Обновление статуса заказа*\n\nВаш заказ \`#${shortOrderId}\` изменил статус:\n\n👉 **${readableStatus}**\n\n_Отслеживайте детали в приложении ICE LOGIX!_ 🧊`
     
     const tgResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
