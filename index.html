@@ -7039,10 +7039,23 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
       }
       
       let isDropshipper = false;
+      let dropshipperMetrics = { turnover: 0, count: 0, average: 0 };
       if (userId) {
         try {
           const { data, error } = await supabaseClient.from('dropshipper_settings').select('user_id').eq('user_id', userId).single();
-          if (!error && data) isDropshipper = true;
+          if (!error && data) {
+            isDropshipper = true;
+            const { data: refUsers } = await supabaseClient.from('users').select('user_id').eq('referred_by', userReferralCode);
+            if (refUsers && refUsers.length > 0) {
+              const uids = refUsers.map(u => u.user_id);
+              const { data: refOrders } = await supabaseClient.from('orders').select('total_byn, total').in('user_id', uids);
+              if (refOrders) {
+                dropshipperMetrics.count = refOrders.length;
+                dropshipperMetrics.turnover = refOrders.reduce((sum, o) => sum + (Number(o.total_byn) || Number(o.total) || 0), 0);
+                dropshipperMetrics.average = dropshipperMetrics.count > 0 ? (dropshipperMetrics.turnover / dropshipperMetrics.count) : 0;
+              }
+            }
+          }
         } catch(e) {}
       }
       
@@ -7140,6 +7153,35 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
         </button>
       ` : ''}
     </div>
+    
+    <!-- B2B Metrics (if dropshipper) -->
+    ${isDropshipper ? `
+      <div class="p-4 rounded-2xl mb-4" style="background: linear-gradient(135deg, rgba(6,182,212,0.15), rgba(59,130,246,0.08)); border: 1px solid rgba(6,182,212,0.25);">
+        <div class="flex items-center justify-between mb-3">
+          <p class="font-semibold flex items-center gap-2 text-white">
+            <span class="text-lg"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg></span></span>
+            B2B-Кабинет (Метрики)
+          </p>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="p-3 rounded-xl text-center" style="background: var(--glass-bg);">
+            <p class="text-xl font-bold text-cyan-400">${dropshipperMetrics.turnover.toFixed(2)}</p>
+            <p class="text-[10px] uppercase tracking-wider text-white/50">Оборот (BYN)</p>
+          </div>
+          <div class="p-3 rounded-xl text-center" style="background: var(--glass-bg);">
+            <p class="text-xl font-bold text-white">${dropshipperMetrics.count}</p>
+            <p class="text-[10px] uppercase tracking-wider text-white/50">Заказов</p>
+          </div>
+          <div class="p-3 rounded-xl text-center col-span-2 flex justify-between items-center px-4" style="background: var(--glass-bg);">
+            <span class="text-[10px] uppercase tracking-wider text-white/50">Средний чек</span>
+            <span class="font-bold text-white">${dropshipperMetrics.average.toFixed(2)} BYN</span>
+          </div>
+        </div>
+        <button id="goToB2BBtn" class="w-full mt-3 py-2 rounded-xl text-sm font-semibold flex items-center justify-center gap-2" style="background: var(--glass-bg-strong); border: 1px solid var(--glass-border);">
+          Перейти в панель управления
+        </button>
+      </div>
+    ` : ''}
   </div>
   
   <!-- Wheel of Fortune Section -->
@@ -7200,8 +7242,8 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
       <button id="dropshipperBtn" class="glass-card p-4 text-left flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98]">
         <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style="background: linear-gradient(135deg, rgba(52,211,153,0.2), rgba(16,185,129,0.1));"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span></div>
         <div>
-          <p class="font-bold text-white text-sm">${isDropshipper ? 'Дропшиппинг' : 'Стать партнёром'}</p>
-          <p class="text-xs" style="color: var(--text-muted);">${isDropshipper ? 'Кабинет' : 'Зарабатывай'}</p>
+          <p class="font-bold text-white text-sm">${isDropshipper ? 'B2B Кабинет' : 'Стать B2B-партнёром'}</p>
+          <p class="text-xs" style="color: var(--text-muted);">${isDropshipper ? 'Метрики' : 'Зарабатывай'}</p>
         </div>
       </button>
     </div>
@@ -7328,6 +7370,11 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
   const dropshipperBtn = document.getElementById('dropshipperBtn');
   if (dropshipperBtn) {
     dropshipperBtn.onclick = () => switchTab('dropshipper');
+  }
+  
+  const goToB2BBtn = document.getElementById('goToB2BBtn');
+  if (goToB2BBtn) {
+    goToB2BBtn.onclick = () => switchTab('dropshipper');
   }
 
   const academyBtn = document.getElementById('academyBtn');
