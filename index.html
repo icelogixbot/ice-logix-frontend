@@ -6933,6 +6933,11 @@ async function renderMyOrders() {
               })()}
             </div>
 
+            <button class="btn-secondary w-full text-white text-xs mt-2 py-2.5 rounded-xl flex items-center justify-center gap-2 border border-white/5 bg-white/5 hover:bg-white/10 transition-colors" onclick="window.showLogisticsHistory('${order.id}')">
+              <span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+              Подробная история трекинга
+            </button>
+
             <div class="flex gap-2 mt-3">
               <button class="btn-secondary flex-1 text-white text-xs" onclick="window.openSupportChat('${order.id}')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> 💬 Чат по заказу</button>
               ${Number(order.insurance_byn || 0) > 0 && !['pending', 'cancelled'].includes(order.status) && !claimsMap[order.id] ? `
@@ -7065,7 +7070,7 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
     <div class="relative mx-auto w-28 h-28 mb-4">
       <div class="w-28 h-28 rounded-full overflow-hidden" style="background: linear-gradient(135deg, var(--ice-primary), var(--ice-arctic)); padding: 3px;">
         <div class="w-full h-full rounded-full overflow-hidden flex items-center justify-center text-4xl font-bold" style="background: var(--bg-gradient-mid);" id="profileAvatar">
-          \${userAvatarUrl ? '<img src="' + userAvatarUrl + '" class="w-full h-full object-cover">' : (userName || 'Гость').charAt(0).toUpperCase()}
+          ${userAvatarUrl ? '<img src="' + userAvatarUrl + '" class="w-full h-full object-cover">' : (userName || 'Гость').charAt(0).toUpperCase()}
         </div>
       </div>
       <button id="changeAvatarBtn" class="absolute bottom-0 right-0 w-10 h-10 rounded-full flex items-center justify-center text-lg border-2" style="background: linear-gradient(135deg, var(--ice-primary), var(--ice-deep)); border-color: var(--bg-gradient-mid); box-shadow: 0 2px 10px rgba(91,191,235,0.4);">
@@ -7073,7 +7078,7 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
       </button>
     </div>
     <div class="flex items-center justify-center gap-2 mb-2">
-      <h2 class="text-xl font-bold" id="profileNameDisplay">\${userName}</h2>
+      <h2 class="text-xl font-bold" id="profileNameDisplay">${userName}</h2>
       <button id="editNameBtn" class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--glass-bg); border: 1px solid var(--glass-border);">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -7086,8 +7091,8 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
     <div class="inline-flex items-center gap-3 px-5 py-3 rounded-2xl mb-4" style="background: linear-gradient(135deg, rgba(91,191,235,0.2), rgba(46,158,212,0.1)); border: 1px solid rgba(91,191,235,0.3);">
       <span class="text-2xl animate-float"><span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></span>
       <div class="text-left">
-        <p class="text-xs" style="color: var(--text-secondary);">\${balanceLabel}</p>
-        <p class="text-xl font-bold" style="color: var(--ice-primary);">\${displayedBalance} ICE</p>
+        <p class="text-xs" style="color: var(--text-secondary);">${balanceLabel}</p>
+        <p class="text-xl font-bold" style="color: var(--ice-primary);">${displayedBalance} ICE</p>
       </div>
     </div>
     
@@ -7448,7 +7453,7 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
       const referralOrdersCount = referralOrders.length;
       const averageCheck = referralOrdersCount > 0 ? (totalTurnover / referralOrdersCount).toFixed(2) : 0;
 
-      const referralLink = userReferralCode ? \`https://t.me/icelogix_bot?start=ref_\${userReferralCode}\` : null;
+      const referralLink = userReferralCode ? `https://t.me/icelogix_bot?start=ref_${userReferralCode}` : null;
 
       const contentHubItems = [
         { title: 'Баннер 1200x628', image: 'https://via.placeholder.com/300x200?text=Banner', text: 'Лучшие кроссовки из Китая! Скидка 10% по коду DROP10' },
@@ -7456,14 +7461,14 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
       ];
       const contentHubHtml = contentHubItems.map(item => {
         const imgBlock = item.image
-          ? \`<img src="\${item.image}" class="w-full h-32 object-cover rounded-lg mb-2">\`
+          ? `<img src="${item.image}" class="w-full h-32 object-cover rounded-lg mb-2">`
           : '<div class="w-full h-20 bg-white/10 rounded-lg mb-2 flex items-center justify-center text-4xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span></div>';
         const dlBtn = item.image
-          ? \`<button class="btn-primary content-download-btn flex-1 bg-cyan-500/30 hover:bg-cyan-500/50 py-2 rounded-lg text-xs" data-url="\${item.image}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></span> Скачать</button>\`
+          ? `<button class="btn-primary content-download-btn flex-1 bg-cyan-500/30 hover:bg-cyan-500/50 py-2 rounded-lg text-xs" data-url="${item.image}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></span> Скачать</button>`
           : '';
         const preview = item.text.slice(0, 100) + (item.text.length > 100 ? '...' : '');
         const safeText = item.text.replace(/"/g, '&quot;');
-        return \`<div class="bg-white/5 rounded-xl p-3 mb-3">\${imgBlock}<p class="text-white font-bold text-sm mb-1">\${item.title}</p><p class="text-white/70 text-xs mb-3">\${preview}</p><div class="flex gap-2"><button class="btn-secondary content-copy-btn flex-1" data-text="\${safeText}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span> Копировать текст</button>\${dlBtn}</div></div>\`;
+        return `<div class="bg-white/5 rounded-xl p-3 mb-3">${imgBlock}<p class="text-white font-bold text-sm mb-1">${item.title}</p><p class="text-white/70 text-xs mb-3">${preview}</p><div class="flex gap-2"><button class="btn-secondary content-copy-btn flex-1" data-text="${safeText}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span> Копировать текст</button>${dlBtn}</div></div>`;
       }).join('');
 
       const payoutHistoryHtml = payoutRequests.length === 0
@@ -7471,16 +7476,16 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
         : payoutRequests.map(req => {
             const sc = req.status === 'pending' ? 'text-yellow-400' : req.status === 'approved' ? 'text-green-400' : req.status === 'completed' ? 'text-blue-400' : 'text-red-400';
             const st = req.status === 'pending' ? 'В обработке' : req.status === 'approved' ? 'Одобрен' : req.status === 'completed' ? 'Выплачен' : 'Отклонён';
-            return \`<div class="p-2 border-b border-white/10 last:border-0"><div class="flex justify-between items-center"><span class="text-white/80 text-sm font-bold">\${req.amount} <span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></span><span class="text-xs \${sc}">\${st}</span></div><p class="text-white/50 text-xs mt-0.5">\${new Date(req.created_at).toLocaleDateString('ru-RU')}</p></div>\`;
+            return `<div class="p-2 border-b border-white/10 last:border-0"><div class="flex justify-between items-center"><span class="text-white/80 text-sm font-bold">${req.amount} <span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></span><span class="text-xs ${sc}">${st}</span></div><p class="text-white/50 text-xs mt-0.5">${new Date(req.created_at).toLocaleDateString('ru-RU')}</p></div>`;
           }).join('');
 
-      return \`
+      return `
         <button id="backToProfileBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
         <div class="space-y-4">
           <div class="glass-card">
             <h3 class="text-white font-bold text-lg mb-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span> Ваша реферальная ссылка</h3>
-            \${referralLink
-              ? \`<div class="flex items-center gap-2"><p class="text-cyan-400 text-sm truncate flex-1">\${referralLink}</p><button id="copyReferralLinkBtn" data-link="\${referralLink}" class="btn-secondary flex-shrink-0 text-white"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span> Скопировать</button></div>\`
+            ${referralLink
+              ? `<div class="flex items-center gap-2"><p class="text-cyan-400 text-sm truncate flex-1">${referralLink}</p><button id="copyReferralLinkBtn" data-link="${referralLink}" class="btn-secondary flex-shrink-0 text-white"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span> Скопировать</button></div>`
               : '<p class="text-white/50 text-sm">Код не сгенерирован</p>'}
           </div>
           <div class="flex gap-2">
@@ -7492,19 +7497,19 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
               <div class="glass-card">
                 <h3 class="text-white font-bold text-lg mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Статистика продаж</h3>
                 <div class="grid grid-cols-2 gap-3">
-                  <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Оборот</p><p class="text-cyan-400 text-lg font-bold">\${totalTurnover.toFixed(2)} BYN</p></div>
-                  <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Всего заказов</p><p class="text-white text-lg font-bold">\${referralOrdersCount}</p></div>
-                  <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Средний чек</p><p class="text-white text-lg font-bold">\${averageCheck} BYN</p></div>
-                  <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Клиентов</p><p class="text-white text-lg font-bold">\${referrals.length}</p></div>
+                  <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Оборот</p><p class="text-cyan-400 text-lg font-bold">${totalTurnover.toFixed(2)} BYN</p></div>
+                  <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Всего заказов</p><p class="text-white text-lg font-bold">${referralOrdersCount}</p></div>
+                  <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Средний чек</p><p class="text-white text-lg font-bold">${averageCheck} BYN</p></div>
+                  <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Клиентов</p><p class="text-white text-lg font-bold">${referrals.length}</p></div>
                 </div>
               </div>
               
               <div class="glass-card">
                 <h3 class="text-white font-bold text-lg mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span> Финансы</h3>
                 <div class="grid grid-cols-2 gap-3">
-                  <div class="bg-[var(--ice-primary)]/10 border border-[var(--ice-primary)]/20 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Заработано</p><p class="text-green-400 text-xl font-bold">\${totalEarned} <span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></p></div>
-                  <div class="bg-white/5 border border-white/10 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Доступно к выводу</p><p class="text-cyan-400 text-xl font-bold">\${availableForPayout} <span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></p></div>
-                  <div class="bg-white/5 border border-white/10 rounded-xl p-3 text-center col-span-2"><p class="text-white/70 text-[10px] uppercase tracking-wider">Порог вывода</p><p class="text-white text-lg font-bold">\${settings.payout_threshold} <span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></p></div>
+                  <div class="bg-[var(--ice-primary)]/10 border border-[var(--ice-primary)]/20 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Заработано</p><p class="text-green-400 text-xl font-bold">${totalEarned} <span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></p></div>
+                  <div class="bg-white/5 border border-white/10 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Доступно к выводу</p><p class="text-cyan-400 text-xl font-bold">${availableForPayout} <span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></p></div>
+                  <div class="bg-white/5 border border-white/10 rounded-xl p-3 text-center col-span-2"><p class="text-white/70 text-[10px] uppercase tracking-wider">Порог вывода</p><p class="text-white text-lg font-bold">${settings.payout_threshold} <span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></p></div>
                 </div>
               </div>
               <div class="glass-card">
@@ -9363,19 +9368,19 @@ function attachAdminHandlers() {
                 <tbody>
                   <tr>
                     <td>Общее количество оформленных заказов</td>
-                    <td>\${(orders || []).length} шт.</td>
+                    <td>${(orders || []).length} шт.</td>
                   </tr>
                   <tr>
                     <td>Завершенные заказы (статус Доставлен)</td>
-                    <td>\${completedOrdersCount} шт.</td>
+                    <td>${completedOrdersCount} шт.</td>
                   </tr>
                   <tr>
                     <td>Активные заказы в работе</td>
-                    <td>\${activeOrdersCount} шт.</td>
+                    <td>${activeOrdersCount} шт.</td>
                   </tr>
                   <tr>
                     <td><strong>Валовый оборот заказов (BYN)</strong></td>
-                    <td><strong>\${totalRevenue.toFixed(2)} BYN</strong></td>
+                    <td><strong>${totalRevenue.toFixed(2)} BYN</strong></td>
                   </tr>
                 </tbody>
               </table>
@@ -9393,9 +9398,9 @@ function attachAdminHandlers() {
                 <tbody>
                   <tr>
                     <td>Комиссионный доход байера (20% услуги)</td>
-                    <td>\${totalCommission.toFixed(2)} BYN</td>
+                    <td>${totalCommission.toFixed(2)} BYN</td>
                     <td>20%</td>
-                    <td><strong>\${totalTax.toFixed(2)} BYN</strong></td>
+                    <td><strong>${totalTax.toFixed(2)} BYN</strong></td>
                   </tr>
                 </tbody>
               </table>
@@ -9408,14 +9413,14 @@ function attachAdminHandlers() {
                 <div class="card">
                   <strong>ИП Кирилл (Соучредитель 1):</strong><br>
                   Доля прибыли: 50%<br>
-                  Сумма к зачислению: <strong>\${splitProfit.toFixed(2)} BYN</strong><br>
+                  Сумма к зачислению: <strong>${splitProfit.toFixed(2)} BYN</strong><br>
                   Банк: ОАО «Белгазпромбанк»<br>
                   Р/С: BY54BGPB3012000000001000
                 </div>
                 <div class="card">
                   <strong>ИП Партнёр (Соучредитель 2):</strong><br>
                   Доля прибыли: 50%<br>
-                  Сумма к зачислению: <strong>\${splitProfit.toFixed(2)} BYN</strong><br>
+                  Сумма к зачислению: <strong>${splitProfit.toFixed(2)} BYN</strong><br>
                   Банк: ОАО «Белгазпромбанк»<br>
                   Р/С: BY12BGPB3012000000002000
                 </div>
@@ -12440,6 +12445,82 @@ async function renderAdminTicketsList() {
     return '<p class="text-xs text-red-400 text-center py-2">Ошибка загрузки тикетов</p>';
   }
 }
+
+window.showLogisticsHistory = async (orderId) => {
+  tgUtil.haptic('medium');
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[130] p-4 page-enter';
+  modal.id = 'logisticsModal';
+
+  modal.innerHTML = `
+    <div class="bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-2xl max-w-md w-full max-h-[80vh] flex flex-col shadow-2xl overflow-hidden relative">
+      <div class="p-4.5 border-b border-white/10 flex justify-between items-center bg-white/5">
+        <h3 class="text-white font-bold text-sm flex items-center gap-2">
+          <span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+          История перемещений
+        </h3>
+        <button id="closeLogisticsModalBtn" class="text-white/50 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10">
+          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+        </button>
+      </div>
+      <div id="logisticsContent" class="p-5 overflow-y-auto flex-1 text-center py-10 text-white/50 text-xs flex flex-col items-center justify-center">
+        <span class="ix ix-mute animate-pulse text-2xl mb-2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span>
+        Загрузка истории...
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  modal.querySelector('#closeLogisticsModalBtn').onclick = () => modal.remove();
+  modal.addEventListener('click', e => { if(e.target === modal) modal.remove(); });
+
+  try {
+    const { data: events, error } = await supabaseClient
+      .from('logistics_events')
+      .select('*')
+      .eq('order_id', orderId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    
+    const content = modal.querySelector('#logisticsContent');
+    content.className = 'p-5 overflow-y-auto flex-1'; // remove loading styles
+
+    if (!events || events.length === 0) {
+      content.innerHTML = '<p class="text-center text-white/50 text-xs py-10">Информация о трекинге пока недоступна.</p>';
+      return;
+    }
+
+    const _esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]));
+
+    content.innerHTML = `
+      <div class="relative pl-4 border-l-2 border-white/10 ml-2 space-y-6">
+        ${events.map((ev, i) => {
+          const isLatest = i === 0;
+          return `
+            <div class="relative">
+              <!-- Dot -->
+              <div class="absolute -left-[21px] w-3 h-3 rounded-full border-2 border-slate-900 ${isLatest ? 'bg-cyan-400' : 'bg-white/30'}"></div>
+              
+              <div class="text-xs">
+                <p class="font-bold text-white mb-0.5 flex items-center gap-2">
+                  ${_esc(ev.status_code)}
+                  ${isLatest ? '<span class="px-1.5 py-0.5 rounded text-[8px] uppercase tracking-wider bg-cyan-500/20 text-cyan-400 border border-cyan-500/20">Текущий</span>' : ''}
+                </p>
+                ${ev.location ? `<p class="text-white/60 mb-0.5"><span class="ix text-[10px]"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span> ${_esc(ev.location)}</p>` : ''}
+                ${ev.description ? `<p class="text-white/40 mb-1">${_esc(ev.description)}</p>` : ''}
+                <p class="text-[9px] text-white/30 font-mono mt-1">${new Date(new Date(ev.created_at).getTime() + 3*60*60*1000).toLocaleString('ru-RU')}</p>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  } catch(e) {
+    console.error('Logistics fetch error:', e);
+    modal.querySelector('#logisticsContent').innerHTML = '<p class="text-center text-red-400 text-xs py-10">Ошибка загрузки истории трекинга.</p>';
+  }
+};
 
 window.openSupportChat = (orderId, isAdmin = false) => {
   tgUtil.haptic('medium');
