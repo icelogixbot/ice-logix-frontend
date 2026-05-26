@@ -7,12 +7,16 @@ const corsHeaders = {
 }
 
 const statusMap: Record<string, string> = {
-  'pending': '⏳ Ожидает оплаты',
-  'paid': '✅ Оплачен',
-  'ordered': '🛒 Выкуплен с площадки',
-  'at_warehouse': '📦 Прибыл на наш склад',
-  'in_transit': '✈️ В пути к вам',
-  'delivered': '🎉 Доставлен',
+  'pending': '⏳ В обработке',
+  'paid': '💵 Оплачен (1 часть)',
+  'bought': '🛒 Выкуплен',
+  'on_sklad_cn': '📦 На складе в Китае',
+  'in_transit': '✈️ В пути в Минск',
+  'awaiting_payment': '⏳ Ожидает доплаты',
+  'paid_second': '✅ Оплачен полностью',
+  'in_belarus': '🏢 Прибыл на наш склад',
+  'dispatched': '🚚 Отправлен (СДЭК/Белпочта)',
+  'delivered': '🎉 Готов к выдаче',
   'cancelled': '❌ Отменён'
 }
 
