@@ -4049,6 +4049,10 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             </div>
             <div class="flex flex-col gap-2 mt-3">
               <button id="toNewOrderBtn" class="btn-primary w-full py-3 rounded-xl flex items-center justify-center gap-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span> Перенести в заказ</button>
+              <button id="openLegitCheckBtnCalc" class="btn-secondary w-full py-3 rounded-xl flex items-center justify-center gap-2 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/10 transition">
+                <span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 8v6h6"/></svg></span>
+                AI Проверка подлинности
+              </button>
             </div>
           </div>
         </div>
@@ -4522,6 +4526,64 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
   const toNewOrderBtn = document.getElementById('toNewOrderBtn');
   if (toNewOrderBtn) toNewOrderBtn.onclick = () => { 
+    const price = parseFloat(document.getElementById('calcPrice')?.value) || 0;
+    const weight = parseFloat(document.getElementById('calcWeight')?.value) || 1;
+    const currency = document.getElementById('calcCurrency')?.value || 'CNY';
+    const category = document.getElementById('calcCategory')?.value || '';
+    const insurance = document.getElementById('calcInsurance')?.checked || false;
+    const legitCheck = document.getElementById('calcLegitCheck')?.checked || false;
+    const title = document.getElementById('calcTitle')?.value || '';
+    const brand = document.getElementById('calcBrand')?.value || '';
+    const marketplace = document.getElementById('calcMarketplace')?.value || '';
+    const desc = document.getElementById('calcDescription')?.value || '';
+    const size = document.getElementById('calcSize')?.value || '';
+    const url = document.getElementById('calcUrl')?.value || '';
+
+    let promotionId = null;
+    let promoExtraDiscount = 0;
+    if (window.currentPromotion) {
+      const roughTotal = window.iceLogixPricing.quickEstimate(price, weight, currency, window.calcCountry);
+      if (roughTotal >= (window.currentPromotion.min_order_amount || 0)) {
+        promoExtraDiscount = window.currentPromotion.discount_type === 'percent'
+          ? roughTotal * (window.currentPromotion.discount_value / 100)
+          : Math.min(window.currentPromotion.discount_value, roughTotal);
+        promotionId = window.currentPromotion.id;
+      }
+    }
+
+    const calcObj = {
+      price, weight, currency, category, insurance, legitCheck,
+      title, brand, marketplace_name: marketplace,
+      description: desc, size, url,
+      promotion_id: promotionId,
+      extra_discount_byn: promoExtraDiscount
+    };
+    
+    // Switch to new order and pass this data
+    window.orderCountry = window.calcCountry;
+    window.startOrderAddMode = window.startOrderAddMode || function() {}; 
+    window.orderAddMode = true;
+    window.orderAddSubMode = 'manual';
+    
+    // Provide an event listener after render to populate it
+    setTimeout(() => {
+      if (document.getElementById('orderPrice')) document.getElementById('orderPrice').value = price;
+      if (document.getElementById('orderWeight')) document.getElementById('orderWeight').value = weight;
+      if (document.getElementById('orderCurrency')) document.getElementById('orderCurrency').value = currency;
+      if (document.getElementById('orderCategory')) document.getElementById('orderCategory').value = category;
+      if (document.getElementById('orderTitle')) document.getElementById('orderTitle').value = title;
+      if (document.getElementById('orderBrand')) document.getElementById('orderBrand').value = brand;
+      if (document.getElementById('orderSize')) document.getElementById('orderSize').value = size;
+      if (document.getElementById('orderUrl')) document.getElementById('orderUrl').value = url;
+    }, 100);
+    
+    switchTab('neworder');
+  };
+
+  const openLegitCheckBtnCalc = document.getElementById('openLegitCheckBtnCalc');
+  if (openLegitCheckBtnCalc) openLegitCheckBtnCalc.onclick = () => {
+    switchTab('legitcheck');
+  }; 
     if (window.tempOrder) switchTab('neworder'); 
     else tgUtil.alert('Сначала рассчитайте стоимость'); 
   };
@@ -4564,6 +4626,11 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
     if ((mode === 'manual' || mode === 'link') && calcResultsBox) {
       calcResultsBox.classList.add('hidden');
       calcResultsBox.innerHTML = '';
+      if (typeof tgUtil !== 'undefined') {
+        tgUtil.hideMainButton();
+        tgUtil.setBackButton(null);
+      }
+      if (typeof syncTelegramBackButton === 'function') syncTelegramBackButton();
     }
   }
   if (calcModeSelector) {
@@ -4905,11 +4972,19 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
     window.stopOrderAddMode = () => {
       window.orderAddMode = false;
+      if (typeof tgUtil !== 'undefined') {
+        tgUtil.hideMainButton();
+        tgUtil.setBackButton(null);
+      }
       renderCurrentScreen();
     };
 
     window.setOrderAddSubMode = (mode) => {
       window.orderAddSubMode = mode;
+      if (typeof tgUtil !== 'undefined') {
+        tgUtil.hideMainButton();
+        tgUtil.setBackButton(null);
+      }
       renderCurrentScreen();
     };
 
@@ -5755,9 +5830,15 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               </div>
             </div>
             
-            <button id="orderSaveItemBtn" class="btn-primary w-full py-3.5 rounded-xl font-bold transition flex items-center justify-center gap-2">
-              <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></span> Добавить товар в заказ
-            </button>
+            <div class="flex flex-col gap-2 mt-4">
+              <button id="orderSaveItemBtn" class="btn-primary w-full py-3.5 rounded-xl font-bold transition flex items-center justify-center gap-2">
+                <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></span> Добавить товар в заказ
+              </button>
+              <button id="openLegitCheckBtnOrder" class="btn-secondary w-full py-3.5 rounded-xl flex items-center justify-center gap-2 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/10 transition">
+                <span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 8v6h6"/></svg></span>
+                AI Проверка подлинности
+              </button>
+            </div>
           </div>
         </div>
         ${renderFooter()}
@@ -6342,12 +6423,16 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           const queryLine = (queryText && sourceLabel)
             ? `<div class="text-xs text-white/50 mb-2">${sourceLabel}: <span class="text-cyan-300">"${escHtml(queryText)}"</span></div>`
             : '';
+          const replicaBanner = payload.authenticity_tier === 'replica' 
+            ? `<div class="bg-orange-500/20 border border-orange-500/50 text-orange-400 p-2 rounded-lg text-xs font-bold mb-3 flex items-center gap-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span> 🔍 Найдены реплики</div>` 
+            : '';
 
           const platformsCount = Array.isArray(payload.platforms) ? payload.platforms.length : 0;
           orderResultsBox.classList.remove('hidden');
           orderResultsBox.innerHTML = `
             <div class="text-white/70 text-xs mb-2 mt-2">Найдено ${list.length} результатов на ${platformsCount} площадках:</div>
             ${queryLine}
+            ${replicaBanner}
             <div class="flex flex-col gap-2">${cards}</div>
           `;
 
@@ -6615,6 +6700,11 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             }
           });
         }
+
+        const openLegitCheckBtnOrder = document.getElementById('openLegitCheckBtnOrder');
+        if (openLegitCheckBtnOrder) openLegitCheckBtnOrder.addEventListener('click', () => {
+          switchTab('legitcheck');
+        });
 
         const saveBtn = document.getElementById('orderSaveItemBtn');
         if (saveBtn) {
