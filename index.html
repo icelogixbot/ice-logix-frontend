@@ -7839,7 +7839,8 @@ async function renderAcademy() {
               <video id="lessonVideo" src="${data.content}" class="w-full rounded-xl" controls controlsList="nodownload" oncontextmenu="return false"></video>
               <div class="absolute bottom-10 right-2 text-white/20 text-xs pointer-events-none select-none">ID:${userId}</div>
             </div>
-            <p class="text-white/40 text-xs mt-1 text-center"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></span> Только для личного использования · ID: ${userId}</p>`;
+            <p class="text-white/40 text-xs mt-1 text-center"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></span> Только для личного использования · ID: ${userId}</p>
+            <button class="markDoneBtn mt-4 w-full bg-green-600 hover:bg-green-700 py-2.5 rounded-xl font-bold" data-lid="${data.id}" data-cid="${courseId}"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Отметить как пройденное</button>`;
         } else if (data.content_type === 'quiz') {
           try {
             const quiz = JSON.parse(data.content);
@@ -7908,10 +7909,35 @@ async function renderAcademy() {
           checkBtn.onclick = async () => {
             const questions = JSON.parse(checkBtn.dataset.questions);
             const threshold = parseInt(checkBtn.dataset.threshold);
+            
+            // Check all questions answered
+            let allAnswered = true;
+            questions.forEach((q, qi) => {
+              const sel = modal.querySelector(`input[name="q${qi}"]:checked`);
+              const qBlock = modal.querySelectorAll('#quizForm > div')[qi];
+              if (!sel) {
+                allAnswered = false;
+                if (qBlock) { qBlock.classList.add('border', 'border-red-500/50'); qBlock.style.animation = 'shake 0.3s'; }
+              } else {
+                if (qBlock) qBlock.classList.remove('border', 'border-red-500/50');
+              }
+            });
+            if (!allAnswered) {
+              glassToast('Ответьте на все вопросы', { kind: 'warning' });
+              return;
+            }
+
             let correct = 0;
             questions.forEach((q, qi) => {
               const sel = modal.querySelector(`input[name="q${qi}"]:checked`);
-              if (sel && parseInt(sel.value) === q.correct) correct++;
+              const qBlock = modal.querySelectorAll('#quizForm > div')[qi];
+              const isCorrect = sel && parseInt(sel.value) === q.correct;
+              if (isCorrect) {
+                correct++;
+                if (qBlock) { qBlock.classList.remove('border-red-500/50'); qBlock.classList.add('border', 'border-green-500/50'); }
+              } else {
+                if (qBlock) { qBlock.classList.remove('border-green-500/50'); qBlock.classList.add('border', 'border-red-500/50'); }
+              }
             });
             const score = Math.round(correct / questions.length * 100);
             const resultDiv = modal.querySelector('#quizResult');
