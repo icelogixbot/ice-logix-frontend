@@ -7766,7 +7766,7 @@ window.showFortuneWheel = () => {
     const stopAngle = (extraSpins * 360) + Math.floor(Math.random() * 360);
     
     wheel.style.transition = 'transform 4s cubic-bezier(0.25, 0.1, 0.15, 1)';
-    wheel.style.transform = \`rotate(\${stopAngle}deg)\`;
+    wheel.style.transform = `rotate(${stopAngle}deg)`;
     
     setTimeout(async () => {
       tgUtil.haptic('success');
@@ -7778,7 +7778,7 @@ window.showFortuneWheel = () => {
         await supabaseClient.from('users').update({ ices_balance: newBal }).eq('user_id', userId);
         
         balance = newBal; // локально
-        glassToast(\`Поздравляем! Вы выиграли \${winAmount} ICE! 🎁\`, { kind: 'success' });
+        glassToast(`Поздравляем! Вы выиграли ${winAmount} ICE! 🎁`, { kind: 'success' });
       } catch (err) {
         glassToast('Ошибка начисления бонуса', { kind: 'error' });
       }
