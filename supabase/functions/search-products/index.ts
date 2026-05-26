@@ -411,7 +411,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  let body: { query?: string; platforms?: string[]; topN?: number } = {};
+  let body: { query?: string; platforms?: string[]; topN?: number; user_id?: number | string } = {};
   try {
     body = await req.json();
   } catch {
@@ -429,9 +429,25 @@ Deno.serve(async (req) => {
     );
   }
 
-  const requested = body.platforms && body.platforms.length > 0
+  let requested = body.platforms && body.platforms.length > 0
     ? body.platforms
     : DEFAULT_PLATFORMS;
+
+  if (body.user_id) {
+    try {
+      const { data: whitelist } = await supabase
+        .from('user_marketplace_whitelist')
+        .select('platform_slug')
+        .eq('user_id', body.user_id)
+        .eq('enabled', true);
+      if (whitelist && whitelist.length > 0) {
+        requested = whitelist.map(w => w.platform_slug);
+      }
+    } catch (e) {
+      console.error("Whitelist error:", e);
+    }
+  }
+
   const platforms = requested
     .map((id) => getPlatform(id))
     .filter((p): p is PlatformConfig => p !== null);
