@@ -4584,10 +4584,6 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
   if (openLegitCheckBtnCalc) openLegitCheckBtnCalc.onclick = () => {
     switchTab('legitcheck');
   }; 
-    if (window.tempOrder) switchTab('neworder'); 
-    else tgUtil.alert('Сначала рассчитайте стоимость'); 
-  };
-
   const calcLegitCheckBtn = document.getElementById('calcLegitCheckBtn');
   if (calcLegitCheckBtn) {
     calcLegitCheckBtn.onclick = () => {
@@ -10365,7 +10361,6 @@ document.addEventListener('click', async (e) => {
     renderCurrentScreen();
   }
 });
-}
 
     // Функция для обновления статуса заказа с отправкой уведомления
     async function updateOrderStatus(orderId, newStatus, userId) {
