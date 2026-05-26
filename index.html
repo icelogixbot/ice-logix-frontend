@@ -2856,7 +2856,6 @@ const MAX_REQUESTS_TRUSTED = 100;
 
     // Global key for Edge Function calls (Authorization header)
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZydndkYWdqcHR0dmZ2amFuYndxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NTc4MzgsImV4cCI6MjA5MTIzMzgzOH0.P9GQSW6NLN1BhR66PX-LP4ysZBXFeWIXRYIRvhRjo1c';
-    const PARSE_PRODUCT_URL = 'https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/parse-product';
 
     // ─── ФИНАЛЬНАЯ МОДАЛКА-ПРЕВЬЮ ПЕРЕД СОХРАНЕНИЕМ ───────────────────────────
     // Показывает: фото-кандидат (image confirmation), сравнение цены с рынком,
@@ -9835,11 +9834,12 @@ function attachAdminHandlers() {
         tgUtil.haptic('medium');
         try {
           const { error } = await supabaseClient.from('orders').update({ status: newStatus }).eq('id', orderId);
-          if (!error) {
-            supabaseClient.functions.invoke('notify-status', { body: { order_id: orderId, new_status: newStatus } }).catch(console.error);
-          }
           if (error) throw error;
           logAdminAction('order_status', { orderId, newStatus, previousStatus });
+          // Rich custom message via sendNotification below. We intentionally do
+          // not also invoke `notify-status` here because that would produce a
+          // second, duplicate Telegram message for the same status change.
+          // `notify-status` remains in use for external ShopByShop webhook pings.
           const statusMessages = {
             'paid': '<span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Ваш заказ оплачен! Мы приступаем к выкупу.',
             'bought': '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span> Товар выкуплен! Ожидайте отправки на склад.',
@@ -10432,11 +10432,11 @@ document.addEventListener('click', async (e) => {
     async function updateOrderStatus(orderId, newStatus, userId) {
   try {
     const { error } = await supabaseClient.from('orders').update({ status: newStatus }).eq('id', orderId);
-    if (!error) {
-      supabaseClient.functions.invoke('notify-status', { body: { order_id: orderId, new_status: newStatus } }).catch(console.error);
-    }
     if (error) throw error;
-    
+    // Rich custom message via sendNotification below. We intentionally do not
+    // also invoke `notify-status` — see the admin status handler above for the
+    // rationale (duplicate Telegram delivery would result otherwise).
+
     const statusMessages = {
       'paid': '<span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Ваш заказ оплачен! Мы приступаем к выкупу.',
       'bought': '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span> Товар выкуплен! Ожидайте отправки на склад.',
