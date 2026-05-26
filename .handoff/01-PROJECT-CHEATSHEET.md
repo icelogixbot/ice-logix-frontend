@@ -340,22 +340,47 @@ All in `public` schema. RLS enabled on most; some temporarily disabled for dev (
   - **Glass modal** — replaces `tgUtil.alert` / `tgUtil.confirm` / `tgUtil.popup` with a bottom-sheet (mobile) / centered (desktop) glass dialog, 28px backdrop-blur, kind-aware icon (info/success/warning/error/confirm), Telegram-native popup fallback retained.
   - **Glass select picker** — replaces 21 native `<select>` elements with a full-screen bottom-sheet picker with search (>8 opts), optgroup support, and per-option icons via `data-icon`. Native `<select>` kept in DOM for form compatibility + accessibility. `enhanceAllSelects()` + MutationObserver auto-upgrades dynamically inserted selects.
   - Plus: `glassToast()` for transient feedback, snowflake-in-balance migrated to inline SVG with sparkle animation, `CATEGORY_MAP` switched from emoji to icon names with `data-icon` attrs propagated through `renderCategoryOptions`.
+- `#21` Antigravity-handoff: PR-1/PR-2 results + PRIORITY 0 hot-fix backlog
+- `#22` Antigravity full-refresh: new `07-DESIGN-SYSTEM.md`, updates across the pack
+- `#23` Hot-fix 0.1 + 0.2: `switchTab(tab, subScreen)` proper sub-screen routing, brands catalog tile removed
+- `#24` Hot-fix 0.3: design audit pass + bug #1 (nav lag) + bug #2b (tier indicator)
+- `#25` Edge Function `legit-check` (PR-B). **NB:** later orphaned in `#37`, see `08-ANTIGRAVITY-AUDIT.md` §3.4
+- `#26` UI for «AI Проверка» button (PR-C). **Later removed in `#37`** per user request
+- `#27` SPA polish: page transitions, click physics, custom scrollbars, AI circular glows
+- `#28` **Calculator + Checkout step-by-step multi-item wizard** (session-based, can add multiple items in one order)
+- `#29` Final UI overhaul + hot-bugs 5/6 (designer SVGs, weight slider, calculator country-select)
+- `#30` Unified profile settings, customs duty updates, vacation mode, exchange-rate buffer
+- `#31` 4 premium features: Wheel of Fortune, PVS checkout selector (Белпочта/СДЭК/Европочта), Track timeline countdown, **AI Size Advisor** (NB: heuristic, not real AI — see `08-ANTIGRAVITY-AUDIT.md` §3.2)
+- `#32` Second premium pack: **Split & Ship** (UI hint only, no logic — §3.5), smart paste, size grids, admin auto-backup
+- `#33` **Multi-cart**, commission contract, Belarus tax report, unlimited Size Advisor
+- `#34` Family budget, currency-rates tracker, locked VIP section, **in-app support chat** (`order_messages` table)
+- `#35` Dynamic currency rates chart, VIP lock with ice/gold confetti, support chat improvements
+- `#36` Replica routing + fix Apify links
+- `#37` Vault encryption для паспортов (`vault_encryption` migration, `save_passport_secure` RPC), B2B dashboard metrics. Removed AI Authenticity Check buttons.
+- `#38` Academy improvements: video mark-done button + quiz validation with visual feedback
+- `#39` **ShopByShop logistics tracking integration** (`shopbyshop-webhook` Edge Function + `logistics_events` table)
+- `#40` Photo reviews with 5 BYN cashback + automated Telegram push notifications for order status
+
+> **⚠️ Read `.handoff/08-ANTIGRAVITY-AUDIT.md`** before suggesting any new features. It documents what's done, what's broken, and what's actually worth adding. Antigravity hallucinated 1 phantom Edge Function (fixed) and proposed already-implemented features (warned).
 
 ### Top of the backlog (in priority order)
 
+> Hot-bugs 0.1, 0.2, 0.3 are **resolved** (PR #23, #24). Pending work has moved on to:
+
 | # | Task | Estimate | Type |
 |---|---|---|---|
-| **Bug #5 (HOT)** | Home «Все» / «Каталог» buttons land on the wrong sub-screen — `currentSubScreen = '…'; switchTab('catalogs')` is wrong because `switchTab()` resets `currentSubScreen = null` on line 2822. Fix: pass sub-screen into `switchTab(tab, subScreen)` or set `currentSubScreen` AFTER `switchTab()` then call `renderCurrentScreen()` again | 20min | Bug |
-| **Bug #6 (HOT)** | Remove «Бренды» catalog tile entirely (line ~8339, the `<div class="glass-card ... onclick="tgUtil.alert('Бренды появятся скоро!')">` block in `Каталоги` screen). User decided not to ship brands catalog at all. Remove the tile and any related state — but keep brand filter dropdown inside Products catalog (line ~7981, that filters products by brand). | 10min | Cleanup |
-| **Bug #7 (HOT)** | Design audit after PR-2: there are still multiple visually-broken spots (alignment, contrast, leftover non-glass styling, etc.) that PR-2 did not catch. Walk the app screen-by-screen on the Vercel preview, take screenshots of each visually-off spot, then fix them in one consolidated design-cleanup PR. | 2-4h | Design |
-| **PR-B** | Edge Function `legit-check` (Gemini Vision pipeline: photo → brand/model detect → lookup auth_markers → score 0-100 + RU explanation) | 1-2h agent | Backend |
-| **PR-C** | UI «AI Проверка» button + disclaimer + result UI in calculator | 1h agent | Frontend |
-| Bug #1 | Navigation lags after photo search / long session — bottom menu unresponsive | 30min | Bug |
-| Bug #2b | `search-by-image` ignores `authenticity_tier` (PR #11 added it only for text search) | 20min | Bug |
-| Bug #3+#4 | «Проверить изображение» button missing in Calculator entry; returns garbage when used | 30min | Bug |
-| Feat: replica routing | When `authenticity_tier=replica`, route searches to DHGate / AliExpress / 1688 only | 1h | Feature |
-| Feat: marketplace whitelist | User provides curated list → store in DB `marketplaces`, replace `DEFAULT_PLATFORMS` | 1h | Feature |
-| Feat: passport encryption | Move `passport_data` to Supabase Vault (`encrypted_passport`) | 1-2h | Security |
+| **Sprint A.1** | Сравнение цен «vs Lamoda / vs РБ» (#24, #233 in 09-features-roadmap) — компонент `<PriceCompare/>` под расчётом в калькуляторе | 2-3h | Feature |
+| **Sprint A.2** | Detector подозрительных ссылок (#124) — валидатор по whitelist `marketplaces` при вставке URL | 1-2h | Feature |
+| **Sprint A.3** | Подборки Must Have (#14) — таб в каталоге, фильтр `products WHERE tags @> ['must_have']` + админ UI | 2h | Feature |
+| **Sprint A.4** | Каскадный выбор адреса (#257, Область → Район → Город) | 2-3h | Feature |
+| **Sprint A.5** | Мои адреса CRUD (#257) — `user_addresses` table + UI в Профиле | 2-3h | Feature |
+| **Sprint B.1** | Split & Ship — дописать логику разделения заказа на 2 получателей (см. `08-ANTIGRAVITY-AUDIT.md` §3.5) | 4-6h | Backend |
+| **Sprint B.2** | Реф. дерево визуализация (#135) | 3-4h | UI |
+| **Sprint B.3** | Архив фотоотчётов 90 дней (#122) — Storage RLS + UI | 2-3h | Feature |
+| **Sprint B.4** | Price Watchdog (#76) — `price_watch` table + cron + push | 4-6h | Backend |
+| **Sprint C.1** | URL-парсер в калькуляторе допилить (см. `08-ANTIGRAVITY-AUDIT.md` §3.1) | 1-2h | Bug |
+| **Sprint C.2** | Подключить `pdf-generator` Edge Function (есть в `/home/ubuntu/icelogix-work/pdf-generator/`) | 1-2h | Backend |
+| **Sprint C.3** | Эмодзи → `ix()` SVG (~60 мест, см. `08-ANTIGRAVITY-AUDIT.md` §3.3) | 2-3h | Polish |
 | Feat: ShopByShop integration | Webhook → `logistics_events` → status updates per order | 4-8h | Backend |
 | Feat: WebPay integration | Accept BYN deposits via WebPay + handle webhook | 4h | Payments |
 | Feat: oferta generator | PDF agreement signed at first checkout | 2h | Frontend + Edge Fn |

@@ -6,14 +6,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Canonical statuses used across index.html / pricing engine / order tracker.
+// We keep `ordered` and `at_warehouse` as aliases so legacy ShopByShop webhook
+// payloads continue to work after the rename to `bought` / `on_sklad_cn`.
 const statusMap: Record<string, string> = {
-  'pending': '⏳ Ожидает оплаты',
-  'paid': '✅ Оплачен',
-  'ordered': '🛒 Выкуплен с площадки',
-  'at_warehouse': '📦 Прибыл на наш склад',
-  'in_transit': '✈️ В пути к вам',
-  'delivered': '🎉 Доставлен',
-  'cancelled': '❌ Отменён'
+  'pending':      '⏳ Ожидает оплаты',
+  'paid':         '✅ Оплачен',
+  'bought':       '🛒 Выкуплен с площадки',
+  'ordered':      '🛒 Выкуплен с площадки',       // alias for bought
+  'on_sklad_cn':  '📦 Прибыл на склад в Китае',
+  'at_warehouse': '📦 Прибыл на склад в Китае',   // alias for on_sklad_cn
+  'in_transit':   '✈️ В пути к вам',
+  'in_belarus':   '🇧🇾 Прибыл в Беларусь',
+  'delivered':    '🎉 Доставлен',
+  'cancelled':    '❌ Отменён',
 }
 
 serve(async (req) => {
@@ -102,7 +108,8 @@ serve(async (req) => {
     })
   } catch (error) {
     console.error('Edge Function error:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    const errMsg = error instanceof Error ? error.message : String(error)
+    return new Response(JSON.stringify({ error: errMsg }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     })
