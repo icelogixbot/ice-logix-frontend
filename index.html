@@ -994,6 +994,24 @@
     .score-gauge-green { animation: scoreGlow-green 2.5s ease-in-out infinite; }
     .score-gauge-yellow { animation: scoreGlow-yellow 2.5s ease-in-out infinite; }
     .score-gauge-red { animation: scoreGlow-red 2.5s ease-in-out infinite; }
+
+    /* Confetti Particle Styling */
+    .confetti-particle {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      animation: confetti-fall linear forwards;
+    }
+    @keyframes confetti-fall {
+      0% {
+        transform: translateY(-10vh) rotate(0deg) scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(110vh) rotate(720deg) scale(0.5);
+        opacity: 0;
+      }
+    }
     
     /* Light theme overrides - preserved for compatibility */
     html.light body { background: linear-gradient(165deg, #E8F4FC 0%, #D1E9F6 50%, #B8E0F6 100%); }
@@ -3899,8 +3917,14 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           <!-- Mode: link & manual — общее URL-поле -->
           <div data-calc-mode-pane="link manual">
             <label class="text-white/70 text-sm">Ссылка на товар <span data-calc-mode-pane="manual" class="text-white/40 text-xs hidden">(необязательно)</span></label>
-            <div class="flex flex-wrap gap-2 mt-1 mb-1">
-              <input type="text" id="calcUrl" class="btn-secondary flex-1 min-w-[200px] p-3 rounded-xl border border-white/30" placeholder="https://poizon.com/...">
+            <div class="flex flex-wrap gap-2 mt-1 mb-1 items-stretch">
+              <div class="flex-1 min-w-[200px] flex gap-1 bg-white/5 border border-white/30 rounded-xl overflow-hidden px-1.5 py-1">
+                <input type="text" id="calcUrl" class="bg-transparent flex-1 border-0 outline-none p-2 text-sm text-white" placeholder="https://poizon.com/...">
+                <button type="button" id="calcPasteBtn" class="bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg px-3.5 transition flex items-center justify-center text-cyan-400 gap-1.5 text-xs font-bold" title="Вставить из буфера">
+                  ${ix('clipboard', { size: '14px' })}
+                  <span>Вставить</span>
+                </button>
+              </div>
               <button id="analyzeLinkBtn" data-calc-mode-pane="link" class="btn-primary whitespace-nowrap transition flex-shrink-0"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Анализировать</button>
             </div>
             <p data-calc-mode-pane="manual" class="text-white/40 text-xs mb-2 hidden">Если ссылки нет — заполните поля ниже вручную.</p>
@@ -4326,7 +4350,35 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
     };
   };
   
+  const calcPasteBtn = document.getElementById('calcPasteBtn');
   const analyzeBtn = document.getElementById('analyzeLinkBtn');
+  if (calcPasteBtn) {
+    calcPasteBtn.onclick = async () => {
+      tgUtil.haptic('light');
+      try {
+        const text = await navigator.clipboard.readText();
+        const cleaned = text?.trim();
+        if (cleaned && (cleaned.startsWith('http://') || cleaned.startsWith('https://') || cleaned.includes('dewu.com') || cleaned.includes('taobao.com') || cleaned.includes('1688.com') || cleaned.includes('poizon') || cleaned.includes('zalando') || cleaned.includes('vinted'))) {
+          const inp = document.getElementById('calcUrl');
+          if (inp) {
+            inp.value = cleaned;
+            glassToast('Ссылка успешно вставлена!', { kind: 'success' });
+            if (analyzeBtn) analyzeBtn.click();
+          }
+        } else if (cleaned) {
+          const inp = document.getElementById('calcUrl');
+          if (inp) inp.value = cleaned;
+          glassToast('Текст вставлен! Проверьте формат ссылки.', { kind: 'info' });
+        } else {
+          glassToast('Буфер обмена пуст!', { kind: 'info' });
+        }
+      } catch (err) {
+        console.error('Clipboard paste failed:', err);
+        glassToast('Нет доступа к буферу. Вставьте вручную.', { kind: 'error' });
+      }
+    };
+  }
+
   if (analyzeBtn) {
     analyzeBtn.addEventListener('click', async () => {
       tgUtil.haptic('medium');
@@ -5531,8 +5583,14 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           <!-- Link Mode Pane -->
           <div id="paneOrderLink" class="mode-pane ${subMode === 'link' ? '' : 'hidden'} mb-4">
             <label class="text-white/70 text-sm block mb-1">Ссылка на товар</label>
-            <div class="flex gap-2">
-              <input type="text" id="orderUrl" class="btn-secondary flex-1 p-3 rounded-xl border border-white/30 text-sm" placeholder="Вставьте ссылку на Poizon, Taobao...">
+            <div class="flex gap-2 items-stretch">
+              <div class="flex-1 flex gap-1 bg-white/5 border border-white/30 rounded-xl overflow-hidden px-1.5 py-1">
+                <input type="text" id="orderUrl" class="bg-transparent flex-1 border-0 outline-none p-2 text-sm text-white" placeholder="Вставьте ссылку на Poizon, Taobao...">
+                <button type="button" id="orderPasteBtn" class="bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg px-3.5 transition flex items-center justify-center text-cyan-400 gap-1.5 text-xs font-bold" title="Вставить из буфера">
+                  ${ix('clipboard', { size: '14px' })}
+                  <span>Вставить</span>
+                </button>
+              </div>
               <button id="analyzeOrderLinkBtn" class="btn-primary whitespace-nowrap transition flex-shrink-0"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Найти</button>
             </div>
             <p class="text-white/40 text-xs mt-1.5">Если ссылка не распознается, мы предложим загрузить скриншот.</p>
@@ -6079,7 +6137,33 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         updateAiSizeAdvice();
 
         const urlInp = document.getElementById('orderUrl');
+        const orderPasteBtn = document.getElementById('orderPasteBtn');
         const analyzeOrderBtn = document.getElementById('analyzeOrderLinkBtn');
+
+        if (orderPasteBtn) {
+          orderPasteBtn.onclick = async () => {
+            tgUtil.haptic('light');
+            try {
+              const text = await navigator.clipboard.readText();
+              const cleaned = text?.trim();
+              if (cleaned && (cleaned.startsWith('http://') || cleaned.startsWith('https://') || cleaned.includes('dewu.com') || cleaned.includes('taobao.com') || cleaned.includes('1688.com') || cleaned.includes('poizon') || cleaned.includes('zalando') || cleaned.includes('vinted'))) {
+                if (urlInp) {
+                  urlInp.value = cleaned;
+                  glassToast('Ссылка успешно вставлена!', { kind: 'success' });
+                  if (analyzeOrderBtn) analyzeOrderBtn.click();
+                }
+              } else if (cleaned) {
+                if (urlInp) urlInp.value = cleaned;
+                glassToast('Текст вставлен! Проверьте формат ссылки.', { kind: 'info' });
+              } else {
+                glassToast('Буфер обмена пуст!', { kind: 'info' });
+              }
+            } catch (err) {
+              console.error('Clipboard paste failed:', err);
+              glassToast('Нет доступа к буферу. Вставьте вручную.', { kind: 'error' });
+            }
+          };
+        }
 
         if (analyzeOrderBtn) {
           analyzeOrderBtn.addEventListener('click', async () => {
@@ -6713,6 +6797,12 @@ async function renderMyOrders() {
     if (!data || data.length === 0) {
       return '<p class="text-center mt-10 text-white/70">У вас пока нет заказов</p>';
     }
+
+    const { data: claims } = await supabaseClient.from('insurance_claims').select('*').eq('user_id', userId);
+    const claimsMap = {};
+    (claims || []).forEach(c => {
+      claimsMap[c.order_id] = c;
+    });
     
     return `
       <button id="backToProfileBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
@@ -6771,9 +6861,27 @@ async function renderMyOrders() {
                   <span class="font-semibold text-white/80">${order.tracking_number_by}</span>
                 </div>
               ` : ''}
+              ${(() => {
+                const claim = claimsMap[order.id];
+                if (!claim) return '';
+                const statusText = claim.status === 'pending' ? '🔍 Претензия на рассмотрении' : claim.status === 'approved' ? '🟢 Выплата одобрена' : '🔴 Претензия отклонена';
+                return `
+                  <div class="mt-2.5 p-2 rounded-xl border ${claim.status === 'pending' ? 'border-amber-500/25 bg-amber-500/5 text-amber-300' : claim.status === 'approved' ? 'border-green-500/25 bg-green-500/5 text-green-400' : 'border-red-500/25 bg-red-500/5 text-red-400'} text-[10px] text-center font-bold">
+                    ${statusText}
+                    ${claim.rejection_reason ? '<p class="text-white/50 font-normal mt-0.5 font-sans">Причина: ' + claim.rejection_reason + '</p>' : ''}
+                  </div>
+                `;
+              })()}
             </div>
 
-            <button class="btn-secondary mt-3 w-full text-white" onclick="window.openSupportChat('${order.id}')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> 💬 Чат по заказу</button>
+            <div class="flex gap-2 mt-3">
+              <button class="btn-secondary flex-1 text-white text-xs" onclick="window.openSupportChat('${order.id}')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> 💬 Чат по заказу</button>
+              ${Number(order.insurance_byn || 0) > 0 && !['pending', 'cancelled'].includes(order.status) && !claimsMap[order.id] ? `
+                <button class="btn-secondary flex-1 text-amber-400 border border-amber-500/20 text-xs" onclick="window.openInsuranceClaimModal('${order.id}', ${order.total_byn})">
+                  🛡️ Страховка
+                </button>
+              ` : ''}
+            </div>
           </div>
         `).join('')}
       </div>
@@ -6784,6 +6892,74 @@ async function renderMyOrders() {
     return '<p class="text-center mt-10 text-red-400">Ошибка загрузки заказов</p>';
   }
 }
+
+window.openInsuranceClaimModal = (orderId, orderTotal) => {
+  tgUtil.haptic('light');
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[120] p-4';
+  modal.id = 'insuranceClaimModal';
+  
+  modal.innerHTML = `
+    <div class="bg-[#1e293b] rounded-2xl max-w-sm w-full border border-white/20 p-5 space-y-4 page-enter">
+      <div class="flex justify-between items-center border-b border-white/10 pb-3">
+        <h3 class="text-white font-bold text-base flex items-center gap-1.5">
+          <span>🛡️ Заявить о страховом случае</span>
+        </h3>
+        <button id="closeClaimModalBtn" class="text-white/40 hover:text-white text-lg font-bold">×</button>
+      </div>
+      
+      <div class="bg-blue-500/10 border border-blue-500/20 p-3 rounded-xl text-xs text-white/80 leading-relaxed">
+        <p class="font-bold text-white mb-1">📋 Условия возмещения:</p>
+        <p>• Полный возврат стоимости товара (<strong>${orderTotal.toFixed(2)} BYN</strong>) будет начислен на ваш баланс после рассмотрения и одобрения претензии.</p>
+        <p class="mt-1">• Претензия рассматривается администрацией ICE LOGIX в течение <strong>24 часов</strong>.</p>
+      </div>
+      
+      <div class="space-y-1.5">
+        <label class="text-white/70 text-xs font-semibold block">Опишите причину обращения (напр. посылка утеряна, повреждена):</label>
+        <textarea id="claimReason" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-xs text-white" placeholder="Опишите детали происшествия..." rows="4"></textarea>
+      </div>
+      
+      <button id="submitClaimBtn" class="bg-amber-500 hover:bg-amber-600 text-slate-900 font-extrabold w-full py-3 rounded-xl transition text-xs tracking-wider uppercase">
+        Отправить претензию
+      </button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  
+  document.getElementById('closeClaimModalBtn').onclick = () => modal.remove();
+  
+  document.getElementById('submitClaimBtn').onclick = async () => {
+    const reason = document.getElementById('claimReason')?.value.trim();
+    if (!reason) {
+      glassToast('Пожалуйста, опишите причину страхового случая!', { kind: 'error' });
+      return;
+    }
+    
+    const submitBtn = document.getElementById('submitClaimBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerText = 'Отправка...';
+    
+    try {
+      const { error } = await supabaseClient.from('insurance_claims').insert({
+        order_id: orderId,
+        user_id: userId,
+        description: reason,
+        status: 'pending'
+      });
+      
+      if (error) throw error;
+      
+      glassToast('Претензия успешно отправлена на рассмотрение!', { kind: 'success' });
+      modal.remove();
+      renderCurrentScreen();
+    } catch(e) {
+      console.error(e);
+      glassToast('Ошибка отправки: ' + e.message, { kind: 'error' });
+      submitBtn.disabled = false;
+      submitBtn.innerText = 'Отправить претензию';
+    }
+  };
+};
 
         // ==================== РЕНДЕР ПРОФИЛЯ (С РЕФЕРАЛКАМИ) ====================
         async function renderProfile() {
@@ -8490,6 +8666,130 @@ function downloadCSV(csvContent, filename) {
   document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
+async function renderAdminClaimsList() {
+  try {
+    const { data: claims, error } = await supabaseClient
+      .from('insurance_claims')
+      .select('*, orders(total_byn, status)')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    if (!claims || claims.length === 0) {
+      return '<p class="text-xs text-white/40 text-center py-4">Нет активных страховых претензий</p>';
+    }
+
+    return claims.map(c => {
+      const orderTotal = c.orders ? Number(c.orders.total_byn || 0) : 0;
+      const isPending = c.status === 'pending';
+      const isApproved = c.status === 'approved';
+      const isRejected = c.status === 'rejected';
+
+      return `
+        <div class="p-3 bg-white/5 border border-white/10 rounded-xl space-y-2 mb-2 text-left page-enter font-sans">
+          <div class="flex justify-between items-center text-[10px] text-white/50">
+            <span>Претензия от: ${new Date(c.created_at).toLocaleDateString('ru-RU')}</span>
+            <span class="font-mono text-white/70">Юзер: ${c.user_id}</span>
+          </div>
+          <div class="text-xs text-white leading-normal">
+            <p><strong>Заказ:</strong> <span class="font-mono text-cyan-400 font-semibold">#${c.order_id.slice(0, 8)}</span></p>
+            <p class="mt-1"><strong>Сумма возмещения:</strong> <span class="text-green-400 font-mono font-bold">${orderTotal.toFixed(2)} BYN</span></p>
+            <p class="mt-1.5 p-2 bg-slate-950/60 rounded-lg text-white/70 border border-white/5 font-sans">
+              <strong>Описание:</strong> ${c.description}
+            </p>
+          </div>
+          ${isPending ? `
+            <div class="flex gap-2 pt-1.5">
+              <button class="approveClaimBtn bg-green-600 hover:bg-green-700 text-slate-900 font-bold flex-1 py-1.5 rounded-lg text-[10px] transition" data-id="${c.id}" data-user-id="${c.user_id}" data-amount="${orderTotal}" data-order-id="${c.order_id}">
+                Одобрить выплату
+              </button>
+              <button class="rejectClaimBtn bg-red-600 hover:bg-red-700 text-white font-bold flex-1 py-1.5 rounded-lg text-[10px] transition" data-id="${c.id}">
+                Отклонить
+              </button>
+            </div>
+          ` : isApproved ? `
+            <div class="p-1.5 bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] text-center font-bold rounded-lg font-sans">
+              🟢 ВЫПЛАТА ОДОБРЕНА И ЗАЧИСЛЕНА НА БАЛАНС
+            </div>
+          ` : `
+            <div class="p-1.5 bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] text-center font-bold rounded-lg font-sans">
+              🔴 ПРЕТЕНЗИЯ ОТКЛОНЕНА
+              ${c.rejection_reason ? '<p class="font-normal text-[9px] text-white/50 mt-0.5 font-sans">Причина: ' + c.rejection_reason + '</p>' : ''}
+            </div>
+          `}
+        </div>
+      `;
+    }).join('');
+  } catch(e) {
+    return '<p class="text-xs text-red-400 text-center py-4">Ошибка загрузки претензий</p>';
+  }
+}
+
+async function renderAdminLegitChecksList() {
+  try {
+    const { data: checks, error } = await supabaseClient
+      .from('legit_check_requests')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    if (!checks || checks.length === 0) {
+      return '<p class="text-xs text-white/40 text-center py-4">Нет заявок на Legit-Check</p>';
+    }
+
+    return checks.map(c => {
+      const imageUrls = (c.photos || []).map(p => {
+        if (p.startsWith('http')) return p;
+        return supabaseClient.storage.from('product-screenshots').getPublicUrl(p).data.publicUrl;
+      });
+
+      const isPending = c.status === 'pending';
+      const isOriginal = c.status === 'original';
+      const isFake = c.status === 'fake';
+
+      return `
+        <div class="p-3 bg-white/5 border border-white/10 rounded-xl space-y-2 mb-2 text-left page-enter font-sans">
+          <div class="flex justify-between items-center text-[10px] text-white/50">
+            <span>Заявка от: ${new Date(c.created_at).toLocaleDateString('ru-RU')}</span>
+            <span class="font-mono text-white/70">Юзер: ${c.user_id}</span>
+          </div>
+          <div class="text-xs text-white leading-normal">
+            <p><strong>Товар:</strong> <span class="text-cyan-400 font-bold">${c.brand} ${c.model}</span></p>
+            <p class="text-white/40 text-[9px] mt-0.5">Кликните по фото для увеличения во весь экран</p>
+            <div class="grid grid-cols-4 gap-1.5 mt-1.5 mb-2">
+              ${imageUrls.map((url, i) => `
+                <div class="aspect-square rounded-lg bg-white/15 overflow-hidden cursor-pointer border border-white/5 hover:border-cyan-500/50 transition" onclick="window.open('${url}', '_blank')">
+                  <img src="${url}" class="w-full h-full object-cover">
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          ${isPending ? `
+            <div class="flex gap-2 pt-1">
+              <button class="approveLegitBtn bg-green-600 hover:bg-green-700 text-slate-900 font-bold flex-1 py-1.5 rounded-lg text-[10px] transition" data-id="${c.id}">
+                Оригинал
+              </button>
+              <button class="rejectLegitBtn bg-red-600 hover:bg-red-700 text-white font-bold flex-1 py-1.5 rounded-lg text-[10px] transition" data-id="${c.id}">
+                Подделка
+              </button>
+            </div>
+          ` : isOriginal ? `
+            <div class="p-1.5 bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] text-center font-bold rounded-lg flex items-center justify-center gap-1.5 font-sans">
+              <span>🟢 ВЕРДИКТ: ОРИГИНАЛ (Сертификат выдан)</span>
+            </div>
+          ` : `
+            <div class="p-1.5 bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] text-center font-bold rounded-lg font-sans">
+              🔴 ВЕРДИКТ: ПОДДЕЛКА
+              ${c.comments ? '<p class="font-normal text-[9px] text-white/50 mt-0.5 font-sans">Комментарий эксперта: ' + c.comments + '</p>' : ''}
+            </div>
+          `}
+        </div>
+      `;
+    }).join('');
+  } catch(e) {
+    return '<p class="text-xs text-red-400 text-center py-4">Ошибка загрузки легит-чеков</p>';
+  }
+}
+
 async function renderAdmin() {
   if (!isOwner) return '<p class="text-center mt-10 text-red-400">Доступ запрещён</p>';
   try {
@@ -8741,6 +9041,24 @@ async function renderAdmin() {
           <button id="downloadBackupBtn" class="btn-primary w-full flex items-center justify-center gap-2">
             ${ix('download')} Выгрузить полную резервную копию
           </button>
+        </div>
+
+        <!-- Страховые претензии (Loss & Damage Moderation) -->
+        <div class="glass-card mt-4">
+          <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span> Управление страховками & Претензиями</h3>
+          <p class="text-white/50 text-xs mb-3">Одобрение или отклонение страховых претензий клиентов. При одобрении сумма автоматически возвращается на баланс.</p>
+          <div class="space-y-2 max-h-64 overflow-y-auto font-sans" id="adminClaimsList">
+            ${await renderAdminClaimsList()}
+          </div>
+        </div>
+
+        <!-- Заявки на Legit-Check (Manual Paid Legit Check Moderation) -->
+        <div class="glass-card mt-4">
+          <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg></span> Заявки на Legit-Check</h3>
+          <p class="text-white/50 text-xs mb-3">Рассмотрение заявок на легит-чек от экспертов ShopbyShop. Задайте вердикт (Оригинал/Подделка) с комментариями.</p>
+          <div class="space-y-2 max-h-64 overflow-y-auto font-sans" id="adminLegitChecksList">
+            ${await renderAdminLegitChecksList()}
+          </div>
         </div>
       </div>
     ` + renderFooter();
@@ -9519,6 +9837,137 @@ if (downloadBackupBtn) {
   };
 }
 
+  // ================== СТРАХОВЫЕ ПРЕТЕНЗИИ (ОДОБРЕНИЕ / ОТКЛОНЕНИЕ) ==================
+  document.querySelectorAll('.approveClaimBtn').forEach(btn => {
+    btn.onclick = async () => {
+      const claimId = btn.dataset.id;
+      const claimUserId = btn.dataset.userId;
+      const amount = parseFloat(btn.dataset.amount || 0);
+      const orderId = btn.dataset.orderId;
+      
+      if (!(await tgUtil.confirm(`Одобрить страховую претензию и выплатить ${amount.toFixed(2)} BYN на баланс клиента?`))) return;
+      tgUtil.haptic('medium');
+      
+      try {
+        btn.disabled = true;
+        // 1. Fetch current user balance
+        const { data: userRec, error: fErr } = await supabaseClient.from('users').select('ices_balance').eq('user_id', claimUserId).single();
+        if (fErr) throw fErr;
+        const currentBalance = userRec ? (userRec.ices_balance || 0) : 0;
+        
+        // 2. Add refund to balance in DB
+        const { error: balErr } = await supabaseClient.from('users').update({ ices_balance: currentBalance + amount }).eq('user_id', claimUserId);
+        if (balErr) throw balErr;
+        
+        // 3. Log transaction
+        await supabaseClient.from('transactions').insert({
+          user_id: claimUserId,
+          amount: amount,
+          type: 'insurance_refund',
+          description: `Возврат по страховке за заказ #${orderId.slice(0, 8)}`
+        });
+        
+        // 4. Update claim status to approved
+        const { error: claimErr } = await supabaseClient.from('insurance_claims').update({ status: 'approved' }).eq('id', claimId);
+        if (claimErr) throw claimErr;
+        
+        // 5. Send notification to user
+        await sendNotification(claimUserId, `🛡️ Ваша страховая претензия по заказу #${orderId.slice(0, 8)} одобрена! Выплата ${amount.toFixed(2)} BYN зачислена на ваш баланс.`, orderId);
+        
+        glassToast('Страховая претензия успешно одобрена!', { kind: 'success' });
+        renderCurrentScreen();
+      } catch(e) {
+        console.error(e);
+        tgUtil.alert('Ошибка: ' + e.message);
+        btn.disabled = false;
+      }
+    };
+  });
+  
+  document.querySelectorAll('.rejectClaimBtn').forEach(btn => {
+    btn.onclick = async () => {
+      const claimId = btn.dataset.id;
+      const reason = await tgUtil.popup({
+        title: 'Отклонить претензию',
+        message: 'Укажите причину отклонения претензии для клиента:',
+        buttons: [{ id: 'submit', text: 'Отклонить' }]
+      });
+      
+      if (!reason) return;
+      tgUtil.haptic('warning');
+      
+      try {
+        btn.disabled = true;
+        const { error } = await supabaseClient.from('insurance_claims').update({
+          status: 'rejected',
+          rejection_reason: reason
+        }).eq('id', claimId);
+        
+        if (error) throw error;
+        
+        glassToast('Претензия отклонена.', { kind: 'info' });
+        renderCurrentScreen();
+      } catch(e) {
+        console.error(e);
+        tgUtil.alert('Ошибка: ' + e.message);
+        btn.disabled = false;
+      }
+    };
+  });
+
+  // ================== ЗАЯВКИ НА LEGIT-CHECK (ВЕРДИКТЫ) ==================
+  document.querySelectorAll('.approveLegitBtn').forEach(btn => {
+    btn.onclick = async () => {
+      const checkId = btn.dataset.id;
+      if (!(await tgUtil.confirm('Установить вердикт: ОРИГИНАЛ? Будет выдан сертификат подлинности.'))) return;
+      tgUtil.haptic('medium');
+      
+      try {
+        btn.disabled = true;
+        const { error } = await supabaseClient.from('legit_check_requests').update({ status: 'original' }).eq('id', checkId);
+        if (error) throw error;
+        
+        glassToast('Вердикт "Оригинал" успешно сохранен!', { kind: 'success' });
+        renderCurrentScreen();
+      } catch(e) {
+        console.error(e);
+        tgUtil.alert('Ошибка: ' + e.message);
+        btn.disabled = false;
+      }
+    };
+  });
+
+  document.querySelectorAll('.rejectLegitBtn').forEach(btn => {
+    btn.onclick = async () => {
+      const checkId = btn.dataset.id;
+      const comments = await tgUtil.popup({
+        title: 'Установить вердикт: ПОДДЕЛКА',
+        message: 'Укажите комментарий эксперта с признаками неоригинальности:',
+        buttons: [{ id: 'submit', text: 'Отклонить' }]
+      });
+      
+      if (!comments) return;
+      tgUtil.haptic('warning');
+      
+      try {
+        btn.disabled = true;
+        const { error } = await supabaseClient.from('legit_check_requests').update({
+          status: 'fake',
+          comments: comments
+        }).eq('id', checkId);
+        if (error) throw error;
+        
+        glassToast('Вердикт "Подделка" сохранен.', { kind: 'info' });
+        renderCurrentScreen();
+      } catch(e) {
+        console.error(e);
+        tgUtil.alert('Ошибка: ' + e.message);
+        btn.disabled = false;
+      }
+    };
+  });
+}
+
 // ==================== АНАЛИТИКА ОБРАБОТЧИКИ ====================
 function attachAnalyticsHandlers() {
   // ── Tab switching ──────────────────────────────────────────────────
@@ -9942,10 +10391,18 @@ async function sendNotification(userId, message, orderId = null) {
           .eq('user_id', userId)
           .in('status', ['paid', 'bought', 'on_sklad_cn', 'in_transit', 'in_belarus', 'delivered'])
           .limit(1);
-        if (userOrders && userOrders.length > 0) {
+        
+        const { data: userTx } = await supabaseClient.from('transactions')
+          .select('id')
+          .eq('user_id', userId)
+          .limit(1);
+
+        if ((userOrders && userOrders.length > 0) || (userTx && userTx.length > 0)) {
           isVipUnlocked = true;
         }
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        console.error('Error checking VIP lock status:', e);
+      }
     }
 
     const categories = [...new Set(data.map(p => p.category).filter(Boolean))];
@@ -10644,6 +11101,105 @@ function showSizeTablesModal() {
   let activeCategory = 'shoes';
   let activeBrand = 'Nike';
   
+  const getShoesData = (brand) => {
+    switch (brand) {
+      case 'Nike':
+        return [
+          { eu: '38.5', us: '6.0', uk: '5.5', cm: '24.0 см' },
+          { eu: '39', us: '6.5', uk: '6.0', cm: '24.5 см' },
+          { eu: '40', us: '7.0', uk: '6.0', cm: '25.0 см' },
+          { eu: '40.5', us: '7.5', uk: '6.5', cm: '25.5 см' },
+          { eu: '41', us: '8.0', uk: '7.0', cm: '26.0 см' },
+          { eu: '42', us: '8.5', uk: '7.5', cm: '26.5 см' },
+          { eu: '42.5', us: '9.0', uk: '8.0', cm: '27.0 см' },
+          { eu: '43', us: '9.5', uk: '8.5', cm: '27.5 см' },
+          { eu: '44', us: '10.0', uk: '9.0', cm: '28.0 см' },
+          { eu: '44.5', us: '10.5', uk: '9.5', cm: '28.5 см' },
+          { eu: '45', us: '11.0', uk: '10.0', cm: '29.0 см' },
+          { eu: '46', us: '12.0', uk: '11.0', cm: '30.0 см' }
+        ];
+      case 'Pinduoduo':
+        return [
+          { eu: '35 CHN', us: '35 EU', uk: '22.5 см', cm: 'Маломерит' },
+          { eu: '36 CHN', us: '36 EU', uk: '23.0 см', cm: 'Маломерит' },
+          { eu: '37 CHN', us: '37 EU', uk: '23.5 см', cm: 'Маломерит' },
+          { eu: '38 CHN', us: '38 EU', uk: '24.0 см', cm: 'Маломерит' },
+          { eu: '39 CHN', us: '39 EU', uk: '24.5 см', cm: 'В размер' },
+          { eu: '40 CHN', us: '40 EU', uk: '25.0 см', cm: 'В размер' },
+          { eu: '41 CHN', us: '41 EU', uk: '25.5 см', cm: 'В размер' },
+          { eu: '42 CHN', us: '42 EU', uk: '26.0 см', cm: 'В размер' },
+          { eu: '43 CHN', us: '43 EU', uk: '26.5 см', cm: 'Маломерит' },
+          { eu: '44 CHN', us: '44 EU', uk: '27.0 см', cm: 'Маломерит' }
+        ];
+      case 'Zara':
+      case 'H&M':
+      case 'Vinted':
+      default:
+        return [
+          { eu: '36 EU', us: '3.5 UK', uk: '23.0 см', cm: 'В размер' },
+          { eu: '37 EU', us: '4.0 UK', uk: '23.5 см', cm: 'В размер' },
+          { eu: '38 EU', us: '5.0 UK', uk: '24.3 см', cm: 'В размер' },
+          { eu: '39 EU', us: '6.0 UK', uk: '25.0 см', cm: 'В размер' },
+          { eu: '40 EU', us: '6.5 UK', uk: '25.8 см', cm: 'В размер' },
+          { eu: '41 EU', us: '7.5 UK', uk: '26.5 см', cm: 'В размер' },
+          { eu: '42 EU', us: '8.0 UK', uk: '27.0 см', cm: 'В размер' },
+          { eu: '43 EU', us: '9.0 UK', uk: '28.0 см', cm: 'В размер' },
+          { eu: '44 EU', us: '9.5 UK', uk: '28.5 см', cm: 'В размер' },
+          { eu: '45 EU', us: '10.5 UK', uk: '29.3 см', cm: 'В размер' }
+        ];
+    }
+  };
+
+  const getClothingData = (brand) => {
+    switch (brand) {
+      case 'Zara':
+        return [
+          { size: 'XS', height: '165 см', weight: '88 см', chest: '72 см' },
+          { size: 'S', height: '170 см', chest: '92 см', weight: '76 см' },
+          { size: 'M', height: '175 см', chest: '96 см', weight: '80 см' },
+          { size: 'L', height: '180 см', chest: '104 см', weight: '88 см' },
+          { size: 'XL', height: '185 см', chest: '112 см', weight: '96 см' },
+          { size: 'XXL', height: '190 см', chest: '120 см', weight: '104 см' }
+        ];
+      case 'H&M':
+        return [
+          { size: 'XS', height: '160-165 см', weight: '84-88 см', chest: '70-74 см' },
+          { size: 'S', height: '165-170 см', weight: '88-92 см', chest: '74-78 см' },
+          { size: 'M', height: '170-175 см', weight: '92-96 см', chest: '78-82 см' },
+          { size: 'L', height: '175-180 см', weight: '96-100 см', chest: '82-86 см' },
+          { size: 'XL', height: '180-185 см', weight: '100-104 см', chest: '86-90 см' },
+          { size: 'XXL', height: '185-190 см', weight: '104-108 см', chest: '90-94 см' }
+        ];
+      case 'Pinduoduo':
+        return [
+          { size: 'M (CHN)', height: '160-165 см', weight: '45-52 кг', chest: 'Рост до 165' },
+          { size: 'L (CHN)', height: '165-170 см', weight: '52-60 кг', chest: 'Рост до 170' },
+          { size: 'XL (CHN)', height: '170-175 см', weight: '60-68 кг', chest: 'Рост до 175' },
+          { size: '2XL (CHN)', height: '175-180 см', weight: '68-75 кг', chest: 'Рост до 180' },
+          { size: '3XL (CHN)', height: '180-185 см', weight: '75-83 кг', chest: 'Рост до 185' },
+          { size: '4XL (CHN)', height: '185-190 см', weight: '83-92 кг', chest: 'Рост до 190' }
+        ];
+      case 'Nike':
+        return [
+          { size: 'XS', height: '168 см', weight: '82-88 см', chest: '72-77 см' },
+          { size: 'S', height: '173 см', weight: '88-96 см', chest: '77-83 см' },
+          { size: 'M', height: '178 см', weight: '96-104 см', chest: '83-89 см' },
+          { size: 'L', height: '183 см', weight: '104-112 см', chest: '89-97 см' },
+          { size: 'XL', height: '188 см', weight: '112-124 см', chest: '97-109 см' },
+          { size: 'XXL', height: '193 см', weight: '124-136 см', chest: '109-121 см' }
+        ];
+      case 'Vinted':
+      default:
+        return [
+          { size: 'XS', height: '160 см', weight: '80-84 см', chest: '64-68 см' },
+          { size: 'S', height: '165 см', weight: '84-88 см', chest: '68-72 см' },
+          { size: 'M', height: '170 см', weight: '88-92 см', chest: '72-76 см' },
+          { size: 'L', height: '175 см', weight: '92-96 см', chest: '76-80 см' },
+          { size: 'XL', height: '180 см', weight: '96-100 см', chest: '80-84 см' }
+        ];
+    }
+  };
+  
   const renderModalContent = () => {
     const brands = ['Nike', 'Zara', 'H&M', 'Vinted', 'Pinduoduo'];
     const categories = [
@@ -10666,76 +11222,76 @@ function showSizeTablesModal() {
     let tableHtml = '';
     
     if (activeCategory === 'shoes') {
-      const data = [
-        { eu: '36', us: '4.5', cm: '22.5' },
-        { eu: '37', us: '5.0', cm: '23.5' },
-        { eu: '38', us: '5.5', cm: '24.0' },
-        { eu: '39', us: '6.5', cm: '25.0' },
-        { eu: '40', us: '7.0', cm: '25.5' },
-        { eu: '41', us: '8.0', cm: '26.0' },
-        { eu: '42', us: '8.5', cm: '27.0' },
-        { eu: '43', us: '9.5', cm: '27.5' },
-        { eu: '44', us: '10.0', cm: '28.0' },
-        { eu: '45', us: '11.0', cm: '29.0' },
-      ];
+      const data = getShoesData(activeBrand);
+      const isChina = activeBrand === 'Pinduoduo';
+      const col1 = isChina ? 'Площадка' : 'Размер';
+      const col2 = isChina ? 'EU аналог' : 'US аналог';
+      const col3 = isChina ? 'Длина стопы' : 'UK аналог';
+      const col4 = isChina ? 'Посадка' : 'Стелька';
       
       tableHtml = `
         <table class="w-full text-left border-collapse text-xs">
           <thead>
             <tr class="border-b border-white/10 text-white/60">
-              <th class="py-2 font-semibold">EU Размер</th>
-              <th class="py-2 font-semibold">US Размер</th>
-              <th class="py-2 font-semibold">Стелька (см)</th>
-              <th class="py-2 text-right">Действие</th>
+              <th class="py-2 font-semibold">${col1}</th>
+              <th class="py-2 font-semibold">${col2}</th>
+              <th class="py-2 font-semibold">${col3}</th>
+              <th class="py-2 font-semibold">${col4}</th>
+              <th class="py-2 text-right">Выбрать</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-white/5 text-white/80">
-            ${data.map(row => `
-              <tr class="hover:bg-white/5 transition-colors">
-                <td class="py-2.5 font-mono font-bold text-cyan-400">${row.eu}</td>
-                <td class="py-2.5 font-mono">${row.us}</td>
-                <td class="py-2.5 font-mono">${row.cm} см</td>
-                <td class="py-2.5 text-right">
-                  <button class="bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold px-2.5 py-1 rounded text-[10px] transition" onclick="window.applySelectedSize('${row.eu}')">Выбрать</button>
-                </td>
-              </tr>
-            `).join('')}
+            ${data.map(row => {
+              const applyVal = row.eu.split(' ')[0];
+              return `
+                <tr class="hover:bg-white/5 transition-colors">
+                  <td class="py-2.5 font-mono font-bold text-cyan-400">${row.eu}</td>
+                  <td class="py-2.5 font-mono">${row.us}</td>
+                  <td class="py-2.5 font-mono">${row.uk}</td>
+                  <td class="py-2.5 font-mono text-white/70">${row.cm}</td>
+                  <td class="py-2.5 text-right">
+                    <button class="bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold px-2.5 py-1 rounded text-[10px] transition" onclick="window.applySelectedSize('${applyVal}')">Выбрать</button>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
           </tbody>
         </table>
       `;
     } else {
-      const data = [
-        { size: 'XS', height: '160-165', weight: '50-58', chest: '84-88' },
-        { size: 'S', height: '165-170', weight: '58-65', chest: '88-92' },
-        { size: 'M', height: '170-175', weight: '65-73', chest: '92-96' },
-        { size: 'L', height: '175-180', weight: '73-81', chest: '96-102' },
-        { size: 'XL', height: '180-185', weight: '81-89', chest: '102-108' },
-        { size: 'XXL', height: '185-190', weight: '89-98', chest: '108-114' },
-      ];
+      const data = getClothingData(activeBrand);
+      const isChina = activeBrand === 'Pinduoduo';
+      const col1 = 'Размер';
+      const col2 = 'Рост (см)';
+      const col3 = isChina ? 'Вес (кг)' : 'Обхват груди';
+      const col4 = isChina ? 'Рекомендация' : 'Обхват талии';
       
       tableHtml = `
         <table class="w-full text-left border-collapse text-xs">
           <thead>
             <tr class="border-b border-white/10 text-white/60">
-              <th class="py-2 font-semibold">Размер</th>
-              <th class="py-2 font-semibold">Рост (см)</th>
-              <th class="py-2 font-semibold">Вес (кг)</th>
-              <th class="py-2 font-semibold">Грудь (см)</th>
-              <th class="py-2 text-right">Действие</th>
+              <th class="py-2 font-semibold">${col1}</th>
+              <th class="py-2 font-semibold">${col2}</th>
+              <th class="py-2 font-semibold">${col3}</th>
+              <th class="py-2 font-semibold">${col4}</th>
+              <th class="py-2 text-right">Выбрать</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-white/5 text-white/80">
-            ${data.map(row => `
-              <tr class="hover:bg-white/5 transition-colors">
-                <td class="py-2.5 font-bold text-cyan-400">${row.size}</td>
-                <td class="py-2.5 font-mono">${row.height}</td>
-                <td class="py-2.5 font-mono">${row.weight}</td>
-                <td class="py-2.5 font-mono">${row.chest}</td>
-                <td class="py-2.5 text-right">
-                  <button class="bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold px-2.5 py-1 rounded text-[10px] transition" onclick="window.applySelectedSize('${row.size}')">Выбрать</button>
-                </td>
-              </tr>
-            `).join('')}
+            ${data.map(row => {
+              const applyVal = row.size.split(' ')[0];
+              return `
+                <tr class="hover:bg-white/5 transition-colors">
+                  <td class="py-2.5 font-bold text-cyan-400">${row.size}</td>
+                  <td class="py-2.5 font-mono">${row.height}</td>
+                  <td class="py-2.5 font-mono">${row.chest}</td>
+                  <td class="py-2.5 font-mono text-white/70">${row.weight}</td>
+                  <td class="py-2.5 text-right">
+                    <button class="bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold px-2.5 py-1 rounded text-[10px] transition" onclick="window.applySelectedSize('${applyVal}')">Выбрать</button>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
           </tbody>
         </table>
       `;
@@ -10785,6 +11341,9 @@ function showSizeTablesModal() {
   window.setSizeTableCategory = (cat) => {
     tgUtil.haptic('light');
     activeCategory = cat;
+    // Set default brand based on category compatibility
+    if (cat === 'shoes') activeBrand = 'Nike';
+    else activeBrand = 'Zara';
     modal.innerHTML = renderModalContent();
   };
   
@@ -10815,7 +11374,12 @@ function showSizeTablesModal() {
     modal.remove();
   };
   
-  document.getElementById('closeSizeTablesBtn').onclick = () => modal.remove();
+  // Use robust event delegation for close button
+  modal.addEventListener('click', (e) => {
+    if (e.target.closest('#closeSizeTablesBtn')) {
+      modal.remove();
+    }
+  });
 }
 
 window.switchPackageTab = (country) => {
@@ -11505,6 +12069,35 @@ async function showCurrencyAlertsModal() {
 
   const _esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]));
 
+  // Получаем живые курсы динамически
+  let rates = { CNY_to_BYN: 0.45, EUR_to_BYN: 3.59 };
+  try {
+    if (window.iceLogixPricing && window.iceLogixPricing.getExchangeRates) {
+      rates = await window.iceLogixPricing.getExchangeRates();
+    }
+  } catch (e) {
+    console.error('Error fetching rates for tracker:', e);
+  }
+
+  const cnyRate = rates.CNY_to_BYN || 0.45;
+  const eurRate = rates.EUR_to_BYN || 3.59;
+
+  // Генерируем 7 дней детерминированных колебаний, которые точно заканчиваются текущим курсом
+  const generateHistory = (currentRate, seed) => {
+    const history = [];
+    let temp = currentRate;
+    history.unshift(temp);
+    for (let i = 0; i < 6; i++) {
+      const change = (Math.sin(seed + i) * 0.012) * currentRate;
+      temp = temp + change;
+      history.unshift(temp);
+    }
+    return history.map(v => Math.round(v * 1000) / 1000);
+  };
+
+  const cnyPts = generateHistory(cnyRate, 4.2);
+  const eurPts = generateHistory(eurRate, 8.7);
+
   const renderModalContent = () => {
     const alerts = window.userSettings?.currency_alerts || [];
     const alertsListHtml = alerts.map((a, idx) => `
@@ -11518,13 +12111,10 @@ async function showCurrencyAlertsModal() {
       </div>
     `).join('') || '<p class="text-xs text-white/40 text-center py-2">У вас пока нет активных алертов</p>';
 
-    const cnyPts = [0.46, 0.455, 0.452, 0.448, 0.451, 0.449, 0.45];
-    const eurPts = [3.62, 3.60, 3.58, 3.57, 3.61, 3.59, 3.59];
-
     const buildSVGPath = (pts) => {
       const min = Math.min(...pts);
       const max = Math.max(...pts);
-      const range = max - min || 1;
+      const range = max - min || 0.001;
       const height = 80;
       const width = 330;
       const stepX = width / (pts.length - 1);
@@ -11548,7 +12138,7 @@ async function showCurrencyAlertsModal() {
         <div class="bg-white/5 p-3 rounded-xl border border-white/10">
           <p class="text-xs font-bold text-white mb-2 flex items-center justify-between">
             <span>🇨🇳 Динамика CNY/BYN (7 дней)</span>
-            <span class="text-cyan-400 font-mono text-xs">текущий ~0.45</span>
+            <span class="text-cyan-400 font-mono text-xs">текущий ~${cnyRate.toFixed(4)}</span>
           </p>
           <div class="relative h-20 w-full overflow-hidden mt-1 bg-slate-950/40 rounded-lg">
             <svg class="w-full h-full" viewBox="0 0 330 80" preserveAspectRatio="none">
@@ -11568,7 +12158,7 @@ async function showCurrencyAlertsModal() {
         <div class="bg-white/5 p-3 rounded-xl border border-white/10">
           <p class="text-xs font-bold text-white mb-2 flex items-center justify-between">
             <span>🇵🇱🇪🇺 Динамика EUR/BYN (7 дней)</span>
-            <span class="text-violet-400 font-mono text-xs">текущий ~3.59</span>
+            <span class="text-violet-400 font-mono text-xs">текущий ~${eurRate.toFixed(4)}</span>
           </p>
           <div class="relative h-20 w-full overflow-hidden mt-1 bg-slate-950/40 rounded-lg">
             <svg class="w-full h-full" viewBox="0 0 330 80" preserveAspectRatio="none">
@@ -11860,6 +12450,41 @@ window.openSupportChat = (orderId, isAdmin = false) => {
   chatInterval = setInterval(fetchAndRenderMessages, 4000);
 };
 
+window.triggerConfetti = () => {
+  const colors = ['#22d3ee', '#3b82f6', '#b8e0f6', '#ffffff', '#fbbf24'];
+  const shapes = ['square', 'circle', 'diamond'];
+  const particleCount = 80;
+  
+  for (let i = 0; i < particleCount; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-particle';
+    
+    const shape = shapes[Math.floor(Math.random() * shapes.length)];
+    const size = Math.random() * 8 + 6;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    
+    p.style.width = `${size}px`;
+    p.style.height = `${size}px`;
+    p.style.backgroundColor = color;
+    
+    if (shape === 'circle') {
+      p.style.borderRadius = '50%';
+    } else if (shape === 'diamond') {
+      p.style.transform = 'rotate(45deg)';
+    }
+    
+    p.style.left = `${Math.random() * 100}vw`;
+    p.style.animationDelay = `${Math.random() * 1.5}s`;
+    p.style.animationDuration = `${Math.random() * 2 + 2}s`;
+    
+    document.body.appendChild(p);
+    
+    setTimeout(() => {
+      p.remove();
+    }, 4000);
+  }
+};
+
 window.showVipSectionModal = () => {
   tgUtil.haptic('success');
   const modal = document.createElement('div');
@@ -11957,6 +12582,12 @@ window.showVipSectionModal = () => {
   `;
   document.body.appendChild(modal);
 
+  if (!hasCelebrated) {
+    setTimeout(() => {
+      window.triggerConfetti();
+    }, 200);
+  }
+
   const closeBtn = document.getElementById('closeVipModalBtn');
   if (closeBtn) closeBtn.onclick = () => modal.remove();
 
@@ -11965,6 +12596,7 @@ window.showVipSectionModal = () => {
     continueBtn.onclick = () => {
       tgUtil.haptic('selection');
       localStorage.setItem('vipUnlockCelebrated', 'true');
+      window.triggerConfetti();
       const bodyEl = document.getElementById('vipModalBody');
       if (bodyEl) bodyEl.innerHTML = renderVipGrid();
     };
@@ -13189,25 +13821,25 @@ async function renderLegitCheck() {
         </svg>
         Назад
       </button>
-      <div class="glass-card page-enter">
+      <div class="glass-card page-enter font-sans">
         <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-          <span>🔍 AI Проверка подлинности</span>
+          <span>🔍 Экспертный Legit-Check</span>
         </h2>
         <div class="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-4 mb-5 text-sm space-y-3">
-          <p class="font-bold text-white text-base">⚠️ Дисклеймер и условия использования</p>
+          <p class="font-bold text-white text-base">⚠️ Проверка подлинности брендовых вещей</p>
           <p class="text-white/80 leading-relaxed text-sm">
-            Функция <strong>AI Проверка</strong> использует нейросети последнего поколения для предварительного анализа оригинальности товаров по фотографиям.
+            Услуга <strong>Legit-Check</strong> предоставляется нашими партнерами из <strong>ShopbyShop</strong>. Профессиональные эксперты вручную проверят ваши фотографии на соответствие оригинальным деталям (швы, бирки, шрифты, фурнитура).
           </p>
           <p class="text-white/80 leading-relaxed text-xs">
-            • Анализ сравнивает ваши фото с официальной базой эталонов бренда.<br>
-            • Точность распознавания составляет <strong>70-80%</strong> для распространенных реплик.<br>
-            • Результат является <strong>экспертным мнением ИИ</strong> и не является официальной юридической сертификацией.
+            • Проверка выполняется вручную опытными байерами.<br>
+            • Время рассмотрения заявки составляет <strong>до 24 часов</strong>.<br>
+            • Вы получите официальный вердикт: Оригинал или Подделка с комментариями эксперта.
           </p>
-          <p class="text-white/80 leading-relaxed font-semibold">
-            Стоимость проверки: бесплатно в рамках лимитов.
+          <p class="text-cyan-400 leading-relaxed font-bold text-sm">
+            Стоимость проверки: 5 BYN (списывается с вашего баланса).
           </p>
         </div>
-        <button id="acceptDisclaimerBtn" class="btn-primary w-full py-3 rounded-xl font-bold transition">
+        <button id="acceptDisclaimerBtn" class="btn-primary w-full py-3 rounded-xl font-bold transition uppercase tracking-wider text-xs font-sans">
           Принять и продолжить
         </button>
       </div>
@@ -13215,94 +13847,74 @@ async function renderLegitCheck() {
     `;
   }
 
-  // If disclaimer is accepted, render the main legit check interface
-  let resultHtml = '';
-  if (window.legitResult) {
-    const r = window.legitResult;
-    const score = r.score ?? 50;
-    
-    let scoreColor = 'text-red-400';
-    let scoreBg = 'bg-red-500/10 border-red-500/30';
-    let scoreText = 'Высокий риск реплики';
-    let scoreIcon = '🚨';
-    let scoreGaugeClass = 'score-gauge-red';
-    
-    if (score >= 81) {
-      scoreColor = 'text-green-400';
-      scoreBg = 'bg-green-500/10 border-green-500/30';
-      scoreText = 'Похоже на оригинал';
-      scoreIcon = '✨';
-      scoreGaugeClass = 'score-gauge-green';
-    } else if (score >= 51) {
-      scoreColor = 'text-yellow-400';
-      scoreBg = 'bg-yellow-500/10 border-yellow-500/30';
-      scoreText = 'Подозрительно / Риск копии';
-      scoreIcon = '⚠️';
-      scoreGaugeClass = 'score-gauge-yellow';
+  // Load user's submitted legit check requests
+  let requestsListHtml = '';
+  try {
+    const { data: checks, error } = await supabaseClient
+      .from('legit_check_requests')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    if (checks && checks.length > 0) {
+      requestsListHtml = `
+        <div class="glass-card mb-4 page-enter font-sans">
+          <h3 class="text-white font-bold text-sm mb-3 flex items-center gap-1.5">
+            <span>📋 Ваши заявки на Legit-Check</span>
+          </h3>
+          <div class="space-y-3 max-h-72 overflow-y-auto pr-1">
+            ${checks.map(c => {
+              const imageUrls = (c.photos || []).map(p => {
+                if (p.startsWith('http')) return p;
+                return supabaseClient.storage.from('product-screenshots').getPublicUrl(p).data.publicUrl;
+              });
+
+              const isPending = c.status === 'pending';
+              const isOriginal = c.status === 'original';
+              const isFake = c.status === 'fake';
+
+              return `
+                <div class="p-3 bg-white/5 border border-white/10 rounded-xl space-y-2 text-left text-xs font-sans">
+                  <div class="flex justify-between items-center text-[10px] text-white/40">
+                    <span>${new Date(c.created_at).toLocaleDateString('ru-RU')}</span>
+                    <span class="font-mono">#${c.id.slice(0, 8)}</span>
+                  </div>
+                  <div>
+                    <p class="text-white font-bold">${c.brand} ${c.model}</p>
+                    <div class="grid grid-cols-5 gap-1.5 mt-1.5">
+                      ${imageUrls.map(url => `
+                        <div class="aspect-square rounded-lg bg-white/10 overflow-hidden cursor-pointer border border-white/5 hover:border-cyan-500 transition" onclick="window.open('${url}', '_blank')">
+                          <img src="${url}" class="w-full h-full object-cover">
+                        </div>
+                      `).join('')}
+                    </div>
+                  </div>
+                  
+                  ${isPending ? `
+                    <div class="p-2 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold rounded-lg text-center font-sans">
+                      🔍 НА РАССМОТРЕНИИ ЭКСПЕРТАМИ
+                    </div>
+                  ` : isOriginal ? `
+                    <div class="p-2 bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-bold rounded-lg text-center font-sans">
+                      🟢 ВЕРДИКТ: ОРИГИНАЛ (Сертификат подтвержден)
+                    </div>
+                  ` : `
+                    <div class="p-2 bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold rounded-lg text-left font-sans">
+                      🔴 ВЕРДИКТ: ПОДДЕЛКА
+                      ${c.comments ? '<p class="font-normal text-[9px] text-white/50 mt-1 font-sans">Причина: ' + c.comments + '</p>' : ''}
+                    </div>
+                  `}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
     }
-
-    resultHtml = `
-      <div class="mt-4 bg-white/5 border border-white/10 rounded-2xl p-5 space-y-5">
-        <div class="text-center space-y-2">
-          <p class="text-white/60 text-xs uppercase tracking-wider font-semibold">Результат анализа</p>
-          <div class="inline-flex items-center justify-center w-28 h-28 rounded-full border-4 border-dashed ${scoreColor} ${scoreBg} ${scoreGaugeClass} shadow-lg relative my-2">
-            <span class="text-3xl font-extrabold ${scoreColor}">${score}%</span>
-          </div>
-          <h3 class="text-lg font-bold text-white">${scoreIcon} ${scoreText}</h3>
-          <p class="text-white/70 text-sm">
-            Бренд: <strong class="text-white">${r.detected_brand || 'Не определен'}</strong> | 
-            Модель: <strong class="text-white">${r.detected_model || 'Не определена'}</strong>
-          </p>
-        </div>
-
-        <div class="space-y-4">
-          <div>
-            <h4 class="text-sm font-semibold text-white/90 mb-2 flex items-center gap-1">
-              <span>🟢 Пройденные маркеры оригинальности</span>
-            </h4>
-            ${r.auth_markers_passed && r.auth_markers_passed.length > 0 ? `
-              <ul class="space-y-1.5 text-xs text-white/80 pl-1">
-                ${r.auth_markers_passed.map(m => `
-                  <li class="flex items-start gap-2">
-                    <span class="text-green-400 flex-shrink-0">✓</span>
-                    <span>${m}</span>
-                  </li>
-                `).join('')}
-              </ul>
-            ` : `<p class="text-xs text-white/50 pl-1">Маркеры оригинальности не подтверждены визуально.</p>`}
-          </div>
-
-          <div>
-            <h4 class="text-sm font-semibold text-white/90 mb-2 flex items-center gap-1">
-              <span>🔴 Выявленные проблемы и несоответствия</span>
-            </h4>
-            ${r.issues && r.issues.length > 0 ? `
-              <ul class="space-y-1.5 text-xs text-white/80 pl-1">
-                ${r.issues.map(i => `
-                  <li class="flex items-start gap-2">
-                    <span class="text-red-400 flex-shrink-0">!</span>
-                    <span>${i}</span>
-                  </li>
-                `).join('')}
-              </ul>
-            ` : `<p class="text-xs text-green-400 pl-1">Явных дефектов или следов подделки не обнаружено.</p>`}
-          </div>
-        </div>
-
-        <div class="bg-white/5 p-3 rounded-xl border border-white/10 text-center text-xs text-white/50 leading-normal">
-          ⚠️ ${r.disclaimer || 'AI-оценка, не сертификация подлинности. Точность 70-80%.'}
-        </div>
-
-        <div class="grid grid-cols-2 gap-3 pt-2">
-          <button id="legitResetBtn" class="btn-secondary w-full py-2.5 rounded-xl text-sm font-bold transition">
-            Проверить еще раз
-          </button>
-          <button id="legitToCalcBtn" class="btn-primary w-full py-2.5 rounded-xl text-sm font-bold transition">
-            В калькулятор
-          </button>
-        </div>
-      </div>
-    `;
+  } catch (e) {
+    console.error('Error loading user checks:', e);
   }
 
   return `
@@ -13312,44 +13924,45 @@ async function renderLegitCheck() {
       </svg>
       Назад
     </button>
-    <div class="glass-card page-enter">
+    
+    ${requestsListHtml}
+
+    <div class="glass-card page-enter font-sans">
       <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-        <span>🔍 AI Проверка подлинности</span>
+        <span>🔍 Заказать новый Legit-Check</span>
       </h2>
 
-      ${!window.legitResult ? `
-        <div class="space-y-4">
-          <p class="text-white/70 text-xs leading-relaxed bg-white/5 p-3 rounded-xl">
-            Загрузите качественные детальные фотографии товара (швы, бирки, стелька, логотипы). 
-            Укажите подсказку бренда и модели для максимально точного сравнения с базой эталонов.
-          </p>
+      <div class="space-y-4 font-sans">
+        <p class="text-white/70 text-xs leading-relaxed bg-white/5 p-3 rounded-xl">
+          Загрузите качественные фотографии (бирки, швы, стелька, логотипы) и укажите бренд/модель. 
+          Стоимость: <strong>5 BYN</strong> с баланса.
+        </p>
 
-          <div>
-            <label class="text-white/70 text-sm font-semibold mb-1 block">Бренд (желательно)</label>
-            <input type="text" id="legitBrand" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Например: Nike, Adidas, Stone Island">
-          </div>
-
-          <div>
-            <label class="text-white/70 text-sm font-semibold mb-1 block">Модель (желательно)</label>
-            <input type="text" id="legitModel" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Например: Dunk Low, Yeezy 350, Ghost Piece">
-          </div>
-
-          <div>
-            <label class="text-white/70 text-sm font-semibold mb-1 block">Фотографии товара (до 5 штук)</label>
-            <div id="legitPhotoZone" class="mt-1 p-5 border border-dashed border-white/30 rounded-2xl text-center cursor-pointer hover:bg-white/5 transition">
-              <span class="text-2xl block mb-1 text-cyan-400"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span></span>
-              <span class="text-xs text-white/70 font-semibold block">Нажмите для выбора или перетащите фото</span>
-              <span class="text-[10px] text-white/40 block mt-1">Первое фото используется как основное для анализа ИИ</span>
-              <input type="file" id="legitPhotoInput" accept="image/*" multiple class="hidden">
-            </div>
-            <div id="legitPhotoPreview" class="hidden mt-3 grid grid-cols-3 gap-2"></div>
-          </div>
-
-          <button id="runLegitCheckBtn" class="btn-primary w-full py-3 rounded-xl font-bold transition flex items-center justify-center gap-2">
-            <span>Начать проверку</span>
-          </button>
+        <div>
+          <label class="text-white/70 text-sm font-semibold mb-1 block">Бренд *</label>
+          <input type="text" id="legitBrand" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Например: Nike, Stone Island">
         </div>
-      ` : resultHtml}
+
+        <div>
+          <label class="text-white/70 text-sm font-semibold mb-1 block">Модель *</label>
+          <input type="text" id="legitModel" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Например: Air Force 1, Zip Hoodie">
+        </div>
+
+        <div>
+          <label class="text-white/70 text-sm font-semibold mb-1 block">Фотографии товара (до 5 штук) *</label>
+          <div id="legitPhotoZone" class="mt-1 p-5 border border-dashed border-white/30 rounded-2xl text-center cursor-pointer hover:bg-white/5 transition">
+            <span class="text-2xl block mb-1 text-cyan-400"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span></span>
+            <span class="text-xs text-white/70 font-semibold block">Нажмите для выбора или перетащите фото</span>
+            <span class="text-[10px] text-white/40 block mt-1">Добавьте детальные фотографии швов и бирок</span>
+            <input type="file" id="legitPhotoInput" accept="image/*" multiple class="hidden">
+          </div>
+          <div id="legitPhotoPreview" class="hidden mt-3 grid grid-cols-3 gap-2"></div>
+        </div>
+
+        <button id="runLegitCheckBtn" class="btn-primary w-full py-3 rounded-xl font-bold transition flex items-center justify-center gap-2">
+          <span>Отправить экспертам (5 BYN)</span>
+        </button>
+      </div>
     </div>
     ${renderFooter()}
   `;
@@ -13375,36 +13988,6 @@ function attachLegitCheckHandlers() {
     };
     return;
   }
-
-  // Result handlers
-  const legitResetBtn = document.getElementById('legitResetBtn');
-  if (legitResetBtn) {
-    legitResetBtn.onclick = () => {
-      window.legitPhotos = [];
-      window.legitResult = null;
-      clearBlobUrls('legit:');
-      renderCurrentScreen();
-    };
-  }
-
-  const legitToCalcBtn = document.getElementById('legitToCalcBtn');
-  if (legitToCalcBtn && window.legitResult) {
-    legitToCalcBtn.onclick = () => {
-      const brand = window.legitResult.detected_brand || '';
-      const model = window.legitResult.detected_model || '';
-      switchTab('calculator');
-      
-      // Let's populate the calculator query input
-      setTimeout(() => {
-        const brandInput = document.getElementById('calcBrand');
-        const titleInput = document.getElementById('calcTitle');
-        if (brandInput && brand) brandInput.value = brand;
-        if (titleInput && model) titleInput.value = model;
-      }, 100);
-    };
-  }
-
-  if (window.legitResult) return; // results are shown, skip upload handlers
 
   // Upload handlers
   const legitPhotoZone = document.getElementById('legitPhotoZone');
@@ -13434,69 +14017,114 @@ function attachLegitCheckHandlers() {
     renderLegitPhotoPreviews();
   }
 
-  // Run Legit Check
+  // Submit manual Legit Check request
   const runLegitCheckBtn = document.getElementById('runLegitCheckBtn');
   if (runLegitCheckBtn) {
     runLegitCheckBtn.onclick = async () => {
+      const brandVal = document.getElementById('legitBrand')?.value.trim() || '';
+      const modelVal = document.getElementById('legitModel')?.value.trim() || '';
+
+      if (!brandVal) {
+        tgUtil.alert('Пожалуйста, укажите бренд!');
+        return;
+      }
+      if (!modelVal) {
+        tgUtil.alert('Пожалуйста, укажите модель!');
+        return;
+      }
       if (!window.legitPhotos || window.legitPhotos.length === 0) {
-        tgUtil.alert('Пожалуйста, добавьте хотя бы одно фото для анализа!');
+        tgUtil.alert('Пожалуйста, добавьте хотя бы одно фото!');
         return;
       }
 
-      const brandVal = document.getElementById('legitBrand')?.value.trim() || '';
-      const modelVal = document.getElementById('legitModel')?.value.trim() || '';
+      // 1. Check user balance (5 BYN)
+      const cost = 5.00;
+      const { data: userRec, error: fErr } = await supabaseClient
+        .from('users')
+        .select('ices_balance')
+        .eq('user_id', userId)
+        .single();
+        
+      if (fErr) {
+        tgUtil.alert('Не удалось получить баланс: ' + fErr.message);
+        return;
+      }
+      const balance = userRec ? (userRec.ices_balance || 0) : 0;
+      if (balance < cost) {
+        tgUtil.alert(`❌ Недостаточно средств на балансе!\n\nСтоимость ручной проверки: 5.00 BYN.\nВаш баланс: ${balance.toFixed(2)} BYN.\n\nПожалуйста, пополните баланс в личном кабинете.`);
+        return;
+      }
+
+      if (!(await tgUtil.confirm(`Заказать ручную проверку подлинности ${brandVal} ${modelVal} за 5.00 BYN?`))) {
+        return;
+      }
 
       const originalBtnText = runLegitCheckBtn.innerHTML;
       runLegitCheckBtn.innerHTML = `
         <span class="inline-block animate-spin mr-2">⏳</span>
-        <span>Нейросеть проверяет оригинал...</span>
+        <span>Отправка фотографий...</span>
       `;
       runLegitCheckBtn.disabled = true;
 
-      // Telegram MainButton indicator
-      tgUtil.setMainButton({
-        text: '⏳ Идет проверка оригинальности ИИ...',
-        isLoading: true,
-        onClick: () => {}
-      });
-
       try {
-        // Read main (first) image as base64
-        const file = window.legitPhotos[0];
-        const base64Data = await fileToBase64(file);
+        // 2. Upload photographs to Storage
+        let sessionId = localStorage.getItem('icelogix_session_id');
+        if (!sessionId) {
+          sessionId = crypto.randomUUID();
+          localStorage.setItem('icelogix_session_id', sessionId);
+        }
 
-        const { data, error } = await supabaseClient.functions.invoke('legit-check', {
-          body: {
-            photo_base64: base64Data,
-            brand_hint: brandVal,
-            model_hint: modelVal
-          }
+        const uploadPromises = window.legitPhotos.map(async (file) => {
+          const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 50);
+          const path = `${sessionId}/legit_${Date.now()}_${safeName}`;
+          const { error: uploadErr } = await supabaseClient.storage
+            .from('product-screenshots')
+            .upload(path, file, { contentType: file.type, upsert: false });
+          if (uploadErr) throw new Error(`Не удалось загрузить файл: ${uploadErr.message}`);
+          return path;
         });
 
-        if (error) throw error;
-        if (!data || data.error) throw new Error(data?.error || 'Не удалось получить отчет');
+        const paths = await Promise.all(uploadPromises);
 
-        window.legitResult = data;
+        // 3. Deduct balance in DB
+        const newBalance = balance - cost;
+        const { error: balErr } = await supabaseClient
+          .from('users')
+          .update({ ices_balance: newBalance })
+          .eq('user_id', userId);
+        if (balErr) throw balErr;
+
+        // 4. Log transaction
+        await supabaseClient.from('transactions').insert({
+          user_id: userId,
+          amount: -cost,
+          type: 'legit_check',
+          description: `Оплата ручной проверки Legit-Check (${brandVal} ${modelVal})`
+        });
+
+        // 5. Create legit check request row in DB
+        const { error: reqErr } = await supabaseClient.from('legit_check_requests').insert({
+          user_id: userId,
+          brand: brandVal,
+          model: modelVal,
+          photos: paths,
+          status: 'pending'
+        });
+        if (reqErr) throw reqErr;
+
+        tgUtil.haptic('success');
+        glassToast('Заявка успешно отправлена экспертам ShopbyShop!', { kind: 'success' });
         
-        // Haptic feedback based on result
-        if (data.score >= 81) {
-          tgUtil.haptic('success');
-          tgUtil.toast('✨ Товар прошел проверку!');
-        } else if (data.score >= 51) {
-          tgUtil.haptic('warning');
-          tgUtil.toast('⚠️ Товар подозрительный!');
-        } else {
-          tgUtil.haptic('error');
-          tgUtil.toast('🚨 Обнаружены признаки подделки!');
-        }
+        // Reset local variables
+        window.legitPhotos = [];
+        clearBlobUrls('legit:');
 
         renderCurrentScreen();
       } catch (err) {
-        tgUtil.alert('Ошибка AI Проверки: ' + (err.message || 'Неизвестная ошибка'));
+        console.error(err);
+        tgUtil.alert('Ошибка отправки: ' + (err.message || 'Неизвестная ошибка'));
         runLegitCheckBtn.innerHTML = originalBtnText;
         runLegitCheckBtn.disabled = false;
-      } finally {
-        tgUtil.hideMainButton();
       }
     };
   }
@@ -13504,7 +14132,6 @@ function attachLegitCheckHandlers() {
 
 function renderLegitPhotoPreviews() {
   const preview = document.getElementById('legitPhotoPreview');
-  const runBtn = document.getElementById('runLegitCheckBtn');
   if (!preview) return;
   if (!window.legitPhotos || window.legitPhotos.length === 0) {
     preview.classList.add('hidden');
@@ -13516,7 +14143,7 @@ function renderLegitPhotoPreviews() {
     `<div class="relative">
       <img src="${trackBlobUrl('legit:photo:' + i, f)}" class="rounded-xl w-full h-24 object-cover">
       <button type="button" data-rm-legit-photo="${i}" class="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center shadow-lg">×</button>
-      ${i === 0 ? `<span class="absolute bottom-1 left-1 bg-cyan-500/80 text-[9px] font-bold px-1.5 py-0.5 rounded text-white border border-cyan-400">ИИ</span>` : ''}
+      ${i === 0 ? `<span class="absolute bottom-1 left-1 bg-cyan-500/80 text-[9px] font-bold px-1.5 py-0.5 rounded text-white border border-cyan-400">Главное</span>` : ''}
     </div>`).join('');
   
   preview.querySelectorAll('[data-rm-legit-photo]').forEach(btn => {
