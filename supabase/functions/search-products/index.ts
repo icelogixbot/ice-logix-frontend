@@ -59,6 +59,8 @@ const PLATFORMS: PlatformConfig[] = [
   { id: "tmall", label: "Tmall", flag: "🇨🇳", domain: "tmall.com", defaultCurrency: "CNY" },
   { id: "1688", label: "1688", flag: "🇨🇳", domain: "1688.com", defaultCurrency: "CNY" },
   { id: "jd", label: "JD.com", flag: "🇨🇳", domain: "jd.com", defaultCurrency: "CNY" },
+  { id: "dhgate", label: "DHGate", flag: "🇨🇳", domain: "dhgate.com", defaultCurrency: "USD" },
+  { id: "aliexpress", label: "AliExpress", flag: "🇨🇳", domain: "aliexpress.com", defaultCurrency: "USD" },
   // 🇪🇺 Европа / ЕС
   { id: "zalando", label: "Zalando", flag: "🇵🇱", domain: "zalando.pl", defaultCurrency: "EUR" },
   { id: "aboutyou", label: "About You", flag: "🇩🇪", domain: "aboutyou.com", defaultCurrency: "EUR" },
@@ -447,9 +449,28 @@ Deno.serve(async (req) => {
   const enh = await enhanceQuery(query);
   const queries = { en: enh.enhanced_en, ru: enh.enhanced_ru };
 
-  // 2. Параллельно по всем площадкам — каждая использует свой язык запроса
+  // 2. Replica Routing
+  let finalPlatforms = platforms;
+  if (enh.authenticity_tier === "replica") {
+    const replicaIds = ["dhgate", "aliexpress", "1688", "taobao"];
+    finalPlatforms = replicaIds
+      .map((id) => getPlatform(id))
+      .filter((p): p is PlatformConfig => p !== null);
+  } else {
+    // Exclude replica-only platforms if not searching for a replica
+    finalPlatforms = platforms.filter(p => !["dhgate", "aliexpress"].includes(p.id));
+  }
+
+  if (finalPlatforms.length === 0) {
+    return new Response(
+      JSON.stringify({ ok: false, error: "Нет площадок для данного типа товара" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  // 3. Параллельно по всем площадкам — каждая использует свой язык запроса
   const allResults: SearchResult[][] = await Promise.all(
-    platforms.map((p) => searchOnePlatform(p, queries, topN).catch((e) => ([{
+    finalPlatforms.map((p) => searchOnePlatform(p, queries, topN).catch((e) => ([{
       platform: p.id,
       platform_label: p.label,
       flag: p.flag,
@@ -474,7 +495,7 @@ Deno.serve(async (req) => {
       brand: enh.brand,
       category: enh.category,
       authenticity_tier: enh.authenticity_tier,
-      platforms: platforms.map((p) => p.id),
+      platforms: finalPlatforms.map((p) => p.id),
       total: successful.length,
       results: successful,
       errors: results.filter((r) => r.error).map((r) => ({ platform: r.platform, error: r.error })),

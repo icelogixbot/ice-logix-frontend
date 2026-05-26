@@ -468,19 +468,21 @@ Deno.serve(async (req) => {
     : DEFAULT_PLATFORMS;
   const allowedKeys = new Set(requestedPlatforms);
 
-  // 1. Signed URL
-  const { data: signed, error: signedErr } = await supabase.storage
+  // 1. Public URL
+  const { data: publicData } = supabase.storage
     .from(STORAGE_BUCKET)
-    .createSignedUrl(path, 600);
-  if (signedErr || !signed?.signedUrl) {
+    .getPublicUrl(path);
+  const finalImageUrl = publicData.publicUrl;
+
+  if (!finalImageUrl) {
     return new Response(
-      JSON.stringify({ ok: false, error: `signed URL: ${signedErr?.message ?? "unknown"}` }),
+      JSON.stringify({ ok: false, error: "Не удалось получить URL изображения" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 
   // 2. PRIMARY: Apify Google Lens — визуальное распознавание + прямые ссылки на маркетплейсы
-  const apifyResp = await searchByImageViaApifyFull(signed.signedUrl);
+  const apifyResp = await searchByImageViaApifyFull(finalImageUrl);
   const directMatches: ApifyResultItem[] = [];
   let lensTitle: string | null = null;
   if (apifyResp.ok) {
@@ -577,7 +579,7 @@ Deno.serve(async (req) => {
   // 4. FALLBACK: Vision API + search-products (когда Apify упал/0 результатов)
   let visionResult;
   try {
-    visionResult = await describeProductForSearch(signed.signedUrl);
+    visionResult = await describeProductForSearch(finalImageUrl);
   } catch (e) {
     return new Response(
       JSON.stringify({
@@ -597,7 +599,7 @@ Deno.serve(async (req) => {
         source: "vision-fallback",
         error: "Не удалось распознать товар на фото. Попробуйте более чёткое изображение или используйте поиск по описанию.",
         vision_query: visionResult.query,
-      authenticity_tier: authenticity_tier || (searchResp as any)?.authenticity_tier || null,
+        authenticity_tier: authenticity_tier,
         apify_error: apifyResp.error || null,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -631,6 +633,7 @@ Deno.serve(async (req) => {
       vision_product_type: visionResult.product_type,
       vision_category: visionResult.category,
       vision_color: visionResult.color,
+      authenticity_tier: authenticity_tier || (searchResp as any)?.authenticity_tier || null,
       apify_error: apifyResp.error || null,
       apify_raw_count: apifyResp.raw_count,
     }),
