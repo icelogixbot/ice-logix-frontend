@@ -8711,6 +8711,103 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
 
 
+let adminUsersSearch = '';
+
+window.changeUserBalance = async (userId, currentBalance) => {
+  const amountStr = prompt(`Текущий баланс пользователя: ${currentBalance} ICE\n\nВведите сумму (с минусом для списания):`);
+  if (!amountStr) return;
+  const amount = parseFloat(amountStr);
+  if (isNaN(amount) || amount === 0) return;
+  
+  try {
+    const newBalance = Number(currentBalance) + amount;
+    
+    const { error } = await supabaseClient.from('users').update({ ices_balance: newBalance }).eq('user_id', userId);
+    if (error) throw error;
+    
+    const { error: txErr } = await supabaseClient.from('transactions').insert({
+      user_id: userId,
+      type: amount > 0 ? 'admin_bonus' : 'admin_correction',
+      amount_ices: amount,
+      status: 'completed',
+      metadata: { note: 'Изменение администратором' }
+    });
+    if (txErr) console.warn('Ошибка записи транзакции', txErr);
+    
+    if (amount > 0) {
+      supabaseClient.functions.invoke('send-notification', { body: { user_id: userId, message: `💎 *Пополнение баланса!*\n\nАдминистратор начислил вам **${amount} ICE**.` } }).catch(console.error);
+    }
+    
+    glassToast('Баланс успешно обновлен!', { kind: 'success' });
+    renderCurrentScreen();
+  } catch (err) {
+    console.error('Ошибка изменения баланса:', err);
+    glassToast('Ошибка: ' + err.message, { kind: 'error' });
+  }
+};
+
+window.adminUpdateTracking = async (orderId) => {
+  const trackCN = prompt('Введите трек-номер для Китая (оставьте пустым, если нет):');
+  if (trackCN === null) return;
+  const trackBY = prompt('Введите трек-номер для РБ (оставьте пустым, если нет):');
+  if (trackBY === null) return;
+  
+  try {
+    const updateData = {};
+    if (trackCN) updateData.tracking_number_cn = trackCN;
+    if (trackBY) updateData.tracking_number_by = trackBY;
+    
+    if (Object.keys(updateData).length > 0) {
+      const { error } = await supabaseClient.from('orders').update(updateData).eq('id', orderId);
+      if (error) throw error;
+      
+      glassToast('Трек-номера сохранены!', { kind: 'success' });
+      renderCurrentScreen();
+    }
+  } catch (err) {
+    console.error('Ошибка добавления трека:', err);
+    glassToast('Ошибка сохранения', { kind: 'error' });
+  }
+};
+
+async function renderAdminUsersList() {
+  try {
+    let query = supabaseClient.from('users').select('*').order('created_at', { ascending: false });
+    const { data: users, error } = await query;
+    if (error) throw error;
+    
+    let filtered = users;
+    if (adminUsersSearch) {
+      const lowerSearch = adminUsersSearch.toLowerCase();
+      filtered = users.filter(u => 
+        (u.username && u.username.toLowerCase().includes(lowerSearch)) || 
+        (u.full_name && u.full_name.toLowerCase().includes(lowerSearch)) ||
+        (String(u.user_id).includes(lowerSearch))
+      );
+    }
+    
+    if (!filtered || filtered.length === 0) return '<p class="text-white/70 text-center py-4">Нет пользователей</p>';
+    
+    return filtered.slice(0, 50).map(u => `
+      <div class="bg-white/5 rounded-lg p-3">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-white font-bold text-sm">${u.full_name || 'Без имени'} ${u.username ? '(@' + u.username + ')' : ''}</p>
+            <p class="text-white/50 text-[10px]">ID: ${u.user_id} | Рег: ${new Date(u.created_at).toLocaleDateString('ru-RU')}</p>
+            <p class="text-cyan-400 font-bold mt-1 text-sm">${Number(u.ices_balance || 0).toFixed(2)} ICE</p>
+          </div>
+          <button class="btn-primary px-3 py-1.5 text-xs rounded-lg shadow-[0_0_10px_rgba(6,182,212,0.3)]" onclick="window.changeUserBalance('${u.user_id}', ${u.ices_balance || 0})">
+            💸 Изменить
+          </button>
+        </div>
+      </div>
+    `).join('');
+  } catch (err) {
+    console.error('Ошибка в renderAdminUsersList:', err);
+    return '<p class="text-xs text-red-400 text-center">Ошибка загрузки</p>';
+  }
+}
+
 async function renderAdminOrdersList() {
   try {
     // Формируем запрос в зависимости от режима (активные / архив)
@@ -8792,12 +8889,17 @@ async function renderAdminOrdersList() {
             <div class="text-right">
               <span class="status-badge ${getStatusClass(order.status)}">${getStatusText(order.status)}</span>
               ${statusSelect}
+              ${adminOrdersMode === 'active' ? `<button class="mt-2 text-xs bg-cyan-600/50 hover:bg-cyan-600 px-2 py-1.5 rounded w-full border border-cyan-500/20" onclick="window.adminUpdateTracking('${order.id}')">📝 Указать трек</button>` : ''}
               ${actionButton}
             </div>
           </div>
-          ${order.tracking_number_cn ? `<p class="text-white/50 text-xs mt-1">Трек: ${order.tracking_number_cn}</p>` : ''}
+          <div class="mt-2 text-[10px]">
+            ${order.tracking_number_cn ? `<p class="text-white/70">🇨🇳 Трек КН: <span class="font-mono text-cyan-400">${order.tracking_number_cn}</span></p>` : ''}
+            ${order.tracking_number_by ? `<p class="text-white/70">🇧🇾 Трек РБ: <span class="font-mono text-cyan-400">${order.tracking_number_by}</span></p>` : ''}
+          </div>
         </div>
       `;
+
     }).join('');
   } catch (err) {
     console.error('Ошибка в renderAdminOrdersList:', err);
@@ -9098,6 +9200,18 @@ async function renderAdmin() {
         <div class="glass-card">
           <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18M7 6h1v4M16.71 13.88l.7.71-2.82 2.82"/></svg></span> Заявки на вывод</h3>
           ${payoutRequests.length === 0 ? '<p class="text-white/70">Нет заявок</p>' : payoutRequests.map(req => `<div class="flex justify-between items-center p-2 bg-white/5 rounded-lg mb-2"><div><span class="text-white">${req.user_id}</span><span class="text-cyan-400 ml-2">${req.amount} <span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></span></div><div><button class="approvePayoutBtn bg-green-600 px-3 py-1 rounded text-sm mr-2" data-id="${req.id}">Одобрить</button><button class="rejectPayoutBtn bg-red-600 px-3 py-1 rounded text-sm" data-id="${req.id}">Отклонить</button></div></div>`).join('')}
+        </div>
+        
+        <!-- Управление пользователями -->
+        <div class="glass-card mt-4">
+          <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> Управление пользователями</h3>
+          <div class="relative mb-3">
+            <input type="text" id="adminUsersSearchInput" class="btn-secondary w-full p-2 pl-8 rounded-lg border border-white/30 text-xs" placeholder="Поиск по @username, имени или ID..." oninput="window.adminUsersSearch = this.value; document.getElementById('adminUsersList').innerHTML = '<p class=\\'text-white/50 text-xs text-center py-2\\'>Загрузка...</p>'; renderAdminUsersList().then(html => document.getElementById('adminUsersList').innerHTML = html)">
+            <span class="absolute left-2.5 top-2 text-white/40 pointer-events-none"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span></span>
+          </div>
+          <div id="adminUsersList" class="space-y-2 max-h-80 overflow-y-auto">
+            ${await renderAdminUsersList()}
+          </div>
         </div>
         
                 <!-- Управление заказами -->
