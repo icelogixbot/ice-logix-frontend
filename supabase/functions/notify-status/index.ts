@@ -10,16 +10,19 @@ const corsHeaders = {
 // We keep `ordered` and `at_warehouse` as aliases so legacy ShopByShop webhook
 // payloads continue to work after the rename to `bought` / `on_sklad_cn`.
 const statusMap: Record<string, string> = {
-  'pending':      '⏳ Ожидает оплаты',
-  'paid':         '✅ Оплачен',
-  'bought':       '🛒 Выкуплен с площадки',
-  'ordered':      '🛒 Выкуплен с площадки',       // alias for bought
-  'on_sklad_cn':  '📦 Прибыл на склад в Китае',
-  'at_warehouse': '📦 Прибыл на склад в Китае',   // alias for on_sklad_cn
-  'in_transit':   '✈️ В пути к вам',
-  'in_belarus':   '🇧🇾 Прибыл в Беларусь',
-  'delivered':    '🎉 Доставлен',
-  'cancelled':    '❌ Отменён',
+  'pending': '⏳ Ожидает оплаты',
+  'paid': '💵 Оплачен (1 часть)',
+  'bought': '🛒 Выкуплен с площадки',
+  'ordered': '🛒 Выкуплен с площадки',       // alias for bought
+  'on_sklad_cn': '📦 На складе в Китае',
+  'at_warehouse': '📦 На складе в Китае',   // alias for on_sklad_cn
+  'in_transit': '✈️ В пути в Минск',
+  'awaiting_payment': '⏳ Ожидает доплаты',
+  'paid_second': '✅ Оплачен полностью',
+  'in_belarus': '🏢 Прибыл на наш склад',
+  'dispatched': '🚚 Отправлен (СДЭК/Белпочта)',
+  'delivered': '🎉 Готов к выдаче',
+  'cancelled': '❌ Отменён'
 }
 
 serve(async (req) => {
