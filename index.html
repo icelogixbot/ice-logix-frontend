@@ -9751,6 +9751,11 @@ async function renderAdmin() {
           <span class="ix text-white/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
         </button>
 
+        <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="switchTab('admin_analytics')" style="background: linear-gradient(135deg, rgba(34,211,238,0.1), rgba(14,165,233,0.05)); border-color: rgba(34,211,238,0.3);">
+          <span class="flex items-center gap-2"><span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span> Аналитика и Финансы</span>
+          <span class="ix text-cyan-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+        </button>
+
         <!-- Список промокодов -->
         <div class="glass-card">
           <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span> Промокоды</h3>
@@ -12090,6 +12095,15 @@ function ensureBackButtonForSubscreen() {
       } else if (currentTab === 'cart') {
         contentDiv.innerHTML = await renderCart();
         attachCartHandlers();
+      } else if (currentTab === 'resale') {
+        contentDiv.innerHTML = await renderResale();
+      } else if (currentTab === 'carpool') {
+        contentDiv.innerHTML = await renderCarpool();
+      } else if (currentTab === 'admin_resale' && isOwner) {
+        contentDiv.innerHTML = await renderAdminResale();
+      } else if (currentTab === 'admin_analytics' && isOwner) {
+        contentDiv.innerHTML = await renderAdminAnalytics();
+        if (typeof attachAdminAnalyticsHandlers === 'function') attachAdminAnalyticsHandlers();
       }
         else {
         contentDiv.innerHTML = '<div class="text-center py-10">Страница не найдена</div>';
@@ -15910,6 +15924,185 @@ async function renderAdminResale() {
     return html;
   } catch(e) { return `<p class="text-red-400">Ошибка</p>`; }
 }
+
+// ==================== ФАЗА 19: AI АНАЛИТИКА ====================
+
+async function renderAdminAnalytics() {
+  if (!userId) return '';
+  const { data: userData } = await supabaseClient.from('users').select('role').eq('user_id', userId).single();
+  if (!userData || !['admin', 'owner'].includes(userData.role)) return '<p class="text-center mt-10 text-red-400">Доступ запрещен</p>';
+  
+  return `
+    <div class="flex items-center gap-3 mb-6">
+      <button class="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-white/10 transition-colors" onclick="switchTab('admin')">
+        <span class="ix text-white"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span>
+      </button>
+      <h2 class="text-xl font-bold text-white">Аналитика</h2>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-2 gap-3 mb-6">
+      <div class="glass-card p-4">
+        <p class="text-[10px] text-white/50 mb-1 uppercase tracking-wider font-bold">Оборот (BYN)</p>
+        <p class="text-xl font-black text-cyan-400" id="stat-revenue">...</p>
+      </div>
+      <div class="glass-card p-4">
+        <p class="text-[10px] text-white/50 mb-1 uppercase tracking-wider font-bold">Чистая прибыль (BYN)</p>
+        <p class="text-xl font-black text-green-400" id="stat-profit">...</p>
+      </div>
+      <div class="glass-card p-4">
+        <p class="text-[10px] text-white/50 mb-1 uppercase tracking-wider font-bold">Активных заказов</p>
+        <p class="text-xl font-black text-white" id="stat-active">...</p>
+      </div>
+      <div class="glass-card p-4 border border-amber-500/20" style="background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(217,119,6,0.05));">
+        <p class="text-[10px] text-amber-500/70 mb-1 uppercase tracking-wider font-bold">Ожид. доплаты (BYN)</p>
+        <p class="text-xl font-black text-amber-400" id="stat-pending-payments">...</p>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="glass-card p-4 mb-4">
+      <h3 class="text-white font-bold mb-4 text-sm">Статусы заказов</h3>
+      <div class="relative w-full h-48">
+        <canvas id="statusChart"></canvas>
+      </div>
+    </div>
+    
+    <div class="glass-card p-4 mb-4">
+      <h3 class="text-white font-bold mb-4 text-sm">Динамика выручки (30 дней)</h3>
+      <div class="relative w-full h-48">
+        <canvas id="revenueChart"></canvas>
+      </div>
+    </div>
+  `;
+}
+
+window.attachAdminAnalyticsHandlers = async () => {
+  try {
+    const { data: orders, error } = await supabaseClient.from('orders').select('*').neq('status', 'cancelled');
+    if (error) throw error;
+    
+    let totalRevenue = 0;
+    let totalProfit = 0;
+    let activeCount = 0;
+    let pendingPayments = 0;
+    
+    const statusCounts = {};
+    const revenueByDay = {};
+    const today = new Date();
+    
+    // Initialize last 30 days with 0
+    for(let i=29; i>=0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      revenueByDay[dateStr] = 0;
+    }
+    
+    orders.forEach(order => {
+      const totalByn = parseFloat(order.total_byn) || 0;
+      const priceByn = parseFloat(order.price_byn) || 0;
+      const prepayment = parseFloat(order.prepayment_amount) || 0;
+      
+      // Выручка
+      totalRevenue += totalByn;
+      // Чистая прибыль (наценка от стоимости товара: 15% от price_byn)
+      totalProfit += (priceByn * 0.15);
+      
+      // Активные (не доставлены и не отменены)
+      if (order.status !== 'delivered' && order.status !== 'cancelled') {
+        activeCount++;
+      }
+      
+      // Ожидаемые доплаты (разрыв)
+      if (['awaiting_payment', 'in_transit', 'on_sklad_cn'].includes(order.status)) {
+        pendingPayments += (totalByn - prepayment);
+      }
+      
+      // Статусы
+      statusCounts[order.status] = (statusCounts[order.status] || 0) + 1;
+      
+      // Динамика по дням
+      if (order.created_at) {
+        const dateStr = order.created_at.split('T')[0];
+        if (revenueByDay[dateStr] !== undefined) {
+          revenueByDay[dateStr] += totalByn;
+        }
+      }
+    });
+    
+    const revEl = document.getElementById('stat-revenue');
+    if(revEl) revEl.innerText = totalRevenue.toFixed(0);
+    const profEl = document.getElementById('stat-profit');
+    if(profEl) profEl.innerText = totalProfit.toFixed(0);
+    const actEl = document.getElementById('stat-active');
+    if(actEl) actEl.innerText = activeCount;
+    const pendEl = document.getElementById('stat-pending-payments');
+    if(pendEl) pendEl.innerText = pendingPayments.toFixed(0);
+    
+    // Render Charts
+    const ctxStatus = document.getElementById('statusChart');
+    if (ctxStatus && window.Chart) {
+      new Chart(ctxStatus, {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(statusCounts).map(s => (window.getStatusText ? window.getStatusText(s) : s).replace(/[^\wа-яА-Я\s()]/gi, '').trim()),
+          datasets: [{
+            data: Object.values(statusCounts),
+            backgroundColor: [
+              'rgba(91,191,235, 0.8)',
+              'rgba(34,211,238, 0.8)',
+              'rgba(167,139,250, 0.8)',
+              'rgba(244,114,182, 0.8)',
+              'rgba(251,146,60, 0.8)'
+            ],
+            borderWidth: 0,
+            hoverOffset: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'right', labels: { color: 'rgba(255,255,255,0.7)', font: { size: 10, family: 'Nunito' } } }
+          }
+        }
+      });
+    }
+    
+    const ctxRevenue = document.getElementById('revenueChart');
+    if (ctxRevenue && window.Chart) {
+      new Chart(ctxRevenue, {
+        type: 'line',
+        data: {
+          labels: Object.keys(revenueByDay).map(d => d.slice(5)), // MM-DD
+          datasets: [{
+            label: 'Выручка (BYN)',
+            data: Object.values(revenueByDay),
+            borderColor: 'rgba(34,211,238, 1)',
+            backgroundColor: 'rgba(34,211,238, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false, color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 9 }, maxTicksLimit: 7 } },
+            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 9 } }, beginAtZero: true }
+          }
+        }
+      });
+    }
+    
+  } catch(e) {
+    console.error('Analytics error:', e);
+  }
+};
 
 // Helper to convert File to base64
 function fileToBase64(file) {
