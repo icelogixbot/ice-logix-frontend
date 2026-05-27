@@ -5167,6 +5167,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       const insurance = document.getElementById('orderInsurance')?.checked || false;
       const keepBox = document.getElementById('orderKeepBox')?.checked || false;
       const isGift = document.getElementById('orderIsGift')?.checked || false;
+      const requiresVideoCheck = document.getElementById('orderRequiresVideoCheck')?.checked || false;
       const discount = window.tempOrder.discountAmount || 0;
 
       let aggregatedTotal = 0;
@@ -5177,6 +5178,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         insurance_byn: 0,
         customs_duty_byn: 0,
         currency_buffer_byn: 0,
+        video_check_byn: 0,
         total_byn: 0
       };
 
@@ -5318,6 +5320,11 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         }
       }
 
+      if (requiresVideoCheck) {
+        aggregatedBreakdown.video_check_byn = 10;
+        aggregatedTotal += 10;
+      }
+
       aggregatedTotal += extraServicesTotal - consolidationDiscountTotal;
       
       // Update window.tempOrder.pvs
@@ -5331,6 +5338,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         window.tempOrder.insurance = insurance;
         window.tempOrder.keepBox = keepBox;
         window.tempOrder.isGift = isGift;
+        window.tempOrder.requiresVideoCheck = requiresVideoCheck;
       }
 
       // Customs Splitter dynamic container update
@@ -5651,6 +5659,14 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             <div class="flex items-center gap-2">
               <input type="checkbox" id="orderInsurance" ${window.tempOrder.insurance ? 'checked' : ''}>
               <label for="orderInsurance" class="text-white/70 text-sm"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span> Страховка (+2% от стоимости товаров)</label>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="orderIsGift" ${window.tempOrder.isGift ? 'checked' : ''} class="w-4 h-4 accent-pink-500 cursor-pointer">
+              <label for="orderIsGift" class="text-white/70 text-sm cursor-pointer"><span class="text-pink-400">🎁 Подарок</span> (Скрыть цену и чек)</label>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="orderRequiresVideoCheck" ${window.tempOrder.requiresVideoCheck ? 'checked' : ''} class="w-4 h-4 accent-cyan-500 cursor-pointer">
+              <label for="orderRequiresVideoCheck" class="text-white/70 text-sm cursor-pointer"><span class="text-cyan-400">📹 Видео-проверка</span> со склада в Китае (+10 BYN)</label>
             </div>
           </div>
 
@@ -6042,6 +6058,13 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             recalculateOrderTotals();
           });
         }
+        const videoCheckInp = document.getElementById('orderRequiresVideoCheck');
+        if (videoCheckInp) {
+          videoCheckInp.addEventListener('change', () => {
+            if (window.tempOrder) window.tempOrder.requiresVideoCheck = videoCheckInp.checked;
+            recalculateOrderTotals();
+          });
+        }
 
         // PVS Selection Handlers
         const pvsMethodSelect = document.getElementById('pvsMethodSelect');
@@ -6319,6 +6342,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 customs_duty_byn: bk.customs_duty_byn || 0,
                 currency_buffer_byn: bk.currency_buffer_byn || 0,
                 total_byn: window.tempOrder.total_byn,
+                requires_video_check: window.tempOrder.requiresVideoCheck || false,
                 delivery_days_min: null,
                 delivery_days_max: null,
                 source_country: window.orderCountry,
@@ -7156,6 +7180,18 @@ async function renderMyOrders() {
                     <img src="${url}" class="w-16 h-16 object-cover rounded-lg cursor-pointer flex-shrink-0" onclick="window.open('${url}', '_blank')">
                   `).join('')}
                 </div>
+              </div>
+            ` : ''}
+            ${order.requires_video_check ? `
+              <div class="mt-3 bg-cyan-500/10 border border-cyan-500/20 p-3 rounded-xl">
+                <p class="text-cyan-400 text-xs font-bold mb-1 flex items-center gap-1"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span> Оплачена Видео-проверка (10 BYN)</p>
+                ${order.video_url ? `
+                  <a href="${order.video_url}" target="_blank" class="mt-2 btn-primary w-full py-2 text-xs flex justify-center items-center gap-2">
+                    Посмотреть видео
+                  </a>
+                ` : `
+                  <p class="text-white/60 text-[10px] mt-1">Видео будет доступно, когда товар поступит на склад в Китае.</p>
+                `}
               </div>
             ` : ''}
             
