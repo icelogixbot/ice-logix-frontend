@@ -5167,6 +5167,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       const insurance = document.getElementById('orderInsurance')?.checked || false;
       const keepBox = document.getElementById('orderKeepBox')?.checked || false;
       const isGift = document.getElementById('orderIsGift')?.checked || false;
+      const requiresVideoCheck = document.getElementById('orderRequiresVideoCheck')?.checked || false;
       const discount = window.tempOrder.discountAmount || 0;
 
       let aggregatedTotal = 0;
@@ -5177,6 +5178,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         insurance_byn: 0,
         customs_duty_byn: 0,
         currency_buffer_byn: 0,
+        video_check_byn: 0,
         total_byn: 0
       };
 
@@ -5318,6 +5320,11 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         }
       }
 
+      if (requiresVideoCheck) {
+        aggregatedBreakdown.video_check_byn = 10;
+        aggregatedTotal += 10;
+      }
+
       aggregatedTotal += extraServicesTotal - consolidationDiscountTotal;
       
       // Update window.tempOrder.pvs
@@ -5331,6 +5338,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         window.tempOrder.insurance = insurance;
         window.tempOrder.keepBox = keepBox;
         window.tempOrder.isGift = isGift;
+        window.tempOrder.requiresVideoCheck = requiresVideoCheck;
       }
 
       // Customs Splitter dynamic container update
@@ -5651,6 +5659,14 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             <div class="flex items-center gap-2">
               <input type="checkbox" id="orderInsurance" ${window.tempOrder.insurance ? 'checked' : ''}>
               <label for="orderInsurance" class="text-white/70 text-sm"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span> Страховка (+2% от стоимости товаров)</label>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="orderIsGift" ${window.tempOrder.isGift ? 'checked' : ''} class="w-4 h-4 accent-pink-500 cursor-pointer">
+              <label for="orderIsGift" class="text-white/70 text-sm cursor-pointer"><span class="text-pink-400">🎁 Подарок</span> (Скрыть цену и чек)</label>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="orderRequiresVideoCheck" ${window.tempOrder.requiresVideoCheck ? 'checked' : ''} class="w-4 h-4 accent-cyan-500 cursor-pointer">
+              <label for="orderRequiresVideoCheck" class="text-white/70 text-sm cursor-pointer"><span class="text-cyan-400">📹 Видео-проверка</span> со склада в Китае (+10 BYN)</label>
             </div>
           </div>
 
@@ -6042,6 +6058,13 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             recalculateOrderTotals();
           });
         }
+        const videoCheckInp = document.getElementById('orderRequiresVideoCheck');
+        if (videoCheckInp) {
+          videoCheckInp.addEventListener('change', () => {
+            if (window.tempOrder) window.tempOrder.requiresVideoCheck = videoCheckInp.checked;
+            recalculateOrderTotals();
+          });
+        }
 
         // PVS Selection Handlers
         const pvsMethodSelect = document.getElementById('pvsMethodSelect');
@@ -6319,6 +6342,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 customs_duty_byn: bk.customs_duty_byn || 0,
                 currency_buffer_byn: bk.currency_buffer_byn || 0,
                 total_byn: window.tempOrder.total_byn,
+                requires_video_check: window.tempOrder.requiresVideoCheck || false,
                 delivery_days_min: null,
                 delivery_days_max: null,
                 source_country: window.orderCountry,
@@ -7156,6 +7180,18 @@ async function renderMyOrders() {
                     <img src="${url}" class="w-16 h-16 object-cover rounded-lg cursor-pointer flex-shrink-0" onclick="window.open('${url}', '_blank')">
                   `).join('')}
                 </div>
+              </div>
+            ` : ''}
+            ${order.requires_video_check ? `
+              <div class="mt-3 bg-cyan-500/10 border border-cyan-500/20 p-3 rounded-xl">
+                <p class="text-cyan-400 text-xs font-bold mb-1 flex items-center gap-1"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span> Оплачена Видео-проверка (10 BYN)</p>
+                ${order.video_url ? `
+                  <a href="${order.video_url}" target="_blank" class="mt-2 btn-primary w-full py-2 text-xs flex justify-center items-center gap-2">
+                    Посмотреть видео
+                  </a>
+                ` : `
+                  <p class="text-white/60 text-[10px] mt-1">Видео будет доступно, когда товар поступит на склад в Китае.</p>
+                `}
               </div>
             ` : ''}
             
@@ -15937,41 +15973,55 @@ async function renderAdminAnalytics() {
       <button class="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-white/10 transition-colors" onclick="switchTab('admin')">
         <span class="ix text-white"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span>
       </button>
-      <h2 class="text-xl font-bold text-white">Аналитика</h2>
+      <h2 class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">AI Аналитика</h2>
     </div>
 
     <!-- KPI Cards -->
     <div class="grid grid-cols-2 gap-3 mb-6">
-      <div class="glass-card p-4">
-        <p class="text-[10px] text-white/50 mb-1 uppercase tracking-wider font-bold">Оборот (BYN)</p>
-        <p class="text-xl font-black text-cyan-400" id="stat-revenue">...</p>
+      <div class="relative overflow-hidden p-4 rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 to-slate-900 shadow-[0_0_20px_rgba(34,211,238,0.1)]">
+        <div class="absolute top-0 right-0 p-2 opacity-20"><span class="ix text-5xl text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span></div>
+        <p class="text-[10px] text-cyan-400/80 mb-1 uppercase tracking-wider font-bold">Оборот (BYN)</p>
+        <p class="text-2xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" id="stat-revenue">0</p>
       </div>
-      <div class="glass-card p-4">
-        <p class="text-[10px] text-white/50 mb-1 uppercase tracking-wider font-bold">Чистая прибыль (BYN)</p>
-        <p class="text-xl font-black text-green-400" id="stat-profit">...</p>
+      <div class="relative overflow-hidden p-4 rounded-2xl border border-green-500/30 bg-gradient-to-br from-green-500/10 to-slate-900 shadow-[0_0_20px_rgba(74,222,128,0.1)]">
+        <div class="absolute top-0 right-0 p-2 opacity-20"><span class="ix text-5xl text-green-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span></div>
+        <p class="text-[10px] text-green-400/80 mb-1 uppercase tracking-wider font-bold">Чистая прибыль (BYN)</p>
+        <p class="text-2xl font-black text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.5)]" id="stat-profit">0</p>
+        <p class="text-[9px] text-green-400/50 mt-1">15% от стоимости товаров</p>
       </div>
-      <div class="glass-card p-4">
-        <p class="text-[10px] text-white/50 mb-1 uppercase tracking-wider font-bold">Активных заказов</p>
-        <p class="text-xl font-black text-white" id="stat-active">...</p>
+      <div class="relative overflow-hidden p-4 rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-500/10 to-slate-900 shadow-[0_0_20px_rgba(139,92,246,0.1)]">
+        <div class="absolute top-0 right-0 p-2 opacity-20"><span class="ix text-5xl text-violet-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span></div>
+        <p class="text-[10px] text-violet-400/80 mb-1 uppercase tracking-wider font-bold">Пользователи</p>
+        <p class="text-2xl font-black text-white" id="stat-users">0</p>
       </div>
-      <div class="glass-card p-4 border border-amber-500/20" style="background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(217,119,6,0.05));">
-        <p class="text-[10px] text-amber-500/70 mb-1 uppercase tracking-wider font-bold">Ожид. доплаты (BYN)</p>
-        <p class="text-xl font-black text-amber-400" id="stat-pending-payments">...</p>
+      <div class="relative overflow-hidden p-4 rounded-2xl border border-pink-500/30 bg-gradient-to-br from-pink-500/10 to-slate-900 shadow-[0_0_20px_rgba(236,72,153,0.1)]">
+        <div class="absolute top-0 right-0 p-2 opacity-20"><span class="ix text-5xl text-pink-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span></div>
+        <p class="text-[10px] text-pink-400/80 mb-1 uppercase tracking-wider font-bold">Заказов в работе</p>
+        <p class="text-2xl font-black text-white" id="stat-active">0</p>
       </div>
     </div>
 
     <!-- Charts -->
-    <div class="glass-card p-4 mb-4">
-      <h3 class="text-white font-bold mb-4 text-sm">Статусы заказов</h3>
-      <div class="relative w-full h-48">
-        <canvas id="statusChart"></canvas>
+    <div class="glass-card p-5 mb-5 border border-white/5 rounded-3xl">
+      <h3 class="text-white font-bold mb-1 text-sm">Динамика Выручки и Прибыли</h3>
+      <p class="text-[10px] text-white/50 mb-4">Данные за последние 30 дней</p>
+      <div class="relative w-full h-56">
+        <canvas id="financialChart"></canvas>
       </div>
     </div>
     
-    <div class="glass-card p-4 mb-4">
-      <h3 class="text-white font-bold mb-4 text-sm">Динамика выручки (30 дней)</h3>
-      <div class="relative w-full h-48">
-        <canvas id="revenueChart"></canvas>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+      <div class="glass-card p-5 border border-white/5 rounded-3xl">
+        <h3 class="text-white font-bold mb-4 text-sm text-center">Распределение по странам</h3>
+        <div class="relative w-full h-48">
+          <canvas id="countryChart"></canvas>
+        </div>
+      </div>
+      <div class="glass-card p-5 border border-white/5 rounded-3xl">
+        <h3 class="text-white font-bold mb-4 text-sm text-center">Статусы заказов</h3>
+        <div class="relative w-full h-48">
+          <canvas id="statusChart"></canvas>
+        </div>
       </div>
     </div>
   `;
@@ -15979,121 +16029,179 @@ async function renderAdminAnalytics() {
 
 window.attachAdminAnalyticsHandlers = async () => {
   try {
-    const { data: orders, error } = await supabaseClient.from('orders').select('*').neq('status', 'cancelled');
-    if (error) throw error;
+    const { data: orders, error: oErr } = await supabaseClient.from('orders').select('*').neq('status', 'cancelled');
+    if (oErr) throw oErr;
+    
+    const { count: usersCount, error: uErr } = await supabaseClient.from('users').select('*', { count: 'exact', head: true });
+    if (uErr) throw uErr;
     
     let totalRevenue = 0;
     let totalProfit = 0;
     let activeCount = 0;
-    let pendingPayments = 0;
     
     const statusCounts = {};
+    const countryCounts = { 'Китай': 0, 'Европа': 0, 'Россия': 0 };
     const revenueByDay = {};
+    const profitByDay = {};
     const today = new Date();
     
-    // Initialize last 30 days with 0
+    // Initialize last 30 days
     for(let i=29; i>=0; i--) {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
       const dateStr = d.toISOString().split('T')[0];
       revenueByDay[dateStr] = 0;
+      profitByDay[dateStr] = 0;
     }
     
     orders.forEach(order => {
       const totalByn = parseFloat(order.total_byn) || 0;
       const priceByn = parseFloat(order.price_byn) || 0;
-      const prepayment = parseFloat(order.prepayment_amount) || 0;
+      const orderProfit = priceByn * 0.15; // Чистая прибыль 15% от товара
       
-      // Выручка
       totalRevenue += totalByn;
-      // Чистая прибыль (наценка от стоимости товара: 15% от price_byn)
-      totalProfit += (priceByn * 0.15);
+      totalProfit += orderProfit;
       
-      // Активные (не доставлены и не отменены)
       if (order.status !== 'delivered' && order.status !== 'cancelled') {
         activeCount++;
       }
       
-      // Ожидаемые доплаты (разрыв)
-      if (['awaiting_payment', 'in_transit', 'on_sklad_cn'].includes(order.status)) {
-        pendingPayments += (totalByn - prepayment);
-      }
+      // География (Страна)
+      if (order.source_country === 'CN') countryCounts['Китай']++;
+      else if (order.source_country === 'PL' || order.source_country === 'EU') countryCounts['Европа']++;
+      else if (order.source_country === 'RU') countryCounts['Россия']++;
       
-      // Статусы
       statusCounts[order.status] = (statusCounts[order.status] || 0) + 1;
       
-      // Динамика по дням
       if (order.created_at) {
         const dateStr = order.created_at.split('T')[0];
         if (revenueByDay[dateStr] !== undefined) {
           revenueByDay[dateStr] += totalByn;
+          profitByDay[dateStr] += orderProfit;
         }
       }
     });
     
     const revEl = document.getElementById('stat-revenue');
-    if(revEl) revEl.innerText = totalRevenue.toFixed(0);
+    if(revEl) revEl.innerText = totalRevenue.toLocaleString('ru-RU', { maximumFractionDigits: 0 });
+    
     const profEl = document.getElementById('stat-profit');
-    if(profEl) profEl.innerText = totalProfit.toFixed(0);
+    if(profEl) profEl.innerText = totalProfit.toLocaleString('ru-RU', { maximumFractionDigits: 0 });
+    
     const actEl = document.getElementById('stat-active');
     if(actEl) actEl.innerText = activeCount;
-    const pendEl = document.getElementById('stat-pending-payments');
-    if(pendEl) pendEl.innerText = pendingPayments.toFixed(0);
     
-    // Render Charts
+    const usrEl = document.getElementById('stat-users');
+    if(usrEl) usrEl.innerText = usersCount || 0;
+    
+    // Configs for Chart.js
+    Chart.defaults.color = 'rgba(255,255,255,0.5)';
+    Chart.defaults.font.family = 'Nunito, sans-serif';
+    
+    // Financial Chart (Dual Line)
+    const ctxFin = document.getElementById('financialChart');
+    if (ctxFin && window.Chart) {
+      new Chart(ctxFin, {
+        type: 'line',
+        data: {
+          labels: Object.keys(revenueByDay).map(d => d.slice(5)), // MM-DD
+          datasets: [
+            {
+              label: 'Выручка',
+              data: Object.values(revenueByDay),
+              borderColor: 'rgba(34,211,238, 1)',
+              backgroundColor: 'rgba(34,211,238, 0.1)',
+              borderWidth: 3,
+              tension: 0.4,
+              fill: true,
+              pointRadius: 0,
+              yAxisID: 'y'
+            },
+            {
+              label: 'Чистая прибыль',
+              data: Object.values(profitByDay),
+              borderColor: 'rgba(74,222,128, 1)',
+              backgroundColor: 'rgba(74,222,128, 0.2)',
+              borderWidth: 3,
+              tension: 0.4,
+              fill: true,
+              pointRadius: 0,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: { 
+            legend: { position: 'top', align: 'end', labels: { boxWidth: 10, usePointStyle: true } },
+            tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', titleColor: '#22d3ee', padding: 10, cornerRadius: 10, borderColor: 'rgba(34,211,238,0.2)', borderWidth: 1 }
+          },
+          scales: {
+            x: { grid: { display: false } },
+            y: { type: 'linear', display: true, position: 'left', grid: { color: 'rgba(255,255,255,0.05)' } },
+            y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } }
+          }
+        }
+      });
+    }
+    
+    // Country Chart (Doughnut)
+    const ctxCountry = document.getElementById('countryChart');
+    if (ctxCountry && window.Chart) {
+      new Chart(ctxCountry, {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(countryCounts),
+          datasets: [{
+            data: Object.values(countryCounts),
+            backgroundColor: [
+              'rgba(239,68,68, 0.8)',   // Red - China
+              'rgba(59,130,246, 0.8)',  // Blue - EU
+              'rgba(249,115,22, 0.8)'   // Orange - RU
+            ],
+            borderWidth: 0,
+            hoverOffset: 10
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '70%',
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12, usePointStyle: true, padding: 15 } }
+          }
+        }
+      });
+    }
+
+    // Status Chart (Polar Area / Doughnut)
     const ctxStatus = document.getElementById('statusChart');
     if (ctxStatus && window.Chart) {
       new Chart(ctxStatus, {
-        type: 'doughnut',
+        type: 'pie',
         data: {
           labels: Object.keys(statusCounts).map(s => (window.getStatusText ? window.getStatusText(s) : s).replace(/[^\wа-яА-Я\s()]/gi, '').trim()),
           datasets: [{
             data: Object.values(statusCounts),
             backgroundColor: [
-              'rgba(91,191,235, 0.8)',
               'rgba(34,211,238, 0.8)',
               'rgba(167,139,250, 0.8)',
               'rgba(244,114,182, 0.8)',
-              'rgba(251,146,60, 0.8)'
+              'rgba(251,146,60, 0.8)',
+              'rgba(16,185,129, 0.8)'
             ],
-            borderWidth: 0,
-            hoverOffset: 4
+            borderWidth: 2,
+            borderColor: '#0f172a',
+            hoverOffset: 10
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: { position: 'right', labels: { color: 'rgba(255,255,255,0.7)', font: { size: 10, family: 'Nunito' } } }
-          }
-        }
-      });
-    }
-    
-    const ctxRevenue = document.getElementById('revenueChart');
-    if (ctxRevenue && window.Chart) {
-      new Chart(ctxRevenue, {
-        type: 'line',
-        data: {
-          labels: Object.keys(revenueByDay).map(d => d.slice(5)), // MM-DD
-          datasets: [{
-            label: 'Выручка (BYN)',
-            data: Object.values(revenueByDay),
-            borderColor: 'rgba(34,211,238, 1)',
-            backgroundColor: 'rgba(34,211,238, 0.1)',
-            borderWidth: 2,
-            fill: true,
-            tension: 0.4,
-            pointRadius: 0
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { grid: { display: false, color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 9 }, maxTicksLimit: 7 } },
-            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 9 } }, beginAtZero: true }
+            legend: { position: 'bottom', labels: { boxWidth: 10, usePointStyle: true, padding: 10 } }
           }
         }
       });
