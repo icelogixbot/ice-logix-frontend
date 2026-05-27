@@ -63,6 +63,35 @@
       --shadow-island: 0 4px 24px rgba(0, 0, 0, 0.25), 0 0 40px rgba(91, 191, 235, 0.1);
     }
     
+    html.light-theme {
+      --bg-gradient-start: #E8F4FC;
+      --bg-gradient-mid: #F5FAFD;
+      --bg-gradient-end: #D9EAF5;
+      
+      --glass-bg: rgba(255, 255, 255, 0.7);
+      --glass-bg-strong: rgba(255, 255, 255, 0.9);
+      --glass-border: rgba(200, 220, 240, 0.5);
+      --glass-border-strong: rgba(150, 200, 230, 0.6);
+      
+      --text-primary: #0F2847;
+      --text-secondary: rgba(15, 40, 71, 0.75);
+      --text-muted: rgba(15, 40, 71, 0.5);
+      
+      --shadow-glow: 0 0 30px rgba(91, 191, 235, 0.4);
+      --shadow-card: 0 8px 32px rgba(91, 191, 235, 0.15);
+      --shadow-island: 0 4px 24px rgba(91, 191, 235, 0.1), 0 0 40px rgba(91, 191, 235, 0.2);
+    }
+    html.light-theme body::before {
+      opacity: 0.5;
+      background-image: 
+        radial-gradient(2px 2px at 20% 30%, rgba(91,191,235,0.3) 0%, transparent 100%),
+        radial-gradient(2px 2px at 40% 70%, rgba(91,191,235,0.2) 0%, transparent 100%),
+        radial-gradient(3px 3px at 70% 20%, rgba(91,191,235,0.25) 0%, transparent 100%),
+        radial-gradient(2px 2px at 90% 50%, rgba(91,191,235,0.2) 0%, transparent 100%),
+        radial-gradient(2px 2px at 10% 80%, rgba(91,191,235,0.15) 0%, transparent 100%),
+        radial-gradient(3px 3px at 60% 90%, rgba(91,191,235,0.2) 0%, transparent 100%);
+    }
+    
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
     html {
@@ -1564,6 +1593,9 @@
     </div>
   </div>
   <script>
+    if (localStorage.getItem('theme') === 'light') {
+      document.documentElement.classList.add('light-theme');
+    }
     // ─── BLOB URL TRACKING (prevent memory leaks from photo previews) ───
     const _photoBlobUrls = new Map();
     function trackBlobUrl(key, file) {
@@ -3611,6 +3643,24 @@ const MAX_REQUESTS_TRUSTED = 100;
       </div>
     </div>
     
+    <!-- Phase 18: ICE Resale & Carpool Banners -->
+    <div class="grid grid-cols-2 gap-3 mb-6 page-enter" style="animation-delay: 0.18s;">
+      <div class="glass-card p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all" onclick="switchTab('resale')" style="background: linear-gradient(135deg, rgba(236,72,153,0.1), rgba(219,39,119,0.05)); border-color: rgba(236,72,153,0.2);">
+        <div class="w-12 h-12 rounded-full mb-2 flex items-center justify-center" style="background: rgba(236,72,153,0.2);">
+          <span class="ix text-pink-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
+        </div>
+        <h3 class="text-sm font-bold text-white mb-1">Биржа Пристроя</h3>
+        <p class="text-[10px] text-white/50">Продажа вещей</p>
+      </div>
+      <div class="glass-card p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all" onclick="switchTab('carpool')" style="background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(37,99,235,0.05)); border-color: rgba(59,130,246,0.2);">
+        <div class="w-12 h-12 rounded-full mb-2 flex items-center justify-center" style="background: rgba(59,130,246,0.2);">
+          <span class="ix text-blue-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+        </div>
+        <h3 class="text-sm font-bold text-white mb-1">Ищу попутчика</h3>
+        <p class="text-[10px] text-white/50">Совместная доставка</p>
+      </div>
+    </div>
+
     <!-- Promo Banners -->
     <div class="scroll-x mb-6 page-enter" style="animation-delay: 0.2s;" id="promoBannersContainer">
       ${await renderPromoBanners()}
@@ -4103,10 +4153,22 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           </div>
 
           <label class="text-white/70 text-sm block">Вес товара (кг)</label>
-          <div class="flex items-center gap-3 mt-1"><input type="range" id="calcWeight" min="0.1" max="30" step="0.1" value="1" class="flex-1 accent-cyan-500" data-packaging="0.3"><span id="weightVal" class="text-white/80 bg-white/10 px-3 py-1 rounded-full whitespace-nowrap text-sm font-bold">1.0 кг</span></div>
+          <div class="flex items-center gap-3 mt-1 mb-4"><input type="range" id="calcWeight" min="0.1" max="30" step="0.1" value="1" class="flex-1 accent-cyan-500" data-packaging="0.3"><span id="weightVal" class="text-white/80 bg-white/10 px-3 py-1 rounded-full whitespace-nowrap text-sm font-bold">1.0 кг</span></div>
+          
+          <div class="mb-4">
+            <label class="text-white/70 text-sm block mb-1">Метод доставки по РБ</label>
+            <select id="calcDeliveryMethod" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm">
+              <option value="none">Без доставки по РБ (или неизвестно)</option>
+              <option value="europost">Европочта</option>
+              <option value="sdek">СДЭК</option>
+              <option value="belpost">Белпочта</option>
+              <option value="pickup">Самовывоз (Минск)</option>
+            </select>
+          </div>
+
           <div class="flex items-center gap-2 mt-3 mb-3">
             <input type="checkbox" id="calcInsurance">
-            <label for="calcInsurance" class="text-white/70 text-sm"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span> Страховка (+2% от стоимости товара)</label>
+            <label for="calcInsurance" class="text-white/70 text-sm"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span> Страховка (+1.5% от стоимости товара)</label>
           </div>
           <button id="calcBtn" class="btn-primary mt-5 w-full transition"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Рассчитать</button>
           <div id="calcResult" class="mt-5 hidden">
@@ -4349,6 +4411,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       weight_kg: weight,
       category,
       insurance,
+      local_delivery_method: document.getElementById('calcDeliveryMethod')?.value && document.getElementById('calcDeliveryMethod').value !== 'none' ? document.getElementById('calcDeliveryMethod').value : null,
       legit_check: legitCheck,
       client_level: window.userLevel || 'newbie',
       is_first_order: !!window.userIsFirstOrder,
@@ -4716,6 +4779,15 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
   function renderCalcSearchResults(payload) {
     if (!calcResultsBox) return;
+    const updateCalc = () => { if(document.getElementById('calcResult').classList.contains('hidden')) return; doCalc(); };
+        document.getElementById('calcPrice').addEventListener('input', updateCalc);
+        document.getElementById('calcCurrency').addEventListener('change', updateCalc);
+        document.getElementById('calcCategory').addEventListener('change', updateCalc);
+        document.getElementById('calcWeight').addEventListener('input', updateCalc);
+        document.getElementById('calcInsurance').addEventListener('change', updateCalc);
+        document.getElementById('calcDeliveryMethod')?.addEventListener('change', updateCalc);
+        document.getElementById('keepBox')?.addEventListener('change', updateCalc);
+        document.getElementById('calcBtn').addEventListener('click', doCalc);
     const list = (payload && payload.results) || [];
     if (list.length === 0) {
       calcResultsBox.classList.remove('hidden');
@@ -5095,6 +5167,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
       const insurance = document.getElementById('orderInsurance')?.checked || false;
       const keepBox = document.getElementById('orderKeepBox')?.checked || false;
+      const isGift = document.getElementById('orderIsGift')?.checked || false;
       const discount = window.tempOrder.discountAmount || 0;
 
       let aggregatedTotal = 0;
@@ -5158,13 +5231,15 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         }
       }
 
-      // Add domestic shipping fee (PVS fee)
+      // Add domestic shipping fee (PVS fee) using pricing-engine LOCAL_DELIVERY_RATES
       const pvsMethod = document.getElementById('pvsMethodSelect')?.value || window.tempOrder?.pvs?.method || 'none';
       const pvsCity = document.getElementById('pvsCitySelect')?.value || window.tempOrder?.pvs?.city || 'Минск';
       const pvsPoint = document.getElementById('pvsPointSelect')?.value || window.tempOrder?.pvs?.point || '';
       
-      const costMap = { none: 0, europoshta: 5, belpochta: 5, sdek: 8 };
-      const pvsCost = costMap[pvsMethod] || 0;
+      let pvsCost = 0;
+      if (pvsMethod !== 'none' && window.iceLogixPricing.LOCAL_DELIVERY_RATES[pvsMethod]) {
+        pvsCost = window.iceLogixPricing.LOCAL_DELIVERY_RATES[pvsMethod].calc(aggregatedWeight);
+      }
       
       const useFreeDelivery = document.getElementById('orderUseFreeDelivery')?.checked || window.tempOrder?.useFreeDelivery || false;
       if (window.tempOrder) window.tempOrder.useFreeDelivery = useFreeDelivery;
@@ -5174,7 +5249,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         deliveryDiscount = pvsCost; // sets domestic fee to 0
       }
       
-      aggregatedBreakdown.delivery_cost_byn += pvsCost - deliveryDiscount;
+      aggregatedBreakdown.local_delivery_byn = pvsCost - deliveryDiscount;
       aggregatedTotal += pvsCost - deliveryDiscount;
       
       // Additional Services & Consolidation Splits
@@ -5254,6 +5329,9 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           point: pvsPoint,
           cost: pvsCost
         };
+        window.tempOrder.insurance = insurance;
+        window.tempOrder.keepBox = keepBox;
+        window.tempOrder.isGift = isGift;
       }
 
       // Customs Splitter dynamic container update
@@ -5858,6 +5936,14 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                   </div>
                 </div>
                 
+                <!-- Sanction Detector Banner (Hidden by default) -->
+                <div id="sanctionBanner" class="mt-3 p-3 rounded-xl border border-orange-500/30 bg-orange-500/10 text-xs text-white/90 hidden">
+                  <p class="text-orange-400 font-bold flex items-center gap-1">
+                    <span>⚠️ Внимание: Санкционный бренд</span>
+                  </p>
+                  <p class="mt-1 font-medium text-white/80">Товары этого бренда могут быть задержаны таможней ЕС. Наш менеджер проверит возможность транзита после оформления заказа.</p>
+                </div>
+                
                 <div id="aiSizeAdvisorBanner" class="mt-3 p-3 rounded-xl border border-violet-500/30 bg-violet-500/10 text-xs text-white/80 hidden cursor-pointer">
                   <p class="text-violet-400 font-bold flex items-center gap-1">
                     <span>🔮 ИИ-Советник по размеру</span>
@@ -6000,8 +6086,11 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           const city = pvsCitySelect?.value || 'Минск';
           if (!pvsPointSelect) return;
           
-          if (method === 'none') {
+          if (method === 'none' || method === 'pickup') {
             if (pvsDetailContainer) pvsDetailContainer.classList.add('hidden');
+            if (window.tempOrder) {
+              window.tempOrder.pvs = { method: method, city: '', point: '', cost: 0 };
+            }
             return;
           }
           
@@ -6014,12 +6103,11 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             <option value="${p}" ${currentSavedPoint === p ? 'selected' : ''}>${p}</option>
           `).join('');
           
-          const costMap = { none: 0, europoshta: 5, belpochta: 5, sdek: 8 };
           window.tempOrder.pvs = {
             method: method,
             city: city,
             point: pvsPointSelect.value,
-            cost: costMap[method] || 0
+            cost: 0 // Will be dynamically calculated in recalculateOrderTotals
           };
         };
 
@@ -6049,6 +6137,35 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             recalculateOrderTotals();
           });
         }
+        
+        const isGiftInp = document.getElementById('orderIsGift');
+        if (isGiftInp) {
+          isGiftInp.addEventListener('change', () => {
+            if (window.tempOrder) window.tempOrder.isGift = isGiftInp.checked;
+          });
+        }
+        
+        // Sanction Check Handlers
+        const sanBrands = ['dyson', 'sony', 'apple', 'zara', 'h&m', 'massimo dutti', 'samsung', 'playstation', 'xbox'];
+        const orderNameInput = document.getElementById('orderName');
+        const orderUrlInput = document.getElementById('orderUrl');
+        const checkSanctions = () => {
+          if (!document.getElementById('sanctionBanner')) return;
+          const txt = ((orderNameInput?.value || '') + ' ' + (orderUrlInput?.value || '')).toLowerCase();
+          // Check only if it's from Europe (PL or EU mode)
+          if (window.orderCountry === 'PL' || window.orderCountry === 'EU') {
+            const hasSanction = sanBrands.some(b => txt.includes(b));
+            if (hasSanction) {
+              document.getElementById('sanctionBanner').classList.remove('hidden');
+            } else {
+              document.getElementById('sanctionBanner').classList.add('hidden');
+            }
+          } else {
+            document.getElementById('sanctionBanner').classList.add('hidden');
+          }
+        };
+        if (orderNameInput) orderNameInput.addEventListener('input', checkSanctions);
+        if (orderUrlInput) orderUrlInput.addEventListener('input', checkSanctions);
 
         populatePvsPoints();
         recalculateOrderTotals();
@@ -6180,6 +6297,9 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 pvsAddress = pvsAddress 
                   ? `${pvsAddress} | 🛡️ РАЗДЕЛЕНИЕ: ${secName}`
                   : `Самовывоз | 🛡️ РАЗДЕЛЕНИЕ: ${secName}`;
+              }
+              if (window.tempOrder?.isGift) {
+                pvsAddress = pvsAddress ? `${pvsAddress} | 🎁 ПОДАРОК (Скрыть товар)` : `🎁 ПОДАРОК (Скрыть товар)`;
               }
 
               const fam = window.userSettings?.family || {};
@@ -7000,7 +7120,30 @@ async function renderMyOrders() {
               <div>
                 <p class="text-white font-bold">Заказ #${order.id.slice(0,8)}</p>
                 <p class="text-white/70 text-xs">${new Date(new Date(order.created_at).getTime() + 3*60*60*1000).toLocaleString('ru-RU')}</p>
-                <p class="text-white/70 text-xs mt-1">Вес: ${order.weight_estimated} кг</p>
+                ${(() => {
+                  const est = parseFloat(order.weight_estimated) || 0;
+                  const act = parseFloat(order.weight_actual);
+                  if (!isNaN(act) && Math.abs(act - est) >= 0.001) { // 1 gram
+                    const isHeavier = act > est;
+                    const colorClass = isHeavier ? 'amber' : 'green';
+                    const icon = isHeavier 
+                      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+                      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+                    const title = isHeavier ? 'Внимание: перевес' : 'Вес меньше ожидаемого!';
+                    const suffix = isHeavier ? 'Ожидается доплата за разницу веса.' : 'Итоговая стоимость доставки будет пересчитана в меньшую сторону.';
+                    const diffStr = (act - est > 0 ? '+' : '') + (act - est).toFixed(3);
+                    return `
+                      <div class="mt-2 p-2 rounded-xl border border-${colorClass}-500/30 bg-${colorClass}-500/10 text-xs mb-2">
+                        <p class="text-${colorClass}-400 font-bold mb-1 flex items-center gap-1">
+                          <span class="ix">${icon}</span> ${title}
+                        </p>
+                        <p class="text-${colorClass}-100/70">Ожидалось: ${est.toFixed(3)} кг<br>На складе: ${act.toFixed(3)} кг</p>
+                        <p class="text-${colorClass}-300 font-bold mt-1">Разница: ${diffStr} кг. ${suffix}</p>
+                      </div>
+                    `;
+                  }
+                  return `<p class="text-white/70 text-xs mt-1">Вес: ${est} кг</p>`;
+                })()}
                 <p class="text-cyan-400 text-sm mt-1">${Number(order.prepayment_amount || 0).toFixed(2)} <span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></p>
                 ${order.tracking_number_cn ? `<p class="text-white/70 text-xs mt-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Трек: ${order.tracking_number_cn}</p>` : ''}
               </div>
@@ -7063,7 +7206,7 @@ async function renderMyOrders() {
             </button>
 
             <div class="flex gap-2 mt-3">
-              <button class="btn-secondary flex-1 text-white text-xs border border-cyan-500/30" onclick="window.generatePdfInvoice('${order.id}')"><span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span> Инвойс</button>
+              <button class="btn-secondary flex-1 text-white text-xs border border-cyan-500/30" onclick="window.openInvoiceModal('${order.id}', ${Number(order.total_byn).toFixed(2)})"><span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span> Инвойс</button>
               <button class="btn-secondary flex-1 text-white text-xs" onclick="window.openSupportChat('${order.id}')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> 💬 Чат</button>
               ${Number(order.insurance_byn || 0) > 0 && !['pending', 'cancelled'].includes(order.status) && !claimsMap[order.id] ? `
                 <button class="btn-secondary flex-1 text-amber-400 border border-amber-500/20 text-xs" onclick="window.openInsuranceClaimModal('${order.id}', ${order.total_byn})">
@@ -7071,6 +7214,13 @@ async function renderMyOrders() {
                 </button>
               ` : ''}
             </div>
+            ${order.status === 'delivered' ? `
+            <div class="mt-2">
+              <button class="btn-primary w-full text-white text-xs bg-pink-500/20 hover:bg-pink-500/30 border border-pink-500/30 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors" onclick="publishToResale('${order.id}', '${(order.description || '').replace(/'/g, "\\'")}')">
+                <span class="ix text-pink-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg></span> Выставить в Пристрой
+              </button>
+            </div>
+            ` : ''}
           </div>
         `).join('')}
       </div>
@@ -7082,7 +7232,88 @@ async function renderMyOrders() {
   }
 }
 
-window.generatePdfInvoice = async (orderId) => {
+window.openInvoiceModal = (orderId, originalPrice) => {
+  tgUtil.haptic('light');
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[120] p-4';
+  modal.id = 'invoiceTypeModal';
+  
+  modal.innerHTML = `
+    <div class="glass-card max-w-sm w-full mx-4 p-6 space-y-5 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.7)] transform transition-all duration-300 scale-95 opacity-0" id="invModalContent">
+      <div class="flex justify-between items-center border-b border-white/10 pb-3">
+        <h3 class="text-white font-bold text-base flex items-center gap-2">
+          <span class="text-cyan-400 text-xl">📄</span> 
+          <span>Создание инвойса</span>
+        </h3>
+        <button id="closeInvModalBtn" class="text-white/40 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      
+      <div class="space-y-3">
+        <button id="btnStdInv" class="w-full btn-secondary text-left flex items-start gap-3 p-3 border border-cyan-500/30 hover:bg-cyan-500/10">
+          <span class="text-2xl">🏢</span>
+          <div>
+            <p class="text-white font-bold text-sm">Стандартный (ICE LOGIX)</p>
+            <p class="text-white/50 text-[10px] mt-0.5">Официальный инвойс со штампом и логотипом сервиса.</p>
+          </div>
+        </button>
+
+        <button id="btnB2bInv" class="w-full btn-secondary text-left flex items-start gap-3 p-3 border border-fuchsia-500/30 hover:bg-fuchsia-500/10">
+          <span class="text-2xl">🥷</span>
+          <div>
+            <p class="text-fuchsia-400 font-bold text-sm">Дропшиппинг (White-Label)</p>
+            <p class="text-white/50 text-[10px] mt-0.5">Без логотипов ICE LOGIX. С возможностью указать вашу цену перепродажи.</p>
+          </div>
+        </button>
+      </div>
+      
+      <div id="b2bPriceBlock" class="hidden mt-4 pt-4 border-t border-white/10 space-y-3">
+        <label class="text-white/70 text-xs block">Укажите цену для клиента (BYN):</label>
+        <input type="number" id="b2bPriceInput" class="w-full bg-black/40 border border-white/20 rounded-xl p-3 text-white text-sm" value="${originalPrice}">
+        <button id="btnGenerateB2b" class="btn-primary w-full bg-fuchsia-600 hover:bg-fuchsia-500 text-white">Сгенерировать</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  requestAnimationFrame(() => {
+    document.getElementById('invModalContent').classList.remove('scale-95', 'opacity-0');
+    document.getElementById('invModalContent').classList.add('scale-100', 'opacity-100');
+  });
+
+  const close = () => {
+    document.getElementById('invModalContent').classList.remove('scale-100', 'opacity-100');
+    document.getElementById('invModalContent').classList.add('scale-95', 'opacity-0');
+    setTimeout(() => modal.remove(), 300);
+  };
+  
+  document.getElementById('closeInvModalBtn').onclick = close;
+  modal.onclick = (e) => { if (e.target === modal) close(); };
+
+  document.getElementById('btnStdInv').onclick = () => {
+    close();
+    window.generatePdfInvoice(orderId, false, null);
+  };
+
+  document.getElementById('btnB2bInv').onclick = () => {
+    document.getElementById('b2bPriceBlock').classList.remove('hidden');
+    document.getElementById('b2bPriceInput').focus();
+  };
+
+  document.getElementById('btnGenerateB2b').onclick = () => {
+    const customPrice = parseFloat(document.getElementById('b2bPriceInput').value);
+    if (!customPrice || customPrice <= 0) {
+      tgUtil.alert('Введите корректную цену');
+      return;
+    }
+    close();
+    window.generatePdfInvoice(orderId, true, customPrice);
+  };
+};
+
+window.generatePdfInvoice = async (orderId, isB2b = false, customPrice = null) => {
   tgUtil.haptic('medium');
   glassToast('Генерация PDF-инвойса...', { kind: 'info' });
   
@@ -7111,7 +7342,7 @@ window.generatePdfInvoice = async (orderId) => {
     invoiceEl.style.top = '-9999px';
     
     // Мокрая печать (синяя)
-    const stampHtml = `
+    const stampHtml = isB2b ? '' : `
       <div style="position: absolute; right: 80px; bottom: 80px; width: 150px; height: 150px; border: 4px solid rgba(29, 78, 216, 0.7); border-radius: 50%; opacity: 0.8; transform: rotate(-15deg); display: flex; align-items: center; justify-content: center; text-align: center; font-weight: bold; color: rgba(29, 78, 216, 0.9);">
         <div style="border: 2px dashed rgba(29, 78, 216, 0.5); border-radius: 50%; width: 135px; height: 135px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
           <span style="font-size: 16px; text-transform: uppercase; margin-bottom: 4px;">ICE LOGIX</span>
@@ -7121,6 +7352,9 @@ window.generatePdfInvoice = async (orderId) => {
       </div>
     `;
 
+    const totalByn = isB2b && customPrice ? parseFloat(customPrice) : order.total_byn;
+    const goodsByn = isB2b ? totalByn : (order.total_byn - (order.commission_byn||0));
+    
     invoiceEl.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e5e7eb; padding-bottom: 20px; margin-bottom: 30px;">
         <div>
@@ -7128,9 +7362,9 @@ window.generatePdfInvoice = async (orderId) => {
           <p style="color: #6b7280; font-size: 14px; margin-top: 5px;">#${order.id.toUpperCase()}</p>
         </div>
         <div style="text-align: right;">
-          <h2 style="font-size: 24px; font-weight: 800; margin: 0; color: #0284c7;">ICE LOGIX</h2>
+          <h2 style="font-size: 24px; font-weight: 800; margin: 0; color: #0284c7;">${isB2b ? 'DELIVERY SERVICE' : 'ICE LOGIX'}</h2>
           <p style="color: #6b7280; font-size: 12px; margin-top: 5px;">Global Buying Service</p>
-          <p style="color: #6b7280; font-size: 12px;">Nesvizh, Belarus</p>
+          <p style="color: #6b7280; font-size: 12px;">${isB2b ? 'Logistics Partner' : 'Nesvizh, Belarus'}</p>
         </div>
       </div>
       
@@ -7160,9 +7394,10 @@ window.generatePdfInvoice = async (orderId) => {
               <span style="color: #6b7280; font-size: 12px;">Weight: ~${order.weight_estimated} kg</span>
             </td>
             <td style="padding: 15px 12px; text-align: right; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600;">
-              ${Number(order.total_byn - (order.commission_byn||0)).toFixed(2)} BYN
+              ${Number(goodsByn).toFixed(2)} BYN
             </td>
           </tr>
+          ${!isB2b ? `
           <tr>
             <td style="padding: 15px 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px;">
               <strong>Service Fee (Commission)</strong>
@@ -7171,6 +7406,7 @@ window.generatePdfInvoice = async (orderId) => {
               ${Number(order.commission_byn||0).toFixed(2)} BYN
             </td>
           </tr>
+          ` : ''}
         </tbody>
       </table>
       
@@ -7178,21 +7414,23 @@ window.generatePdfInvoice = async (orderId) => {
         <div style="width: 300px;">
           <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
             <span style="font-size: 14px; color: #4b5563;">Subtotal:</span>
-            <span style="font-weight: 600;">${Number(order.total_byn).toFixed(2)} BYN</span>
+            <span style="font-weight: 600;">${Number(totalByn).toFixed(2)} BYN</span>
           </div>
+          ${!isB2b ? `
           <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 2px solid #111827;">
             <span style="font-size: 14px; color: #4b5563;">Paid (Prepayment):</span>
             <span style="font-weight: 600;">${Number(order.prepayment_amount||0).toFixed(2)} BYN</span>
           </div>
+          ` : ''}
           <div style="display: flex; justify-content: space-between; padding: 15px 0;">
             <span style="font-size: 18px; font-weight: 800; color: #111827;">TOTAL DUE:</span>
-            <span style="font-size: 18px; font-weight: 800; color: #0284c7;">${Number(order.total_byn - (order.prepayment_amount||0)).toFixed(2)} BYN</span>
+            <span style="font-size: 18px; font-weight: 800; color: #0284c7;">${Number(isB2b ? totalByn : (totalByn - (order.prepayment_amount||0))).toFixed(2)} BYN</span>
           </div>
         </div>
       </div>
       
       <div style="text-align: center; color: #6b7280; font-size: 12px; margin-top: auto; border-top: 1px solid #e5e7eb; padding-top: 20px;">
-        <p>Thank you for choosing ICE LOGIX. This is an electronically generated invoice.</p>
+        <p>This is an electronically generated invoice.</p>
         <p>Status: ${order.status.toUpperCase()}</p>
       </div>
       
@@ -7513,7 +7751,20 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
         </div>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
-      <button id="appSettingsBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition">
+      <div class="w-full p-3 rounded-xl flex items-center justify-between border-t border-white/5">
+        <div class="flex items-center gap-3">
+          <span class="text-xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></span></span>
+          <div>
+            <p class="font-semibold text-white text-sm">Светлая тема</p>
+            <p class="text-xs" style="color: var(--text-muted);">Внешний вид</p>
+          </div>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="themeToggleCheckbox" class="sr-only peer">
+          <div class="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
+        </label>
+      </div>
+      <button id="appSettingsBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition border-t border-white/5">
         <span class="text-xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span></span>
         <div class="flex-1">
           <p class="font-semibold text-white text-sm">Уведомления</p>
@@ -7614,6 +7865,22 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
   const adminBtn = document.getElementById('adminPanelBtn');
   if (adminBtn) {
     adminBtn.onclick = () => switchTab('admin');
+  }
+
+  const themeToggle = document.getElementById('themeToggleCheckbox');
+  if (themeToggle) {
+    const isLight = localStorage.getItem('theme') === 'light';
+    themeToggle.checked = isLight;
+    themeToggle.onchange = (e) => {
+      const light = e.target.checked;
+      if (light) {
+        document.documentElement.classList.add('light-theme');
+        localStorage.setItem('theme', 'light');
+      } else {
+        document.documentElement.classList.remove('light-theme');
+        localStorage.setItem('theme', 'dark');
+      }
+    };
   }
 
   const ownerControlsBtn = document.getElementById('ownerControlsBtn');
@@ -8929,7 +9196,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         // ==================== РЕНДЕР ОТЗЫВОВ ====================
         async function renderReviews() {
       try {
-        const { data, count, error } = await supabaseClient.from('reviews').select('*', { count: 'exact' }).eq('is_published', true).order('created_at', { ascending: false }).range((reviewsPage - 1) * 10, reviewsPage * 10 - 1);
+        const { data, count, error } = await supabaseClient.from('reviews').select('*, orders(items_image)', { count: 'exact' }).eq('is_published', true).order('created_at', { ascending: false }).range((reviewsPage - 1) * 10, reviewsPage * 10 - 1);
         if (error) throw error;
         reviewsTotalPages = Math.ceil((count || 0) / 10);
         
@@ -8938,12 +9205,35 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         return `
           <div class="space-y-4">
             <h2 class="text-white text-xl font-bold mb-4"><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> Отзывы наших клиентов</h2>
-            ${!data || data.length === 0 ? '<p class="text-white/70">Пока нет отзывов</p>' : data.map(review => `
-              <div class="review-card">
-                <div class="stars">${'<span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>'.repeat(review.rating)}${'<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>'.repeat(5 - review.rating)}</div>
-                <p class="text-white font-semibold">${review.user_name || 'Пользователь'}</p>
-                <p class="text-white/80 text-sm mt-1">${review.text}</p>
-                ${review.photo_urls && review.photo_urls.length > 0 ? `<div class="flex gap-2 mt-2 overflow-x-auto pb-1">${review.photo_urls.map(url => `<img src="${url}" class="h-16 w-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition" onclick="tgUtil.popup('${url}', 'Фото отзыва')">`).join('')}</div>` : ''}
+            ${!data || data.length === 0 ? '<p class="text-white/70">Пока нет отзывов</p>' : data.map(review => {
+              const siteImg = review.orders && review.orders.items_image ? review.orders.items_image : null;
+              const hasClientPhotos = review.photo_urls && review.photo_urls.length > 0;
+              return `
+              <div class="review-card glass-card p-4 rounded-2xl mb-4">
+                <div class="flex items-center justify-between mb-2">
+                  <p class="text-white font-bold flex items-center gap-2">${review.user_name || 'Пользователь'} ${review.is_verified ? '<span class="ix ix-success text-sm" title="Заказ подтвержден"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>' : ''}</p>
+                  <div class="stars flex">${'<span class="ix ix-fill ix-warning w-4 h-4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>'.repeat(review.rating)}${'<span class="ix ix-mute w-4 h-4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>'.repeat(5 - review.rating)}</div>
+                </div>
+                
+                ${(siteImg || hasClientPhotos) ? `
+                <div class="flex gap-2 mt-3 mb-3">
+                  ${siteImg ? `
+                  <div class="flex-1 relative rounded-xl overflow-hidden border border-white/10" style="aspect-ratio: 1/1;">
+                    <span class="absolute top-1 left-1 bg-black/60 text-[10px] px-1.5 py-0.5 rounded text-white/90 z-10">Сайт</span>
+                    <img src="${siteImg}" class="w-full h-full object-cover cursor-pointer hover:scale-105 transition" onclick="tgUtil.popup('${siteImg}', 'Фото с сайта')">
+                  </div>
+                  ` : ''}
+                  ${hasClientPhotos ? `
+                  <div class="flex-1 relative rounded-xl overflow-hidden border border-cyan-500/30" style="aspect-ratio: 1/1;">
+                    <span class="absolute top-1 left-1 bg-cyan-500/80 text-[10px] px-1.5 py-0.5 rounded text-white z-10">Реальность</span>
+                    <img src="${review.photo_urls[0]}" class="w-full h-full object-cover cursor-pointer hover:scale-105 transition" onclick="tgUtil.popup('${review.photo_urls[0]}', 'Фото клиента')">
+                    ${review.photo_urls.length > 1 ? `<span class="absolute bottom-1 right-1 bg-black/60 text-[10px] px-1.5 py-0.5 rounded text-white z-10">+${review.photo_urls.length - 1}</span>` : ''}
+                  </div>
+                  ` : ''}
+                </div>
+                ` : ''}
+                
+                <p class="text-white/90 text-sm italic mt-2 text-left bg-white/5 p-3 rounded-xl border-l-2 border-cyan-500/50">"${review.text}"</p>
                 <div class="flex justify-between items-center mt-2">
                   <span class="text-white/50 text-xs">${new Date(review.created_at).toLocaleDateString('ru-RU')}</span>
                   <span class="text-green-400 text-xs">${review.is_verified ? '<span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Подтверждённый заказ' : ''}</span>
@@ -8983,7 +9273,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               <select id="reviewRating" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-3"><option value="5"><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> (5)</option><option value="4"><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> (4)</option><option value="3"><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> (3)</option><option value="2"><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> (2)</option><option value="1"><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> (1)</option></select>
               <textarea id="reviewText" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-3" placeholder="Ваш отзыв" rows="4"></textarea>
               <div class="mb-3">
-                <label class="block text-white/70 text-sm mb-1">Прикрепить фото (кэшбек 5 ICE)</label>
+                <label class="block text-white/70 text-sm mb-1">Ваше фото "Вживую" (Бонус 5 BYN после проверки)</label>
                 <input type="file" id="reviewPhotos" multiple accept="image/*" class="w-full text-white text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-cyan-500/20 file:text-cyan-400 hover:file:bg-cyan-500/30">
               </div>
               <div class="flex gap-3 mt-4"><button id="submitReviewBtn" class="btn-primary flex-1">Отправить</button><button id="cancelReviewBtn" class="btn-secondary flex-1">Отмена</button></div>
@@ -9457,6 +9747,11 @@ async function renderAdmin() {
           <button id="createPromoBtn" class="btn-primary w-full">Создать</button>
         </div>
         
+        <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="switchTab('admin_resale')">
+          <span class="flex items-center gap-2"><span class="ix text-pink-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg></span> Модерация Пристроя</span>
+          <span class="ix text-white/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+        </button>
+
         <!-- Список промокодов -->
         <div class="glass-card">
           <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span> Промокоды</h3>
@@ -15404,6 +15699,216 @@ function renderLegitPhotoPreviews() {
       renderLegitPhotoPreviews();
     };
   });
+}
+
+// ==================== ФАЗА 18: ICE Resale и Совместная доставка ====================
+
+window.publishToResale = async (orderId, orderTitle) => {
+  if (!userId) return tgUtil.alert('Необходима авторизация');
+  
+  tgUtil.showPopup({
+    title: 'ICE Resale',
+    message: 'Введите цену, за которую вы хотите продать этот товар (в BYN):\nКомиссия платформы 5% будет удержана при успешной сделке.',
+    buttons: [{ id: 'ok', type: 'ok' }, { type: 'cancel' }]
+  }, async (btnId) => {
+    // В реальном Telegram Web App нет prompt() внутри popup с вводом текста, 
+    // поэтому мы будем использовать системный prompt (fallback).
+    // Либо можно открыть модалку.
+  });
+  
+  // Для надежности используем встроенный prompt браузера (работает в WebApp)
+  const price = prompt('Введите цену продажи в BYN:');
+  if (!price || isNaN(parseFloat(price))) return;
+  
+  const desc = prompt('Добавьте комментарий для покупателей (например, "Не подошел размер, маломерят"):');
+  if (desc === null) return;
+  
+  tgUtil.haptic('light');
+  glassToast('Отправка на модерацию...', { kind: 'info' });
+  
+  try {
+    const { error } = await supabaseClient.from('resale_items').insert({
+      user_id: userId,
+      order_id: orderId,
+      title: orderTitle || 'Товар из заказа',
+      price_byn: parseFloat(price),
+      description: desc,
+      status: 'pending'
+    });
+    if (error) throw error;
+    
+    tgUtil.haptic('success');
+    glassToast('Товар успешно отправлен на модерацию!', { kind: 'success' });
+  } catch(e) {
+    console.error(e);
+    tgUtil.alert('Ошибка публикации: ' + e.message);
+  }
+};
+
+async function renderResale() {
+  tgUtil.haptic('light');
+  if (!userId) return '<p class="text-center mt-10 text-red-400">Авторизуйтесь</p>';
+  
+  try {
+    const { data, error } = await supabaseClient.from('resale_items').select('*, users(username, full_name)').eq('status', 'approved').order('created_at', { ascending: false });
+    if (error) throw error;
+    
+    let html = `
+      <div class="flex items-center gap-3 mb-6">
+        <button class="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-white/10 transition-colors" onclick="switchTab('home')">
+          <span class="ix text-white"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></span>
+        </button>
+        <h2 class="text-xl font-black text-white uppercase tracking-wider">ICE Resale <span class="text-pink-400">Пристрой</span></h2>
+      </div>
+      <p class="text-xs text-white/50 mb-4 bg-white/5 p-3 rounded-xl">Покупайте новые вещи напрямую у других клиентов, которым не подошел размер. Вещи уже в Беларуси!</p>
+    `;
+    
+    if (!data || data.length === 0) {
+      html += '<p class="text-center mt-10 text-white/70">В пристрое пока нет товаров</p>';
+    } else {
+      html += '<div class="grid grid-cols-2 gap-3">';
+      html += data.map(item => `
+        <div class="glass-card flex flex-col relative overflow-hidden">
+          <div class="absolute top-2 right-2 bg-pink-500/80 text-white text-[10px] font-bold px-1.5 py-0.5 rounded border border-pink-400 backdrop-blur-md">В наличии</div>
+          <div class="p-3 flex-1">
+            <p class="text-white font-bold text-sm leading-tight mb-1 line-clamp-2">${item.title}</p>
+            <p class="text-xs text-white/70 mb-2 line-clamp-2">${item.description || ''}</p>
+            <p class="text-cyan-400 font-bold mb-2">${item.price_byn} BYN</p>
+            <div class="flex items-center gap-1 mt-auto text-[10px] text-white/50">
+              <span class="ix" style="width:12px;height:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+              ${item.users?.username ? '@' + item.users.username : (item.users?.full_name || 'Продавец')}
+            </div>
+          </div>
+          <button class="w-full py-2.5 bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 text-xs font-bold transition-colors border-t border-pink-500/30" onclick="window.open('https://t.me/${item.users?.username || ''}', '_blank')">Связаться</button>
+        </div>
+      `).join('');
+      html += '</div>';
+    }
+    return html;
+  } catch (e) {
+    return `<p class="text-red-400 text-center mt-5">Ошибка загрузки: ${e.message}</p>`;
+  }
+}
+
+async function renderCarpool() {
+  tgUtil.haptic('light');
+  if (!userId) return '<p class="text-center mt-10 text-red-400">Авторизуйтесь</p>';
+  
+  window.publishCarpool = async () => {
+    const city = prompt('Введите ваш город (например, Гомель):');
+    if (!city) return;
+    const desc = prompt('Укажите детали (например, "Ищу с кем поделить доставку СДЭК"):');
+    if (!desc) return;
+    
+    try {
+      const { error } = await supabaseClient.from('carpool_posts').insert({
+        user_id: userId,
+        city: city,
+        description: desc
+      });
+      if (error) throw error;
+      tgUtil.haptic('success');
+      glassToast('Объявление опубликовано!', { kind: 'success' });
+      switchTab('carpool');
+    } catch(e) {
+      tgUtil.alert('Ошибка: ' + e.message);
+    }
+  };
+  
+  try {
+    const { data, error } = await supabaseClient.from('carpool_posts').select('*, users(username, full_name)').order('created_at', { ascending: false });
+    if (error) throw error;
+    
+    let html = `
+      <div class="flex items-center gap-3 mb-6">
+        <button class="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-white/10 transition-colors" onclick="switchTab('home')">
+          <span class="ix text-white"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></span>
+        </button>
+        <h2 class="text-xl font-black text-white uppercase tracking-wider">Ищу попутчика</h2>
+      </div>
+      <p class="text-xs text-white/50 mb-4 bg-white/5 p-3 rounded-xl">Объединяйтесь с людьми из вашего города, чтобы разделить стоимость доставки из Минска.</p>
+      
+      <button class="btn-primary w-full mb-6 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30" onclick="publishCarpool()">
+        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Опубликовать заявку
+      </button>
+    `;
+    
+    if (!data || data.length === 0) {
+      html += '<p class="text-center mt-10 text-white/70">Пока нет активных заявок</p>';
+    } else {
+      html += '<div class="space-y-3">';
+      html += data.map(item => `
+        <div class="glass-card p-4">
+          <div class="flex justify-between items-start mb-2">
+            <span class="px-2 py-1 bg-white/10 rounded-md text-xs font-bold text-white border border-white/10 flex items-center gap-1"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span> ${item.city}</span>
+            <span class="text-[10px] text-white/40">${new Date(item.created_at).toLocaleDateString('ru-RU')}</span>
+          </div>
+          <p class="text-sm text-white/90 mb-3">${item.description}</p>
+          <button class="btn-secondary w-full text-xs text-blue-400 border border-blue-500/30 hover:bg-blue-500/10" onclick="window.open('https://t.me/${item.users?.username || ''}', '_blank')">Связаться в Telegram</button>
+        </div>
+      `).join('');
+      html += '</div>';
+    }
+    return html;
+  } catch (e) {
+    return `<p class="text-red-400 text-center mt-5">Ошибка загрузки: ${e.message}</p>`;
+  }
+}
+
+async function renderAdminResale() {
+  if (!userId) return '';
+  const { data: userData } = await supabaseClient.from('users').select('role').eq('user_id', userId).single();
+  if (!userData || !['admin', 'owner'].includes(userData.role)) return '<p class="text-center mt-10 text-red-400">Доступ запрещен</p>';
+  
+  window.approveResale = async (id) => {
+    try {
+      await supabaseClient.from('resale_items').update({ status: 'approved' }).eq('id', id);
+      glassToast('Одобрено');
+      switchTab('admin_resale');
+    } catch(e) {}
+  };
+  
+  window.rejectResale = async (id) => {
+    try {
+      await supabaseClient.from('resale_items').update({ status: 'rejected' }).eq('id', id);
+      glassToast('Отклонено');
+      switchTab('admin_resale');
+    } catch(e) {}
+  };
+
+  try {
+    const { data, error } = await supabaseClient.from('resale_items').select('*, users(username)').eq('status', 'pending');
+    if (error) throw error;
+    
+    let html = `
+      <div class="flex items-center gap-3 mb-6">
+        <button class="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-white/10 transition-colors" onclick="switchTab('admin')">
+          <span class="ix text-white"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span>
+        </button>
+        <h2 class="text-xl font-bold text-white">Модерация Пристроя</h2>
+      </div>
+    `;
+    
+    if (!data || data.length === 0) {
+      html += '<p class="text-white/50 text-center">Нет новых заявок</p>';
+    } else {
+      html += '<div class="space-y-3">';
+      html += data.map(item => `
+        <div class="glass-card p-3">
+          <p class="font-bold text-sm text-white">${item.title}</p>
+          <p class="text-xs text-white/70 mb-1">От: @${item.users?.username || item.user_id}</p>
+          <p class="text-xs text-white/70 mb-2">Цена: ${item.price_byn} BYN</p>
+          <p class="text-xs text-white/50 italic mb-3">"${item.description}"</p>
+          <div class="flex gap-2">
+            <button class="btn-primary flex-1 bg-green-500/20 text-green-400 text-xs" onclick="approveResale('${item.id}')">Одобрить</button>
+            <button class="btn-primary flex-1 bg-red-500/20 text-red-400 text-xs" onclick="rejectResale('${item.id}')">Отклонить</button>
+          </div>
+        </div>
+      `).join('');
+      html += '</div>';
+    }
+    return html;
+  } catch(e) { return `<p class="text-red-400">Ошибка</p>`; }
 }
 
 // Helper to convert File to base64
