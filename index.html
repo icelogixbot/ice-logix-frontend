@@ -3522,6 +3522,7 @@ const MAX_REQUESTS_TRUSTED = 100;
             <span class="footer-link" data-link="offer">Оферта</span>
             <span class="footer-link" data-link="privacy">Конфиденциальность</span>
             <span class="footer-link" data-link="contacts">Контакты</span>
+            <span class="footer-link" data-link="faq">Ответы на вопросы (FAQ)</span>
           </div>
           <div class="copyright">
             ИП Иванов И.И., УНП 123456789<br>
@@ -3771,7 +3772,14 @@ function attachHomeHandlers() {
         el.addEventListener('click', () => tgUtil.alert('Соцсети будут подключены позже'));
       });
       document.querySelectorAll('.footer-link').forEach(el => {
-        el.addEventListener('click', () => tgUtil.alert(el.innerText + ' будет доступно позже'));
+        el.addEventListener('click', () => {
+          if (el.dataset.link === 'faq') {
+            currentSubScreen = 'faq';
+            renderCurrentScreen();
+          } else {
+            tgUtil.alert(el.innerText + ' будет доступно позже');
+          }
+        });
       });
       loadHomeProducts('popular');
       document.getElementById('tabPopular')?.addEventListener('click', () => {
@@ -7679,6 +7687,8 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
         balanceLabel = 'Семейный баланс (Вы глава)';
       }
 
+      const trustedBadge = userLimits.isTrusted ? `<span class="ix text-cyan-400" title="Проверенный партнер"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>` : '';
+
       return `
   <!-- Profile Header Card -->
   <div class="glass-card text-center mb-5 page-enter">
@@ -7693,7 +7703,7 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
       </button>
     </div>
     <div class="flex items-center justify-center gap-2 mb-2">
-      <h2 class="text-xl font-bold" id="profileNameDisplay">${userName}</h2>
+      <h2 class="text-xl font-bold flex items-center gap-1" id="profileNameDisplay">${userName}${trustedBadge}</h2>
       <button id="editNameBtn" class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--glass-bg); border: 1px solid var(--glass-border);">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -8657,7 +8667,7 @@ async function renderAcademy() {
               certBtn.className = 'getCertBtn mt-2 w-full bg-gradient-to-r from-yellow-400 to-orange-500 py-2.5 rounded-xl font-bold text-sm text-slate-900';
               certBtn.dataset.courseId = courseId;
               certBtn.dataset.title = title;
-              certBtn.innerHTML = '<span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16M10 14.66V17c0 .55-.47 1-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47 1 .97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></span> Получить сертификат';
+              certBtn.innerHTML = '<span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Получить статус "Проверенный партнер"';
               certBtn.onclick = () => handleGetCert(courseId, title);
               card.querySelector('.lessons-container')?.before(certBtn);
             }
@@ -8798,13 +8808,12 @@ async function renderAcademy() {
       // ── handleGetCert ───────────────────────────────────────────────
       async function handleGetCert(courseId, courseTitle) {
         try {
-          tgUtil.alert('⚠️ Сертификат генерируется...');
-          await supabaseClient.from('certificates').upsert(
-            { user_id: userId, course_id: courseId, certificate_url: 'https://example.com/cert.pdf', issued_at: new Date().toISOString() },
-            { onConflict: 'user_id,course_id' }
-          );
-          tgUtil.alert(`Сертификат по курсу "${courseTitle}" готов!\nСсылка: https://example.com/cert.pdf`);
-        } catch(e) { tgUtil.alert('Ошибка генерации: ' + e.message); }
+          tgUtil.alert('Подтверждаем статус...');
+          await supabaseClient.from('users').update({ is_trusted: true }).eq('user_id', userId);
+          userLimits.isTrusted = true;
+          tgUtil.alert(`Поздравляем! Статус "Проверенный партнер" успешно получен! 🎉`);
+          renderCurrentScreen();
+        } catch(e) { tgUtil.alert('Ошибка: ' + e.message); }
       }
 
       // ── addCourse (owner) ───────────────────────────────────────────
@@ -12295,6 +12304,79 @@ function ensureBackButtonForSubscreen() {
   // Уже добавлена кнопка вручную в каждом рендере, но можно оставить пустой
 }
 
+// ==================== РЕНДЕР FAQ ====================
+async function renderFAQ() {
+  try {
+    const { data, error } = await supabaseClient.from('faq_items').select('*').order('category', { ascending: true }).order('order_index', { ascending: true });
+    if (error) throw error;
+    
+    let faqsHtml = '';
+    if (!data || data.length === 0) {
+      faqsHtml = '<p class="text-white/50 text-center py-4">База знаний пока пуста. (Заполните таблицу faq_items)</p>';
+    } else {
+      const grouped = data.reduce((acc, item) => {
+        acc[item.category] = acc[item.category] || [];
+        acc[item.category].push(item);
+        return acc;
+      }, {});
+      
+      for (const [cat, items] of Object.entries(grouped)) {
+        faqsHtml += `
+          <div class="mb-6">
+            <h3 class="text-white font-bold text-lg mb-3 flex items-center gap-2">
+              <span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> ${cat}
+            </h3>
+            <div class="space-y-2">
+              ${items.map(item => `
+                <div class="faq-item bg-white/5 border border-white/10 rounded-xl overflow-hidden transition-all">
+                  <button class="faq-btn w-full p-4 flex justify-between items-center text-left hover:bg-white/5 transition" data-id="${item.id}">
+                    <span class="text-white font-medium text-sm pr-4">${item.question}</span>
+                    <span class="faq-icon ix transition-transform text-white/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                  </button>
+                  <div class="faq-content hidden px-4 pb-4 text-white/70 text-xs leading-relaxed border-t border-white/5 pt-3">
+                    ${item.answer.replace(/\n/g, '<br>')}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    return `
+      <button id="backFromFaqBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
+      <div class="glass-card page-enter">
+        <h2 class="text-xl font-bold mb-4 text-white">Частые вопросы (FAQ)</h2>
+        <p class="text-white/50 text-xs mb-6">Здесь собраны ответы на самые популярные вопросы по заказам, доставке и финансам.</p>
+        ${faqsHtml}
+      </div>
+      ${renderFooter()}
+    `;
+  } catch (err) {
+    return `<p class="text-red-400">Ошибка загрузки FAQ: ${err.message}</p>`;
+  }
+}
+
+function attachFAQHandlers() {
+  const backBtn = document.getElementById('backFromFaqBtn');
+  if (backBtn) backBtn.addEventListener('click', () => { currentSubScreen = null; renderCurrentScreen(); });
+
+  document.querySelectorAll('.faq-btn').forEach(btn => {
+    btn.onclick = () => {
+      const content = btn.nextElementSibling;
+      const icon = btn.querySelector('.faq-icon');
+      if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        icon.style.transform = 'rotate(180deg)';
+      } else {
+        content.classList.add('hidden');
+        icon.style.transform = 'rotate(0deg)';
+      }
+    };
+  });
+}
+
     // ==================== RENDER CURRENT SCREEN ====================
     async function renderCurrentScreen() {
       const contentDiv = document.getElementById('content');
@@ -12336,6 +12418,12 @@ function ensureBackButtonForSubscreen() {
     ensureBackButtonForSubscreen();
     return;
   } 
+  if (currentSubScreen === 'faq') {
+    contentDiv.innerHTML = await renderFAQ();
+    attachFAQHandlers();
+    ensureBackButtonForSubscreen();
+    return;
+  }
   
   if (currentTab !== 'calculator') {
   window.activePromotionId = null;
@@ -12549,16 +12637,26 @@ function attachMarketplacesHandlers() {
       return;
     }
     
-    grid.innerHTML = filtered.map(mp => `
+    grid.innerHTML = filtered.map(mp => {
+      let tagsHtml = '';
+      const name = (mp.name || '').toLowerCase();
+      if (mp.requires_vpn || name.includes('poizon')) tagsHtml += '<span class="text-[10px] px-1.5 py-0.5 rounded-sm bg-red-500/20 text-red-400 border border-red-500/30 mt-1">Нужен VPN</span>';
+      if (name.includes('1688')) tagsHtml += '<span class="text-[10px] px-1.5 py-0.5 rounded-sm bg-orange-500/20 text-orange-400 border border-orange-500/30 mt-1">Только опт</span>';
+      if (name.includes('taobao') || name.includes('wechat')) tagsHtml += '<span class="text-[10px] px-1.5 py-0.5 rounded-sm bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 mt-1">Сложная рег.</span>';
+      
+      return `
       <div class="product-card flex flex-col h-full">
         <div class="aspect-square flex items-center justify-center p-4 relative" style="background: var(--glass-bg-strong);">
           ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-contain" alt="${mp.name}">` : '<span class="text-5xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span></span>'}
           ${mp.country === 'США' || mp.country === 'Япония' || mp.country === 'ОАЭ' ? '<span class="absolute top-2 right-2 bg-yellow-500/80 text-black text-xs px-2 py-1 rounded-full">Скоро</span>' : ''}
         </div>
-        <div class="p-3 flex-1 flex flex-col">
+        <div class="p-3 flex-1 flex flex-col relative">
           <h3 class="font-bold text-white text-lg">${mp.name}</h3>
-          <p class="text-white/70 text-xs">${mp.country}</p>
-          <div class="flex flex-wrap gap-1 mt-1">
+          <p class="text-white/70 text-xs mb-1">${mp.country}</p>
+          <div class="flex flex-wrap gap-1 mb-2">
+            ${tagsHtml}
+          </div>
+          <div class="flex flex-wrap gap-1 mt-auto">
             ${mp.gender?.slice(0, 2).map(g => `<span class="text-xs px-2 py-0.5 rounded-full" style="color: var(--text-secondary); background: var(--glass-bg);">${g}</span>`).join('') || ''}
           </div>
           <div class="flex flex-wrap gap-1 mt-1">
@@ -12569,17 +12667,17 @@ function attachMarketplacesHandlers() {
           
           <div class="flex items-center justify-between mt-3 pt-2 border-t border-white/10">
             <a href="${mp.website_url}" target="_blank" class="text-cyan-400 text-sm underline">Перейти</a>
-            <button class="instruction-btn bg-white/20 hover:bg-white/30 rounded-full w-8 h-8 flex items-center justify-center" 
+            <button class="instruction-btn flex items-center gap-1 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 px-3 py-1.5 rounded-lg text-xs font-bold transition" 
               data-name="${mp.name.replace(/"/g, '&quot;')}" 
               data-instruction="${(mp.instruction || '').replace(/"/g, '&quot;')}"
               data-instruction-images='${JSON.stringify(mp.instruction_images || [])}'
               data-requires-vpn="${mp.requires_vpn}">
-              <span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+              <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span> Как покупать
             </button>
           </div>
         </div>
       </div>
-    `).join('');
+    `}).join('');
     
     document.querySelectorAll('.instruction-btn').forEach(btn => {
       btn.onclick = (e) => {
