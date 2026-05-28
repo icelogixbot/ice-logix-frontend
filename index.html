@@ -13,6 +13,9 @@
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/vfs_fonts.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
   <script src="./pricing-engine.js"></script>
   <script src="./onboarding.js"></script>
   <style>
@@ -8809,6 +8812,36 @@ async function renderAcademy() {
         }
       }
 
+    function renderFooter() {
+      return `
+        <div class="app-footer">
+          <div class="social-icons"><span class="social-icon" data-social="tg">📱</span><span class="social-icon" data-social="ig">📷</span><span class="social-icon" data-social="vk">🎵</span></div>
+          <div class="footer-links"><span class="footer-link" data-link="about">О нас (ICE LOGIX)</span><span class="footer-link" data-link="offer">Публичная оферта</span><span class="footer-link" data-link="privacy">Политика конфиденциальности</span><span class="footer-link" data-link="contacts">Контакты</span></div>
+          <div class="copyright">ИП Иванов И.И., УНП 123456789<br>© 2025 ICE LOGIX. Все права защищены.</div>
+        </div>
+      `;
+    }
+
+    async function renderPromoBanners() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('promotions')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(5);
+    if (error) throw error;
+    if (!data || data.length === 0) return '';
+    
+    return data.map(p => `
+      <div class="banner-slide" data-promotion-id="${p.id}" style="background-image: url('${p.banner_url}'); background-size: cover; background-position: center; min-width: 280px; height: 120px;">
+      </div>
+    `).join('');
+  } catch (err) {
+    console.error('Ошибка загрузки баннеров:', err);
+    return '';
+  }
+}
       // ── handleGetCert ───────────────────────────────────────────────
       async function handleGetCert(courseId, courseTitle) {
         try {
@@ -8842,6 +8875,16 @@ async function renderAcademy() {
           } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }
         };
       });
+      document.querySelectorAll('.footer-link').forEach(el => {
+        el.addEventListener('click', () => {
+          const link = el.getAttribute('data-link');
+          if (link === 'about') {
+            currentSubScreen = 'about';
+            renderCurrentScreen();
+          } else {
+            alert(el.innerText + ' будет доступно позже');
+          }
+        });
 
       // ── getCertBtn ──────────────────────────────────────────────────
       document.querySelectorAll('.getCertBtn').forEach(btn => {
@@ -9529,6 +9572,113 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       } catch (err) { return '<p class="text-center mt-10 text-red-400">Ошибка загрузки отзывов</p>'; }
     }
 
+    // ==================== РЕНДЕР НОВОГО ЗАКАЗА (С ПРОМОКОДАМИ) ====================
+    async function renderNewOrder() {
+      const d = window.tempOrder || { url: '', price: 0, weight: 0, total: 0, discountAmount: 0, appliedPromo: null };
+      const finalTotal = d.total - (d.discountAmount || 0);
+      return `
+      ${window.tempOrder?.items ? `
+  <div class="bg-white/5 rounded-xl p-3 mb-3">
+    <p class="text-white font-bold mb-2">🛒 Выбранные товары:</p>
+    ${window.tempOrder.items.map(item => {
+      const itemTotal = (item.price * 0.45 + 12) * item.quantity;
+      return `
+        <div class="flex justify-between text-sm">
+          <span class="text-white/70">${item.title} (${item.quantity} шт.)</span>
+          <span class="text-cyan-400">${itemTotal.toFixed(2)} ❄️</span>
+        </div>
+      `;
+    }).join('')}
+    <p class="text-right text-white mt-2">Примерная сумма: <span class="text-cyan-400" id="multiItemTotal">${window.tempOrder.total.toFixed(2)} ❄️</span></p>
+  </div>
+` : ''}
+        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-5 shadow-lg">
+          <h2 class="text-xl font-bold mb-4">✨ Новый заказ</h2>
+          <label class="text-white/70 text-sm">Ссылка на товар</label>
+          <div class="flex flex-wrap gap-2 mt-1 mb-1">
+            <input type="text" id="orderUrl" class="flex-1 min-w-[200px] p-3 rounded-xl bg-white/20 border border-white/30" value="${d.url}" placeholder="https://...">
+            <button id="analyzeOrderLinkBtn" class="bg-cyan-500 hover:bg-cyan-600 px-4 py-3 rounded-xl text-sm font-bold whitespace-nowrap transition flex-shrink-0">🔍 Анализировать</button>
+          </div>
+          <div id="parsedOrderTitle" class="text-cyan-400 text-xs mb-1 hidden"></div>
+          <div id="orderScreenshotWidget" class="hidden"></div>
+          <div id="parsedOrderBrand" class="text-white/70 text-xs mb-1 hidden"></div>
+          <div id="parsedOrderMarketplace" class="text-white/50 text-xs mb-1 hidden"></div>
+          <div id="parsedOrderDesc" class="text-white/70 text-xs mb-2 hidden"></div>
+          <div id="parsedOrderColor" class="text-white/50 text-sm mb-3 hidden"></div>
+          <label class="text-white/70 text-sm block mt-2">Цена (<span id="orderPriceCurrency">¥</span>)</label>
+          <input type="number" id="orderPrice" class="w-full mt-1 p-3 rounded-xl bg-white/20 border border-white/30 mb-3" placeholder="0">
+          <label class="text-white/70 text-sm block mt-2">Валюта</label>
+          <select id="orderCurrency" class="w-full mt-1 p-3 rounded-xl bg-white/20 border border-white/30 mb-3">
+            <option value="">—</option>
+            <option value="CNY">CNY (¥)</option>
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="GBP">GBP (£)</option>
+            <option value="RUB">RUB (₽)</option>
+            <option value="BYN">BYN (Br)</option>
+          </select>
+          <label class="text-white/70 text-sm block mt-2">Категория</label>
+          <select id="orderCategory" class="w-full mt-1 p-3 rounded-xl bg-white/20 border border-white/30 mb-3">
+            <option value="">— для автоподбора веса —</option>
+            <option value="Обувь">Обувь</option>
+            <option value="Одежда">Одежда</option>
+            <option value="Аксессуары">Аксессуары</option>
+          </select>
+          <label class="text-white/70 text-sm block">Размер</label>
+          <input type="text" id="orderSize" class="w-full mt-1 p-3 rounded-xl bg-white/20 border border-white/30 mb-3" placeholder="Размер (напр. 42, M, L)">
+          <h3 class="text-white font-bold mb-2 mt-4">📦 Дополнительные услуги склада</h3>
+          <div class="bg-white/5 rounded-xl p-3 mb-3 space-y-2">
+            <label class="flex items-center gap-2 text-white/80 text-sm cursor-pointer">
+              <input type="checkbox" id="orderKeepBox" class="w-4 h-4">
+              <span>Сохранить оригинальную коробку</span>
+            </label>
+            <label class="flex items-center gap-2 text-white/80 text-sm cursor-pointer">
+              <input type="checkbox" id="orderVacuum" class="w-4 h-4">
+              <span>Вакуумная упаковка (снижает объем) +3.3 ❄️</span>
+            </label>
+            <label class="flex items-center gap-2 text-white/80 text-sm cursor-pointer">
+              <input type="checkbox" id="orderBubbleWrap" class="w-4 h-4">
+              <span>Пупырчатая пленка (защита) +6.6 ❄️</span>
+            </label>
+          </div>
+          <label class="text-white/70 text-sm block mt-2">Вес (кг)</label>
+          <div class="flex items-center gap-3 mt-1"><input type="number" id="orderWeight" class="flex-1 p-3 rounded-xl bg-white/20 border border-white/30" placeholder="0" data-packaging="0.3"><span class="text-white/80 bg-white/10 px-3 py-1 rounded-full">кг</span></div>
+          
+          <label class="text-white/70 text-sm block mt-3">Способ доставки по РБ</label>
+          <select id="orderDeliveryMethod" class="w-full mt-1 p-3 rounded-xl bg-white/20 border border-white/30 mb-3">
+            <option value="belpost">Белпочта</option>
+            <option value="europost">Европочта</option>
+            <option value="pickup_nesvizh">Самовывоз (г. Несвиж)</option>
+          </select>
+          
+          <label class="text-white/70 text-sm block mt-2">Способ оплаты</label>
+          <select id="orderPaymentMethod" class="w-full mt-1 p-3 rounded-xl bg-white/20 border border-white/30 mb-3">
+            <option value="erip">ЕРИП</option>
+            <option value="card">Банковская карта (РБ)</option>
+            <option value="tg_stars">Telegram Stars (⭐️)</option>
+          </select>
+
+          <div class="mt-3"><label class="text-white/70 text-sm">Промокод</label><div class="flex flex-col sm:flex-row gap-2 mt-1"><input type="text" id="promoCode" class="flex-1 p-3 rounded-xl bg-white/20 border border-white/30" placeholder="Введите промокод"><button id="applyPromoBtn" class="bg-cyan-500 px-4 py-3 rounded-xl whitespace-nowrap">Применить</button></div><p id="promoMessage" class="text-xs mt-1 hidden"></p></div>
+          
+          <div id="customsWarning" class="bg-red-500/20 border border-red-500/50 rounded-xl p-3 mt-4 hidden">
+            <p class="text-red-400 text-sm font-bold mb-1">⚠️ Внимание: Превышен таможенный лимит!</p>
+            <p class="text-white/80 text-xs mb-2">Сумма заказа превышает беспошлинный лимит РБ. Вам придется уплатить пошлину при получении.</p>
+            <button id="splitOrderBtn" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold w-full">📦 Разбить заказ на 2 посылки</button>
+          </div>
+
+          <p class="mt-4 text-lg">Итого (с комиссией 20%): <span id="orderTotal" class="font-bold text-cyan-400">${(d.total - (d.discountAmount || 0)).toFixed(2)}</span> ❄️</p>
+          ${d.discountAmount > 0 ? `<p class="text-green-400 text-sm mt-1">Скидка: -${d.discountAmount} ❄️</p>` : ''}
+          <p class="text-white/70 text-xs mt-1">*Предоплата 75%: <span id="prepaymentAmount" class="font-bold text-cyan-300">${((d.total - (d.discountAmount || 0)) * 0.75).toFixed(2)}</span> ❄️</p>
+          <div class="mt-4 flex items-start gap-2">
+          <input type="checkbox" id="agreeOffer" class="mt-1">
+          <label for="agreeOffer" class="text-white/70 text-sm">
+          Я принимаю условия <a href="https://example.com/offer.pdf" target="_blank" class="text-cyan-400 underline">публичной оферты</a> и даю согласие на обработку персональных данных
+          </label>
+          </div>
+          <button id="createOrderFinal" class="mt-5 w-full bg-green-600 hover:bg-green-700 py-3 rounded-xl font-bold">Оформить заказ</button>
+        </div>
+        ${renderFooter()}
+      `;
     async function canUserReview() {
       if (!userId) return false;
       const { data, error } = await supabaseClient.from('orders').select('id').eq('user_id', userId).eq('status', 'delivered').limit(1);
@@ -9541,6 +9691,55 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       if (prevBtn) prevBtn.onclick = () => { if (reviewsPage > 1) { reviewsPage--; renderCurrentScreen(); } };
       if (nextBtn) nextBtn.onclick = () => { if (reviewsPage < reviewsTotalPages) { reviewsPage++; renderCurrentScreen(); } };
       
+      const update = async () => {
+        let price = parseFloat(priceInp?.value);
+        if (isNaN(price)) price = 520;
+        let weight = parseFloat(weightInp?.value);
+        if (isNaN(weight)) weight = 1;
+
+        const vacuumChk = document.getElementById('orderVacuum');
+        const bubbleChk = document.getElementById('orderBubbleWrap');
+        let extraCost = 0;
+        if (vacuumChk?.checked) extraCost += 3.3; 
+        if (bubbleChk?.checked) extraCost += 6.6;
+
+        let total = (price * 0.45 * 1.20) + (weight * 12) + extraCost;
+        let discount = window.tempOrder?.discountAmount || 0;
+        if (totalSpan) totalSpan.innerText = (total - discount).toFixed(2);
+        if (prepaymentSpan) prepaymentSpan.innerText = ((total - discount) * 0.75).toFixed(2);
+        window.tempOrder = { ...window.tempOrder, url: urlInp?.value || '', price: price, weight: weight, total: total, discountAmount: discount, cny_rate: 0.45 };
+        
+        const warnDiv = document.getElementById('customsWarning');
+        try {
+           const { data } = await supabaseClient.from('settings').select('value').eq('key', 'customs_limits').single();
+           const limitEur = data?.value?.limit || 200;
+           const orderEur = price / 7.8;
+           if (orderEur > limitEur) {
+             if (warnDiv) warnDiv.classList.remove('hidden');
+           } else {
+             if (warnDiv) warnDiv.classList.add('hidden');
+           }
+        } catch(e){}
+      };
+      
+      const splitOrderBtn = document.getElementById('splitOrderBtn');
+      if (splitOrderBtn) {
+        splitOrderBtn.onclick = () => {
+          alert('Функция разделения посылки формирует два заказа с разными трек-номерами. Вы сможете указать второго получателя на следующем этапе!');
+        }
+      }
+      
+      if (priceInp) priceInp.addEventListener('input', update);
+      if (weightInp) weightInp.addEventListener('input', update);
+      const vacuumChk = document.getElementById('orderVacuum');
+      if (vacuumChk) vacuumChk.addEventListener('change', update);
+      const bubbleChk = document.getElementById('orderBubbleWrap');
+      if (bubbleChk) bubbleChk.addEventListener('change', update);
+
+      // Умный подбор веса по категории и размеру
+      const orderCategory = document.getElementById('orderCategory');
+      const orderSize = document.getElementById('orderSize');
+      const orderKeepBox = document.getElementById('orderKeepBox');
       const regionTabs = document.querySelectorAll('#reviewsRegionTabs button');
       regionTabs.forEach(tab => {
           tab.onclick = () => {
@@ -9868,6 +10067,101 @@ async function renderPromotionsAdminList() {
     return '<p class="text-red-400">Ошибка загрузки</p>';
   }
 }
+
+try {
+  const { data, error } = await supabaseClient
+    .from('promocodes')
+    .select('*')
+    .eq('code', code)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (error) {
+    promoMessage.innerText = 'Ошибка проверки кода';
+    promoMessage.classList.remove('hidden');
+    console.error(error);
+    return;
+  }
+  if (!data) {
+    promoMessage.innerText = 'Неверный или неактивный промокод';
+    promoMessage.classList.remove('hidden');
+    return;
+  }
+
+  let discountAmount = 0;
+  if (data.discount_type === 'percent') {
+    discountAmount = window.tempOrder.total * (data.discount_value / 100);
+  } else {
+    discountAmount = data.discount_value;
+  }
+  if (discountAmount > window.tempOrder.total) discountAmount = window.tempOrder.total;
+
+  window.tempOrder.discountAmount = discountAmount;
+  window.tempOrder.appliedPromo = data;
+  update(); // функция пересчёта итого
+  promoMessage.innerText = `Промокод применён! Скидка: ${discountAmount.toFixed(2)} ❄️`;
+  promoMessage.classList.remove('hidden');
+  promoMessage.style.color = '#4ade80';
+} catch (err) {
+  promoMessage.innerText = 'Ошибка: ' + err.message;
+  promoMessage.classList.remove('hidden');
+          }
+        }
+      }
+      
+      const createBtn = document.getElementById('createOrderFinal');
+if (createBtn) {
+  createBtn.onclick = async () => {
+    if (!window.tempOrder || !userId) { alert('Ошибка: заполните все поля'); return; }
+    try {
+      const { data, error } = await supabaseClient.from('orders').insert({
+        user_id: userId,
+        source_url: window.tempOrder.items?.[0]?.url || window.tempOrder.url,
+        items: window.tempOrder.items || null,
+        cart_items: window.tempOrder.items || null,
+        weight_estimated: window.tempOrder.weight || 1,
+        price_original: window.tempOrder.price || 0,
+        price_byn: (window.tempOrder.price || 0) * 0.45 * 1.20,
+        delivery_cost_estimated: (window.tempOrder.weight || 1) * 12,
+        prepayment_amount: (window.tempOrder.total - window.tempOrder.discountAmount) * 0.75,
+        payment_method: document.getElementById('orderPaymentMethod')?.value || 'erip',
+        delivery_method: document.getElementById('orderDeliveryMethod')?.value || 'belpost',
+        cny_rate: window.tempOrder.cny_rate || 0.45,
+        status: 'pending',
+        discount_applied: window.tempOrder.discountAmount || 0,
+        promo_code: window.tempOrder.appliedPromo?.code || null,
+        extra_services: {
+          vacuum: document.getElementById('orderVacuum')?.checked || false,
+          bubble_wrap: document.getElementById('orderBubbleWrap')?.checked || false,
+          keep_box: document.getElementById('orderKeepBox')?.checked || false
+        }
+      }).select();
+      if (error) throw error;
+
+      alert(`Заказ создан! Номер: ${data[0].id}. Сумма предоплаты: ${((window.tempOrder.total - window.tempOrder.discountAmount) * 0.75).toFixed(2)} ❄️`);
+
+      // ===== ВСТАВЬТЕ СЮДА =====
+      // Удаляем выбранные товары из корзины (если заказ создан из корзины)
+      if (window.tempOrder.items && window.tempOrder.items.length > 0) {
+        const cartIds = window.tempOrder.items.map(item => item.cartId).filter(Boolean);
+        if (cartIds.length > 0) {
+          await supabaseClient.from('cart').delete().in('id', cartIds);
+        }
+        await updateCartBadge();
+      }
+      // ========================
+
+      // Снятие лимита после первого заказа
+      if (!userLimits.isTrusted) {
+        await supabaseClient.from('users').update({ is_trusted: true }).eq('user_id', userId);
+        userLimits.isTrusted = true;
+        alert('🎉 Поздравляем с первым заказом! Лимит на расчёты увеличен до 100 в день.');
+      }
+
+      window.tempOrder = null;
+      switchTab('home');
+      } catch (err) { alert('Ошибка: ' + err.message); }
+  };
     
 // ==================== ADMIN LOGGING + CSV HELPERS ====================
 async function logAdminAction(action, details = {}) {
@@ -9988,6 +10282,10 @@ async function renderAdminLegitChecksList() {
                 </div>
               `).join('')}
             </div>
+            <div class="mt-3 flex gap-2">
+              <button class="flex-1 bg-white/20 hover:bg-white/30 py-2 rounded-lg text-sm text-white" onclick="window.open('https://t.me/icelogix_bot?text=Вопрос по заказу ${order.id.slice(0,8)}', '_blank')">💬 Поддержка</button>
+              <button class="flex-1 bg-blue-500/50 hover:bg-blue-500/70 py-2 rounded-lg text-sm text-white" onclick="downloadCustomsInvoice('${order.id}')">📄 PDF Инвойс</button>
+            </div>
           </div>
           ${isPending ? `
             <div class="flex gap-2 pt-1">
@@ -10045,6 +10343,80 @@ async function renderAdmin2FA() {
         <button class="bg-white/5 hover:bg-white/10 text-white font-bold text-xl py-4 rounded-xl border border-white/10" data-digit="0">0</button>
         <button class="bg-white/5 hover:bg-white/10 text-red-400 font-bold text-xl py-4 rounded-xl border border-white/10" id="pinDeleteBtn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg></span></button>
       </div>
+      <div id="recentTransactions" class="mt-2 text-left"></div>
+    </div>
+    
+    <div class="mt-4 p-3 bg-white/5 rounded-xl ${referralStats.count >= 3 ? 'border border-yellow-500/30' : ''}">
+      <div class="flex justify-between items-center">
+        <p class="text-white/70 text-sm flex items-center">🤝 Реферальная программа ${referralStats.count >= 3 ? '<span class="bg-yellow-500 text-black text-[10px] px-2 py-0.5 rounded-full font-bold ml-2">VIP</span>' : ''}</p>
+        ${referralStats.count >= 3 ? '<span class="text-yellow-400 text-xs">Комиссия снижена!</span>' : '<span class="text-white/40 text-xs">Пригласи 3-х для VIP</span>'}
+      </div>
+      <p class="text-white text-sm mt-1">Приглашено: <span class="text-cyan-400 font-bold">${referralStats.count}</span> | Бонусов: <span class="text-green-400 font-bold">${referralStats.bonus} ❄️</span></p>
+      ${userReferralCode ? `<p class="text-white/50 text-xs mt-1">Ваш код: <span class="text-cyan-400">${userReferralCode}</span></p><button id="copyReferralLinkBtn" class="mt-2 bg-white/20 px-4 py-2 rounded-full text-sm w-full">📋 Скопировать ссылку</button>` : ''}
+    </div>
+    
+    <div class="grid grid-cols-2 gap-2 mt-4">
+      <button id="legitCheckBtn" class="col-span-2 bg-gradient-to-r from-green-500/20 to-teal-500/20 hover:from-green-500/30 hover:to-teal-500/30 border border-green-500/30 py-3 rounded-full transition text-sm font-bold text-green-300 flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(20,184,166,0.1)]">🛡️ Legit Check (Проверка подлинности)</button>
+      <button id="fortuneWheelBtn" class="col-span-2 bg-gradient-to-r from-pink-500/20 to-purple-500/20 hover:from-pink-500/30 hover:to-purple-500/30 border border-pink-500/30 py-3 rounded-full transition text-sm font-bold text-pink-300 flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(236,72,153,0.1)]">🎡 Крутить Колесо Фортуны</button>
+      <button id="myOrdersBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition text-sm">📋 Мои заказы</button>
+      <button id="wishlistBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition text-sm">❤️ Избранное</button>
+      <button id="dropshipperBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition text-sm">📦 ${isDropshipper ? 'Кабинет дропшиппера' : 'Стать дропшиппером'}</button>
+      <button id="academyBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition text-sm">🎓 Академия</button>
+      ${isOwner ? '<button id="adminPanelBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition text-sm">⚙️ Админ-панель</button>' : ''}
+      <button id="passportDataBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition text-sm">🛂 Паспорт</button>
+      <button id="measurementsBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition text-sm">📏 Мои размеры</button>
+      <button id="phoneBindingBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition text-sm">📱 Телефон</button>
+      <button id="accountRecoveryBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition text-sm">🔑 Восстановить</button>
+      <button id="appSettingsBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition text-sm">⚙️ Настройки</button>
+      <button id="cartBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition text-sm relative">
+  🛒 Корзина <span id="cartBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+</button>
+    </div>
+    
+    <button id="logoutBtn" class="mt-4 w-full bg-red-500/20 hover:bg-red-500/30 py-2 rounded-full transition">Выйти из аккаунта</button>
+  </div>
+  
+  <!-- Legit Check Modal -->
+  <div id="legitCheckModal" class="fixed inset-0 bg-black/80 z-[100] hidden flex-col justify-end backdrop-blur-sm">
+    <div class="bg-[#1e1e24] rounded-t-3xl p-6 relative shadow-[0_-10px_30px_rgba(20,184,166,0.1)] border-t border-teal-500/30 mb-0 animate-[slideUp_0.3s_ease-out]">
+      <button id="closeLegitCheckBtn" class="absolute top-4 right-4 text-white/50 hover:text-white text-xl">✕</button>
+      
+      <div class="text-center mb-6 mt-2">
+        <div class="w-16 h-16 bg-gradient-to-br from-green-400 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-[0_0_20px_rgba(20,184,166,0.4)]">
+          <span class="text-3xl">🛡️</span>
+        </div>
+        <h2 class="text-2xl font-bold text-white mb-1">Legit Check</h2>
+        <p class="text-white/60 text-sm">от наших партнёров <span class="font-bold text-white">ShopbyShop</span></p>
+      </div>
+
+      <div class="space-y-3 mb-6">
+        <div class="flex items-start gap-3 bg-white/5 p-3 rounded-xl border border-white/5">
+          <div class="text-teal-400 mt-0.5 text-lg">📸</div>
+          <p class="text-white/80 text-xs leading-relaxed"><span class="font-bold text-white text-sm">1. Отправьте фото</span><br>Скиньте фото бирок, стельки, швов и коробки прямо в этот чат (боту).</p>
+        </div>
+        <div class="flex items-start gap-3 bg-white/5 p-3 rounded-xl border border-white/5">
+          <div class="text-teal-400 mt-0.5 text-lg">⏱️</div>
+          <p class="text-white/80 text-xs leading-relaxed"><span class="font-bold text-white text-sm">2. Подождите 30 минут</span><br>Менеджеры ShopbyShop детально проверят вещь на оригинальность.</p>
+        </div>
+        <div class="flex items-start gap-3 bg-white/5 p-3 rounded-xl border border-white/5">
+          <div class="text-teal-400 mt-0.5 text-lg">📜</div>
+          <p class="text-white/80 text-xs leading-relaxed"><span class="font-bold text-white text-sm">3. Получите сертификат</span><br>Результат проверки и сертификат подлинности придут в этот же чат.</p>
+        </div>
+      </div>
+
+      <button id="startLegitCheckBtn" class="w-full bg-gradient-to-r from-green-500 to-teal-500 hover:scale-[1.02] transition py-3 rounded-xl text-white font-bold text-sm shadow-[0_0_15px_rgba(20,184,166,0.3)]">
+        🚀 Понятно, отправить фото
+      </button>
+    </div>
+  </div>
+
+  ${renderFooter()}
+`;
+    }
+
+    function attachProfileHandlers() {
+  const fortuneBtn = document.getElementById('fortuneWheelBtn');
+  if (fortuneBtn) fortuneBtn.onclick = () => showFortuneWheel();
     </div>
   `;
 }
@@ -10101,6 +10473,73 @@ function attachAdmin2FAHandlers() {
         updateDots();
       }
     };
+  }
+  // Паспортные данные
+const passportBtn = document.getElementById('passportDataBtn');
+if (passportBtn) passportBtn.onclick = () => showPassportForm();
+
+  // Мои размеры
+const measurementsBtn = document.getElementById('measurementsBtn');
+if (measurementsBtn) measurementsBtn.onclick = () => showMeasurementsForm();
+
+// Скачать договор
+const downloadAgreementBtn = document.getElementById('downloadAgreementBtn');
+if (downloadAgreementBtn) downloadAgreementBtn.onclick = () => downloadAgreement();
+
+// Смена аватара
+const changeAvatarBtn = document.getElementById('changeAvatarBtn');
+if (changeAvatarBtn) changeAvatarBtn.onclick = () => showAvatarUploader();
+
+// Редактирование имени
+const editNameBtn = document.getElementById('editNameBtn');
+if (editNameBtn) editNameBtn.onclick = () => showEditNameForm();
+
+// Все транзакции
+const allTransactionsBtn = document.getElementById('showAllTransactionsBtn');
+if (allTransactionsBtn) allTransactionsBtn.onclick = () => showAllTransactions();
+
+// Настройки уведомлений
+const notifSettingsBtn = document.getElementById('notificationsSettingsBtn');
+if (notifSettingsBtn) notifSettingsBtn.onclick = () => showAppSettings('notifications');
+const appSettingsBtn2 = document.getElementById('appSettingsBtn');
+if (appSettingsBtn2) appSettingsBtn2.onclick = () => showAppSettings('notifications');
+const accountRecoveryBtn = document.getElementById('accountRecoveryBtn');
+if (accountRecoveryBtn) accountRecoveryBtn.onclick = () => showAccountRecovery();
+
+// Привязка телефона
+const phoneBindingBtn = document.getElementById('phoneBindingBtn');
+if (phoneBindingBtn) phoneBindingBtn.onclick = () => showPhoneBinding();
+
+const cartBtn = document.getElementById('cartBtn');
+if (cartBtn) cartBtn.onclick = () => switchTab('cart');
+
+// Legit Check
+const legitCheckBtn = document.getElementById('legitCheckBtn');
+const legitCheckModal = document.getElementById('legitCheckModal');
+const closeLegitCheckBtn = document.getElementById('closeLegitCheckBtn');
+const startLegitCheckBtn = document.getElementById('startLegitCheckBtn');
+
+if (legitCheckBtn && legitCheckModal) {
+  legitCheckBtn.onclick = () => {
+    legitCheckModal.classList.remove('hidden');
+    legitCheckModal.classList.add('flex');
+  };
+}
+if (closeLegitCheckBtn && legitCheckModal) {
+  closeLegitCheckBtn.onclick = () => {
+    legitCheckModal.classList.add('hidden');
+    legitCheckModal.classList.remove('flex');
+  };
+}
+if (startLegitCheckBtn) {
+  startLegitCheckBtn.onclick = () => {
+    try {
+      tg.sendData(JSON.stringify({ action: 'start_legit_check' }));
+    } catch(e) {}
+    tg.close();
+  };
+}
+
   });
   
   document.getElementById('pinDeleteBtn').onclick = () => {
@@ -10284,6 +10723,10 @@ async function renderAdmin() {
             <button class="analytics-tab filter-chip" data-tab="analytics"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span> Продажи</button>
             <button class="analytics-tab filter-chip" data-tab="logs"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></span> Логи</button>
           </div>
+          <div class="flex gap-2">
+            <button id="showStatsTab" class="filter-chip active flex-1 text-center">📊 Статистика</button>
+            <button id="showContentHubTab" class="filter-chip flex-1 text-center">🎨 Контент-хаб</button>
+            <button id="showMyClientsTab" class="filter-chip flex-1 text-center">👥 Клиенты</button>
           <!-- Сводка балансов (всегда видна) -->
           <div id="balanceSummaryBlock" class="grid grid-cols-2 gap-2 mb-4">
             <p class="text-white/40 text-xs col-span-2 text-center py-1"><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Загрузка сводки...</p>
@@ -10363,6 +10806,17 @@ async function renderAdmin() {
             </div>
             <div id="logsList" class="space-y-1 max-h-80 overflow-y-auto text-xs">
               <p class="text-white/40 text-center py-3">Нажмите <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> для загрузки логов</p>
+            </div>
+          </div>
+          <div id="myClientsContainer" class="hidden">
+            <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4">
+              <div class="flex justify-between items-center mb-4">
+                <h3 class="text-white font-bold text-lg">Управление клиентами</h3>
+                <button id="addDropClientBtn" class="bg-cyan-500 hover:bg-cyan-600 px-3 py-1.5 rounded-lg text-sm font-bold transition shadow-lg">➕ Добавить</button>
+              </div>
+              <div id="dropClientsList" class="space-y-2">
+                <p class="text-white/50 text-sm text-center py-4">⏳ Загрузка...</p>
+              </div>
             </div>
           </div>
         </div>
@@ -11965,6 +12419,117 @@ window.renderSizeGuides = async () => {
   `;
 };
 
+function generateAdminOrderCard(order, userMap, isActive) {
+  const user = userMap[order.user_id] || {};
+  const displayName = user.full_name || 'Без имени';
+  const displayUsername = user.username ? '@' + user.username : '';
+  
+  const lastUpdated = order.updated_at ? new Date(order.updated_at).getTime() : new Date(order.created_at).getTime();
+  const daysPassed = (Date.now() - lastUpdated) / (1000 * 60 * 60 * 24);
+  const isRisky = daysPassed > 7 && order.status !== 'delivered' && order.status !== 'cancelled';
+  
+  const cardClass = isRisky 
+    ? "bg-red-500/10 border border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.2)]" 
+    : "bg-white/5 border border-transparent";
+
+  const actionButton = isActive
+    ? `<button class="archiveOrderBtn mt-2 text-xs bg-red-600/50 hover:bg-red-600 px-2 py-1.5 rounded-lg w-full text-center transition" data-order-id="${order.id}">🗑️ В архив</button>`
+    : `<button class="restoreOrderBtn mt-2 text-xs bg-green-600/50 hover:bg-green-600 px-2 py-1.5 rounded-lg w-full text-center transition" data-order-id="${order.id}">↩️ Восстановить</button>`;
+  
+  const statusSelect = isActive
+    ? `<select class="changeOrderStatus mt-2 w-full text-xs p-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:border-cyan-500" data-order-id="${order.id}" data-user-id="${order.user_id}" data-previous-status="${order.status}">
+        <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Новые</option>
+        <option value="paid" ${order.status === 'paid' ? 'selected' : ''}>Оплачен</option>
+        <option value="bought" ${order.status === 'bought' ? 'selected' : ''}>Выкуплен</option>
+        <option value="on_sklad_cn" ${order.status === 'on_sklad_cn' ? 'selected' : ''}>Склад КН</option>
+        <option value="in_transit" ${order.status === 'in_transit' ? 'selected' : ''}>В пути</option>
+        <option value="in_belarus" ${order.status === 'in_belarus' ? 'selected' : ''}>В РБ</option>
+        <option value="delivered" ${order.status === 'delivered' ? 'selected' : ''}>Доставлен</option>
+        <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>Отменён</option>
+      </select>`
+    : '';
+    
+  const managerSelect = isActive ? `
+    <select class="assignManager mt-2 w-full text-[10px] p-1.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/30" disabled>
+      <option>Автораспределение (Фаза 4)</option>
+    </select>
+  ` : '';
+
+  return \`
+    <div class="rounded-xl p-3 \${cardClass} mb-2 relative transition-all hover:bg-white/10">
+      \${isRisky ? '<div class="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shadow-lg animate-pulse">⚠️ > 7 дней</div>' : ''}
+      <div class="flex justify-between items-start mb-1">
+        <p class="text-white font-mono text-sm font-bold">#\${order.id.slice(0,8)}</p>
+        <span class="text-white/50 text-[10px]">\${new Date(order.created_at).toLocaleDateString('ru-RU')}</span>
+      </div>
+      <p class="text-white/80 text-xs truncate">👤 \${displayName} \${displayUsername}</p>
+      <div class="flex justify-between items-end mt-2">
+        <p class="text-cyan-400 text-sm font-bold">\${Number(order.prepayment_amount || 0).toFixed(2)} ❄️</p>
+        \${order.tracking_number_cn ? \`<p class="text-white/50 text-[10px] truncate max-w-[50%]">📦 \${order.tracking_number_cn}</p>\` : ''}
+      </div>
+      \${managerSelect}
+      \${statusSelect}
+      \${actionButton}
+    </div>
+  \`;
+}
+
+async function renderAdminOrdersList() {
+  try {
+    let query = supabaseClient.from('orders').select('*', { count: 'exact' });
+    if (adminOrdersMode === 'active') {
+      query = query.is('archived_at', null);
+    } else {
+      query = query.not('archived_at', 'is', null);
+    }
+    if (adminOrdersFilter !== 'all') {
+      query = query.eq('status', adminOrdersFilter);
+    }
+    query = query.order('created_at', { ascending: false });
+    
+    const from = (adminOrdersPage - 1) * 30; // Увеличим пагинацию для канбана
+    const to = from + 29;
+    const { data: orders, count, error } = await query.range(from, to);
+    if (error) throw error;
+    
+    adminOrdersTotalPages = Math.ceil((count || 0) / 30);
+    if (!orders || orders.length === 0) return '<p class="text-white/70 text-center py-4">Нет заказов</p>';
+    
+    const uniqueOrders = Array.from(new Map(orders.map(o => [o.id, o])).values());
+    const userIds = [...new Set(uniqueOrders.map(o => o.user_id))];
+    const { data: users } = await supabaseClient.from('users').select('user_id, full_name, username').in('user_id', userIds);
+    const userMap = {};
+    if (users) users.forEach(u => { userMap[u.user_id] = u; });
+
+    if (adminOrdersMode === 'active' && adminOrdersFilter === 'all') {
+      const columns = [
+        { key: 'pending', title: 'Новые', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50' },
+        { key: 'paid', title: 'Оплачен', color: 'bg-green-500/20 text-green-400 border-green-500/50' },
+        { key: 'bought', title: 'Выкуплен', color: 'bg-blue-500/20 text-blue-400 border-blue-500/50' },
+        { key: 'on_sklad_cn', title: 'Склад КН', color: 'bg-purple-500/20 text-purple-400 border-purple-500/50' },
+        { key: 'in_transit', title: 'В пути', color: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/50' },
+        { key: 'in_belarus', title: 'В РБ', color: 'bg-teal-500/20 text-teal-400 border-teal-500/50' },
+        { key: 'delivered', title: 'Доставлен', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50' }
+      ];
+      
+      let html = '<div class="flex gap-4 overflow-x-auto pb-4 snap-x custom-scrollbar">';
+      columns.forEach(col => {
+        const colOrders = uniqueOrders.filter(o => o.status === col.key);
+        html += `<div class="min-w-[280px] w-[280px] bg-white/5 rounded-2xl p-3 snap-start border-t-4 border-transparent flex flex-col max-h-[600px] shadow-lg">
+          <h4 class="font-bold mb-3 flex justify-between items-center text-sm \${col.color.split(' ')[1]}">\${col.title} <span class="\${col.color.split(' ')[0]} px-2 py-0.5 rounded-full text-xs border \${col.color.split(' ')[2]}">\${colOrders.length}</span></h4>
+          <div class="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">`;
+        if (colOrders.length === 0) {
+          html += '<p class="text-white/30 text-xs text-center py-4">Пусто</p>';
+        } else {
+          html += colOrders.map(order => generateAdminOrderCard(order, userMap, true)).join('');
+        }
+        html += `</div></div>`;
+      });
+      html += '</div>';
+      return html;
+    } else {
+      return uniqueOrders.map(order => generateAdminOrderCard(order, userMap, adminOrdersMode === 'active')).join('');
+    }
     async function renderProductsCatalog() {
   try {
     let query = supabaseClient.from('products').select('*', { count: 'exact' }).eq('is_active', true);
@@ -12433,6 +12998,120 @@ async function renderFAQ() {
     const { data, error } = await supabaseClient.from('faq_items').select('*').order('category', { ascending: true }).order('order_index', { ascending: true });
     if (error) throw error;
     
+    try { const { data } = await supabaseClient.from('promocodes').select('*').order('created_at', { ascending: false }); if (data) promoCodes = data; } catch(e) {}
+    try { const { data } = await supabaseClient.from('payout_requests').select('*').eq('status', 'pending'); if (data) payoutRequests = data; } catch(e) {}
+    try { const { data } = await supabaseClient.from('reviews').select('*').eq('is_published', false).order('created_at', { ascending: false }); if (data) reviews = data; } catch(e) {}
+    try { const { data } = await supabaseClient.from('products').select('*').order('created_at', { ascending: false }); if (data) products = data; } catch(e) {}
+    let courses = [];
+    try { const { data } = await supabaseClient.from('courses').select('*').order('created_at', { ascending: true }); if (data) courses = data; } catch(e) {}
+
+    return `
+      <div class="space-y-4">
+        <!-- 🎁 Акции -->
+        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4">
+          <h3 class="text-white font-bold mb-3">🎁 Управление акциями</h3>
+          <button id="addPromotionBtn" class="w-full bg-cyan-500 py-2 rounded-lg mb-3">➕ Создать акцию</button>
+          <div class="space-y-2 max-h-60 overflow-y-auto" id="promotionsList">
+            ${await renderPromotionsAdminList()}
+          </div>
+        </div>
+
+        <!-- Промокоды -->
+        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4">
+          <h3 class="text-white font-bold mb-3">➕ Создать промокод</h3>
+          <input type="text" id="newPromoCode" class="w-full p-2 rounded-lg bg-white/20 mb-2" placeholder="Код">
+          <select id="promoType" class="w-full p-2 rounded-lg bg-white/20 mb-2"><option value="percent">Процент (%)</option><option value="fixed">Фикс (BYN)</option></select>
+          <input type="number" id="promoValue" class="w-full p-2 rounded-lg bg-white/20 mb-2" placeholder="Значение">
+          <button id="createPromoBtn" class="w-full bg-cyan-500 py-2 rounded-lg">Создать</button>
+        </div>
+        
+        <!-- Список промокодов -->
+        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4">
+          <h3 class="text-white font-bold mb-3">📋 Промокоды</h3>
+          ${promoCodes.length === 0 ? '<p class="text-white/70">Нет промокодов</p>' : `<div class="space-y-2">${promoCodes.map(p => `<div class="flex justify-between items-center p-2 bg-white/5 rounded-lg"><div><span class="font-bold text-cyan-400">${p.code}</span><span class="text-white/70 text-sm ml-2">${p.discount_type === 'percent' ? p.discount_value + '%' : p.discount_value + ' BYN'}</span><span class="text-white/50 text-xs ml-2">${p.is_active ? '✅ Активен' : '❌ Неактивен'}</span></div><button class="togglePromoBtn text-cyan-400 text-sm" data-id="${p.id}" data-active="${p.is_active}">${p.is_active ? 'Деактивировать' : 'Активировать'}</button></div>`).join('')}</div>`}
+        </div>
+        
+        <!-- Отзывы на модерации -->
+        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4">
+          <h3 class="text-white font-bold mb-3">📝 Отзывы на модерации</h3>
+          ${reviews.length === 0 ? '<p class="text-white/70">Нет отзывов</p>' : reviews.map(r => `<div class="p-2 bg-white/5 rounded-lg mb-2"><div class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div><p class="text-white/80 text-sm">${r.text}</p><p class="text-white/50 text-xs">${r.user_name||'Пользователь'} | ${new Date(r.created_at).toLocaleDateString()}</p><div class="flex gap-2 mt-2"><button class="approveReviewBtn bg-green-600 px-3 py-1 rounded text-sm" data-id="${r.id}">✅ Одобрить</button><button class="rejectReviewBtn bg-red-600 px-3 py-1 rounded text-sm" data-id="${r.id}">❌ Отклонить</button></div></div>`).join('')}
+        </div>
+        
+        <!-- Управление товарами -->
+        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4">
+          <h3 class="text-white font-bold mb-3">📦 Управление товарами</h3>
+          <button id="addProductBtn" class="w-full bg-cyan-500 py-2 rounded-lg mb-3">➕ Добавить товар</button>
+          <div class="space-y-2 max-h-60 overflow-y-auto">
+            ${products.map(p => `<div class="flex justify-between items-center p-2 bg-white/5 rounded-lg"><div><span class="text-white">${p.title}</span><span class="text-cyan-400 ml-2">${p.price} ${p.currency}</span></div><button class="deleteProductBtn bg-red-600 px-2 py-1 rounded text-xs" data-id="${p.id}">Удалить</button></div>`).join('')}
+          </div>
+        </div>
+        
+        <!-- Таможенный калькулятор 2.0 -->
+        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4">
+          <h3 class="text-white font-bold mb-3">⚖️ Таможенный лимит (РБ)</h3>
+          <p class="text-white/50 text-xs mb-2">Настройте беспошлинный лимит (в евро) и процент пошлины за превышение для умного калькулятора.</p>
+          <label class="text-white/70 text-sm">Беспошлинный лимит (€)</label>
+          <input type="number" id="customsLimitEur" class="w-full p-2 rounded-lg bg-white/20 mb-2" value="200">
+          <label class="text-white/70 text-sm">Пошлина на превышение (%)</label>
+          <input type="number" id="customsDutyPercent" class="w-full p-2 rounded-lg bg-white/20 mb-3" value="15">
+          <button id="saveCustomsLimitsBtn" class="w-full bg-cyan-500 py-2 rounded-lg">Сохранить лимиты</button>
+        </div>
+        
+        <!-- 🎓 Курсы -->
+        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="text-white font-bold">🎓 Курсы (Академия)</h3>
+            <button id="adminAddCourseBtn" class="bg-cyan-500 hover:bg-cyan-600 px-3 py-1.5 rounded-lg text-sm">➕ Добавить</button>
+          </div>
+          <div class="space-y-2 max-h-64 overflow-y-auto">
+            ${courses.length === 0 ? '<p class="text-white/50 text-sm">Курсов нет</p>' : courses.map(c => `
+              <div class="flex items-center gap-2 p-2 bg-white/5 rounded-xl">
+                <div class="flex-1 min-w-0">
+                  <p class="text-white text-sm truncate">${c.title}</p>
+                  <p class="text-white/40 text-xs">${c.price_ice > 0 ? c.price_ice + ' ❄️' : 'Бесплатно'} · ${c.role_access} · ${c.is_active ? '✅ Активен' : '❌ Скрыт'}</p>
+                </div>
+                <button class="adminEditCourseBtn bg-white/20 px-2 py-1 rounded text-xs" data-course-id="${c.id}">✏️</button>
+                <button class="adminManageLessonsBtn bg-blue-600/60 px-2 py-1 rounded text-xs" data-course-id="${c.id}">📚</button>
+                <button class="adminDeleteCourseBtn bg-red-600/60 px-2 py-1 rounded text-xs" data-course-id="${c.id}">🗑️</button>
+              </div>`).join('')}
+          </div>
+        </div>
+
+        <!-- Управление площадками -->
+        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4">
+          <h3 class="text-white font-bold mb-3">🌐 Управление площадками</h3>
+          <button id="addMarketplaceBtn" class="w-full bg-cyan-500 py-2 rounded-lg mb-3">➕ Добавить площадку</button>
+          <div class="space-y-2 max-h-80 overflow-y-auto" id="marketplacesList">
+            ${await renderMarketplacesAdminList()}
+          </div>
+        
+        <!-- Заявки на вывод -->
+        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4">
+          <h3 class="text-white font-bold mb-3">💸 Заявки на вывод</h3>
+          ${payoutRequests.length === 0 ? '<p class="text-white/70">Нет заявок</p>' : payoutRequests.map(req => `<div class="flex justify-between items-center p-2 bg-white/5 rounded-lg mb-2"><div><span class="text-white">${req.user_id}</span><span class="text-cyan-400 ml-2">${req.amount} ❄️</span></div><div><button class="approvePayoutBtn bg-green-600 px-3 py-1 rounded text-sm mr-2" data-id="${req.id}">Одобрить</button><button class="rejectPayoutBtn bg-red-600 px-3 py-1 rounded text-sm" data-id="${req.id}">Отклонить</button></div></div>`).join('')}
+        </div>
+        
+                <!-- Управление заказами -->
+        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 mt-4">
+          <h3 class="text-white font-bold mb-3">📦 Управление заказами</h3>
+          
+          <!-- Переключатели Активные / Архив -->
+          <div class="flex gap-2 mb-3">
+            <button id="showActiveOrdersBtn" class="px-4 py-2 rounded-lg text-sm font-medium ${adminOrdersMode === 'active' ? 'bg-cyan-500 text-white' : 'bg-white/20 text-white/70'}">📋 Активные</button>
+            <button id="showArchivedOrdersBtn" class="px-4 py-2 rounded-lg text-sm font-medium ${adminOrdersMode === 'archived' ? 'bg-cyan-500 text-white' : 'bg-white/20 text-white/70'}">🗄️ Архив</button>
+          </div>
+          
+          <!-- Фильтр по статусу (чипсы) -->
+          <div class="mb-3">
+            <div class="flex flex-wrap gap-1.5" id="adminOrdersFilterChips">
+              <button class="filter-chip text-xs px-3 py-1.5" data-status="all">Все</button>
+              <button class="filter-chip text-xs px-3 py-1.5" data-status="paid">Оплачен</button>
+              <button class="filter-chip text-xs px-3 py-1.5" data-status="bought">Выкуплен</button>
+              <button class="filter-chip text-xs px-3 py-1.5" data-status="on_sklad_cn">Склад КН</button>
+              <button class="filter-chip text-xs px-3 py-1.5" data-status="in_transit">В пути</button>
+              <button class="filter-chip text-xs px-3 py-1.5" data-status="in_belarus">В РБ</button>
+              <button class="filter-chip text-xs px-3 py-1.5" data-status="delivered">Доставлен</button>
+              <button class="filter-chip text-xs px-3 py-1.5" data-status="cancelled">Отменён</button>
     let faqsHtml = '';
     if (!data || data.length === 0) {
       faqsHtml = '<p class="text-white/50 text-center py-4">База знаний пока пуста. (Заполните таблицу faq_items)</p>';
@@ -12481,6 +13160,32 @@ async function renderFAQ() {
   }
 }
 
+        <!-- 📢 Триггерные рассылки -->
+        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 mt-4 mb-4">
+          <h3 class="text-white font-bold mb-3">📢 Триггерные рассылки (Push)</h3>
+          <select id="promoAudience" class="w-full p-2 rounded-lg bg-white/20 mb-2 text-sm text-white">
+            <option value="all">Все пользователи</option>
+            <option value="vip">Только VIP (от 3 рефералов)</option>
+            <option value="abandoned_cart">Брошенная корзина (нет заказов > 14 дней)</option>
+            <option value="newbies">Новички (нет заказов)</option>
+          </select>
+          <textarea id="promoMessageText" class="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-sm mb-3 text-white" placeholder="Текст сообщения... (например: Только 48 часов скидка на доставку!)" rows="3"></textarea>
+          <button id="sendPromoBroadcastBtn" class="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 py-2 rounded-lg font-bold shadow-lg text-white">Отправить рассылку</button>
+        </div>
+
+        <!-- 📊 Отчёты и аналитика -->
+        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4">
+          <h3 class="text-white font-bold mb-3">📊 Отчёты и аналитика</h3>
+          <!-- Вкладки -->
+          <div class="flex flex-wrap gap-2 mb-4">
+            <button class="analytics-tab filter-chip active" data-tab="transactions">💰 Транзакции</button>
+            <button class="analytics-tab filter-chip" data-tab="analytics">📈 Продажи</button>
+            <button class="analytics-tab filter-chip" data-tab="logs">📝 Логи</button>
+          </div>
+          <!-- Сводка балансов (всегда видна) -->
+          <div id="balanceSummaryBlock" class="grid grid-cols-2 gap-2 mb-4">
+            <p class="text-white/40 text-xs col-span-2 text-center py-1">⏳ Загрузка сводки...</p>
+          </div>
 function attachFAQHandlers() {
   const backBtn = document.getElementById('backFromFaqBtn');
   if (backBtn) backBtn.addEventListener('click', () => { currentSubScreen = null; renderCurrentScreen(); });
@@ -12500,6 +13205,52 @@ function attachFAQHandlers() {
   });
 }
 
+          <!-- Вкладка: Аналитика продаж -->
+          <div id="analyticsTab-analytics" class="hidden">
+            <div class="flex gap-2 mb-4">
+              <select id="analyticsPeriod" class="flex-1 p-2 rounded-lg bg-white/20 border border-white/30 text-xs">
+                <option value="7">7 дней</option>
+                <option value="30" selected>30 дней</option>
+                <option value="90">90 дней</option>
+                <option value="9999">За всё время</option>
+              </select>
+              <button id="loadAnalyticsBtn" class="bg-cyan-500 hover:bg-cyan-600 px-4 py-2 rounded-lg text-xs font-bold shadow-lg">🔄 Загрузить</button>
+            </div>
+            
+            <!-- Продвинутые метрики -->
+            <div id="advancedMetricsBlock" class="grid grid-cols-2 gap-2 mb-4">
+              <div class="bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl p-3 border border-purple-500/30">
+                <p class="text-white/60 text-[10px] uppercase tracking-wider mb-1">LTV (Ценность)</p>
+                <p id="metricLTV" class="text-white text-xl font-bold shadow-sm">⏳</p>
+              </div>
+              <div class="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl p-3 border border-green-500/30">
+                <p class="text-white/60 text-[10px] uppercase tracking-wider mb-1">Средний чек</p>
+                <p id="metricAOV" class="text-white text-xl font-bold shadow-sm">⏳</p>
+              </div>
+              <div class="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-xl p-3 border border-blue-500/30 col-span-2 flex justify-between items-center">
+                <div>
+                  <p class="text-white/60 text-[10px] uppercase tracking-wider mb-1">Воронка продаж (Конверсия)</p>
+                  <p id="metricConversion" class="text-white text-xl font-bold shadow-sm">⏳</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-white/60 text-[10px] uppercase tracking-wider mb-1">Покупатели / Все</p>
+                  <p id="metricBuyers" class="text-white text-sm font-bold">⏳</p>
+                </div>
+              </div>
+            </div>
+            
+            <p class="text-white/70 text-xs font-bold mb-2">📈 Продажи по дням</p>
+            <div class="bg-white/5 rounded-xl p-3 mb-1"><canvas id="salesChart"></canvas></div>
+            <p class="text-white/70 text-xs font-bold mb-2 mt-3">🍩 Статусы заказов</p>
+            <div class="bg-white/5 rounded-xl p-3 mb-3"><canvas id="statusChart"></canvas></div>
+            <div class="flex justify-between items-center mb-2">
+              <p class="text-white/70 text-xs font-bold">🏆 Топ-10 товаров</p>
+              <button id="exportTopProductsBtn" class="text-cyan-400 text-xs">⬇️ CSV</button>
+            </div>
+            <div id="topProductsList" class="text-xs">
+              <p class="text-white/40 text-center py-2">Нажмите «Загрузить»</p>
+            </div>
+          </div>
 // ==================== РЕНДЕР БАЗЫ ПОСТАВЩИКОВ ====================
 async function renderAdminSuppliers() {
   try {
@@ -12977,6 +13728,41 @@ function attachMarketplacesHandlers() {
     modal.querySelector('.close-modal').onclick = () => modal.remove();
     modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
   }
+
+    const saveCustomsLimitsBtn = document.getElementById('saveCustomsLimitsBtn');
+    if (saveCustomsLimitsBtn) {
+      saveCustomsLimitsBtn.onclick = async () => {
+        const limit = document.getElementById('customsLimitEur').value;
+        const percent = document.getElementById('customsDutyPercent').value;
+        const { error } = await supabaseClient.from('settings').upsert({ key: 'customs_limits', value: { limit, percent } });
+        if (error) alert('Ошибка сохранения: ' + error.message);
+        else alert('Таможенные лимиты обновлены!');
+      };
+    }
+
+      // ================== РЕДАКТИРОВАНИЕ / УДАЛЕНИЕ ПЛОЩАДОК (ДЕЛЕГИРОВАНИЕ) ==================
+  if (!window._marketplaceHandlers) {
+    window._marketplaceHandlers = true;
+    document.addEventListener('click', async (e) => {
+      // Редактирование
+      const editBtn = e.target.closest('.editMarketplaceBtn');
+      if (editBtn) {
+        const id = editBtn.dataset.id;
+        const { data } = await supabaseClient.from('marketplaces').select('*').eq('id', id).single();
+        if (data) openMarketplaceForm(data);
+        return;
+      }
+      
+      // Удаление
+      const deleteBtn = e.target.closest('.deleteMarketplaceBtn');
+      if (deleteBtn) {
+        const id = deleteBtn.dataset.id;
+        if (!confirm('Удалить площадку?')) return;
+        await supabaseClient.from('marketplaces').delete().eq('id', id);
+        alert('Удалено');
+        renderCurrentScreen();
+        return;
+      }
   
   function setupFilters() {
     ['#filterCountries', '#filterCategories', '#filterGenders'].forEach(selector => {
@@ -13329,6 +14115,49 @@ window.togglePackageConsolidation = (country) => {
   recalculateOrderTotals();
 };
 
+  // ================== ПАГИНАЦИЯ ЗАКАЗОВ ==================
+  const prevBtn = document.getElementById('adminOrdersPrev');
+  const nextBtn = document.getElementById('adminOrdersNext');
+  if (prevBtn) prevBtn.onclick = () => { if (adminOrdersPage > 1) { adminOrdersPage--; renderCurrentScreen(); } };
+  if (nextBtn) nextBtn.onclick = () => { if (adminOrdersPage < adminOrdersTotalPages) { adminOrdersPage++; renderCurrentScreen(); } };
+    // ================== СМЕНА СТАТУСА ЗАКАЗА (ДЕЛЕГИРОВАНИЕ) ==================
+    if (!window._statusChangeHandler) {
+    window._statusChangeHandler = async (e) => {
+      if (e.target.classList.contains('changeOrderStatus')) {
+        const select = e.target;
+        const newStatus = select.value;
+        if (!newStatus) return;
+        const orderId = select.dataset.orderId;
+        const userId = select.dataset.userId;
+        const previousStatus = select.dataset.previousStatus;
+        if (!confirm(`Изменить статус заказа на "${getStatusText(newStatus)}"?`)) {
+          select.value = previousStatus || '';
+          return;
+        }
+        try {
+          const { error } = await supabaseClient.from('orders').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', orderId);
+          if (error) throw error;
+          logAdminAction('order_status', { orderId, newStatus, previousStatus });
+          const statusMessages = {
+            'paid': '✅ Ваш заказ оплачен! Мы приступаем к выкупу.',
+            'bought': '🛍️ Товар выкуплен! Ожидайте отправки на склад.',
+            'on_sklad_cn': '📦 Товар на складе в Китае. Идёт подготовка к отправке.',
+            'in_transit': '🚚 Ваш заказ в пути! Трек-номер появится позже.',
+            'in_belarus': '🇧🇾 Товар в Беларуси! Скоро будет доставлен.',
+            'delivered': '🎉 Заказ доставлен! Спасибо, что выбрали ICE LOGIX!'
+          };
+          const message = statusMessages[newStatus];
+          if (message) {
+            await sendNotification(userId, message, orderId);
+          }
+          renderCurrentScreen();
+        } catch (err) {
+          alert('Ошибка: ' + err.message);
+          select.value = previousStatus || '';
+        }
+      }
+    };
+    document.addEventListener('change', window._statusChangeHandler);
 window.togglePackageExtra = (country, extraName) => {
   tgUtil.haptic('light');
   window.tempOrder.packageExtras = window.tempOrder.packageExtras || {};
@@ -13581,6 +14410,41 @@ async function showCommissionContractModal() {
   }
 }
 
+  // ── Balance summary (auto-load) ────────────────────────────────────
+  (async () => {
+    const el = document.getElementById('balanceSummaryBlock');
+    if (!el) return;
+    try {
+      const [{ data: users }, { data: txs }, { data: orders }] = await Promise.all([
+        supabaseClient.from('users').select('ices_balance, role'),
+        supabaseClient.from('transactions').select('amount, type, created_at').order('created_at', { ascending: false }).limit(500),
+        supabaseClient.from('orders').select('price_byn, created_at')
+      ]);
+      const total = (users || []).reduce((s, u) => s + (u.ices_balance || 0), 0);
+      const dropTotal = (users || []).filter(u => u.role === 'dropshipper').reduce((s, u) => s + (u.ices_balance || 0), 0);
+      const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+      const sum = (type, since) => (txs || []).filter(t => t.type === type && t.created_at >= since).reduce((s, t) => s + Math.abs(t.amount || 0), 0);
+      
+      const profit30d = (orders || []).filter(o => o.created_at >= monthAgo).reduce((s, o) => s + ((o.price_byn || 0) * (0.20 / 1.20)), 0);
+      const totalOrders30d = (orders || []).filter(o => o.created_at >= monthAgo).length;
+
+      el.innerHTML = `
+        <div class="bg-white/5 rounded-xl p-2 text-center relative overflow-hidden group">
+          <div class="absolute inset-0 bg-cyan-500/10 opacity-0 group-hover:opacity-100 transition"></div>
+          <p class="text-white/50 text-xs mb-1">Чистая прибыль (30д)</p>
+          <p class="text-green-400 font-bold text-lg">${profit30d.toFixed(0)} BYN</p>
+        </div>
+        <div class="bg-white/5 rounded-xl p-2 text-center relative overflow-hidden group">
+          <div class="absolute inset-0 bg-purple-500/10 opacity-0 group-hover:opacity-100 transition"></div>
+          <p class="text-white/50 text-xs mb-1">Заказов за 30 дней</p>
+          <p class="text-purple-400 font-bold text-lg">${totalOrders30d}</p>
+        </div>
+        <div class="bg-white/5 rounded-xl p-2 text-center"><p class="text-white/50 text-[10px]">Общий баланс</p><p class="text-cyan-400 font-bold text-sm">${total.toFixed(0)} ❄️</p></div>
+        <div class="bg-white/5 rounded-xl p-2 text-center"><p class="text-white/50 text-[10px]">Баланс дропш.</p><p class="text-yellow-400 font-bold text-sm">${dropTotal.toFixed(0)} ❄️</p></div>
+        <div class="bg-white/5 rounded-xl p-2 text-center"><p class="text-white/50 text-[10px]">Пополнения (30д)</p><p class="text-green-400 font-bold text-sm">+${sum('topup', monthAgo).toFixed(0)}</p></div>
+        <div class="bg-white/5 rounded-xl p-2 text-center"><p class="text-white/50 text-[10px]">Выплаты (30д)</p><p class="text-red-400 font-bold text-sm">-${sum('withdrawal', monthAgo).toFixed(0)}</p></div>`;
+    } catch { el.innerHTML = '<p class="text-white/30 text-xs col-span-2 text-center">Сводка недоступна</p>'; }
+  })();
 async function showFamilySettingsModal() {
   tgUtil.haptic('medium');
   const modal = document.createElement('div');
@@ -13668,6 +14532,65 @@ async function showFamilySettingsModal() {
         `;
       }).join('') || '<p class="text-xs text-white/40 text-center py-4">Нет новых запросов на покупки</p>';
 
+  // ── Analytics / Charts ─────────────────────────────────────────────
+  let _salesChart = null, _statusChart = null, _topData = [];
+  const loadAnalytics = async () => {
+    const period = parseInt(document.getElementById('analyticsPeriod')?.value || 30);
+    const since  = new Date(Date.now() - period * 86400000).toISOString();
+    const topEl  = document.getElementById('topProductsList');
+    if (topEl) topEl.innerHTML = '<p class="text-white/40 text-center py-2">⏳ Загрузка...</p>';
+    try {
+      const { data: orders, error } = await supabaseClient
+        .from('orders').select('id, user_id, created_at, status, price_byn, prepayment_amount, items, source_url')
+        .gte('created_at', since).order('created_at', { ascending: true });
+      if (error) throw error;
+      const os = orders || [];
+      
+      const { data: usersCountData, error: usersErr } = await supabaseClient
+        .from('users').select('user_id', { count: 'exact' });
+      const totalUsers = usersCountData ? usersCountData.length : 1; // защита от деления на 0
+
+      // Sales by day & Advanced Metrics
+      const byDay = {};
+      let totalRevenue = 0;
+      let totalRevenueDelivered = 0;
+      const uniqueBuyers = new Set();
+      const uniqueBuyersDelivered = new Set();
+
+      os.forEach(o => {
+        const day = (o.created_at||'').slice(0, 10);
+        const rev = o.price_byn || o.prepayment_amount || 0;
+        
+        if (day) {
+          if (!byDay[day]) byDay[day] = { count: 0, rev: 0 };
+          byDay[day].count++;
+          byDay[day].rev += rev;
+        }
+        
+        totalRevenue += rev;
+        if (o.user_id) uniqueBuyers.add(o.user_id);
+        
+        if (o.status === 'delivered') {
+          totalRevenueDelivered += rev;
+          if (o.user_id) uniqueBuyersDelivered.add(o.user_id);
+        }
+      });
+      const days = Object.keys(byDay).sort();
+      
+      // Update Advanced Metrics UI
+      const aov = os.length > 0 ? (totalRevenue / os.length) : 0;
+      const ltv = uniqueBuyersDelivered.size > 0 ? (totalRevenueDelivered / uniqueBuyersDelivered.size) : 0;
+      const conversion = totalUsers > 0 ? ((uniqueBuyers.size / totalUsers) * 100) : 0;
+
+      const metricLTV = document.getElementById('metricLTV');
+      const metricAOV = document.getElementById('metricAOV');
+      const metricConversion = document.getElementById('metricConversion');
+      const metricBuyers = document.getElementById('metricBuyers');
+      
+      if (metricLTV) metricLTV.innerText = ltv.toFixed(2) + ' BYN';
+      if (metricAOV) metricAOV.innerText = aov.toFixed(2) + ' BYN';
+      if (metricConversion) metricConversion.innerText = conversion.toFixed(1) + '%';
+      if (metricBuyers) metricBuyers.innerText = uniqueBuyers.size + ' / ' + totalUsers;
       return `
         <div class="space-y-4">
           <div class="bg-cyan-500/10 border border-cyan-500/30 p-3.5 rounded-xl text-center">
@@ -14464,6 +15387,39 @@ window.openSupportChat = (orderId, isAdmin = false) => {
   chatInterval = setInterval(fetchAndRenderMessages, 4000);
 };
 
+      if (currentSubScreen === 'about') {
+        contentDiv.innerHTML = `
+          <button class="global-back-btn" id="aboutBackBtn">← Назад</button>
+          <div class="bg-white/10 backdrop-blur-md rounded-2xl p-5 shadow-lg relative mt-4">
+            <div class="text-center mb-6">
+              <img src="https://i.ibb.co/9kJTjpjT/1-Logo.png" alt="ICE LOGIX" class="h-20 mx-auto mb-4">
+              <h2 class="text-2xl font-bold text-white">ICE LOGIX</h2>
+              <p class="text-cyan-400 font-semibold text-sm">Ваш надежный байер-сервис</p>
+            </div>
+            
+            <div class="space-y-4 text-white/80 text-sm">
+              <p>📍 <b>Мы находимся:</b> Беларусь, Несвиж.</p>
+              <p>🛍 <b>Что мы делаем:</b> Выкупаем и возим товары с любых площадок и от поставщиков, которые не работают напрямую с РБ. Одежда, обувь, аксессуары из Европы, Китая, Японии, Южной Кореи, США, ОАЭ, России, Турции и Вьетнама.</p>
+              <div class="bg-blue-500/10 p-3 rounded-lg border border-blue-500/20">
+                <p class="text-blue-300 text-xs">⚠️ Обратите внимание: в первые месяцы работы доступен выкуп только из Европы, России и Китая. Остальные направления будут доступны чуть позже!</p>
+              </div>
+              <p>🤝 <b>Наш партнер:</b> Работаем совместно с ShopbyShop. У нас есть склады в России, Польше и Китае. На данный момент единая ставка из Китая — 10$ за кг.</p>
+              <p>📦 <b>Планы:</b> В будущем мы планируем доставлять абсолютно любые товары, разрешенные для ввоза в РБ, но пока концентрируемся на одежде и обуви.</p>
+              <p>💼 <b>Юридическая чистота:</b> Мы работаем полностью легально, платим налоги с нашей комиссии (20%) и заключаем онлайн-договор с каждым клиентом при оформлении заказа.</p>
+            </div>
+          </div>
+          ${renderFooter()}
+        `;
+        const aboutBackBtn = document.getElementById('aboutBackBtn');
+        if (aboutBackBtn) aboutBackBtn.onclick = () => { currentSubScreen = null; renderCurrentScreen(); };
+        return;
+      }
+
+      if (currentSubScreen === 'marketplaces') {
+    contentDiv.innerHTML = await renderMarketplaces();
+    attachMarketplacesHandlers();
+    ensureBackButtonForSubscreen();
+    return;
 window.triggerConfetti = () => {
   const colors = ['#22d3ee', '#3b82f6', '#b8e0f6', '#ffffff', '#fbbf24'];
   const shapes = ['square', 'circle', 'diamond'];
@@ -14515,6 +15471,26 @@ window.showVipSectionModal = () => {
     { id: 'vip-3', title: 'Arc\'teryx Beta LT Jacket Black', price: 340, oldPrice: 850, img: 'https://vrvwdagjpttvfvjanbwq.supabase.co/storage/v1/object/public/legit-references/stone-island/stone-island-softshell/side.jpg', brand: 'Arc\'teryx', platform: 'Zalando' }
   ];
 
+    // ==================== РЕНДЕР КАТАЛОГОВ (ВЫБОР) ====================
+    async function attachSubScreenHandlers() {
+      const aboutBackBtn = document.getElementById('aboutBackBtn');
+      if (aboutBackBtn) aboutBackBtn.onclick = () => { currentSubScreen = null; renderCurrentScreen(); };
+    }
+    
+    async function renderCatalogs() {
+  return `
+  <button id="backFromCatalogsBtn" class="global-back-btn">← Назад</button>
+    <div class="space-y-4">
+      <h2 class="text-white text-xl font-bold mb-4">📚 Каталоги</h2>
+      <div class="grid grid-cols-1 gap-4">
+        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-5 cursor-pointer hover:bg-white/20 transition" id="openMarketplacesBtn">
+          <div class="flex items-center gap-4">
+            <span class="text-4xl">🌐</span>
+            <div>
+              <h3 class="text-white font-bold text-lg">Площадки</h3>
+              <p class="text-white/70 text-sm">Poizon, Taobao, Zalando и другие</p>
+            </div>
+          </div>
   const renderVipGrid = () => {
     return `
       <div class="space-y-4 page-enter">
@@ -15293,6 +16269,169 @@ async function showOwnerControlsForm() {
       console.error('Ошибка сохранения настроек владельца:', err);
       tgUtil.alert('Не удалось сохранить настройки: ' + err.message);
     }
+  };
+}
+
+function showMeasurementsForm() {
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[110] p-4 overflow-y-auto pt-16 pb-20';
+  modal.innerHTML = `
+    <div class="bg-[#1e293b] rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col border border-white/20">
+      <div class="p-5 border-b border-white/20">
+        <h3 class="text-white font-bold text-lg">📏 Мои размеры</h3>
+        <p class="text-white/50 text-xs mt-1">Сохраните ваши параметры для автоподбора размеров и умного калькулятора.</p>
+      </div>
+      <div class="p-5 overflow-y-auto flex-1 space-y-3">
+        <div>
+          <label class="text-white/70 text-sm">Рост (см)</label>
+          <input type="number" id="measHeight" class="w-full p-3 rounded-xl bg-white/20 border border-white/30" placeholder="175">
+        </div>
+        <div>
+          <label class="text-white/70 text-sm">Вес (кг)</label>
+          <input type="number" id="measWeight" class="w-full p-3 rounded-xl bg-white/20 border border-white/30" placeholder="70">
+        </div>
+        <div>
+          <label class="text-white/70 text-sm">Длина стопы (см)</label>
+          <input type="number" step="0.1" id="measFoot" class="w-full p-3 rounded-xl bg-white/20 border border-white/30" placeholder="27.5">
+        </div>
+        <div>
+          <label class="text-white/70 text-sm">Размер одежды (EU/RU)</label>
+          <input type="text" id="measClothes" class="w-full p-3 rounded-xl bg-white/20 border border-white/30" placeholder="M / 48">
+        </div>
+        <div>
+          <label class="text-white/70 text-sm">Размер обуви (EU)</label>
+          <input type="number" step="0.5" id="measShoe" class="w-full p-3 rounded-xl bg-white/20 border border-white/30" placeholder="42">
+        </div>
+      </div>
+      <div class="p-5 border-t border-white/20">
+        <div class="flex gap-3">
+          <button id="saveMeasBtn" class="flex-1 bg-cyan-500 py-2 rounded-xl">Сохранить</button>
+          <button id="cancelMeasBtn" class="flex-1 bg-white/20 py-2 rounded-xl">Отмена</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  (async () => {
+    const { data } = await supabaseClient.from('users').select('measurements_data').eq('user_id', userId).single();
+    if (data?.measurements_data) {
+      document.getElementById('measHeight').value = data.measurements_data.height || '';
+      document.getElementById('measWeight').value = data.measurements_data.weight || '';
+      document.getElementById('measFoot').value = data.measurements_data.foot || '';
+      document.getElementById('measClothes').value = data.measurements_data.clothes || '';
+      document.getElementById('measShoe').value = data.measurements_data.shoe || '';
+    }
+  })();
+
+  modal.querySelector('#cancelMeasBtn').onclick = () => modal.remove();
+  modal.querySelector('#saveMeasBtn').onclick = async () => {
+    const measurementsObj = {
+      height: document.getElementById('measHeight').value,
+      weight: document.getElementById('measWeight').value,
+      foot: document.getElementById('measFoot').value,
+      clothes: document.getElementById('measClothes').value,
+      shoe: document.getElementById('measShoe').value
+    };
+    const { error } = await supabaseClient.from('users').update({ measurements_data: measurementsObj }).eq('user_id', userId);
+    if (error) { alert('Ошибка: ' + error.message); } else { alert('✅ Размеры сохранены!'); modal.remove(); }
+  };
+}
+
+async function downloadCustomsInvoice(orderId) {
+  try {
+    const { data: order, error } = await supabaseClient.from('orders').select('*').eq('id', orderId).single();
+    if (error || !order) { alert('Заказ не найден'); return; }
+    
+    // Пытаемся получить паспортные данные для инвойса
+    let passportStr = 'Не указаны';
+    const { data: userData } = await supabaseClient.from('users').select('encrypted_passport, passport_data').eq('user_id', userId).single();
+    if (userData) {
+      if (userData.encrypted_passport) {
+        const p = decryptData(userData.encrypted_passport);
+        if (p) passportStr = \`Серия/Номер: \${p.seriesNumber}, Выдан: \${p.issueDate}\`;
+      } else if (userData.passport_data) {
+        try {
+          const p = JSON.parse(userData.passport_data);
+          passportStr = \`Серия/Номер: \${p.seriesNumber}\`;
+        } catch(e){}
+      }
+    }
+
+    const docDefinition = {
+      content: [
+        { text: 'CUSTOMS INVOICE / ИНВОЙС', style: 'header', alignment: 'center', margin: [0, 0, 0, 20] },
+        { text: \`Order ID / Номер заказа: \${order.id}\`, margin: [0, 0, 0, 5] },
+        { text: \`Date / Дата: \${new Date(order.created_at).toLocaleDateString('ru-RU')}\`, margin: [0, 0, 0, 5] },
+        { text: \`Buyer / Покупатель: \${userName}\`, margin: [0, 0, 0, 5] },
+        { text: \`Passport Details / Паспорт: \${passportStr}\`, margin: [0, 0, 0, 15] },
+        {
+          table: {
+            headerRows: 1,
+            widths: ['*', 'auto', 'auto', 'auto'],
+            body: [
+              ['Description / Описание', 'Qty / Кол-во', 'Weight / Вес (кг)', 'Price / Цена'],
+              ['Товар для личного пользования (Одежда/Обувь)', '1', \`\${order.weight_estimated || 1}\`, \`\${order.price_original || 0}\`],
+              [{ text: 'TOTAL / ИТОГО', colSpan: 3, alignment: 'right' }, '', '', \`\${order.price_original || 0}\`]
+            ]
+          }
+        },
+        { text: 'Purpose of export: For personal use / Цель ввоза: Для личного пользования', margin: [0, 20, 0, 0] },
+        { text: 'Carrier: ICE LOGIX / Перевозчик: ICE LOGIX', margin: [0, 5, 0, 0] }
+      ],
+      styles: { header: { fontSize: 18, bold: true } }
+    };
+    pdfMake.createPdf(docDefinition).download(\`Invoice_\${order.id.slice(0,8)}.pdf\`);
+  } catch (err) {
+    alert('Ошибка генерации PDF: ' + err.message);
+  }
+}
+
+function showFortuneWheel() {
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[120] p-4';
+  modal.innerHTML = `
+    <h2 class="text-2xl font-bold text-white mb-6 animate-pulse">🎡 Колесо Фортуны</h2>
+    <div class="relative w-64 h-64 mb-8">
+      <div id="wheel" class="w-full h-full rounded-full border-4 border-cyan-500 shadow-[0_0_20px_#06b6d4] transition-all duration-[3000ms] ease-out flex items-center justify-center overflow-hidden" style="background: conic-gradient(#ec4899 0deg 90deg, #8b5cf6 90deg 180deg, #06b6d4 180deg 270deg, #10b981 270deg 360deg);">
+         <div class="absolute inset-0 flex items-center justify-center font-bold text-white text-xl drop-shadow-md">КРУТИ!</div>
+      </div>
+      <div class="absolute top-0 left-1/2 -ml-3 -mt-2 w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-t-[20px] border-t-white z-10"></div>
+    </div>
+    <button id="spinWheelBtn" class="bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold py-3 px-10 rounded-full text-lg shadow-[0_0_15px_#ec4899] hover:scale-105 transition">Крутить (1 раз в месяц)</button>
+    <button id="closeWheelBtn" class="mt-4 text-white/50 text-sm">Позже</button>
+  `;
+  document.body.appendChild(modal);
+  
+  modal.querySelector('#closeWheelBtn').onclick = () => modal.remove();
+  
+  const spinBtn = modal.querySelector('#spinWheelBtn');
+  const wheel = modal.querySelector('#wheel');
+  spinBtn.onclick = async () => {
+    spinBtn.disabled = true;
+    spinBtn.innerText = 'Крутится...';
+    
+    // Проверка БД на spin
+    const { data } = await supabaseClient.from('users').select('last_spin').eq('user_id', userId).single();
+    if (data?.last_spin) {
+      const daysSince = (Date.now() - new Date(data.last_spin).getTime()) / (1000*60*60*24);
+      if (daysSince < 30) {
+        alert('Вы уже крутили колесо в этом месяце!');
+        modal.remove();
+        return;
+      }
+    }
+    
+    const deg = 1080 + Math.floor(Math.random() * 360);
+    wheel.style.transform = \`rotate(\${deg}deg)\`;
+    
+    setTimeout(async () => {
+      const prizes = ['5 ❄️', 'Бесплатная пупырка', 'Скидка 2%', 'Ничего 😢'];
+      const prize = prizes[Math.floor(Math.random() * prizes.length)];
+      alert('🎉 Результат: ' + prize);
+      await supabaseClient.from('users').update({ last_spin: new Date().toISOString() }).eq('user_id', userId);
+      modal.remove();
+    }, 3200);
   };
 }
 
