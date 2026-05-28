@@ -40,30 +40,9 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // ─── API Keys ────────────────────────────────────────────────────────────────
 const FIRECRAWL_KEY = Deno.env.get("FIRECRAWL_API_KEY") || "";
-const DEEPSEEK_KEY = Deno.env.get("DEEPSEEK_API_KEY") || "";
+const OPENROUTER_KEY = Deno.env.get("OPENROUTER_API_KEY") || "";
 const CRAWLBASE_JS_TOKEN = Deno.env.get("CRAWLBASE_JS_TOKEN") || "";
-const SCRAPFLY_API_KEY = Deno.env.get("SCRAPFLY_API_KEY") || "";
-const APIFY_TOKEN = Deno.env.get("APIFY_TOKEN") || "";
-
-// ─── Domain classification ───────────────────────────────────────────────────
-
-// Сайты, у которых на вебе нет данных товара (app-only / login-walled до бесполезности).
-// Для них v2.3 сразу выдаёт manual_required с подсказкой загрузить скриншот.
-const APP_ONLY_DOMAINS = [
-  // Pinduoduo
-  "pinduoduo.com", "yangkeduo.com", "pdd.com",
-  // Poizon / Dewu deep-links (показывают app-promo / login)
-  "fast.dewu.com", "dw4.co",
-  // 95fen (95分) — вторая площадка от Dewu для подержанных оригиналов
-  "95fen.com",
-  // Taobao share-link'и (e.tb.cn → app, m.tb.cn → mobile с авторизацией)
-  "e.tb.cn", "m.tb.cn", "tb.cn",
-  "s.click.taobao.com", "click.taobao.com",
-  // Xianyu (闲鱼) — app-only marketplace
-  "goofish.com", "xianyu.com",
-  // Xiaohongshu — app-only
-  "xiaohongshu.com",
-];
+const TEXT_MODEL = Deno.env.get("OPENROUTER_TEXT_MODEL") || "anthropic/claude-sonnet-4.6";
 
 // Китайские сайты, у которых на вебе данные есть, но защита жёсткая.
 const CHINESE_DOMAINS = [
@@ -142,214 +121,32 @@ function marketplaceFromUrl(url: string): string | null {
   }
 }
 
-// ─── Apify integration ──────────────────────────────────────────────────────
-
-interface ApifyExtraction {
-  title: string | null;
-  price: number | null;
-  currency: string | null;
-  imageUrl: string | null;
-  brand: string | null;
-}
-
-/** Извлекает Taobao/Tmall itemId из URL. Возвращает null если URL не каноничный. */
-function extractTaobaoItemId(url: string): string | null {
+// Detect country code from URL hostname/TLD. This is more reliable than asking the LLM
+// for country, especially for marketplaces with country-specific TLDs (zalando.pl, zalando.de, asos.com).
+function countryFromUrl(url: string): string | null {
   try {
-    const u = new URL(url);
-    // 1. Query param ?id=NNNNN — основной формат
-    const id = u.searchParams.get("id");
-    if (id && /^\d{6,}$/.test(id)) return id;
-    // 2. Path-based: /item/NNNNN.htm
-    const m = u.pathname.match(/(\d{8,})/);
-    if (m) return m[1];
-  } catch { /* ignore */ }
-  return null;
-}
-
-/**
- * Запускает Apify-актор синхронно (run-sync-get-dataset-items) и возвращает
- * первый элемент датасета. Лимит времени ~60 сек на актор; если дольше —
- * выкинет таймаут (Apify будет продолжать выполнение, но мы не дождёмся).
- */
-async function runApifyActor(
-  actorId: string,
-  input: Record<string, unknown>,
-  log: (m: string) => void,
-): Promise<Record<string, unknown> | null> {
-  if (!APIFY_TOKEN) throw new Error("APIFY_TOKEN not configured");
-  const url = `https://api.apify.com/v2/acts/${actorId.replace("/", "~")}/run-sync-get-dataset-items?token=${APIFY_TOKEN}&timeout=120`;
-  log(`Apify: calling ${actorId} with input=${JSON.stringify(input)}`);
-
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 120_000);
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input),
-      signal: ctrl.signal,
-    });
-    clearTimeout(timer);
-    if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      throw new Error(`Apify HTTP ${res.status}: ${txt.slice(0, 200)}`);
-    }
-    const items = (await res.json()) as Record<string, unknown>[];
-    log(`Apify: returned ${items.length} items`);
-    return items[0] || null;
-  } finally {
-    clearTimeout(timer);
+    const host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+    // Известные мульти-доменные площадки
+    if (host.endsWith(".cn") || /(?:dewu|poizon|taobao|tmall|1688|jd|tmall|xianyu)/.test(host)) return "CN";
+    if (host.endsWith(".pl") || host.includes("zalando.pl") || host.includes("zalando-lounge.pl")) return "PL";
+    if (host.endsWith(".de") || host.endsWith(".at")) return "DE";
+    if (host.endsWith(".co.uk") || host.endsWith(".uk") || /(?:asos\.com|endclothing\.com|sneakerstudio|ssense)/.test(host)) return "UK";
+    if (host.endsWith(".ru") || /(?:wildberries|ozon|lamoda|yandex|avito)/.test(host)) return "RU";
+    if (host.endsWith(".by")) return "BY";
+    if (host.endsWith(".jp")) return "JP";
+    if (host.endsWith(".kr")) return "KR";
+    if (host.endsWith(".tr") || host.endsWith(".com.tr")) return "TR";
+    if (host.endsWith(".ae")) return "AE";
+    if (host.endsWith(".vn")) return "VN";
+    if (host.endsWith(".it")) return "EU"; // Italy ⇒ EU group
+    if (host.endsWith(".fr")) return "EU";
+    if (host.endsWith(".es")) return "EU";
+    if (host.endsWith(".nl")) return "EU";
+    if (host.endsWith(".com") && /(?:farfetch|aboutyou|asos)/.test(host)) return "EU";
+    return null;
+  } catch {
+    return null;
   }
-}
-
-/** Маппит результат sian.agency Taobao actor в ApifyExtraction */
-function mapTaobaoItem(item: Record<string, unknown>): ApifyExtraction {
-  const status = typeof item.status === "string" ? item.status : "";
-  if (status && status !== "success") return { title: null, price: null, currency: null, imageUrl: null, brand: null };
-  const title = typeof item.title === "string" ? item.title.trim() : null;
-  const priceYuan = typeof item.priceYuan === "number" ? item.priceYuan : null;
-  const imageUrl = typeof item.imageUrl === "string" ? item.imageUrl : null;
-  const brand = typeof item.brandName === "string" ? item.brandName : null;
-  return {
-    title: title || null,
-    price: priceYuan && priceYuan > 0 ? priceYuan : null,
-    currency: priceYuan && priceYuan > 0 ? "CNY" : null,
-    imageUrl,
-    brand,
-  };
-}
-
-/** Маппит результат pear_fight Temu actor в ApifyExtraction */
-function mapTemuItem(item: Record<string, unknown>): ApifyExtraction {
-  const name = typeof item.name === "string" ? item.name.trim() : null;
-  const priceRaw = item.price;
-  let price: number | null = null;
-  if (typeof priceRaw === "number" && priceRaw > 0) price = priceRaw;
-  else if (typeof priceRaw === "string") {
-    const n = parseFloat(priceRaw.replace(/[^\d.]/g, ""));
-    if (!isNaN(n) && n > 0) price = n;
-  }
-  const imageUrl = typeof item.imageUrl === "string" ? item.imageUrl : null;
-  return {
-    title: name,
-    price,
-    currency: price ? "USD" : null,
-    imageUrl,
-    brand: null,
-  };
-}
-
-/** Маппит результат getdataforme Alibaba.com actor в ApifyExtraction */
-function mapAlibabaItem(item: Record<string, unknown>): ApifyExtraction {
-  const name = typeof item.name === "string"
-    ? item.name.trim()
-    : (typeof item.title === "string" ? item.title.trim() : null);
-
-  // Alibaba отдаёт массив offers — берём первый
-  const offers = Array.isArray(item.offers) ? item.offers : [];
-  const firstOffer = offers[0] as Record<string, unknown> | undefined;
-
-  let price: number | null = null;
-  let currency: string | null = null;
-
-  if (firstOffer) {
-    const p = firstOffer.price ?? firstOffer.lowPrice;
-    if (typeof p === "number" && p > 0) price = p;
-    else if (typeof p === "string") {
-      const n = parseFloat(p.replace(/[^\d.]/g, ""));
-      if (!isNaN(n) && n > 0) price = n;
-    }
-    const c = firstOffer.priceCurrency ?? firstOffer.currency;
-    if (typeof c === "string" && c.trim()) currency = c.trim().toUpperCase();
-  }
-
-  // Fallback на root-level price
-  if (price == null) {
-    const p = item.price ?? item.lowPrice;
-    if (typeof p === "number" && p > 0) price = p;
-    else if (typeof p === "string") {
-      const n = parseFloat(p.replace(/[^\d.]/g, ""));
-      if (!isNaN(n) && n > 0) price = n;
-    }
-  }
-
-  const images = Array.isArray(item.images) ? item.images : [];
-  let imageUrl: string | null = null;
-  if (images.length && typeof images[0] === "string") imageUrl = images[0] as string;
-  else if (typeof item.image === "string") imageUrl = item.image;
-
-  const brand = typeof item.brand === "string" ? item.brand : null;
-
-  return {
-    title: name,
-    price,
-    currency: currency || (price ? "USD" : null),
-    imageUrl,
-    brand,
-  };
-}
-
-/**
- * Пробует получить данные через Apify-актор для данного URL.
- * Возвращает null если домен не подходит ни под один актор / нет токена.
- * Бросает исключение только при сетевой/API ошибке внутри актора.
- */
-async function tryApify(
-  url: string,
-  hostname: string,
-  log: (m: string) => void,
-): Promise<{ data: ApifyExtraction; method: string } | null> {
-  if (!APIFY_TOKEN) return null;
-
-  // Taobao + Tmall (canonical desktop URL only — share-link'и в APP_ONLY)
-  if (
-    hostname.includes("item.taobao.com") ||
-    hostname.includes("detail.tmall.com") ||
-    hostname.endsWith(".taobao.com") ||
-    hostname.endsWith(".tmall.com") ||
-    hostname === "taobao.com" || hostname === "tmall.com"
-  ) {
-    const itemId = extractTaobaoItemId(url);
-    if (!itemId) {
-      log(`Apify Taobao: no itemId in URL, skipping`);
-      return null;
-    }
-    const item = await runApifyActor(
-      "sian.agency/taobao-tmall-product-scraper",
-      { operation: "productDetail", itemId, detailVersion: "v1" },
-      log,
-    );
-    if (!item) return null;
-    return { data: mapTaobaoItem(item), method: "apify_taobao" };
-  }
-
-  // Temu
-  if (hostname.includes("temu.com")) {
-    const item = await runApifyActor(
-      "pear_fight/temu-scraper",
-      { productUrls: [url], maxResults: 1 },
-      log,
-    );
-    if (!item) return null;
-    return { data: mapTemuItem(item), method: "apify_temu" };
-  }
-
-  // Alibaba.com (international, английский UI; НЕ 1688.com — это другая платформа)
-  if (
-    hostname === "alibaba.com" ||
-    hostname === "www.alibaba.com" ||
-    hostname.endsWith(".alibaba.com")
-  ) {
-    const item = await runApifyActor(
-      "getdataforme/alibaba-product-profile-scraper",
-      { startUrls: [{ url }] },
-      log,
-    );
-    if (!item) return null;
-    return { data: mapAlibabaItem(item), method: "apify_alibaba" };
-  }
-
-  return null;
 }
 
 // ─── JSON helper (strips ```json fences) ─────────────────────────────────────
@@ -713,6 +510,7 @@ interface ExtractedData {
   title: string | null;
   price: number | null;
   currency: string | null;
+  country: string | null;
   category: string | null;
   description: string | null;
   color: string | null;
@@ -722,6 +520,8 @@ interface ExtractedData {
 
 async function extractData(content: string, url: string): Promise<ExtractedData> {
   if (!DEEPSEEK_KEY) throw new Error("DEEPSEEK_API_KEY not configured");
+}> {
+  if (!OPENROUTER_KEY) throw new Error("OPENROUTER_API_KEY not configured");
 
   const isHtml = content.trimStart().startsWith("<");
   const contentType = isHtml ? "HTML" : "Markdown";
@@ -731,15 +531,26 @@ async function extractData(content: string, url: string): Promise<ExtractedData>
     `You are a precise e-commerce product data extractor. Analyze the provided content (which is in ${contentType} format) and extract the following fields. Return only a valid JSON object with these exact keys. Use null for any missing value. Do not include any text outside the JSON.
 
 Fields to extract:
-- title: The full product name/title. IMPORTANT: extract the actual product, NOT generic page titles or technical strings. Return null in these cases: (a) content looks like a login page (mentions Alipay, 支付宝, 登录, please log in); (b) content is an "open in app" / deep-link redirect page; (c) title would be a meta-tag name ("viewport", "description", "keywords"); (d) title would be just the website name ("Taobao", "拼多多", "得App", "商品详情", "productDetail"); (e) marketplace homepage / agent service marketing.
-- price: The current selling price as a number (without currency symbols, commas, or spaces). Use '.' as decimal separator. Do not convert currencies. If multiple prices are shown, pick the main/default one. If you cannot find a clear product price (only generic prices like shipping fees), return null.
-- currency: The ISO 4217 currency code (USD, EUR, CNY, GBP, BYN, RUB, etc.). Infer from symbol if needed: $→USD, €→EUR, ¥→CNY, £→GBP, ₽→RUB. If it cannot be determined, return null.
-- category: The product category in Russian, chosen from: "Обувь", "Одежда", "Аксессуары". Determine by analyzing the product name, description, and any breadcrumbs. If none matches, return null.
+- title: The full product name/title.
+- price: The CURRENT/FINAL price the buyer would actually pay. Rules of thumb:
+  * If the page shows a discounted price next to a crossed-out / "was" / "Cena pierwotna" / "Old price" / "RRP" / "UVP" / "Originalpreis" — use the DISCOUNTED price, NOT the original.
+  * If multiple sizes have different prices, take the lowest commonly-available variant.
+  * Do NOT pick shipping fees, loyalty bonuses, taxes, or installment payments.
+  * Output a number only (no currency symbols, no thousand separators, '.' as decimal separator).
+- currency: The ISO 4217 currency code. Infer from symbol or context: $→USD, €→EUR, ¥→CNY, £→GBP, ₽→RUB, "zł"/"PLN"→PLN, "руб"→RUB, "BYN"/"Br"→BYN, "kr"→SEK/NOK/DKK (use TLD: .se→SEK, .no→NOK, .dk→DKK). Return null only if you really cannot tell.
+- country: The ISO-3166 alpha-2 country code of the marketplace (CN, PL, DE, EU, UK, US, RU, BY, JP, KR, AE, TR, VN). Infer from domain TLD and currency: zalando.pl→PL, zalando.de→DE, asos.com→UK, .ru→RU, .cn→CN. Return null if unsure.
+- category: The product category in Russian. Pick the MOST SPECIFIC item from this list (in priority order):
+  Кроссовки, Кеды, Боты, Ботинки, Сандалии, Туфли,
+  Футболка, Поло, Худи, Свитшот, Толстовка, Джинсы, Брюки, Шорты, Куртка, Пуховик, Пальто, Платье, Юбка, Костюм, Купальник,
+  Рюкзак, Сумка, Кошелёк, Ремень, Часы, Очки, Шапка, Бижутерия, Парфюм, Косметика, Электроника.
+  If none of these fit precisely but it is shoes/clothing/accessories, return one of: "Обувь", "Одежда", "Аксессуары". If still nothing matches, return null.
 - description: A concise product description (1-2 sentences) in Russian, summarizing key features. If not available, return null.
 - color: The main color(s) in Russian, e.g., "Черный/Белый". If not found, return null.
 - brand: The manufacturer brand name, e.g., "Nike", "Adidas". If not found, return null.
 
-${isHtml ? `For HTML: prioritize structured data (JSON-LD <script type="application/ld+json">), meta tags (<meta property="product:price:amount">), and elements with class names like price, product-title, brand.` : `For Markdown: extract information from the structured text, focusing on headings and price patterns.`}
+URL of the page being analyzed: ${url}
+
+${isHtml ? `For HTML: prioritize structured data (JSON-LD <script type="application/ld+json"> with @type="Product" → offers.price), meta tags (<meta property="product:price:amount">, og:price:amount), and elements with class names like price, product-title, brand. Ignore prices inside "compare", "old", "regular", "strikethrough", "rrp" classes — these are crossed-out original prices.` : `For Markdown: extract information from the structured text, focusing on headings and price patterns. Watch for "~~price~~" or "was X now Y" patterns — pick the lower current price.`}
 
 ${contentType} content:
 ${content.substring(0, 8000)}`;
@@ -747,14 +558,14 @@ ${content.substring(0, 8000)}`;
   let dsResponse: Record<string, unknown> | null = null;
 
   try {
-    const dsRes = await fetch("https://api.deepseek.com/v1/chat/completions", {
+    const dsRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${DEEPSEEK_KEY}`,
+        "Authorization": `Bearer ${OPENROUTER_KEY}`,
       },
       body: JSON.stringify({
-        model: "deepseek-chat",
+        model: TEXT_MODEL,
         messages: [{ role: "user", content: prompt }],
         temperature: 0,
       }),
@@ -771,6 +582,7 @@ ${content.substring(0, 8000)}`;
       title: titleFb,
       price: priceFb,
       currency: currFinal,
+      country: countryFromUrl(url),
       category: null,
       description: null,
       color: null,
@@ -816,10 +628,15 @@ ${content.substring(0, 8000)}`;
     return null;
   };
 
+  // ── Country ── prefer URL-based detection, fallback to model output
+  const countryFromModel = strOrNull(parsed.country);
+  const countryFinal = countryFromUrl(url) || (countryFromModel ? countryFromModel.toUpperCase() : null);
+
   return {
     title,
     price: finalPrice,
     currency: finalCurrency,
+    country: countryFinal,
     category: strOrNull(parsed.category),
     description: strOrNull(parsed.description),
     color: strOrNull(parsed.color),
@@ -943,6 +760,7 @@ Deno.serve(async (req) => {
         price: extracted.price,
         title: extracted.title,
         currency: extracted.currency,
+        country: extracted.country,
         category: extracted.category,
         description: extracted.description,
         color: extracted.color,
