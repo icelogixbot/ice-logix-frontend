@@ -2209,6 +2209,19 @@
       });
     }
 
+    window.updateCategoryHint = (selectId, hintId) => {
+      const selectEl = document.getElementById(selectId);
+      const hintEl = document.getElementById(hintId);
+      if (!selectEl || !hintEl) return;
+      const opt = selectEl.options[selectEl.selectedIndex];
+      if (opt && opt.dataset.defaultWeight) {
+        hintEl.innerText = `💡 Обычно весит ~${opt.dataset.defaultWeight} кг`;
+        hintEl.classList.remove('hidden');
+      } else {
+        hintEl.classList.add('hidden');
+      }
+    };
+
     // ─── ВАЛИДАЦИЯ ЗАКАЗА перед отправкой ────────────────────────────────────
     // Особенно важно для режима «Вручную» — там данные не проходят парсер.
     // Возвращает массив ошибок (пустой = всё ок).
@@ -4100,7 +4113,8 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           </div>
 
           <label class="text-white/70 text-sm block mt-2">Наименование (для автоподбора веса)</label>
-          <select id="calcCategory" class="btn-secondary w-full mt-1 p-3 rounded-xl border border-white/30 mb-3">${renderCategoryOptions()}</select>
+          <select id="calcCategory" class="btn-secondary w-full mt-1 p-3 rounded-xl border border-white/30 mb-1">${renderCategoryOptions()}</select>
+          <p id="calcCategoryHint" class="text-cyan-400 text-[10px] hidden mb-3 font-semibold ml-1">💡 Обычно весит ~1.2 кг</p>
           <div class="flex justify-between items-center mt-2 mb-0.5">
             <label class="text-white/70 text-sm block">Размер</label>
             <button type="button" class="text-xs text-cyan-400 flex items-center gap-1 bg-white/5 px-2.5 py-1 rounded-lg hover:bg-white/10 transition" onclick="showSizeTablesModal()">
@@ -4308,7 +4322,10 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
   const calcCategory = document.getElementById('calcCategory');
   const calcSizeInput = document.getElementById('calcSize');
   const keepBox = document.getElementById('keepBox');
-  if (calcCategory) calcCategory.onchange = () => fetchWeightFromStandard(calcCategory.value, calcSizeInput?.value);
+  if (calcCategory) calcCategory.addEventListener('change', () => {
+    fetchWeightFromStandard(calcCategory.value, calcSizeInput?.value);
+    if (window.updateCategoryHint) window.updateCategoryHint('calcCategory', 'calcCategoryHint');
+  });
   if (calcSizeInput) calcSizeInput.onchange = () => fetchWeightFromStandard(calcCategory?.value, calcSizeInput.value);
   if (keepBox && slider) {
     keepBox.onchange = () => {
@@ -5335,36 +5352,52 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       const splitPlaceholder = document.getElementById('customsSplitPlaceholder');
       if (splitPlaceholder) {
         if (aggregatedBreakdown.customs_duty_byn > 0) {
-          const hasSecondRecipient = window.userSettings?.second_recipient?.active === true;
-          if (hasSecondRecipient) {
-            const secondName = window.userSettings.second_recipient.fullName || '';
+          if (window.userRecipients && window.userRecipients.length > 0) {
             const isChecked = window.tempOrder?.useCustomsSplit || false;
+            const currentRecId = window.tempOrder?.customsSplitRecipientId || '';
+            const recOptions = window.userRecipients.map(r => `<option value="${r.id}" ${currentRecId === r.id ? 'selected' : ''}>${r.full_name} (***${r.passport.slice(-4)})</option>`).join('');
+
             splitPlaceholder.innerHTML = `
-              <div class="flex items-center justify-between p-3 rounded-xl border border-cyan-500/30 bg-cyan-500/10 mb-4 page-enter">
-                <div class="flex items-start gap-2 text-left">
+              <div class="p-3 rounded-xl border border-cyan-500/30 bg-cyan-500/10 mb-4 page-enter">
+                <div class="flex items-start gap-2 text-left mb-2">
                   <input type="checkbox" id="orderUseCustomsSplit" class="mt-0.5 w-5 h-5 accent-cyan-500 cursor-pointer" ${isChecked ? 'checked' : ''}>
                   <div>
                     <label for="orderUseCustomsSplit" class="text-white text-xs font-semibold leading-normal cursor-pointer">
-                      🛡️ Разделить посылку на двух получателей
+                      🛡️ Разделить посылку на двух получателей (обнулить пошлину)
                     </label>
-                    <p class="text-white/40 text-[9px] mt-0.5">Получатели: ${userName} и ${secondName}. Пошлина обнуляется!</p>
+                    <p class="text-white/40 text-[9px] mt-0.5">Выберите получателя для второй части посылки.</p>
                   </div>
+                </div>
+                <div id="customsSplitRecipientSelect" class="${isChecked ? '' : 'hidden'}">
+                  <select id="splitRecipientDropdown" class="w-full p-2 text-sm rounded-lg border border-white/20 bg-slate-900 text-white mt-1">
+                    <option value="">-- Выберите получателя --</option>
+                    ${recOptions}
+                  </select>
                 </div>
               </div>
             `;
             
             // Attach change event listener
             const chk = document.getElementById('orderUseCustomsSplit');
+            const drop = document.getElementById('splitRecipientDropdown');
             if (chk) {
               chk.onchange = () => {
                 window.tempOrder.useCustomsSplit = chk.checked;
+                document.getElementById('customsSplitRecipientSelect').classList.toggle('hidden', !chk.checked);
                 recalculateOrderTotals();
+              };
+            }
+            if (drop) {
+              drop.onchange = () => {
+                window.tempOrder.customsSplitRecipientId = drop.value;
+                const rec = window.userRecipients.find(r => r.id === drop.value);
+                if (rec) window.tempOrder.customsSplitRecipientName = rec.full_name;
               };
             }
           } else {
             splitPlaceholder.innerHTML = `
               <div class="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 mb-4 text-xs text-amber-300 page-enter">
-                💡 <strong>Превышен лимит пошлины €200!</strong> Вы можете добавить второго получателя в разделе <span class="underline cursor-pointer font-bold hover:text-white" onclick="showPersonalDataForm()">«Мои данные»</span>, чтобы разделить посылку и сэкономить <strong>${aggregatedBreakdown.customs_duty_byn.toFixed(2)} BYN</strong>.
+                💡 <strong>Превышен лимит пошлины €200!</strong> Вы можете добавить родственника в <span class="underline cursor-pointer font-bold hover:text-white" onclick="switchTab('profile')">Профиле (Мои получатели)</span>, чтобы разделить посылку и сэкономить <strong>${aggregatedBreakdown.customs_duty_byn.toFixed(2)} BYN</strong> на пошлине.
               </div>
             `;
           }
@@ -5426,6 +5459,15 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
     // ==================== РЕНДЕР НОВОГО ЗАКАЗА ====================
     async function renderNewOrder() {
+      // Fetch recipients for customs split
+      window.userRecipients = [];
+      if (userId) {
+        try {
+          const { data } = await supabaseClient.from('recipients').select('*').eq('user_id', userId);
+          if (data) window.userRecipients = data;
+        } catch(e) {}
+      }
+
       const limitInfo = await checkAndUpdateLimit();
       let limitMessage = '';
       if (!limitInfo.allowed) {
@@ -5734,6 +5776,14 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               </label>
             </div>
 
+            <!-- Agree Delivery Rules -->
+            <div class="flex items-start gap-2 mb-4">
+              <input type="checkbox" id="agreeDeliveryRules" class="mt-1">
+              <label for="agreeDeliveryRules" class="text-white/70 text-xs leading-normal">
+                Я прочитал и согласен с <button type="button" class="text-cyan-400 underline font-bold text-left" onclick="tgUtil.alert('Правила доставки:\\n\\n1. Сроки доставки являются ориентировочиными.\\n2. Итоговый вес может отличаться от расчетного.\\n3. Отмена выкупленного заказа невозможна.')">правилами доставки</button>.
+              </label>
+            </div>
+
             <!-- Commission Contract -->
             <div class="flex items-start gap-2 mb-4">
               <input type="checkbox" id="agreeCommissionContract" class="mt-1">
@@ -5902,7 +5952,8 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               <!-- Category Single-line Dropdown -->
               <div class="mb-3">
                 <label class="text-white/50 text-xs block mb-1">Категория</label>
-                <select id="orderCategory" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm">${renderCategoryOptions()}</select>
+                <select id="orderCategory" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm mb-1">${renderCategoryOptions()}</select>
+                <p id="orderCategoryHint" class="text-cyan-400 text-[10px] hidden mb-2 font-semibold ml-1">💡 Обычно весит ~1.2 кг</p>
               </div>
               
               <!-- Color & Size -->
@@ -6266,6 +6317,17 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               return;
             }
 
+            const agreeDeliveryRules = document.getElementById('agreeDeliveryRules');
+            if (agreeDeliveryRules && !agreeDeliveryRules.checked) {
+              tgUtil.alert('Вы должны согласиться с правилами доставки');
+              return;
+            }
+
+            if (window.tempOrder?.useCustomsSplit && !window.tempOrder?.customsSplitRecipientId) {
+              tgUtil.alert('Выберите второго получателя для разделения посылки.');
+              return;
+            }
+
             const consolidatedOrder = {
               price: window.tempOrder.price || 0,
               currency: window.tempOrder.items?.[0]?.currency || 'CNY',
@@ -6304,8 +6366,8 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               if (pvs.method !== 'none') {
                 pvsAddress = `${pvs.method === 'europoshta' ? 'Европочта' : pvs.method === 'sdek' ? 'СДЭК' : 'Белпочта'} | ${pvs.city} | ${pvs.point}`;
               }
-              if (window.tempOrder?.useCustomsSplit && window.userSettings?.second_recipient?.active) {
-                const secName = window.userSettings.second_recipient.fullName || '';
+              if (window.tempOrder?.useCustomsSplit && window.tempOrder?.customsSplitRecipientName) {
+                const secName = window.tempOrder.customsSplitRecipientName;
                 pvsAddress = pvsAddress 
                   ? `${pvsAddress} | 🛡️ РАЗДЕЛЕНИЕ: ${secName}`
                   : `Самовывоз | 🛡️ РАЗДЕЛЕНИЕ: ${secName}`;
@@ -6419,6 +6481,13 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             el.addEventListener('change', updateAiSizeAdvice);
           }
         });
+
+        const orderCategoryEl = document.getElementById('orderCategory');
+        if (orderCategoryEl) {
+          orderCategoryEl.addEventListener('change', () => {
+            if (window.updateCategoryHint) window.updateCategoryHint('orderCategory', 'orderCategoryHint');
+          });
+        }
 
         const manualBanner = document.getElementById('aiSizeAdvisorBanner');
         if (manualBanner) {
@@ -7745,6 +7814,20 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
       </button>
     </div>
   </div>
+
+  <!-- Мои получатели -->
+  <div class="mb-5 page-enter" style="animation-delay: 0.12s;">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-white font-bold flex items-center gap-2">
+        <span><span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span></span> Мои получатели
+      </h3>
+      <button id="addRecipientBtn" class="bg-cyan-500/20 text-cyan-400 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-cyan-500/30 transition">+ Добавить</button>
+    </div>
+    <div class="bg-white/5 rounded-2xl p-4 border border-white/10" id="recipientsListContainer">
+      <p class="text-white/50 text-xs text-center py-2">Загрузка получателей...</p>
+    </div>
+    <p class="text-white/40 text-[10px] mt-2 text-center">Добавляйте родственников, чтобы обходить лимит 200€ на человека</p>
+  </div>
   
   <!-- Settings Grid -->
   <div class="mb-5 page-enter" style="animation-delay: 0.15s;">
@@ -7977,6 +8060,77 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
   const cartBtn = document.getElementById('cartBtn');
   if (cartBtn) cartBtn.onclick = () => switchTab('cart');
 
+  // Load and Handle Recipients
+  const loadRecipients = async () => {
+    const listContainer = document.getElementById('recipientsListContainer');
+    if (!listContainer) return;
+    try {
+        const { data, error } = await supabaseClient.from('recipients').select('*').eq('user_id', userId);
+        if (error) throw error;
+        if (!data || data.length === 0) {
+            listContainer.innerHTML = '<p class="text-white/50 text-xs text-center py-2">У вас пока нет добавленных получателей</p>';
+            return;
+        }
+        listContainer.innerHTML = data.map(r => `
+            <div class="flex justify-between items-center bg-white/5 p-3 rounded-xl mb-2">
+                <div>
+                    <p class="text-white font-bold text-sm">${r.full_name}</p>
+                    <p class="text-white/50 text-xs">Паспорт: ***${r.passport.slice(-4)}</p>
+                </div>
+                <button class="deleteRecipientBtn text-white/30 hover:text-red-400 transition" data-id="${r.id}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></button>
+            </div>
+        `).join('');
+        
+        document.querySelectorAll('.deleteRecipientBtn').forEach(btn => {
+            btn.onclick = async () => {
+                if(confirm('Удалить получателя?')) {
+                    await supabaseClient.from('recipients').delete().eq('id', btn.getAttribute('data-id'));
+                    loadRecipients();
+                }
+            };
+        });
+    } catch(e) {
+        listContainer.innerHTML = '<p class="text-white/50 text-xs text-center py-2">Создайте таблицу recipients в Supabase!</p>';
+    }
+  };
+  loadRecipients();
+
+  const addRecipientBtn = document.getElementById('addRecipientBtn');
+  if (addRecipientBtn) {
+      addRecipientBtn.onclick = () => {
+          const modal = document.createElement('div');
+          modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4';
+          modal.innerHTML = `
+              <div class="glass-card max-w-sm w-full">
+                  <h3 class="text-white font-bold mb-4">Добавить получателя</h3>
+                  <input type="text" id="recName" class="btn-secondary w-full p-3 rounded-xl mb-3 text-sm" placeholder="ФИО полностью">
+                  <input type="text" id="recPassport" class="btn-secondary w-full p-3 rounded-xl mb-3 text-sm" placeholder="Серия и номер паспорта">
+                  <input type="text" id="recPhone" class="btn-secondary w-full p-3 rounded-xl mb-4 text-sm" placeholder="Номер телефона">
+                  <div class="flex gap-2">
+                      <button id="saveRecBtn" class="bg-cyan-500/20 text-cyan-400 px-4 py-3 rounded-xl flex-1 font-bold">Сохранить</button>
+                      <button id="cancelRecBtn" class="bg-white/10 text-white px-4 py-3 rounded-xl flex-1">Отмена</button>
+                  </div>
+              </div>
+          `;
+          document.body.appendChild(modal);
+          modal.querySelector('#cancelRecBtn').onclick = () => modal.remove();
+          modal.querySelector('#saveRecBtn').onclick = async () => {
+              const full_name = modal.querySelector('#recName').value.trim();
+              const passport = modal.querySelector('#recPassport').value.trim();
+              const phone = modal.querySelector('#recPhone').value.trim();
+              if (!full_name || !passport || !phone) { tgUtil.alert('Заполните все поля'); return; }
+              try {
+                  const { error } = await supabaseClient.from('recipients').insert({ user_id: userId, full_name, passport, phone, created_at: new Date().toISOString() });
+                  if (error) throw error;
+                  modal.remove();
+                  loadRecipients();
+                  tgUtil.alert('Получатель добавлен!');
+              } catch(e) {
+                  tgUtil.alert('Ошибка: ' + (e.message || 'Сбой БД'));
+              }
+          };
+      };
+  }
 }
 
 window.getFortuneSpinCooldown = () => {
@@ -9145,25 +9299,52 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       try {
         const { data, error } = await supabaseClient.from('public_reports').select('*').eq('is_active', true).order('created_at', { ascending: false });
         if (error) throw error;
+        
+        let statsHtml = '';
+        try {
+          const { count } = await supabaseClient.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'delivered');
+          statsHtml = `<div class="glass-card mb-4 p-3 flex justify-around items-center text-center"><div class="flex-1 border-r border-white/10"><p class="text-white/50 text-[10px] uppercase">Выкуплено</p><p class="text-white font-bold text-lg">${data ? data.length : 0}</p></div><div class="flex-1"><p class="text-white/50 text-[10px] uppercase">Доставлено</p><p class="text-cyan-400 font-bold text-lg">${count || '120+'}</p></div></div>`;
+        } catch(e) {}
+        
         if (!data || data.length === 0) {
-          return `<div class="text-center py-10"><p class="text-white/70">Пока нет публичных отчётов</p>${isOwner ? '<button id="addReportBtn" class="btn-primary mt-4"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить первый отчёт</button>' : ''}</div>${renderFooter()}`;
+          return `${statsHtml}<div class="text-center py-10"><p class="text-white/70">Пока нет публичных отчётов</p>${isOwner ? '<button id="addReportBtn" class="btn-primary mt-4"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить первый отчёт</button>' : ''}</div>${renderFooter()}`;
         }
         return `
           <div class="space-y-4">
+            ${statsHtml}
             ${isOwner ? '<button id="addReportBtn" class="global-back-btn mb-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить отчёт</button>' : ''}
-            ${data.map(report => `
-              <div class="glass-card overflow-hidden !p-0">
-                ${report.type === 'video' ? `<video src="${report.image_url}" class="w-full h-64 object-cover" controls></video>` : `<img src="${report.image_url}" class="w-full h-64 object-cover" alt="${report.title}">`}
+            ${data.map(report => {
+              let mediaUrls = [];
+              try { mediaUrls = JSON.parse(report.image_url); } catch(e) { mediaUrls = [report.image_url]; }
+              if (!Array.isArray(mediaUrls)) mediaUrls = [report.image_url];
+              
+              const carouselHtml = mediaUrls.map((url, idx) => `
+                <div class="w-full flex-shrink-0 relative h-72">
+                  ${report.type === 'video' ? `<video src="${url}" class="w-full h-full object-cover" controls></video>` : `<img src="${url}" class="w-full h-full object-cover" alt="${report.title}" onclick="tgUtil.popup('${url}', 'Фото отчета')">`}
+                  ${mediaUrls.length > 1 ? `<div class="absolute bottom-2 right-2 bg-black/60 px-2 py-1 rounded-full text-white text-[10px]">${idx + 1} / ${mediaUrls.length}</div>` : ''}
+                </div>
+              `).join('');
+
+              return `
+              <div class="glass-card overflow-hidden !p-0 border border-white/5 shadow-xl">
+                <div class="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar">
+                  ${mediaUrls.map((url, idx) => `
+                    <div class="w-full flex-shrink-0 snap-start relative h-[320px]">
+                      ${report.type === 'video' ? `<video src="${url}" class="w-full h-full object-cover" controls></video>` : `<img src="${url}" class="w-full h-full object-cover" alt="${report.title}" onclick="tgUtil.popup('${url}', 'Фото отчета')">`}
+                      ${mediaUrls.length > 1 ? `<div class="absolute bottom-2 right-2 bg-black/60 px-2 py-1 rounded-full text-white text-[10px]">${idx + 1} / ${mediaUrls.length}</div>` : ''}
+                    </div>
+                  `).join('')}
+                </div>
                 <div class="p-4">
-                  <h3 class="text-white font-bold text-lg">${report.title}</h3>
-                  <p class="text-white/70 text-sm mt-1">${report.description || ''}</p>
-                  <div class="flex justify-between items-center mt-3">
-                    <span class="text-white/50 text-xs">${new Date(report.created_at).toLocaleDateString('ru-RU')}</span>
-                    ${report.product_url ? `<button class="btn-primary orderFromReportBtn transition" data-url="${report.product_url}">Хочу такой же</button>` : ''}
+                  <h3 class="text-white font-bold text-lg leading-tight">${report.title}</h3>
+                  <p class="text-white/70 text-sm mt-2 whitespace-pre-wrap">${report.description || ''}</p>
+                  <div class="flex justify-between items-center mt-4">
+                    <span class="text-white/40 text-[10px] uppercase font-bold tracking-wider">${new Date(report.created_at).toLocaleDateString('ru-RU')}</span>
+                    ${report.product_url ? `<button class="btn-primary orderFromReportBtn transition !py-1.5 !px-3 !text-xs" data-url="${report.product_url}"><span class="ix text-[12px]"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span> Хочу такой же</button>` : ''}
                   </div>
                 </div>
               </div>
-            `).join('')}
+            `}).join('')}
           </div>
           ${renderFooter()}
         `;
@@ -9177,16 +9358,21 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           const modal = document.createElement('div');
           modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4';
           modal.innerHTML = `
-            <div class="glass-card max-w-md w-full">
+            <div class="glass-card max-w-md w-full max-h-[90vh] overflow-y-auto">
               <h3 class="text-white font-bold text-lg mb-4"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Новый отчёт</h3>
               <input type="text" id="reportTitle" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-3" placeholder="Заголовок">
-              <textarea id="reportDesc" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-3" placeholder="Описание" rows="2"></textarea>
+              <textarea id="reportDesc" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-3" placeholder="Описание" rows="3"></textarea>
               <select id="reportType" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-3">
                 <option value="photo">Фото</option>
                 <option value="video">Видео</option>
               </select>
-              <input type="url" id="reportUrl" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-3" placeholder="Ссылка на фото/видео">
-              <input type="url" id="reportProductUrl" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-3" placeholder="Ссылка на товар">
+              
+              <div id="mediaUrlsContainer" class="space-y-2 mb-2">
+                <input type="url" class="reportUrlInput btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Ссылка на фото/видео (Реальность)">
+              </div>
+              <button id="addMediaUrlBtn" class="text-cyan-400 text-xs mb-4 font-bold flex items-center gap-1"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить еще фото (например, чек)</button>
+
+              <input type="url" id="reportProductUrl" class="btn-secondary w-full p-3 rounded-xl border border-cyan-500/30 mb-3" placeholder="Ссылка на оригинальный товар (для 'Хочу такой же')">
               <div class="flex gap-3 mt-4">
                 <button id="saveReportBtn" class="btn-primary flex-1">Сохранить</button>
                 <button id="cancelReportBtn" class="btn-secondary flex-1">Отмена</button>
@@ -9194,16 +9380,29 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             </div>
           `;
           document.body.appendChild(modal);
+          
+          modal.querySelector('#addMediaUrlBtn').onclick = () => {
+            const input = document.createElement('input');
+            input.type = 'url';
+            input.className = 'reportUrlInput btn-secondary w-full p-3 rounded-xl border border-white/30';
+            input.placeholder = 'Еще ссылка на фото/видео';
+            modal.querySelector('#mediaUrlsContainer').appendChild(input);
+          };
+
           modal.querySelector('#cancelReportBtn').onclick = () => modal.remove();
           modal.querySelector('#saveReportBtn').onclick = async () => {
             const title = modal.querySelector('#reportTitle').value.trim();
             const description = modal.querySelector('#reportDesc').value.trim();
             const type = modal.querySelector('#reportType').value;
-            const image_url = modal.querySelector('#reportUrl').value.trim();
             const product_url = modal.querySelector('#reportProductUrl').value.trim();
-            if (!title || !image_url) { tgUtil.alert('Заполните заголовок и ссылку на фото/видео'); return; }
+            
+            const urlInputs = Array.from(modal.querySelectorAll('.reportUrlInput')).map(i => i.value.trim()).filter(v => v !== '');
+            if (!title || urlInputs.length === 0) { tgUtil.alert('Заполните заголовок и хотя бы одну ссылку на фото/видео'); return; }
+            
+            let finalImageUrl = urlInputs.length > 1 ? JSON.stringify(urlInputs) : urlInputs[0];
+
             try {
-              await supabaseClient.from('public_reports').insert({ title, description, type, image_url, product_url, is_active: true, created_at: new Date().toISOString() });
+              await supabaseClient.from('public_reports').insert({ title, description, type, image_url: finalImageUrl, product_url, is_active: true, created_at: new Date().toISOString() });
               tgUtil.alert('Отчёт добавлен'); modal.remove(); renderCurrentScreen();
             } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }
           };
@@ -9219,24 +9418,68 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
     }
 
         // ==================== РЕНДЕР ОТЗЫВОВ ====================
+        window.currentReviewsRegion = window.currentReviewsRegion || 'all';
         async function renderReviews() {
       try {
-        const { data, count, error } = await supabaseClient.from('reviews').select('*, orders(items_image)', { count: 'exact' }).eq('is_published', true).order('created_at', { ascending: false }).range((reviewsPage - 1) * 10, reviewsPage * 10 - 1);
-        if (error) throw error;
-        reviewsTotalPages = Math.ceil((count || 0) / 10);
+        let query = supabaseClient.from('reviews').select('*, orders(items_image)', { count: 'exact' }).eq('is_published', true).order('created_at', { ascending: false });
+        
+        // Попытка фильтрации по региону (если столбец существует)
+        if (window.currentReviewsRegion !== 'all') {
+            query = query.eq('region', window.currentReviewsRegion);
+        }
+
+        const { data, count, error } = await query.range((reviewsPage - 1) * 10, reviewsPage * 10 - 1);
+        
+        // Если ошибка связана с отсутствием столбца region, fallback на все отзывы
+        let finalData = data;
+        let finalCount = count;
+        if (error && error.message.includes('region')) {
+            console.warn('Column region does not exist yet. Showing all.');
+            const fallbackQuery = await supabaseClient.from('reviews').select('*, orders(items_image)', { count: 'exact' }).eq('is_published', true).order('created_at', { ascending: false }).range((reviewsPage - 1) * 10, reviewsPage * 10 - 1);
+            finalData = fallbackQuery.data;
+            finalCount = fallbackQuery.count;
+        } else if (error) throw error;
+
+        reviewsTotalPages = Math.ceil((finalCount || 0) / 10);
         
         const canReview = userId ? await canUserReview() : false;
         
+        const regions = [
+          { id: 'all', label: 'Все' },
+          { id: 'china', label: 'Китай 🇨🇳' },
+          { id: 'europe', label: 'Европа 🇪🇺' },
+          { id: 'russia', label: 'Россия 🇷🇺' },
+          { id: 'usa', label: 'США 🇺🇸', disabled: true },
+          { id: 'uae', label: 'ОАЭ 🇦🇪', disabled: true }
+        ];
+
         return `
-          <div class="space-y-4">
-            <h2 class="text-white text-xl font-bold mb-4"><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> Отзывы наших клиентов</h2>
-            ${!data || data.length === 0 ? '<p class="text-white/70">Пока нет отзывов</p>' : data.map(review => {
+          <div class="space-y-4 page-enter">
+            <h2 class="text-white text-xl font-bold mb-2"><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> Отзывы наших клиентов</h2>
+            
+            <div class="flex gap-2 overflow-x-auto pb-2 hide-scrollbar" id="reviewsRegionTabs">
+              ${regions.map(r => `
+                <button class="filter-chip ${window.currentReviewsRegion === r.id ? 'active' : ''} ${r.disabled ? 'opacity-50 cursor-not-allowed' : ''}" 
+                        data-region="${r.id}" ${r.disabled ? 'disabled title="Скоро"' : ''}>
+                  ${r.label}
+                  ${r.disabled ? '<span class="ix text-white text-[10px] ml-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>' : ''}
+                </button>
+              `).join('')}
+            </div>
+
+            ${!finalData || finalData.length === 0 ? '<p class="text-white/70">Пока нет отзывов в этой категории</p>' : finalData.map(review => {
               const siteImg = review.orders && review.orders.items_image ? review.orders.items_image : null;
               const hasClientPhotos = review.photo_urls && review.photo_urls.length > 0;
+              
+              const regionLabel = regions.find(r => r.id === review.region)?.label || 'Не указан';
+              
               return `
               <div class="review-card glass-card p-4 rounded-2xl mb-4">
                 <div class="flex items-center justify-between mb-2">
-                  <p class="text-white font-bold flex items-center gap-2">${review.user_name || 'Пользователь'} ${review.is_verified ? '<span class="ix ix-success text-sm" title="Заказ подтвержден"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>' : ''}</p>
+                  <div>
+                    <p class="text-white font-bold flex items-center gap-2">${review.user_name || 'Пользователь'} ${review.is_verified ? '<span class="ix ix-success text-sm" title="Заказ подтвержден"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>' : ''}</p>
+                    ${review.region ? `<span class="text-[10px] bg-white/10 px-2 py-0.5 rounded-full text-white/70">${regionLabel}</span>` : ''}
+                  </div>
                   <div class="stars flex">${'<span class="ix ix-fill ix-warning w-4 h-4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>'.repeat(review.rating)}${'<span class="ix ix-mute w-4 h-4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>'.repeat(5 - review.rating)}</div>
                 </div>
                 
@@ -9285,6 +9528,16 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       if (prevBtn) prevBtn.onclick = () => { if (reviewsPage > 1) { reviewsPage--; renderCurrentScreen(); } };
       if (nextBtn) nextBtn.onclick = () => { if (reviewsPage < reviewsTotalPages) { reviewsPage++; renderCurrentScreen(); } };
       
+      const regionTabs = document.querySelectorAll('#reviewsRegionTabs button');
+      regionTabs.forEach(tab => {
+          tab.onclick = () => {
+              if (tab.disabled) return;
+              window.currentReviewsRegion = tab.getAttribute('data-region');
+              reviewsPage = 1;
+              renderCurrentScreen();
+          };
+      });
+      
       const leaveBtn = document.getElementById('leaveReviewBtn');
       if (leaveBtn) {
         leaveBtn.onclick = async () => {
@@ -9295,6 +9548,14 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             <div class="glass-card max-w-md w-full">
               <h3 class="text-white font-bold text-lg mb-4"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span> Оставить отзыв</h3>
               <select id="reviewOrder" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-3"><option value="">Выберите заказ</option>${orders.map(o => `<option value="${o.id}">Заказ #${o.id.slice(0,8)}</option>`).join('')}</select>
+              
+              <select id="reviewRegion" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-3">
+                <option value="">Укажите регион площадки</option>
+                <option value="china">Китай (Poizon, 1688...)</option>
+                <option value="europe">Европа (ASOS, Zalando...)</option>
+                <option value="russia">Россия (Wildberries, Ozon...)</option>
+              </select>
+
               <select id="reviewRating" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-3"><option value="5"><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> (5)</option><option value="4"><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> (4)</option><option value="3"><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> (3)</option><option value="2"><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> (2)</option><option value="1"><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> (1)</option></select>
               <textarea id="reviewText" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-3" placeholder="Ваш отзыв" rows="4"></textarea>
               <div class="mb-3">
@@ -15947,6 +16208,17 @@ async function renderAdminAnalytics() {
         </div>
       </div>
     </div>
+
+    <!-- Учет расходов (Expense Tracker) -->
+    <div class="glass-card p-5 mb-5 border border-white/5 rounded-3xl">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-white font-bold text-sm">Учет расходов (Трекер)</h3>
+        <button id="addExpenseBtn" class="bg-red-500/20 text-red-400 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-500/30 transition">+ Расход</button>
+      </div>
+      <div id="expensesList" class="space-y-2 max-h-48 overflow-y-auto pr-2">
+        <!-- Расходы будут здесь -->
+      </div>
+    </div>
   `;
 }
 
@@ -16004,6 +16276,26 @@ window.attachAdminAnalyticsHandlers = async () => {
         }
       }
     });
+
+    let expenses = [];
+    try {
+      const { data: expData } = await supabaseClient.from('expenses').select('*').order('created_at', { ascending: false });
+      if (expData) expenses = expData;
+    } catch(e) {
+      console.warn('Таблица expenses не найдена');
+    }
+    
+    let totalExpenses = 0;
+    expenses.forEach(e => {
+        const amt = parseFloat(e.amount) || 0;
+        totalExpenses += amt;
+        const dateStr = e.created_at.split('T')[0];
+        if (profitByDay[dateStr] !== undefined) {
+           profitByDay[dateStr] -= amt;
+        }
+    });
+    
+    totalProfit -= totalExpenses;
     
     const revEl = document.getElementById('stat-revenue');
     if(revEl) revEl.innerText = totalRevenue.toLocaleString('ru-RU', { maximumFractionDigits: 0 });
@@ -16016,6 +16308,85 @@ window.attachAdminAnalyticsHandlers = async () => {
     
     const usrEl = document.getElementById('stat-users');
     if(usrEl) usrEl.innerText = usersCount || 0;
+    
+    // Рендер списка расходов
+    const expensesList = document.getElementById('expensesList');
+    if (expensesList) {
+        if (expenses.length === 0) {
+            expensesList.innerHTML = '<p class="text-white/50 text-xs text-center py-2">Расходов пока нет</p>';
+        } else {
+            expensesList.innerHTML = expenses.map(e => `
+                <div class="flex justify-between items-center bg-white/5 p-2 rounded-xl">
+                    <div>
+                        <p class="text-white text-sm font-bold">${e.category} <span class="text-white/40 text-[10px] ml-1 font-normal">${new Date(e.created_at).toLocaleDateString('ru-RU')}</span></p>
+                        <p class="text-white/60 text-xs">${e.description || ''}</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-red-400 font-bold text-sm">-${e.amount} BYN</span>
+                        <button class="deleteExpenseBtn text-white/30 hover:text-red-400 transition" data-id="${e.id}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+    
+    const addExpenseBtn = document.getElementById('addExpenseBtn');
+    if (addExpenseBtn) {
+        addExpenseBtn.onclick = () => {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4';
+            modal.innerHTML = `
+                <div class="glass-card max-w-sm w-full">
+                    <h3 class="text-white font-bold mb-4">Добавить расход</h3>
+                    <input type="number" id="expAmount" class="btn-secondary w-full p-3 rounded-xl mb-3" placeholder="Сумма (BYN)">
+                    <select id="expCategory" class="btn-secondary w-full p-3 rounded-xl mb-3">
+                        <option value="Аренда">Аренда</option>
+                        <option value="Зарплата">Зарплата</option>
+                        <option value="Реклама">Реклама</option>
+                        <option value="Упаковка">Упаковка</option>
+                        <option value="Логистика">Логистика</option>
+                        <option value="Прочее">Прочее</option>
+                    </select>
+                    <input type="text" id="expDesc" class="btn-secondary w-full p-3 rounded-xl mb-4" placeholder="Комментарий (опционально)">
+                    <div class="flex gap-2">
+                        <button id="saveExpBtn" class="bg-red-500/20 text-red-400 px-4 py-3 rounded-xl flex-1 font-bold">Сохранить</button>
+                        <button id="cancelExpBtn" class="bg-white/10 text-white px-4 py-3 rounded-xl flex-1">Отмена</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.querySelector('#cancelExpBtn').onclick = () => modal.remove();
+            modal.querySelector('#saveExpBtn').onclick = async () => {
+                const amount = parseFloat(modal.querySelector('#expAmount').value);
+                const category = modal.querySelector('#expCategory').value;
+                const desc = modal.querySelector('#expDesc').value.trim();
+                
+                if (!amount || amount <= 0) { tgUtil.alert('Введите корректную сумму'); return; }
+                
+                try {
+                    const { error } = await supabaseClient.from('expenses').insert({ amount, category, description: desc, created_at: new Date().toISOString() });
+                    if (error) throw error;
+                    modal.remove();
+                    renderCurrentScreen();
+                } catch(e) {
+                    if (e.message && e.message.includes('relation "expenses" does not exist')) {
+                        tgUtil.alert('Сначала создайте таблицу expenses в Supabase!');
+                    } else {
+                        tgUtil.alert('Ошибка: ' + (e.message || 'Сбой базы'));
+                    }
+                }
+            };
+        };
+    }
+    
+    document.querySelectorAll('.deleteExpenseBtn').forEach(btn => {
+        btn.onclick = async () => {
+            if (confirm('Удалить расход?')) {
+                await supabaseClient.from('expenses').delete().eq('id', btn.getAttribute('data-id'));
+                renderCurrentScreen();
+            }
+        };
+    });
     
     // Configs for Chart.js
     Chart.defaults.color = 'rgba(255,255,255,0.5)';
