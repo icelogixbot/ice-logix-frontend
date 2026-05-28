@@ -61,6 +61,33 @@
     'accessories': 0.4,
   };
 
+  // Тарифы доставки по РБ
+  const LOCAL_DELIVERY_RATES = {
+    'europost': {
+      label: 'Европочта',
+      calc: (w) => {
+        if (w <= 1) return 4.00;
+        if (w <= 2) return 4.50;
+        if (w <= 5) return 5.50;
+        if (w <= 10) return 7.50;
+        if (w <= 20) return 10.50;
+        return 14.00;
+      }
+    },
+    'sdek': {
+      label: 'СДЭК',
+      calc: (w) => 10 + (w * 2)
+    },
+    'belpost': {
+      label: 'Белпочта',
+      calc: (w) => 5 + (w * 1.5)
+    },
+    'pickup': {
+      label: 'Самовывоз (Минск)',
+      calc: (w) => 0
+    }
+  };
+
   // Fallback курсы НБРБ на случай оффлайна
   const FALLBACK_RATES = {
     USD_to_BYN: 3.27,
@@ -276,7 +303,13 @@
     const customsDutyBYN = round2(customs.duty);
     if (customs.warning) warnings.push(customs.warning);
 
-    // 10. Скидки
+    // 10. Доставка по РБ
+    let localDeliveryBYN = 0;
+    if (input.local_delivery_method && LOCAL_DELIVERY_RATES[input.local_delivery_method]) {
+      localDeliveryBYN = round2(LOCAL_DELIVERY_RATES[input.local_delivery_method].calc(weightKg));
+    }
+
+    // 11. Скидки
     let discountBYN = 0;
     if (input.is_first_order && input.referral_used) {
       discountBYN += CONFIG.first_order_discount_byn;
@@ -286,9 +319,9 @@
       discountBYN += input.extra_discount_byn;
     }
 
-    // 11. Итого (защищаем от ухода в минус, если скидки больше суммы)
+    // 12. Итого (защищаем от ухода в минус, если скидки больше суммы)
     const totalBYN = Math.max(0, round2(
-      productCostBYN + currencyBufferBYN + deliveryBYN + commissionBYN +
+      productCostBYN + currencyBufferBYN + deliveryBYN + localDeliveryBYN + commissionBYN +
       insuranceBYN + legitCheckBYN + customsDutyBYN - discountBYN
     ));
 
@@ -298,6 +331,7 @@
         product_cost_byn: productCostBYN,
         currency_buffer_byn: currencyBufferBYN,
         delivery_cost_byn: deliveryBYN,
+        local_delivery_byn: localDeliveryBYN,
         commission_byn: commissionBYN,
         insurance_byn: insuranceBYN,
         legit_check_byn: legitCheckBYN,
@@ -331,11 +365,12 @@
     const rows = [];
     rows.push(['📦 Цена товара', b.product_cost_byn]);
     if (b.currency_buffer_byn > 0) rows.push(['💱 Курсовая надбавка', b.currency_buffer_byn]);
-    rows.push(['✈️ Доставка ShopbyShop', b.delivery_cost_byn]);
+    rows.push(['✈️ Доставка до РБ', b.delivery_cost_byn]);
+    if (b.local_delivery_byn > 0) rows.push(['🚚 Доставка по РБ', b.local_delivery_byn]);
     rows.push(['🤝 Комиссия ICE LOGIX', b.commission_byn]);
     if (b.insurance_byn > 0) rows.push(['🛡️ Страховка', b.insurance_byn]);
     if (b.legit_check_byn > 0) rows.push(['✅ Legit Check', b.legit_check_byn]);
-    if (b.customs_duty_byn > 0) rows.push(['🛃 Таможенная пошлина', b.customs_duty_byn]);
+    if (b.customs_duty_byn > 0) rows.push(['🛃 Таможенная пошлина РБ', b.customs_duty_byn]);
     if (b.discount_byn > 0) rows.push(['🎁 Скидка', -b.discount_byn]);
 
     const rowsHtml = rows.map(([label, val]) => `
@@ -374,7 +409,8 @@
     lines.push('💰 Расчёт стоимости заказа:', '');
     lines.push(`📦 Цена товара:           ${b.product_cost_byn.toFixed(2)} BYN`);
     if (b.currency_buffer_byn > 0) lines.push(`💱 Курсовая надбавка:      ${b.currency_buffer_byn.toFixed(2)} BYN`);
-    lines.push(`✈️ Доставка ShopbyShop:    ${b.delivery_cost_byn.toFixed(2)} BYN`);
+    lines.push(`✈️ Доставка до РБ:         ${b.delivery_cost_byn.toFixed(2)} BYN`);
+    if (b.local_delivery_byn > 0) lines.push(`🚚 Доставка по РБ:         ${b.local_delivery_byn.toFixed(2)} BYN`);
     lines.push(`🤝 Комиссия ICE LOGIX:     ${b.commission_byn.toFixed(2)} BYN`);
     if (b.insurance_byn > 0) lines.push(`🛡️ Страховка:              ${b.insurance_byn.toFixed(2)} BYN`);
     if (b.legit_check_byn > 0) lines.push(`✅ Legit Check:            ${b.legit_check_byn.toFixed(2)} BYN`);
@@ -397,7 +433,7 @@
   function round2(n) { return Math.round(n * 100) / 100; }
   function zeroBreakdown() {
     return {
-      product_cost_byn: 0, currency_buffer_byn: 0, delivery_cost_byn: 0,
+      product_cost_byn: 0, currency_buffer_byn: 0, delivery_cost_byn: 0, local_delivery_byn: 0,
       commission_byn: 0, insurance_byn: 0, legit_check_byn: 0,
       customs_duty_byn: 0, discount_byn: 0,
     };
@@ -471,10 +507,11 @@
     warmRates,
     CONFIG,
     SHOPBYSHOP_RATES,
+    LOCAL_DELIVERY_RATES,
     COUNTRY_AVAILABILITY,
     ESTIMATED_WEIGHT_KG,
     FALLBACK_RATES,
-    version: '2026.05.08.03',
+    version: '2026.05.26.04',
   };
 
 })(typeof window !== 'undefined' ? window : globalThis);

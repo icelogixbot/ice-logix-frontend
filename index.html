@@ -2702,6 +2702,9 @@
     }
 
     let tg = null, userId = null, userName = 'Гость', userAvatarUrl = null, isOwner = false, supabaseClient = null;
+    let originalAdminId = null;
+    let isShadowMode = false;
+    let adminAuthenticated = false;
     let currentTab = 'home', previousTab = null, currentSubScreen = null;
 
     // ==================== Telegram WebApp native helpers ====================
@@ -9696,9 +9699,14 @@ async function renderAdminUsersList() {
             <p class="text-white/50 text-[10px]">ID: ${u.user_id} | Рег: ${new Date(u.created_at).toLocaleDateString('ru-RU')}</p>
             <p class="text-cyan-400 font-bold mt-1 text-sm">${Number(u.ices_balance || 0).toFixed(2)} ICE</p>
           </div>
-          <button class="btn-primary px-3 py-1.5 text-xs rounded-lg shadow-[0_0_10px_rgba(6,182,212,0.3)]" onclick="window.changeUserBalance('${u.user_id}', ${u.ices_balance || 0})">
-            💸 Изменить
-          </button>
+          <div class="flex flex-col gap-2">
+            <button class="btn-primary px-3 py-1.5 text-xs rounded-lg shadow-[0_0_10px_rgba(6,182,212,0.3)]" onclick="window.changeUserBalance('${u.user_id}', ${u.ices_balance || 0})">
+              💸 Изменить
+            </button>
+            <button class="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 text-xs rounded-lg transition" onclick="window.enterShadowMode('${u.user_id}')">
+              <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span> Войти как
+            </button>
+          </div>
         </div>
       </div>
     `).join('');
@@ -9714,9 +9722,9 @@ async function renderAdminOrdersList() {
     let query = supabaseClient.from('orders').select('*', { count: 'exact' });
     
     if (adminOrdersMode === 'active') {
-      query = query.is('archived_at', null);
+      query = query.neq('status', 'deleted');
     } else {
-      query = query.not('archived_at', 'is', null);
+      query = query.eq('status', 'deleted');
     }
     
     if (adminOrdersFilter !== 'all') {
@@ -9759,8 +9767,8 @@ async function renderAdminOrdersList() {
       
       // В зависимости от режима показываем либо кнопку архивации, либо восстановления
       const actionButton = adminOrdersMode === 'active'
-        ? `<button class="archiveOrderBtn mt-2 text-xs bg-red-600/50 hover:bg-red-600 px-2 py-1 rounded" data-order-id="${order.id}"><span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></span> Архив</button>`
-        : `<button class="restoreOrderBtn mt-2 text-xs bg-green-600/50 hover:bg-green-600 px-2 py-1 rounded" data-order-id="${order.id}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span>️ Восстановить</button>`;
+        ? `<button class="archiveOrderBtn mt-2 text-xs bg-red-600/50 hover:bg-red-600 px-2 py-1 rounded" data-order-id="${order.id}"><span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></span> Удалить (Soft)</button>`
+        : `<button class="restoreOrderBtn mt-2 text-xs bg-green-600/50 hover:bg-green-600 px-2 py-1 rounded" data-order-id="${order.id}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Восстановить</button>`;
       
       // Селект изменения статуса показываем только для активных заказов
       const statusSelect = adminOrdersMode === 'active'
@@ -10007,6 +10015,102 @@ async function renderAdminLegitChecksList() {
   }
 }
 
+// ==================== 2FA АДМИНКИ ====================
+async function renderAdmin2FA() {
+  return `
+    <button id="cancelAdmin2FA" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
+    <div class="glass-card page-enter text-center mt-10 max-w-sm mx-auto">
+      <h2 class="text-white font-bold text-xl mb-4">Вход в Админ-панель</h2>
+      <p class="text-white/70 text-sm mb-6">Для доступа к расширенным функциям введите 4-значный ПИН-код</p>
+      
+      <div class="flex justify-center gap-3 mb-6" id="pinDots">
+        <div class="w-4 h-4 rounded-full bg-white/20 border border-white/10 transition-colors duration-200"></div>
+        <div class="w-4 h-4 rounded-full bg-white/20 border border-white/10 transition-colors duration-200"></div>
+        <div class="w-4 h-4 rounded-full bg-white/20 border border-white/10 transition-colors duration-200"></div>
+        <div class="w-4 h-4 rounded-full bg-white/20 border border-white/10 transition-colors duration-200"></div>
+      </div>
+      
+      <div class="grid grid-cols-3 gap-3 mb-4" id="pinKeyboard">
+        <button class="bg-white/5 hover:bg-white/10 text-white font-bold text-xl py-4 rounded-xl border border-white/10" data-digit="1">1</button>
+        <button class="bg-white/5 hover:bg-white/10 text-white font-bold text-xl py-4 rounded-xl border border-white/10" data-digit="2">2</button>
+        <button class="bg-white/5 hover:bg-white/10 text-white font-bold text-xl py-4 rounded-xl border border-white/10" data-digit="3">3</button>
+        <button class="bg-white/5 hover:bg-white/10 text-white font-bold text-xl py-4 rounded-xl border border-white/10" data-digit="4">4</button>
+        <button class="bg-white/5 hover:bg-white/10 text-white font-bold text-xl py-4 rounded-xl border border-white/10" data-digit="5">5</button>
+        <button class="bg-white/5 hover:bg-white/10 text-white font-bold text-xl py-4 rounded-xl border border-white/10" data-digit="6">6</button>
+        <button class="bg-white/5 hover:bg-white/10 text-white font-bold text-xl py-4 rounded-xl border border-white/10" data-digit="7">7</button>
+        <button class="bg-white/5 hover:bg-white/10 text-white font-bold text-xl py-4 rounded-xl border border-white/10" data-digit="8">8</button>
+        <button class="bg-white/5 hover:bg-white/10 text-white font-bold text-xl py-4 rounded-xl border border-white/10" data-digit="9">9</button>
+        <div></div>
+        <button class="bg-white/5 hover:bg-white/10 text-white font-bold text-xl py-4 rounded-xl border border-white/10" data-digit="0">0</button>
+        <button class="bg-white/5 hover:bg-white/10 text-red-400 font-bold text-xl py-4 rounded-xl border border-white/10" id="pinDeleteBtn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg></span></button>
+      </div>
+    </div>
+  `;
+}
+
+let currentPin = '';
+function attachAdmin2FAHandlers() {
+  document.getElementById('cancelAdmin2FA').onclick = () => switchTab('home');
+  const dots = document.querySelectorAll('#pinDots div');
+  
+  async function checkPin() {
+    try {
+      const { data } = await supabaseClient.from('users').select('pin_code').eq('user_id', userId).single();
+      if (!data || !data.pin_code) {
+        if (currentPin === '0000') {
+          adminAuthenticated = true;
+          renderCurrentScreen();
+        } else {
+          tgUtil.alert('ПИН-код не установлен. Установлен временный код 0000.');
+          currentPin = ''; updateDots();
+        }
+        return;
+      }
+      if (data.pin_code === currentPin) {
+        adminAuthenticated = true;
+        renderCurrentScreen();
+      } else {
+        tgUtil.haptic('error');
+        tgUtil.alert('❌ Неверный ПИН-код');
+        currentPin = ''; updateDots();
+      }
+    } catch(e) { tgUtil.alert('Ошибка ' + e.message); currentPin = ''; updateDots(); }
+  }
+
+  function updateDots() {
+    dots.forEach((dot, i) => {
+      if (i < currentPin.length) {
+        dot.classList.remove('bg-white/20');
+        dot.classList.add('bg-cyan-400');
+      } else {
+        dot.classList.add('bg-white/20');
+        dot.classList.remove('bg-cyan-400');
+      }
+    });
+    if (currentPin.length === 4) {
+      checkPin();
+    }
+  }
+
+  document.querySelectorAll('#pinKeyboard button[data-digit]').forEach(btn => {
+    btn.onclick = () => {
+      if (currentPin.length < 4) {
+        tgUtil.haptic('light');
+        currentPin += btn.dataset.digit;
+        updateDots();
+      }
+    };
+  });
+  
+  document.getElementById('pinDeleteBtn').onclick = () => {
+    if (currentPin.length > 0) {
+      tgUtil.haptic('light');
+      currentPin = currentPin.slice(0, -1);
+      updateDots();
+    }
+  };
+}
+
 async function renderAdmin() {
   if (!isOwner) return '<p class="text-center mt-10 text-red-400">Доступ запрещён</p>';
   try {
@@ -10050,6 +10154,11 @@ async function renderAdmin() {
         <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="switchTab('admin_analytics')" style="background: linear-gradient(135deg, rgba(34,211,238,0.1), rgba(14,165,233,0.05)); border-color: rgba(34,211,238,0.3);">
           <span class="flex items-center gap-2"><span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span> Аналитика и Финансы</span>
           <span class="ix text-cyan-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+        </button>
+        
+        <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="switchTab('admin_suppliers')" style="background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(5,150,105,0.05)); border-color: rgba(16,185,129,0.3);">
+          <span class="flex items-center gap-2"><span class="ix text-emerald-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> База поставщиков</span>
+          <span class="ix text-emerald-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
         </button>
 
         <!-- Список промокодов -->
@@ -10135,7 +10244,7 @@ async function renderAdmin() {
           <!-- Переключатели Активные / Архив -->
           <div class="flex gap-2 mb-3">
             <button id="showActiveOrdersBtn" class="btn-secondary btn-primary px-4 py-2 rounded-lg text-sm font-medium ${adminOrdersMode === 'active' ? '' : ''}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span> Активные</button>
-            <button id="showArchivedOrdersBtn" class="btn-secondary btn-primary px-4 py-2 rounded-lg text-sm font-medium ${adminOrdersMode === 'archived' ? '' : ''}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></span> Архив</button>
+            <button id="showArchivedOrdersBtn" class="btn-secondary btn-primary px-4 py-2 rounded-lg text-sm font-medium ${adminOrdersMode === 'archived' ? '' : ''}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></span> Корзина (Удаленные)</button>
           </div>
           
           <!-- Фильтр по статусу (чипсы) -->
@@ -10333,6 +10442,19 @@ async function renderAdmin() {
     ` + renderFooter();
   } catch (err) { return '<p class="text-center mt-10 text-red-400">Ошибка загрузки админ-панели</p>'; }
 }
+
+window.enterShadowMode = function(targetUserId) {
+  const isConfirmed = confirm(`Войти в аккаунт пользователя ${targetUserId}? Режим "Только чтение" (без оплаты).`);
+  if (isConfirmed) {
+    originalAdminId = userId;
+    userId = targetUserId;
+    isShadowMode = true;
+    currentSubScreen = null;
+    tgUtil.haptic('success');
+    tgUtil.alert('Теневой режим активирован');
+    switchTab('home');
+  }
+};
 
 function attachAdminHandlers() {
 
@@ -11002,7 +11124,7 @@ function attachAdminHandlers() {
       tgUtil.haptic('medium');
       
       try {
-        const { error } = await supabaseClient.from('orders').update({ archived_at: new Date().toISOString() }).eq('id', orderId);
+        const { error } = await supabaseClient.from('orders').update({ status: 'deleted' }).eq('id', orderId);
         if (error) throw error;
         logAdminAction('archive_order', { orderId });
         tgUtil.alert('Заказ перемещён в архив');
@@ -11118,7 +11240,7 @@ if (archiveBtn) archiveBtn.addEventListener('click', () => {
       tgUtil.haptic('medium');
       
       try {
-        const { error } = await supabaseClient.from('orders').update({ archived_at: null }).eq('id', orderId);
+        const { error } = await supabaseClient.from('orders').update({ status: 'pending' }).eq('id', orderId);
         if (error) throw error;
         logAdminAction('restore_order', { orderId });
         tgUtil.alert('Заказ восстановлен');
@@ -12377,113 +12499,255 @@ function attachFAQHandlers() {
   });
 }
 
+// ==================== РЕНДЕР БАЗЫ ПОСТАВЩИКОВ ====================
+async function renderAdminSuppliers() {
+  try {
+    const { data: suppliers, error } = await supabaseClient.from('suppliers').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+
+    let suppliersHtml = '<p class="text-white/50 text-center py-4">Нет поставщиков в базе</p>';
+    if (suppliers && suppliers.length > 0) {
+      suppliersHtml = suppliers.map(s => `
+        <div class="bg-white/5 border border-white/10 rounded-xl p-4 mb-3">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-white font-bold">${s.name}</p>
+              ${s.category ? `<p class="text-cyan-400 text-xs mt-1">Категория: ${s.category}</p>` : ''}
+              ${s.wechat_id ? `<p class="text-white/70 text-xs mt-1">WeChat: <span class="font-mono text-cyan-200 bg-black/20 px-1 rounded select-all">${s.wechat_id}</span></p>` : ''}
+              ${s.rating ? `<p class="text-yellow-400 text-xs mt-1">Рейтинг: ${'⭐'.repeat(s.rating)}</p>` : ''}
+              ${s.link ? `<a href="${s.link}" target="_blank" class="text-blue-400 text-xs hover:underline mt-1 block">Ссылка</a>` : ''}
+            </div>
+            <button class="deleteSupplierBtn text-red-400 hover:bg-red-500/20 p-1.5 rounded transition" data-id="${s.id}">
+              <span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></span>
+            </button>
+          </div>
+          ${s.note ? `<div class="mt-2 text-white/50 text-xs p-2 bg-black/20 rounded">${s.note}</div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    return `
+      <button onclick="switchTab('admin')" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад в админку</button>
+      <div class="glass-card page-enter">
+        <h2 class="text-xl font-bold mb-4 text-emerald-400 flex items-center gap-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> База поставщиков</h2>
+        
+        <form id="addSupplierForm" class="bg-white/5 border border-white/10 p-4 rounded-xl mb-6">
+          <h3 class="text-white font-bold text-sm mb-3">Добавить поставщика</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <input type="text" id="supName" placeholder="Имя / Название (Обязательно)" required class="btn-secondary p-2 rounded text-xs text-white border border-white/20">
+            <input type="text" id="supWechat" placeholder="WeChat ID" class="btn-secondary p-2 rounded text-xs text-white border border-white/20">
+            <input type="text" id="supCategory" placeholder="Категория (напр. Обувь)" class="btn-secondary p-2 rounded text-xs text-white border border-white/20">
+            <input type="number" id="supRating" placeholder="Рейтинг (0-5)" min="0" max="5" class="btn-secondary p-2 rounded text-xs text-white border border-white/20">
+            <input type="url" id="supLink" placeholder="Ссылка (напр. Yupoo)" class="btn-secondary p-2 rounded text-xs text-white border border-white/20 md:col-span-2">
+            <textarea id="supNote" placeholder="Заметки" class="btn-secondary p-2 rounded text-xs text-white border border-white/20 md:col-span-2 h-20"></textarea>
+          </div>
+          <button type="submit" class="btn-primary w-full py-2 rounded-lg font-bold text-sm shadow-[0_0_15px_rgba(16,185,129,0.3)] !bg-emerald-500 hover:!bg-emerald-600 !border-emerald-400">
+            ➕ Добавить
+          </button>
+        </form>
+
+        <div id="suppliersList">
+          ${suppliersHtml}
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    return `<p class="text-red-400 p-4">Ошибка загрузки: ${err.message}</p>`;
+  }
+}
+
+function attachAdminSuppliersHandlers() {
+  const form = document.getElementById('addSupplierForm');
+  if (form) {
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('supName').value.trim();
+      const wechat_id = document.getElementById('supWechat').value.trim();
+      const category = document.getElementById('supCategory').value.trim();
+      const link = document.getElementById('supLink').value.trim();
+      const note = document.getElementById('supNote').value.trim();
+      const rating = parseInt(document.getElementById('supRating').value || 0, 10);
+      
+      if (!name) return tgUtil.alert('Введите имя поставщика');
+      
+      try {
+        const { error } = await supabaseClient.from('suppliers').insert({
+          name, wechat_id, category, link, note, rating
+        });
+        if (error) throw error;
+        tgUtil.haptic('success');
+        tgUtil.alert('Поставщик добавлен');
+        renderCurrentScreen();
+      } catch (err) {
+        tgUtil.alert('Ошибка: ' + err.message);
+      }
+    };
+  }
+
+  document.querySelectorAll('.deleteSupplierBtn').forEach(btn => {
+    btn.onclick = async () => {
+      if (!confirm('Точно удалить поставщика?')) return;
+      try {
+        const { error } = await supabaseClient.from('suppliers').delete().eq('id', btn.dataset.id);
+        if (error) throw error;
+        tgUtil.haptic('medium');
+        renderCurrentScreen();
+      } catch (err) {
+        tgUtil.alert('Ошибка: ' + err.message);
+      }
+    };
+  });
+}
+
     // ==================== RENDER CURRENT SCREEN ====================
     async function renderCurrentScreen() {
       const contentDiv = document.getElementById('content');
       syncTelegramBackButton();
+      
+      let shadowBannerHtml = '';
+      if (isShadowMode && originalAdminId) {
+        shadowBannerHtml = `
+          <div class="bg-red-500 text-white text-center py-2 px-4 text-xs font-bold w-full fixed top-0 left-0 z-[100] flex justify-between items-center shadow-lg">
+            <span>ВНИМАНИЕ: Режим юзера (ID: <span class="font-mono bg-black/20 px-1 rounded">${userId}</span>)</span>
+            <button id="exitShadowModeBtn" class="bg-white text-red-500 px-3 py-1 rounded shadow hover:bg-white/90 active:scale-95 transition">Вернуться в админку</button>
+          </div>
+          <div class="h-10 w-full"></div> <!-- spacer -->
+        `;
+      }
 
       if (currentSubScreen === 'about') {
-        contentDiv.innerHTML = await renderAboutUs();
+        contentDiv.innerHTML = shadowBannerHtml + await renderAboutUs();
         attachAboutUsHandlers();
         ensureBackButtonForSubscreen();
+        if (isShadowMode) attachShadowModeExit();
+        return;
+      }
+      if (currentSubScreen === 'myOrders') {
+        contentDiv.innerHTML = shadowBannerHtml + await renderMyOrders();
+        const backBtn = document.getElementById('backToProfileBtn');
+        if (backBtn) backBtn.onclick = () => { currentSubScreen = null; renderCurrentScreen(); };
+        if (isShadowMode) attachShadowModeExit();
+        return;
+      }
+      if (currentSubScreen === 'marketplaces') {
+        contentDiv.innerHTML = shadowBannerHtml + await renderMarketplaces();
+        attachMarketplacesHandlers();
+        ensureBackButtonForSubscreen();
+        if (isShadowMode) attachShadowModeExit();
+        return;
+      }
+      if (currentSubScreen === 'catalogHub') {
+        contentDiv.innerHTML = shadowBannerHtml + await renderCatalogHub();
+        ensureBackButtonForSubscreen();
+        if (isShadowMode) attachShadowModeExit();
+        return;
+      }
+      if (currentSubScreen === 'sizeGuides') {
+        contentDiv.innerHTML = shadowBannerHtml + await renderSizeGuides();
+        ensureBackButtonForSubscreen();
+        if (isShadowMode) attachShadowModeExit();
+        return;
+      }
+      if (currentSubScreen === 'productsCatalog') {
+        contentDiv.innerHTML = shadowBannerHtml + await renderProductsCatalog();
+        attachProductsCatalogHandlers();
+        ensureBackButtonForSubscreen();
+        if (isShadowMode) attachShadowModeExit();
+        return;
+      }
+      if (currentSubScreen === 'faq') {
+        contentDiv.innerHTML = shadowBannerHtml + await renderFAQ();
+        attachFAQHandlers();
+        ensureBackButtonForSubscreen();
+        if (isShadowMode) attachShadowModeExit();
         return;
       }
 
-      if (currentSubScreen === 'myOrders') {
-  contentDiv.innerHTML = await renderMyOrders();
-  const backBtn = document.getElementById('backToProfileBtn');
-  if (backBtn) backBtn.onclick = () => { currentSubScreen = null; renderCurrentScreen(); };
-  return;
-}
+      if (currentTab !== 'calculator') {
+        window.activePromotionId = null;
+        window.currentPromotion = null;
+      }
 
-  if (currentSubScreen === 'marketplaces') {
-    contentDiv.innerHTML = await renderMarketplaces();
-    attachMarketplacesHandlers();
-    ensureBackButtonForSubscreen();
-    return;
-  }
-  if (currentSubScreen === 'catalogHub') {
-    contentDiv.innerHTML = await renderCatalogHub();
-    ensureBackButtonForSubscreen();
-    return;
-  }
-  if (currentSubScreen === 'sizeGuides') {
-    contentDiv.innerHTML = await renderSizeGuides();
-    ensureBackButtonForSubscreen();
-    return;
-  }
-  if (currentSubScreen === 'productsCatalog') {
-    contentDiv.innerHTML = await renderProductsCatalog();
-    attachProductsCatalogHandlers();
-    ensureBackButtonForSubscreen();
-    return;
-  } 
-  if (currentSubScreen === 'faq') {
-    contentDiv.innerHTML = await renderFAQ();
-    attachFAQHandlers();
-    ensureBackButtonForSubscreen();
-    return;
-  }
-  
-  if (currentTab !== 'calculator') {
-  window.activePromotionId = null;
-  window.currentPromotion = null;
-}
-
-  if (currentTab === 'home') {
-        contentDiv.innerHTML = await renderHome();
+      if (currentTab === 'home') {
+        contentDiv.innerHTML = shadowBannerHtml + await renderHome();
         attachHomeHandlers();
       } else if (currentTab === 'calculator') {
-        contentDiv.innerHTML = await renderCalculator();
+        contentDiv.innerHTML = shadowBannerHtml + await renderCalculator();
         attachCalculatorHandlers();
       } else if (currentTab === 'neworder') {
-        contentDiv.innerHTML = await renderNewOrder();
+        contentDiv.innerHTML = shadowBannerHtml + await renderNewOrder();
         attachNewOrderHandlers();
       } else if (currentTab === 'legitcheck') {
-        contentDiv.innerHTML = await renderLegitCheck();
+        contentDiv.innerHTML = shadowBannerHtml + await renderLegitCheck();
         attachLegitCheckHandlers();
       } else if (currentTab === 'wishlist') {
-        contentDiv.innerHTML = await renderWishlist();
+        contentDiv.innerHTML = shadowBannerHtml + await renderWishlist();
         attachWishlistHandlers();
       } else if (currentTab === 'catalogs') {
-        contentDiv.innerHTML = await renderCatalogs();
+        contentDiv.innerHTML = shadowBannerHtml + await renderCatalogs();
         attachCatalogsHandlers();
       } else if (currentTab === 'profile') {
-        contentDiv.innerHTML = await renderProfile();
+        contentDiv.innerHTML = shadowBannerHtml + await renderProfile();
         attachProfileHandlers();
         loadProfileExtras();
       } else if (currentTab === 'dropshipper') {
-        contentDiv.innerHTML = await renderDropshipper();
+        contentDiv.innerHTML = shadowBannerHtml + await renderDropshipper();
         attachDropshipperHandlers();
       } else if (currentTab === 'academy') {
-        contentDiv.innerHTML = await renderAcademy();
+        contentDiv.innerHTML = shadowBannerHtml + await renderAcademy();
         attachAcademyHandlers();
       } else if (currentTab === 'admin' && isOwner) {
-        contentDiv.innerHTML = await renderAdmin();
-        attachAdminHandlers();
+        if (!adminAuthenticated) {
+          contentDiv.innerHTML = await renderAdmin2FA();
+          attachAdmin2FAHandlers();
+        } else {
+          contentDiv.innerHTML = await renderAdmin();
+          attachAdminHandlers();
+        }
       } else if (currentTab === 'reports') {
-        contentDiv.innerHTML = await renderReports();
+        contentDiv.innerHTML = shadowBannerHtml + await renderReports();
         attachReportsHandlers();
       } else if (currentTab === 'reviews') {
-        contentDiv.innerHTML = await renderReviews();
+        contentDiv.innerHTML = shadowBannerHtml + await renderReviews();
         attachReviewsHandlers();
       } else if (currentTab === 'cart') {
-        contentDiv.innerHTML = await renderCart();
+        contentDiv.innerHTML = shadowBannerHtml + await renderCart();
         attachCartHandlers();
       } else if (currentTab === 'resale') {
-        contentDiv.innerHTML = await renderResale();
+        contentDiv.innerHTML = shadowBannerHtml + await renderResale();
       } else if (currentTab === 'admin_resale' && isOwner) {
+        if (!adminAuthenticated) { switchTab('admin'); return; }
         contentDiv.innerHTML = await renderAdminResale();
       } else if (currentTab === 'admin_analytics' && isOwner) {
+        if (!adminAuthenticated) { switchTab('admin'); return; }
         contentDiv.innerHTML = await renderAdminAnalytics();
         if (typeof attachAdminAnalyticsHandlers === 'function') attachAdminAnalyticsHandlers();
-      }
-        else {
+      } else if (currentTab === 'admin_suppliers' && isOwner) {
+        if (!adminAuthenticated) { switchTab('admin'); return; }
+        contentDiv.innerHTML = await renderAdminSuppliers();
+        attachAdminSuppliersHandlers();
+      } else {
         contentDiv.innerHTML = '<div class="text-center py-10">Страница не найдена</div>';
       }
       
+      if (isShadowMode) attachShadowModeExit();
+
       if (currentTab !== 'home' && currentTab !== 'catalogs' && currentTab !== 'reports' && currentTab !== 'reviews' && currentTab !== 'academy' && currentTab !== 'dropshipper' && currentTab !== 'products' && currentTab !== 'wishlist' && !currentSubScreen) {
         ensureBackButton();
+      }
+    }
+    
+    function attachShadowModeExit() {
+      const btn = document.getElementById('exitShadowModeBtn');
+      if (btn) {
+        btn.onclick = () => {
+          userId = originalAdminId;
+          originalAdminId = null;
+          isShadowMode = false;
+          tgUtil.alert('Вы вернулись в админку');
+          currentSubScreen = null;
+          switchTab('admin');
+        };
       }
     }
 
