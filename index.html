@@ -13883,6 +13883,7 @@ window.togglePackageConsolidation = (country) => {
       }
     };
     document.addEventListener('change', window._statusChangeHandler);
+  }
 window.togglePackageExtra = (country, extraName) => {
   tgUtil.haptic('light');
   window.tempOrder.packageExtras = window.tempOrder.packageExtras || {};
@@ -15104,6 +15105,7 @@ window.showVipSectionModal = () => {
     { id: 'vip-3', title: 'Arc\'teryx Beta LT Jacket Black', price: 340, oldPrice: 850, img: 'https://vrvwdagjpttvfvjanbwq.supabase.co/storage/v1/object/public/legit-references/stone-island/stone-island-softshell/side.jpg', brand: 'Arc\'teryx', platform: 'Zalando' }
   ];
 
+  const renderVipGrid = () => {
     return `
       <div class="space-y-4 page-enter">
         <div class="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl text-center mb-2">
