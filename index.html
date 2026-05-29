@@ -165,7 +165,9 @@
     .header-left { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
     
     .logo-img { 
-      height: 42px; 
+      height: 36px;
+      width: auto;
+      object-fit: contain;
       cursor: pointer; 
       transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
       filter: drop-shadow(0 2px 8px rgba(91, 191, 235, 0.4));
@@ -585,8 +587,9 @@
     }
     
     .footer-logo {
-      width: 60px;
-      height: auto;
+      width: auto;
+      height: 48px;
+      object-fit: contain;
       margin: 0 auto 12px;
       opacity: 0.8;
       filter: drop-shadow(0 2px 8px rgba(91, 191, 235, 0.3));
@@ -1600,6 +1603,35 @@
       document.documentElement.classList.add('light-theme');
     }
     // ─── BLOB URL TRACKING (prevent memory leaks from photo previews) ───
+
+    // ─── GLOBAL FOOTER EVENT DELEGATION ───
+    document.addEventListener('click', (e) => {
+      const footerLink = e.target.closest('.footer-link');
+      if (footerLink) {
+        e.preventDefault();
+        const link = footerLink.getAttribute('data-link');
+        if (link === 'faq') {
+          currentSubScreen = 'faq';
+          renderCurrentScreen();
+        } else if (link === 'about') {
+          currentSubScreen = 'about';
+          renderCurrentScreen();
+        } else if (link === 'offer') {
+          downloadAgreement();
+        } else {
+          tgUtil.alert(footerLink.innerText + ' будет доступно позже');
+        }
+        return;
+      }
+
+      const socialIcon = e.target.closest('.social-icon');
+      if (socialIcon) {
+        e.preventDefault();
+        tgUtil.alert('Соцсети будут подключены позже');
+        return;
+      }
+    });
+
     const _photoBlobUrls = new Map();
     function trackBlobUrl(key, file) {
       const old = _photoBlobUrls.get(key);
@@ -3473,7 +3505,8 @@ const MAX_REQUESTS_TRUSTED = 100;
       const activeTab = document.querySelector(`.tab-item[data-tab="${tabName}"]`);
       if (activeTab) activeTab.classList.add('active');
       tgUtil.haptic('selection');
-      // Note: renderCurrentScreen() also calls syncTelegramBackButton(), so we don't duplicate it here.
+      // Scroll to the very top to prevent carrying scroll offset across tabs
+      window.scrollTo(0, 0);
       renderCurrentScreen();
     }
 
@@ -3754,9 +3787,8 @@ function attachHomeHandlers() {
       document.querySelector('[data-story="reports"]')?.addEventListener('click', () => switchTab('reports'));
       document.querySelector('[data-story="reviews"]')?.addEventListener('click', () => switchTab('reviews'));
       document.querySelector('[data-story="promo"]')?.addEventListener('click', () => tgUtil.alert('Акции будут позже'));
-      document.querySelector('[data-story="catalog"]')?.addEventListener('click', () => switchTab('catalogs', 'catalogHub'));
-      document.querySelector('[data-story="drops"]')?.addEventListener('click', () => tgUtil.alert('Дропы будут позже'));
-      document.querySelector('[data-story="referral"]')?.addEventListener('click', () => switchTab('profile'));
+      document.querySelector('[data-story="academy"]')?.addEventListener('click', () => switchTab('academy'));
+      document.querySelector('[data-story="legitcheck"]')?.addEventListener('click', () => switchTab('legitcheck'));
       document.querySelector('[data-story="resale"]')?.addEventListener('click', () => switchTab('resale'));
       document.getElementById('moreMarketplacesBtn')?.addEventListener('click', () => {
         switchTab('catalogs', 'marketplaces');
@@ -3777,16 +3809,7 @@ function attachHomeHandlers() {
       document.querySelectorAll('.social-icon').forEach(el => {
         el.addEventListener('click', () => tgUtil.alert('Соцсети будут подключены позже'));
       });
-      document.querySelectorAll('.footer-link').forEach(el => {
-        el.addEventListener('click', () => {
-          if (el.dataset.link === 'faq') {
-            currentSubScreen = 'faq';
-            renderCurrentScreen();
-          } else {
-            tgUtil.alert(el.innerText + ' будет доступно позже');
-          }
-        });
-      });
+
       loadHomeProducts('popular');
       document.getElementById('tabPopular')?.addEventListener('click', () => {
         document.getElementById('tabPopular').classList.add('active');
@@ -4170,7 +4193,13 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           </div>
 
           <label class="text-white/70 text-sm block">Вес товара (кг)</label>
-          <div class="flex items-center gap-3 mt-1 mb-4"><input type="range" id="calcWeight" min="0.1" max="30" step="0.1" value="1" class="flex-1 accent-cyan-500" data-packaging="0.3"><span id="weightVal" class="text-white/80 bg-white/10 px-3 py-1 rounded-full whitespace-nowrap text-sm font-bold">1.0 кг</span></div>
+          <div class="flex items-center gap-3 mt-1 mb-4">
+            <input type="range" id="calcWeight" min="0.1" max="30" step="0.1" value="1" class="flex-1 accent-cyan-500" data-packaging="0.3">
+            <div class="flex items-center bg-white/10 px-2 py-1 rounded-full border border-white/20 whitespace-nowrap text-sm font-bold text-white">
+              <input type="number" id="calcWeightInput" min="0.1" max="30" step="0.1" value="1.0" class="w-12 bg-transparent text-center text-white focus:outline-none border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" style="font-size: 14px; font-weight: 700; width: 44px;">
+              <span class="mr-1">кг</span>
+            </div>
+          </div>
           
           <div class="mb-4">
             <label class="text-white/70 text-sm block mb-1">Метод доставки по РБ</label>
@@ -4295,8 +4324,48 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
   }
 
   const slider = document.getElementById('calcWeight');
-  const valSpan = document.getElementById('weightVal');
-  if (slider) slider.oninput = () => valSpan.innerText = parseFloat(slider.value).toFixed(1) + ' кг';
+  const numericInput = document.getElementById('calcWeightInput');
+  
+  const updateWeightVal = (val, source) => {
+    let num = parseFloat(val);
+    if (isNaN(num)) return;
+    num = Math.max(0.1, Math.min(30, num));
+    
+    if (source !== 'slider' && slider) slider.value = num;
+    if (source !== 'input' && numericInput) numericInput.value = num.toFixed(1);
+    
+    // Trigger calculation auto-update if visible
+    const resultBox = document.getElementById('calcResult');
+    if (resultBox && !resultBox.classList.contains('hidden')) {
+      doCalc();
+    }
+  };
+
+  if (slider) {
+    slider.oninput = () => {
+      updateWeightVal(slider.value, 'slider');
+    };
+  }
+  if (numericInput) {
+    numericInput.oninput = () => {
+      updateWeightVal(numericInput.value, 'input');
+    };
+  }
+  
+  // Auto-calculation on other fields too
+  ['calcPrice', 'calcCurrency', 'calcCategory', 'calcInsurance', 'calcDeliveryMethod', 'keepBox'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', () => {
+        const resultBox = document.getElementById('calcResult');
+        if (resultBox && !resultBox.classList.contains('hidden')) doCalc();
+      });
+      el.addEventListener('change', () => {
+        const resultBox = document.getElementById('calcResult');
+        if (resultBox && !resultBox.classList.contains('hidden')) doCalc();
+      });
+    }
+  });
 
   async function fetchWeightFromStandard(category, size) {
     if (!category) return;
@@ -6304,12 +6373,33 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         }
 
         
-        const orderWeightInp = document.getElementById('orderWeight');
-        const orderWeightVal = document.getElementById('orderWeightVal');
-        if (orderWeightInp && orderWeightVal) {
-          orderWeightInp.addEventListener('input', () => {
-            orderWeightVal.innerText = parseFloat(orderWeightInp.value).toFixed(1) + ' кг';
-          });
+        const orderSlider = document.getElementById('orderWeight');
+        const orderNumericInput = document.getElementById('orderWeightInput');
+
+        const updateOrderWeight = (val, source) => {
+          let num = parseFloat(val);
+          if (isNaN(num)) return;
+          num = Math.max(0.1, Math.min(30, num));
+
+          if (source !== 'slider' && orderSlider) orderSlider.value = num;
+          if (source !== 'input' && orderNumericInput) orderNumericInput.value = num.toFixed(1);
+
+          if (window.tempOrder && window.tempOrder.items && window.tempOrder.items[0]) {
+            window.tempOrder.items[0].weight = num;
+          }
+          // Recalculate totals
+          recalculateOrderTotals();
+        };
+
+        if (orderSlider) {
+          orderSlider.oninput = () => {
+            updateOrderWeight(orderSlider.value, 'slider');
+          };
+        }
+        if (orderNumericInput) {
+          orderNumericInput.oninput = () => {
+            updateOrderWeight(orderNumericInput.value, 'input');
+          };
         }
 
         // Submit final order to Supabase
@@ -7832,19 +7922,7 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
     </div>
   </div>
 
-  <!-- Мои получатели -->
-  <div class="mb-5 page-enter" style="animation-delay: 0.12s;">
-    <div class="flex justify-between items-center mb-4">
-      <h3 class="text-white font-bold flex items-center gap-2">
-        <span><span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span></span> Мои получатели
-      </h3>
-      <button id="addRecipientBtn" class="bg-cyan-500/20 text-cyan-400 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-cyan-500/30 transition">+ Добавить</button>
-    </div>
-    <div class="bg-white/5 rounded-2xl p-4 border border-white/10" id="recipientsListContainer">
-      <p class="text-white/50 text-xs text-center py-2">Загрузка получателей...</p>
-    </div>
-    <p class="text-white/40 text-[10px] mt-2 text-center">Добавляйте родственников, чтобы обходить лимит 200€ на человека</p>
-  </div>
+
   
   <!-- Settings Grid -->
   <div class="mb-5 page-enter" style="animation-delay: 0.15s;">
@@ -7857,22 +7935,6 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
         <div class="flex-1">
           <p class="font-semibold text-white text-sm">Мои данные</p>
           <p class="text-xs" style="color: var(--text-muted);">ФИО, телефон, паспорт и замеры</p>
-        </div>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-      <button id="marketplaceWhitelistBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition border-t border-white/5">
-        <span class="text-xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span></span>
-        <div class="flex-1">
-          <p class="font-semibold text-white text-sm">Поиск: Маркетплейсы</p>
-          <p class="text-xs" style="color: var(--text-muted);">Настроить список площадок</p>
-        </div>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-      <button id="accountRecoveryBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition border-t border-white/5">
-        <span class="text-xl"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg></span></span>
-        <div class="flex-1">
-          <p class="font-semibold text-white text-sm">Восстановление</p>
-          <p class="text-xs" style="color: var(--text-muted);">Резервный доступ к аккаунту</p>
         </div>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
@@ -7910,14 +7972,6 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
         <div class="flex-1">
           <p class="font-semibold text-white text-sm">Трекер курсов & Алерты</p>
           <p class="text-xs" style="color: var(--text-muted);">Графики валют и уведомления при падении</p>
-        </div>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-      <button id="academyBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition">
-        <span class="text-xl"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></span></span>
-        <div class="flex-1">
-          <p class="font-semibold text-white text-sm">Академия</p>
-          <p class="text-xs" style="color: var(--text-muted);">Обучение и гайды</p>
         </div>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
@@ -8048,9 +8102,9 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
   const changeAvatarBtn = document.getElementById('changeAvatarBtn');
   if (changeAvatarBtn) changeAvatarBtn.onclick = () => showAvatarUploader();
 
-  // Редактирование имени также открывает единую форму «Мои данные»
+  // Редактирование имени открывает компактный prompt
   const editNameBtn = document.getElementById('editNameBtn');
-  if (editNameBtn) editNameBtn.onclick = () => showPersonalDataForm();
+  if (editNameBtn) editNameBtn.onclick = () => showEditNameForm();
 
   // Все транзакции
   const allTransactionsBtn = document.getElementById('showAllTransactionsBtn');
@@ -8077,77 +8131,6 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
   const cartBtn = document.getElementById('cartBtn');
   if (cartBtn) cartBtn.onclick = () => switchTab('cart');
 
-  // Load and Handle Recipients
-  const loadRecipients = async () => {
-    const listContainer = document.getElementById('recipientsListContainer');
-    if (!listContainer) return;
-    try {
-        const { data, error } = await supabaseClient.from('recipients').select('*').eq('user_id', userId);
-        if (error) throw error;
-        if (!data || data.length === 0) {
-            listContainer.innerHTML = '<p class="text-white/50 text-xs text-center py-2">У вас пока нет добавленных получателей</p>';
-            return;
-        }
-        listContainer.innerHTML = data.map(r => `
-            <div class="flex justify-between items-center bg-white/5 p-3 rounded-xl mb-2">
-                <div>
-                    <p class="text-white font-bold text-sm">${r.full_name}</p>
-                    <p class="text-white/50 text-xs">Паспорт: ***${r.passport.slice(-4)}</p>
-                </div>
-                <button class="deleteRecipientBtn text-white/30 hover:text-red-400 transition" data-id="${r.id}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></button>
-            </div>
-        `).join('');
-        
-        document.querySelectorAll('.deleteRecipientBtn').forEach(btn => {
-            btn.onclick = async () => {
-                if(confirm('Удалить получателя?')) {
-                    await supabaseClient.from('recipients').delete().eq('id', btn.getAttribute('data-id'));
-                    loadRecipients();
-                }
-            };
-        });
-    } catch(e) {
-        listContainer.innerHTML = '<p class="text-white/50 text-xs text-center py-2">Создайте таблицу recipients в Supabase!</p>';
-    }
-  };
-  loadRecipients();
-
-  const addRecipientBtn = document.getElementById('addRecipientBtn');
-  if (addRecipientBtn) {
-      addRecipientBtn.onclick = () => {
-          const modal = document.createElement('div');
-          modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4';
-          modal.innerHTML = `
-              <div class="glass-card max-w-sm w-full">
-                  <h3 class="text-white font-bold mb-4">Добавить получателя</h3>
-                  <input type="text" id="recName" class="btn-secondary w-full p-3 rounded-xl mb-3 text-sm" placeholder="ФИО полностью">
-                  <input type="text" id="recPassport" class="btn-secondary w-full p-3 rounded-xl mb-3 text-sm" placeholder="Серия и номер паспорта">
-                  <input type="text" id="recPhone" class="btn-secondary w-full p-3 rounded-xl mb-4 text-sm" placeholder="Номер телефона">
-                  <div class="flex gap-2">
-                      <button id="saveRecBtn" class="bg-cyan-500/20 text-cyan-400 px-4 py-3 rounded-xl flex-1 font-bold">Сохранить</button>
-                      <button id="cancelRecBtn" class="bg-white/10 text-white px-4 py-3 rounded-xl flex-1">Отмена</button>
-                  </div>
-              </div>
-          `;
-          document.body.appendChild(modal);
-          modal.querySelector('#cancelRecBtn').onclick = () => modal.remove();
-          modal.querySelector('#saveRecBtn').onclick = async () => {
-              const full_name = modal.querySelector('#recName').value.trim();
-              const passport = modal.querySelector('#recPassport').value.trim();
-              const phone = modal.querySelector('#recPhone').value.trim();
-              if (!full_name || !passport || !phone) { tgUtil.alert('Заполните все поля'); return; }
-              try {
-                  const { error } = await supabaseClient.from('recipients').insert({ user_id: userId, full_name, passport, phone, created_at: new Date().toISOString() });
-                  if (error) throw error;
-                  modal.remove();
-                  loadRecipients();
-                  tgUtil.alert('Получатель добавлен!');
-              } catch(e) {
-                  tgUtil.alert('Ошибка: ' + (e.message || 'Сбой БД'));
-              }
-          };
-      };
-  }
 }
 
 window.getFortuneSpinCooldown = () => {
@@ -8847,17 +8830,7 @@ async function renderAcademy() {
           } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }
         };
       });
-      document.querySelectorAll('.footer-link').forEach(el => {
-        el.addEventListener('click', () => {
-          const link = el.getAttribute('data-link');
-          if (link === 'about') {
-            currentSubScreen = 'about';
-            renderCurrentScreen();
-          } else {
-            alert(el.innerText + ' будет доступно позже');
-          }
-        });
-      });
+
 
       // ── getCertBtn ──────────────────────────────────────────────────
       document.querySelectorAll('.getCertBtn').forEach(btn => {
@@ -9450,7 +9423,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         window.currentReviewsRegion = window.currentReviewsRegion || 'all';
         async function renderReviews() {
       try {
-        let query = supabaseClient.from('reviews').select('*, orders(items_image)', { count: 'exact' }).eq('is_published', true).order('created_at', { ascending: false });
+        let query = supabaseClient.from('reviews').select('*, orders(items)', { count: 'exact' }).eq('is_published', true).order('created_at', { ascending: false });
         
         // Попытка фильтрации по региону (если столбец существует)
         if (window.currentReviewsRegion !== 'all') {
@@ -9464,7 +9437,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         let finalCount = count;
         if (error && error.message.includes('region')) {
             console.warn('Column region does not exist yet. Showing all.');
-            const fallbackQuery = await supabaseClient.from('reviews').select('*, orders(items_image)', { count: 'exact' }).eq('is_published', true).order('created_at', { ascending: false }).range((reviewsPage - 1) * 10, reviewsPage * 10 - 1);
+            const fallbackQuery = await supabaseClient.from('reviews').select('*, orders(items)', { count: 'exact' }).eq('is_published', true).order('created_at', { ascending: false }).range((reviewsPage - 1) * 10, reviewsPage * 10 - 1);
             finalData = fallbackQuery.data;
             finalCount = fallbackQuery.count;
         } else if (error) throw error;
@@ -9497,7 +9470,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             </div>
 
             ${!finalData || finalData.length === 0 ? '<p class="text-white/70">Пока нет отзывов в этой категории</p>' : finalData.map(review => {
-              const siteImg = review.orders && review.orders.items_image ? review.orders.items_image : null;
+              const siteImg = review.orders && Array.isArray(review.orders.items) && review.orders.items[0] ? (review.orders.items[0].image || review.orders.items[0].img) : null;
               const hasClientPhotos = review.photo_urls && review.photo_urls.length > 0;
               
               const regionLabel = regions.find(r => r.id === review.region)?.label || 'Не указан';
@@ -15244,48 +15217,19 @@ async function showPersonalDataForm() {
           </div>
         </div>
 
-        <!-- Раздел: Второй получатель (Разделение таможенного лимита) -->
+        <!-- Раздел: Дополнительные получатели (Разделение таможенного лимита) -->
         <div class="space-y-3 pt-3 border-t border-white/5">
           <div class="flex items-center justify-between">
             <h4 class="text-cyan-400 font-bold text-xs uppercase tracking-wider flex items-center gap-1">
               ${ix('user', { size: '14px' })}
-              <span>Второй получатель для лимитов</span>
+              <span>Получатели для лимитов</span>
             </h4>
-            <input type="checkbox" id="pdSecondRecipientActive" class="w-5 h-5 accent-cyan-500 cursor-pointer">
+            <button id="addRecipientBtn" class="bg-cyan-500/20 text-cyan-400 px-3 py-1 rounded-lg text-xs font-bold hover:bg-cyan-500/30 transition">+ Добавить</button>
           </div>
-          <p class="text-white/40 text-[10px] leading-relaxed">Позволяет автоматически разделить заказ на двух получателей при превышении лимита 200€, чтобы избежать таможенной пошлины.</p>
+          <p class="text-white/40 text-[10px] leading-relaxed">Добавляйте родственников или друзей, чтобы автоматически распределять посылки и обходить таможенный лимит 200€ на человека.</p>
           
-          <div id="pdSecondRecipientFields" class="hidden space-y-3 pt-2">
-            <div>
-              <label class="text-white/60 text-xs font-semibold block mb-1">ФИО второго получателя</label>
-              <input type="text" id="pdSecondFullName" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="Петров Петр Петрович">
-            </div>
-            <div>
-              <label class="text-white/60 text-xs font-semibold block mb-1">Номер телефона</label>
-              <input type="tel" id="pdSecondPhone" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="+375XXXXXXXXX">
-            </div>
-            <div>
-              <label class="text-white/60 text-xs font-semibold block mb-1">Серия и номер паспорта</label>
-              <input type="text" id="pdSecondPassportSeriesNumber" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="AB 1234567">
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <label class="text-white/60 text-xs font-semibold block mb-1">Дата выдачи</label>
-                <input type="date" id="pdSecondPassportIssueDate" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white">
-              </div>
-              <div>
-                <label class="text-white/60 text-xs font-semibold block mb-1">Личный номер (14 цифр)</label>
-                <input type="text" id="pdSecondPassportIdNumber" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="14 знаков">
-              </div>
-            </div>
-            <div>
-              <label class="text-white/60 text-xs font-semibold block mb-1">Кем выдан</label>
-              <input type="text" id="pdSecondPassportIssuedBy" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="ОВД Центрального района г. Минска">
-            </div>
-            <div>
-              <label class="text-white/60 text-xs font-semibold block mb-1">Адрес регистрации</label>
-              <input type="text" id="pdSecondPassportAddress" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="Минск, ул. Кирова 4, кв. 15">
-            </div>
+          <div class="space-y-2 mt-2" id="recipientsListContainer">
+            <p class="text-white/50 text-xs text-center py-2">Загрузка получателей...</p>
           </div>
         </div>
       </div>
@@ -15338,37 +15282,77 @@ async function showPersonalDataForm() {
         document.getElementById('pdPassportAddress').value = p.address || '';
       }
 
-      // Load second recipient
-      const secondActiveCheckbox = document.getElementById('pdSecondRecipientActive');
-      const secondFieldsContainer = document.getElementById('pdSecondRecipientFields');
-      if (secondActiveCheckbox && secondFieldsContainer) {
-        secondActiveCheckbox.onchange = () => {
-          if (secondActiveCheckbox.checked) {
-            secondFieldsContainer.classList.remove('hidden');
-          } else {
-            secondFieldsContainer.classList.add('hidden');
-          }
-        };
-
-        const secondRecipient = userRow.settings?.second_recipient || {};
-        if (secondRecipient.active) {
-          secondActiveCheckbox.checked = true;
-          secondFieldsContainer.classList.remove('hidden');
-          document.getElementById('pdSecondFullName').value = secondRecipient.fullName || '';
-          document.getElementById('pdSecondPhone').value = secondRecipient.phone || '';
-          
-          let secP = null;
-          if (secondRecipient.encrypted_passport) {
-            secP = decryptData(secondRecipient.encrypted_passport);
-          }
-          if (secP) {
-            document.getElementById('pdSecondPassportSeriesNumber').value = secP.seriesNumber || '';
-            document.getElementById('pdSecondPassportIssueDate').value = secP.issueDate || '';
-            document.getElementById('pdSecondPassportIssuedBy').value = secP.issuedBy || '';
-            document.getElementById('pdSecondPassportIdNumber').value = secP.idNumber || '';
-            document.getElementById('pdSecondPassportAddress').value = secP.address || '';
-          }
+      // Load and Handle Recipients inside Modal
+      const loadRecipients = async () => {
+        const listContainer = modal.querySelector('#recipientsListContainer');
+        if (!listContainer) return;
+        try {
+            const { data, error } = await supabaseClient.from('recipients').select('*').eq('user_id', userId);
+            if (error) throw error;
+            if (!data || data.length === 0) {
+                listContainer.innerHTML = '<p class="text-white/50 text-xs text-center py-2">У вас пока нет добавленных получателей</p>';
+                return;
+            }
+            listContainer.innerHTML = data.map(r => `
+                <div class="flex justify-between items-center bg-white/5 p-3 rounded-xl mb-2">
+                    <div>
+                        <p class="text-white font-bold text-sm">${r.full_name}</p>
+                        <p class="text-white/50 text-xs">Паспорт: ***${r.passport.slice(-4)}</p>
+                    </div>
+                    <button class="deleteRecipientBtn text-white/30 hover:text-red-400 transition" data-id="${r.id}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></button>
+                </div>
+            `).join('');
+            
+            listContainer.querySelectorAll('.deleteRecipientBtn').forEach(btn => {
+                btn.onclick = async () => {
+                    if(confirm('Удалить получателя?')) {
+                        await supabaseClient.from('recipients').delete().eq('id', btn.getAttribute('data-id'));
+                        loadRecipients();
+                    }
+                };
+            });
+        } catch(e) {
+            listContainer.innerHTML = '<p class="text-white/50 text-xs text-center py-2">Ошибка при загрузке списка</p>';
         }
+      };
+
+      loadRecipients();
+
+      const addRecipientBtn = modal.querySelector('#addRecipientBtn');
+      if (addRecipientBtn) {
+          addRecipientBtn.onclick = () => {
+              const subModal = document.createElement('div');
+              subModal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[120] p-4';
+              subModal.innerHTML = `
+                  <div class="glass-card max-w-sm w-full p-5" style="background: linear-gradient(135deg, rgba(30,41,59,0.95), rgba(15,23,42,0.98)); border: 1px solid rgba(255,255,255,0.1);">
+                      <h3 class="text-white font-bold mb-4">Добавить получателя</h3>
+                      <input type="text" id="recName" class="btn-secondary w-full p-3 rounded-xl mb-3 text-sm bg-white/5 text-white border border-white/10" placeholder="ФИО полностью">
+                      <input type="text" id="recPassport" class="btn-secondary w-full p-3 rounded-xl mb-3 text-sm bg-white/5 text-white border border-white/10" placeholder="Серия и номер паспорта">
+                      <input type="text" id="recPhone" class="btn-secondary w-full p-3 rounded-xl mb-4 text-sm bg-white/5 text-white border border-white/10" placeholder="Номер телефона">
+                      <div class="flex gap-2">
+                          <button id="saveRecBtn" class="bg-cyan-500/20 text-cyan-400 px-4 py-3 rounded-xl flex-1 font-bold">Сохранить</button>
+                          <button id="cancelRecBtn" class="bg-white/10 text-white px-4 py-3 rounded-xl flex-1">Отмена</button>
+                      </div>
+                  </div>
+              `;
+              document.body.appendChild(subModal);
+              subModal.querySelector('#cancelRecBtn').onclick = () => subModal.remove();
+              subModal.querySelector('#saveRecBtn').onclick = async () => {
+                  const full_name = subModal.querySelector('#recName').value.trim();
+                  const passport = subModal.querySelector('#recPassport').value.trim();
+                  const phone = subModal.querySelector('#recPhone').value.trim();
+                  if (!full_name || !passport || !phone) { tgUtil.alert('Заполните все поля'); return; }
+                  try {
+                      const { error } = await supabaseClient.from('recipients').insert({ user_id: userId, full_name, passport, phone, created_at: new Date().toISOString() });
+                      if (error) throw error;
+                      subModal.remove();
+                      loadRecipients();
+                      tgUtil.alert('Получатель добавлен!');
+                  } catch(e) {
+                      tgUtil.alert('Ошибка: ' + (e.message || 'Сбой БД'));
+                  }
+              };
+          };
       }
     }
   } catch (err) {
@@ -15394,16 +15378,6 @@ async function showPersonalDataForm() {
     const weightVal = document.getElementById('pdWeight').value.trim();
     const measureVal = document.getElementById('pdMeasure').value.trim();
 
-    const isSecondActive = document.getElementById('pdSecondRecipientActive')?.checked || false;
-    const secondFullNameVal = document.getElementById('pdSecondFullName')?.value.trim() || '';
-    const secondPhoneVal = document.getElementById('pdSecondPhone')?.value.trim() || '';
-    
-    const secondPassportSeries = document.getElementById('pdSecondPassportSeriesNumber')?.value.trim() || '';
-    const secondPassportIssueDate = document.getElementById('pdSecondPassportIssueDate')?.value || '';
-    const secondPassportIssuedBy = document.getElementById('pdSecondPassportIssuedBy')?.value.trim() || '';
-    const secondPassportIdNumber = document.getElementById('pdSecondPassportIdNumber')?.value.trim() || '';
-    const secondPassportAddress = document.getElementById('pdSecondPassportAddress')?.value.trim() || '';
-
     if (!fullNameVal) {
       tgUtil.alert('Пожалуйста, укажите ФИО');
       return;
@@ -15420,45 +15394,10 @@ async function showPersonalDataForm() {
       return;
     }
 
-    if (isSecondActive) {
-      if (!secondFullNameVal) {
-        tgUtil.alert('Пожалуйста, укажите ФИО второго получателя');
-        return;
-      }
-      if (!secondPhoneVal) {
-        tgUtil.alert('Пожалуйста, укажите номер телефона второго получателя');
-        return;
-      }
-      const isSecondPassportFilled = secondPassportSeries || secondPassportIssueDate || secondPassportIssuedBy || secondPassportIdNumber || secondPassportAddress;
-      if (!isSecondPassportFilled || !secondPassportSeries || !secondPassportIssueDate || !secondPassportIssuedBy) {
-        tgUtil.alert('Пожалуйста, заполните паспортные поля второго получателя: серия/номер, дата выдачи, кем выдан');
-        return;
-      }
-    }
-
     try {
       // Refresh user row to fetch current settings JSON
       const { data: userRow } = await supabaseClient.from('users').select('settings').eq('user_id', userId).single();
       const currentSettings = userRow?.settings || {};
-      
-      // Prepare second recipient settings
-      let secondRecipientObj = { active: false };
-      if (isSecondActive) {
-        const secondPassportObj = {
-          seriesNumber: secondPassportSeries,
-          issueDate: secondPassportIssueDate,
-          issuedBy: secondPassportIssuedBy,
-          idNumber: secondPassportIdNumber,
-          address: secondPassportAddress
-        };
-        const encryptedSecondPassport = encryptData(secondPassportObj);
-        secondRecipientObj = {
-          active: true,
-          fullName: secondFullNameVal,
-          phone: secondPhoneVal,
-          encrypted_passport: encryptedSecondPassport
-        };
-      }
 
       const updatedSettings = {
         ...currentSettings,
@@ -15466,8 +15405,7 @@ async function showPersonalDataForm() {
           height: parseInt(heightVal) || null,
           weight: parseFloat(weightVal) || null,
           measure: parseFloat(measureVal) || null
-        },
-        second_recipient: secondRecipientObj
+        }
       };
 
       const passportObj = {
