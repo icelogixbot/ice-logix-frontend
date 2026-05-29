@@ -8885,6 +8885,7 @@ async function renderAcademy() {
             alert(el.innerText + ' будет доступно позже');
           }
         });
+      });
 
       // ── getCertBtn ──────────────────────────────────────────────────
       document.querySelectorAll('.getCertBtn').forEach(btn => {
@@ -9679,6 +9680,8 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         </div>
         ${renderFooter()}
       `;
+    }
+    
     async function canUserReview() {
       if (!userId) return false;
       const { data, error } = await supabaseClient.from('orders').select('id').eq('user_id', userId).eq('status', 'delivered').limit(1);
@@ -10068,101 +10071,6 @@ async function renderPromotionsAdminList() {
   }
 }
 
-try {
-  const { data, error } = await supabaseClient
-    .from('promocodes')
-    .select('*')
-    .eq('code', code)
-    .eq('is_active', true)
-    .maybeSingle();
-
-  if (error) {
-    promoMessage.innerText = 'Ошибка проверки кода';
-    promoMessage.classList.remove('hidden');
-    console.error(error);
-    return;
-  }
-  if (!data) {
-    promoMessage.innerText = 'Неверный или неактивный промокод';
-    promoMessage.classList.remove('hidden');
-    return;
-  }
-
-  let discountAmount = 0;
-  if (data.discount_type === 'percent') {
-    discountAmount = window.tempOrder.total * (data.discount_value / 100);
-  } else {
-    discountAmount = data.discount_value;
-  }
-  if (discountAmount > window.tempOrder.total) discountAmount = window.tempOrder.total;
-
-  window.tempOrder.discountAmount = discountAmount;
-  window.tempOrder.appliedPromo = data;
-  update(); // функция пересчёта итого
-  promoMessage.innerText = `Промокод применён! Скидка: ${discountAmount.toFixed(2)} ❄️`;
-  promoMessage.classList.remove('hidden');
-  promoMessage.style.color = '#4ade80';
-} catch (err) {
-  promoMessage.innerText = 'Ошибка: ' + err.message;
-  promoMessage.classList.remove('hidden');
-          }
-        }
-      }
-      
-      const createBtn = document.getElementById('createOrderFinal');
-if (createBtn) {
-  createBtn.onclick = async () => {
-    if (!window.tempOrder || !userId) { alert('Ошибка: заполните все поля'); return; }
-    try {
-      const { data, error } = await supabaseClient.from('orders').insert({
-        user_id: userId,
-        source_url: window.tempOrder.items?.[0]?.url || window.tempOrder.url,
-        items: window.tempOrder.items || null,
-        cart_items: window.tempOrder.items || null,
-        weight_estimated: window.tempOrder.weight || 1,
-        price_original: window.tempOrder.price || 0,
-        price_byn: (window.tempOrder.price || 0) * 0.45 * 1.20,
-        delivery_cost_estimated: (window.tempOrder.weight || 1) * 12,
-        prepayment_amount: (window.tempOrder.total - window.tempOrder.discountAmount) * 0.75,
-        payment_method: document.getElementById('orderPaymentMethod')?.value || 'erip',
-        delivery_method: document.getElementById('orderDeliveryMethod')?.value || 'belpost',
-        cny_rate: window.tempOrder.cny_rate || 0.45,
-        status: 'pending',
-        discount_applied: window.tempOrder.discountAmount || 0,
-        promo_code: window.tempOrder.appliedPromo?.code || null,
-        extra_services: {
-          vacuum: document.getElementById('orderVacuum')?.checked || false,
-          bubble_wrap: document.getElementById('orderBubbleWrap')?.checked || false,
-          keep_box: document.getElementById('orderKeepBox')?.checked || false
-        }
-      }).select();
-      if (error) throw error;
-
-      alert(`Заказ создан! Номер: ${data[0].id}. Сумма предоплаты: ${((window.tempOrder.total - window.tempOrder.discountAmount) * 0.75).toFixed(2)} ❄️`);
-
-      // ===== ВСТАВЬТЕ СЮДА =====
-      // Удаляем выбранные товары из корзины (если заказ создан из корзины)
-      if (window.tempOrder.items && window.tempOrder.items.length > 0) {
-        const cartIds = window.tempOrder.items.map(item => item.cartId).filter(Boolean);
-        if (cartIds.length > 0) {
-          await supabaseClient.from('cart').delete().in('id', cartIds);
-        }
-        await updateCartBadge();
-      }
-      // ========================
-
-      // Снятие лимита после первого заказа
-      if (!userLimits.isTrusted) {
-        await supabaseClient.from('users').update({ is_trusted: true }).eq('user_id', userId);
-        userLimits.isTrusted = true;
-        alert('🎉 Поздравляем с первым заказом! Лимит на расчёты увеличен до 100 в день.');
-      }
-
-      window.tempOrder = null;
-      switchTab('home');
-      } catch (err) { alert('Ошибка: ' + err.message); }
-  };
-    
 // ==================== ADMIN LOGGING + CSV HELPERS ====================
 async function logAdminAction(action, details = {}) {
   if (!userId) return;
@@ -10417,8 +10325,6 @@ async function renderAdmin2FA() {
     function attachProfileHandlers() {
   const fortuneBtn = document.getElementById('fortuneWheelBtn');
   if (fortuneBtn) fortuneBtn.onclick = () => showFortuneWheel();
-    </div>
-  `;
 }
 
 let currentPin = '';
@@ -10473,7 +10379,7 @@ function attachAdmin2FAHandlers() {
         updateDots();
       }
     };
-  }
+  });
   // Паспортные данные
 const passportBtn = document.getElementById('passportDataBtn');
 if (passportBtn) passportBtn.onclick = () => showPassportForm();
@@ -10540,7 +10446,6 @@ if (startLegitCheckBtn) {
   };
 }
 
-  });
   
   document.getElementById('pinDeleteBtn').onclick = () => {
     if (currentPin.length > 0) {
@@ -12455,23 +12360,23 @@ function generateAdminOrderCard(order, userMap, isActive) {
     </select>
   ` : '';
 
-  return \`
-    <div class="rounded-xl p-3 \${cardClass} mb-2 relative transition-all hover:bg-white/10">
-      \${isRisky ? '<div class="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shadow-lg animate-pulse">⚠️ > 7 дней</div>' : ''}
+  return `
+    <div class="rounded-xl p-3 ${cardClass} mb-2 relative transition-all hover:bg-white/10">
+      ${isRisky ? '<div class="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shadow-lg animate-pulse">⚠️ > 7 дней</div>' : ''}
       <div class="flex justify-between items-start mb-1">
-        <p class="text-white font-mono text-sm font-bold">#\${order.id.slice(0,8)}</p>
-        <span class="text-white/50 text-[10px]">\${new Date(order.created_at).toLocaleDateString('ru-RU')}</span>
+        <p class="text-white font-mono text-sm font-bold">#${order.id.slice(0,8)}</p>
+        <span class="text-white/50 text-[10px]">${new Date(order.created_at).toLocaleDateString('ru-RU')}</span>
       </div>
-      <p class="text-white/80 text-xs truncate">👤 \${displayName} \${displayUsername}</p>
+      <p class="text-white/80 text-xs truncate">👤 ${displayName} ${displayUsername}</p>
       <div class="flex justify-between items-end mt-2">
-        <p class="text-cyan-400 text-sm font-bold">\${Number(order.prepayment_amount || 0).toFixed(2)} ❄️</p>
-        \${order.tracking_number_cn ? \`<p class="text-white/50 text-[10px] truncate max-w-[50%]">📦 \${order.tracking_number_cn}</p>\` : ''}
+        <p class="text-cyan-400 text-sm font-bold">${Number(order.prepayment_amount || 0).toFixed(2)} ❄️</p>
+        ${order.tracking_number_cn ? `<p class="text-white/50 text-[10px] truncate max-w-[50%]">📦 ${order.tracking_number_cn}</p>` : ''}
       </div>
-      \${managerSelect}
-      \${statusSelect}
-      \${actionButton}
+      ${managerSelect}
+      ${statusSelect}
+      ${actionButton}
     </div>
-  \`;
+  `;
 }
 
 async function renderAdminOrdersList() {
@@ -12516,7 +12421,7 @@ async function renderAdminOrdersList() {
       columns.forEach(col => {
         const colOrders = uniqueOrders.filter(o => o.status === col.key);
         html += `<div class="min-w-[280px] w-[280px] bg-white/5 rounded-2xl p-3 snap-start border-t-4 border-transparent flex flex-col max-h-[600px] shadow-lg">
-          <h4 class="font-bold mb-3 flex justify-between items-center text-sm \${col.color.split(' ')[1]}">\${col.title} <span class="\${col.color.split(' ')[0]} px-2 py-0.5 rounded-full text-xs border \${col.color.split(' ')[2]}">\${colOrders.length}</span></h4>
+          <h4 class="font-bold mb-3 flex justify-between items-center text-sm ${col.color.split(' ')[1]}">${col.title} <span class="${col.color.split(' ')[0]} px-2 py-0.5 rounded-full text-xs border ${col.color.split(' ')[2]}">${colOrders.length}</span></h4>
           <div class="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">`;
         if (colOrders.length === 0) {
           html += '<p class="text-white/30 text-xs text-center py-4">Пусто</p>';
@@ -12530,7 +12435,13 @@ async function renderAdminOrdersList() {
     } else {
       return uniqueOrders.map(order => generateAdminOrderCard(order, userMap, adminOrdersMode === 'active')).join('');
     }
-    async function renderProductsCatalog() {
+  } catch (err) {
+    console.error('Error loading admin orders:', err);
+    return '<p class="text-white/70 text-center py-4">Ошибка загрузки заказов</p>';
+  }
+}
+
+async function renderProductsCatalog() {
   try {
     let query = supabaseClient.from('products').select('*', { count: 'exact' }).eq('is_active', true);
     if (productsFilter.category !== 'all') query = query.eq('category', productsFilter.category);
@@ -12998,121 +12909,6 @@ async function renderFAQ() {
     const { data, error } = await supabaseClient.from('faq_items').select('*').order('category', { ascending: true }).order('order_index', { ascending: true });
     if (error) throw error;
     
-    try { const { data } = await supabaseClient.from('promocodes').select('*').order('created_at', { ascending: false }); if (data) promoCodes = data; } catch(e) {}
-    try { const { data } = await supabaseClient.from('payout_requests').select('*').eq('status', 'pending'); if (data) payoutRequests = data; } catch(e) {}
-    try { const { data } = await supabaseClient.from('reviews').select('*').eq('is_published', false).order('created_at', { ascending: false }); if (data) reviews = data; } catch(e) {}
-    try { const { data } = await supabaseClient.from('products').select('*').order('created_at', { ascending: false }); if (data) products = data; } catch(e) {}
-    let courses = [];
-    try { const { data } = await supabaseClient.from('courses').select('*').order('created_at', { ascending: true }); if (data) courses = data; } catch(e) {}
-
-    return `
-      <div class="space-y-4">
-        <!-- 🎁 Акции -->
-        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4">
-          <h3 class="text-white font-bold mb-3">🎁 Управление акциями</h3>
-          <button id="addPromotionBtn" class="w-full bg-cyan-500 py-2 rounded-lg mb-3">➕ Создать акцию</button>
-          <div class="space-y-2 max-h-60 overflow-y-auto" id="promotionsList">
-            ${await renderPromotionsAdminList()}
-          </div>
-        </div>
-
-        <!-- Промокоды -->
-        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4">
-          <h3 class="text-white font-bold mb-3">➕ Создать промокод</h3>
-          <input type="text" id="newPromoCode" class="w-full p-2 rounded-lg bg-white/20 mb-2" placeholder="Код">
-          <select id="promoType" class="w-full p-2 rounded-lg bg-white/20 mb-2"><option value="percent">Процент (%)</option><option value="fixed">Фикс (BYN)</option></select>
-          <input type="number" id="promoValue" class="w-full p-2 rounded-lg bg-white/20 mb-2" placeholder="Значение">
-          <button id="createPromoBtn" class="w-full bg-cyan-500 py-2 rounded-lg">Создать</button>
-        </div>
-        
-        <!-- Список промокодов -->
-        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4">
-          <h3 class="text-white font-bold mb-3">📋 Промокоды</h3>
-          ${promoCodes.length === 0 ? '<p class="text-white/70">Нет промокодов</p>' : `<div class="space-y-2">${promoCodes.map(p => `<div class="flex justify-between items-center p-2 bg-white/5 rounded-lg"><div><span class="font-bold text-cyan-400">${p.code}</span><span class="text-white/70 text-sm ml-2">${p.discount_type === 'percent' ? p.discount_value + '%' : p.discount_value + ' BYN'}</span><span class="text-white/50 text-xs ml-2">${p.is_active ? '✅ Активен' : '❌ Неактивен'}</span></div><button class="togglePromoBtn text-cyan-400 text-sm" data-id="${p.id}" data-active="${p.is_active}">${p.is_active ? 'Деактивировать' : 'Активировать'}</button></div>`).join('')}</div>`}
-        </div>
-        
-        <!-- Отзывы на модерации -->
-        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4">
-          <h3 class="text-white font-bold mb-3">📝 Отзывы на модерации</h3>
-          ${reviews.length === 0 ? '<p class="text-white/70">Нет отзывов</p>' : reviews.map(r => `<div class="p-2 bg-white/5 rounded-lg mb-2"><div class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div><p class="text-white/80 text-sm">${r.text}</p><p class="text-white/50 text-xs">${r.user_name||'Пользователь'} | ${new Date(r.created_at).toLocaleDateString()}</p><div class="flex gap-2 mt-2"><button class="approveReviewBtn bg-green-600 px-3 py-1 rounded text-sm" data-id="${r.id}">✅ Одобрить</button><button class="rejectReviewBtn bg-red-600 px-3 py-1 rounded text-sm" data-id="${r.id}">❌ Отклонить</button></div></div>`).join('')}
-        </div>
-        
-        <!-- Управление товарами -->
-        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4">
-          <h3 class="text-white font-bold mb-3">📦 Управление товарами</h3>
-          <button id="addProductBtn" class="w-full bg-cyan-500 py-2 rounded-lg mb-3">➕ Добавить товар</button>
-          <div class="space-y-2 max-h-60 overflow-y-auto">
-            ${products.map(p => `<div class="flex justify-between items-center p-2 bg-white/5 rounded-lg"><div><span class="text-white">${p.title}</span><span class="text-cyan-400 ml-2">${p.price} ${p.currency}</span></div><button class="deleteProductBtn bg-red-600 px-2 py-1 rounded text-xs" data-id="${p.id}">Удалить</button></div>`).join('')}
-          </div>
-        </div>
-        
-        <!-- Таможенный калькулятор 2.0 -->
-        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4">
-          <h3 class="text-white font-bold mb-3">⚖️ Таможенный лимит (РБ)</h3>
-          <p class="text-white/50 text-xs mb-2">Настройте беспошлинный лимит (в евро) и процент пошлины за превышение для умного калькулятора.</p>
-          <label class="text-white/70 text-sm">Беспошлинный лимит (€)</label>
-          <input type="number" id="customsLimitEur" class="w-full p-2 rounded-lg bg-white/20 mb-2" value="200">
-          <label class="text-white/70 text-sm">Пошлина на превышение (%)</label>
-          <input type="number" id="customsDutyPercent" class="w-full p-2 rounded-lg bg-white/20 mb-3" value="15">
-          <button id="saveCustomsLimitsBtn" class="w-full bg-cyan-500 py-2 rounded-lg">Сохранить лимиты</button>
-        </div>
-        
-        <!-- 🎓 Курсы -->
-        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4">
-          <div class="flex justify-between items-center mb-3">
-            <h3 class="text-white font-bold">🎓 Курсы (Академия)</h3>
-            <button id="adminAddCourseBtn" class="bg-cyan-500 hover:bg-cyan-600 px-3 py-1.5 rounded-lg text-sm">➕ Добавить</button>
-          </div>
-          <div class="space-y-2 max-h-64 overflow-y-auto">
-            ${courses.length === 0 ? '<p class="text-white/50 text-sm">Курсов нет</p>' : courses.map(c => `
-              <div class="flex items-center gap-2 p-2 bg-white/5 rounded-xl">
-                <div class="flex-1 min-w-0">
-                  <p class="text-white text-sm truncate">${c.title}</p>
-                  <p class="text-white/40 text-xs">${c.price_ice > 0 ? c.price_ice + ' ❄️' : 'Бесплатно'} · ${c.role_access} · ${c.is_active ? '✅ Активен' : '❌ Скрыт'}</p>
-                </div>
-                <button class="adminEditCourseBtn bg-white/20 px-2 py-1 rounded text-xs" data-course-id="${c.id}">✏️</button>
-                <button class="adminManageLessonsBtn bg-blue-600/60 px-2 py-1 rounded text-xs" data-course-id="${c.id}">📚</button>
-                <button class="adminDeleteCourseBtn bg-red-600/60 px-2 py-1 rounded text-xs" data-course-id="${c.id}">🗑️</button>
-              </div>`).join('')}
-          </div>
-        </div>
-
-        <!-- Управление площадками -->
-        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4">
-          <h3 class="text-white font-bold mb-3">🌐 Управление площадками</h3>
-          <button id="addMarketplaceBtn" class="w-full bg-cyan-500 py-2 rounded-lg mb-3">➕ Добавить площадку</button>
-          <div class="space-y-2 max-h-80 overflow-y-auto" id="marketplacesList">
-            ${await renderMarketplacesAdminList()}
-          </div>
-        
-        <!-- Заявки на вывод -->
-        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4">
-          <h3 class="text-white font-bold mb-3">💸 Заявки на вывод</h3>
-          ${payoutRequests.length === 0 ? '<p class="text-white/70">Нет заявок</p>' : payoutRequests.map(req => `<div class="flex justify-between items-center p-2 bg-white/5 rounded-lg mb-2"><div><span class="text-white">${req.user_id}</span><span class="text-cyan-400 ml-2">${req.amount} ❄️</span></div><div><button class="approvePayoutBtn bg-green-600 px-3 py-1 rounded text-sm mr-2" data-id="${req.id}">Одобрить</button><button class="rejectPayoutBtn bg-red-600 px-3 py-1 rounded text-sm" data-id="${req.id}">Отклонить</button></div></div>`).join('')}
-        </div>
-        
-                <!-- Управление заказами -->
-        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 mt-4">
-          <h3 class="text-white font-bold mb-3">📦 Управление заказами</h3>
-          
-          <!-- Переключатели Активные / Архив -->
-          <div class="flex gap-2 mb-3">
-            <button id="showActiveOrdersBtn" class="px-4 py-2 rounded-lg text-sm font-medium ${adminOrdersMode === 'active' ? 'bg-cyan-500 text-white' : 'bg-white/20 text-white/70'}">📋 Активные</button>
-            <button id="showArchivedOrdersBtn" class="px-4 py-2 rounded-lg text-sm font-medium ${adminOrdersMode === 'archived' ? 'bg-cyan-500 text-white' : 'bg-white/20 text-white/70'}">🗄️ Архив</button>
-          </div>
-          
-          <!-- Фильтр по статусу (чипсы) -->
-          <div class="mb-3">
-            <div class="flex flex-wrap gap-1.5" id="adminOrdersFilterChips">
-              <button class="filter-chip text-xs px-3 py-1.5" data-status="all">Все</button>
-              <button class="filter-chip text-xs px-3 py-1.5" data-status="paid">Оплачен</button>
-              <button class="filter-chip text-xs px-3 py-1.5" data-status="bought">Выкуплен</button>
-              <button class="filter-chip text-xs px-3 py-1.5" data-status="on_sklad_cn">Склад КН</button>
-              <button class="filter-chip text-xs px-3 py-1.5" data-status="in_transit">В пути</button>
-              <button class="filter-chip text-xs px-3 py-1.5" data-status="in_belarus">В РБ</button>
-              <button class="filter-chip text-xs px-3 py-1.5" data-status="delivered">Доставлен</button>
-              <button class="filter-chip text-xs px-3 py-1.5" data-status="cancelled">Отменён</button>
-    let faqsHtml = '';
     if (!data || data.length === 0) {
       faqsHtml = '<p class="text-white/50 text-center py-4">База знаний пока пуста. (Заполните таблицу faq_items)</p>';
     } else {
@@ -13160,32 +12956,6 @@ async function renderFAQ() {
   }
 }
 
-        <!-- 📢 Триггерные рассылки -->
-        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 mt-4 mb-4">
-          <h3 class="text-white font-bold mb-3">📢 Триггерные рассылки (Push)</h3>
-          <select id="promoAudience" class="w-full p-2 rounded-lg bg-white/20 mb-2 text-sm text-white">
-            <option value="all">Все пользователи</option>
-            <option value="vip">Только VIP (от 3 рефералов)</option>
-            <option value="abandoned_cart">Брошенная корзина (нет заказов > 14 дней)</option>
-            <option value="newbies">Новички (нет заказов)</option>
-          </select>
-          <textarea id="promoMessageText" class="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-sm mb-3 text-white" placeholder="Текст сообщения... (например: Только 48 часов скидка на доставку!)" rows="3"></textarea>
-          <button id="sendPromoBroadcastBtn" class="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 py-2 rounded-lg font-bold shadow-lg text-white">Отправить рассылку</button>
-        </div>
-
-        <!-- 📊 Отчёты и аналитика -->
-        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4">
-          <h3 class="text-white font-bold mb-3">📊 Отчёты и аналитика</h3>
-          <!-- Вкладки -->
-          <div class="flex flex-wrap gap-2 mb-4">
-            <button class="analytics-tab filter-chip active" data-tab="transactions">💰 Транзакции</button>
-            <button class="analytics-tab filter-chip" data-tab="analytics">📈 Продажи</button>
-            <button class="analytics-tab filter-chip" data-tab="logs">📝 Логи</button>
-          </div>
-          <!-- Сводка балансов (всегда видна) -->
-          <div id="balanceSummaryBlock" class="grid grid-cols-2 gap-2 mb-4">
-            <p class="text-white/40 text-xs col-span-2 text-center py-1">⏳ Загрузка сводки...</p>
-          </div>
 function attachFAQHandlers() {
   const backBtn = document.getElementById('backFromFaqBtn');
   if (backBtn) backBtn.addEventListener('click', () => { currentSubScreen = null; renderCurrentScreen(); });
@@ -13205,53 +12975,6 @@ function attachFAQHandlers() {
   });
 }
 
-          <!-- Вкладка: Аналитика продаж -->
-          <div id="analyticsTab-analytics" class="hidden">
-            <div class="flex gap-2 mb-4">
-              <select id="analyticsPeriod" class="flex-1 p-2 rounded-lg bg-white/20 border border-white/30 text-xs">
-                <option value="7">7 дней</option>
-                <option value="30" selected>30 дней</option>
-                <option value="90">90 дней</option>
-                <option value="9999">За всё время</option>
-              </select>
-              <button id="loadAnalyticsBtn" class="bg-cyan-500 hover:bg-cyan-600 px-4 py-2 rounded-lg text-xs font-bold shadow-lg">🔄 Загрузить</button>
-            </div>
-            
-            <!-- Продвинутые метрики -->
-            <div id="advancedMetricsBlock" class="grid grid-cols-2 gap-2 mb-4">
-              <div class="bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl p-3 border border-purple-500/30">
-                <p class="text-white/60 text-[10px] uppercase tracking-wider mb-1">LTV (Ценность)</p>
-                <p id="metricLTV" class="text-white text-xl font-bold shadow-sm">⏳</p>
-              </div>
-              <div class="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl p-3 border border-green-500/30">
-                <p class="text-white/60 text-[10px] uppercase tracking-wider mb-1">Средний чек</p>
-                <p id="metricAOV" class="text-white text-xl font-bold shadow-sm">⏳</p>
-              </div>
-              <div class="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-xl p-3 border border-blue-500/30 col-span-2 flex justify-between items-center">
-                <div>
-                  <p class="text-white/60 text-[10px] uppercase tracking-wider mb-1">Воронка продаж (Конверсия)</p>
-                  <p id="metricConversion" class="text-white text-xl font-bold shadow-sm">⏳</p>
-                </div>
-                <div class="text-right">
-                  <p class="text-white/60 text-[10px] uppercase tracking-wider mb-1">Покупатели / Все</p>
-                  <p id="metricBuyers" class="text-white text-sm font-bold">⏳</p>
-                </div>
-              </div>
-            </div>
-            
-            <p class="text-white/70 text-xs font-bold mb-2">📈 Продажи по дням</p>
-            <div class="bg-white/5 rounded-xl p-3 mb-1"><canvas id="salesChart"></canvas></div>
-            <p class="text-white/70 text-xs font-bold mb-2 mt-3">🍩 Статусы заказов</p>
-            <div class="bg-white/5 rounded-xl p-3 mb-3"><canvas id="statusChart"></canvas></div>
-            <div class="flex justify-between items-center mb-2">
-              <p class="text-white/70 text-xs font-bold">🏆 Топ-10 товаров</p>
-              <button id="exportTopProductsBtn" class="text-cyan-400 text-xs">⬇️ CSV</button>
-            </div>
-            <div id="topProductsList" class="text-xs">
-              <p class="text-white/40 text-center py-2">Нажмите «Загрузить»</p>
-            </div>
-          </div>
-// ==================== РЕНДЕР БАЗЫ ПОСТАВЩИКОВ ====================
 async function renderAdminSuppliers() {
   try {
     const { data: suppliers, error } = await supabaseClient.from('suppliers').select('*').order('created_at', { ascending: false });
@@ -13763,6 +13486,7 @@ function attachMarketplacesHandlers() {
         renderCurrentScreen();
         return;
       }
+    });
   
   function setupFilters() {
     ['#filterCountries', '#filterCategories', '#filterGenders'].forEach(selector => {
@@ -14532,65 +14256,6 @@ async function showFamilySettingsModal() {
         `;
       }).join('') || '<p class="text-xs text-white/40 text-center py-4">Нет новых запросов на покупки</p>';
 
-  // ── Analytics / Charts ─────────────────────────────────────────────
-  let _salesChart = null, _statusChart = null, _topData = [];
-  const loadAnalytics = async () => {
-    const period = parseInt(document.getElementById('analyticsPeriod')?.value || 30);
-    const since  = new Date(Date.now() - period * 86400000).toISOString();
-    const topEl  = document.getElementById('topProductsList');
-    if (topEl) topEl.innerHTML = '<p class="text-white/40 text-center py-2">⏳ Загрузка...</p>';
-    try {
-      const { data: orders, error } = await supabaseClient
-        .from('orders').select('id, user_id, created_at, status, price_byn, prepayment_amount, items, source_url')
-        .gte('created_at', since).order('created_at', { ascending: true });
-      if (error) throw error;
-      const os = orders || [];
-      
-      const { data: usersCountData, error: usersErr } = await supabaseClient
-        .from('users').select('user_id', { count: 'exact' });
-      const totalUsers = usersCountData ? usersCountData.length : 1; // защита от деления на 0
-
-      // Sales by day & Advanced Metrics
-      const byDay = {};
-      let totalRevenue = 0;
-      let totalRevenueDelivered = 0;
-      const uniqueBuyers = new Set();
-      const uniqueBuyersDelivered = new Set();
-
-      os.forEach(o => {
-        const day = (o.created_at||'').slice(0, 10);
-        const rev = o.price_byn || o.prepayment_amount || 0;
-        
-        if (day) {
-          if (!byDay[day]) byDay[day] = { count: 0, rev: 0 };
-          byDay[day].count++;
-          byDay[day].rev += rev;
-        }
-        
-        totalRevenue += rev;
-        if (o.user_id) uniqueBuyers.add(o.user_id);
-        
-        if (o.status === 'delivered') {
-          totalRevenueDelivered += rev;
-          if (o.user_id) uniqueBuyersDelivered.add(o.user_id);
-        }
-      });
-      const days = Object.keys(byDay).sort();
-      
-      // Update Advanced Metrics UI
-      const aov = os.length > 0 ? (totalRevenue / os.length) : 0;
-      const ltv = uniqueBuyersDelivered.size > 0 ? (totalRevenueDelivered / uniqueBuyersDelivered.size) : 0;
-      const conversion = totalUsers > 0 ? ((uniqueBuyers.size / totalUsers) * 100) : 0;
-
-      const metricLTV = document.getElementById('metricLTV');
-      const metricAOV = document.getElementById('metricAOV');
-      const metricConversion = document.getElementById('metricConversion');
-      const metricBuyers = document.getElementById('metricBuyers');
-      
-      if (metricLTV) metricLTV.innerText = ltv.toFixed(2) + ' BYN';
-      if (metricAOV) metricAOV.innerText = aov.toFixed(2) + ' BYN';
-      if (metricConversion) metricConversion.innerText = conversion.toFixed(1) + '%';
-      if (metricBuyers) metricBuyers.innerText = uniqueBuyers.size + ' / ' + totalUsers;
       return `
         <div class="space-y-4">
           <div class="bg-cyan-500/10 border border-cyan-500/30 p-3.5 rounded-xl text-center">
@@ -15387,41 +15052,8 @@ window.openSupportChat = (orderId, isAdmin = false) => {
   chatInterval = setInterval(fetchAndRenderMessages, 4000);
 };
 
-      if (currentSubScreen === 'about') {
-        contentDiv.innerHTML = `
-          <button class="global-back-btn" id="aboutBackBtn">← Назад</button>
-          <div class="bg-white/10 backdrop-blur-md rounded-2xl p-5 shadow-lg relative mt-4">
-            <div class="text-center mb-6">
-              <img src="https://i.ibb.co/9kJTjpjT/1-Logo.png" alt="ICE LOGIX" class="h-20 mx-auto mb-4">
-              <h2 class="text-2xl font-bold text-white">ICE LOGIX</h2>
-              <p class="text-cyan-400 font-semibold text-sm">Ваш надежный байер-сервис</p>
-            </div>
-            
-            <div class="space-y-4 text-white/80 text-sm">
-              <p>📍 <b>Мы находимся:</b> Беларусь, Несвиж.</p>
-              <p>🛍 <b>Что мы делаем:</b> Выкупаем и возим товары с любых площадок и от поставщиков, которые не работают напрямую с РБ. Одежда, обувь, аксессуары из Европы, Китая, Японии, Южной Кореи, США, ОАЭ, России, Турции и Вьетнама.</p>
-              <div class="bg-blue-500/10 p-3 rounded-lg border border-blue-500/20">
-                <p class="text-blue-300 text-xs">⚠️ Обратите внимание: в первые месяцы работы доступен выкуп только из Европы, России и Китая. Остальные направления будут доступны чуть позже!</p>
-              </div>
-              <p>🤝 <b>Наш партнер:</b> Работаем совместно с ShopbyShop. У нас есть склады в России, Польше и Китае. На данный момент единая ставка из Китая — 10$ за кг.</p>
-              <p>📦 <b>Планы:</b> В будущем мы планируем доставлять абсолютно любые товары, разрешенные для ввоза в РБ, но пока концентрируемся на одежде и обуви.</p>
-              <p>💼 <b>Юридическая чистота:</b> Мы работаем полностью легально, платим налоги с нашей комиссии (20%) и заключаем онлайн-договор с каждым клиентом при оформлении заказа.</p>
-            </div>
-          </div>
-          ${renderFooter()}
-        `;
-        const aboutBackBtn = document.getElementById('aboutBackBtn');
-        if (aboutBackBtn) aboutBackBtn.onclick = () => { currentSubScreen = null; renderCurrentScreen(); };
-        return;
-      }
-
-      if (currentSubScreen === 'marketplaces') {
-    contentDiv.innerHTML = await renderMarketplaces();
-    attachMarketplacesHandlers();
-    ensureBackButtonForSubscreen();
-    return;
-window.triggerConfetti = () => {
-  const colors = ['#22d3ee', '#3b82f6', '#b8e0f6', '#ffffff', '#fbbf24'];
+  window.triggerConfetti = () => {
+    const colors = ['#22d3ee', '#3b82f6', '#b8e0f6', '#ffffff', '#fbbf24'];
   const shapes = ['square', 'circle', 'diamond'];
   const particleCount = 80;
   
@@ -15471,27 +15103,6 @@ window.showVipSectionModal = () => {
     { id: 'vip-3', title: 'Arc\'teryx Beta LT Jacket Black', price: 340, oldPrice: 850, img: 'https://vrvwdagjpttvfvjanbwq.supabase.co/storage/v1/object/public/legit-references/stone-island/stone-island-softshell/side.jpg', brand: 'Arc\'teryx', platform: 'Zalando' }
   ];
 
-    // ==================== РЕНДЕР КАТАЛОГОВ (ВЫБОР) ====================
-    async function attachSubScreenHandlers() {
-      const aboutBackBtn = document.getElementById('aboutBackBtn');
-      if (aboutBackBtn) aboutBackBtn.onclick = () => { currentSubScreen = null; renderCurrentScreen(); };
-    }
-    
-    async function renderCatalogs() {
-  return `
-  <button id="backFromCatalogsBtn" class="global-back-btn">← Назад</button>
-    <div class="space-y-4">
-      <h2 class="text-white text-xl font-bold mb-4">📚 Каталоги</h2>
-      <div class="grid grid-cols-1 gap-4">
-        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-5 cursor-pointer hover:bg-white/20 transition" id="openMarketplacesBtn">
-          <div class="flex items-center gap-4">
-            <span class="text-4xl">🌐</span>
-            <div>
-              <h3 class="text-white font-bold text-lg">Площадки</h3>
-              <p class="text-white/70 text-sm">Poizon, Taobao, Zalando и другие</p>
-            </div>
-          </div>
-  const renderVipGrid = () => {
     return `
       <div class="space-y-4 page-enter">
         <div class="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl text-center mb-2">
@@ -16349,11 +15960,11 @@ async function downloadCustomsInvoice(orderId) {
     if (userData) {
       if (userData.encrypted_passport) {
         const p = decryptData(userData.encrypted_passport);
-        if (p) passportStr = \`Серия/Номер: \${p.seriesNumber}, Выдан: \${p.issueDate}\`;
+        if (p) passportStr = `Серия/Номер: ${p.seriesNumber}, Выдан: ${p.issueDate}`;
       } else if (userData.passport_data) {
         try {
           const p = JSON.parse(userData.passport_data);
-          passportStr = \`Серия/Номер: \${p.seriesNumber}\`;
+          passportStr = `Серия/Номер: ${p.seriesNumber}`;
         } catch(e){}
       }
     }
@@ -16361,18 +15972,18 @@ async function downloadCustomsInvoice(orderId) {
     const docDefinition = {
       content: [
         { text: 'CUSTOMS INVOICE / ИНВОЙС', style: 'header', alignment: 'center', margin: [0, 0, 0, 20] },
-        { text: \`Order ID / Номер заказа: \${order.id}\`, margin: [0, 0, 0, 5] },
-        { text: \`Date / Дата: \${new Date(order.created_at).toLocaleDateString('ru-RU')}\`, margin: [0, 0, 0, 5] },
-        { text: \`Buyer / Покупатель: \${userName}\`, margin: [0, 0, 0, 5] },
-        { text: \`Passport Details / Паспорт: \${passportStr}\`, margin: [0, 0, 0, 15] },
+        { text: `Order ID / Номер заказа: ${order.id}`, margin: [0, 0, 0, 5] },
+        { text: `Date / Дата: ${new Date(order.created_at).toLocaleDateString('ru-RU')}`, margin: [0, 0, 0, 5] },
+        { text: `Buyer / Покупатель: ${userName}`, margin: [0, 0, 0, 5] },
+        { text: `Passport Details / Паспорт: ${passportStr}`, margin: [0, 0, 0, 15] },
         {
           table: {
             headerRows: 1,
             widths: ['*', 'auto', 'auto', 'auto'],
             body: [
               ['Description / Описание', 'Qty / Кол-во', 'Weight / Вес (кг)', 'Price / Цена'],
-              ['Товар для личного пользования (Одежда/Обувь)', '1', \`\${order.weight_estimated || 1}\`, \`\${order.price_original || 0}\`],
-              [{ text: 'TOTAL / ИТОГО', colSpan: 3, alignment: 'right' }, '', '', \`\${order.price_original || 0}\`]
+              ['Товар для личного пользования (Одежда/Обувь)', '1', `${order.weight_estimated || 1}`, `${order.price_original || 0}`],
+              [{ text: 'TOTAL / ИТОГО', colSpan: 3, alignment: 'right' }, '', '', `${order.price_original || 0}`]
             ]
           }
         },
@@ -16381,7 +15992,7 @@ async function downloadCustomsInvoice(orderId) {
       ],
       styles: { header: { fontSize: 18, bold: true } }
     };
-    pdfMake.createPdf(docDefinition).download(\`Invoice_\${order.id.slice(0,8)}.pdf\`);
+    pdfMake.createPdf(docDefinition).download(`Invoice_${order.id.slice(0,8)}.pdf`);
   } catch (err) {
     alert('Ошибка генерации PDF: ' + err.message);
   }
@@ -16423,7 +16034,7 @@ function showFortuneWheel() {
     }
     
     const deg = 1080 + Math.floor(Math.random() * 360);
-    wheel.style.transform = \`rotate(\${deg}deg)\`;
+    wheel.style.transform = `rotate(${deg}deg)`;
     
     setTimeout(async () => {
       const prizes = ['5 ❄️', 'Бесплатная пупырка', 'Скидка 2%', 'Ничего 😢'];
