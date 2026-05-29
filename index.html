@@ -165,7 +165,7 @@
     .header-left { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
     
     .logo-img { 
-      height: 36px;
+      height: 30px;
       width: auto;
       object-fit: contain;
       cursor: pointer; 
@@ -3505,6 +3505,24 @@ const MAX_REQUESTS_TRUSTED = 100;
       const activeTab = document.querySelector(`.tab-item[data-tab="${tabName}"]`);
       if (activeTab) activeTab.classList.add('active');
       tgUtil.haptic('selection');
+      
+      const isDifferent = (window.currentTab !== tabName) || (window.currentSubScreen !== subScreen);
+      if (isDifferent) {
+        const contentDiv = document.getElementById('content');
+        if (contentDiv) {
+          contentDiv.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-24 text-center w-full min-h-[50vh] page-enter">
+              <div class="relative w-14 h-14 mb-4 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-full border-3 border-cyan-500/10"></div>
+                <div class="absolute inset-0 rounded-full border-3 border-t-cyan-400 animate-spin"></div>
+                <span class="text-xl">❄️</span>
+              </div>
+              <p class="text-white/40 text-xs tracking-wider uppercase font-medium">Загрузка...</p>
+            </div>
+          `;
+        }
+      }
+      
       // Scroll to the very top to prevent carrying scroll offset across tabs
       window.scrollTo(0, 0);
       renderCurrentScreen();
@@ -7972,14 +7990,6 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
         </div>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
-      <button id="ownerControlsBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition" style="border-top: 1px solid var(--glass-border);">
-        <span class="text-xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span></span>
-        <div class="flex-1">
-          <p class="font-semibold text-white text-sm">Управление тарифами</p>
-          <p class="text-xs" style="color: var(--text-muted);">Отпуск байера и курсовой буфер</p>
-        </div>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
       ` : ''}
     </div>
   </div>
@@ -8050,10 +8060,7 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
     };
   }
 
-  const ownerControlsBtn = document.getElementById('ownerControlsBtn');
-  if (ownerControlsBtn) {
-    ownerControlsBtn.onclick = () => showOwnerControlsForm();
-  }
+
 
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
@@ -10209,113 +10216,6 @@ async function renderAdmin() {
             <button id="adminOrdersNext" class="btn-secondary" ${adminOrdersPage >= adminOrdersTotalPages ? 'disabled' : ''}><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span></button>
           </div>
           </div>
-
-        <!-- <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Отчёты и аналитика -->
-        <div class="glass-card">
-          <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Отчёты и аналитика</h3>
-          <!-- Вкладки -->
-          <div class="flex flex-wrap gap-2 mb-4">
-            <button class="analytics-tab filter-chip active" data-tab="transactions"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18M7 6h1v4M16.71 13.88l.7.71-2.82 2.82"/></svg></span> Транзакции</button>
-            <button class="analytics-tab filter-chip" data-tab="analytics"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span> Продажи</button>
-            <button class="analytics-tab filter-chip" data-tab="logs"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></span> Логи</button>
-          </div>
-          <div class="flex gap-2">
-            <button id="showStatsTab" class="filter-chip active flex-1 text-center">📊 Статистика</button>
-            <button id="showContentHubTab" class="filter-chip flex-1 text-center">🎨 Контент-хаб</button>
-            <button id="showMyClientsTab" class="filter-chip flex-1 text-center">👥 Клиенты</button>
-          <!-- Сводка балансов (всегда видна) -->
-          <div id="balanceSummaryBlock" class="grid grid-cols-2 gap-2 mb-4">
-            <p class="text-white/40 text-xs col-span-2 text-center py-1"><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Загрузка сводки...</p>
-          </div>
-
-          <!-- Вкладка: Транзакции -->
-          <div id="analyticsTab-transactions">
-            <div class="space-y-2 mb-3">
-              <div class="flex gap-2">
-                <select id="txTypeFilter" class="btn-secondary flex-1 p-2 rounded-lg border border-white/30 text-xs">
-                  <option value="">Все типы</option>
-                  <option value="payment">Оплата</option>
-                  <option value="refund">Возврат</option>
-                  <option value="bonus">Бонус</option>
-                  <option value="withdrawal">Вывод</option>
-                  <option value="topup">Пополнение</option>
-                </select>
-                <input type="text" id="txUserFilter" class="btn-secondary flex-1 p-2 rounded-lg border border-white/30 text-xs" placeholder="User ID">
-              </div>
-              <div class="flex gap-2">
-                <input type="date" id="txDateFrom" class="btn-secondary flex-1 p-2 rounded-lg border border-white/30 text-xs">
-                <input type="date" id="txDateTo" class="btn-secondary flex-1 p-2 rounded-lg border border-white/30 text-xs">
-              </div>
-              <div class="flex gap-2">
-                <button id="txLoadBtn" class="btn-primary flex-1"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Показать</button>
-                <button id="txExportBtn" class="btn-secondary"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></span> CSV</button>
-              </div>
-            </div>
-            <div id="txList" class="space-y-1 max-h-80 overflow-y-auto text-xs">
-              <p class="text-white/40 text-center py-3">Нажмите «Показать» для загрузки данных</p>
-            </div>
-          </div>
-
-          <!-- Вкладка: Аналитика продаж -->
-          <div id="analyticsTab-analytics" class="hidden">
-            <div class="flex gap-2 mb-4">
-              <select id="analyticsPeriod" class="btn-secondary flex-1 p-2 rounded-lg border border-white/30 text-xs">
-                <option value="7">7 дней</option>
-                <option value="30" selected>30 дней</option>
-                <option value="90">90 дней</option>
-              </select>
-              <button id="loadAnalyticsBtn" class="btn-primary"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></span> Загрузить</button>
-            </div>
-            <p class="text-white/70 text-xs font-bold mb-2"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span> Продажи по дням</p>
-            <div class="bg-white/5 rounded-xl p-3 mb-1"><canvas id="salesChart"></canvas></div>
-            <p class="text-white/70 text-xs font-bold mb-2 mt-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 9V3M12 21v-6M9 12H3M21 12h-6M5.6 5.6l4.2 4.2M14.2 14.2l4.2 4.2M5.6 18.4l4.2-4.2M14.2 9.8l4.2-4.2"/></svg></span> Статусы заказов</p>
-            <div class="bg-white/5 rounded-xl p-3 mb-3"><canvas id="statusChart"></canvas></div>
-            <div class="flex justify-between items-center mb-2">
-              <p class="text-white/70 text-xs font-bold"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16M10 14.66V17c0 .55-.47 1-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47 1 .97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></span> Топ-10 товаров</p>
-              <button id="exportTopProductsBtn" class="text-cyan-400 text-xs"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></span> CSV</button>
-            </div>
-            <div id="topProductsList" class="text-xs">
-              <p class="text-white/40 text-center py-2">Нажмите «Загрузить»</p>
-            </div>
-          </div>
-
-          <!-- Вкладка: Логи -->
-          <div id="analyticsTab-logs" class="hidden">
-            <div class="space-y-2 mb-3">
-              <div class="relative">
-                <input type="text" id="logsAdminFilter" class="btn-secondary w-full p-2 pl-8 rounded-lg border border-white/30 text-xs" placeholder="Admin ID или имя">
-                <span class="absolute left-2.5 top-2 text-white/40 pointer-events-none"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span></span>
-              </div>
-              <div class="flex items-center gap-2">
-                <select id="logsActionFilter" class="btn-secondary flex-1 min-w-0 p-2 rounded-lg border border-white/30 text-xs">
-                  <option value="">Все действия</option>
-                  <option value="order_status">Статус заказа</option>
-                  <option value="archive">Архивация</option>
-                  <option value="promo">Промокод</option>
-                  <option value="product">Товар</option>
-                  <option value="payout">Выплата</option>
-                  <option value="course">Курс</option>
-                  <option value="review">Отзыв</option>
-                </select>
-                <button id="logsLoadBtn" class="btn-primary flex-shrink-0">Загрузить</button>
-              </div>
-            </div>
-            <div id="logsList" class="space-y-1 max-h-80 overflow-y-auto text-xs">
-              <p class="text-white/40 text-center py-3">Нажмите <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> для загрузки логов</p>
-            </div>
-          </div>
-          <div id="myClientsContainer" class="hidden">
-            <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4">
-              <div class="flex justify-between items-center mb-4">
-                <h3 class="text-white font-bold text-lg">Управление клиентами</h3>
-                <button id="addDropClientBtn" class="bg-cyan-500 hover:bg-cyan-600 px-3 py-1.5 rounded-lg text-sm font-bold transition shadow-lg">➕ Добавить</button>
-              </div>
-              <div id="dropClientsList" class="space-y-2">
-                <p class="text-white/50 text-sm text-center py-4">⏳ Загрузка...</p>
-              </div>
-            </div>
-          </div>
-        </div>
 
         <!-- Финансовый учёт и Налоги (Белгазпромбанк & Налоговый отчёт РБ) -->
         <div class="glass-card mt-4">
