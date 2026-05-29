@@ -165,14 +165,15 @@
     .header-left { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
     
     .logo-img { 
+      box-sizing: content-box;
       display: inline-block;
       vertical-align: middle;
-      height: 30px;
+      height: 36px;
       width: auto;
       object-fit: contain;
       cursor: pointer; 
-      padding: 6px;
-      margin: -6px 0;
+      padding: 4px;
+      margin: 0;
       transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
       filter: drop-shadow(0 2px 8px rgba(91, 191, 235, 0.45));
     }
@@ -591,13 +592,14 @@
     }
     
     .footer-logo {
+      box-sizing: content-box;
       display: block;
       width: auto;
       height: 48px;
       object-fit: contain;
       margin: 0 auto 12px;
       opacity: 0.8;
-      padding: 6px;
+      padding: 4px;
       filter: drop-shadow(0 2px 8px rgba(91, 191, 235, 0.35));
     }
     
