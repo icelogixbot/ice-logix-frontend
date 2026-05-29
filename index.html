@@ -3675,29 +3675,17 @@ const MAX_REQUESTS_TRUSTED = 100;
         </div>
         <span class="story-label">Акции</span>
       </div>
-      <div class="story-card" data-story="catalog">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(167,139,250,0.2), rgba(139,92,246,0.1));">
-          <span style="font-size: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/></svg></span></span>
-        </div>
-        <span class="story-label">Каталог</span>
-      </div>
-      <div class="story-card" data-story="drops">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(52,211,153,0.2), rgba(16,185,129,0.1));">
-          <span style="font-size: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span></span>
-        </div>
-        <span class="story-label">Дропы</span>
-      </div>
-      <div class="story-card" data-story="referral">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(96,165,250,0.2), rgba(59,130,246,0.1));">
-          <span style="font-size: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span></span>
-        </div>
-        <span class="story-label">Друзья</span>
-      </div>
       <div class="story-card" data-story="resale">
         <div class="story-icon" style="background: linear-gradient(145deg, rgba(236,72,153,0.2), rgba(219,39,119,0.1));">
           <span style="font-size: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"><span class="ix text-pink-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span></span>
         </div>
         <span class="story-label">Пристрой</span>
+      </div>
+      <div class="story-card" data-story="academy">
+        <div class="story-icon" style="background: linear-gradient(145deg, rgba(139,92,246,0.2), rgba(109,40,217,0.15));">
+          <span style="font-size: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></span></span>
+        </div>
+        <span class="story-label">Академия</span>
       </div>
     </div>
     
@@ -9988,73 +9976,9 @@ async function renderAdmin2FA() {
       <div id="recentTransactions" class="mt-2 text-left"></div>
     </div>
     
-    <div class="mt-4 p-3 bg-white/5 rounded-xl ${referralStats.count >= 3 ? 'border border-yellow-500/30' : ''}">
-      <div class="flex justify-between items-center">
-        <p class="text-white/70 text-sm flex items-center">🤝 Реферальная программа ${referralStats.count >= 3 ? '<span class="bg-yellow-500 text-black text-[10px] px-2 py-0.5 rounded-full font-bold ml-2">VIP</span>' : ''}</p>
-        ${referralStats.count >= 3 ? '<span class="text-yellow-400 text-xs">Комиссия снижена!</span>' : '<span class="text-white/40 text-xs">Пригласи 3-х для VIP</span>'}
-      </div>
-      <p class="text-white text-sm mt-1">Приглашено: <span class="text-cyan-400 font-bold">${referralStats.count}</span> | Бонусов: <span class="text-green-400 font-bold">${referralStats.bonus} ❄️</span></p>
-      ${userReferralCode ? `<p class="text-white/50 text-xs mt-1">Ваш код: <span class="text-cyan-400">${userReferralCode}</span></p><button id="copyReferralLinkBtn" class="mt-2 bg-white/20 px-4 py-2 rounded-full text-sm w-full">📋 Скопировать ссылку</button>` : ''}
-    </div>
-    
-    <div class="grid grid-cols-2 gap-2 mt-4">
-      <button id="legitCheckBtn" class="col-span-2 bg-gradient-to-r from-green-500/20 to-teal-500/20 hover:from-green-500/30 hover:to-teal-500/30 border border-green-500/30 py-3 rounded-full transition text-sm font-bold text-green-300 flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(20,184,166,0.1)]">🛡️ Legit Check (Проверка подлинности)</button>
-      <button id="fortuneWheelBtn" class="col-span-2 bg-gradient-to-r from-pink-500/20 to-purple-500/20 hover:from-pink-500/30 hover:to-purple-500/30 border border-pink-500/30 py-3 rounded-full transition text-sm font-bold text-pink-300 flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(236,72,153,0.1)]">🎡 Крутить Колесо Фортуны</button>
-      <button id="myOrdersBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition text-sm">📋 Мои заказы</button>
-      <button id="wishlistBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition text-sm">❤️ Избранное</button>
-      <button id="dropshipperBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition text-sm">📦 ${isDropshipper ? 'Кабинет дропшиппера' : 'Стать дропшиппером'}</button>
-      <button id="academyBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition text-sm">🎓 Академия</button>
-      ${isOwner ? '<button id="adminPanelBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition text-sm">⚙️ Админ-панель</button>' : ''}
-      <button id="passportDataBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition text-sm">🛂 Паспорт</button>
-      <button id="measurementsBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition text-sm">📏 Мои размеры</button>
-      <button id="phoneBindingBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition text-sm">📱 Телефон</button>
-      <button id="accountRecoveryBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition text-sm">🔑 Восстановить</button>
-      <button id="appSettingsBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition text-sm">⚙️ Настройки</button>
-      <button id="cartBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition text-sm relative">
-  🛒 Корзина <span id="cartBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
-</button>
-    </div>
-    
-    <button id="logoutBtn" class="mt-4 w-full bg-red-500/20 hover:bg-red-500/30 py-2 rounded-full transition">Выйти из аккаунта</button>
-  </div>
-  
-  <!-- Legit Check Modal -->
-  <div id="legitCheckModal" class="fixed inset-0 bg-black/80 z-[100] hidden flex-col justify-end backdrop-blur-sm">
-    <div class="bg-[#1e1e24] rounded-t-3xl p-6 relative shadow-[0_-10px_30px_rgba(20,184,166,0.1)] border-t border-teal-500/30 mb-0 animate-[slideUp_0.3s_ease-out]">
-      <button id="closeLegitCheckBtn" class="absolute top-4 right-4 text-white/50 hover:text-white text-xl">✕</button>
-      
-      <div class="text-center mb-6 mt-2">
-        <div class="w-16 h-16 bg-gradient-to-br from-green-400 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-[0_0_20px_rgba(20,184,166,0.4)]">
-          <span class="text-3xl">🛡️</span>
-        </div>
-        <h2 class="text-2xl font-bold text-white mb-1">Legit Check</h2>
-        <p class="text-white/60 text-sm">от наших партнёров <span class="font-bold text-white">ShopbyShop</span></p>
-      </div>
-
-      <div class="space-y-3 mb-6">
-        <div class="flex items-start gap-3 bg-white/5 p-3 rounded-xl border border-white/5">
-          <div class="text-teal-400 mt-0.5 text-lg">📸</div>
-          <p class="text-white/80 text-xs leading-relaxed"><span class="font-bold text-white text-sm">1. Отправьте фото</span><br>Скиньте фото бирок, стельки, швов и коробки прямо в этот чат (боту).</p>
-        </div>
-        <div class="flex items-start gap-3 bg-white/5 p-3 rounded-xl border border-white/5">
-          <div class="text-teal-400 mt-0.5 text-lg">⏱️</div>
-          <p class="text-white/80 text-xs leading-relaxed"><span class="font-bold text-white text-sm">2. Подождите 30 минут</span><br>Менеджеры ShopbyShop детально проверят вещь на оригинальность.</p>
-        </div>
-        <div class="flex items-start gap-3 bg-white/5 p-3 rounded-xl border border-white/5">
-          <div class="text-teal-400 mt-0.5 text-lg">📜</div>
-          <p class="text-white/80 text-xs leading-relaxed"><span class="font-bold text-white text-sm">3. Получите сертификат</span><br>Результат проверки и сертификат подлинности придут в этот же чат.</p>
-        </div>
-      </div>
-
-      <button id="startLegitCheckBtn" class="w-full bg-gradient-to-r from-green-500 to-teal-500 hover:scale-[1.02] transition py-3 rounded-xl text-white font-bold text-sm shadow-[0_0_15px_rgba(20,184,166,0.3)]">
-        🚀 Понятно, отправить фото
-      </button>
-    </div>
-  </div>
-
-  ${renderFooter()}
-`;
-    }
+    ${renderFooter()}
+  `;
+}
 
 
 
@@ -10111,72 +10035,6 @@ function attachAdmin2FAHandlers() {
       }
     };
   });
-  // Паспортные данные
-const passportBtn = document.getElementById('passportDataBtn');
-if (passportBtn) passportBtn.onclick = () => showPassportForm();
-
-  // Мои размеры
-const measurementsBtn = document.getElementById('measurementsBtn');
-if (measurementsBtn) measurementsBtn.onclick = () => showMeasurementsForm();
-
-// Скачать договор
-const downloadAgreementBtn = document.getElementById('downloadAgreementBtn');
-if (downloadAgreementBtn) downloadAgreementBtn.onclick = () => downloadAgreement();
-
-// Смена аватара
-const changeAvatarBtn = document.getElementById('changeAvatarBtn');
-if (changeAvatarBtn) changeAvatarBtn.onclick = () => showAvatarUploader();
-
-// Редактирование имени
-const editNameBtn = document.getElementById('editNameBtn');
-if (editNameBtn) editNameBtn.onclick = () => showEditNameForm();
-
-// Все транзакции
-const allTransactionsBtn = document.getElementById('showAllTransactionsBtn');
-if (allTransactionsBtn) allTransactionsBtn.onclick = () => showAllTransactions();
-
-// Настройки уведомлений
-const notifSettingsBtn = document.getElementById('notificationsSettingsBtn');
-if (notifSettingsBtn) notifSettingsBtn.onclick = () => showAppSettings('notifications');
-const appSettingsBtn2 = document.getElementById('appSettingsBtn');
-if (appSettingsBtn2) appSettingsBtn2.onclick = () => showAppSettings('notifications');
-const accountRecoveryBtn = document.getElementById('accountRecoveryBtn');
-if (accountRecoveryBtn) accountRecoveryBtn.onclick = () => showAccountRecovery();
-
-// Привязка телефона
-const phoneBindingBtn = document.getElementById('phoneBindingBtn');
-if (phoneBindingBtn) phoneBindingBtn.onclick = () => showPhoneBinding();
-
-const cartBtn = document.getElementById('cartBtn');
-if (cartBtn) cartBtn.onclick = () => switchTab('cart');
-
-// Legit Check
-const legitCheckBtn = document.getElementById('legitCheckBtn');
-const legitCheckModal = document.getElementById('legitCheckModal');
-const closeLegitCheckBtn = document.getElementById('closeLegitCheckBtn');
-const startLegitCheckBtn = document.getElementById('startLegitCheckBtn');
-
-if (legitCheckBtn && legitCheckModal) {
-  legitCheckBtn.onclick = () => {
-    legitCheckModal.classList.remove('hidden');
-    legitCheckModal.classList.add('flex');
-  };
-}
-if (closeLegitCheckBtn && legitCheckModal) {
-  closeLegitCheckBtn.onclick = () => {
-    legitCheckModal.classList.add('hidden');
-    legitCheckModal.classList.remove('flex');
-  };
-}
-if (startLegitCheckBtn) {
-  startLegitCheckBtn.onclick = () => {
-    try {
-      tg.sendData(JSON.stringify({ action: 'start_legit_check' }));
-    } catch(e) {}
-    tg.close();
-  };
-}
-
   
   document.getElementById('pinDeleteBtn').onclick = () => {
     if (currentPin.length > 0) {
@@ -10186,6 +10044,8 @@ if (startLegitCheckBtn) {
     }
   };
 }
+
+
 
 async function renderAdmin() {
   if (!isOwner) return '<p class="text-center mt-10 text-red-400">Доступ запрещён</p>';
@@ -12636,6 +12496,7 @@ function ensureBackButtonForSubscreen() {
 
 // ==================== РЕНДЕР FAQ ====================
 async function renderFAQ() {
+  let faqsHtml = '';
   try {
     const { data, error } = await supabaseClient.from('faq_items').select('*').order('category', { ascending: true }).order('order_index', { ascending: true });
     if (error) throw error;
