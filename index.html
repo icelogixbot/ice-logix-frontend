@@ -8812,36 +8812,8 @@ async function renderAcademy() {
         }
       }
 
-    function renderFooter() {
-      return `
-        <div class="app-footer">
-          <div class="social-icons"><span class="social-icon" data-social="tg">📱</span><span class="social-icon" data-social="ig">📷</span><span class="social-icon" data-social="vk">🎵</span></div>
-          <div class="footer-links"><span class="footer-link" data-link="about">О нас (ICE LOGIX)</span><span class="footer-link" data-link="offer">Публичная оферта</span><span class="footer-link" data-link="privacy">Политика конфиденциальности</span><span class="footer-link" data-link="contacts">Контакты</span></div>
-          <div class="copyright">ИП Иванов И.И., УНП 123456789<br>© 2025 ICE LOGIX. Все права защищены.</div>
-        </div>
-      `;
-    }
 
-    async function renderPromoBanners() {
-  try {
-    const { data, error } = await supabaseClient
-      .from('promotions')
-      .select('*')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(5);
-    if (error) throw error;
-    if (!data || data.length === 0) return '';
-    
-    return data.map(p => `
-      <div class="banner-slide" data-promotion-id="${p.id}" style="background-image: url('${p.banner_url}'); background-size: cover; background-position: center; min-width: 280px; height: 120px;">
-      </div>
-    `).join('');
-  } catch (err) {
-    console.error('Ошибка загрузки баннеров:', err);
-    return '';
-  }
-}
+
       // ── handleGetCert ───────────────────────────────────────────────
       async function handleGetCert(courseId, courseTitle) {
         try {
@@ -9574,114 +9546,6 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
     }
 
     // ==================== РЕНДЕР НОВОГО ЗАКАЗА (С ПРОМОКОДАМИ) ====================
-    async function renderNewOrder() {
-      const d = window.tempOrder || { url: '', price: 0, weight: 0, total: 0, discountAmount: 0, appliedPromo: null };
-      const finalTotal = d.total - (d.discountAmount || 0);
-      return `
-      ${window.tempOrder?.items ? `
-  <div class="bg-white/5 rounded-xl p-3 mb-3">
-    <p class="text-white font-bold mb-2">🛒 Выбранные товары:</p>
-    ${window.tempOrder.items.map(item => {
-      const itemTotal = (item.price * 0.45 + 12) * item.quantity;
-      return `
-        <div class="flex justify-between text-sm">
-          <span class="text-white/70">${item.title} (${item.quantity} шт.)</span>
-          <span class="text-cyan-400">${itemTotal.toFixed(2)} ❄️</span>
-        </div>
-      `;
-    }).join('')}
-    <p class="text-right text-white mt-2">Примерная сумма: <span class="text-cyan-400" id="multiItemTotal">${window.tempOrder.total.toFixed(2)} ❄️</span></p>
-  </div>
-` : ''}
-        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-5 shadow-lg">
-          <h2 class="text-xl font-bold mb-4">✨ Новый заказ</h2>
-          <label class="text-white/70 text-sm">Ссылка на товар</label>
-          <div class="flex flex-wrap gap-2 mt-1 mb-1">
-            <input type="text" id="orderUrl" class="flex-1 min-w-[200px] p-3 rounded-xl bg-white/20 border border-white/30" value="${d.url}" placeholder="https://...">
-            <button id="analyzeOrderLinkBtn" class="bg-cyan-500 hover:bg-cyan-600 px-4 py-3 rounded-xl text-sm font-bold whitespace-nowrap transition flex-shrink-0">🔍 Анализировать</button>
-          </div>
-          <div id="parsedOrderTitle" class="text-cyan-400 text-xs mb-1 hidden"></div>
-          <div id="orderScreenshotWidget" class="hidden"></div>
-          <div id="parsedOrderBrand" class="text-white/70 text-xs mb-1 hidden"></div>
-          <div id="parsedOrderMarketplace" class="text-white/50 text-xs mb-1 hidden"></div>
-          <div id="parsedOrderDesc" class="text-white/70 text-xs mb-2 hidden"></div>
-          <div id="parsedOrderColor" class="text-white/50 text-sm mb-3 hidden"></div>
-          <label class="text-white/70 text-sm block mt-2">Цена (<span id="orderPriceCurrency">¥</span>)</label>
-          <input type="number" id="orderPrice" class="w-full mt-1 p-3 rounded-xl bg-white/20 border border-white/30 mb-3" placeholder="0">
-          <label class="text-white/70 text-sm block mt-2">Валюта</label>
-          <select id="orderCurrency" class="w-full mt-1 p-3 rounded-xl bg-white/20 border border-white/30 mb-3">
-            <option value="">—</option>
-            <option value="CNY">CNY (¥)</option>
-            <option value="USD">USD ($)</option>
-            <option value="EUR">EUR (€)</option>
-            <option value="GBP">GBP (£)</option>
-            <option value="RUB">RUB (₽)</option>
-            <option value="BYN">BYN (Br)</option>
-          </select>
-          <label class="text-white/70 text-sm block mt-2">Категория</label>
-          <select id="orderCategory" class="w-full mt-1 p-3 rounded-xl bg-white/20 border border-white/30 mb-3">
-            <option value="">— для автоподбора веса —</option>
-            <option value="Обувь">Обувь</option>
-            <option value="Одежда">Одежда</option>
-            <option value="Аксессуары">Аксессуары</option>
-          </select>
-          <label class="text-white/70 text-sm block">Размер</label>
-          <input type="text" id="orderSize" class="w-full mt-1 p-3 rounded-xl bg-white/20 border border-white/30 mb-3" placeholder="Размер (напр. 42, M, L)">
-          <h3 class="text-white font-bold mb-2 mt-4">📦 Дополнительные услуги склада</h3>
-          <div class="bg-white/5 rounded-xl p-3 mb-3 space-y-2">
-            <label class="flex items-center gap-2 text-white/80 text-sm cursor-pointer">
-              <input type="checkbox" id="orderKeepBox" class="w-4 h-4">
-              <span>Сохранить оригинальную коробку</span>
-            </label>
-            <label class="flex items-center gap-2 text-white/80 text-sm cursor-pointer">
-              <input type="checkbox" id="orderVacuum" class="w-4 h-4">
-              <span>Вакуумная упаковка (снижает объем) +3.3 ❄️</span>
-            </label>
-            <label class="flex items-center gap-2 text-white/80 text-sm cursor-pointer">
-              <input type="checkbox" id="orderBubbleWrap" class="w-4 h-4">
-              <span>Пупырчатая пленка (защита) +6.6 ❄️</span>
-            </label>
-          </div>
-          <label class="text-white/70 text-sm block mt-2">Вес (кг)</label>
-          <div class="flex items-center gap-3 mt-1"><input type="number" id="orderWeight" class="flex-1 p-3 rounded-xl bg-white/20 border border-white/30" placeholder="0" data-packaging="0.3"><span class="text-white/80 bg-white/10 px-3 py-1 rounded-full">кг</span></div>
-          
-          <label class="text-white/70 text-sm block mt-3">Способ доставки по РБ</label>
-          <select id="orderDeliveryMethod" class="w-full mt-1 p-3 rounded-xl bg-white/20 border border-white/30 mb-3">
-            <option value="belpost">Белпочта</option>
-            <option value="europost">Европочта</option>
-            <option value="pickup_nesvizh">Самовывоз (г. Несвиж)</option>
-          </select>
-          
-          <label class="text-white/70 text-sm block mt-2">Способ оплаты</label>
-          <select id="orderPaymentMethod" class="w-full mt-1 p-3 rounded-xl bg-white/20 border border-white/30 mb-3">
-            <option value="erip">ЕРИП</option>
-            <option value="card">Банковская карта (РБ)</option>
-            <option value="tg_stars">Telegram Stars (⭐️)</option>
-          </select>
-
-          <div class="mt-3"><label class="text-white/70 text-sm">Промокод</label><div class="flex flex-col sm:flex-row gap-2 mt-1"><input type="text" id="promoCode" class="flex-1 p-3 rounded-xl bg-white/20 border border-white/30" placeholder="Введите промокод"><button id="applyPromoBtn" class="bg-cyan-500 px-4 py-3 rounded-xl whitespace-nowrap">Применить</button></div><p id="promoMessage" class="text-xs mt-1 hidden"></p></div>
-          
-          <div id="customsWarning" class="bg-red-500/20 border border-red-500/50 rounded-xl p-3 mt-4 hidden">
-            <p class="text-red-400 text-sm font-bold mb-1">⚠️ Внимание: Превышен таможенный лимит!</p>
-            <p class="text-white/80 text-xs mb-2">Сумма заказа превышает беспошлинный лимит РБ. Вам придется уплатить пошлину при получении.</p>
-            <button id="splitOrderBtn" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold w-full">📦 Разбить заказ на 2 посылки</button>
-          </div>
-
-          <p class="mt-4 text-lg">Итого (с комиссией 20%): <span id="orderTotal" class="font-bold text-cyan-400">${(d.total - (d.discountAmount || 0)).toFixed(2)}</span> ❄️</p>
-          ${d.discountAmount > 0 ? `<p class="text-green-400 text-sm mt-1">Скидка: -${d.discountAmount} ❄️</p>` : ''}
-          <p class="text-white/70 text-xs mt-1">*Предоплата 75%: <span id="prepaymentAmount" class="font-bold text-cyan-300">${((d.total - (d.discountAmount || 0)) * 0.75).toFixed(2)}</span> ❄️</p>
-          <div class="mt-4 flex items-start gap-2">
-          <input type="checkbox" id="agreeOffer" class="mt-1">
-          <label for="agreeOffer" class="text-white/70 text-sm">
-          Я принимаю условия <a href="https://example.com/offer.pdf" target="_blank" class="text-cyan-400 underline">публичной оферты</a> и даю согласие на обработку персональных данных
-          </label>
-          </div>
-          <button id="createOrderFinal" class="mt-5 w-full bg-green-600 hover:bg-green-700 py-3 rounded-xl font-bold">Оформить заказ</button>
-        </div>
-        ${renderFooter()}
-      `;
-    }
-    
     async function canUserReview() {
       if (!userId) return false;
       const { data, error } = await supabaseClient.from('orders').select('id').eq('user_id', userId).eq('status', 'delivered').limit(1);
@@ -9916,109 +9780,6 @@ async function renderAdminUsersList() {
   } catch (err) {
     console.error('Ошибка в renderAdminUsersList:', err);
     return '<p class="text-xs text-red-400 text-center">Ошибка загрузки</p>';
-  }
-}
-
-async function renderAdminOrdersList() {
-  try {
-    // Формируем запрос в зависимости от режима (активные / архив)
-    let query = supabaseClient.from('orders').select('*', { count: 'exact' });
-    
-    if (adminOrdersMode === 'active') {
-      query = query.neq('status', 'deleted');
-    } else {
-      query = query.eq('status', 'deleted');
-    }
-    
-    if (adminOrdersFilter !== 'all') {
-      query = query.eq('status', adminOrdersFilter);
-    }
-    
-    query = query.order('created_at', { ascending: false });
-    
-    const from = (adminOrdersPage - 1) * 10;
-    const to = from + 9;
-    const { data: orders, count, error } = await query.range(from, to);
-    if (error) throw error;
-    
-    adminOrdersTotalPages = Math.ceil((count || 0) / 10);
-    
-    if (!orders || orders.length === 0) return '<p class="text-white/70 text-center py-4">Нет заказов</p>';
-    
-    // Убираем дубликаты по id (если вдруг есть)
-    const uniqueOrders = Array.from(new Map(orders.map(o => [o.id, o])).values());
-    
-    const userIds = [...new Set(uniqueOrders.map(o => o.user_id))];
-    const { data: users, error: usersError } = await supabaseClient
-      .from('users')
-      .select('user_id, full_name, username')
-      .in('user_id', userIds);
-      
-    if (usersError) {
-      console.error('Ошибка загрузки пользователей:', usersError);
-    }
-    
-    const userMap = {};
-    if (users) {
-      users.forEach(u => { userMap[u.user_id] = u; });
-    }
-    
-    return orders.map(order => {
-      const user = userMap[order.user_id] || {};
-      const displayName = user.full_name || 'Без имени';
-      const displayUsername = user.username ? '@' + user.username : '';
-      
-      // В зависимости от режима показываем либо кнопку архивации, либо восстановления
-      const actionButton = adminOrdersMode === 'active'
-        ? `<button class="archiveOrderBtn mt-2 text-xs bg-red-600/50 hover:bg-red-600 px-2 py-1 rounded" data-order-id="${order.id}"><span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></span> Удалить (Soft)</button>`
-        : `<button class="restoreOrderBtn mt-2 text-xs bg-green-600/50 hover:bg-green-600 px-2 py-1 rounded" data-order-id="${order.id}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Восстановить</button>`;
-      
-      // Селект изменения статуса показываем только для активных заказов
-      const statusSelect = adminOrdersMode === 'active'
-        ? `<select class="btn-secondary changeOrderStatus mt-2 text-xs p-1 rounded border border-white/30" data-order-id="${order.id}" data-user-id="${order.user_id}" data-previous-status="${order.status}">
-            <option value="">Изменить</option>
-            <option value="pending">В обработке</option>
-            <option value="paid">Оплачен (1 часть)</option>
-            <option value="bought">Выкуплен</option>
-            <option value="on_sklad_cn">Склад КН</option>
-            <option value="in_transit">В пути в Минск</option>
-            <option value="awaiting_payment">Ожидает доплаты</option>
-            <option value="paid_second">Оплачен</option>
-            <option value="in_belarus">У нас</option>
-            <option value="dispatched">Отправлен</option>
-            <option value="delivered">Готов к выдаче</option>
-            <option value="cancelled">Отменён</option>
-          </select>`
-        : '';
-      
-      return `
-        <div class="bg-white/5 rounded-lg p-3">
-          <div class="flex justify-between items-start">
-            <div>
-              <p class="text-white font-mono text-sm">#${order.id.slice(0,8)}</p>
-              <p class="text-white/50 text-xs">${new Date(new Date(order.created_at).getTime() + 3*60*60*1000).toLocaleString('ru-RU')}</p>
-              <p class="text-white/70 text-xs mt-1"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> ${displayName} ${displayUsername}</p>
-              <p class="text-white/50 text-xs">ID: ${order.user_id}</p>
-              <p class="text-cyan-400 text-sm mt-1">${Number(order.prepayment_amount || 0).toFixed(2)} <span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></p>
-            </div>
-            <div class="text-right">
-              <span class="status-badge ${getStatusClass(order.status)}">${getStatusText(order.status)}</span>
-              ${statusSelect}
-              ${adminOrdersMode === 'active' ? `<button class="mt-2 text-xs bg-cyan-600/50 hover:bg-cyan-600 px-2 py-1.5 rounded w-full border border-cyan-500/20" onclick="window.adminUpdateTracking('${order.id}')">📝 Указать трек</button>` : ''}
-              ${actionButton}
-            </div>
-          </div>
-          <div class="mt-2 text-[10px]">
-            ${order.tracking_number_cn ? `<p class="text-white/70">🇨🇳 Трек КН: <span class="font-mono text-cyan-400">${order.tracking_number_cn}</span></p>` : ''}
-            ${order.tracking_number_by ? `<p class="text-white/70">🇧🇾 Трек РБ: <span class="font-mono text-cyan-400">${order.tracking_number_by}</span></p>` : ''}
-          </div>
-        </div>
-      `;
-
-    }).join('');
-  } catch (err) {
-    console.error('Ошибка в renderAdminOrdersList:', err);
-    return '<p class="text-red-400 text-center py-4">Ошибка загрузки заказов</p>';
   }
 }
 
@@ -10322,10 +10083,7 @@ async function renderAdmin2FA() {
 `;
     }
 
-    function attachProfileHandlers() {
-  const fortuneBtn = document.getElementById('fortuneWheelBtn');
-  if (fortuneBtn) fortuneBtn.onclick = () => showFortuneWheel();
-}
+
 
 let currentPin = '';
 function attachAdmin2FAHandlers() {
