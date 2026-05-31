@@ -682,6 +682,25 @@
     .status-in_belarus { background: linear-gradient(135deg, #2DD4BF, #14B8A6); color: #fff; border-color: rgba(45,212,191,0.5); }
     .status-delivered { background: linear-gradient(135deg, #4ADE80, #22C55E); color: #fff; border-color: rgba(74,222,128,0.5); }
     .status-cancelled { background: linear-gradient(135deg, #F87171, #EF4444); color: #fff; border-color: rgba(248,113,113,0.5); }
+
+    @keyframes moveTruck {
+      0% { transform: translateX(-3px); }
+      50% { transform: translateX(3px); }
+      100% { transform: translateX(-3px); }
+    }
+    .anim-truck {
+      display: inline-block;
+      animation: moveTruck 2s ease-in-out infinite;
+    }
+
+    @keyframes bounceBox {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px) scale(1.05); }
+    }
+    .anim-box {
+      display: inline-block;
+      animation: bounceBox 1.5s ease-in-out infinite;
+    }
     
     /* ═══════════════════════════════════════════════════════════════════════════
        FORM ELEMENTS
@@ -3111,6 +3130,11 @@ const MAX_REQUESTS_TRUSTED = 100;
 
         if (supabaseClient) {
           try {
+            await loadAppSettings();
+          } catch (err) {
+            console.error('Error loading app settings:', err);
+          }
+          try {
             await loadUserData();
           } catch (err) {
             console.error('Error loading user data:', err);
@@ -3186,6 +3210,16 @@ const MAX_REQUESTS_TRUSTED = 100;
         moEnhance.observe(document.body, { childList: true, subtree: true });
       } catch (observerErr) {
         console.error('Failed to initialize category select observer:', observerErr);
+      }
+    }
+
+    // ФАЗА 1: Загрузка настроек (пауза платежей, реквизиты)
+    window.appSettings = null;
+    async function loadAppSettings() {
+      if (!supabaseClient) return;
+      const { data, error } = await supabaseClient.from('app_settings').select('*').eq('id', 1).single();
+      if (!error && data) {
+        window.appSettings = data;
       }
     }
 
@@ -5268,7 +5302,9 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
     window.recalculateOrderTotals = async () => {
       if (!window.tempOrder || !window.tempOrder.items) return;
 
-      const insurance = document.getElementById('orderInsurance')?.checked || false;
+      const insurance = true; // mandatory
+      const extraPhoto = document.getElementById('orderExtraPhoto')?.checked || false;
+      const extraMeasure = document.getElementById('orderExtraMeasure')?.checked || false;
       const keepBox = document.getElementById('orderKeepBox')?.checked || false;
       const isGift = document.getElementById('orderIsGift')?.checked || false;
       const requiresVideoCheck = document.getElementById('orderRequiresVideoCheck')?.checked || false;
@@ -5305,6 +5341,8 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           weight_kg: weight,
           category: item.category,
           insurance: insurance,
+          extra_photo: extraPhoto,
+          extra_measure: extraMeasure,
           legit_check: false,
           client_level: window.userLevel || 'newbie',
           is_first_order: !!window.userIsFirstOrder,
@@ -5525,7 +5563,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       const breakdownEl = document.getElementById('orderBreakdown');
 
       if (totalSpan) totalSpan.innerText = finalTotal.toFixed(2);
-      if (prepaymentSpan) prepaymentSpan.innerText = (finalTotal * 0.75).toFixed(2);
+      if (prepaymentSpan) prepaymentSpan.innerText = (finalTotal * 0.70).toFixed(2);
 
       if (breakdownEl) {
         aggregatedBreakdown.total_byn = finalTotal;
@@ -5786,8 +5824,16 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               <label for="orderKeepBox" class="text-white/70 text-sm">Сохранить оригинальную коробку</label>
             </div>
             <div class="flex items-center gap-2">
-              <input type="checkbox" id="orderInsurance" ${window.tempOrder.insurance ? 'checked' : ''}>
-              <label for="orderInsurance" class="text-white/70 text-sm"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span> Страховка (+2% от стоимости товаров)</label>
+              <input type="checkbox" id="orderInsurance" checked disabled>
+              <label for="orderInsurance" class="text-white/70 text-sm"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span> Обязательная страховка ShopByShop (+2%)</label>
+            </div>
+            <div class="flex items-center gap-2 mt-2">
+              <input type="checkbox" id="orderExtraPhoto" ${window.tempOrder.extraPhoto ? 'checked' : ''} class="w-4 h-4 accent-cyan-500 cursor-pointer">
+              <label for="orderExtraPhoto" class="text-white/70 text-sm cursor-pointer"><span class="text-cyan-400">📸 Детальные фото со склада</span> (+3 BYN)</label>
+            </div>
+            <div class="flex items-center gap-2 mt-2">
+              <input type="checkbox" id="orderExtraMeasure" ${window.tempOrder.extraMeasure ? 'checked' : ''} class="w-4 h-4 accent-cyan-500 cursor-pointer">
+              <label for="orderExtraMeasure" class="text-white/70 text-sm cursor-pointer"><span class="text-cyan-400">📏 Замер стельки/длины</span> (+3 BYN)</label>
             </div>
             <div class="flex items-center gap-2">
               <input type="checkbox" id="orderIsGift" ${window.tempOrder.isGift ? 'checked' : ''} class="w-4 h-4 accent-pink-500 cursor-pointer">
@@ -5815,6 +5861,9 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             </div>
             
             <div id="pvsDetailContainer" class="${(!window.tempOrder.pvs || window.tempOrder.pvs.method === 'none') ? 'hidden' : ''} space-y-3">
+              <button type="button" class="w-full bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 py-3 rounded-xl text-xs font-bold transition-colors flex justify-center items-center gap-2" onclick="window.openYandexMapStub()">
+                <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></span> Выбрать на карте (Яндекс)
+              </button>
               <div>
                 <label class="text-white/50 text-[10px] block mb-1">Город</label>
                 <select id="pvsCitySelect" class="w-full p-3 rounded-xl border border-white/20 text-sm bg-slate-900 text-white">
@@ -5863,7 +5912,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               <span class="text-cyan-400 font-bold text-xl"><span id="orderTotal">${finalTotal.toFixed(2)}</span> <span class="text-sm">BYN</span></span>
             </div>
             ${discountLine}
-            <p class="text-white/70 text-xs mt-1">*Предоплата 75%: <span id="prepaymentAmount" class="font-bold text-cyan-300">${(finalTotal * 0.75).toFixed(2)}</span> BYN</p>
+            <p class="text-white/70 text-xs mt-1">*Обязательная предоплата 70%: <span id="prepaymentAmount" class="font-bold text-cyan-300">${(finalTotal * 0.70).toFixed(2)}</span> BYN</p>
             
             <!-- Agree Offer -->
             <div class="mt-4 flex items-start gap-2 border-t border-white/10 pt-3 mb-2">
@@ -5888,6 +5937,11 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 Я подписываю <button type="button" class="text-cyan-400 underline font-bold text-left" onclick="showCommissionContractModal()">📄 Договор комиссии байера (20% на услуги)</button> и подтверждаю точность предоставленных данных.
               </label>
             </div>
+
+            <!-- ERIP Instructions -->
+            <button type="button" class="w-full bg-slate-800 hover:bg-slate-700 text-white py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 mb-3 border border-white/10 transition" onclick="tgUtil.alert('Инструкция оплаты ЕРИП:\\n1. Платежи и переводы\\n2. Система «Расчет» (ЕРИП)\\n3. Интернет-магазины/сервисы\\n4. I -> ICE LOGIX\\n5. Введите номер заказа и сумму предоплаты.')">
+              <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span> Инструкция оплаты через ЕРИП
+            </button>
 
             <button id="createOrderFinal" class="w-full bg-green-600 hover:bg-green-700 py-3 rounded-xl font-bold flex items-center justify-center gap-2">
               <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></span> Оформить заказ
@@ -6181,12 +6235,19 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
       if (!window.orderAddMode) {
         // --- STEP 2: CHECKOUT HANDLERS ---
-        const insuranceInp = document.getElementById('orderInsurance');
+        const extraPhotoInp = document.getElementById('orderExtraPhoto');
+        const extraMeasureInp = document.getElementById('orderExtraMeasure');
         const keepBoxInp = document.getElementById('orderKeepBox');
 
-        if (insuranceInp) {
-          insuranceInp.addEventListener('change', () => {
-            if (window.tempOrder) window.tempOrder.insurance = insuranceInp.checked;
+        if (extraPhotoInp) {
+          extraPhotoInp.addEventListener('change', () => {
+            if (window.tempOrder) window.tempOrder.extraPhoto = extraPhotoInp.checked;
+            recalculateOrderTotals();
+          });
+        }
+        if (extraMeasureInp) {
+          extraMeasureInp.addEventListener('change', () => {
+            if (window.tempOrder) window.tempOrder.extraMeasure = extraMeasureInp.checked;
             recalculateOrderTotals();
           });
         }
@@ -6511,13 +6572,18 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 legit_check_byn: 0,
                 customs_duty_byn: bk.customs_duty_byn || 0,
                 currency_buffer_byn: bk.currency_buffer_byn || 0,
+                extra_services: {
+                  extra_photo: window.tempOrder.extraPhoto || false,
+                  extra_measure: window.tempOrder.extraMeasure || false,
+                  is_gift: window.tempOrder.isGift || false
+                },
                 total_byn: window.tempOrder.total_byn,
                 requires_video_check: window.tempOrder.requiresVideoCheck || false,
                 delivery_days_min: null,
                 delivery_days_max: null,
                 source_country: window.orderCountry,
                 product_currency: consolidatedOrder.currency,
-                prepayment_amount: window.tempOrder.total_byn * 0.75,
+                prepayment_amount: window.tempOrder.total_byn * 0.70,
                 status: 'pending',
                 auto_cancel_reason: isFamilyMember ? 'family_approval_pending' : null,
                 discount_applied: window.tempOrder.discountAmount || 0,
@@ -6537,8 +6603,21 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 window.userSettings = updatedSettings;
               }
 
+              let reqStr = '';
+              if (window.appSettings && window.appSettings.payment_requisites) {
+                const reqs = window.appSettings.payment_requisites;
+                if (reqs.card) reqStr += `\\n💳 Карта: ${reqs.card}`;
+                if (reqs.erip) reqStr += `\\n🏦 ЕРИП: ${reqs.erip}`;
+                if (reqs.crypto) reqStr += `\\n🪙 Крипта: ${reqs.crypto}`;
+              }
+              if (reqStr) {
+                reqStr = '\\n\\nРеквизиты для оплаты:' + reqStr;
+              } else {
+                reqStr = '\\n\\n(Реквизиты будут отправлены менеджером)';
+              }
+
               tgUtil.haptic('success');
-              tgUtil.alert(`Заказ создан! Номер: ${data[0].id}. Сумма предоплаты: ${(window.tempOrder.total_byn * 0.75).toFixed(2)} BYN`);
+              tgUtil.alert(`Заказ создан! Номер: ${data[0].id}.\\nСумма предоплаты: ${(window.tempOrder.total_byn * 0.70).toFixed(2)} BYN${reqStr}`);
 
               const cartIds = window.tempOrder.items.map(item => item.cartId).filter(Boolean);
               if (cartIds.length > 0) {
@@ -7344,8 +7423,28 @@ async function renderMyOrders() {
                   }
                   return `<p class="text-white/70 text-xs mt-1">Вес: ${est} кг</p>`;
                 })()}
-                <p class="text-cyan-400 text-sm mt-1">${Number(order.prepayment_amount || 0).toFixed(2)} <span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></p>
-                ${order.tracking_number_cn ? `<p class="text-white/70 text-xs mt-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Трек: ${order.tracking_number_cn}</p>` : ''}
+                ${order.extra_services?.is_gift ? `
+                  <div class="mt-2 bg-pink-500/10 p-3 rounded-lg border border-pink-500/20 text-center cursor-pointer hover:bg-pink-500/20 transition-colors" onclick="this.innerHTML='<div class=\\'text-left text-xs space-y-1\\'><div class=\\'flex justify-between text-white/70\\'><span>Сумма заказа:</span><span>${Number(order.total_byn || 0).toFixed(2)} BYN</span></div><div class=\\'flex justify-between text-cyan-400 font-bold\\'><span>Внесено (70%):</span><span>${Number(order.prepayment_amount || 0).toFixed(2)} BYN</span></div><div class=\\'flex justify-between text-amber-400 font-bold border-t border-white/10 pt-1 mt-1\\'><span>Остаток:</span><span>${(Number(order.total_byn || 0) - Number(order.prepayment_amount || 0)).toFixed(2)} BYN</span></div></div>'">
+                    <p class="text-pink-400 font-bold text-xs">🎁 Сюрприз (Нажмите, чтобы показать цену)</p>
+                  </div>
+                ` : `
+                  <div class="mt-2 bg-white/5 p-2 rounded-lg text-xs space-y-1 border border-white/10">
+                    <div class="flex justify-between text-white/70">
+                      <span>Сумма заказа:</span>
+                      <span>${Number(order.total_byn || 0).toFixed(2)} BYN</span>
+                    </div>
+                    <div class="flex justify-between text-cyan-400 font-bold">
+                      <span>Внесено (70%):</span>
+                      <span>${Number(order.prepayment_amount || 0).toFixed(2)} BYN</span>
+                    </div>
+                    <div class="flex justify-between text-amber-400 font-bold border-t border-white/10 pt-1 mt-1">
+                      <span>Остаток к оплате:</span>
+                      <span>${(Number(order.total_byn || 0) - Number(order.prepayment_amount || 0)).toFixed(2)} BYN</span>
+                    </div>
+                  </div>
+                `}
+                ${order.tracking_number_cn ? `<p class="text-white/70 text-xs mt-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Внутренний трек: ${order.tracking_number_cn}</p>` : ''}
+                ${order.sbs_tracking_id ? `<p class="text-cyan-400 text-xs mt-1 font-bold"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span> SBS Трек: ${order.sbs_tracking_id}</p>` : ''}
               </div>
               <span class="status-badge ${getStatusClass(order.status)}">${getStatusText(order.status)}</span>
             </div>
@@ -7526,6 +7625,71 @@ window.openInvoiceModal = (orderId, originalPrice) => {
   };
 };
 
+window.openYandexMapStub = () => {
+  tgUtil.haptic('medium');
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[120] p-4';
+  modal.id = 'yandexMapModal';
+  
+  modal.innerHTML = `
+    <div class="glass-card max-w-lg w-full mx-4 p-6 space-y-4 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.7)] transform transition-all duration-300 scale-95 opacity-0 flex flex-col" style="height: 70vh;" id="yMapModalContent">
+      <div class="flex justify-between items-center border-b border-white/10 pb-3">
+        <h3 class="text-white font-bold text-base flex items-center gap-2">
+          <span class="text-cyan-400 text-xl">📍</span> 
+          <span>Выбор на карте</span>
+        </h3>
+        <button id="closeYMapModalBtn" class="text-white/50 hover:text-white transition-colors">
+          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
+        </button>
+      </div>
+      
+      <!-- Контейнер для Яндекс.Карт -->
+      <div id="yandexMapContainer" class="flex-1 bg-slate-800 rounded-xl overflow-hidden border border-white/10 relative flex items-center justify-center">
+        <div class="text-center p-6">
+          <p class="text-cyan-400 font-bold mb-2">Интеграция с Яндекс Картами</p>
+          <p class="text-white/60 text-xs">Для полноценной работы нужно добавить API ключ Яндекса.</p>
+          <p class="text-white/60 text-xs mt-2">Здесь появится интерактивная карта для выбора адреса / отделения.</p>
+        </div>
+      </div>
+      
+      <button id="btnConfirmMapStub" class="btn-primary w-full py-3 rounded-xl font-bold flex justify-center items-center gap-2">
+        Сохранить тестовый адрес
+      </button>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  requestAnimationFrame(() => {
+    document.getElementById('yMapModalContent').classList.remove('scale-95', 'opacity-0');
+    document.getElementById('yMapModalContent').classList.add('scale-100', 'opacity-100');
+  });
+
+  const close = () => {
+    document.getElementById('yMapModalContent').classList.remove('scale-100', 'opacity-100');
+    document.getElementById('yMapModalContent').classList.add('scale-95', 'opacity-0');
+    setTimeout(() => modal.remove(), 300);
+  };
+  
+  document.getElementById('closeYMapModalBtn').onclick = close;
+  modal.onclick = (e) => { if (e.target === modal) close(); };
+
+  document.getElementById('btnConfirmMapStub').onclick = () => {
+    close();
+    // Simulate address selection for demo purposes
+    if (window.tempOrder && window.tempOrder.pvs) {
+      window.tempOrder.pvs.city = 'Минск';
+      window.tempOrder.pvs.point = 'Тестовый адрес с карты, д. 1';
+      document.getElementById('pvsCitySelect').value = 'Минск';
+      
+      // Update DOM to show the fake selected point
+      const pvsPointSelect = document.getElementById('pvsPointSelect');
+      pvsPointSelect.innerHTML = `<option value="Тестовый адрес с карты, д. 1" selected>Минск, Тестовый адрес с карты, д. 1</option>`;
+      glassToast('Адрес с карты сохранен', { kind: 'success' });
+    }
+  };
+};
+
 window.generatePdfInvoice = async (orderId, isB2b = false, customPrice = null) => {
   tgUtil.haptic('medium');
   glassToast('Генерация PDF-инвойса...', { kind: 'info' });
@@ -7667,6 +7831,98 @@ window.generatePdfInvoice = async (orderId, isB2b = false, customPrice = null) =
   } catch (err) {
     console.error('Ошибка генерации PDF:', err);
     glassToast('Ошибка генерации инвойса', { kind: 'error' });
+  }
+};
+
+window.generateShippingManifest = async (orderId) => {
+  tgUtil.haptic('medium');
+  glassToast('Генерация накладной (А6)...', { kind: 'info' });
+  
+  try {
+    const { data: order, error } = await supabaseClient.from('orders').select('*').eq('id', orderId).single();
+    if (error) throw error;
+    
+    const { data: user } = await supabaseClient.from('users').select('*').eq('user_id', order.user_id).single();
+    const fullName = user?.full_name || 'Без имени';
+    const phone = user?.phone || 'Не указан';
+    
+    if (!window.html2pdf) {
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+        script.onload = resolve;
+        script.onerror = () => reject(new Error('Не удалось загрузить PDF библиотеку'));
+        document.head.appendChild(script);
+      });
+    }
+
+    const manifestEl = document.createElement('div');
+    manifestEl.style.width = '396px';
+    manifestEl.style.minHeight = '559px';
+    manifestEl.style.padding = '20px';
+    manifestEl.style.backgroundColor = '#ffffff';
+    manifestEl.style.color = '#000000';
+    manifestEl.style.fontFamily = 'Arial, sans-serif';
+    manifestEl.style.position = 'absolute';
+    manifestEl.style.left = '-9999px';
+    manifestEl.style.top = '-9999px';
+    
+    const address = order.tracking_number_by || 'Самовывоз / Не указан';
+    
+    manifestEl.innerHTML = `
+      <div style="border: 2px solid #000; padding: 15px; height: 100%; box-sizing: border-box; display: flex; flex-direction: column;">
+        <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px;">
+          <h1 style="margin: 0; font-size: 24px; font-weight: 900; text-transform: uppercase;">ICE LOGIX</h1>
+          <p style="margin: 5px 0 0 0; font-size: 12px; font-weight: bold;">ДОСТАВКА ПО РБ</p>
+        </div>
+        
+        <div style="flex: 1;">
+          <div style="margin-bottom: 20px;">
+            <p style="margin: 0; font-size: 10px; color: #555; text-transform: uppercase;">Получатель:</p>
+            <p style="margin: 2px 0 0 0; font-size: 18px; font-weight: bold;">\${fullName}</p>
+          </div>
+          
+          <div style="margin-bottom: 20px;">
+            <p style="margin: 0; font-size: 10px; color: #555; text-transform: uppercase;">Телефон:</p>
+            <p style="margin: 2px 0 0 0; font-size: 16px; font-weight: bold;">\${phone}</p>
+          </div>
+          
+          <div style="margin-bottom: 20px;">
+            <p style="margin: 0; font-size: 10px; color: #555; text-transform: uppercase;">Адрес доставки / ПВЗ:</p>
+            <p style="margin: 2px 0 0 0; font-size: 14px; font-weight: bold; line-height: 1.4;">\${address.replace(/\\|/g, '<br>')}</p>
+          </div>
+          
+          <div style="margin-bottom: 20px; border-top: 1px dashed #000; padding-top: 15px;">
+            <p style="margin: 0; font-size: 10px; color: #555; text-transform: uppercase;">Заказ:</p>
+            <p style="margin: 2px 0 0 0; font-size: 14px; font-weight: bold;">#\${order.id.slice(0,8).toUpperCase()}</p>
+            <p style="margin: 5px 0 0 0; font-size: 12px;">Вес: \${order.weight_actual || order.weight_estimated || '?'} кг</p>
+          </div>
+        </div>
+        
+        <div style="text-align: center; border-top: 2px solid #000; padding-top: 10px; margin-top: auto;">
+          <div style="height: 60px; width: 80%; margin: 0 auto; background-image: repeating-linear-gradient(90deg, #000, #000 2px, transparent 2px, transparent 4px, #000 4px, #000 7px, transparent 7px, transparent 10px);"></div>
+          <p style="margin: 5px 0 0 0; font-size: 10px; letter-spacing: 2px;">\${order.id.slice(0,12).toUpperCase()}</p>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(manifestEl);
+    
+    const opt = {
+      margin:       2,
+      filename:     'ice_logix_label_' + order.id.slice(0,8) + '.pdf',
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true },
+      jsPDF:        { unit: 'mm', format: [105, 148], orientation: 'portrait' }
+    };
+    
+    await html2pdf().set(opt).from(manifestEl).save();
+    document.body.removeChild(manifestEl);
+    glassToast('Накладная А6 успешно скачана!', { kind: 'success' });
+    
+  } catch (err) {
+    console.error('Ошибка генерации накладной:', err);
+    glassToast('Ошибка генерации накладной', { kind: 'error' });
   }
 };
 
@@ -7949,6 +8205,14 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
         <div class="flex-1">
           <p class="font-semibold text-white text-sm">Мои данные</p>
           <p class="text-xs" style="color: var(--text-muted);">ФИО, телефон, паспорт и замеры</p>
+        </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <button id="downloadInvoiceBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition border-t border-white/5" onclick="downloadTaxInvoicePDF()">
+        <span class="text-xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg></span></span>
+        <div class="flex-1">
+          <p class="font-semibold text-white text-sm">Скачать выписку за год (PDF)</p>
+          <p class="text-xs" style="color: var(--text-muted);">Отчет для налоговой инспекции</p>
         </div>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
@@ -9549,7 +9813,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         let total = (price * 0.45 * 1.20) + (weight * 12) + extraCost;
         let discount = window.tempOrder?.discountAmount || 0;
         if (totalSpan) totalSpan.innerText = (total - discount).toFixed(2);
-        if (prepaymentSpan) prepaymentSpan.innerText = ((total - discount) * 0.75).toFixed(2);
+        if (prepaymentSpan) prepaymentSpan.innerText = ((total - discount) * 0.70).toFixed(2);
         window.tempOrder = { ...window.tempOrder, url: urlInp?.value || '', price: price, weight: weight, total: total, discountAmount: discount, cny_rate: 0.45 };
         
         const warnDiv = document.getElementById('customsWarning');
@@ -10995,6 +11259,144 @@ function attachAdminHandlers() {
     document.addEventListener('click', window._globalArchiveHandler);
   }
 
+  // ================== ФАКТИЧЕСКИЙ ВЕС (Анти-кража) ==================
+  if (!window._globalWeightHandler) {
+    window._globalWeightHandler = async (e) => {
+      const saveBtn = e.target.closest('.save-weight-btn');
+      if (!saveBtn) return;
+      
+      const orderId = saveBtn.dataset.orderId;
+      const input = document.querySelector(`.actual-weight-input[data-order-id="${orderId}"]`);
+      if (!input) return;
+      
+      const weightActual = parseFloat(input.value);
+      if (isNaN(weightActual) || weightActual <= 0) {
+        tgUtil.alert('Введите корректный вес');
+        return;
+      }
+      
+      const weightEstimated = parseFloat(input.dataset.estimated);
+      const diff = Math.abs(weightActual - weightEstimated);
+      
+      if (weightEstimated > 0 && diff > 0.05) {
+        if (!confirm(`🚨 ВНИМАНИЕ: Расхождение веса > 50г!\nОжидаемый: ${weightEstimated} кг\nФактический: ${weightActual} кг\nВозможна кража или утеря части товара. Сохранить?`)) {
+          return;
+        }
+        try {
+          const { data: admins } = await supabaseClient.from('users').select('user_id').in('role', ['admin', 'owner']);
+          if (admins) {
+            const message = `🚨 <b>Анти-кража (Отклонение веса)</b>\nЗаказ: #${orderId.slice(0,8)}\nОжидаемый вес: ${weightEstimated} кг\nФактический вес: ${weightActual} кг\nРазница: ${diff.toFixed(3)} кг. Проверьте заказ!`;
+            for (const admin of admins) {
+              await sendNotification(admin.user_id, message, orderId);
+            }
+          }
+        } catch(err) { console.error('Failed to notify admins', err); }
+      }
+      
+      try {
+        const { error } = await supabaseClient.from('orders').update({ weight_actual: weightActual }).eq('id', orderId);
+        if (error) throw error;
+        glassToast('Фактический вес сохранен', { kind: 'success' });
+        renderCurrentScreen();
+      } catch (err) {
+        tgUtil.alert('Ошибка: ' + err.message);
+      }
+    };
+    document.addEventListener('click', window._globalWeightHandler);
+  }
+
+  // ================== ЮР. ОТВЕТ (ИИ) ==================
+  if (!window._legalAiHandler) {
+    window._legalAiHandler = async (e) => {
+      const btn = e.target.closest('.legalAiBtn');
+      if (!btn) return;
+      e.preventDefault();
+
+      const orderId = btn.dataset.orderId;
+      const userId = btn.dataset.userId;
+
+      const complaint = prompt('Опишите суть претензии клиента:\n(Пример: "Клиент требует возврат за задержку доставки более 30 дней")');
+      if (!complaint || !complaint.trim()) return;
+
+      const promptText = `Заказ #${orderId}. Клиент (Telegram ID: ${userId}). Суть претензии: ${complaint.trim()}. Составь официальный ответ клиенту.`;
+
+      try {
+        btn.disabled = true;
+        btn.textContent = '⏳ Отправляю запрос...';
+
+        const { data: inserted, error: insertErr } = await supabaseClient
+          .from('ai_requests')
+          .insert({ admin_id: Number(userId) || 0, prompt_text: promptText })
+          .select('id')
+          .single();
+
+        if (insertErr || !inserted) throw new Error(insertErr?.message || 'Ошибка создания запроса');
+
+        const requestId = inserted.id;
+        glassToast('Генерируем ответ (до 30 сек)...', { kind: 'info' });
+
+        // Поллинг каждые 3 сек
+        let attempts = 0;
+        const poll = setInterval(async () => {
+          attempts++;
+          if (attempts > 20) {
+            clearInterval(poll);
+            btn.disabled = false;
+            btn.textContent = '⚖️ Юр. ответ (ИИ)';
+            glassToast('Превышено время ожидания. Попробуйте позже.', { kind: 'error' });
+            return;
+          }
+          try {
+            const { data: req } = await supabaseClient
+              .from('ai_requests')
+              .select('status, response_text')
+              .eq('id', requestId)
+              .single();
+
+            if (req && req.status === 'completed') {
+              clearInterval(poll);
+              btn.disabled = false;
+              btn.textContent = '⚖️ Юр. ответ (ИИ)';
+
+              // Показываем результат в модалке
+              const modal = document.createElement('div');
+              modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+              modal.innerHTML = `
+                <div style="background:#1a1a2e;border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:20px;max-width:480px;width:100%;max-height:80vh;overflow-y:auto">
+                  <p style="color:#a78bfa;font-size:13px;font-weight:700;margin-bottom:12px">⚖️ Юридический ответ (ИИ)</p>
+                  <pre style="color:#e2e8f0;font-size:12px;white-space:pre-wrap;line-height:1.6">${req.response_text}</pre>
+                  <div style="display:flex;gap:8px;margin-top:16px">
+                    <button id="_legalCopyBtn" style="flex:1;background:rgba(167,139,250,0.2);border:1px solid rgba(167,139,250,0.4);color:#a78bfa;border-radius:8px;padding:8px;font-size:12px;cursor:pointer">📋 Скопировать</button>
+                    <button id="_legalCloseBtn" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#94a3b8;border-radius:8px;padding:8px;font-size:12px;cursor:pointer">✖ Закрыть</button>
+                  </div>
+                </div>`;
+              document.body.appendChild(modal);
+              document.getElementById('_legalCopyBtn').onclick = () => {
+                navigator.clipboard.writeText(req.response_text);
+                glassToast('Скопировано!', { kind: 'success' });
+              };
+              document.getElementById('_legalCloseBtn').onclick = () => modal.remove();
+
+            } else if (req && req.status === 'error') {
+              clearInterval(poll);
+              btn.disabled = false;
+              btn.textContent = '⚖️ Юр. ответ (ИИ)';
+              glassToast('Ошибка генерации ИИ. Попробуйте позже.', { kind: 'error' });
+            }
+          } catch (pollErr) {
+            console.error('Ошибка поллинга ai_requests:', pollErr);
+          }
+        }, 3000);
+
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = '⚖️ Юр. ответ (ИИ)';
+        glassToast('Ошибка: ' + err.message, { kind: 'error' });
+      }
+    };
+    document.addEventListener('click', window._legalAiHandler);
+  }
+
   // ================== ФИЛЬТР ЗАКАЗОВ (ЧИПСЫ) ==================
   const chipContainer = document.getElementById('adminOrdersFilterChips');
   if (chipContainer) {
@@ -11677,17 +12079,18 @@ async function sendNotification(userId, message, orderId = null) {
     // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
     function getStatusText(status) {
       const statuses = {
-        'pending': 'В обработке',
-        'paid': 'Оплачен (1 часть)',
-        'bought': 'Выкуплен',
-        'on_sklad_cn': 'На складе в Китае',
-        'in_transit': 'В пути в Минск',
-        'awaiting_payment': 'Ожидает доплаты',
-        'paid_second': 'Оплачен',
-        'in_belarus': 'У нас',
-        'dispatched': 'Отправлен',
-        'delivered': 'Готов к выдаче',
-        'cancelled': 'Отменён'
+        'pending': '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> В обработке',
+        'paid': '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span> Оплачен (1 часть)',
+        'bought': '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span> Выкуплен',
+        'on_sklad_cn': '<span class="ix anim-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> На складе в Китае',
+        'in_transit': '<span class="ix anim-truck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span> В пути в Минск',
+        'customs': '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span> На таможне',
+        'awaiting_payment': '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span> Ожидает доплаты',
+        'paid_second': '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span> Оплачен',
+        'in_belarus': '<span class="ix anim-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> У нас',
+        'dispatched': '<span class="ix anim-truck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span> Отправлен',
+        'delivered': '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg></span> Готов к выдаче',
+        'cancelled': '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></span> Отменён'
       };
       return statuses[status] || status;
     }
@@ -11859,6 +12262,21 @@ function generateAdminOrderCard(order, userMap, isActive) {
     </select>
   ` : '';
 
+  const weightInputHtml = isActive ? `
+    <div class="mt-2 flex items-center gap-2">
+      <input type="number" step="0.01" class="w-full text-xs p-1.5 rounded bg-white/10 border border-white/20 text-white placeholder:text-white/30 actual-weight-input" placeholder="Факт. вес (кг)" data-order-id="${order.id}" data-estimated="${order.weight_estimated || 0}" value="${order.weight_actual || ''}">
+      <button class="bg-blue-500/50 hover:bg-blue-500 text-xs px-2 py-1.5 rounded transition text-white save-weight-btn" data-order-id="${order.id}">Сохранить</button>
+    </div>
+  ` : '';
+
+  const manifestBtn = isActive
+    ? `<button class="mt-2 w-full text-xs bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/50 text-indigo-300 py-1.5 rounded-lg transition-colors flex justify-center items-center gap-1" onclick="window.generateShippingManifest('${order.id}')">🖨️ Печать накладной</button>`
+    : '';
+
+  const legalAiBtn = isActive
+    ? `<button class="legalAiBtn mt-2 w-full text-xs bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/50 text-emerald-300 py-1.5 rounded-lg transition-colors" data-order-id="${order.id}" data-user-id="${order.user_id}">⚖️ Юр. ответ (ИИ)</button>`
+    : '';
+
   return `
     <div class="rounded-xl p-3 ${cardClass} mb-2 relative transition-all hover:bg-white/10">
       ${isRisky ? '<div class="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shadow-lg animate-pulse">⚠️ > 7 дней</div>' : ''}
@@ -11869,9 +12287,15 @@ function generateAdminOrderCard(order, userMap, isActive) {
       <p class="text-white/80 text-xs truncate">👤 ${displayName} ${displayUsername}</p>
       <div class="flex justify-between items-end mt-2">
         <p class="text-cyan-400 text-sm font-bold">${Number(order.prepayment_amount || 0).toFixed(2)} ❄️</p>
-        ${order.tracking_number_cn ? `<p class="text-white/50 text-[10px] truncate max-w-[50%]">📦 ${order.tracking_number_cn}</p>` : ''}
+        <div class="text-right">
+          ${order.tracking_number_cn ? `<p class="text-white/50 text-[10px] truncate max-w-[150px]">Внутр: ${order.tracking_number_cn}</p>` : ''}
+          ${order.sbs_tracking_id ? `<p class="text-cyan-400 text-[10px] font-bold truncate max-w-[150px]">SBS: ${order.sbs_tracking_id}</p>` : ''}
+        </div>
       </div>
+      ${weightInputHtml}
       ${managerSelect}
+      ${manifestBtn}
+      ${legalAiBtn}
       ${statusSelect}
       ${actionButton}
     </div>
@@ -16154,6 +16578,12 @@ function attachCartHandlers() {
   const checkoutBtn = document.getElementById('checkoutCartBtn');
   if (checkoutBtn) {
     checkoutBtn.onclick = () => {
+      // ПРОВЕРКА НА ПАУЗУ ПЛАТЕЖЕЙ (ФАЗА 1)
+      if (window.appSettings && window.appSettings.is_payments_paused) {
+        tgUtil.alert(`Оформление заказа временно недоступно.\nПричина: ${window.appSettings.pause_reason}`);
+        return;
+      }
+
       const selectedItems = [];
       document.querySelectorAll('.cart-item-checkbox:checked').forEach(cb => {
         const cartRow = cb.closest('[data-cart-id]');
@@ -17100,6 +17530,95 @@ function fileToBase64(file) {
     reader.onerror = error => reject(error);
   });
 }
+
+window.downloadTaxInvoicePDF = async () => {
+  if (!userId) {
+    tgUtil.alert('Авторизуйтесь для скачивания выписки');
+    return;
+  }
+  tgUtil.haptic('light');
+  const year = new Date().getFullYear();
+  
+  try {
+    const { data: orders, error } = await supabaseClient
+      .from('orders')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('created_at', `${year}-01-01T00:00:00Z`)
+      .lte('created_at', `${year}-12-31T23:59:59Z`)
+      .neq('status', 'cancelled')
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+
+    if (!orders || orders.length === 0) {
+      tgUtil.alert(`За ${year} год у вас нет успешных заказов.`);
+      return;
+    }
+
+    let totalSum = 0;
+    const tableBody = [
+      [{ text: 'Дата', style: 'tableHeader' }, { text: 'Номер заказа', style: 'tableHeader' }, { text: 'Сумма (BYN)', style: 'tableHeader' }]
+    ];
+
+    orders.forEach(o => {
+      const dateStr = new Date(o.created_at).toLocaleDateString('ru-RU');
+      const totalByn = parseFloat(o.total_byn) || 0;
+      totalSum += totalByn;
+      tableBody.push([
+        dateStr,
+        `№ ${o.id.slice(0, 8)}`,
+        totalByn.toFixed(2)
+      ]);
+    });
+
+    tableBody.push([
+      { text: 'ИТОГО', colSpan: 2, style: 'tableHeader', alignment: 'right' },
+      {},
+      { text: totalSum.toFixed(2), style: 'tableHeader' }
+    ]);
+
+    const docDefinition = {
+      content: [
+        { text: 'Выписка по заказам', style: 'header' },
+        { text: `Год: ${year}`, style: 'subheader' },
+        { text: `Клиент ID: ${userId}`, margin: [0, 0, 0, 10] },
+        {
+          style: 'tableExample',
+          table: {
+            headerRows: 1,
+            widths: ['auto', '*', 'auto'],
+            body: tableBody
+          },
+          layout: 'lightHorizontalLines'
+        },
+        { text: '\\nОрганизация: ООО "Айс Лоджикс"', style: 'footer' },
+        { text: 'УНП: 193000000', style: 'footer' },
+        { text: 'Адрес: г. Минск, ул. Примерная, 1', style: 'footer' },
+        { text: 'Контактный телефон: +375 (29) 111-22-33', style: 'footer' },
+        { text: 'М.П.', style: 'stamp', margin: [0, 30, 0, 0] }
+      ],
+      styles: {
+        header: { fontSize: 18, bold: true, margin: [0, 0, 0, 10], alignment: 'center' },
+        subheader: { fontSize: 14, bold: true, margin: [0, 10, 0, 5] },
+        tableExample: { margin: [0, 5, 0, 15] },
+        tableHeader: { bold: true, fontSize: 13, color: 'black' },
+        footer: { fontSize: 10, color: 'gray', margin: [0, 2, 0, 0] },
+        stamp: { fontSize: 14, bold: true, alignment: 'right' }
+      }
+    };
+
+    if (window.pdfMake) {
+      pdfMake.createPdf(docDefinition).download(`Vypiska_ICE_LOGIX_${year}.pdf`);
+    } else {
+      tgUtil.alert('Библиотека для генерации PDF не загружена.');
+    }
+  } catch (err) {
+    console.error('Ошибка генерации PDF:', err);
+    tgUtil.alert('Не удалось сгенерировать PDF');
+  }
+};
+
 
         // ==================== ЗАПУСК ====================
         init();
