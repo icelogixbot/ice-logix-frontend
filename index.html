@@ -3677,6 +3677,18 @@ const MAX_REQUESTS_TRUSTED = 100;
       </div>
     </div>
 
+    <!-- Drops Banner -->
+    <div onclick="switchTab('drops')" class="glass-card mb-5 page-enter cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-transform overflow-hidden relative" style="animation-delay: 0.11s; background: linear-gradient(135deg, rgba(168,85,247,0.2), rgba(139,92,246,0.12)); border: 1px solid rgba(168,85,247,0.3);">
+      <div class="absolute -right-8 -top-8 w-28 h-28 rounded-full blur-2xl" style="background: rgba(168,85,247,0.35);"></div>
+      <div class="flex items-center justify-between p-4 relative z-10">
+        <div>
+          <h3 class="text-white font-black text-lg flex items-center gap-2">🧊 ДРОПЫ</h3>
+          <p class="text-white/70 text-xs mt-0.5">Эксклюзив — только 1 час в неделю</p>
+        </div>
+        <span class="ix text-purple-300"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+      </div>
+    </div>
+
     <!-- Currency Tracker -->
     <div class="glass-card mb-5 page-enter" style="animation-delay: 0.12s; padding: 12px 16px;">
       <div class="flex justify-between items-center mb-2">
@@ -8135,9 +8147,14 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
           Скопировать ссылку
         </button>
       ` : ''}
+      <div class="grid grid-cols-3 gap-2 mt-3">
+        <button onclick="switchTab('reftree')" class="py-2.5 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition-all hover:bg-white/10 active:scale-95" style="background: var(--glass-bg-strong); border: 1px solid var(--glass-border);">🌳<span>Моя сеть</span></button>
+        <button onclick="switchTab('ugc')" class="py-2.5 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition-all hover:bg-white/10 active:scale-95" style="background: var(--glass-bg-strong); border: 1px solid var(--glass-border);">🎬<span>Распаковка</span></button>
+        <button onclick="switchTab('drops')" class="py-2.5 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition-all hover:bg-white/10 active:scale-95" style="background: var(--glass-bg-strong); border: 1px solid var(--glass-border);">🧊<span>Дропы</span></button>
+      </div>
     </div>
   </div>
-  
+
   <!-- Wheel of Fortune Section -->
   <div class="glass-card mb-5 page-enter overflow-hidden relative cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-transform" onclick="window.showFortuneWheel()" style="background: linear-gradient(135deg, rgba(91,191,235,0.15), rgba(139,92,246,0.15)); border: 1px solid rgba(139,92,246,0.25);">
     <div class="absolute -right-10 -top-10 w-32 h-32 rounded-full blur-2xl" style="background: rgba(139,92,246,0.3);"></div>
@@ -10376,6 +10393,11 @@ async function renderAdmin() {
           <span class="ix text-emerald-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
         </button>
 
+        <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="switchTab('admin_marketing')" style="background: linear-gradient(135deg, rgba(168,85,247,0.12), rgba(139,92,246,0.06)); border-color: rgba(168,85,247,0.3);">
+          <span class="flex items-center gap-2"><span class="ix text-purple-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></span> Маркетинг: UGC и Дропы</span>
+          <span class="ix text-purple-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+        </button>
+
         <!-- Список промокодов -->
         <div class="glass-card">
           <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span> Промокоды</h3>
@@ -11048,6 +11070,7 @@ function attachAdminHandlers() {
         <input type="text" id="productBrand" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Бренд">
         <input type="url" id="productImage" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="URL изображения">
         <input type="url" id="productUrl" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Ссылка на товар">
+        <label class="flex items-center gap-2 text-white/80 p-2 rounded-xl bg-purple-500/10 border border-purple-500/30"><input type="checkbox" id="productIsDrop"> 🧊 Эксклюзивный ДРОП (доступен только в окно дропов)</label>
       </div>
     </div>
     <div class="p-5 border-t border-white/20">
@@ -11068,10 +11091,11 @@ function attachAdminHandlers() {
         const brand = modal.querySelector('#productBrand').value.trim();
         const image_url = modal.querySelector('#productImage').value.trim();
         const url = modal.querySelector('#productUrl').value.trim();
+        const is_drop = modal.querySelector('#productIsDrop').checked;
         if (!title || !price) { tgUtil.alert('Заполните название и цену'); return; }
         try {
-          await supabaseClient.from('products').insert({ title, description, price, category, brand, image_url, url, currency: 'CNY', is_active: true });
-          logAdminAction('create_product', { title, category, price });
+          await supabaseClient.from('products').insert({ title, description, price, category, brand, image_url, url, currency: 'CNY', is_active: true, is_drop });
+          logAdminAction('create_product', { title, category, price, is_drop });
           tgUtil.alert('Товар добавлен');
           modal.remove();
           renderCurrentScreen();
@@ -12004,6 +12028,13 @@ async function openPromotionForm(promotion = null) {
           <label class="text-white/70 text-sm">Дата окончания</label>
           <input type="datetime-local" id="promoExpiresAt" class="btn-secondary w-full p-3 rounded-xl border border-white/30" value="${promotion?.expires_at ? new Date(promotion.expires_at).toISOString().slice(0,16) : ''}">
           <input type="number" id="promoUsageLimit" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Лимит использований (пусто - безлимит)" value="${promotion?.usage_limit || ''}">
+          <div class="border-t border-white/10 pt-3 mt-1">
+            <label class="text-white/70 text-sm flex items-center gap-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span> Пуш-уведомление о старте</label>
+            <textarea id="promoPushText" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mt-1" placeholder="Текст пуша (пусто — без рассылки)">${promotion?.push_text || ''}</textarea>
+            <label class="text-white/70 text-sm">За сколько минут до старта отправить</label>
+            <input type="number" id="promoPushBefore" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mt-1" placeholder="Минут до старта" value="${promotion?.push_minutes_before ?? 60}">
+            ${isEdit ? `<label class="flex items-center gap-2 text-white/80 mt-2"><input type="checkbox" id="promoResendPush"> Отправить пуш заново ${promotion?.push_sent ? '(уже отправлен)' : ''}</label>` : ''}
+          </div>
           <label class="flex items-center gap-2 text-white/80"><input type="checkbox" id="promoActive" ${promotion?.is_active !== false ? 'checked' : ''}> Активна</label>
         </div>
       </div>
@@ -12035,13 +12066,18 @@ async function openPromotionForm(promotion = null) {
       starts_at: modal.querySelector('#promoStartsAt').value || null,
       expires_at: modal.querySelector('#promoExpiresAt').value || null,
       usage_limit: parseInt(modal.querySelector('#promoUsageLimit').value) || null,
-      is_active: modal.querySelector('#promoActive').checked
+      is_active: modal.querySelector('#promoActive').checked,
+      push_text: modal.querySelector('#promoPushText').value.trim() || null,
+      push_minutes_before: parseInt(modal.querySelector('#promoPushBefore').value) || 60
     };
-    
+
     try {
       if (isEdit) {
+        const resend = modal.querySelector('#promoResendPush');
+        if (resend && resend.checked) payload.push_sent = false;
         await supabaseClient.from('promotions').update(payload).eq('id', promotion.id);
       } else {
+        payload.push_sent = false;
         await supabaseClient.from('promotions').insert(payload);
       }
       tgUtil.alert(isEdit ? 'Акция обновлена' : 'Акция создана');
@@ -13031,6 +13067,439 @@ function attachAdminSuppliersHandlers() {
 }
 
     // ==================== RENDER CURRENT SCREEN ====================
+    // ==================== ФАЗА 11: МАРКЕТИНГ (ДРОПЫ / UGC / РЕФ-ДЕРЕВО) ====================
+
+    function _getTzNow(tz) {
+      try {
+        const s = new Date().toLocaleString('en-US', { timeZone: tz });
+        const d = new Date(s);
+        if (isNaN(d.getTime())) return new Date();
+        return d;
+      } catch (e) { return new Date(); }
+    }
+
+    window.__dropWindowState = null;
+
+    async function getDropWindowClient() {
+      const cfg = { drop_weekday: '6', drop_hour: '20', drop_minute: '0', drop_duration_min: '60', drop_tz: 'Europe/Minsk', drop_enabled: 'true' };
+      try {
+        const { data } = await supabaseClient.from('settings').select('key, value').in('key', Object.keys(cfg));
+        (data || []).forEach(r => { cfg[r.key] = r.value; });
+      } catch (e) {}
+      const weekdayIso = parseInt(cfg.drop_weekday) || 6;
+      const hour = parseInt(cfg.drop_hour) || 20;
+      const minute = parseInt(cfg.drop_minute) || 0;
+      const duration = parseInt(cfg.drop_duration_min) || 60;
+      const tz = (typeof cfg.drop_tz === 'string') ? String(cfg.drop_tz).replace(/"/g, '') : 'Europe/Minsk';
+      const enabled = !(String(cfg.drop_enabled).toLowerCase() === 'false');
+
+      const nowTz = _getTzNow(tz);
+      let isoDay = nowTz.getDay(); isoDay = (isoDay === 0) ? 7 : isoDay;
+      const deltaDays = (weekdayIso - isoDay + 7) % 7;
+      const start = new Date(nowTz);
+      start.setDate(start.getDate() + deltaDays);
+      start.setHours(hour, minute, 0, 0);
+      let end = new Date(start.getTime() + duration * 60000);
+      if (end < nowTz) {
+        start.setDate(start.getDate() + 7);
+        end = new Date(start.getTime() + duration * 60000);
+      }
+      const isOpen = enabled && nowTz >= start && nowTz < end;
+      const state = {
+        enabled, isOpen, tz, duration,
+        msToStart: start - nowTz,
+        msToEnd: end - nowTz,
+        startWall: start,
+        endWall: end
+      };
+      window.__dropWindowState = state;
+      return state;
+    }
+
+    function _fmtCountdown(ms) {
+      if (ms < 0) ms = 0;
+      const total = Math.floor(ms / 1000);
+      const d = Math.floor(total / 86400);
+      const h = Math.floor((total % 86400) / 3600);
+      const m = Math.floor((total % 3600) / 60);
+      const s = total % 60;
+      const pad = (n) => String(n).padStart(2, '0');
+      if (d > 0) return `${d}д ${pad(h)}:${pad(m)}:${pad(s)}`;
+      return `${pad(h)}:${pad(m)}:${pad(s)}`;
+    }
+
+    async function renderDrops() {
+      const w = await getDropWindowClient();
+      let products = [];
+      try {
+        const { data } = await supabaseClient.from('products').select('*').eq('is_drop', true).eq('is_active', true).order('created_at', { ascending: false });
+        products = data || [];
+      } catch (e) {}
+
+      const headerTimer = w.isOpen
+        ? `<p class="text-white/70 text-xs uppercase tracking-wider mb-1">Дроп закроется через</p><p id="dropTimer" class="text-4xl font-black text-emerald-400 font-mono">${_fmtCountdown(w.msToEnd)}</p>`
+        : `<p class="text-white/70 text-xs uppercase tracking-wider mb-1">До открытия дропа</p><p id="dropTimer" class="text-4xl font-black text-cyan-400 font-mono">${_fmtCountdown(w.msToStart)}</p>`;
+
+      let body = '';
+      if (!w.enabled) {
+        body = '<div class="glass-card text-center py-8"><p class="text-white/60">Дропы временно отключены.</p></div>';
+      } else if (products.length === 0) {
+        body = '<div class="glass-card text-center py-8"><p class="text-white/60">Пока нет товаров в дропе. Загляните позже!</p></div>';
+      } else if (w.isOpen) {
+        const cards = products.map(p => `
+          <div class="glass-card overflow-hidden p-0">
+            <div class="relative">
+              ${p.image_url ? `<img src="${p.image_url}" class="w-full h-40 object-cover">` : '<div class="w-full h-40 bg-white/10"></div>'}
+              <span class="absolute top-2 left-2 text-[10px] font-black px-2 py-0.5 rounded-full bg-purple-500 text-white">DROP</span>
+            </div>
+            <div class="p-3">
+              <p class="text-white font-bold text-sm truncate">${p.title || ''}</p>
+              <p class="text-cyan-400 font-black mt-1">${p.price} ${p.currency || 'CNY'}</p>
+              <button class="dropAddCartBtn btn-primary w-full mt-2 text-sm" data-id="${p.id}">В корзину</button>
+            </div>
+          </div>`).join('');
+        body = `
+          <div class="p-3 mb-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs text-center">
+            ⚡ Успей добавить в корзину! Товары из корзины можно оформить и оплатить даже после закрытия дропа.
+          </div>
+          <div class="grid grid-cols-2 gap-3">${cards}</div>`;
+      } else {
+        const teaser = products.map(p => `
+          <div class="glass-card overflow-hidden p-0 relative">
+            <div class="relative">
+              ${p.image_url ? `<img src="${p.image_url}" class="w-full h-40 object-cover" style="filter: blur(6px) brightness(0.6);">` : '<div class="w-full h-40 bg-white/10"></div>'}
+              <div class="absolute inset-0 flex items-center justify-center">
+                <span class="ix text-white/80"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+              </div>
+            </div>
+            <div class="p-3"><p class="text-white/50 font-bold text-sm">Скрыто до старта</p></div>
+          </div>`).join('');
+        body = `
+          <div class="p-3 mb-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs text-center">
+            🔒 Раздел откроется только в окно дропа (${w.startWall.toLocaleString('ru-RU', { weekday: 'long', hour: '2-digit', minute: '2-digit' })}, ${w.tz}). Раздел будет активен ${w.duration} мин.
+          </div>
+          <div class="grid grid-cols-2 gap-3">${teaser}</div>`;
+      }
+
+      return `
+        <button id="dropsBackBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
+        <div class="text-center py-6 mb-3 rounded-2xl" style="background: linear-gradient(135deg, rgba(168,85,247,0.2), rgba(139,92,246,0.1)); border: 1px solid rgba(168,85,247,0.3);">
+          <h2 class="text-2xl font-black text-white mb-2">🧊 ДРОПЫ</h2>
+          ${headerTimer}
+        </div>
+        ${body}
+        ${typeof renderFooter === 'function' ? renderFooter() : ''}
+      `;
+    }
+
+    function attachDropsHandlers() {
+      const back = document.getElementById('dropsBackBtn');
+      if (back) back.onclick = () => { currentSubScreen = null; switchTab('home'); };
+
+      if (window.__dropTimerInterval) { clearInterval(window.__dropTimerInterval); window.__dropTimerInterval = null; }
+      window.__dropTimerInterval = setInterval(() => {
+        if (currentTab !== 'drops') { clearInterval(window.__dropTimerInterval); window.__dropTimerInterval = null; return; }
+        const st = window.__dropWindowState;
+        const el = document.getElementById('dropTimer');
+        if (!st || !el) return;
+        st.msToStart -= 1000;
+        st.msToEnd -= 1000;
+        if (st.isOpen && st.msToEnd <= 0) { renderCurrentScreen(); return; }
+        if (!st.isOpen && st.msToStart <= 0) { renderCurrentScreen(); return; }
+        el.textContent = st.isOpen ? _fmtCountdown(st.msToEnd) : _fmtCountdown(st.msToStart);
+      }, 1000);
+
+      document.querySelectorAll('.dropAddCartBtn').forEach(btn => {
+        btn.onclick = async () => {
+          const st = window.__dropWindowState;
+          if (!st || !st.isOpen) { tgUtil.alert('Окно дропа закрыто.'); return; }
+          const id = btn.getAttribute('data-id');
+          try {
+            await addToCart(id, 1, true);
+            tgUtil.haptic && tgUtil.haptic('success');
+            tgUtil.alert('Добавлено в корзину! Можно оформить даже после закрытия дропа.');
+          } catch (e) { tgUtil.alert('Ошибка: ' + e.message); }
+        };
+      });
+    }
+
+    async function renderUGC() {
+      let mine = [];
+      try {
+        if (userId) {
+          const { data } = await supabaseClient.from('ugc_videos').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(20);
+          mine = data || [];
+        }
+      } catch (e) {}
+
+      const statusLabel = (s) => s === 'approved' ? '<span class="text-green-400">Одобрено ✅</span>' : s === 'rejected' ? '<span class="text-red-400">Отклонено ❌</span>' : '<span class="text-yellow-400">На модерации ⏳</span>';
+      const list = mine.length === 0
+        ? '<p class="text-white/50 text-sm text-center py-3">Вы ещё не отправляли распаковок</p>'
+        : mine.map(v => `
+          <div class="p-3 bg-white/5 rounded-xl mb-2">
+            <div class="flex justify-between items-center">
+              <span class="text-white/80 text-sm">${new Date(v.created_at).toLocaleDateString('ru-RU')}</span>
+              ${statusLabel(v.status)}
+            </div>
+            ${v.caption ? `<p class="text-white/60 text-xs mt-1">${v.caption}</p>` : ''}
+            ${v.status === 'approved' && v.reward_ices ? `<p class="text-green-400 text-xs mt-1">Начислено: ${v.reward_ices} айсов</p>` : ''}
+            ${v.status === 'rejected' && v.reject_reason ? `<p class="text-red-400 text-xs mt-1">Причина: ${v.reject_reason}</p>` : ''}
+          </div>`).join('');
+
+      return `
+        <button id="ugcBackBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
+        <div class="glass-card mb-3">
+          <h3 class="text-white font-bold text-lg mb-2">🎬 Распаковка за айсы</h3>
+          <p class="text-white/60 text-sm mb-3">Снимите видео-распаковку вашего заказа и получите айсы на баланс после проверки модератором!</p>
+          <input type="file" id="ugcFileInput" accept="video/*" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-2 text-sm">
+          <textarea id="ugcCaption" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-2" placeholder="Комментарий (необязательно)" rows="2"></textarea>
+          <button id="ugcUploadBtn" class="btn-primary w-full">Отправить на модерацию</button>
+          <div id="ugcUploadStatus" class="text-center text-sm mt-2"></div>
+        </div>
+        <div class="glass-card">
+          <h3 class="text-white font-bold mb-3">Мои распаковки</h3>
+          ${list}
+        </div>
+        ${typeof renderFooter === 'function' ? renderFooter() : ''}
+      `;
+    }
+
+    function attachUGCHandlers() {
+      const back = document.getElementById('ugcBackBtn');
+      if (back) back.onclick = () => { currentSubScreen = null; switchTab('profile'); };
+      const btn = document.getElementById('ugcUploadBtn');
+      if (!btn) return;
+      btn.onclick = async () => {
+        const fileInput = document.getElementById('ugcFileInput');
+        const statusEl = document.getElementById('ugcUploadStatus');
+        if (!userId) { tgUtil.alert('Откройте приложение через Telegram'); return; }
+        if (!fileInput || !fileInput.files || !fileInput.files[0]) { tgUtil.alert('Выберите видео-файл'); return; }
+        const file = fileInput.files[0];
+        if (file.size > 50 * 1024 * 1024) { tgUtil.alert('Видео слишком большое (макс. 50 МБ)'); return; }
+        const caption = (document.getElementById('ugcCaption').value || '').trim();
+        btn.disabled = true;
+        statusEl.innerHTML = '<span class="text-cyan-400">Загрузка...</span>';
+        try {
+          const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const path = `${userId}/${Date.now()}_${safeName}`;
+          const { error: upErr } = await supabaseClient.storage.from('ugc').upload(path, file, { contentType: file.type || 'video/mp4', upsert: false });
+          if (upErr) throw upErr;
+          const { data: pub } = supabaseClient.storage.from('ugc').getPublicUrl(path);
+          const videoUrl = pub.publicUrl;
+          const { error: insErr } = await supabaseClient.from('ugc_videos').insert({
+            user_id: userId, video_url: videoUrl, video_path: path, caption: caption || null, status: 'pending', forwarded: false
+          });
+          if (insErr) throw insErr;
+          tgUtil.haptic && tgUtil.haptic('success');
+          statusEl.innerHTML = '<span class="text-green-400">Отправлено! Ожидайте проверки.</span>';
+          setTimeout(() => renderCurrentScreen(), 1200);
+        } catch (e) {
+          statusEl.innerHTML = `<span class="text-red-400">Ошибка: ${e.message || e}</span>`;
+          btn.disabled = false;
+        }
+      };
+    }
+
+    async function renderReferralTree() {
+      let tree = [], stats = null;
+      try {
+        if (userId) {
+          const { data: t } = await supabaseClient.rpc('get_referral_tree', { root_id: userId });
+          tree = t || [];
+          const { data: s } = await supabaseClient.rpc('get_referral_stats', { root_id: userId });
+          stats = (s && s[0]) ? s[0] : null;
+        }
+      } catch (e) {}
+
+      const byLevel = { 1: [], 2: [], 3: [] };
+      tree.forEach(n => { if (byLevel[n.level]) byLevel[n.level].push(n); });
+
+      const nodeName = (n) => (n.username ? '@' + n.username : (n.full_name || ('ID ' + n.user_id)));
+      const levelMeta = [
+        { lvl: 1, color: 'emerald', label: 'Уровень 1 (прямые)' },
+        { lvl: 2, color: 'cyan', label: 'Уровень 2' },
+        { lvl: 3, color: 'purple', label: 'Уровень 3' }
+      ];
+
+      const treeHtml = levelMeta.map(meta => {
+        const nodes = byLevel[meta.lvl];
+        const inner = nodes.length === 0
+          ? '<p class="text-white/40 text-xs">Пока никого</p>'
+          : nodes.map(n => `
+            <div class="flex items-center justify-between p-2 rounded-lg bg-white/5 mb-1" style="margin-left: ${(meta.lvl - 1) * 16}px;">
+              <span class="text-white/80 text-sm flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-${meta.color}-400"></span>
+                ${nodeName(n)}
+              </span>
+              <span class="text-white/40 text-xs">пригласил: ${n.direct_count || 0}</span>
+            </div>`).join('');
+        return `
+          <div class="glass-card mb-3">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-white font-bold text-sm">${meta.label}</h4>
+              <span class="text-${meta.color}-400 font-bold">${nodes.length}</span>
+            </div>
+            ${inner}
+          </div>`;
+      }).join('');
+
+      const earned = stats || { level1_count: 0, level2_count: 0, level3_count: 0, earned_l1: 0, earned_l2: 0, earned_l3: 0, total_earned: 0 };
+      const statsHtml = `
+        <div class="glass-card mb-3">
+          <h4 class="text-white font-bold text-sm mb-3">💰 Заработано по уровням</h4>
+          <div class="grid grid-cols-3 gap-2 mb-3">
+            <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-2 text-center"><p class="text-emerald-400 text-lg font-black">${(+earned.earned_l1).toFixed(0)}</p><p class="text-white/50 text-[10px]">Ур. 1</p></div>
+            <div class="bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-2 text-center"><p class="text-cyan-400 text-lg font-black">${(+earned.earned_l2).toFixed(0)}</p><p class="text-white/50 text-[10px]">Ур. 2</p></div>
+            <div class="bg-purple-500/10 border border-purple-500/20 rounded-xl p-2 text-center"><p class="text-purple-400 text-lg font-black">${(+earned.earned_l3).toFixed(0)}</p><p class="text-white/50 text-[10px]">Ур. 3</p></div>
+          </div>
+          <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/60 text-xs uppercase tracking-wider">Всего заработано</p><p class="text-green-400 text-2xl font-black">${(+earned.total_earned).toFixed(0)} айсов</p></div>
+        </div>`;
+
+      return `
+        <button id="refTreeBackBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
+        <div class="text-center py-4 mb-3 rounded-2xl" style="background: linear-gradient(135deg, rgba(52,211,153,0.15), rgba(16,185,129,0.08)); border: 1px solid rgba(52,211,153,0.25);">
+          <h2 class="text-xl font-black text-white">🌳 Моя реферальная сеть</h2>
+          <p class="text-white/60 text-sm mt-1">${(+earned.level1_count) + (+earned.level2_count) + (+earned.level3_count)} человек в 3 уровнях</p>
+        </div>
+        ${statsHtml}
+        ${treeHtml}
+        ${typeof renderFooter === 'function' ? renderFooter() : ''}
+      `;
+    }
+
+    function attachReferralTreeHandlers() {
+      const back = document.getElementById('refTreeBackBtn');
+      if (back) back.onclick = () => { currentSubScreen = null; switchTab('profile'); };
+    }
+
+    async function renderAdminMarketing() {
+      if (!isOwner) return '<p class="text-center mt-10 text-red-400">Доступ запрещён</p>';
+      const cfg = { drop_weekday: '6', drop_hour: '20', drop_minute: '0', drop_duration_min: '60', drop_enabled: 'true' };
+      try {
+        const { data } = await supabaseClient.from('settings').select('key, value').in('key', Object.keys(cfg).concat(['drop_tz']));
+        (data || []).forEach(r => { cfg[r.key] = (typeof r.value === 'string') ? String(r.value).replace(/"/g, '') : r.value; });
+      } catch (e) {}
+
+      let pending = [];
+      try { const { data } = await supabaseClient.from('ugc_videos').select('*').eq('status', 'pending').order('created_at', { ascending: true }); pending = data || []; } catch (e) {}
+      let dropProducts = [];
+      try { const { data } = await supabaseClient.from('products').select('id, title, is_drop, is_active').order('created_at', { ascending: false }).limit(100); dropProducts = data || []; } catch (e) {}
+
+      const weekdays = [['1', 'Понедельник'], ['2', 'Вторник'], ['3', 'Среда'], ['4', 'Четверг'], ['5', 'Пятница'], ['6', 'Суббота'], ['7', 'Воскресенье']];
+      const wdOptions = weekdays.map(([v, l]) => `<option value="${v}" ${String(cfg.drop_weekday) === v ? 'selected' : ''}>${l}</option>`).join('');
+
+      const ugcList = pending.length === 0
+        ? '<p class="text-white/50 text-sm text-center py-3">Нет видео на модерации</p>'
+        : pending.map(v => `
+          <div class="p-3 bg-white/5 rounded-xl mb-3" data-ugc="${v.id}" data-uploader="${v.user_id}">
+            <video src="${v.video_url}" controls class="w-full rounded-lg mb-2 max-h-60"></video>
+            <p class="text-white/60 text-xs mb-1">От ID: ${v.user_id} · ${new Date(v.created_at).toLocaleString('ru-RU')}</p>
+            ${v.caption ? `<p class="text-white/70 text-sm mb-2">${v.caption}</p>` : ''}
+            <div class="flex gap-2 items-center">
+              <input type="number" class="ugcRewardInput btn-secondary w-24 p-2 rounded-lg border border-white/30" value="100" placeholder="айсы">
+              <button class="ugcApproveBtn btn-primary flex-1 text-sm" data-id="${v.id}" data-uploader="${v.user_id}">✅ Одобрить</button>
+              <button class="ugcRejectBtn bg-red-600 px-3 py-2 rounded-lg text-sm text-white" data-id="${v.id}">❌</button>
+            </div>
+          </div>`).join('');
+
+      const dropList = dropProducts.map(p => `
+        <div class="flex justify-between items-center p-2 border-b border-white/10">
+          <span class="text-white/80 text-sm truncate flex-1">${p.title || ('ID ' + p.id)}</span>
+          <button class="toggleDropBtn text-sm px-3 py-1 rounded-lg ${p.is_drop ? 'bg-purple-500 text-white' : 'bg-white/10 text-white/60'}" data-id="${p.id}" data-drop="${p.is_drop ? '1' : '0'}">${p.is_drop ? 'Дроп ✓' : 'Сделать дропом'}</button>
+        </div>`).join('');
+
+      return `
+        <button id="admMktBackBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
+        <div class="glass-card mb-3">
+          <h3 class="text-white font-bold mb-3">🧊 Окно дропов</h3>
+          <label class="text-white/60 text-sm">День недели</label>
+          <select id="dropWeekday" class="btn-secondary w-full p-2 rounded-lg border border-white/30 mb-2">${wdOptions}</select>
+          <div class="grid grid-cols-3 gap-2 mb-2">
+            <div><label class="text-white/60 text-xs">Час</label><input type="number" id="dropHour" min="0" max="23" class="btn-secondary w-full p-2 rounded-lg border border-white/30" value="${parseInt(cfg.drop_hour) || 20}"></div>
+            <div><label class="text-white/60 text-xs">Минута</label><input type="number" id="dropMinute" min="0" max="59" class="btn-secondary w-full p-2 rounded-lg border border-white/30" value="${parseInt(cfg.drop_minute) || 0}"></div>
+            <div><label class="text-white/60 text-xs">Длит. (мин)</label><input type="number" id="dropDuration" min="1" class="btn-secondary w-full p-2 rounded-lg border border-white/30" value="${parseInt(cfg.drop_duration_min) || 60}"></div>
+          </div>
+          <label class="flex items-center gap-2 text-white/80 mb-3"><input type="checkbox" id="dropEnabled" ${String(cfg.drop_enabled).toLowerCase() !== 'false' ? 'checked' : ''}> Дропы включены (${cfg.drop_tz || 'Europe/Minsk'})</label>
+          <button id="saveDropSettingsBtn" class="btn-primary w-full">Сохранить окно дропов</button>
+        </div>
+        <div class="glass-card mb-3">
+          <h3 class="text-white font-bold mb-3">🎬 UGC на модерации (${pending.length})</h3>
+          ${ugcList}
+        </div>
+        <div class="glass-card">
+          <h3 class="text-white font-bold mb-3">Товары-дропы</h3>
+          <div class="max-h-72 overflow-y-auto">${dropList}</div>
+        </div>
+      `;
+    }
+
+    function attachAdminMarketingHandlers() {
+      const back = document.getElementById('admMktBackBtn');
+      if (back) back.onclick = () => switchTab('admin');
+
+      const saveBtn = document.getElementById('saveDropSettingsBtn');
+      if (saveBtn) {
+        saveBtn.onclick = async () => {
+          const rows = [
+            { key: 'drop_weekday', value: String(document.getElementById('dropWeekday').value) },
+            { key: 'drop_hour', value: String(parseInt(document.getElementById('dropHour').value) || 20) },
+            { key: 'drop_minute', value: String(parseInt(document.getElementById('dropMinute').value) || 0) },
+            { key: 'drop_duration_min', value: String(parseInt(document.getElementById('dropDuration').value) || 60) },
+            { key: 'drop_enabled', value: document.getElementById('dropEnabled').checked ? 'true' : 'false' }
+          ];
+          try {
+            await supabaseClient.from('settings').upsert(rows, { onConflict: 'key' });
+            tgUtil.alert('Окно дропов сохранено');
+          } catch (e) { tgUtil.alert('Ошибка: ' + e.message); }
+        };
+      }
+
+      document.querySelectorAll('.ugcApproveBtn').forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.getAttribute('data-id');
+          const uploader = parseInt(btn.getAttribute('data-uploader'));
+          const container = btn.closest('[data-ugc]');
+          const reward = parseFloat(container.querySelector('.ugcRewardInput').value) || 0;
+          if (!(await tgUtil.confirm(`Начислить ${reward} айсов пользователю ${uploader}?`))) return;
+          btn.disabled = true;
+          try {
+            const { data: u } = await supabaseClient.from('users').select('ices_balance').eq('user_id', uploader).single();
+            const nb = (parseFloat(u && u.ices_balance) || 0) + reward;
+            await supabaseClient.from('users').update({ ices_balance: nb }).eq('user_id', uploader);
+            await supabaseClient.from('transaction_history').insert({ user_id: uploader, type: 'ugc_reward', amount: reward, balance_after: nb, description: 'Награда за UGC видео-распаковку' });
+            await supabaseClient.from('ugc_videos').update({ status: 'approved', reward_ices: reward, moderated_by: userId, moderated_at: new Date().toISOString() }).eq('id', id);
+            if (typeof logAdminAction === 'function') logAdminAction('ugc_approve', { id, reward, uploader });
+            tgUtil.alert('Одобрено');
+            renderCurrentScreen();
+          } catch (e) { tgUtil.alert('Ошибка: ' + e.message); btn.disabled = false; }
+        };
+      });
+
+      document.querySelectorAll('.ugcRejectBtn').forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.getAttribute('data-id');
+          if (!(await tgUtil.confirm('Отклонить видео?'))) return;
+          try {
+            await supabaseClient.from('ugc_videos').update({ status: 'rejected', reject_reason: 'Не соответствует требованиям', moderated_by: userId, moderated_at: new Date().toISOString() }).eq('id', id);
+            if (typeof logAdminAction === 'function') logAdminAction('ugc_reject', { id });
+            tgUtil.alert('Отклонено');
+            renderCurrentScreen();
+          } catch (e) { tgUtil.alert('Ошибка: ' + e.message); }
+        };
+      });
+
+      document.querySelectorAll('.toggleDropBtn').forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.getAttribute('data-id');
+          const next = btn.getAttribute('data-drop') !== '1';
+          try {
+            await supabaseClient.from('products').update({ is_drop: next }).eq('id', id);
+            renderCurrentScreen();
+          } catch (e) { tgUtil.alert('Ошибка: ' + e.message); }
+        };
+      });
+    }
+
     async function renderCurrentScreen() {
       const contentDiv = document.getElementById('content');
       syncTelegramBackButton();
@@ -13157,6 +13626,19 @@ function attachAdminSuppliersHandlers() {
         if (!adminAuthenticated) { switchTab('admin'); return; }
         contentDiv.innerHTML = await renderAdminSuppliers();
         attachAdminSuppliersHandlers();
+      } else if (currentTab === 'drops') {
+        contentDiv.innerHTML = shadowBannerHtml + await renderDrops();
+        attachDropsHandlers();
+      } else if (currentTab === 'ugc') {
+        contentDiv.innerHTML = shadowBannerHtml + await renderUGC();
+        attachUGCHandlers();
+      } else if (currentTab === 'reftree') {
+        contentDiv.innerHTML = shadowBannerHtml + await renderReferralTree();
+        attachReferralTreeHandlers();
+      } else if (currentTab === 'admin_marketing' && isOwner) {
+        if (!adminAuthenticated) { switchTab('admin'); return; }
+        contentDiv.innerHTML = await renderAdminMarketing();
+        attachAdminMarketingHandlers();
       } else {
         contentDiv.innerHTML = '<div class="text-center py-10">Страница не найдена</div>';
       }
