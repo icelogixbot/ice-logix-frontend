@@ -10440,6 +10440,15 @@ async function renderAdmin() {
           ${payoutRequests.length === 0 ? '<p class="text-white/70">Нет заявок</p>' : payoutRequests.map(req => `<div class="flex justify-between items-center p-2 bg-white/5 rounded-lg mb-2"><div><span class="text-white">${req.user_id}</span><span class="text-cyan-400 ml-2">${req.amount} <span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></span></div><div><button class="approvePayoutBtn bg-green-600 px-3 py-1 rounded text-sm mr-2" data-id="${req.id}">Одобрить</button><button class="rejectPayoutBtn bg-red-600 px-3 py-1 rounded text-sm" data-id="${req.id}">Отклонить</button></div></div>`).join('')}
         </div>
         
+        <!-- AI Аналитика -->
+        <div class="glass-card mt-4" id="aiPredictionCard">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="text-white font-bold">🤖 AI Аналитика</h3>
+            <button onclick="window._refreshAiPrediction && window._refreshAiPrediction()" class="text-xs text-purple-400 bg-purple-500/10 border border-purple-500/30 px-2 py-1 rounded-lg hover:bg-purple-500/20 transition">↻ Обновить</button>
+          </div>
+          <div id="aiPredictionContent" class="text-white/70 text-xs leading-relaxed whitespace-pre-wrap">Загрузка прогноза...</div>
+        </div>
+
         <!-- Управление пользователями -->
         <div class="glass-card mt-4">
           <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> Управление пользователями</h3>
@@ -11397,6 +11406,28 @@ function attachAdminHandlers() {
     document.addEventListener('click', window._legalAiHandler);
   }
 
+  // ================== AI ПРОГНОЗ ====================
+  window._refreshAiPrediction = async () => {
+    const el = document.getElementById('aiPredictionContent');
+    if (!el) return;
+    try {
+      el.textContent = '⏳ Загрузка...';
+      const { data, error } = await supabaseClient
+        .from('app_settings')
+        .select('latest_ai_prediction')
+        .eq('id', 1)
+        .single();
+      if (error) throw error;
+      el.textContent = data?.latest_ai_prediction || 'Прогноз ещё не сгенерирован. Он появится через 3 дня после запуска бота.';
+    } catch (e) {
+      el.textContent = '❌ Не удалось загрузить прогноз.';
+    }
+  };
+  // Загружаем сразу при рендере
+  if (document.getElementById('aiPredictionContent')) {
+    window._refreshAiPrediction();
+  }
+
   // ================== ФИЛЬТР ЗАКАЗОВ (ЧИПСЫ) ==================
   const chipContainer = document.getElementById('adminOrdersFilterChips');
   if (chipContainer) {
@@ -12285,6 +12316,7 @@ function generateAdminOrderCard(order, userMap, isActive) {
         <span class="text-white/50 text-[10px]">${new Date(order.created_at).toLocaleDateString('ru-RU')}</span>
       </div>
       <p class="text-white/80 text-xs truncate">👤 ${displayName} ${displayUsername}</p>
+      ${user.is_toxic ? '<div class="inline-flex items-center gap-1 mt-1 bg-red-500/20 border border-red-500/40 text-red-400 text-[10px] px-2 py-0.5 rounded-full font-bold">⚠️ Токсичный клиент</div>' : ''}
       <div class="flex justify-between items-end mt-2">
         <p class="text-cyan-400 text-sm font-bold">${Number(order.prepayment_amount || 0).toFixed(2)} ❄️</p>
         <div class="text-right">
@@ -12325,7 +12357,7 @@ async function renderAdminOrdersList() {
     
     const uniqueOrders = Array.from(new Map(orders.map(o => [o.id, o])).values());
     const userIds = [...new Set(uniqueOrders.map(o => o.user_id))];
-    const { data: users } = await supabaseClient.from('users').select('user_id, full_name, username').in('user_id', userIds);
+    const { data: users } = await supabaseClient.from('users').select('user_id, full_name, username, is_toxic').in('user_id', userIds);
     const userMap = {};
     if (users) users.forEach(u => { userMap[u.user_id] = u; });
 
