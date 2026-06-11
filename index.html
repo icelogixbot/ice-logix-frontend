@@ -96,6 +96,25 @@
     }
     
     * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* Performance: GPU-accelerate scrollable containers & animated elements */
+    .scroll-x, .scroll-hint-container, .app-header, .tab-bar {
+      will-change: transform;
+      transform: translateZ(0);
+      -webkit-transform: translateZ(0);
+    }
+    .glass-card, .story-card, .banner-slide {
+      contain: layout style;
+    }
+    /* Prevent content flicker when DOM updates */
+    #content {
+      min-height: 100vh;
+      contain: layout;
+    }
+    /* Prevent layout shifts during navigation */
+    .page-enter {
+      will-change: opacity, transform;
+    }
     
     html {
       background: linear-gradient(165deg, var(--bg-gradient-start) 0%, var(--bg-gradient-mid) 50%, var(--bg-gradient-end) 100%);
@@ -804,6 +823,58 @@
       -webkit-overflow-scrolling: touch;
     }
     .scroll-x::-webkit-scrollbar { display: none; }
+
+    /* Scroll container with fade edges to hint scrollability */
+    .scroll-hint-container {
+      position: relative;
+    }
+    .scroll-hint-container::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 8px;
+      width: 48px;
+      background: linear-gradient(to right, transparent, var(--bg-gradient-end, #1A3A5C));
+      pointer-events: none;
+      z-index: 2;
+      border-radius: 0 16px 16px 0;
+    }
+    /* Scroll dots indicator */
+    .scroll-dots {
+      display: flex;
+      justify-content: center;
+      gap: 5px;
+      margin-top: 6px;
+    }
+    .scroll-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      transition: all 0.3s ease;
+    }
+    .scroll-dot.active {
+      width: 16px;
+      border-radius: 3px;
+      background: var(--ice-primary);
+    }
+    /* Swipe hint animation */
+    @keyframes swipeHint {
+      0% { transform: translateX(0); opacity: 1; }
+      50% { transform: translateX(8px); opacity: 0.5; }
+      100% { transform: translateX(0); opacity: 1; }
+    }
+    .swipe-hint-icon {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 16px;
+      opacity: 0.7;
+      animation: swipeHint 2s ease-in-out 1s 3;
+      pointer-events: none;
+      z-index: 3;
+    }
     
     /* Back Button */
     .global-back-btn {
@@ -1532,6 +1603,9 @@
             <span id="headerBalance">0</span>
             <span class="balance-icon" aria-hidden="true" title="ICE Валюта"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
           </div>
+          <span id="familyBalanceHeader" style="display:none; font-size:10px; color:rgba(52,211,153,0.9); font-weight:700; padding: 0 4px; border-left: 1px solid rgba(255,255,255,0.2);">
+            <span id="familyBalanceValue">0</span>👨‍👩‍👧
+          </span>
           <button class="balance-add" id="addBalanceBtn" title="Пополнить баланс">+</button>
         </div>
       </div>
@@ -3189,6 +3263,42 @@ const MAX_REQUESTS_TRUSTED = 100;
         if (!localStorage.getItem('ice_onboarding_shown') && window.iceLogixOnboarding) {
           setTimeout(() => window.iceLogixOnboarding.open(), 800);
         }
+
+        // Performance: recover UI if app was backgrounded and content disappeared
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') {
+            const contentDiv = document.getElementById('content');
+            if (contentDiv && (!contentDiv.innerHTML || contentDiv.innerHTML.trim().length < 50)) {
+              renderCurrentScreen();
+            }
+          }
+        });
+
+        // Performance: handle Telegram WebApp activation/deactivation
+        try {
+          tg?.onEvent?.('activated', () => {
+            const contentDiv = document.getElementById('content');
+            if (contentDiv && (!contentDiv.innerHTML || contentDiv.innerHTML.trim().length < 50)) {
+              renderCurrentScreen();
+            }
+          });
+        } catch(e) {}
+
+        // Performance: use requestIdleCallback for non-critical post-init tasks
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(() => {
+            // Prefetch notification count
+            if (supabaseClient && userId) {
+              supabaseClient.from('orders').select('id', { count: 'exact', head: true })
+                .eq('user_id', userId).eq('status', 'pending').then(({count}) => {
+                  if (count > 0) {
+                    const badge = document.querySelector('#notificationsBtn');
+                    if (badge) badge.setAttribute('data-count', count);
+                  }
+                }).catch(() => {});
+            }
+          }, { timeout: 3000 });
+        }
       } catch (globalInitErr) {
         console.error('CRITICAL ERROR during init():', globalInitErr);
       } finally {
@@ -3253,6 +3363,8 @@ const MAX_REQUESTS_TRUSTED = 100;
         
         document.getElementById('headerBalance').innerText = balance;
         applyTheme(data.settings?.theme || 'dark');
+        // Update family balance in header if applicable
+        updateHeaderFamilyBalance();
       } else {
         applyTheme('dark');
       }
@@ -3540,7 +3652,7 @@ const MAX_REQUESTS_TRUSTED = 100;
     function switchTab(tabName, subScreen = null) {
       tgUtil.hideMainButton();
       if (tabName !== 'neworder') {
-      window.tempOrder = null;
+        window.tempOrder = null;
       }
       if (currentTab && currentTab !== tabName) previousTab = currentTab;
       currentTab = tabName;
@@ -3704,7 +3816,9 @@ const MAX_REQUESTS_TRUSTED = 100;
     </div>
 
     <!-- Quick Actions - Story Cards with 3D-style icons -->
-    <div class="scroll-x mb-6 page-enter" style="animation-delay: 0.15s; padding: 4px 0;">
+    <div class="scroll-hint-container mb-6 page-enter" style="animation-delay: 0.15s;">
+    <div class="swipe-hint-icon">👉</div>
+    <div class="scroll-x" style="padding: 4px 0;">
       <div class="story-card" data-story="onboarding">
         <div class="story-icon" style="background: linear-gradient(145deg, rgba(99,202,253,0.2), rgba(59,130,246,0.1));">
           <span style="font-size: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span></span>
@@ -3748,30 +3862,16 @@ const MAX_REQUESTS_TRUSTED = 100;
         <span class="story-label">Академия</span>
       </div>
     </div>
-    
+    </div>
 
     <!-- Promo Banners -->
-    <div class="scroll-x mb-6 page-enter" style="animation-delay: 0.2s;" id="promoBannersContainer">
+    <div class="scroll-hint-container mb-6 page-enter" style="animation-delay: 0.2s;">
+    <div class="swipe-hint-icon">👉</div>
+    <div class="scroll-x" id="promoBannersContainer">
       ${await renderPromoBanners()}
     </div>
-    
-    <!-- AI Photo Search Banner -->
-    <div class="mb-6 page-enter" style="animation-delay: 0.22s;">
-      <div class="glass-card overflow-hidden relative cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all border border-cyan-500/30 p-5" onclick="window.currentSubScreen = null; window.calcCountry = null; window.calcPreselectMode = 'photo'; switchTab('calculator');" style="background: linear-gradient(135deg, rgba(6,182,212,0.15), rgba(59,130,246,0.15));">
-        <div class="absolute -right-6 -top-6 w-32 h-32 rounded-full blur-2xl" style="background: rgba(6,182,212,0.3);"></div>
-        <div class="relative z-10 flex items-center justify-between">
-          <div>
-            <h3 class="text-white font-bold text-lg flex items-center gap-2 mb-1">
-              📸 Поиск по фото
-            </h3>
-            <p class="text-white/60 text-xs w-4/5">Загрузите картинку — наш ИИ найдет этот товар на площадках!</p>
-          </div>
-          <div class="w-12 h-12 rounded-full flex items-center justify-center shadow-lg flex-shrink-0" style="background: linear-gradient(135deg, #06b6d4, #3b82f6);">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-white"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          </div>
-        </div>
-      </div>
     </div>
+    
     
     <!-- Popular Marketplaces Section -->
     <div class="mb-6 page-enter" style="animation-delay: 0.25s;">
@@ -3787,6 +3887,8 @@ const MAX_REQUESTS_TRUSTED = 100;
           </svg>
         </button>
       </div>
+      <div class="scroll-hint-container">
+      <div class="swipe-hint-icon">👉</div>
       <div class="scroll-x" style="padding: 4px 0;">
         ${marketplaces.map(mp => `
           <div class="story-card marketplace-story" data-url="${mp.url}">
@@ -3796,6 +3898,7 @@ const MAX_REQUESTS_TRUSTED = 100;
             <span class="story-label">${mp.name}</span>
           </div>
         `).join('')}
+      </div>
       </div>
     </div>
     
@@ -3834,7 +3937,7 @@ function attachHomeHandlers() {
       });
       document.querySelector('[data-story="reports"]')?.addEventListener('click', () => switchTab('reports'));
       document.querySelector('[data-story="reviews"]')?.addEventListener('click', () => switchTab('reviews'));
-      document.querySelector('[data-story="promo"]')?.addEventListener('click', () => tgUtil.alert('Акции будут позже'));
+      document.querySelector('[data-story="promo"]')?.addEventListener('click', () => switchTab('promo'));
       document.querySelector('[data-story="academy"]')?.addEventListener('click', () => switchTab('academy'));
       document.querySelector('[data-story="legitcheck"]')?.addEventListener('click', () => switchTab('legitcheck'));
       document.querySelector('[data-story="resale"]')?.addEventListener('click', () => switchTab('resale'));
@@ -8039,19 +8142,24 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
       const shareLink = userReferralCode ? `https://t.me/${tg.initDataUnsafe?.user?.username ? tg.initDataUnsafe.user.username : 'icelogix_bot'}?startapp=ref_${userReferralCode}` : '';
       
       let displayedBalance = balance;
-      let balanceLabel = 'Баланс';
       const fam = window.userSettings?.family || {};
-      
+      let familyBalance = null;
+      let familyBalanceLabel = null;
+      let isFamilyEnabled = false;
+
       if (fam.role === 'member' && fam.head_id) {
+        isFamilyEnabled = true;
         try {
           const { data: headUser } = await supabaseClient.from('users').select('ices_balance').eq('user_id', fam.head_id).single();
           if (headUser) {
-            displayedBalance = headUser.ices_balance || 0;
-            balanceLabel = 'Семейный баланс (Глава)';
+            familyBalance = headUser.ices_balance || 0;
+            familyBalanceLabel = 'Семейный баланс (Глава семьи)';
           }
         } catch(e) {}
       } else if (fam.role === 'head') {
-        balanceLabel = 'Семейный баланс (Вы глава)';
+        isFamilyEnabled = true;
+        familyBalance = balance;
+        familyBalanceLabel = 'Семейный баланс (Вы — глава)';
       }
 
       const trustedBadge = userLimits.isTrusted ? `<span class="ix text-cyan-400" title="Проверенный партнер"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>` : '';
@@ -8080,30 +8188,47 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
     </div>
     
     <!-- Balance Display -->
+    ${isFamilyEnabled ? `
+    <div class="flex gap-3 justify-center mb-4 flex-wrap">
+      <div class="flex items-center gap-3 px-4 py-3 rounded-2xl" style="background: linear-gradient(135deg, rgba(91,191,235,0.2), rgba(46,158,212,0.1)); border: 1px solid rgba(91,191,235,0.3);">
+        <span class="text-xl animate-float"><span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></span>
+        <div class="text-left">
+          <p class="text-[10px] uppercase tracking-wider" style="color: var(--text-muted);">Мой баланс</p>
+          <p class="text-lg font-bold" style="color: var(--ice-primary);">${balance} ICE</p>
+        </div>
+      </div>
+      ${familyBalance !== null ? `
+      <div class="flex items-center gap-3 px-4 py-3 rounded-2xl" style="background: linear-gradient(135deg, rgba(52,211,153,0.2), rgba(16,185,129,0.1)); border: 1px solid rgba(52,211,153,0.3);">
+        <span class="text-xl">👨‍👩‍👧</span>
+        <div class="text-left">
+          <p class="text-[10px] uppercase tracking-wider" style="color: var(--text-muted);">${familyBalanceLabel}</p>
+          <p class="text-lg font-bold" style="color: var(--status-success);">${familyBalance} ICE</p>
+        </div>
+      </div>
+      ` : ''}
+    </div>
+    ` : `
     <div class="inline-flex items-center gap-3 px-5 py-3 rounded-2xl mb-4" style="background: linear-gradient(135deg, rgba(91,191,235,0.2), rgba(46,158,212,0.1)); border: 1px solid rgba(91,191,235,0.3);">
       <span class="text-2xl animate-float"><span class="brand-flake" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="4.9" y2="19.1"/><polyline points="8 5 12 2 16 5"/><polyline points="8 19 12 22 16 19"/><polyline points="5 8 2 12 5 16"/><polyline points="19 8 22 12 19 16"/></svg></span></span>
       <div class="text-left">
-        <p class="text-xs" style="color: var(--text-secondary);">${balanceLabel}</p>
+        <p class="text-xs" style="color: var(--text-secondary);">Баланс</p>
         <p class="text-xl font-bold" style="color: var(--ice-primary);">${displayedBalance} ICE</p>
       </div>
     </div>
+    `}
     
-    <!-- Recent Transactions -->
-    <div class="p-4 rounded-2xl mb-4" style="background: var(--glass-bg); border: 1px solid var(--glass-border);">
-      <div class="flex justify-between items-center mb-3">
+    <!-- История (вместо транзакций — ссылка на раздел) -->
+    <div class="p-4 rounded-2xl mb-4 cursor-pointer hover:bg-white/10 transition-all active:scale-[0.98]" id="historyProfileBtn" style="background: var(--glass-bg); border: 1px solid var(--glass-border);">
+      <div class="flex justify-between items-center">
         <p class="font-semibold flex items-center gap-2" style="color: var(--text-secondary);">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="4" width="20" height="16" rx="2"/>
-            <path d="M7 15h0M2 9h20"/>
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
           </svg>
-          Транзакции
+          История
         </p>
-        <button id="showAllTransactionsBtn" class="text-sm font-semibold flex items-center gap-1" style="color: var(--ice-primary);">
-          Все
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--ice-primary);"><polyline points="9 18 15 12 9 6"/></svg>
       </div>
-      <div id="recentTransactions" class="text-left"></div>
+      <p class="text-xs mt-1 text-left" style="color: var(--text-muted);">Транзакции и архив заказов</p>
     </div>
     
     <!-- Referral Program -->
@@ -8142,21 +8267,7 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
     </div>
   </div>
 
-  <!-- Wheel of Fortune Section -->
-  <div class="glass-card mb-5 page-enter overflow-hidden relative cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-transform" onclick="window.showFortuneWheel()" style="background: linear-gradient(135deg, rgba(91,191,235,0.15), rgba(139,92,246,0.15)); border: 1px solid rgba(139,92,246,0.25);">
-    <div class="absolute -right-10 -top-10 w-32 h-32 rounded-full blur-2xl" style="background: rgba(139,92,246,0.3);"></div>
-    <div class="flex items-center justify-between p-4 relative z-10">
-      <div class="space-y-0.5 text-left">
-        <h3 class="text-white font-bold text-sm flex items-center gap-1.5">
-          <span>🔮 Колесо Фортуны</span>
-        </h3>
-        <p class="text-white/60 text-[10px]">Крутите барабан каждый день бесплатно!</p>
-      </div>
-      <button class="btn-primary py-2 px-4 rounded-xl text-xs font-bold shadow-lg flex items-center gap-1" style="background: linear-gradient(135deg, var(--ice-primary), #8B5CF6); border: none;">
-        Крутить!
-      </button>
-    </div>
-  </div>
+  <!-- Колесо Фортуны перенесено в раздел "Акции" главного меню -->
   
   <!-- Quick Actions Grid -->
   <div class="mb-5 page-enter" style="animation-delay: 0.1s;">
@@ -8390,7 +8501,10 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
 
   // Все транзакции
   const allTransactionsBtn = document.getElementById('showAllTransactionsBtn');
-  if (allTransactionsBtn) allTransactionsBtn.onclick = () => showAllTransactions();
+  if (allTransactionsBtn) allTransactionsBtn.onclick = () => switchTab('history');
+
+  const historyProfileBtn = document.getElementById('historyProfileBtn');
+  if (historyProfileBtn) historyProfileBtn.onclick = () => switchTab('history');
 
   // Настройки уведомлений
   const notifSettingsBtn = document.getElementById('notificationsSettingsBtn');
@@ -13911,6 +14025,12 @@ function attachAdminSuppliersHandlers() {
       } else if (currentTab === 'cart') {
         contentDiv.innerHTML = shadowBannerHtml + await renderCart();
         attachCartHandlers();
+      } else if (currentTab === 'promo') {
+        contentDiv.innerHTML = shadowBannerHtml + await renderPromoPage();
+        attachPromoPageHandlers();
+      } else if (currentTab === 'history') {
+        contentDiv.innerHTML = shadowBannerHtml + await renderHistory();
+        attachHistoryHandlers();
       } else if (currentTab === 'resale') {
         contentDiv.innerHTML = shadowBannerHtml + await renderResale();
       } else if (currentTab === 'admin_resale' && isOwner) {
@@ -16924,6 +17044,23 @@ function getTransactionTypeText(type) {
   return map[type] || type;
 }
 
+async function updateHeaderFamilyBalance() {
+  const fam = window.userSettings?.family || {};
+  const headerEl = document.getElementById('familyBalanceHeader');
+  const valEl = document.getElementById('familyBalanceValue');
+  if (!headerEl || !valEl) return;
+  if (fam.role === 'member' && fam.head_id) {
+    try {
+      const { data } = await supabaseClient.from('users').select('ices_balance').eq('user_id', fam.head_id).single();
+      if (data) { valEl.textContent = (data.ices_balance || 0) + ' '; headerEl.style.display = 'flex'; }
+    } catch(e) {}
+  } else if (fam.role === 'head') {
+    valEl.textContent = balance + ' '; headerEl.style.display = 'flex';
+  } else {
+    headerEl.style.display = 'none';
+  }
+}
+
 // Загрузка аватара
 function showAvatarUploader() {
   const input = document.createElement('input');
@@ -16958,6 +17095,139 @@ function showEditNameForm() {
       }
     });
   }
+}
+
+// ==================== АКЦИИ (ПРОМО + КОЛЕСО ФОРТУНЫ) ====================
+async function renderPromoPage() {
+  const { data: promos } = await supabaseClient.from('promotions').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(10);
+  const promosHtml = promos && promos.length
+    ? promos.map(p => `
+        <div class="glass-card mb-3 overflow-hidden cursor-pointer hover:scale-[1.01] active:scale-[0.99] transition-transform" data-promotion-id="${p.id}">
+          ${p.banner_url ? `<div style="height:120px; background: url('${p.banner_url}') center/cover no-repeat; border-radius: 16px 16px 0 0;"></div>` : ''}
+          <div class="p-4">
+            <h3 class="text-white font-bold text-sm">${p.title || 'Акция'}</h3>
+            ${p.description ? `<p class="text-white/60 text-xs mt-1">${p.description}</p>` : ''}
+          </div>
+        </div>
+      `).join('')
+    : '<p class="text-white/50 text-center py-6">Акций пока нет. Следите за обновлениями!</p>';
+
+  return `
+    <div class="page-enter px-4 pb-8">
+      <div class="flex items-center gap-3 mb-5 mt-2">
+        <button id="backFromPromoBtn" class="global-back-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <h2 class="text-xl font-bold text-white">Акции</h2>
+      </div>
+
+      <!-- Колесо Фортуны -->
+      <div class="glass-card mb-5 overflow-hidden relative cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-transform" id="promoFortuneBtn" style="background: linear-gradient(135deg, rgba(91,191,235,0.15), rgba(139,92,246,0.15)); border: 1px solid rgba(139,92,246,0.25);">
+        <div class="absolute -right-10 -top-10 w-32 h-32 rounded-full blur-2xl" style="background: rgba(139,92,246,0.3);"></div>
+        <div class="flex items-center justify-between p-4 relative z-10">
+          <div class="space-y-0.5 text-left">
+            <h3 class="text-white font-bold text-sm flex items-center gap-1.5"><span>🔮 Колесо Фортуны</span></h3>
+            <p class="text-white/60 text-[10px]">Крутите барабан каждый день бесплатно! До 10 ICE!</p>
+          </div>
+          <button class="btn-primary py-2 px-4 rounded-xl text-xs font-bold shadow-lg flex items-center gap-1" style="background: linear-gradient(135deg, var(--ice-primary), #8B5CF6); border: none;">Крутить!</button>
+        </div>
+      </div>
+
+      <!-- Список акций -->
+      <h3 class="text-white font-bold mb-4 flex items-center gap-2">
+        <span>🏷️</span> Текущие акции
+      </h3>
+      ${promosHtml}
+
+      ${renderFooter()}
+    </div>
+  `;
+}
+
+function attachPromoPageHandlers() {
+  document.getElementById('backFromPromoBtn')?.addEventListener('click', () => switchTab('home'));
+  document.getElementById('promoFortuneBtn')?.addEventListener('click', () => showWheelOfFortuneModal());
+  document.querySelectorAll('[data-promotion-id]').forEach(el => {
+    el.addEventListener('click', () => tgUtil.alert('Подробнее об акции будет позже'));
+  });
+}
+
+// ==================== ИСТОРИЯ ====================
+async function renderHistory() {
+  const subScreen = window._historySubScreen || 'transactions';
+  let content = '';
+
+  if (subScreen === 'transactions') {
+    const { data, error } = await supabaseClient.from('transaction_history').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(100);
+    if (error || !data || !data.length) {
+      content = '<p class="text-white/50 text-center py-8">Транзакций пока нет</p>';
+    } else {
+      content = data.map(tx => `
+        <div class="flex justify-between py-3 border-b border-white/5">
+          <div>
+            <p class="text-white text-sm font-semibold">${getTransactionTypeText(tx.type)}</p>
+            <p class="text-white/40 text-xs">${new Date(tx.created_at).toLocaleString('ru-RU')}</p>
+            ${tx.description ? `<p class="text-white/60 text-xs mt-0.5">${tx.description}</p>` : ''}
+          </div>
+          <p class="${tx.amount >= 0 ? 'text-green-400' : 'text-red-400'} font-bold text-sm">${tx.amount >= 0 ? '+' : ''}${tx.amount} ICE</p>
+        </div>
+      `).join('');
+    }
+  } else {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data, error } = await supabaseClient.from('orders').select('*').eq('user_id', userId).lt('updated_at', sevenDaysAgo).order('created_at', { ascending: false }).limit(100);
+    if (error || !data || !data.length) {
+      content = '<p class="text-white/50 text-center py-8">Архив заказов пуст. Заказы появятся здесь через 7 дней после завершения.</p>';
+    } else {
+      content = data.map(o => `
+        <div class="glass-card p-4 mb-3">
+          <div class="flex justify-between items-start mb-1">
+            <p class="text-white font-semibold text-sm flex-1 mr-2">${o.title || o.url || 'Заказ'}</p>
+            <span class="text-xs px-2 py-0.5 rounded-full" style="background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.6);">${o.status || '—'}</span>
+          </div>
+          <p class="text-white/40 text-xs">${new Date(o.created_at).toLocaleDateString('ru-RU')}</p>
+          ${o.total_price ? `<p class="text-cyan-400 text-sm font-bold mt-1">${o.total_price} BYN</p>` : ''}
+        </div>
+      `).join('');
+    }
+  }
+
+  return `
+    <div class="page-enter px-4 pb-8">
+      <div class="flex items-center gap-3 mb-5 mt-2">
+        <button id="backFromHistoryBtn" class="global-back-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <h2 class="text-xl font-bold text-white">История</h2>
+      </div>
+      <div class="flex gap-2 mb-5">
+        <button id="historyTabTx" class="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${subScreen === 'transactions' ? 'btn-primary' : 'glass-card'}" style="${subScreen === 'transactions' ? '' : 'border: 1px solid var(--glass-border);'}">
+          💳 Транзакции
+        </button>
+        <button id="historyTabOrders" class="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${subScreen === 'orders' ? 'btn-primary' : 'glass-card'}" style="${subScreen === 'orders' ? '' : 'border: 1px solid var(--glass-border);'}">
+          📦 Архив заказов
+        </button>
+      </div>
+      <div id="historyContent">
+        ${content}
+      </div>
+    </div>
+  `;
+}
+
+function attachHistoryHandlers() {
+  document.getElementById('backFromHistoryBtn')?.addEventListener('click', () => {
+    window._historySubScreen = null;
+    switchTab('profile');
+  });
+  document.getElementById('historyTabTx')?.addEventListener('click', () => {
+    window._historySubScreen = 'transactions';
+    renderCurrentScreen();
+  });
+  document.getElementById('historyTabOrders')?.addEventListener('click', () => {
+    window._historySubScreen = 'orders';
+    renderCurrentScreen();
+  });
 }
 
 // Все транзакции (модальное окно)
@@ -18789,6 +19059,23 @@ window.downloadTaxInvoicePDF = async () => {
 
         // ==================== ЗАПУСК ====================
         init();
+
+        // ==================== WATCHDOG: content disappear guard ====================
+        // Re-renders the screen if content area becomes empty unexpectedly (handles Telegram app freeze/resume)
+        let _contentWatchdogTimer = null;
+        const _contentDiv = document.getElementById('content');
+        if (_contentDiv && typeof MutationObserver !== 'undefined') {
+          const _watchdog = new MutationObserver(() => {
+            clearTimeout(_contentWatchdogTimer);
+            _contentWatchdogTimer = setTimeout(() => {
+              if (_contentDiv.innerHTML && _contentDiv.innerHTML.trim().length < 30) {
+                console.warn('[ICE LOGIX] Content watchdog triggered — re-rendering');
+                renderCurrentScreen();
+              }
+            }, 500);
+          });
+          _watchdog.observe(_contentDiv, { childList: true, subtree: false });
+        }
   </script>
 </body>
 </html>
