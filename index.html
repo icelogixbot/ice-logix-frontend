@@ -3805,10 +3805,10 @@ const MAX_REQUESTS_TRUSTED = 100;
             { flag: '🇰🇷', code: 'KRW', label: '₩1000',  key: 'krw_rate', def: 0.0024,  mult: 1000 },
           ].map(c => {
             const rate = (Number(window.settings?.[c.key] || c.def) * c.mult).toFixed(2);
-            return \`<div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 6px 10px; flex-shrink: 0;">
-              <div style="font-size: 10px; color: rgba(255,255,255,0.45); white-space: nowrap; margin-bottom: 3px;">\${c.flag} \${c.code}</div>
-              <div style="font-size: 11px; font-weight: 700; color: white; white-space: nowrap;">\${c.label} ≈ <span style="color: #67e8f9;">\${rate} Br/ICE</span></div>
-            </div>\`;
+            return `<div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 6px 10px; flex-shrink: 0;">
+              <div style="font-size: 10px; color: rgba(255,255,255,0.45); white-space: nowrap; margin-bottom: 3px;">${c.flag} ${c.code}</div>
+              <div style="font-size: 11px; font-weight: 700; color: white; white-space: nowrap;">${c.label} ≈ <span style="color: #67e8f9;">${rate} Br/ICE</span></div>
+            </div>`;
           }).join('')}
         </div>
       </div>
