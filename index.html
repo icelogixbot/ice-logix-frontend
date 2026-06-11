@@ -97,23 +97,10 @@
     
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    /* Performance: GPU-accelerate scrollable containers & animated elements */
-    .scroll-x, .scroll-hint-container, .app-header, .tab-bar {
-      will-change: transform;
-      transform: translateZ(0);
+    /* Performance: safe GPU hint only for scroll containers */
+    .scroll-x {
       -webkit-transform: translateZ(0);
-    }
-    .glass-card, .story-card, .banner-slide {
-      contain: layout style;
-    }
-    /* Prevent content flicker when DOM updates */
-    #content {
-      min-height: 100vh;
-      contain: layout;
-    }
-    /* Prevent layout shifts during navigation */
-    .page-enter {
-      will-change: opacity, transform;
+      transform: translateZ(0);
     }
     
     html {
