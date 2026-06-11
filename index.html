@@ -2825,6 +2825,7 @@
     }
 
     let tg = null, userId = null, userName = 'Гость', userAvatarUrl = null, isOwner = false, supabaseClient = null;
+    let isRegistered = false;
     let originalAdminId = null;
     let isShadowMode = false;
     let adminAuthenticated = false;
@@ -3237,11 +3238,11 @@ const MAX_REQUESTS_TRUSTED = 100;
         }
         const settingsBtn = document.getElementById('settingsBtn');
         if (settingsBtn) {
-          settingsBtn.onclick = () => tgUtil.alert('Настройки будут позже');
+          settingsBtn.onclick = () => showAppSettings('theme');
         }
         const notificationsBtn = document.getElementById('notificationsBtn');
         if (notificationsBtn) {
-          notificationsBtn.onclick = () => tgUtil.alert('Уведомлений пока нет');
+          notificationsBtn.onclick = () => showNotificationsPanel();
         }
         
         // Прогреваем кэш курсов НБРБ (1 час) — для quickEstimate в списках
@@ -3252,8 +3253,9 @@ const MAX_REQUESTS_TRUSTED = 100;
         }
 
         // Performance: recover UI if app was backgrounded and content disappeared
+        // window._appReady is set to true after first renderCurrentScreen completes
         document.addEventListener('visibilitychange', () => {
-          if (document.visibilityState === 'visible') {
+          if (document.visibilityState === 'visible' && window._appReady) {
             const contentDiv = document.getElementById('content');
             if (contentDiv && (!contentDiv.innerHTML || contentDiv.innerHTML.trim().length < 50)) {
               renderCurrentScreen();
@@ -3264,6 +3266,7 @@ const MAX_REQUESTS_TRUSTED = 100;
         // Performance: handle Telegram WebApp activation/deactivation
         try {
           tg?.onEvent?.('activated', () => {
+            if (!window._appReady) return;
             const contentDiv = document.getElementById('content');
             if (contentDiv && (!contentDiv.innerHTML || contentDiv.innerHTML.trim().length < 50)) {
               renderCurrentScreen();
@@ -3292,6 +3295,7 @@ const MAX_REQUESTS_TRUSTED = 100;
         // ALWAYS call switchTab('home') to force the UI to boot and replace the loading skeletons!
         try {
           switchTab('home');
+          window._appReady = true;
         } catch (tabErr) {
           console.error('Failed to switch tab to home:', tabErr);
         }
@@ -3337,6 +3341,7 @@ const MAX_REQUESTS_TRUSTED = 100;
         .eq('user_id', userId).maybeSingle();
         
       if (!error && data) {
+        isRegistered = true;
         isOwner = (data.role === 'owner' || data.role === 'admin');
         balance = data.ices_balance || 0;
         userReferralCode = data.referral_code;
@@ -3350,8 +3355,8 @@ const MAX_REQUESTS_TRUSTED = 100;
         
         document.getElementById('headerBalance').innerText = balance;
         applyTheme(data.settings?.theme || 'dark');
-        // Update family balance in header if applicable
-        updateHeaderFamilyBalance();
+        // Update family balance in header — fire-and-forget, must not block init
+        setTimeout(() => updateHeaderFamilyBalance().catch(() => {}), 0);
       } else {
         applyTheme('dark');
       }
@@ -19048,21 +19053,23 @@ window.downloadTaxInvoicePDF = async () => {
         init();
 
         // ==================== WATCHDOG: content disappear guard ====================
-        // Re-renders the screen if content area becomes empty unexpectedly (handles Telegram app freeze/resume)
-        let _contentWatchdogTimer = null;
-        const _contentDiv = document.getElementById('content');
-        if (_contentDiv && typeof MutationObserver !== 'undefined') {
-          const _watchdog = new MutationObserver(() => {
-            clearTimeout(_contentWatchdogTimer);
-            _contentWatchdogTimer = setTimeout(() => {
-              if (_contentDiv.innerHTML && _contentDiv.innerHTML.trim().length < 30) {
-                console.warn('[ICE LOGIX] Content watchdog triggered — re-rendering');
-                renderCurrentScreen();
-              }
-            }, 500);
-          });
-          _watchdog.observe(_contentDiv, { childList: true, subtree: false });
-        }
+        // Starts 3s after init to avoid triggering during initial load
+        setTimeout(() => {
+          let _contentWatchdogTimer = null;
+          const _contentDiv = document.getElementById('content');
+          if (_contentDiv && typeof MutationObserver !== 'undefined') {
+            const _watchdog = new MutationObserver(() => {
+              clearTimeout(_contentWatchdogTimer);
+              _contentWatchdogTimer = setTimeout(() => {
+                if (_contentDiv.innerHTML && _contentDiv.innerHTML.trim().length < 30) {
+                  console.warn('[ICE LOGIX] Content watchdog triggered — re-rendering');
+                  renderCurrentScreen();
+                }
+              }, 800);
+            });
+            _watchdog.observe(_contentDiv, { childList: true, subtree: false });
+          }
+        }, 3000);
   </script>
 </body>
 </html>
