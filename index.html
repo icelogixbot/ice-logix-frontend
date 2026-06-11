@@ -3237,6 +3237,7 @@ const MAX_REQUESTS_TRUSTED = 100;
         const userCard = document.getElementById('userCard');
         if (userCard) {
           userCard.onclick = () => switchTab('profile');
+          if (!isRegistered) userCard.style.display = 'none';
         }
         const settingsBtn = document.getElementById('settingsBtn');
         if (settingsBtn) {
@@ -3249,7 +3250,13 @@ const MAX_REQUESTS_TRUSTED = 100;
         const loginBtn = document.getElementById('loginBtn');
         if (loginBtn) {
           loginBtn.onclick = () => showAuthPage();
-          if (!isRegistered) loginBtn.style.display = '';
+          if (!isRegistered) {
+            loginBtn.style.display = 'inline-block';
+            loginBtn.style.padding = '6px 14px';
+            loginBtn.style.fontSize = '13px';
+          } else {
+            loginBtn.style.display = 'none';
+          }
         }
 
         // Прогреваем кэш курсов НБРБ (1 час) — для quickEstimate в списках
@@ -8215,20 +8222,6 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
       </div>
     </div>
     `}
-    
-    <!-- История (вместо транзакций — ссылка на раздел) -->
-    <div class="p-4 rounded-2xl mb-4 cursor-pointer hover:bg-white/10 transition-all active:scale-[0.98]" id="historyProfileBtn" style="background: var(--glass-bg); border: 1px solid var(--glass-border);">
-      <div class="flex justify-between items-center">
-        <p class="font-semibold flex items-center gap-2" style="color: var(--text-secondary);">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-          </svg>
-          История
-        </p>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--ice-primary);"><polyline points="9 18 15 12 9 6"/></svg>
-      </div>
-      <p class="text-xs mt-1 text-left" style="color: var(--text-muted);">Транзакции и архив заказов</p>
-    </div>
     
     <!-- Referral Program -->
     <div class="p-4 rounded-2xl mb-4" style="background: linear-gradient(135deg, rgba(52,211,153,0.15), rgba(16,185,129,0.08)); border: 1px solid rgba(52,211,153,0.25);">
@@ -16318,9 +16311,9 @@ async function showRecoveryCodeModal() {
 
 async function showPersonalDataForm() {
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[110] p-4 overflow-y-auto';
+  modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[110] p-0 sm:p-4 overflow-y-auto';
   modal.innerHTML = `
-    <div class="bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+    <div class="bg-slate-900/100 sm:bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-none sm:rounded-2xl max-w-md w-full min-h-[100dvh] sm:min-h-0 sm:max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
       <div class="p-5 border-b border-white/10 flex justify-between items-center bg-white/5">
         <div>
           <h3 class="text-white font-bold text-lg flex items-center gap-2">
@@ -16338,11 +16331,11 @@ async function showPersonalDataForm() {
           <h4 class="text-cyan-400 font-bold text-xs uppercase tracking-wider">Основная информация</h4>
           <div>
             <label class="text-white/60 text-xs font-semibold block mb-1">ФИО (Полное имя)</label>
-            <input type="text" id="pdFullName" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="Иванов Иван Иванович">
+            <input type="text" id="pdFullName" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-base bg-white/5 text-white" placeholder="Иванов Иван Иванович">
           </div>
           <div>
             <label class="text-white/60 text-xs font-semibold block mb-1">Номер телефона</label>
-            <input type="tel" id="pdPhone" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="+375XXXXXXXXX">
+            <input type="tel" id="pdPhone" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-base bg-white/5 text-white" placeholder="+375XXXXXXXXX">
           </div>
         </div>
         
@@ -16378,25 +16371,25 @@ async function showPersonalDataForm() {
           <p class="text-white/40 text-[10px] leading-relaxed">Хранятся в зашифрованном виде (AES-256) на стороне клиента и передаются только таможенному брокеру.</p>
           <div>
             <label class="text-white/60 text-xs font-semibold block mb-1">Серия и номер</label>
-            <input type="text" id="pdPassportSeriesNumber" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="AB 1234567">
+            <input type="text" id="pdPassportSeriesNumber" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-base bg-white/5 text-white" placeholder="AB 1234567">
           </div>
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="text-white/60 text-xs font-semibold block mb-1">Дата выдачи</label>
-              <input type="date" id="pdPassportIssueDate" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white">
+              <input type="date" id="pdPassportIssueDate" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-base bg-white/5 text-white">
             </div>
             <div>
               <label class="text-white/60 text-xs font-semibold block mb-1">Личный номер (14 цифр)</label>
-              <input type="text" id="pdPassportIdNumber" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="14 знаков">
+              <input type="text" id="pdPassportIdNumber" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-base bg-white/5 text-white" placeholder="14 знаков">
             </div>
           </div>
           <div>
             <label class="text-white/60 text-xs font-semibold block mb-1">Кем выдан</label>
-            <input type="text" id="pdPassportIssuedBy" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="ОВД Центрального района г. Минска">
+            <input type="text" id="pdPassportIssuedBy" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-base bg-white/5 text-white" placeholder="ОВД Центрального района г. Минска">
           </div>
           <div>
             <label class="text-white/60 text-xs font-semibold block mb-1">Адрес регистрации</label>
-            <input type="text" id="pdPassportAddress" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="Минск, ул. Ленина 12, кв. 34">
+            <input type="text" id="pdPassportAddress" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-base bg-white/5 text-white" placeholder="Минск, ул. Ленина 12, кв. 34">
           </div>
         </div>
 
@@ -17575,129 +17568,218 @@ async function showNotificationsPanel() {
 function showAuthPage() {
   const overlay = document.createElement('div');
   overlay.id = 'authPageOverlay';
-  overlay.className = 'fixed inset-0 z-[200] flex flex-col items-center justify-center p-4 overflow-y-auto';
-  overlay.style.cssText = 'background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);';
+  overlay.className = 'fixed inset-0 z-[200] flex flex-col items-center justify-center p-4 overflow-y-auto backdrop-blur-md';
+  overlay.style.cssText = 'background: rgba(15, 23, 42, 0.85);';
 
   overlay.innerHTML = `
-    <div class="w-full max-w-sm">
-      <div class="text-center mb-8">
+    <div class="w-full max-w-sm bg-slate-900/90 border border-white/10 rounded-3xl shadow-2xl p-6 overflow-hidden relative">
+      <button id="authCloseBtn" class="absolute top-4 right-4 text-white/50 hover:text-white transition-colors">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      
+      <div class="text-center mb-6 mt-2">
         <div class="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style="background: linear-gradient(135deg, rgba(6,182,212,0.2), rgba(139,92,246,0.2)); border: 1px solid rgba(6,182,212,0.3);">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#22d3ee;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         </div>
         <h2 class="text-white text-2xl font-bold mb-1">ICE LOGIX</h2>
-        <p class="text-white/50 text-sm">Войдите или создайте аккаунт</p>
+        <p class="text-white/50 text-sm">Авторизация в системе</p>
       </div>
 
       <!-- Tabs -->
-      <div class="flex rounded-xl p-1 mb-6" style="background: rgba(255,255,255,0.08);">
-        <button id="authTabLogin" class="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all text-white" style="background: linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3));">Войти</button>
-        <button id="authTabRegister" class="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all text-white/50">Регистрация</button>
+      <div class="flex rounded-xl p-1 mb-6 bg-white/5 border border-white/10">
+        <button id="authTabPhone" class="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all text-white" style="background: linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3));">По телефону</button>
+        <button id="authTabEmail" class="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all text-white/50 bg-transparent">Email + Пароль</button>
       </div>
 
-      <!-- Form -->
-      <div class="space-y-3 mb-5">
-        <input type="email" id="authEmail" class="w-full p-3.5 rounded-xl text-white text-sm" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);" placeholder="Email">
-        <input type="password" id="authPassword" class="w-full p-3.5 rounded-xl text-white text-sm" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);" placeholder="Пароль">
+      <!-- Phone Form -->
+      <div id="authPhoneForm" class="space-y-4 mb-6 block">
+        <div id="phoneInputStep">
+          <label class="text-white/60 text-xs font-semibold block mb-1">Номер телефона</label>
+          <input type="tel" id="authPhoneInput" class="w-full p-3.5 rounded-xl text-white text-base bg-white/5 border border-white/20 focus:border-cyan-500 transition-colors" placeholder="+375XXXXXXXXX">
+          <button id="authPhoneSendCodeBtn" class="w-full py-3.5 rounded-xl font-bold text-white text-sm mt-4 transition-all" style="background: linear-gradient(135deg, #06b6d4, #8b5cf6);">Получить код</button>
+        </div>
+        <div id="phoneCodeStep" class="hidden">
+          <label class="text-white/60 text-xs font-semibold block mb-1">Код из SMS</label>
+          <input type="text" id="authPhoneCodeInput" class="w-full p-3.5 rounded-xl text-white text-base text-center tracking-widest bg-white/5 border border-white/20 focus:border-cyan-500 transition-colors" placeholder="000000">
+          <button id="authPhoneVerifyBtn" class="w-full py-3.5 rounded-xl font-bold text-white text-sm mt-4 transition-all" style="background: linear-gradient(135deg, #10b981, #059669);">Подтвердить</button>
+        </div>
       </div>
 
-      <p id="authError" class="text-red-400 text-sm text-center mb-3 hidden"></p>
+      <!-- Email Form -->
+      <div id="authEmailForm" class="space-y-4 mb-6 hidden">
+        <div>
+          <label class="text-white/60 text-xs font-semibold block mb-1">Email</label>
+          <input type="email" id="authEmailInput" class="w-full p-3.5 rounded-xl text-white text-base bg-white/5 border border-white/20 focus:border-cyan-500 transition-colors" placeholder="user@example.com">
+        </div>
+        <div>
+          <label class="text-white/60 text-xs font-semibold block mb-1">Пароль</label>
+          <input type="password" id="authPasswordInput" class="w-full p-3.5 rounded-xl text-white text-base bg-white/5 border border-white/20 focus:border-cyan-500 transition-colors" placeholder="Пароль">
+        </div>
+        <button id="authEmailSubmitBtn" class="w-full py-3.5 rounded-xl font-bold text-white text-sm mt-2 transition-all" style="background: linear-gradient(135deg, #06b6d4, #8b5cf6);">Войти / Создать аккаунт</button>
+      </div>
 
-      <button id="authSubmitBtn" class="w-full py-3.5 rounded-xl font-bold text-white text-sm mb-5" style="background: linear-gradient(135deg, #06b6d4, #8b5cf6);">Войти</button>
+      <p id="authErrorMsg" class="text-red-400 text-xs text-center mb-4 hidden bg-red-500/10 p-2 rounded-lg"></p>
 
       <!-- Divider -->
       <div class="flex items-center gap-3 mb-5">
         <div class="flex-1 border-t border-white/10"></div>
-        <span class="text-white/30 text-xs">или</span>
+        <span class="text-white/30 text-[10px] uppercase tracking-wider font-bold">Или войти через</span>
         <div class="flex-1 border-t border-white/10"></div>
       </div>
 
       <!-- Social buttons -->
-      <div class="flex gap-3 justify-center mb-6">
-        <button id="authTgBtn" class="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-white text-sm font-semibold transition" style="background: rgba(36,161,222,0.15); border: 1px solid rgba(36,161,222,0.3);">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="color:#29b6f6;"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
-          Telegram
+      <div class="flex gap-3 justify-center">
+        <button id="authSocialTg" class="w-12 h-12 rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95" style="background: rgba(36,161,222,0.15); border: 1px solid rgba(36,161,222,0.3);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="color:#29b6f6;"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
         </button>
-        <button id="authGoogleBtn" class="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-white text-sm font-semibold transition" style="background: rgba(234,67,53,0.1); border: 1px solid rgba(234,67,53,0.25);">
-          <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-          Google
+        <button id="authSocialGoogle" class="w-12 h-12 rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95" style="background: rgba(234,67,53,0.1); border: 1px solid rgba(234,67,53,0.25);">
+          <svg width="24" height="24" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        </button>
+        <button id="authSocialApple" class="w-12 h-12 rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="color:#ffffff;"><path d="M16.365 21.444c-1.332 1.405-2.651 1.4-3.955.086-1.19-1.2-2.316-1.187-3.486 0-1.385 1.4-2.721 1.428-4.043.08-3.036-3.111-4.707-8.31-2.482-12.825 1.134-2.296 3.013-3.714 5.234-3.743 1.572-.016 3.031.975 4.02.975.986 0 2.833-1.182 4.793-1.01 1.637.067 3.125.77 4.148 2.106-3.415 2.115-2.88 6.772.634 8.163-.787 2.111-1.956 4.316-3.863 6.168zM15.426 5.518c-.85.98-2.126 1.611-3.266 1.516-.25-1.428.468-2.85 1.258-3.791.905-1.083 2.304-1.727 3.402-1.631.183 1.428-.48 2.838-1.394 3.906z"/></svg>
         </button>
       </div>
-
-      <button id="authCloseBtn" class="w-full py-2 text-white/30 text-xs">Закрыть</button>
     </div>
   `;
 
   document.body.appendChild(overlay);
 
-  let isLoginMode = true;
+  let currentTab = 'phone';
+  
+  const phoneTabBtn = overlay.querySelector('#authTabPhone');
+  const emailTabBtn = overlay.querySelector('#authTabEmail');
+  const phoneForm = overlay.querySelector('#authPhoneForm');
+  const emailForm = overlay.querySelector('#authEmailForm');
+  const errEl = overlay.querySelector('#authErrorMsg');
 
-  const updateMode = () => {
-    const submitBtn = overlay.querySelector('#authSubmitBtn');
-    const loginTab = overlay.querySelector('#authTabLogin');
-    const registerTab = overlay.querySelector('#authTabRegister');
-    if (isLoginMode) {
-      submitBtn.textContent = 'Войти';
-      loginTab.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3))';
-      loginTab.style.color = '#fff';
-      registerTab.style.background = 'transparent';
-      registerTab.style.color = 'rgba(255,255,255,0.5)';
+  const switchAuthTab = (tab) => {
+    currentTab = tab;
+    errEl.classList.add('hidden');
+    if (tab === 'phone') {
+      phoneTabBtn.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3))';
+      phoneTabBtn.style.color = '#fff';
+      emailTabBtn.style.background = 'transparent';
+      emailTabBtn.style.color = 'rgba(255,255,255,0.5)';
+      phoneForm.classList.remove('hidden');
+      emailForm.classList.add('hidden');
     } else {
-      submitBtn.textContent = 'Зарегистрироваться';
-      registerTab.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3))';
-      registerTab.style.color = '#fff';
-      loginTab.style.background = 'transparent';
-      loginTab.style.color = 'rgba(255,255,255,0.5)';
+      emailTabBtn.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3))';
+      emailTabBtn.style.color = '#fff';
+      phoneTabBtn.style.background = 'transparent';
+      phoneTabBtn.style.color = 'rgba(255,255,255,0.5)';
+      emailForm.classList.remove('hidden');
+      phoneForm.classList.add('hidden');
     }
   };
 
-  overlay.querySelector('#authTabLogin').onclick = () => { isLoginMode = true; updateMode(); };
-  overlay.querySelector('#authTabRegister').onclick = () => { isLoginMode = false; updateMode(); };
+  phoneTabBtn.onclick = () => switchAuthTab('phone');
+  emailTabBtn.onclick = () => switchAuthTab('email');
+  
+  overlay.querySelector('#authCloseBtn').onclick = () => overlay.remove();
 
-  overlay.querySelector('#authSubmitBtn').onclick = async () => {
-    const email = overlay.querySelector('#authEmail').value.trim();
-    const password = overlay.querySelector('#authPassword').value;
-    const errEl = overlay.querySelector('#authError');
+  // --- Phone Flow ---
+  const phoneInput = overlay.querySelector('#authPhoneInput');
+  const sendCodeBtn = overlay.querySelector('#authPhoneSendCodeBtn');
+  const phoneInputStep = overlay.querySelector('#phoneInputStep');
+  const phoneCodeStep = overlay.querySelector('#phoneCodeStep');
+  const codeInput = overlay.querySelector('#authPhoneCodeInput');
+  const verifyBtn = overlay.querySelector('#authPhoneVerifyBtn');
+
+  sendCodeBtn.onclick = async () => {
+    const phone = phoneInput.value.trim();
+    if (!phone) { errEl.textContent = 'Введите номер телефона'; errEl.classList.remove('hidden'); return; }
+    errEl.classList.add('hidden');
+    sendCodeBtn.textContent = 'Отправка...'; sendCodeBtn.disabled = true;
+    try {
+      const { error } = await supabaseClient.auth.signInWithOtp({ phone });
+      if (error) throw error;
+      phoneInputStep.classList.add('hidden');
+      phoneCodeStep.classList.remove('hidden');
+    } catch(e) {
+      errEl.textContent = e.message || 'Ошибка отправки SMS';
+      errEl.classList.remove('hidden');
+    } finally {
+      sendCodeBtn.textContent = 'Получить код'; sendCodeBtn.disabled = false;
+    }
+  };
+
+  verifyBtn.onclick = async () => {
+    const phone = phoneInput.value.trim();
+    const token = codeInput.value.trim();
+    if (!token) { errEl.textContent = 'Введите код'; errEl.classList.remove('hidden'); return; }
+    errEl.classList.add('hidden');
+    verifyBtn.textContent = 'Проверка...'; verifyBtn.disabled = true;
+    try {
+      const { error } = await supabaseClient.auth.verifyOtp({ phone, token, type: 'sms' });
+      if (error) throw error;
+      await handleAuthSuccess(overlay);
+    } catch(e) {
+      errEl.textContent = e.message || 'Неверный код';
+      errEl.classList.remove('hidden');
+      verifyBtn.textContent = 'Подтвердить'; verifyBtn.disabled = false;
+    }
+  };
+
+  // --- Email Flow ---
+  const emailInput = overlay.querySelector('#authEmailInput');
+  const passwordInput = overlay.querySelector('#authPasswordInput');
+  const emailSubmitBtn = overlay.querySelector('#authEmailSubmitBtn');
+
+  emailSubmitBtn.onclick = async () => {
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
     if (!email || !password) { errEl.textContent = 'Заполните email и пароль'; errEl.classList.remove('hidden'); return; }
     errEl.classList.add('hidden');
-    const btn = overlay.querySelector('#authSubmitBtn');
-    btn.textContent = '...'; btn.disabled = true;
+    emailSubmitBtn.textContent = 'Авторизация...'; emailSubmitBtn.disabled = true;
     try {
-      let result;
-      if (isLoginMode) {
-        result = await supabaseClient.auth.signInWithPassword({ email, password });
-      } else {
-        result = await supabaseClient.auth.signUp({ email, password });
+      let { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error && (error.message.includes('Invalid login credentials') || error.message.includes('not found'))) {
+        const signUpRes = await supabaseClient.auth.signUp({ email, password });
+        if (signUpRes.error) throw signUpRes.error;
+      } else if (error) {
+        throw error;
       }
-      if (result.error) {
-        errEl.textContent = result.error.message;
-        errEl.classList.remove('hidden');
-        btn.textContent = isLoginMode ? 'Войти' : 'Зарегистрироваться';
-        btn.disabled = false;
-      } else {
-        isRegistered = true;
-        const loginBtnEl = document.getElementById('loginBtn');
-        if (loginBtnEl) loginBtnEl.style.display = 'none';
-        overlay.remove();
-        tgUtil.alert('✅ ' + (isLoginMode ? 'Вы вошли!' : 'Аккаунт создан!'));
-        await loadUserData();
-        renderCurrentScreen();
-      }
+      await handleAuthSuccess(overlay);
     } catch (e) {
       errEl.textContent = e.message || 'Ошибка авторизации';
       errEl.classList.remove('hidden');
-      btn.textContent = isLoginMode ? 'Войти' : 'Зарегистрироваться';
-      btn.disabled = false;
+      emailSubmitBtn.textContent = 'Войти / Создать аккаунт'; emailSubmitBtn.disabled = false;
     }
   };
 
-  overlay.querySelector('#authTgBtn').onclick = () => tgUtil.alert('Вход через Telegram доступен автоматически при открытии через бота');
-  overlay.querySelector('#authGoogleBtn').onclick = async () => {
+  // --- Socials ---
+  overlay.querySelector('#authSocialTg').onclick = () => {
+    tgUtil.alert('Авторизация через Telegram будет происходить автоматически при переходе из бота.');
+  };
+  overlay.querySelector('#authSocialGoogle').onclick = async () => {
     try {
       const { error } = await supabaseClient.auth.signInWithOAuth({ provider: 'google' });
-      if (error) tgUtil.alert('Ошибка: ' + error.message);
-    } catch(e) { tgUtil.alert('Google OAuth недоступен в этом окружении'); }
+      if (error) throw error;
+    } catch(e) { tgUtil.alert('Google OAuth временно недоступен: ' + e.message); }
   };
-  overlay.querySelector('#authCloseBtn').onclick = () => overlay.remove();
+  overlay.querySelector('#authSocialApple').onclick = async () => {
+    try {
+      const { error } = await supabaseClient.auth.signInWithOAuth({ provider: 'apple' });
+      if (error) throw error;
+    } catch(e) { tgUtil.alert('Apple OAuth временно недоступен: ' + e.message); }
+  };
+}
+
+async function handleAuthSuccess(overlay) {
+  isRegistered = true;
+  const loginBtnEl = document.getElementById('loginBtn');
+  const userCardEl = document.getElementById('userCard');
+  if (loginBtnEl) loginBtnEl.style.display = 'none';
+  if (userCardEl) userCardEl.style.display = 'flex';
+  overlay.remove();
+  tgUtil.haptic('success');
+  tgUtil.alert('✅ Успешная авторизация!');
+  await loadUserData();
+  if (typeof renderCurrentScreen === 'function') {
+    renderCurrentScreen();
+  } else {
+    location.reload();
+  }
 }
 
 async function showPhoneBinding() {
