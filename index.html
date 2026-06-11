@@ -1597,13 +1597,14 @@
         </div>
       </div>
       <div class="header-right">
-        <button class="icon-btn" id="notificationsBtn" title="Уведомления">
+        <button class="icon-btn relative" id="notificationsBtn" title="Уведомления">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
           </svg>
+          <span id="notifBadge" class="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[10px] font-bold flex items-center justify-center hidden" style="background: #ef4444; color: #fff;">0</span>
         </button>
-        <button class="icon-btn" id="settingsBtn" title="Настройки / О нас" onclick="currentSubScreen = 'about'; renderCurrentScreen();">
+        <button class="icon-btn" id="settingsBtn" title="Настройки">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="3"/>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -1613,6 +1614,7 @@
           <div class="user-avatar" id="avatar"></div>
           <span class="user-name" id="userNameHeader">Гость</span>
         </div>
+        <button class="icon-btn" id="loginBtn" title="Войти" style="display:none; background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.4); color: #22d3ee; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 10px; white-space: nowrap;">Войти</button>
       </div>
     </div>
     
@@ -3244,7 +3246,12 @@ const MAX_REQUESTS_TRUSTED = 100;
         if (notificationsBtn) {
           notificationsBtn.onclick = () => showNotificationsPanel();
         }
-        
+        const loginBtn = document.getElementById('loginBtn');
+        if (loginBtn) {
+          loginBtn.onclick = () => showAuthPage();
+          if (!isRegistered) loginBtn.style.display = '';
+        }
+
         // Прогреваем кэш курсов НБРБ (1 час) — для quickEstimate в списках
         if (window.iceLogixPricing?.warmRates) window.iceLogixPricing.warmRates();
         // Автоматически открываем онбординг для новых пользователей
@@ -3277,13 +3284,13 @@ const MAX_REQUESTS_TRUSTED = 100;
         // Performance: use requestIdleCallback for non-critical post-init tasks
         if ('requestIdleCallback' in window) {
           requestIdleCallback(() => {
-            // Prefetch notification count
             if (supabaseClient && userId) {
-              supabaseClient.from('orders').select('id', { count: 'exact', head: true })
-                .eq('user_id', userId).eq('status', 'pending').then(({count}) => {
-                  if (count > 0) {
-                    const badge = document.querySelector('#notificationsBtn');
-                    if (badge) badge.setAttribute('data-count', count);
+              supabaseClient.from('user_notifications').select('id', { count: 'exact', head: true })
+                .eq('user_id', userId).eq('is_read', false).then(({ count }) => {
+                  const badge = document.getElementById('notifBadge');
+                  if (badge && count > 0) {
+                    badge.textContent = count > 99 ? '99+' : count;
+                    badge.classList.remove('hidden');
                   }
                 }).catch(() => {});
             }
@@ -8289,11 +8296,11 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
         </div>
         <span id="cartBadge" class="absolute top-2 right-2 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center hidden" style="background: var(--status-error);">0</span>
       </button>
-      <button id="dropshipperBtn" class="glass-card p-4 text-left flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98]">
-        <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style="background: linear-gradient(135deg, rgba(52,211,153,0.2), rgba(16,185,129,0.1));"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span></div>
+      <button id="historyQuickBtn" class="glass-card p-4 text-left flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98]">
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style="background: linear-gradient(135deg, rgba(168,85,247,0.2), rgba(139,92,246,0.1));"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span></div>
         <div>
-          <p class="font-bold text-white text-sm">${isDropshipper ? 'Дропшиппинг' : 'Стать партнёром'}</p>
-          <p class="text-xs" style="color: var(--text-muted);">${isDropshipper ? 'Кабинет' : 'Зарабатывай'}</p>
+          <p class="font-bold text-white text-sm">История</p>
+          <p class="text-xs" style="color: var(--text-muted);">Транзакции и заказы</p>
         </div>
       </button>
     </div>
@@ -8301,10 +8308,10 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
 
 
   
-  <!-- Settings Grid -->
+  <!-- Другое Grid -->
   <div class="mb-5 page-enter" style="animation-delay: 0.15s;">
     <h3 class="text-white font-bold mb-4 flex items-center gap-2">
-      <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Настройки
+      <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></span> Другое
     </h3>
     <div class="glass-card p-2">
       <button id="myPersonalDataBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition">
@@ -8315,19 +8322,11 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
         </div>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
-      <button id="recoverySecurityBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition border-t border-white/5">
-        <span class="text-xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span></span>
+      <button id="dropshipperProfileBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition border-t border-white/5">
+        <span class="text-xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span></span>
         <div class="flex-1">
-          <p class="font-semibold text-white text-sm">Безопасность (Восстановление аккаунта)</p>
-          <p class="text-xs" style="color: var(--text-muted);">Резервный код для возврата доступа</p>
-        </div>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-      <button id="downloadInvoiceBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition border-t border-white/5" onclick="downloadTaxInvoicePDF()">
-        <span class="text-xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg></span></span>
-        <div class="flex-1">
-          <p class="font-semibold text-white text-sm">Скачать выписку за год (PDF)</p>
-          <p class="text-xs" style="color: var(--text-muted);">Отчет для налоговой инспекции</p>
+          <p class="font-semibold text-white text-sm">${isDropshipper ? 'Кабинет дропшиппера' : 'Зарабатывай с нами'}</p>
+          <p class="text-xs" style="color: var(--text-muted);">${isDropshipper ? 'Управление магазином' : 'Стань партнёром ICE LOGIX'}</p>
         </div>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
@@ -8344,30 +8343,6 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
           <div class="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
         </label>
       </div>
-      <button id="appSettingsBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition border-t border-white/5">
-        <span class="text-xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span></span>
-        <div class="flex-1">
-          <p class="font-semibold text-white text-sm">Уведомления</p>
-          <p class="text-xs" style="color: var(--text-muted);">Настройки оповещений</p>
-        </div>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-      <button id="familySettingsBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition">
-        <span class="text-xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span></span>
-        <div class="flex-1">
-          <p class="font-semibold text-white text-sm">Семейный бюджет</p>
-          <p class="text-xs" style="color: var(--text-muted);">Общий баланс и совместные покупки</p>
-        </div>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-      <button id="currencyAlertsBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition">
-        <span class="text-xl"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span></span>
-        <div class="flex-1">
-          <p class="font-semibold text-white text-sm">Трекер курсов & Алерты</p>
-          <p class="text-xs" style="color: var(--text-muted);">Графики валют и уведомления при падении</p>
-        </div>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
       ${isOwner ? `
       <button id="adminPanelBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition" style="border-top: 1px solid var(--glass-border);">
         <span class="text-xl"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zM5 20h14"/></svg></span></span>
@@ -8419,6 +8394,16 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
   const dropshipperBtn = document.getElementById('dropshipperBtn');
   if (dropshipperBtn) {
     dropshipperBtn.onclick = () => switchTab('dropshipper');
+  }
+
+  const historyQuickBtn = document.getElementById('historyQuickBtn');
+  if (historyQuickBtn) {
+    historyQuickBtn.onclick = () => switchTab('history');
+  }
+
+  const dropshipperProfileBtn = document.getElementById('dropshipperProfileBtn');
+  if (dropshipperProfileBtn) {
+    dropshipperProfileBtn.onclick = () => switchTab('dropshipper');
   }
 
   const academyBtn = document.getElementById('academyBtn');
@@ -8501,20 +8486,8 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
   // Настройки уведомлений
   const notifSettingsBtn = document.getElementById('notificationsSettingsBtn');
   if (notifSettingsBtn) notifSettingsBtn.onclick = () => showAppSettings('notifications');
-  const appSettingsBtn2 = document.getElementById('appSettingsBtn');
-  if (appSettingsBtn2) appSettingsBtn2.onclick = () => showAppSettings('notifications');
   const accountRecoveryBtn = document.getElementById('accountRecoveryBtn');
   if (accountRecoveryBtn) accountRecoveryBtn.onclick = () => showAccountRecovery();
-
-  const familySettingsBtn = document.getElementById('familySettingsBtn');
-  if (familySettingsBtn) {
-    familySettingsBtn.onclick = () => showFamilySettingsModal();
-  }
-
-  const currencyAlertsBtn = document.getElementById('currencyAlertsBtn');
-  if (currencyAlertsBtn) {
-    currencyAlertsBtn.onclick = () => showCurrencyAlertsModal();
-  }
 
   const cartBtn = document.getElementById('cartBtn');
   if (cartBtn) cartBtn.onclick = () => switchTab('cart');
@@ -10515,6 +10488,16 @@ async function renderAdmin() {
         <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="switchTab('admin_faq')" style="background: linear-gradient(135deg, rgba(34,197,94,0.12), rgba(22,163,74,0.06)); border-color: rgba(34,197,94,0.3);">
           <span class="flex items-center gap-2"><span class="ix text-green-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> Управление FAQ</span>
           <span class="ix text-green-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+        </button>
+
+        <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="showCurrencyAlertsModal()" style="background: linear-gradient(135deg, rgba(245,158,11,0.12), rgba(217,119,6,0.06)); border-color: rgba(245,158,11,0.3);">
+          <span class="flex items-center gap-2"><span class="ix text-amber-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span> Трекер курсов & Алерты</span>
+          <span class="ix text-amber-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+        </button>
+
+        <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="downloadTaxInvoicePDF()" style="background: linear-gradient(135deg, rgba(96,165,250,0.12), rgba(59,130,246,0.06)); border-color: rgba(96,165,250,0.3);">
+          <span class="flex items-center gap-2"><span class="ix text-blue-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg></span> Скачать выписку за год (PDF)</span>
+          <span class="ix text-blue-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
         </button>
 
         <!-- Список промокодов -->
@@ -16434,6 +16417,19 @@ async function showPersonalDataForm() {
         </div>
       </div>
       
+        <!-- Семейный бюджет — перенесён в Мои данные -->
+        <div class="space-y-2 pt-3 border-t border-white/5">
+          <h4 class="text-cyan-400 font-bold text-xs uppercase tracking-wider flex items-center gap-1">
+            ${ix('users', { size: '14px' })}
+            <span>Семейный бюджет</span>
+          </h4>
+          <p class="text-white/40 text-[10px] leading-relaxed">Общий баланс семьи и совместные покупки с разделением таможенного лимита.</p>
+          <button id="openFamilyBudgetBtn" class="w-full py-2.5 rounded-xl text-sm font-bold transition glass-card flex items-center justify-center gap-2 hover:bg-white/10">
+            ${ix('users')} Открыть семейный бюджет
+          </button>
+        </div>
+      </div>
+
       <div class="p-5 border-t border-white/10 bg-white/5 flex gap-3">
         <button id="savePersonalDataBtn" class="btn-primary flex-1 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2">
           ${ix('check')} Сохранить
@@ -16563,6 +16559,7 @@ async function showPersonalDataForm() {
   const closeForm = () => modal.remove();
   document.getElementById('closePersonalDataBtn').onclick = closeForm;
   document.getElementById('cancelPersonalDataBtn').onclick = closeForm;
+  document.getElementById('openFamilyBudgetBtn')?.addEventListener('click', () => { modal.remove(); showFamilySettingsModal(); });
 
   document.getElementById('savePersonalDataBtn').onclick = async () => {
     const fullNameVal = document.getElementById('pdFullName').value.trim();
@@ -17165,6 +17162,31 @@ async function renderHistory() {
         </div>
       `).join('');
     }
+  } else if (subScreen === 'family') {
+    const fam = window.userSettings?.family || {};
+    const headId = fam.head_id || (fam.role === 'head' ? userId : null);
+    if (!headId) {
+      content = '<p class="text-white/50 text-center py-8">Семейный бюджет не настроен</p>';
+    } else {
+      const { data: members } = await supabaseClient.from('users').select('user_id, settings').eq('settings->>family->>head_id', headId).limit(20);
+      const memberIds = members ? members.map(m => m.user_id) : [];
+      if (!memberIds.includes(headId)) memberIds.unshift(headId);
+      const { data, error } = await supabaseClient.from('family_transactions').select('*').in('user_id', memberIds).order('created_at', { ascending: false }).limit(100);
+      if (error || !data || !data.length) {
+        content = '<p class="text-white/50 text-center py-8">Транзакций семьи пока нет</p>';
+      } else {
+        content = data.map(tx => `
+          <div class="flex justify-between py-3 border-b border-white/5">
+            <div>
+              <p class="text-white text-sm font-semibold">${tx.description || getTransactionTypeText(tx.type)}</p>
+              <p class="text-white/40 text-xs">${new Date(tx.created_at).toLocaleString('ru-RU')}</p>
+              <p class="text-white/50 text-xs">ID: ${tx.user_id}</p>
+            </div>
+            <p class="${tx.amount >= 0 ? 'text-green-400' : 'text-red-400'} font-bold text-sm">${tx.amount >= 0 ? '+' : ''}${tx.amount} ICE</p>
+          </div>
+        `).join('');
+      }
+    }
   } else {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const { data, error } = await supabaseClient.from('orders').select('*').eq('user_id', userId).lt('updated_at', sevenDaysAgo).order('created_at', { ascending: false }).limit(100);
@@ -17192,12 +17214,15 @@ async function renderHistory() {
         </button>
         <h2 class="text-xl font-bold text-white">История</h2>
       </div>
-      <div class="flex gap-2 mb-5">
+      <div class="flex gap-2 mb-5 flex-wrap">
         <button id="historyTabTx" class="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${subScreen === 'transactions' ? 'btn-primary' : 'glass-card'}" style="${subScreen === 'transactions' ? '' : 'border: 1px solid var(--glass-border);'}">
           💳 Транзакции
         </button>
         <button id="historyTabOrders" class="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${subScreen === 'orders' ? 'btn-primary' : 'glass-card'}" style="${subScreen === 'orders' ? '' : 'border: 1px solid var(--glass-border);'}">
           📦 Архив заказов
+        </button>
+        <button id="historyTabFamily" class="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${subScreen === 'family' ? 'btn-primary' : 'glass-card'}" style="${subScreen === 'family' ? '' : 'border: 1px solid var(--glass-border);'}">
+          👨‍👩‍👧 История семьи
         </button>
       </div>
       <div id="historyContent">
@@ -17218,6 +17243,10 @@ function attachHistoryHandlers() {
   });
   document.getElementById('historyTabOrders')?.addEventListener('click', () => {
     window._historySubScreen = 'orders';
+    renderCurrentScreen();
+  });
+  document.getElementById('historyTabFamily')?.addEventListener('click', () => {
+    window._historySubScreen = 'family';
     renderCurrentScreen();
   });
 }
@@ -17392,6 +17421,8 @@ async function showAppSettings(initialTab = 'notifications') {
           data-tab="notifications"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span> Уведомления</button>
         <button class="settings-tab flex-1 py-3 text-sm font-medium transition ${initialTab==='theme'?'text-cyan-400 border-b-2 border-cyan-400':'text-white/50'}"
           data-tab="theme"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="2"/></svg></span> Тема</button>
+        <button class="settings-tab flex-1 py-3 text-sm font-medium transition ${initialTab==='security'?'text-cyan-400 border-b-2 border-cyan-400':'text-white/50'}"
+          data-tab="security"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span> Безопасность</button>
       </div>
       <!-- Notifications panel -->
       <div id="settingsPanel-notifications" class="p-5 overflow-y-auto flex-1 space-y-4 ${initialTab!=='notifications'?'hidden':''}">
@@ -17416,6 +17447,18 @@ async function showAppSettings(initialTab = 'notifications') {
         </div>
         <button id="resetSettingsBtn" class="mt-4 w-full text-white/40 text-xs py-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></span> Сбросить по умолчанию</button>
       </div>
+      <!-- Security panel -->
+      <div id="settingsPanel-security" class="p-5 overflow-y-auto flex-1 space-y-4 ${initialTab!=='security'?'hidden':''}">
+        <p class="text-white/60 text-sm">Управление безопасностью аккаунта и кодом восстановления доступа.</p>
+        <button id="securityRecoveryBtn" class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-left transition" style="background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3);">
+          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+          <div class="flex-1">
+            <p class="font-semibold text-white text-sm">Код восстановления</p>
+            <p class="text-xs text-white/50">Резервный код для возврата доступа</p>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:rgba(255,255,255,0.4);"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
       <div class="p-5 border-t border-white/20 flex gap-3">
         <button id="saveAppSettings" class="btn-primary flex-1">Сохранить</button>
         <button id="closeAppSettings" class="btn-secondary flex-1">Отмена</button>
@@ -17429,7 +17472,7 @@ async function showAppSettings(initialTab = 'notifications') {
     tab.onclick = () => {
       modal.querySelectorAll('.settings-tab').forEach(t => { t.classList.remove('text-cyan-400','border-b-2','border-cyan-400'); t.classList.add('text-white/50'); });
       tab.classList.add('text-cyan-400','border-b-2','border-cyan-400'); tab.classList.remove('text-white/50');
-      ['notifications','theme'].forEach(name => {
+      ['notifications','theme','security'].forEach(name => {
         modal.querySelector(`#settingsPanel-${name}`)?.classList.toggle('hidden', name !== tab.dataset.tab);
       });
     };
@@ -17453,6 +17496,7 @@ async function showAppSettings(initialTab = 'notifications') {
     modal.querySelector('#notifyPromotions').checked = true;
   };
 
+  modal.querySelector('#securityRecoveryBtn')?.addEventListener('click', () => { modal.remove(); showRecoveryCodeModal(); });
   modal.querySelector('#closeAppSettings').onclick = () => { applyTheme(currentTheme); modal.remove(); };
   modal.querySelector('#saveAppSettings').onclick = async () => {
     const newNotif = {
@@ -17466,6 +17510,194 @@ async function showAppSettings(initialTab = 'notifications') {
     tgUtil.alert('✅ Настройки сохранены');
     modal.remove();
   };
+}
+
+async function showNotificationsPanel() {
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[110] p-4 overflow-y-auto pt-16 pb-20';
+
+  let notifications = [];
+  let loadError = null;
+  if (supabaseClient && userId) {
+    const { data, error } = await supabaseClient.from('user_notifications')
+      .select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(50);
+    if (!error && data) notifications = data;
+    else if (error) loadError = error;
+  }
+
+  const unread = notifications.filter(n => !n.is_read);
+
+  modal.innerHTML = `
+    <div class="bg-[#1e293b] rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col border border-white/20">
+      <div class="p-5 border-b border-white/20 flex items-center justify-between">
+        <h3 class="text-white font-bold text-lg flex items-center gap-2">
+          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+          Уведомления
+          ${unread.length > 0 ? `<span class="ml-1 px-2 py-0.5 rounded-full text-xs font-bold" style="background:#ef4444;color:#fff;">${unread.length}</span>` : ''}
+        </h3>
+        <button id="closeNotifPanel" class="text-white/50 hover:text-white transition p-1">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="p-4 overflow-y-auto flex-1">
+        ${loadError ? `<p class="text-red-400 text-sm text-center py-6">Ошибка загрузки уведомлений</p>` :
+          notifications.length === 0
+            ? `<p class="text-white/50 text-center py-8">Уведомлений пока нет</p>`
+            : notifications.map(n => `
+              <div class="p-3 rounded-xl mb-3 ${n.is_read ? 'bg-white/5' : 'bg-cyan-500/10 border border-cyan-500/20'}">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="flex-1">
+                    <p class="text-white text-sm font-semibold">${n.title || 'Уведомление'}</p>
+                    ${n.body ? `<p class="text-white/60 text-xs mt-1">${n.body}</p>` : ''}
+                    <p class="text-white/30 text-xs mt-1">${new Date(n.created_at).toLocaleString('ru-RU')}</p>
+                  </div>
+                  ${!n.is_read ? '<span class="w-2 h-2 rounded-full mt-1 flex-shrink-0" style="background:#22d3ee;"></span>' : ''}
+                </div>
+              </div>
+            `).join('')
+        }
+      </div>
+    </div>`;
+
+  document.body.appendChild(modal);
+  modal.querySelector('#closeNotifPanel')?.addEventListener('click', () => modal.remove());
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+
+  if (unread.length > 0 && supabaseClient && userId) {
+    const ids = unread.map(n => n.id);
+    supabaseClient.from('user_notifications').update({ is_read: true }).in('id', ids).then(() => {
+      const badge = document.getElementById('notifBadge');
+      if (badge) { badge.classList.add('hidden'); badge.textContent = '0'; }
+    });
+  }
+}
+
+function showAuthPage() {
+  const overlay = document.createElement('div');
+  overlay.id = 'authPageOverlay';
+  overlay.className = 'fixed inset-0 z-[200] flex flex-col items-center justify-center p-4 overflow-y-auto';
+  overlay.style.cssText = 'background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);';
+
+  overlay.innerHTML = `
+    <div class="w-full max-w-sm">
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style="background: linear-gradient(135deg, rgba(6,182,212,0.2), rgba(139,92,246,0.2)); border: 1px solid rgba(6,182,212,0.3);">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#22d3ee;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <h2 class="text-white text-2xl font-bold mb-1">ICE LOGIX</h2>
+        <p class="text-white/50 text-sm">Войдите или создайте аккаунт</p>
+      </div>
+
+      <!-- Tabs -->
+      <div class="flex rounded-xl p-1 mb-6" style="background: rgba(255,255,255,0.08);">
+        <button id="authTabLogin" class="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all text-white" style="background: linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3));">Войти</button>
+        <button id="authTabRegister" class="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all text-white/50">Регистрация</button>
+      </div>
+
+      <!-- Form -->
+      <div class="space-y-3 mb-5">
+        <input type="email" id="authEmail" class="w-full p-3.5 rounded-xl text-white text-sm" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);" placeholder="Email">
+        <input type="password" id="authPassword" class="w-full p-3.5 rounded-xl text-white text-sm" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);" placeholder="Пароль">
+      </div>
+
+      <p id="authError" class="text-red-400 text-sm text-center mb-3 hidden"></p>
+
+      <button id="authSubmitBtn" class="w-full py-3.5 rounded-xl font-bold text-white text-sm mb-5" style="background: linear-gradient(135deg, #06b6d4, #8b5cf6);">Войти</button>
+
+      <!-- Divider -->
+      <div class="flex items-center gap-3 mb-5">
+        <div class="flex-1 border-t border-white/10"></div>
+        <span class="text-white/30 text-xs">или</span>
+        <div class="flex-1 border-t border-white/10"></div>
+      </div>
+
+      <!-- Social buttons -->
+      <div class="flex gap-3 justify-center mb-6">
+        <button id="authTgBtn" class="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-white text-sm font-semibold transition" style="background: rgba(36,161,222,0.15); border: 1px solid rgba(36,161,222,0.3);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="color:#29b6f6;"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+          Telegram
+        </button>
+        <button id="authGoogleBtn" class="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-white text-sm font-semibold transition" style="background: rgba(234,67,53,0.1); border: 1px solid rgba(234,67,53,0.25);">
+          <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+          Google
+        </button>
+      </div>
+
+      <button id="authCloseBtn" class="w-full py-2 text-white/30 text-xs">Закрыть</button>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  let isLoginMode = true;
+
+  const updateMode = () => {
+    const submitBtn = overlay.querySelector('#authSubmitBtn');
+    const loginTab = overlay.querySelector('#authTabLogin');
+    const registerTab = overlay.querySelector('#authTabRegister');
+    if (isLoginMode) {
+      submitBtn.textContent = 'Войти';
+      loginTab.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3))';
+      loginTab.style.color = '#fff';
+      registerTab.style.background = 'transparent';
+      registerTab.style.color = 'rgba(255,255,255,0.5)';
+    } else {
+      submitBtn.textContent = 'Зарегистрироваться';
+      registerTab.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3))';
+      registerTab.style.color = '#fff';
+      loginTab.style.background = 'transparent';
+      loginTab.style.color = 'rgba(255,255,255,0.5)';
+    }
+  };
+
+  overlay.querySelector('#authTabLogin').onclick = () => { isLoginMode = true; updateMode(); };
+  overlay.querySelector('#authTabRegister').onclick = () => { isLoginMode = false; updateMode(); };
+
+  overlay.querySelector('#authSubmitBtn').onclick = async () => {
+    const email = overlay.querySelector('#authEmail').value.trim();
+    const password = overlay.querySelector('#authPassword').value;
+    const errEl = overlay.querySelector('#authError');
+    if (!email || !password) { errEl.textContent = 'Заполните email и пароль'; errEl.classList.remove('hidden'); return; }
+    errEl.classList.add('hidden');
+    const btn = overlay.querySelector('#authSubmitBtn');
+    btn.textContent = '...'; btn.disabled = true;
+    try {
+      let result;
+      if (isLoginMode) {
+        result = await supabaseClient.auth.signInWithPassword({ email, password });
+      } else {
+        result = await supabaseClient.auth.signUp({ email, password });
+      }
+      if (result.error) {
+        errEl.textContent = result.error.message;
+        errEl.classList.remove('hidden');
+        btn.textContent = isLoginMode ? 'Войти' : 'Зарегистрироваться';
+        btn.disabled = false;
+      } else {
+        isRegistered = true;
+        const loginBtnEl = document.getElementById('loginBtn');
+        if (loginBtnEl) loginBtnEl.style.display = 'none';
+        overlay.remove();
+        tgUtil.alert('✅ ' + (isLoginMode ? 'Вы вошли!' : 'Аккаунт создан!'));
+        await loadUserData();
+        renderCurrentScreen();
+      }
+    } catch (e) {
+      errEl.textContent = e.message || 'Ошибка авторизации';
+      errEl.classList.remove('hidden');
+      btn.textContent = isLoginMode ? 'Войти' : 'Зарегистрироваться';
+      btn.disabled = false;
+    }
+  };
+
+  overlay.querySelector('#authTgBtn').onclick = () => tgUtil.alert('Вход через Telegram доступен автоматически при открытии через бота');
+  overlay.querySelector('#authGoogleBtn').onclick = async () => {
+    try {
+      const { error } = await supabaseClient.auth.signInWithOAuth({ provider: 'google' });
+      if (error) tgUtil.alert('Ошибка: ' + error.message);
+    } catch(e) { tgUtil.alert('Google OAuth недоступен в этом окружении'); }
+  };
+  overlay.querySelector('#authCloseBtn').onclick = () => overlay.remove();
 }
 
 async function showPhoneBinding() {
