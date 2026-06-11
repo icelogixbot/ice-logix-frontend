@@ -3198,6 +3198,15 @@ const MAX_REQUESTS_TRUSTED = 100;
         } catch (tabErr) {
           console.error('Failed to switch tab to home:', tabErr);
         }
+
+        // Deep-link: ?startapp=review_<order_id> → авто-открытие формы отзыва
+        try {
+          const sp = tg?.initDataUnsafe?.start_param || new URLSearchParams(location.search).get('tgWebAppStartParam') || '';
+          if (sp && sp.indexOf('review_') === 0) {
+            const orderId = sp.slice('review_'.length);
+            setTimeout(() => { try { openReviewForm(orderId); } catch (e) { console.error('openReviewForm failed:', e); } }, 600);
+          }
+        } catch (dlErr) { console.error('deep-link handling failed:', dlErr); }
       }
 
       // Watch for category selects to apply 2-step UI enhancement
@@ -3664,53 +3673,32 @@ const MAX_REQUESTS_TRUSTED = 100;
   ];
   
   return `
-    <!-- Welcome Section -->
-    <div class="glass-card mb-5 page-enter" style="animation-delay: 0.1s;">
-      <div class="flex items-center gap-4">
-        <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl animate-float" style="background: linear-gradient(135deg, rgba(91,191,235,0.3), rgba(46,158,212,0.2));">
-          <span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 6.7c-1 0-1.8.8-1.8 1.8V15M16.5 5.5c-1 0-1.8.8-1.8 1.8V15M11.5 8c-1 0-1.8.8-1.8 1.8V15M7 11c-1 0-1.8.8-1.8 1.8V15"/><path d="M19.2 15v.5a7.2 7.2 0 0 1-14.4 0V11"/></svg></span>
-        </div>
-        <div class="flex-1">
-          <h2 class="text-lg font-bold text-white mb-1">Привет, <span id="homeUserName">${userName}</span>!</h2>
-          <p class="text-sm" style="color: var(--text-secondary);">Что закажем сегодня?</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Drops Banner -->
-    <div onclick="switchTab('drops')" class="glass-card mb-5 page-enter cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-transform overflow-hidden relative" style="animation-delay: 0.11s; background: linear-gradient(135deg, rgba(168,85,247,0.2), rgba(139,92,246,0.12)); border: 1px solid rgba(168,85,247,0.3);">
-      <div class="absolute -right-8 -top-8 w-28 h-28 rounded-full blur-2xl" style="background: rgba(168,85,247,0.35);"></div>
-      <div class="flex items-center justify-between p-4 relative z-10">
-        <div>
-          <h3 class="text-white font-black text-lg flex items-center gap-2">🧊 ДРОПЫ</h3>
-          <p class="text-white/70 text-xs mt-0.5">Эксклюзив — только 1 час в неделю</p>
-        </div>
-        <span class="ix text-purple-300"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
-      </div>
-    </div>
-
     <!-- Currency Tracker -->
     <div class="glass-card mb-5 page-enter" style="animation-delay: 0.12s; padding: 12px 16px;">
       <div class="flex justify-between items-center mb-2">
         <h3 class="text-white font-bold text-sm flex items-center gap-1"><span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span> Биржевой курс ICE LOGIX</h3>
         <span class="text-green-400 text-[10px] bg-green-400/20 px-2 py-0.5 rounded-full animate-pulse">Live</span>
       </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div class="bg-white/5 p-2 rounded-xl border border-white/10 relative overflow-hidden">
-          <p class="text-white/50 text-[10px] mb-1">Китайский Юань (CNY)</p>
-          <div class="flex items-baseline gap-2 relative z-10">
-            <span class="text-lg font-bold text-white">¥1</span>
-            <span class="text-cyan-400 text-sm font-bold">= ${Number(window.settings?.cny_rate || 0.46).toFixed(2)} BYN</span>
-          </div>
-          <div class="absolute -bottom-2 -right-2 text-white/5"><span class="ix" style="width:40px;height:40px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></span></div>
-        </div>
-        <div class="bg-white/5 p-2 rounded-xl border border-white/10 relative overflow-hidden">
-          <p class="text-white/50 text-[10px] mb-1">Евро (EUR)</p>
-          <div class="flex items-baseline gap-2 relative z-10">
-            <span class="text-lg font-bold text-white">€1</span>
-            <span class="text-cyan-400 text-sm font-bold">= ${Number(window.settings?.eur_rate || 3.55).toFixed(2)} BYN</span>
-          </div>
-          <div class="absolute -bottom-2 -right-2 text-white/5"><span class="ix" style="width:40px;height:40px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 5L5 19M5 5l14 14"/></svg></span></div>
+      <div style="overflow-x: auto; margin: 0 -4px; padding: 2px 4px; scrollbar-width: none; -ms-overflow-style: none;">
+        <div style="display: flex; gap: 6px; width: max-content; padding-bottom: 2px;">
+          ${[
+            { flag: '🇺🇸', code: 'USD', label: '$1',     key: 'usd_rate', def: 3.25,    mult: 1    },
+            { flag: '🇪🇺', code: 'EUR', label: '€1',     key: 'eur_rate', def: 3.55,    mult: 1    },
+            { flag: '🇷🇺', code: 'RUB', label: '₽1',     key: 'rub_rate', def: 0.031,   mult: 1    },
+            { flag: '🇨🇳', code: 'CNY', label: '¥1',     key: 'cny_rate', def: 0.46,    mult: 1    },
+            { flag: '🇵🇱', code: 'PLN', label: 'zł1',    key: 'pln_rate', def: 0.80,    mult: 1    },
+            { flag: '🇯🇵', code: 'JPY', label: '¥100',   key: 'jpy_rate', def: 0.022,   mult: 100  },
+            { flag: '🇻🇳', code: 'VND', label: '₫1000',  key: 'vnd_rate', def: 0.00013, mult: 1000 },
+            { flag: '🇦🇪', code: 'AED', label: 'د.إ1',   key: 'aed_rate', def: 0.88,    mult: 1    },
+            { flag: '🇹🇷', code: 'TRY', label: '₺1',     key: 'try_rate', def: 0.096,   mult: 1    },
+            { flag: '🇰🇷', code: 'KRW', label: '₩1000',  key: 'krw_rate', def: 0.0024,  mult: 1000 },
+          ].map(c => {
+            const rate = (Number(window.settings?.[c.key] || c.def) * c.mult).toFixed(2);
+            return \`<div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 6px 10px; flex-shrink: 0;">
+              <div style="font-size: 10px; color: rgba(255,255,255,0.45); white-space: nowrap; margin-bottom: 3px;">\${c.flag} \${c.code}</div>
+              <div style="font-size: 11px; font-weight: 700; color: white; white-space: nowrap;">\${c.label} ≈ <span style="color: #67e8f9;">\${rate} Br/ICE</span></div>
+            </div>\`;
+          }).join('')}
         </div>
       </div>
     </div>
@@ -8147,10 +8135,9 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
           Скопировать ссылку
         </button>
       ` : ''}
-      <div class="grid grid-cols-3 gap-2 mt-3">
+      <div class="grid grid-cols-2 gap-2 mt-3">
         <button onclick="switchTab('reftree')" class="py-2.5 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition-all hover:bg-white/10 active:scale-95" style="background: var(--glass-bg-strong); border: 1px solid var(--glass-border);">🌳<span>Моя сеть</span></button>
         <button onclick="switchTab('ugc')" class="py-2.5 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition-all hover:bg-white/10 active:scale-95" style="background: var(--glass-bg-strong); border: 1px solid var(--glass-border);">🎬<span>Распаковка</span></button>
-        <button onclick="switchTab('drops')" class="py-2.5 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition-all hover:bg-white/10 active:scale-95" style="background: var(--glass-bg-strong); border: 1px solid var(--glass-border);">🧊<span>Дропы</span></button>
       </div>
     </div>
   </div>
@@ -10398,7 +10385,12 @@ async function renderAdmin() {
           <span class="flex items-center gap-2"><span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span> Аналитика и Финансы</span>
           <span class="ix text-cyan-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
         </button>
-        
+
+        <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="switchTab('admin_crm')" style="background: linear-gradient(135deg, rgba(244,114,182,0.1), rgba(219,39,119,0.05)); border-color: rgba(244,114,182,0.3);">
+          <span class="flex items-center gap-2"><span class="ix text-pink-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> CRM и Сегменты</span>
+          <span class="ix text-pink-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+        </button>
+
         <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="switchTab('admin_suppliers')" style="background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(5,150,105,0.05)); border-color: rgba(16,185,129,0.3);">
           <span class="flex items-center gap-2"><span class="ix text-emerald-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> База поставщиков</span>
           <span class="ix text-emerald-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
@@ -13928,13 +13920,14 @@ function attachAdminSuppliersHandlers() {
         if (!adminAuthenticated) { switchTab('admin'); return; }
         contentDiv.innerHTML = await renderAdminAnalytics();
         if (typeof attachAdminAnalyticsHandlers === 'function') attachAdminAnalyticsHandlers();
+      } else if (currentTab === 'admin_crm' && isOwner) {
+        if (!adminAuthenticated) { switchTab('admin'); return; }
+        contentDiv.innerHTML = await renderAdminCRM();
+        if (typeof attachAdminCRMHandlers === 'function') attachAdminCRMHandlers();
       } else if (currentTab === 'admin_suppliers' && isOwner) {
         if (!adminAuthenticated) { switchTab('admin'); return; }
         contentDiv.innerHTML = await renderAdminSuppliers();
         attachAdminSuppliersHandlers();
-      } else if (currentTab === 'drops') {
-        contentDiv.innerHTML = shadowBannerHtml + await renderDrops();
-        attachDropsHandlers();
       } else if (currentTab === 'ugc') {
         contentDiv.innerHTML = shadowBannerHtml + await renderUGC();
         attachUGCHandlers();
@@ -18058,8 +18051,179 @@ async function renderAdminResale() {
   } catch(e) { return `<p class="text-red-400">Ошибка</p>`; }
 }
 
-// ==================== ФАЗА 19: AI АНАЛИТИКА ====================
+// ==================== ФАЗА 15: CRM / RFM ====================
 
+const CRM_SEGMENTS = {
+  'VIP':         { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)',  border: 'rgba(251,191,36,0.35)',  icon: '⭐️' },
+  'Постоянный':  { color: '#4ade80', bg: 'rgba(74,222,128,0.12)',  border: 'rgba(74,222,128,0.35)',  icon: '🔁' },
+  'Новичок':     { color: '#38bdf8', bg: 'rgba(56,189,248,0.12)',  border: 'rgba(56,189,248,0.35)',  icon: '🌱' },
+  'Активный':    { color: '#22d3ee', bg: 'rgba(34,211,238,0.12)',  border: 'rgba(34,211,238,0.35)',  icon: '✅' },
+  'Спящий':      { color: '#f472b6', bg: 'rgba(244,114,182,0.12)', border: 'rgba(244,114,182,0.35)', icon: '😴' },
+  'Потерянный':  { color: '#f87171', bg: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.35)', icon: '💤' },
+};
+
+function computeRFMSegment(recencyDays, frequency, monetary) {
+  if (frequency === 0 && recencyDays <= 14) return 'Новичок';
+  if (monetary >= 1000 && recencyDays <= 60) return 'VIP';
+  if (frequency >= 2 && recencyDays <= 45) return 'Постоянный';
+  if (recencyDays > 60) return 'Потерянный';
+  if (recencyDays > 30 && frequency >= 1) return 'Спящий';
+  return 'Активный';
+}
+
+async function renderAdminCRM() {
+  if (!userId) return '';
+  const { data: userData } = await supabaseClient.from('users').select('role').eq('user_id', userId).single();
+  if (!userData || !['admin', 'owner'].includes(userData.role)) return '<p class="text-center mt-10 text-red-400">Доступ запрещен</p>';
+
+  return `
+    <div class="flex items-center gap-3 mb-6">
+      <button class="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-white/10 transition-colors" onclick="switchTab('admin')">
+        <span class="ix text-white"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span>
+      </button>
+      <h2 class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-violet-400">CRM и Сегменты</h2>
+    </div>
+
+    <div id="crmSegments" class="grid grid-cols-3 gap-2 mb-5">
+      <div class="col-span-3 text-center text-white/40 text-sm py-6">Загрузка...</div>
+    </div>
+
+    <div class="glass-card p-4 mb-4 border border-white/5 rounded-2xl flex items-center justify-between">
+      <div><p class="text-[10px] text-white/50 uppercase tracking-wider font-bold">Средний LTV клиента</p><p class="text-xl font-black text-amber-400" id="crmAvgLtv">—</p></div>
+      <div class="text-right"><p class="text-[10px] text-white/50 uppercase tracking-wider font-bold">Активная база</p><p class="text-xl font-black text-white" id="crmActiveBase">—</p></div>
+    </div>
+
+    <div class="flex gap-2 mb-3 overflow-x-auto pb-1" id="crmFilters"></div>
+
+    <div id="crmUserList" class="space-y-2"></div>
+  `;
+}
+
+window.attachAdminCRMHandlers = async () => {
+  const listEl = document.getElementById('crmUserList');
+  try {
+    const { data: users, error } = await supabaseClient
+      .from('users')
+      .select('user_id, full_name, username, created_at, total_spent, orders_count, last_activity_date, role')
+      .order('total_spent', { ascending: false, nullsFirst: false })
+      .limit(500);
+    if (error) throw error;
+
+    const now = Date.now();
+    const clients = (users || [])
+      .filter(u => !u.role || !['admin', 'owner'].includes(u.role))
+      .map(u => {
+        const monetary = parseFloat(u.total_spent) || 0;
+        const frequency = parseInt(u.orders_count) || 0;
+        const lastRaw = u.last_activity_date || u.created_at;
+        const lastTs = lastRaw ? new Date(lastRaw).getTime() : now;
+        const recencyDays = Math.max(0, Math.floor((now - lastTs) / 86400000));
+        return {
+          ...u,
+          monetary, frequency, recencyDays,
+          segment: computeRFMSegment(recencyDays, frequency, monetary),
+        };
+      });
+
+    // Сводка по сегментам
+    const counts = {};
+    Object.keys(CRM_SEGMENTS).forEach(s => counts[s] = 0);
+    let totalSpent = 0, buyers = 0, active = 0;
+    clients.forEach(c => {
+      counts[c.segment] = (counts[c.segment] || 0) + 1;
+      if (c.frequency > 0) { totalSpent += c.monetary; buyers++; }
+      if (c.recencyDays <= 30) active++;
+    });
+
+    const segEl = document.getElementById('crmSegments');
+    if (segEl) {
+      segEl.className = 'grid grid-cols-3 gap-2 mb-5';
+      segEl.innerHTML = Object.entries(CRM_SEGMENTS).map(([name, s]) => `
+        <div class="p-3 rounded-2xl border text-center" style="background:${s.bg};border-color:${s.border}">
+          <div class="text-lg mb-0.5">${s.icon}</div>
+          <p class="text-2xl font-black" style="color:${s.color}">${counts[name] || 0}</p>
+          <p class="text-[9px] uppercase tracking-wider font-bold" style="color:${s.color}">${name}</p>
+        </div>
+      `).join('');
+    }
+
+    const ltvEl = document.getElementById('crmAvgLtv');
+    if (ltvEl) ltvEl.innerText = (buyers ? (totalSpent / buyers) : 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 }) + ' BYN';
+    const baseEl = document.getElementById('crmActiveBase');
+    if (baseEl) baseEl.innerText = active + ' / ' + clients.length;
+
+    // Фильтры по сегментам
+    const filtersEl = document.getElementById('crmFilters');
+    let activeFilter = 'Все';
+    const renderList = (filter) => {
+      const rows = filter === 'Все' ? clients : clients.filter(c => c.segment === filter);
+      if (!rows.length) { listEl.innerHTML = '<p class="text-white/40 text-sm text-center py-6">Нет клиентов в сегменте</p>'; return; }
+      listEl.innerHTML = rows.slice(0, 100).map(c => {
+        const s = CRM_SEGMENTS[c.segment];
+        const name = c.full_name || (c.username ? '@' + c.username : 'ID ' + c.user_id);
+        return `
+          <div class="glass-card p-3 rounded-2xl border border-white/5 flex items-center justify-between">
+            <div class="min-w-0">
+              <p class="text-white text-sm font-bold truncate">${name}</p>
+              <p class="text-white/40 text-[11px]">${c.frequency} зак. · посл. ${c.recencyDays} дн. назад</p>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+              <span class="text-white font-bold text-sm">${c.monetary.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} BYN</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold" style="background:${s.bg};color:${s.color}">${s.icon} ${c.segment}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    };
+
+    if (filtersEl) {
+      const filterNames = ['Все', ...Object.keys(CRM_SEGMENTS)];
+      filtersEl.innerHTML = filterNames.map(n =>
+        `<button data-filter="${n}" class="crm-filter-btn px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border border-white/10 ${n === 'Все' ? 'bg-white/15 text-white' : 'bg-white/5 text-white/60'}">${n}${n !== 'Все' ? ` (${counts[n] || 0})` : ''}</button>`
+      ).join('');
+      filtersEl.querySelectorAll('.crm-filter-btn').forEach(btn => {
+        btn.onclick = () => {
+          activeFilter = btn.getAttribute('data-filter');
+          filtersEl.querySelectorAll('.crm-filter-btn').forEach(b => { b.className = b.className.replace('bg-white/15 text-white', 'bg-white/5 text-white/60'); });
+          btn.className = btn.className.replace('bg-white/5 text-white/60', 'bg-white/15 text-white');
+          renderList(activeFilter);
+        };
+      });
+    }
+    renderList('Все');
+  } catch (e) {
+    console.error('CRM error:', e);
+    if (listEl) listEl.innerHTML = `<p class="text-red-400 text-sm text-center py-6">Ошибка загрузки: ${e.message}</p>`;
+  }
+};
+
+// Авто-открытие формы отзыва по deep-link review_<order_id>
+function openReviewForm(orderId) {
+  switchTab('reviews');
+  let tries = 0;
+  const timer = setInterval(() => {
+    tries++;
+    const btn = document.getElementById('leaveReviewBtn');
+    if (btn) {
+      clearInterval(timer);
+      btn.click();
+      // Преселект заказа в модалке, когда она появится
+      let mtries = 0;
+      const mtimer = setInterval(() => {
+        mtries++;
+        const sel = document.getElementById('reviewOrder');
+        if (sel) {
+          clearInterval(mtimer);
+          if (orderId && [...sel.options].some(o => o.value === orderId)) sel.value = orderId;
+        } else if (mtries > 20) clearInterval(mtimer);
+      }, 150);
+    } else if (tries > 25) {
+      clearInterval(timer);
+    }
+  }, 200);
+}
+
+// ==================== ФАЗА 19: AI АНАЛИТИКА ====================
 async function renderAdminAnalytics() {
   if (!userId) return '';
   const { data: userData } = await supabaseClient.from('users').select('role').eq('user_id', userId).single();
@@ -18095,6 +18259,17 @@ async function renderAdminAnalytics() {
         <div class="absolute top-0 right-0 p-2 opacity-20"><span class="ix text-5xl text-pink-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span></div>
         <p class="text-[10px] text-pink-400/80 mb-1 uppercase tracking-wider font-bold">Заказов в работе</p>
         <p class="text-2xl font-black text-white" id="stat-active">0</p>
+      </div>
+      <div class="relative overflow-hidden p-4 rounded-2xl border border-sky-500/30 bg-gradient-to-br from-sky-500/10 to-slate-900 shadow-[0_0_20px_rgba(56,189,248,0.1)]">
+        <div class="absolute top-0 right-0 p-2 opacity-20"><span class="ix text-5xl text-sky-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg></span></div>
+        <p class="text-[10px] text-sky-400/80 mb-1 uppercase tracking-wider font-bold">Новые за 30 дней</p>
+        <p class="text-2xl font-black text-white" id="stat-new-users">0</p>
+      </div>
+      <div class="relative overflow-hidden p-4 rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-slate-900 shadow-[0_0_20px_rgba(245,158,11,0.1)]">
+        <div class="absolute top-0 right-0 p-2 opacity-20"><span class="ix text-5xl text-amber-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span></div>
+        <p class="text-[10px] text-amber-400/80 mb-1 uppercase tracking-wider font-bold">Конверсия в сделку</p>
+        <p class="text-2xl font-black text-amber-400 drop-shadow-[0_0_10px_rgba(245,158,11,0.4)]" id="stat-conversion">0%</p>
+        <p class="text-[9px] text-amber-400/50 mt-1">Доставлено / всего заказов</p>
       </div>
     </div>
 
@@ -18171,7 +18346,11 @@ window.attachAdminAnalyticsHandlers = async () => {
     
     const { count: usersCount, error: uErr } = await supabaseClient.from('users').select('*', { count: 'exact', head: true });
     if (uErr) throw uErr;
-    
+
+    const since30 = new Date(); since30.setDate(since30.getDate() - 30);
+    const { count: newUsersCount } = await supabaseClient.from('users').select('*', { count: 'exact', head: true }).gte('created_at', since30.toISOString());
+    let deliveredCount = 0;
+
     let totalRevenue = 0;
     let totalProfit = 0;
     let activeCount = 0;
@@ -18202,7 +18381,8 @@ window.attachAdminAnalyticsHandlers = async () => {
       if (order.status !== 'delivered' && order.status !== 'cancelled') {
         activeCount++;
       }
-      
+      if (order.status === 'delivered') deliveredCount++;
+
       // География (Страна)
       if (order.source_country === 'CN') countryCounts['Китай']++;
       else if (order.source_country === 'PL' || order.source_country === 'EU') countryCounts['Европа']++;
@@ -18250,6 +18430,15 @@ window.attachAdminAnalyticsHandlers = async () => {
     
     const usrEl = document.getElementById('stat-users');
     if(usrEl) usrEl.innerText = usersCount || 0;
+
+    const newUsrEl = document.getElementById('stat-new-users');
+    if(newUsrEl) newUsrEl.innerText = newUsersCount || 0;
+
+    const convEl = document.getElementById('stat-conversion');
+    if(convEl) {
+      const conv = orders.length ? (deliveredCount / orders.length * 100) : 0;
+      convEl.innerText = conv.toFixed(1) + '%';
+    }
     
     // Рендер списка расходов
     const expensesList = document.getElementById('expensesList');
