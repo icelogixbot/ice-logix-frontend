@@ -3175,9 +3175,15 @@ const MAX_REQUESTS_TRUSTED = 100;
           // Mark <body> so CSS hides duplicate in-page back buttons when native BackButton is available.
           if (tg?.BackButton) document.body.classList.add('tg-native-back');
           const user = tg.initDataUnsafe?.user;
-          userId = user ? user.id : null;
-          userName = user ? (user.first_name || user.username || 'Гость') : 'Гость';
-          userAvatarUrl = user?.photo_url || null;
+          if (localStorage.getItem('ice_logged_out') === 'true') {
+            userId = null;
+            userName = 'Гость';
+            userAvatarUrl = null;
+          } else {
+            userId = user ? user.id : null;
+            userName = user ? (user.first_name || user.username || 'Гость') : 'Гость';
+            userAvatarUrl = user?.photo_url || null;
+          }
         } else {
           console.warn('Telegram WebApp is not available. Running in browser preview mode.');
         }
@@ -8429,7 +8435,11 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
 
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
-    logoutBtn.onclick = () => tg.close();
+    logoutBtn.onclick = async () => {
+      try { await supabaseClient.auth.signOut(); } catch(e) {}
+      localStorage.setItem('ice_logged_out', 'true');
+      location.reload();
+    };
   }
 
   const copyBtn = document.getElementById('copyReferralLinkBtn');
@@ -17766,6 +17776,7 @@ function showAuthPage() {
 }
 
 async function handleAuthSuccess(overlay) {
+  localStorage.removeItem('ice_logged_out');
   isRegistered = true;
   const loginBtnEl = document.getElementById('loginBtn');
   const userCardEl = document.getElementById('userCard');
