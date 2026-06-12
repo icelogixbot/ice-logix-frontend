@@ -3200,15 +3200,9 @@ const MAX_REQUESTS_TRUSTED = 100;
           // Mark <body> so CSS hides duplicate in-page back buttons when native BackButton is available.
           if (tg?.BackButton) document.body.classList.add('tg-native-back');
           const user = tg.initDataUnsafe?.user;
-          if (localStorage.getItem('ice_logged_out') === 'true') {
-            userId = null;
-            userName = 'Гость';
-            userAvatarUrl = null;
-          } else {
-            userId = user ? user.id : null;
-            userName = user ? (user.first_name || user.username || 'Гость') : 'Гость';
-            userAvatarUrl = user?.photo_url || null;
-          }
+          userId = null; // Will be set via Supabase Auth
+          userName = user ? (user.first_name || user.username || 'Гость') : 'Гость';
+          userAvatarUrl = user?.photo_url || null;
         } else {
           console.warn('Telegram WebApp is not available. Running in browser preview mode.');
         }
@@ -3229,6 +3223,36 @@ const MAX_REQUESTS_TRUSTED = 100;
           } catch (err) {
             console.error('Error loading app settings:', err);
           }
+          // --- STRICT AUTHENTICATION FLOW ---
+          let activeSession = null;
+          try {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            activeSession = session;
+            
+            if (!activeSession && tg?.initData && localStorage.getItem('ice_logged_out') !== 'true') {
+                try {
+                    const res = await fetch('https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/telegram-auth', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ initData: tg.initData })
+                    });
+                    const data = await res.json();
+                    if (data.ok && data.session) {
+                        await supabaseClient.auth.setSession({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
+                        activeSession = data.session;
+                    }
+                } catch(e) { console.error('Telegram Auth Error', e); }
+            }
+            
+            if (activeSession) {
+                const { data: profile } = await supabaseClient.from('users').select('user_id').eq('auth_id', activeSession.user.id).single();
+                if (profile) userId = profile.user_id;
+            }
+          } catch (err) {
+            console.error('Authentication Flow Error:', err);
+          }
+          // --- END AUTHENTICATION FLOW ---
+
           try {
             await loadUserData();
           } catch (err) {
@@ -17822,6 +17846,16 @@ function showAuthPage() {
 
 async function handleAuthSuccess(overlay) {
   localStorage.removeItem('ice_logged_out');
+  
+  // Refresh session and map auth_id to userId
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+      const { data: profile } = await supabaseClient.from('users').select('user_id').eq('auth_id', session.user.id).single();
+      if (profile) userId = profile.user_id;
+    }
+  } catch(e) { console.error('Error fetching session after login', e); }
+
   isRegistered = true;
   const loginBtnEl = document.getElementById('loginBtn');
   const userCardEl = document.getElementById('userCard');
