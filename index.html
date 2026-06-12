@@ -120,6 +120,11 @@
       overflow-x: hidden;
     }
     
+    #app {
+      width: 100%;
+      overflow-x: hidden;
+    }
+    
     /* Animated Background Particles */
     body::before {
       content: '';
@@ -1696,6 +1701,22 @@
     if (localStorage.getItem('theme') === 'light') {
       document.documentElement.classList.add('light-theme');
     }
+
+    // --- APP CACHE FOR BLAZING FAST NAVIGATION ---
+    window.CacheDB = {
+      data: {},
+      async get(key, fetcher, ttl = 120000) { // Default 2 mins cache
+        const now = Date.now();
+        if (this.data[key] && (now - this.data[key].timestamp < ttl)) {
+          return this.data[key].value;
+        }
+        const val = await fetcher();
+        this.data[key] = { value: val, timestamp: now };
+        return val;
+      },
+      clear(key) { delete this.data[key]; },
+      clearAll() { this.data = {}; }
+    };
     // ─── BLOB URL TRACKING (prevent memory leaks from photo previews) ───
 
     // ─── GLOBAL FOOTER EVENT DELEGATION ───
@@ -3770,13 +3791,16 @@ const MAX_REQUESTS_TRUSTED = 100;
 
     async function renderPromoBanners() {
   try {
-    const { data, error } = await supabaseClient
-      .from('promotions')
-      .select('*')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(5);
-    if (error) throw error;
+    const data = await window.CacheDB.get('promotions', async () => {
+      const { data, error } = await supabaseClient
+        .from('promotions')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      return data;
+    }, 300000); // 5 mins cache
     if (!data || data.length === 0) return '';
     
     return data.map(p => `
@@ -3807,7 +3831,7 @@ const MAX_REQUESTS_TRUSTED = 100;
         <h3 class="text-white font-bold text-sm flex items-center gap-1"><span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span> Биржевой курс ICE LOGIX</h3>
         <span class="text-green-400 text-[10px] bg-green-400/20 px-2 py-0.5 rounded-full animate-pulse">Live</span>
       </div>
-      <div style="overflow-x: auto; margin: 0 -4px; padding: 2px 4px; scrollbar-width: none; -ms-overflow-style: none;">
+      <div style="overflow-x: auto; padding: 2px 0; scrollbar-width: none; -ms-overflow-style: none;">
         <div style="display: flex; gap: 6px; width: max-content; padding-bottom: 2px;">
           ${[
             { flag: '🇺🇸', code: 'USD', label: '$1',     key: 'usd_rate', def: 3.25,    mult: 1    },
@@ -4048,7 +4072,10 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         return;
       }
     } else {
-      const { data: popular } = await supabaseClient.from('products').select('*').eq('is_active', true).limit(10);
+      const popular = await window.CacheDB.get('popularProducts', async () => {
+        const { data } = await supabaseClient.from('products').select('*').eq('is_active', true).limit(10);
+        return data;
+      }, 300000);
       if (popular) data = popular;
     }
 
@@ -8136,24 +8163,29 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
 
         // ==================== РЕНДЕР ПРОФИЛЯ (С РЕФЕРАЛКАМИ) ====================
         async function renderProfile() {
-      let referralStats = { count: 0, bonus: 0 };
-      if (userId) {
-        try {
-          const { data, error } = await supabaseClient.from('users').select('referral_count, referral_bonus').eq('user_id', userId).single();
-          if (!error && data) {
-            referralStats.count = data.referral_count || 0;
-            referralStats.bonus = data.referral_bonus || 0;
-          }
-        } catch(e) { console.log(e); }
-      }
+      let referralStats = await window.CacheDB.get('ref_' + userId, async () => {
+        let stats = { count: 0, bonus: 0 };
+        if (userId) {
+          try {
+            const { data, error } = await supabaseClient.from('users').select('referral_count, referral_bonus').eq('user_id', userId).single();
+            if (!error && data) {
+              stats.count = data.referral_count || 0;
+              stats.bonus = data.referral_bonus || 0;
+            }
+          } catch(e) {}
+        }
+        return stats;
+      }, 60000);
       
-      let isDropshipper = false;
-      if (userId) {
-        try {
-          const { data, error } = await supabaseClient.from('dropshipper_settings').select('user_id').eq('user_id', userId).single();
-          if (!error && data) isDropshipper = true;
-        } catch(e) {}
-      }
+      let isDropshipper = await window.CacheDB.get('dropship_' + userId, async () => {
+        if (userId) {
+          try {
+            const { data, error } = await supabaseClient.from('dropshipper_settings').select('user_id').eq('user_id', userId).single();
+            if (!error && data) return true;
+          } catch(e) {}
+        }
+        return false;
+      }, 300000);
       
       const shareLink = userReferralCode ? `https://t.me/${tg.initDataUnsafe?.user?.username ? tg.initDataUnsafe.user.username : 'icelogix_bot'}?startapp=ref_${userReferralCode}` : '';
       
@@ -13908,6 +13940,16 @@ function attachAdminSuppliersHandlers() {
           <div class="h-10 w-full"></div> <!-- spacer -->
         `;
       }
+
+      // SHOW SPINNER IMMEDIATELY FOR FAST UI RESPONSE
+      contentDiv.innerHTML = shadowBannerHtml + `
+        <div class="flex flex-col items-center justify-center min-h-[60vh] gap-3 page-enter">
+          <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-r-2 border-cyan-400"></div>
+          <div class="text-cyan-400/50 text-[10px] font-bold uppercase tracking-widest animate-pulse">Загрузка ICE LOGIX...</div>
+        </div>
+      `;
+      // Yield to browser so the spinner actually paints before JS blocks on queries
+      await new Promise(r => setTimeout(r, 10));
 
       if (currentSubScreen === 'about') {
         contentDiv.innerHTML = shadowBannerHtml + await renderAboutUs();
