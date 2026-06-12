@@ -2615,6 +2615,7 @@
     }
 
     async function showWheelOfFortuneModal() {
+      if (!window.userId) { window.requireAuth('Авторизуйтесь, чтобы крутить Колесо Фортуны и выигрывать призы!'); return; }
       const cd = getFortuneSpinCooldown();
       if (cd > 0) {
         glassToast('Колесо Фортуны доступно один раз в 24 часа!', { kind: 'error' });
@@ -3287,7 +3288,7 @@ const MAX_REQUESTS_TRUSTED = 100;
             console.error('Error loading user data:', err);
           }
           try {
-            await migrateGuestCart();
+
           } catch (err) {
             console.error('Error migrating guest cart:', err);
           }
@@ -3326,21 +3327,36 @@ const MAX_REQUESTS_TRUSTED = 100;
           userCard.onclick = () => switchTab('profile');
           if (!isRegistered) userCard.style.display = 'none';
         }
+        // Скрыть баланс, уведомления, настройки для неавторизованных
+        const balanceIsland = document.getElementById('balanceIsland');
+        if (balanceIsland) balanceIsland.style.display = isRegistered ? '' : 'none';
         const settingsBtn = document.getElementById('settingsBtn');
         if (settingsBtn) {
           settingsBtn.onclick = () => showAppSettings('theme');
+          if (!isRegistered) settingsBtn.style.display = 'none';
         }
         const notificationsBtn = document.getElementById('notificationsBtn');
         if (notificationsBtn) {
           notificationsBtn.onclick = () => showNotificationsPanel();
+          if (!isRegistered) notificationsBtn.style.display = 'none';
         }
         const loginBtn = document.getElementById('loginBtn');
         if (loginBtn) {
           loginBtn.onclick = () => showAuthPage();
           if (!isRegistered) {
-            loginBtn.style.display = 'inline-block';
-            loginBtn.style.padding = '6px 14px';
+            loginBtn.style.display = 'inline-flex';
+            loginBtn.style.alignItems = 'center';
+            loginBtn.style.gap = '6px';
+            loginBtn.style.padding = '8px 16px';
             loginBtn.style.fontSize = '13px';
+            loginBtn.style.fontWeight = '700';
+            loginBtn.style.borderRadius = '14px';
+            loginBtn.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.2), rgba(139,92,246,0.15))';
+            loginBtn.style.border = '1px solid rgba(6,182,212,0.4)';
+            loginBtn.style.color = '#22d3ee';
+            loginBtn.style.whiteSpace = 'nowrap';
+            loginBtn.style.boxShadow = '0 2px 12px rgba(6,182,212,0.25)';
+            loginBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>Войти';
           } else {
             loginBtn.style.display = 'none';
           }
@@ -3735,6 +3751,15 @@ const MAX_REQUESTS_TRUSTED = 100;
       document.querySelectorAll('.tab-item').forEach(tab => {
         tab.onclick = () => {
           const tabName = tab.getAttribute('data-tab');
+          // Блокируем разделы "Заказ" и "Профиль" для неавторизованных
+          if (!window.userId && tabName === 'neworder') {
+            window.requireAuth('Для оформления заказа необходимо войти или зарегистрироваться.');
+            return;
+          }
+          if (!window.userId && tabName === 'profile') {
+            window.requireAuth('Для доступа к профилю необходимо войти или зарегистрироваться.');
+            return;
+          }
           currentSubScreen = null;
           appliedPromo = null;
           switchTab(tabName);
@@ -4034,8 +4059,14 @@ function attachHomeHandlers() {
       document.querySelector('[data-story="reports"]')?.addEventListener('click', () => switchTab('reports'));
       document.querySelector('[data-story="reviews"]')?.addEventListener('click', () => switchTab('reviews'));
       document.querySelector('[data-story="promo"]')?.addEventListener('click', () => switchTab('promo'));
-      document.querySelector('[data-story="academy"]')?.addEventListener('click', () => switchTab('academy'));
-      document.querySelector('[data-story="legitcheck"]')?.addEventListener('click', () => switchTab('legitcheck'));
+      document.querySelector('[data-story="legitcheck"]')?.addEventListener('click', () => {
+        if (!window.userId) { window.requireAuth('Для проверки подлинности необходимо войти или зарегистрироваться.'); return; }
+        switchTab('legitcheck');
+      });
+      document.querySelector('[data-story="academy"]')?.addEventListener('click', () => {
+        if (!window.userId) { window.requireAuth('Для доступа к академии необходимо войти или зарегистрироваться.'); return; }
+        switchTab('academy');
+      });
       document.querySelector('[data-story="resale"]')?.addEventListener('click', () => switchTab('resale'));
       document.getElementById('moreMarketplacesBtn')?.addEventListener('click', () => {
         switchTab('catalogs', 'marketplaces');
@@ -4082,6 +4113,7 @@ function attachHomeHandlers() {
 document.querySelectorAll('.addToCartBtn').forEach(btn => {
   btn.onclick = (e) => {
     e.stopPropagation();
+    if (!window.userId) { window.requireAuth('Для добавления в корзину необходимо войти или зарегистрироваться.'); return; }
     const productId = btn.dataset.productId;
     if (productId) addToCart(productId);
   };
@@ -4090,6 +4122,7 @@ document.querySelectorAll('.addToCartBtn').forEach(btn => {
 document.querySelectorAll('.buyNowBtn').forEach(btn => {
   btn.onclick = (e) => {
     e.stopPropagation();
+    if (!window.userId) { window.requireAuth('Для оформления заказа необходимо войти или зарегистрироваться.'); return; }
     const url = btn.dataset.url;
     const price = parseFloat(btn.dataset.price);
     if (url && !isNaN(price)) {
@@ -4154,8 +4187,8 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
     grid.querySelectorAll('.wishlist-heart').forEach(heart => {
       heart.onclick = async (e) => {
-          if (!window.userId) { window.requireAuth('Пожалуйста, авторизуйтесь для добавления в избранное.'); return; }
         e.stopPropagation();
+        if (!window.userId) { window.requireAuth('Пожалуйста, авторизуйтесь для добавления в избранное.'); return; }
         const productId = heart.dataset.productId;
         if (wishlist.has(productId)) {
           await supabaseClient.from('wishlist').delete().eq('user_id', userId).eq('product_id', productId);
@@ -4182,6 +4215,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
     grid.querySelectorAll('.buyNowBtn').forEach(btn => {
       btn.onclick = (e) => {
         e.stopPropagation();
+        if (!window.userId) { window.requireAuth('Для оформления заказа необходимо войти или зарегистрироваться.'); return; }
         const url = btn.dataset.url;
         const price = parseFloat(btn.dataset.price);
         if (url && !isNaN(price)) {
@@ -4200,6 +4234,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           supabaseClient.from('user_views').upsert({ user_id: userId, product_id: productId }, { onConflict: 'user_id,product_id' }).then(() => {});
         }
         if (url && !isNaN(price)) {
+          if (!window.userId) { window.requireAuth('Для оформления заказа необходимо войти или зарегистрироваться.'); return; }
           window.tempOrder = { url, price, weight: 1, total: window.iceLogixPricing.quickEstimate(price, 1), discountAmount: 0, appliedPromo: null };
           switchTab('neworder');
         }
@@ -9869,6 +9904,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       }
       document.querySelectorAll('.orderFromReportBtn').forEach(btn => {
         btn.onclick = () => {
+          if (!window.userId) { window.requireAuth('Для оформления заказа необходимо войти или зарегистрироваться.'); return; }
           const url = btn.getAttribute('data-url');
           window.tempOrder = { url: url, price: 520, weight: 1, total: 0, discountAmount: 0, appliedPromo: null };
           switchTab('neworder');
@@ -13036,29 +13072,11 @@ function attachAboutUsHandlers() {
   };
 }
 
-async function migrateGuestCart() {
-  if (!userId) return;
-  let guestCart;
-  try { guestCart = JSON.parse(localStorage.getItem('guest_cart') || '[]'); } catch { return; }
-  if (!Array.isArray(guestCart) || guestCart.length === 0) return;
-  for (const item of guestCart) {
-    if (item.productId) await addToCart(item.productId, item.quantity || 1, true);
-  }
-  localStorage.removeItem('guest_cart');
-}
+
 
 async function addToCart(productId, quantity = 1, skipAlert = false) {
   if (!userId) {
-    const guestCart = JSON.parse(localStorage.getItem('guest_cart') || '[]');
-    const existing = guestCart.find(item => item.productId === productId);
-    if (existing) {
-      existing.quantity += quantity;
-    } else {
-      guestCart.push({ productId, quantity });
-    }
-    localStorage.setItem('guest_cart', JSON.stringify(guestCart));
-    tgUtil.haptic('success');
-    if (!skipAlert) tgUtil.alert('✅ Товар добавлен (войдите, чтобы сохранить корзину)');
+    window.requireAuth('Авторизуйтесь для добавления товаров в корзину');
     return;
   }
   try {
@@ -17241,9 +17259,15 @@ async function renderPromoPage() {
 
 function attachPromoPageHandlers() {
   document.getElementById('backFromPromoBtn')?.addEventListener('click', () => switchTab('home'));
-  document.getElementById('promoFortuneBtn')?.addEventListener('click', () => showWheelOfFortuneModal());
+  document.getElementById('promoFortuneBtn')?.addEventListener('click', () => {
+    if (!window.userId) { window.requireAuth('Авторизуйтесь, чтобы крутить Колесо Фортуны и выигрывать призы!'); return; }
+    showWheelOfFortuneModal();
+  });
   document.querySelectorAll('[data-promotion-id]').forEach(el => {
-    el.addEventListener('click', () => tgUtil.alert('Подробнее об акции будет позже'));
+    el.addEventListener('click', () => {
+      if (!window.userId) { window.requireAuth('Авторизуйтесь, чтобы участвовать в акциях!'); return; }
+      tgUtil.alert('Подробнее об акции будет позже');
+    });
   });
 }
 
@@ -17749,6 +17773,21 @@ async function showNotificationsPanel() {
     });
   }
 }
+
+window.requireAuth = function(message) {
+  tgUtil.showPopup({
+    title: 'Требуется авторизация',
+    message: message || 'Для доступа к этому разделу необходимо войти в систему или зарегистрироваться.',
+    buttons: [
+      { id: 'login', type: 'default', text: 'Войти / Зарегистрироваться' },
+      { id: 'cancel', type: 'cancel', text: 'Позже' }
+    ]
+  }, (btnId) => {
+    if (btnId === 'login') {
+      showAuthPage();
+    }
+  });
+};
 
 function showAuthPage() {
   const overlay = document.createElement('div');
