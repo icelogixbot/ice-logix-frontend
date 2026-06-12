@@ -1,1722 +1,7 @@
-<!DOCTYPE html>
-<!-- Version: 2026.05.24.02 - ICE LOGIX Glassmorphism Redesign -->
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ICE LOGIX</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/vfs_fonts.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
-  <script src="./pricing-engine.js"></script>
-  <script src="./onboarding.js"></script>
-  <style>
-    /* ═══════════════════════════════════════════════════════════════════════════
-       ICE LOGIX - GLASSMORPHISM DESIGN SYSTEM
-       Theme: Arctic Ice & Snow (Cozy, Friendly, 3D-inspired)
-       ═══════════════════════════════════════════════════════════════════════════ */
-    
-    :root {
-      /* Primary Ice Colors */
-      --ice-frost: #E8F4FC;
-      --ice-light: #B8E0F6;
-      --ice-primary: #5BBFEB;
-      --ice-deep: #2E9ED4;
-      --ice-arctic: #1A7BB5;
-      
-      /* Snow & White */
-      --snow-white: #FFFFFF;
-      --snow-soft: #F5FAFD;
-      --snow-mist: rgba(255, 255, 255, 0.95);
-      
-      /* Background Gradient */
-      --bg-gradient-start: #0A1628;
-      --bg-gradient-mid: #0F2847;
-      --bg-gradient-end: #1A3A5C;
-      
-      /* Glassmorphism */
-      --glass-bg: rgba(255, 255, 255, 0.08);
-      --glass-bg-strong: rgba(255, 255, 255, 0.12);
-      --glass-border: rgba(255, 255, 255, 0.15);
-      --glass-border-strong: rgba(255, 255, 255, 0.25);
-      --glass-blur: 20px;
-      
-      /* Status Colors */
-      --status-success: #34D399;
-      --status-warning: #FBBF24;
-      --status-error: #F87171;
-      --status-info: #60A5FA;
-      
-      /* Text */
-      --text-primary: #FFFFFF;
-      --text-secondary: rgba(255, 255, 255, 0.75);
-      --text-muted: rgba(255, 255, 255, 0.5);
-      
-      /* Shadows */
-      --shadow-glow: 0 0 30px rgba(91, 191, 235, 0.3);
-      --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.3);
-      --shadow-island: 0 4px 24px rgba(0, 0, 0, 0.25), 0 0 40px rgba(91, 191, 235, 0.1);
-    }
-    
-    html.light-theme {
-      --bg-gradient-start: #E8F4FC;
-      --bg-gradient-mid: #F5FAFD;
-      --bg-gradient-end: #D9EAF5;
-      
-      --glass-bg: rgba(255, 255, 255, 0.7);
-      --glass-bg-strong: rgba(255, 255, 255, 0.9);
-      --glass-border: rgba(200, 220, 240, 0.5);
-      --glass-border-strong: rgba(150, 200, 230, 0.6);
-      
-      --text-primary: #0F2847;
-      --text-secondary: rgba(15, 40, 71, 0.75);
-      --text-muted: rgba(15, 40, 71, 0.5);
-      
-      --shadow-glow: 0 0 30px rgba(91, 191, 235, 0.4);
-      --shadow-card: 0 8px 32px rgba(91, 191, 235, 0.15);
-      --shadow-island: 0 4px 24px rgba(91, 191, 235, 0.1), 0 0 40px rgba(91, 191, 235, 0.2);
-    }
-    html.light-theme body::before {
-      opacity: 0.5;
-      background-image: 
-        radial-gradient(2px 2px at 20% 30%, rgba(91,191,235,0.3) 0%, transparent 100%),
-        radial-gradient(2px 2px at 40% 70%, rgba(91,191,235,0.2) 0%, transparent 100%),
-        radial-gradient(3px 3px at 70% 20%, rgba(91,191,235,0.25) 0%, transparent 100%),
-        radial-gradient(2px 2px at 90% 50%, rgba(91,191,235,0.2) 0%, transparent 100%),
-        radial-gradient(2px 2px at 10% 80%, rgba(91,191,235,0.15) 0%, transparent 100%),
-        radial-gradient(3px 3px at 60% 90%, rgba(91,191,235,0.2) 0%, transparent 100%);
-    }
-    
-    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    /* Performance: safe GPU hint only for scroll containers */
-    .scroll-x {
-      -webkit-transform: translateZ(0);
-      transform: translateZ(0);
-    }
-    
-    html {
-      background: linear-gradient(165deg, var(--bg-gradient-start) 0%, var(--bg-gradient-mid) 50%, var(--bg-gradient-end) 100%);
-      min-height: 100vh;
-      -webkit-tap-highlight-color: transparent;
-      scrollbar-width: none;
-      overflow-x: hidden;
-      max-width: 100vw;
-    }
-    
-    body { 
-      background: transparent;
-      font-family: 'Nunito', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-      color: var(--text-primary);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-    
-    #app {
-      width: 100%;
-      overflow-x: hidden;
-    }
-    
-    /* Animated Background Particles */
-    body::before {
-      content: '';
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-image: 
-        radial-gradient(2px 2px at 20% 30%, rgba(255,255,255,0.3) 0%, transparent 100%),
-        radial-gradient(2px 2px at 40% 70%, rgba(255,255,255,0.2) 0%, transparent 100%),
-        radial-gradient(3px 3px at 70% 20%, rgba(255,255,255,0.25) 0%, transparent 100%),
-        radial-gradient(2px 2px at 90% 50%, rgba(255,255,255,0.2) 0%, transparent 100%),
-        radial-gradient(2px 2px at 10% 80%, rgba(255,255,255,0.15) 0%, transparent 100%),
-        radial-gradient(3px 3px at 60% 90%, rgba(255,255,255,0.2) 0%, transparent 100%);
-      pointer-events: none;
-      z-index: 0;
-      animation: snowfall 30s linear infinite;
-    }
-    
-    @keyframes snowfall {
-      0% { transform: translateY(0); }
-      100% { transform: translateY(20px); }
-    }
-    
-    /* ═══════════════════════════════════════════════════════════════════════════
-       GLASSMORPHISM ISLAND COMPONENTS
-       ═══════════════════════════════════════════════════════════════════════════ */
-    
-    /* Header Island */
-    .app-header {
-      position: sticky;
-      top: 8px;
-      left: 8px;
-      right: 8px;
-      z-index: 90;
-      margin: 8px;
-      padding: 10px 14px;
-      background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%);
-      backdrop-filter: blur(var(--glass-blur));
-      -webkit-backdrop-filter: blur(var(--glass-blur));
-      border: 1px solid var(--glass-border-strong);
-      border-radius: 24px;
-      box-shadow: var(--shadow-island);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      animation: slideDown 0.45s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    
-    @keyframes slideDown {
-      from { transform: translateY(-20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-    
-    .header-left { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-    
-    .logo-img { 
-      box-sizing: content-box;
-      display: inline-block;
-      vertical-align: middle;
-      height: 36px;
-      width: auto;
-      object-fit: contain;
-      cursor: pointer; 
-      padding: 4px;
-      margin: 0;
-      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      filter: drop-shadow(0 2px 8px rgba(91, 191, 235, 0.45));
-    }
-    .logo-img:hover { transform: scale(1.05) rotate(-2deg); }
-    .logo-img:active { transform: scale(0.95); }
-    
-    .header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-    
-    /* Balance Island Widget */
-    .balance-island {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 10px 6px 12px;
-      background: linear-gradient(135deg, rgba(91,191,235,0.25) 0%, rgba(46,158,212,0.15) 100%);
-      border: 1px solid rgba(91,191,235,0.4);
-      border-radius: 20px;
-      box-shadow: 0 0 20px rgba(91,191,235,0.2), inset 0 1px 0 rgba(255,255,255,0.2);
-      transition: all 0.3s ease;
-    }
-    .balance-island:hover {
-      transform: scale(1.02);
-      box-shadow: 0 0 30px rgba(91,191,235,0.35), inset 0 1px 0 rgba(255,255,255,0.3);
-    }
-    
-    .balance-amount {
-      font-size: 15px;
-      font-weight: 800;
-      color: var(--snow-white);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
-    
-    .balance-icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 22px;
-      height: 22px;
-      color: #0A1628;
-      background: linear-gradient(135deg, #ffffff 0%, #B8E0F6 50%, #5BBFEB 100%);
-      border: 1px solid rgba(255,255,255,0.8);
-      border-radius: 6px;
-      box-shadow: 0 0 12px rgba(91,191,235,0.8), inset 0 2px 6px rgba(255,255,255,0.9), inset 0 -2px 4px rgba(46,158,212,0.5);
-      transform-style: preserve-3d;
-      animation: crystal-spin 3s ease-in-out infinite alternate;
-    }
-    .balance-icon svg { width: 14px; height: 14px; display: block; filter: drop-shadow(0 1px 1px rgba(255,255,255,0.8)); }
-    
-    @keyframes crystal-spin {
-      0% { transform: perspective(200px) rotateY(-20deg) scale(1); filter: brightness(1) contrast(1.1); }
-      100% { transform: perspective(200px) rotateY(20deg) scale(1.1); filter: brightness(1.3) contrast(1.2); }
-    }
-    
-    .balance-add {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--ice-primary), var(--ice-deep));
-      border: none;
-      color: white;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      box-shadow: 0 2px 8px rgba(91,191,235,0.4);
-    }
-    .balance-add:hover { transform: scale(1.15) rotate(90deg); }
-    .balance-add:active { transform: scale(0.9); }
-    
-    /* Header Icon Buttons */
-    .icon-btn {
-      width: 36px;
-      height: 36px;
-      border-radius: 12px;
-      background: var(--glass-bg);
-      border: 1px solid var(--glass-border);
-      color: var(--text-primary);
-      font-size: 18px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    .icon-btn:hover {
-      background: var(--glass-bg-strong);
-      transform: scale(1.1);
-      border-color: var(--glass-border-strong);
-    }
-    .icon-btn:active { transform: scale(0.9); }
-    
-    /* User Card */
-    .user-card {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 4px 10px 4px 4px;
-      background: var(--glass-bg);
-      border: 1px solid var(--glass-border);
-      border-radius: 20px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    .user-card:hover {
-      background: var(--glass-bg-strong);
-      border-color: var(--glass-border-strong);
-      transform: translateY(-1px);
-    }
-    
-    .user-avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--ice-primary), var(--ice-arctic));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      font-size: 14px;
-      font-weight: 700;
-      color: white;
-      box-shadow: 0 2px 8px rgba(91,191,235,0.3);
-    }
-    .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
-    
-    .user-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
-    
-    /* ═══════════════════════════════════════════════════════════════════════════
-       TAB BAR ISLAND (Footer Navigation)
-       ═══════════════════════════════════════════════════════════════════════════ */
-    
-    .tab-bar {
-      position: fixed;
-      bottom: 12px;
-      left: 12px;
-      right: 12px;
-      z-index: 100;
-      padding: 8px 6px;
-      background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%);
-      backdrop-filter: blur(var(--glass-blur));
-      -webkit-backdrop-filter: blur(var(--glass-blur));
-      border: 1px solid var(--glass-border-strong);
-      border-radius: 28px;
-      box-shadow: var(--shadow-island);
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      align-items: center;
-      animation: slideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1);
-      overflow: visible;
-    }
-    
-    @keyframes slideUp {
-      from { transform: translateY(30px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-    
-    .tab-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 2px;
-      padding: 8px 4px;
-      color: var(--text-muted);
-      cursor: pointer;
-      border-radius: 16px;
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      position: relative;
-      min-width: 0;
-      overflow: hidden;
-    }
-    
-    @media (hover: hover) {
-      .tab-item:hover {
-        color: var(--text-secondary);
-        background: var(--glass-bg);
-      }
-    }
-    
-    .tab-item.active {
-      color: var(--ice-primary);
-      background: rgba(91, 191, 235, 0.15);
-    }
-    
-    .tab-item.active::after {
-      content: '';
-      position: absolute;
-      bottom: 4px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 4px;
-      height: 4px;
-      background: var(--ice-primary);
-      border-radius: 50%;
-      box-shadow: 0 0 8px var(--ice-primary);
-    }
-    
-    .tab-icon {
-      font-size: 22px;
-      line-height: 1;
-      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    
-    .tab-item:hover .tab-icon,
-    .tab-item.active .tab-icon {
-      transform: scale(1.15) translateY(-2px);
-    }
-    
-    .tab-label {
-      font-size: 10px;
-      font-weight: 600;
-      max-width: 100%;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    
-    /* Central CTA Button */
-    .tab-item.new-order {
-      background: linear-gradient(135deg, var(--ice-primary) 0%, var(--ice-deep) 100%);
-      color: white;
-      padding: 10px 8px;
-      border-radius: 22px;
-      margin: -20px 4px 0;
-      box-shadow: 0 4px 20px rgba(91, 191, 235, 0.5), 0 0 40px rgba(91, 191, 235, 0.2);
-      border: 2px solid rgba(255,255,255,0.3);
-      animation: pulse-glow 3s ease-in-out infinite;
-    }
-    
-    @keyframes pulse-glow {
-      0%, 100% { box-shadow: 0 4px 20px rgba(91, 191, 235, 0.5), 0 0 40px rgba(91, 191, 235, 0.2); }
-      50% { box-shadow: 0 4px 30px rgba(91, 191, 235, 0.7), 0 0 60px rgba(91, 191, 235, 0.4); }
-    }
-    
-    @media (hover: hover) {
-    .tab-item.new-order:hover {
-      transform: scale(1.05) translateY(-2px);
-      box-shadow: 0 8px 30px rgba(91, 191, 235, 0.6), 0 0 50px rgba(91, 191, 235, 0.3);
-    }
-  }
-    
-    .tab-item.new-order::after { display: none; }
-    
-    .tab-item.new-order .tab-icon { font-size: 20px; }
-    .tab-item.new-order .tab-label { font-size: 11px; font-weight: 700; }
-    
-    /* ═══════════════════════════════════════════════════════════════════════════
-       MAIN CONTENT AREA
-       ═══════════════════════════════════════════════════════════════════════════ */
-    
-    .main-content { 
-      padding: 16px; 
-      padding-top: 8px;
-      padding-bottom: 100px;
-      position: relative;
-      z-index: 1;
-    }
-    
-    /* ═══════════════════════════════════════════════════════════════════════════
-       GLASS CARDS
-       ═══════════════════════════════════════════════════════════════════════════ */
-    
-    .glass-card {
-      background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
-      backdrop-filter: blur(var(--glass-blur));
-      -webkit-backdrop-filter: blur(var(--glass-blur));
-      border: 1px solid var(--glass-border);
-      border-radius: 24px;
-      padding: 20px;
-      box-shadow: var(--shadow-card);
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    
-    .glass-card:hover {
-      border-color: rgba(91, 191, 235, 0.3);
-      transform: translateY(-2px);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35), 0 0 20px rgba(91, 191, 235, 0.1);
-    }
-    
-    /* Product Cards */
-    .product-card {
-      background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-radius: 20px;
-      overflow: hidden;
-      border: 1px solid var(--glass-border);
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      cursor: pointer;
-    }
-    .product-card:hover {
-      transform: translateY(-6px) scale(1.02);
-      border-color: rgba(91, 191, 235, 0.4);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(91, 191, 235, 0.15);
-    }
-    .product-card:active { transform: translateY(-2px) scale(0.98); }
-    
-    /* ═══════════════════════════════════════════════════════════════════════════
-       STORY CARDS (3D-inspired icons)
-       ═══════════════════════════════════════════════════════════════════════════ */
-    
-    .story-card {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      min-width: 76px;
-    }
-    .story-card:hover { transform: translateY(-4px); }
-    .story-card:active { transform: scale(0.95); }
-    
-    .story-icon {
-      width: 68px;
-      height: 68px;
-      background: linear-gradient(145deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-radius: 22px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 32px;
-      border: 1px solid var(--glass-border-strong);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255,255,255,0.2);
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .story-icon::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-      transition: left 0.5s ease;
-    }
-    
-    .story-card:hover .story-icon::before {
-      left: 100%;
-    }
-    
-    .story-card:hover .story-icon {
-      transform: scale(1.08);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25), 0 0 20px rgba(91, 191, 235, 0.2), inset 0 1px 0 rgba(255,255,255,0.3);
-      border-color: rgba(91, 191, 235, 0.4);
-    }
-    
-    .story-label {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      text-align: center;
-      max-width: 72px;
-      line-height: 1.2;
-    }
-    
-    /* ═══════════════════════════════════════════════════════════════════════════
-       BANNER SLIDES
-       ═══════════════════════════════════════════════════════════════════════════ */
-    
-    .banner-slide {
-      background: linear-gradient(135deg, var(--ice-deep), var(--ice-arctic));
-      border-radius: 24px;
-      padding: 0;
-      min-width: 280px;
-      height: 130px;
-      scroll-snap-align: start;
-      cursor: pointer;
-      overflow: hidden;
-      background-size: cover;
-      background-position: center;
-      border: 1px solid var(--glass-border-strong);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      position: relative;
-    }
-    
-    .banner-slide::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 50%);
-      pointer-events: none;
-    }
-    
-    .banner-slide:hover {
-      transform: scale(1.02);
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3), 0 0 30px rgba(91, 191, 235, 0.15);
-    }
-    
-    /* ═══════════════════════════════════════════════════════════════════════════
-       FOOTER ISLAND
-       ═══════════════════════════════════════════════════════════════════════════ */
-    
-    .app-footer {
-      margin: 20px 12px 8px;
-      padding: 20px;
-      background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%);
-      backdrop-filter: blur(var(--glass-blur));
-      -webkit-backdrop-filter: blur(var(--glass-blur));
-      border: 1px solid var(--glass-border);
-      border-radius: 24px;
-      text-align: center;
-      position: relative;
-    }
-    
-    .footer-logo {
-      box-sizing: content-box;
-      display: block;
-      width: auto;
-      height: 48px;
-      object-fit: contain;
-      margin: 0 auto 12px;
-      opacity: 0.8;
-      padding: 4px;
-      filter: drop-shadow(0 2px 8px rgba(91, 191, 235, 0.35));
-    }
-    
-    .footer-links {
-      display: flex;
-      justify-content: center;
-      gap: 16px;
-      flex-wrap: wrap;
-      margin-bottom: 12px;
-    }
-    
-    .footer-link {
-      color: var(--text-secondary);
-      font-size: 12px;
-      font-weight: 500;
-      text-decoration: none;
-      cursor: pointer;
-      padding: 6px 12px;
-      border-radius: 12px;
-      transition: all 0.2s ease;
-    }
-    .footer-link:hover {
-      color: var(--ice-primary);
-      background: var(--glass-bg);
-    }
-    
-    .social-icons {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-    
-    .social-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
-      background: var(--glass-bg);
-      border: 1px solid var(--glass-border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    .social-icon:hover {
-      transform: scale(1.1) translateY(-2px);
-      background: var(--glass-bg-strong);
-      border-color: var(--ice-primary);
-      box-shadow: 0 4px 16px rgba(91, 191, 235, 0.3);
-    }
-    
-    .copyright {
-      font-size: 11px;
-      color: var(--text-muted);
-      line-height: 1.5;
-    }
-    
-    /* ═══════════════════════════════════════════════════════════════════════════
-       STATUS BADGES
-       ═══════════════════════════════════════════════════════════════════════════ */
-    
-    .status-badge {
-      padding: 5px 14px;
-      border-radius: 40px;
-      font-size: 11px;
-      font-weight: 700;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      border: 1px solid transparent;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    }
-    .status-pending { background: linear-gradient(135deg, #FBBF24, #F59E0B); color: #1a1a1a; border-color: rgba(251,191,36,0.5); }
-    .status-paid { background: linear-gradient(135deg, #34D399, #10B981); color: #fff; border-color: rgba(52,211,153,0.5); }
-    .status-bought { background: linear-gradient(135deg, #60A5FA, #3B82F6); color: #fff; border-color: rgba(96,165,250,0.5); }
-    .status-on_sklad_cn { background: linear-gradient(135deg, #A78BFA, #8B5CF6); color: #fff; border-color: rgba(167,139,250,0.5); }
-    .status-in_transit { background: linear-gradient(135deg, #22D3EE, #06B6D4); color: #fff; border-color: rgba(34,211,238,0.5); }
-    .status-in_belarus { background: linear-gradient(135deg, #2DD4BF, #14B8A6); color: #fff; border-color: rgba(45,212,191,0.5); }
-    .status-delivered { background: linear-gradient(135deg, #4ADE80, #22C55E); color: #fff; border-color: rgba(74,222,128,0.5); }
-    .status-cancelled { background: linear-gradient(135deg, #F87171, #EF4444); color: #fff; border-color: rgba(248,113,113,0.5); }
-
-    @keyframes moveTruck {
-      0% { transform: translateX(-3px); }
-      50% { transform: translateX(3px); }
-      100% { transform: translateX(-3px); }
-    }
-    .anim-truck {
-      display: inline-block;
-      animation: moveTruck 2s ease-in-out infinite;
-    }
-
-    @keyframes bounceBox {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-3px) scale(1.05); }
-    }
-    .anim-box {
-      display: inline-block;
-      animation: bounceBox 1.5s ease-in-out infinite;
-    }
-    
-    /* ═══════════════════════════════════════════════════════════════════════════
-       FORM ELEMENTS
-       ═══════════════════════════════════════════════════════════════════════════ */
-    
-    .filter-chip {
-      background: var(--glass-bg);
-      border: 1px solid var(--glass-border);
-      padding: 8px 16px;
-      border-radius: 40px;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    .filter-chip:hover {
-      background: var(--glass-bg-strong);
-      border-color: var(--glass-border-strong);
-    }
-    .filter-chip.active {
-      background: linear-gradient(135deg, var(--ice-primary), var(--ice-deep));
-      border-color: var(--ice-primary);
-      color: white;
-      box-shadow: 0 2px 12px rgba(91, 191, 235, 0.4);
-    }
-    
-    /* Input Fields */
-    input[type="text"], input[type="number"], input[type="email"], input[type="tel"],
-    textarea, select {
-      background: var(--glass-bg) !important;
-      border: 1px solid var(--glass-border) !important;
-      border-radius: 16px !important;
-      color: var(--text-primary) !important;
-      font-family: 'Nunito', sans-serif !important;
-      font-size: 14px !important;
-      padding: 14px 16px !important;
-      transition: all 0.3s ease !important;
-    }
-    
-    input:focus, textarea:focus, select:focus {
-      outline: none !important;
-      border-color: var(--ice-primary) !important;
-      box-shadow: 0 0 0 3px rgba(91, 191, 235, 0.2), 0 0 20px rgba(91, 191, 235, 0.15) !important;
-    }
-    
-    input::placeholder, textarea::placeholder {
-      color: var(--text-muted) !important;
-    }
-    
-    /* Buttons */
-    button {
-      font-family: 'Nunito', sans-serif;
-      font-weight: 600;
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    
-    /* Primary Button */
-    .btn-primary {
-      background: linear-gradient(135deg, var(--ice-primary) 0%, var(--ice-deep) 100%);
-      border: none;
-      color: white;
-      padding: 14px 24px;
-      border-radius: 16px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 4px 16px rgba(91, 191, 235, 0.4);
-    }
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 24px rgba(91, 191, 235, 0.5);
-    }
-    .btn-primary:active { transform: translateY(0); }
-    
-    /* Secondary Button */
-    .btn-secondary {
-      background: var(--glass-bg);
-      border: 1px solid var(--glass-border);
-      color: var(--text-primary);
-      padding: 12px 20px;
-      border-radius: 14px;
-      font-size: 14px;
-      cursor: pointer;
-    }
-    .btn-secondary:hover {
-      background: var(--glass-bg-strong);
-      border-color: var(--glass-border-strong);
-    }
-    
-    /* ═══════════════════════════════════════════════════════════════════════════
-       SCROLL & UTILITY
-       ═══════════════════════════════════════════════════════════════════════════ */
-    
-    .scroll-x {
-      overflow-x: auto;
-      display: flex;
-      gap: 12px;
-      scroll-snap-type: x mandatory;
-      padding-bottom: 8px;
-      -webkit-overflow-scrolling: touch;
-    }
-    .scroll-x::-webkit-scrollbar { display: none; }
-
-    /* Scroll container with fade edges to hint scrollability */
-    .scroll-hint-container {
-      position: relative;
-    }
-    .scroll-hint-container::after {
-      content: '';
-      position: absolute;
-      right: 0;
-      top: 0;
-      bottom: 8px;
-      width: 48px;
-      background: linear-gradient(to right, transparent, var(--bg-gradient-end, #1A3A5C));
-      pointer-events: none;
-      z-index: 2;
-      border-radius: 0 16px 16px 0;
-    }
-    /* Scroll dots indicator */
-    .scroll-dots {
-      display: flex;
-      justify-content: center;
-      gap: 5px;
-      margin-top: 6px;
-    }
-    .scroll-dot {
-      width: 5px; height: 5px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.2);
-      transition: all 0.3s ease;
-    }
-    .scroll-dot.active {
-      width: 16px;
-      border-radius: 3px;
-      background: var(--ice-primary);
-    }
-    /* Swipe hint animation */
-    @keyframes swipeHint {
-      0% { transform: translateX(0); opacity: 1; }
-      50% { transform: translateX(8px); opacity: 0.5; }
-      100% { transform: translateX(0); opacity: 1; }
-    }
-    .swipe-hint-icon {
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 16px;
-      opacity: 0.7;
-      animation: swipeHint 2s ease-in-out 1s 3;
-      pointer-events: none;
-      z-index: 3;
-    }
-    
-    /* Back Button */
-    .global-back-btn {
-      background: var(--glass-bg);
-      border: 1px solid var(--glass-border);
-      color: var(--text-primary);
-      font-size: 14px;
-      font-weight: 600;
-      padding: 10px 20px;
-      border-radius: 40px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.3s ease;
-      margin-bottom: 16px;
-    }
-    @media (hover: hover) {
-    .global-back-btn:hover {
-      background: var(--glass-bg-strong);
-      transform: translateX(-4px);
-    }
-  }
-    body.tg-native-back .global-back-btn { display: none !important; }
-    
-    /* Review & Course Cards */
-    .review-card, .course-card {
-      background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-radius: 20px;
-      padding: 16px;
-      border: 1px solid var(--glass-border);
-      margin-bottom: 12px;
-      transition: all 0.3s ease;
-    }
-    .course-card:hover {
-      transform: translateY(-4px);
-      border-color: rgba(91, 191, 235, 0.4);
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
-    }
-    
-    .stars { color: #FBBF24; margin-bottom: 8px; letter-spacing: 2px; }
-    .wishlist-heart { cursor: pointer; transition: transform 0.3s ease; }
-    .wishlist-heart:hover { transform: scale(1.2); }
-    
-    /* Screenshot Widget */
-    .screenshot-widget {
-      background: var(--glass-bg);
-      border: 1px solid var(--glass-border);
-      border-radius: 16px;
-      padding: 16px;
-      margin: 8px 0;
-    }
-    
-    .screenshot-upload-zone {
-      border: 2px dashed var(--glass-border-strong);
-      border-radius: 12px;
-      padding: 24px 16px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    .screenshot-upload-zone:hover, .screenshot-upload-zone.drag-over {
-      border-color: var(--ice-primary);
-      background: rgba(91, 191, 235, 0.1);
-    }
-    .screenshot-upload-zone.has-file {
-      border-style: solid;
-      border-color: var(--status-success);
-    }
-    
-    .screenshot-preview { max-width: 200px; max-height: 200px; border-radius: 8px; margin: 12px auto; display: block; }
-    .screenshot-actions { display: flex; gap: 10px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
-    
-    .confidence-low {
-      background: rgba(251, 191, 36, 0.15);
-      border: 1px solid rgba(251, 191, 36, 0.4);
-      border-radius: 12px;
-      padding: 10px 14px;
-      margin: 8px 0;
-      font-size: 13px;
-      color: #FCD34D;
-    }
-    
-    /* ═══════════════════════════════════════════════════════════════════════════
-       CUSTOM ALERTS (Ice-themed)
-       ═══════════════════════════════════════════════════════════════════════════ */
-    
-    .ice-alert-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(10, 22, 40, 0.85);
-      backdrop-filter: blur(8px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      padding: 20px;
-      animation: fadeIn 0.2s ease;
-    }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    
-    .ice-alert-box {
-      background: linear-gradient(165deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--glass-border-strong);
-      border-radius: 28px;
-      padding: 28px;
-      max-width: 340px;
-      width: 100%;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 60px rgba(91, 191, 235, 0.15);
-      animation: alertBounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-      text-align: center;
-    }
-    
-    @keyframes alertBounce {
-      from { transform: scale(0.8) translateY(20px); opacity: 0; }
-      to { transform: scale(1) translateY(0); opacity: 1; }
-    }
-    
-    .ice-alert-icon {
-      font-size: 48px;
-      margin-bottom: 12px;
-      display: block;
-    }
-    
-    .ice-alert-title {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin-bottom: 8px;
-    }
-    
-    .ice-alert-message {
-      font-size: 14px;
-      color: var(--text-secondary);
-      line-height: 1.5;
-      margin-bottom: 20px;
-    }
-    
-    .ice-alert-btn {
-      background: linear-gradient(135deg, var(--ice-primary), var(--ice-deep));
-      border: none;
-      color: white;
-      padding: 12px 32px;
-      border-radius: 14px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 4px 16px rgba(91, 191, 235, 0.4);
-      transition: all 0.3s ease;
-    }
-    .ice-alert-btn:hover {
-      transform: scale(1.05);
-      box-shadow: 0 6px 24px rgba(91, 191, 235, 0.5);
-    }
-    
-    /* ═══════════════════════════════════════════════════════════════════════════
-       ANIMATIONS
-       ═══════════════════════════════════════════════════════════════════════════ */
-    
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-6px); }
-    }
-    
-    .animate-float { animation: float 3s ease-in-out infinite; }
-    
-    @keyframes shimmer {
-      0% { background-position: -200% 0; }
-      100% { background-position: 200% 0; }
-    }
-    
-    .skeleton {
-      background: linear-gradient(90deg, var(--glass-bg) 25%, var(--glass-bg-strong) 50%, var(--glass-bg) 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-      border-radius: 8px;
-    }
-    
-    /* Page Transitions */
-    .page-enter {
-      animation: pageEnter 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    
-    @keyframes pageEnter {
-      from { opacity: 0; transform: translateY(12px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Unify active scale-down for premium click response */
-    button:active, .btn-primary:active, .btn-secondary:active, .global-back-btn:active, .story-card:active, .user-card:active, .tab-item:active {
-      transform: scale(0.96) translateY(0) !important;
-      transition: transform 0.1s ease !important;
-    }
-
-    /* Premium custom scrollbar styling */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.12);
-      border-radius: 10px;
-      transition: background 0.3s ease;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.25);
-    }
-
-    /* Specific input states overrides */
-    input.is-invalid, textarea.is-invalid, select.is-invalid {
-      border-color: var(--status-error) !important;
-      background: rgba(248, 113, 113, 0.08) !important;
-      box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.2) !important;
-    }
-    input.is-valid, textarea.is-valid, select.is-valid {
-      border-color: var(--status-success) !important;
-      background: rgba(52, 211, 153, 0.08) !important;
-      box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.2) !important;
-    }
-
-    /* Tab active micro-pop animation */
-    @keyframes tabPop {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.15) translateY(-2px); }
-      100% { transform: scale(1); }
-    }
-    .tab-item.active .tab-icon {
-      animation: tabPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    /* AI Legit Score Indicator Glows */
-    @keyframes scoreGlow-green {
-      0%, 100% { box-shadow: 0 0 15px rgba(52, 211, 153, 0.25), inset 0 0 15px rgba(52, 211, 153, 0.15); border-color: rgba(52, 211, 153, 0.5); }
-      50% { box-shadow: 0 0 30px rgba(52, 211, 153, 0.6), inset 0 0 30px rgba(52, 211, 153, 0.4); border-color: rgba(52, 211, 153, 1); }
-    }
-    @keyframes scoreGlow-yellow {
-      0%, 100% { box-shadow: 0 0 15px rgba(251, 191, 36, 0.25), inset 0 0 15px rgba(251, 191, 36, 0.15); border-color: rgba(251, 191, 36, 0.5); }
-      50% { box-shadow: 0 0 30px rgba(251, 191, 36, 0.6), inset 0 0 30px rgba(251, 191, 36, 0.4); border-color: rgba(251, 191, 36, 1); }
-    }
-    @keyframes scoreGlow-red {
-      0%, 100% { box-shadow: 0 0 15px rgba(248, 113, 113, 0.25), inset 0 0 15px rgba(248, 113, 113, 0.15); border-color: rgba(248, 113, 113, 0.5); }
-      50% { box-shadow: 0 0 30px rgba(248, 113, 113, 0.6), inset 0 0 30px rgba(248, 113, 113, 0.4); border-color: rgba(248, 113, 113, 1); }
-    }
-    .score-gauge-green { animation: scoreGlow-green 2.5s ease-in-out infinite; }
-    .score-gauge-yellow { animation: scoreGlow-yellow 2.5s ease-in-out infinite; }
-    .score-gauge-red { animation: scoreGlow-red 2.5s ease-in-out infinite; }
-
-    /* Confetti Particle Styling */
-    .confetti-particle {
-      position: fixed;
-      pointer-events: none;
-      z-index: 9999;
-      animation: confetti-fall linear forwards;
-    }
-    @keyframes confetti-fall {
-      0% {
-        transform: translateY(-10vh) rotate(0deg) scale(1);
-        opacity: 1;
-      }
-      100% {
-        transform: translateY(110vh) rotate(720deg) scale(0.5);
-        opacity: 0;
-      }
-    }
-    
-    /* Light theme overrides - preserved for compatibility */
-    html.light body { background: linear-gradient(165deg, #E8F4FC 0%, #D1E9F6 50%, #B8E0F6 100%); }
-    html.light .app-header { background: rgba(255,255,255,0.7); border-color: rgba(91,191,235,0.2); }
-    html.light .tab-bar { background: rgba(255,255,255,0.7); border-color: rgba(91,191,235,0.2); }
-    html.light .text-white { color: #1a3a5c !important; }
-    html.light .text-white\/70 { color: rgba(26,59,92,0.7) !important; }
-    html.light .text-white\/50, html.light .text-white\/60 { color: rgba(26,59,92,0.55) !important; }
-
-    /* ═══════════════════════════════════════════════════════════════════════════
-       ICE LOGIX ICON SYSTEM
-       Inline SVG icons — 24×24 viewBox, currentColor stroke, 1.75-2px stroke.
-       Use ix(name, opts) helper from JS to render.
-       ═══════════════════════════════════════════════════════════════════════════ */
-    .ix {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 1.15em;
-      height: 1.15em;
-      flex-shrink: 0;
-      vertical-align: -0.18em;
-      color: currentColor;
-    }
-    .ix svg { width: 100%; height: 100%; display: block; }
-    .ix.ix-fill svg { fill: currentColor; stroke: none; }
-    .ix.ix-accent { color: var(--ice-primary); }
-    .ix.ix-mute { color: var(--text-muted); }
-    .ix.ix-success { color: var(--status-success); }
-    .ix.ix-warning { color: var(--status-warning); }
-    .ix.ix-error { color: var(--status-error); }
-    .ix.ix-info { color: var(--status-info); }
-    /* Size helpers */
-    .ix.ix-sm { width: 0.95em; height: 0.95em; }
-    .ix.ix-lg { width: 1.5em; height: 1.5em; }
-    .ix.ix-xl { width: 2em; height: 2em; vertical-align: -0.35em; }
-
-    /* Brand snowflake — used in balance widget and ice currency annotations */
-    .brand-flake {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 1em;
-      height: 1em;
-      color: var(--ice-light);
-      filter: drop-shadow(0 0 6px rgba(184, 224, 246, 0.5));
-      vertical-align: -0.15em;
-    }
-    .brand-flake svg { width: 100%; height: 100%; display: block; }
-
-    /* Marketplace dot — replaces colored emoji circles */
-    .mp-dot {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      flex-shrink: 0;
-      vertical-align: middle;
-      box-shadow: 0 0 0 2px rgba(255,255,255,0.12) inset, 0 1px 3px rgba(0,0,0,0.3);
-    }
-
-    /* ═══════════════════════════════════════════════════════════════════════════
-       GLASS MODAL — replaces native window.alert / window.confirm
-       Used inside the mini-app instead of Telegram's native showAlert dialogs
-       for a brand-consistent look. Animation slides up from bottom.
-       ═══════════════════════════════════════════════════════════════════════════ */
-    .glass-modal-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 9000;
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      padding: 0;
-      background: rgba(10, 22, 40, 0.55);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.25s ease;
-    }
-    .glass-modal-overlay.show {
-      opacity: 1;
-      pointer-events: auto;
-    }
-    @media (min-width: 540px) {
-      .glass-modal-overlay { align-items: center; }
-    }
-
-    .glass-modal {
-      width: 100%;
-      max-width: 420px;
-      margin: 0;
-      padding: 22px 22px 18px;
-      background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.08) 100%);
-      backdrop-filter: blur(28px) saturate(150%);
-      -webkit-backdrop-filter: blur(28px) saturate(150%);
-      border: 1px solid var(--glass-border-strong);
-      border-bottom: none;
-      border-radius: 28px 28px 0 0;
-      box-shadow: 0 -10px 40px rgba(0,0,0,0.4), 0 0 60px rgba(91, 191, 235, 0.15);
-      transform: translateY(40px);
-      opacity: 0;
-      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
-    }
-    .glass-modal-overlay.show .glass-modal {
-      transform: translateY(0);
-      opacity: 1;
-    }
-    @media (min-width: 540px) {
-      .glass-modal {
-        border-bottom: 1px solid var(--glass-border-strong);
-        border-radius: 24px;
-        margin: 0 16px;
-      }
-    }
-
-    .glass-modal-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-    .glass-modal-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      color: var(--ice-primary);
-      background: rgba(91, 191, 235, 0.18);
-      box-shadow: inset 0 0 0 1px rgba(91, 191, 235, 0.3);
-    }
-    .glass-modal-icon.success { color: var(--status-success); background: rgba(52, 211, 153, 0.18); box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.3); }
-    .glass-modal-icon.warning { color: var(--status-warning); background: rgba(251, 191, 36, 0.18); box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.3); }
-    .glass-modal-icon.error { color: var(--status-error); background: rgba(248, 113, 113, 0.18); box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.3); }
-    .glass-modal-icon.info { color: var(--status-info); background: rgba(96, 165, 250, 0.18); box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.3); }
-    .glass-modal-title {
-      font-size: 17px;
-      font-weight: 700;
-      color: var(--text-primary);
-      flex: 1;
-      min-width: 0;
-      line-height: 1.25;
-    }
-    .glass-modal-body {
-      font-size: 15px;
-      line-height: 1.5;
-      color: var(--text-secondary);
-      white-space: pre-wrap;
-      word-break: break-word;
-      margin-bottom: 18px;
-      max-height: 60vh;
-      overflow-y: auto;
-    }
-    .glass-modal-footer {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .glass-modal-btn {
-      flex: 1;
-      min-width: 100px;
-      padding: 13px 16px;
-      border-radius: 16px;
-      border: 1px solid var(--glass-border);
-      background: var(--glass-bg);
-      color: var(--text-primary);
-      font-size: 15px;
-      font-weight: 600;
-      font-family: inherit;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-    .glass-modal-btn:hover { background: var(--glass-bg-strong); transform: translateY(-1px); }
-    .glass-modal-btn:active { transform: translateY(0); }
-    .glass-modal-btn.primary {
-      background: linear-gradient(135deg, var(--ice-primary) 0%, var(--ice-deep) 100%);
-      border-color: rgba(91, 191, 235, 0.5);
-      box-shadow: 0 4px 16px rgba(91, 191, 235, 0.35);
-    }
-    .glass-modal-btn.primary:hover {
-      box-shadow: 0 6px 22px rgba(91, 191, 235, 0.5);
-      transform: translateY(-1px);
-    }
-    .glass-modal-btn.danger {
-      background: linear-gradient(135deg, rgba(248,113,113,0.85) 0%, rgba(220, 38, 38, 0.85) 100%);
-      border-color: rgba(248, 113, 113, 0.5);
-      box-shadow: 0 4px 16px rgba(248, 113, 113, 0.3);
-    }
-    .glass-modal-btn.ghost { background: transparent; border-color: var(--glass-border); color: var(--text-secondary); }
-
-    /* Glass toast (non-blocking) */
-    .glass-toast {
-      position: fixed;
-      top: 84px;
-      left: 50%;
-      transform: translateX(-50%) translateY(-30px);
-      z-index: 9100;
-      max-width: calc(100% - 32px);
-      padding: 12px 18px 12px 14px;
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.08) 100%);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid var(--glass-border-strong);
-      border-radius: 18px;
-      box-shadow: 0 8px 28px rgba(0,0,0,0.35);
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-primary);
-      opacity: 0;
-      pointer-events: none;
-      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
-    }
-    .glass-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
-    .glass-toast .ix { color: var(--ice-primary); }
-    .glass-toast.toast-success .ix { color: var(--status-success); }
-    .glass-toast.toast-warning .ix { color: var(--status-warning); }
-    .glass-toast.toast-error .ix { color: var(--status-error); }
-
-    /* ═══════════════════════════════════════════════════════════════════════════
-       GLASS SELECT — custom dropdown to replace raw <select>
-       Native <select> stays hidden but functional (form submission, JS reads).
-       Visible UI is a glass button that opens a bottom-sheet picker.
-       ═══════════════════════════════════════════════════════════════════════════ */
-    .gx-select-wrap { position: relative; }
-    .gx-select-wrap select.gx-select-native {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      opacity: 0;
-      pointer-events: none;
-      z-index: -1;
-    }
-    .gx-select-trigger {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      width: 100%;
-      padding: 13px 14px;
-      border-radius: 16px;
-      background: linear-gradient(135deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.04) 100%);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid var(--glass-border);
-      color: var(--text-primary);
-      font-family: inherit;
-      font-size: 15px;
-      font-weight: 500;
-      cursor: pointer;
-      text-align: left;
-      transition: all 0.2s ease;
-    }
-    .gx-select-trigger:hover {
-      background: var(--glass-bg-strong);
-      border-color: var(--glass-border-strong);
-    }
-    .gx-select-trigger:focus { outline: none; border-color: var(--ice-primary); box-shadow: 0 0 0 3px rgba(91,191,235,0.18); }
-    .gx-select-trigger.placeholder { color: var(--text-muted); }
-    .gx-select-trigger-value {
-      flex: 1;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .gx-select-trigger .ix-chevron {
-      color: var(--text-muted);
-      transition: transform 0.25s ease;
-      flex-shrink: 0;
-    }
-    .gx-select-wrap.open .gx-select-trigger .ix-chevron { transform: rotate(180deg); }
-
-    .gx-sheet-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 9000;
-      background: rgba(10, 22, 40, 0.55);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.25s ease;
-    }
-    .gx-sheet-overlay.show { opacity: 1; pointer-events: auto; }
-
-    .gx-sheet {
-      width: 100%;
-      max-width: 480px;
-      max-height: 78vh;
-      display: flex;
-      flex-direction: column;
-      background: linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.08) 100%);
-      backdrop-filter: blur(28px) saturate(150%);
-      -webkit-backdrop-filter: blur(28px) saturate(150%);
-      border: 1px solid var(--glass-border-strong);
-      border-bottom: none;
-      border-radius: 28px 28px 0 0;
-      box-shadow: 0 -10px 40px rgba(0,0,0,0.4);
-      transform: translateY(40px);
-      opacity: 0;
-      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
-    }
-    .gx-sheet-overlay.show .gx-sheet { transform: translateY(0); opacity: 1; }
-
-    .gx-sheet-handle {
-      width: 40px;
-      height: 4px;
-      background: rgba(255,255,255,0.35);
-      border-radius: 999px;
-      margin: 10px auto 6px;
-    }
-    .gx-sheet-header {
-      padding: 8px 20px 12px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-    .gx-sheet-title {
-      font-size: 17px;
-      font-weight: 700;
-      color: var(--text-primary);
-    }
-    .gx-sheet-close {
-      width: 32px;
-      height: 32px;
-      border-radius: 10px;
-      background: var(--glass-bg);
-      border: 1px solid var(--glass-border);
-      color: var(--text-muted);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-    }
-    .gx-sheet-close:hover { background: var(--glass-bg-strong); color: var(--text-primary); }
-    .gx-sheet-search {
-      padding: 0 20px 12px;
-      position: relative;
-    }
-    .gx-sheet-search input {
-      width: 100%;
-      padding: 11px 14px 11px 40px;
-      border-radius: 14px;
-      background: var(--glass-bg);
-      border: 1px solid var(--glass-border);
-      color: var(--text-primary);
-      font-family: inherit;
-      font-size: 14px;
-      outline: none;
-    }
-    .gx-sheet-search input:focus { border-color: var(--ice-primary); }
-    .gx-sheet-search .ix {
-      position: absolute;
-      left: 32px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--text-muted);
-      pointer-events: none;
-    }
-    .gx-sheet-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 4px 12px 24px;
-      -webkit-overflow-scrolling: touch;
-    }
-    .gx-sheet-group-label {
-      padding: 14px 10px 6px;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      color: var(--text-muted);
-    }
-    .gx-sheet-opt {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      width: 100%;
-      padding: 13px 14px;
-      border-radius: 14px;
-      background: transparent;
-      border: none;
-      color: var(--text-primary);
-      font-family: inherit;
-      font-size: 15px;
-      text-align: left;
-      cursor: pointer;
-      transition: background 0.15s ease;
-    }
-    .gx-sheet-opt:hover { background: var(--glass-bg); }
-    .gx-sheet-opt[aria-selected="true"] {
-      background: rgba(91, 191, 235, 0.15);
-      color: var(--ice-primary);
-    }
-    .gx-sheet-opt-label {
-      flex: 1;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .gx-sheet-opt-check { color: var(--ice-primary); opacity: 0; flex-shrink: 0; }
-    .gx-sheet-opt[aria-selected="true"] .gx-sheet-opt-check { opacity: 1; }
-    .gx-sheet-empty {
-      padding: 32px 16px;
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 14px;
-    }
-
-    /* Star rating helper — replaces ★☆ emoji groups */
-    .star-row { display: inline-flex; gap: 2px; align-items: center; color: var(--status-warning); }
-    .star-row .ix { width: 0.95em; height: 0.95em; }
-    .star-row.muted { color: rgba(255,255,255,0.25); }
-  </style>
-</head>
-<body>
-  <!-- Version: 2026.05.23.01 - ICE LOGIX Glassmorphism Redesign -->
-  <div id="app">
-    <!-- ═══════════════════════════════════════════════════════════════════════
-         HEADER ISLAND - Floating navigation with balance widget
-         ═══════════════════════════════════════════════════════════════════════ -->
-    <div class="app-header">
-      <div class="header-left">
-        <img id="logoImg" class="logo-img" src="./assets/logo.png" alt="ICE LOGIX">
-        <!-- Balance Island Widget — moved to left of header for cleaner right cluster -->
-        <div class="balance-island" id="balanceIsland">
-          <div class="balance-amount">
-            <span id="headerBalance">0</span>
-            <span class="balance-icon" aria-hidden="true" title="ICE Валюта"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
-          </div>
-          <span id="familyBalanceHeader" style="display:none; font-size:10px; color:rgba(52,211,153,0.9); font-weight:700; padding: 0 4px; border-left: 1px solid rgba(255,255,255,0.2);">
-            <span id="familyBalanceValue">0</span>👨‍👩‍👧
-          </span>
-          <button class="balance-add" id="addBalanceBtn" title="Пополнить баланс">+</button>
-        </div>
-      </div>
-      <div class="header-right">
-        <button class="icon-btn relative" id="notificationsBtn" title="Уведомления">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-          </svg>
-          <span id="notifBadge" class="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[10px] font-bold flex items-center justify-center hidden" style="background: #ef4444; color: #fff;">0</span>
-        </button>
-        <button class="icon-btn" id="settingsBtn" title="Настройки">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-          </svg>
-        </button>
-        <div class="user-card" id="userCard">
-          <div class="user-avatar" id="avatar"></div>
-          <span class="user-name" id="userNameHeader">Гость</span>
-        </div>
-        <button class="icon-btn" id="loginBtn" title="Войти" style="display:none; background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.4); color: #22d3ee; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 10px; white-space: nowrap;">Войти</button>
-      </div>
-    </div>
-    
-    <!-- Main Content Area -->
-    <div id="content" class="main-content page-enter">
-      <div class="text-center py-10" style="color: var(--text-secondary);">
-        <div class="skeleton" style="width: 60px; height: 60px; border-radius: 16px; margin: 0 auto 12px;"></div>
-        <div class="skeleton" style="width: 120px; height: 16px; margin: 0 auto;"></div>
-      </div>
-    </div>
-    
-    <!-- ═══════════════════════════════════════════════════════════════════════
-         TAB BAR ISLAND - Floating bottom navigation
-         ═══════════════════════════════════════════════════════════════════════ -->
-    <div class="tab-bar" id="tabBar">
-      <div class="tab-item" data-tab="home">
-        <span class="tab-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-            <polyline points="9,22 9,12 15,12 15,22"/>
-          </svg>
-        </span>
-        <span class="tab-label">Главная</span>
-      </div>
-      <div class="tab-item" data-tab="calculator">
-        <span class="tab-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="4" y="2" width="16" height="20" rx="2"/>
-            <line x1="8" x2="16" y1="6" y2="6"/>
-            <line x1="8" x2="8" y1="10" y2="10"/>
-            <line x1="12" x2="12" y1="10" y2="10"/>
-            <line x1="16" x2="16" y1="10" y2="10"/>
-            <line x1="8" x2="8" y1="14" y2="14"/>
-            <line x1="12" x2="12" y1="14" y2="14"/>
-            <line x1="16" x2="16" y1="14" y2="14"/>
-            <line x1="8" x2="8" y1="18" y2="18"/>
-            <line x1="12" x2="12" y1="18" y2="18"/>
-            <line x1="16" x2="16" y1="18" y2="18"/>
-          </svg>
-        </span>
-        <span class="tab-label">Калькулятор</span>
-      </div>
-      <div class="tab-item new-order" data-tab="neworder">
-        <span class="tab-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" x2="12" y1="5" y2="19"/>
-            <line x1="5" x2="19" y1="12" y2="12"/>
-          </svg>
-        </span>
-        <span class="tab-label">Заказ</span>
-      </div>
-      <div class="tab-item" data-tab="catalogs">
-        <span class="tab-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7" rx="1"/>
-            <rect x="14" y="3" width="7" height="7" rx="1"/>
-            <rect x="3" y="14" width="7" height="7" rx="1"/>
-            <rect x="14" y="14" width="7" height="7" rx="1"/>
-          </svg>
-        </span>
-        <span class="tab-label">Каталоги</span>
-      </div>
-      <div class="tab-item" data-tab="profile">
-        <span class="tab-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-            <circle cx="12" cy="7" r="4"/>
-          </svg>
-        </span>
-        <span class="tab-label">Профиль</span>
-      </div>
-    </div>
-  </div>
-  <script>
     if (localStorage.getItem('theme') === 'light') {
       document.documentElement.classList.add('light-theme');
     }
-
-    // --- APP CACHE FOR BLAZING FAST NAVIGATION ---
-    window.CacheDB = {
-      data: {},
-      async get(key, fetcher, ttl = 120000) { // Default 2 mins cache
-        const now = Date.now();
-        if (this.data[key] && (now - this.data[key].timestamp < ttl)) {
-          return this.data[key].value;
-        }
-        const val = await fetcher();
-        this.data[key] = { value: val, timestamp: now };
-        return val;
-      },
-      clear(key) { delete this.data[key]; },
-      clearAll() { this.data = {}; }
-    };
     // ─── BLOB URL TRACKING (prevent memory leaks from photo previews) ───
 
     // ─── GLOBAL FOOTER EVENT DELEGATION ───
@@ -2851,34 +1136,6 @@
       }
     }
 
-    window.onTelegramAuth = async function(user) {
-      const errEl = document.getElementById('authErrorMsg');
-      if(errEl) errEl.classList.add('hidden');
-      try {
-        const res = await fetch('https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/telegram-auth', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ widgetData: user })
-        });
-        const data = await res.json();
-        if (data.ok && data.session) {
-          await supabaseClient.auth.setSession({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
-          const overlay = document.querySelector('.fixed.inset-0.bg-black\\/90');
-          if (overlay && typeof handleAuthSuccess === 'function') await handleAuthSuccess(overlay);
-          else location.reload();
-        } else {
-          throw new Error(data.error || 'Ошибка входа');
-        }
-      } catch(e) {
-        if(errEl) {
-          errEl.textContent = e.message || 'Ошибка Telegram Widget';
-          errEl.classList.remove('hidden');
-        } else {
-          tgUtil.alert(e.message || 'Ошибка Telegram Widget');
-        }
-      }
-    };
-
     let tg = null, userId = null, userName = 'Гость', userAvatarUrl = null, isOwner = false, supabaseClient = null;
     let isRegistered = false;
     let originalAdminId = null;
@@ -3228,7 +1485,7 @@ const MAX_REQUESTS_TRUSTED = 100;
           // Mark <body> so CSS hides duplicate in-page back buttons when native BackButton is available.
           if (tg?.BackButton) document.body.classList.add('tg-native-back');
           const user = tg.initDataUnsafe?.user;
-          userId = null; // Will be set via Supabase Auth
+          userId = user ? user.id : null;
           userName = user ? (user.first_name || user.username || 'Гость') : 'Гость';
           userAvatarUrl = user?.photo_url || null;
         } else {
@@ -3251,36 +1508,6 @@ const MAX_REQUESTS_TRUSTED = 100;
           } catch (err) {
             console.error('Error loading app settings:', err);
           }
-          // --- STRICT AUTHENTICATION FLOW ---
-          let activeSession = null;
-          try {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            activeSession = session;
-            
-            if (!activeSession && tg?.initData && localStorage.getItem('ice_logged_out') !== 'true') {
-                try {
-                    const res = await fetch('https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/telegram-auth', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ initData: tg.initData })
-                    });
-                    const data = await res.json();
-                    if (data.ok && data.session) {
-                        await supabaseClient.auth.setSession({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
-                        activeSession = data.session;
-                    }
-                } catch(e) { console.error('Telegram Auth Error', e); }
-            }
-            
-            if (activeSession) {
-                const { data: profile } = await supabaseClient.from('users').select('user_id').eq('auth_id', activeSession.user.id).single();
-                if (profile) userId = profile.user_id;
-            }
-          } catch (err) {
-            console.error('Authentication Flow Error:', err);
-          }
-          // --- END AUTHENTICATION FLOW ---
-
           try {
             await loadUserData();
           } catch (err) {
@@ -3320,7 +1547,6 @@ const MAX_REQUESTS_TRUSTED = 100;
         const userCard = document.getElementById('userCard');
         if (userCard) {
           userCard.onclick = () => switchTab('profile');
-          if (!isRegistered) userCard.style.display = 'none';
         }
         const settingsBtn = document.getElementById('settingsBtn');
         if (settingsBtn) {
@@ -3333,13 +1559,7 @@ const MAX_REQUESTS_TRUSTED = 100;
         const loginBtn = document.getElementById('loginBtn');
         if (loginBtn) {
           loginBtn.onclick = () => showAuthPage();
-          if (!isRegistered) {
-            loginBtn.style.display = 'inline-block';
-            loginBtn.style.padding = '6px 14px';
-            loginBtn.style.fontSize = '13px';
-          } else {
-            loginBtn.style.display = 'none';
-          }
+          if (!isRegistered) loginBtn.style.display = '';
         }
 
         // Прогреваем кэш курсов НБРБ (1 час) — для quickEstimate в списках
@@ -3843,16 +2063,13 @@ const MAX_REQUESTS_TRUSTED = 100;
 
     async function renderPromoBanners() {
   try {
-    const data = await window.CacheDB.get('promotions', async () => {
-      const { data, error } = await supabaseClient
-        .from('promotions')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .limit(5);
-      if (error) throw error;
-      return data;
-    }, 300000); // 5 mins cache
+    const { data, error } = await supabaseClient
+      .from('promotions')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(5);
+    if (error) throw error;
     if (!data || data.length === 0) return '';
     
     return data.map(p => `
@@ -3883,7 +2100,7 @@ const MAX_REQUESTS_TRUSTED = 100;
         <h3 class="text-white font-bold text-sm flex items-center gap-1"><span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span> Биржевой курс ICE LOGIX</h3>
         <span class="text-green-400 text-[10px] bg-green-400/20 px-2 py-0.5 rounded-full animate-pulse">Live</span>
       </div>
-      <div style="overflow-x: auto; padding: 2px 0; scrollbar-width: none; -ms-overflow-style: none;">
+      <div style="overflow-x: auto; margin: 0 -4px; padding: 2px 4px; scrollbar-width: none; -ms-overflow-style: none;">
         <div style="display: flex; gap: 6px; width: max-content; padding-bottom: 2px;">
           ${[
             { flag: '🇺🇸', code: 'USD', label: '$1',     key: 'usd_rate', def: 3.25,    mult: 1    },
@@ -3898,10 +2115,10 @@ const MAX_REQUESTS_TRUSTED = 100;
             { flag: '🇰🇷', code: 'KRW', label: '₩1000',  key: 'krw_rate', def: 0.0024,  mult: 1000 },
           ].map(c => {
             const rate = (Number(window.settings?.[c.key] || c.def) * c.mult).toFixed(2);
-            return `<div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 6px 10px; flex-shrink: 0;">
-              <div style="font-size: 10px; color: rgba(255,255,255,0.45); white-space: nowrap; margin-bottom: 3px;">${c.flag} ${c.code}</div>
-              <div style="font-size: 11px; font-weight: 700; color: white; white-space: nowrap;">${c.label} ≈ <span style="color: #67e8f9;">${rate} Br/ICE</span></div>
-            </div>`;
+            return \`<div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 6px 10px; flex-shrink: 0;">
+              <div style="font-size: 10px; color: rgba(255,255,255,0.45); white-space: nowrap; margin-bottom: 3px;">\${c.flag} \${c.code}</div>
+              <div style="font-size: 11px; font-weight: 700; color: white; white-space: nowrap;">\${c.label} ≈ <span style="color: #67e8f9;">\${rate} Br/ICE</span></div>
+            </div>\`;
           }).join('')}
         </div>
       </div>
@@ -4124,10 +2341,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         return;
       }
     } else {
-      const popular = await window.CacheDB.get('popularProducts', async () => {
-        const { data } = await supabaseClient.from('products').select('*').eq('is_active', true).limit(10);
-        return data;
-      }, 300000);
+      const { data: popular } = await supabaseClient.from('products').select('*').eq('is_active', true).limit(10);
       if (popular) data = popular;
     }
 
@@ -8215,29 +6429,24 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
 
         // ==================== РЕНДЕР ПРОФИЛЯ (С РЕФЕРАЛКАМИ) ====================
         async function renderProfile() {
-      let referralStats = await window.CacheDB.get('ref_' + userId, async () => {
-        let stats = { count: 0, bonus: 0 };
-        if (userId) {
-          try {
-            const { data, error } = await supabaseClient.from('users').select('referral_count, referral_bonus').eq('user_id', userId).single();
-            if (!error && data) {
-              stats.count = data.referral_count || 0;
-              stats.bonus = data.referral_bonus || 0;
-            }
-          } catch(e) {}
-        }
-        return stats;
-      }, 60000);
+      let referralStats = { count: 0, bonus: 0 };
+      if (userId) {
+        try {
+          const { data, error } = await supabaseClient.from('users').select('referral_count, referral_bonus').eq('user_id', userId).single();
+          if (!error && data) {
+            referralStats.count = data.referral_count || 0;
+            referralStats.bonus = data.referral_bonus || 0;
+          }
+        } catch(e) { console.log(e); }
+      }
       
-      let isDropshipper = await window.CacheDB.get('dropship_' + userId, async () => {
-        if (userId) {
-          try {
-            const { data, error } = await supabaseClient.from('dropshipper_settings').select('user_id').eq('user_id', userId).single();
-            if (!error && data) return true;
-          } catch(e) {}
-        }
-        return false;
-      }, 300000);
+      let isDropshipper = false;
+      if (userId) {
+        try {
+          const { data, error } = await supabaseClient.from('dropshipper_settings').select('user_id').eq('user_id', userId).single();
+          if (!error && data) isDropshipper = true;
+        } catch(e) {}
+      }
       
       const shareLink = userReferralCode ? `https://t.me/${tg.initDataUnsafe?.user?.username ? tg.initDataUnsafe.user.username : 'icelogix_bot'}?startapp=ref_${userReferralCode}` : '';
       
@@ -8316,6 +6525,20 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
       </div>
     </div>
     `}
+    
+    <!-- История (вместо транзакций — ссылка на раздел) -->
+    <div class="p-4 rounded-2xl mb-4 cursor-pointer hover:bg-white/10 transition-all active:scale-[0.98]" id="historyProfileBtn" style="background: var(--glass-bg); border: 1px solid var(--glass-border);">
+      <div class="flex justify-between items-center">
+        <p class="font-semibold flex items-center gap-2" style="color: var(--text-secondary);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          История
+        </p>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--ice-primary);"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <p class="text-xs mt-1 text-left" style="color: var(--text-muted);">Транзакции и архив заказов</p>
+    </div>
     
     <!-- Referral Program -->
     <div class="p-4 rounded-2xl mb-4" style="background: linear-gradient(135deg, rgba(52,211,153,0.15), rgba(16,185,129,0.08)); border: 1px solid rgba(52,211,153,0.25);">
@@ -8523,11 +6746,7 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
 
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
-    logoutBtn.onclick = async () => {
-      try { await supabaseClient.auth.signOut(); } catch(e) {}
-      localStorage.setItem('ice_logged_out', 'true');
-      location.reload();
-    };
+    logoutBtn.onclick = () => tg.close();
   }
 
   const copyBtn = document.getElementById('copyReferralLinkBtn');
@@ -13993,16 +12212,6 @@ function attachAdminSuppliersHandlers() {
         `;
       }
 
-      // SHOW SPINNER IMMEDIATELY FOR FAST UI RESPONSE
-      contentDiv.innerHTML = shadowBannerHtml + `
-        <div class="flex flex-col items-center justify-center min-h-[60vh] gap-3 page-enter">
-          <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-r-2 border-cyan-400"></div>
-          <div class="text-cyan-400/50 text-[10px] font-bold uppercase tracking-widest animate-pulse">Загрузка ICE LOGIX...</div>
-        </div>
-      `;
-      // Yield to browser so the spinner actually paints before JS blocks on queries
-      await new Promise(r => setTimeout(r, 10));
-
       if (currentSubScreen === 'about') {
         contentDiv.innerHTML = shadowBannerHtml + await renderAboutUs();
         attachAboutUsHandlers();
@@ -16419,9 +14628,9 @@ async function showRecoveryCodeModal() {
 
 async function showPersonalDataForm() {
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start sm:items-center justify-center z-[110] p-0 sm:p-4 overflow-y-auto';
+  modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[110] p-4 overflow-y-auto';
   modal.innerHTML = `
-    <div class="bg-slate-900/100 sm:bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-none sm:rounded-2xl max-w-md w-full h-[100dvh] sm:h-auto sm:max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+    <div class="bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
       <div class="p-5 border-b border-white/10 flex justify-between items-center bg-white/5">
         <div>
           <h3 class="text-white font-bold text-lg flex items-center gap-2">
@@ -16439,11 +14648,11 @@ async function showPersonalDataForm() {
           <h4 class="text-cyan-400 font-bold text-xs uppercase tracking-wider">Основная информация</h4>
           <div>
             <label class="text-white/60 text-xs font-semibold block mb-1">ФИО (Полное имя)</label>
-            <input type="text" id="pdFullName" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-base bg-white/5 text-white" placeholder="Иванов Иван Иванович">
+            <input type="text" id="pdFullName" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="Иванов Иван Иванович">
           </div>
           <div>
             <label class="text-white/60 text-xs font-semibold block mb-1">Номер телефона</label>
-            <input type="tel" id="pdPhone" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-base bg-white/5 text-white" placeholder="+375XXXXXXXXX">
+            <input type="tel" id="pdPhone" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="+375XXXXXXXXX">
           </div>
         </div>
         
@@ -16479,25 +14688,25 @@ async function showPersonalDataForm() {
           <p class="text-white/40 text-[10px] leading-relaxed">Хранятся в зашифрованном виде (AES-256) на стороне клиента и передаются только таможенному брокеру.</p>
           <div>
             <label class="text-white/60 text-xs font-semibold block mb-1">Серия и номер</label>
-            <input type="text" id="pdPassportSeriesNumber" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-base bg-white/5 text-white" placeholder="AB 1234567">
+            <input type="text" id="pdPassportSeriesNumber" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="AB 1234567">
           </div>
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="text-white/60 text-xs font-semibold block mb-1">Дата выдачи</label>
-              <input type="date" id="pdPassportIssueDate" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-base bg-white/5 text-white">
+              <input type="date" id="pdPassportIssueDate" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white">
             </div>
             <div>
               <label class="text-white/60 text-xs font-semibold block mb-1">Личный номер (14 цифр)</label>
-              <input type="text" id="pdPassportIdNumber" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-base bg-white/5 text-white" placeholder="14 знаков">
+              <input type="text" id="pdPassportIdNumber" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="14 знаков">
             </div>
           </div>
           <div>
             <label class="text-white/60 text-xs font-semibold block mb-1">Кем выдан</label>
-            <input type="text" id="pdPassportIssuedBy" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-base bg-white/5 text-white" placeholder="ОВД Центрального района г. Минска">
+            <input type="text" id="pdPassportIssuedBy" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="ОВД Центрального района г. Минска">
           </div>
           <div>
             <label class="text-white/60 text-xs font-semibold block mb-1">Адрес регистрации</label>
-            <input type="text" id="pdPassportAddress" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-base bg-white/5 text-white" placeholder="Минск, ул. Ленина 12, кв. 34">
+            <input type="text" id="pdPassportAddress" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="Минск, ул. Ленина 12, кв. 34">
           </div>
         </div>
 
@@ -16516,7 +14725,8 @@ async function showPersonalDataForm() {
             <p class="text-white/50 text-xs text-center py-2">Загрузка получателей...</p>
           </div>
         </div>
-
+      </div>
+      
         <!-- Семейный бюджет — перенесён в Мои данные -->
         <div class="space-y-2 pt-3 border-t border-white/5">
           <h4 class="text-cyan-400 font-bold text-xs uppercase tracking-wider flex items-center gap-1">
@@ -17549,45 +15759,13 @@ async function showAppSettings(initialTab = 'notifications') {
       </div>
       <!-- Security panel -->
       <div id="settingsPanel-security" class="p-5 overflow-y-auto flex-1 space-y-4 ${initialTab!=='security'?'hidden':''}">
-        <p class="text-white/60 text-sm">Управление способами входа и безопасностью.</p>
-        
-        <div class="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
-          <p class="text-white text-xs font-semibold uppercase tracking-wider mb-2 text-white/50">Привязка аккаунтов</p>
-          
-          <button id="linkGoogleBtn" class="w-full py-3 px-4 rounded-xl flex items-center justify-between transition" style="background: rgba(234,67,53,0.1); border: 1px solid rgba(234,67,53,0.25);">
-            <div class="flex items-center gap-3">
-              <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-              <span class="font-semibold text-white text-sm">Google</span>
-            </div>
-            <span class="text-xs text-white/50">Привязать</span>
-          </button>
-          
-          <button id="linkAppleBtn" class="w-full py-3 px-4 rounded-xl flex items-center justify-between transition" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
-            <div class="flex items-center gap-3">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="color:#ffffff;"><path d="M16.365 21.444c-1.332 1.405-2.651 1.4-3.955.086-1.19-1.2-2.316-1.187-3.486 0-1.385 1.4-2.721 1.428-4.043.08-3.036-3.111-4.707-8.31-2.482-12.825 1.134-2.296 3.013-3.714 5.234-3.743 1.572-.016 3.031.975 4.02.975.986 0 2.833-1.182 4.793-1.01 1.637.067 3.125.77 4.148 2.106-3.415 2.115-2.88 6.772.634 8.163-.787 2.111-1.956 4.316-3.863 6.168zM15.426 5.518c-.85.98-2.126 1.611-3.266 1.516-.25-1.428.468-2.85 1.258-3.791.905-1.083 2.304-1.727 3.402-1.631.183 1.428-.48 2.838-1.394 3.906z"/></svg>
-              <span class="font-semibold text-white text-sm">Apple</span>
-            </div>
-            <span class="text-xs text-white/50">Привязать</span>
-          </button>
-          
-          <button id="addEmailPasswordBtn" class="w-full py-3 px-4 rounded-xl flex items-center justify-between transition" style="background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3);">
-            <div class="flex items-center gap-3">
-              <span class="ix text-purple-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
-              <span class="font-semibold text-white text-sm">Добавить пароль</span>
-            </div>
-            <span class="text-xs text-white/50">Установить</span>
-          </button>
-        </div>
-
+        <p class="text-white/60 text-sm">Управление безопасностью аккаунта и кодом восстановления доступа.</p>
         <button id="securityRecoveryBtn" class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-left transition" style="background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3);">
           <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
           <div class="flex-1">
-            <p class="font-semibold text-white text-sm">Сброс аккаунта</p>
-            <p class="text-xs text-white/50">Полный выход со всех устройств</p>
+            <p class="font-semibold text-white text-sm">Код восстановления</p>
+            <p class="text-xs text-white/50">Резервный код для возврата доступа</p>
           </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:rgba(255,255,255,0.4);"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
-      </div>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:rgba(255,255,255,0.4);"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
       </div>
@@ -17627,46 +15805,6 @@ async function showAppSettings(initialTab = 'notifications') {
     modal.querySelector('#notifyNews').checked = true;
     modal.querySelector('#notifyPromotions').checked = true;
   };
-
-  const linkGoogle = modal.querySelector('#linkGoogleBtn');
-  if (linkGoogle) {
-    linkGoogle.onclick = async () => {
-      try {
-        const { error } = await supabaseClient.auth.linkIdentity({ provider: 'google' });
-        if (error) throw error;
-      } catch(e) { tgUtil.alert('Ошибка привязки Google: ' + e.message); }
-    };
-  }
-
-  const linkApple = modal.querySelector('#linkAppleBtn');
-  if (linkApple) {
-    linkApple.onclick = () => {
-      tgUtil.alert('Привязка Apple временно отключена.');
-    };
-  }
-
-  const addPassword = modal.querySelector('#addEmailPasswordBtn');
-  if (addPassword) {
-    addPassword.onclick = async () => {
-      const { data: { user } } = await supabaseClient.auth.getUser();
-      if (user?.email?.includes('@icelogix.local')) {
-        tgUtil.alert('Вы вошли через Telegram. В целях безопасности, смена пароля для таких аккаунтов пока недоступна.');
-        return;
-      }
-      const newPwd = prompt('Введите новый пароль для входа по Email (минимум 6 символов):');
-      if (!newPwd || newPwd.length < 6) {
-        if (newPwd !== null) tgUtil.alert('Пароль слишком короткий.');
-        return;
-      }
-      try {
-        const { error } = await supabaseClient.auth.updateUser({ password: newPwd });
-        if (error) throw error;
-        tgUtil.alert('Пароль успешно установлен! Теперь вы можете входить по Email.');
-      } catch(e) {
-        tgUtil.alert('Ошибка установки пароля: ' + e.message);
-      }
-    };
-  }
 
   modal.querySelector('#securityRecoveryBtn')?.addEventListener('click', () => { modal.remove(); showRecoveryCodeModal(); });
   modal.querySelector('#closeAppSettings').onclick = () => { applyTheme(currentTheme); modal.remove(); };
@@ -17747,165 +15885,183 @@ async function showNotificationsPanel() {
 function showAuthPage() {
   const overlay = document.createElement('div');
   overlay.id = 'authPageOverlay';
-  overlay.className = 'fixed inset-0 z-[200] flex flex-col items-center justify-center p-4 overflow-y-auto backdrop-blur-md';
-  overlay.style.cssText = 'background: rgba(15, 23, 42, 0.85);';
+  overlay.className = 'fixed inset-0 z-[200] flex flex-col items-center justify-center p-4 overflow-y-auto';
+  overlay.style.cssText = 'background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);';
 
   overlay.innerHTML = `
-    <div class="w-full max-w-sm bg-slate-900/90 border border-white/10 rounded-3xl shadow-2xl p-6 overflow-hidden relative">
-      <button id="authCloseBtn" class="absolute top-4 right-4 text-white/50 hover:text-white transition-colors">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-      
-      <div class="text-center mb-6 mt-2">
+    <div class="w-full max-w-sm">
+      <div class="text-center mb-8">
         <div class="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style="background: linear-gradient(135deg, rgba(6,182,212,0.2), rgba(139,92,246,0.2)); border: 1px solid rgba(6,182,212,0.3);">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#22d3ee;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         </div>
         <h2 class="text-white text-2xl font-bold mb-1">ICE LOGIX</h2>
-        <p class="text-white/50 text-sm">Авторизация в системе</p>
+        <p class="text-white/50 text-sm">Войдите или создайте аккаунт</p>
       </div>
 
       <!-- Tabs -->
-      <div class="flex rounded-xl p-1 mb-6 bg-white/5 border border-white/10">
-        <button id="authTabLogin" class="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all text-white" style="background: linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3));">Вход</button>
-        <button id="authTabRegister" class="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all text-white/50 bg-transparent">Регистрация</button>
+      <div class="flex rounded-xl p-1 mb-6" style="background: rgba(255,255,255,0.08);">
+        <button id="authTabLogin" class="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all text-white" style="background: linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3));">Войти</button>
+        <button id="authTabRegister" class="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all text-white/50">Регистрация</button>
       </div>
 
-      <!-- Auth Form -->
-      <div id="authEmailForm" class="space-y-4 mb-6 block">
-        <div>
-          <label class="text-white/60 text-xs font-semibold block mb-1">Email</label>
-          <input type="email" id="authEmailInput" class="w-full p-3.5 rounded-xl text-white text-base bg-white/5 border border-white/20 focus:border-cyan-500 transition-colors" placeholder="your@email.com">
-        </div>
-        <div>
-          <label class="text-white/60 text-xs font-semibold block mb-1">Пароль</label>
-          <input type="password" id="authPasswordInput" class="w-full p-3.5 rounded-xl text-white text-base bg-white/5 border border-white/20 focus:border-cyan-500 transition-colors" placeholder="••••••••">
-        </div>
-        <button id="authEmailSubmitBtn" class="w-full py-3.5 rounded-xl font-bold text-white text-sm mt-4 transition-all" style="background: linear-gradient(135deg, #06b6d4, #8b5cf6);">Войти</button>
-      </div>
-      <div id="authEmailForm" class="space-y-4 mb-6 hidden">
-        <div>
-          <label class="text-white/60 text-xs font-semibold block mb-1">Email</label>
-          <input type="email" id="authEmailInput" class="w-full p-3.5 rounded-xl text-white text-base bg-white/5 border border-white/20 focus:border-cyan-500 transition-colors" placeholder="user@example.com">
-        </div>
-        <div>
-          <label class="text-white/60 text-xs font-semibold block mb-1">Пароль</label>
-          <input type="password" id="authPasswordInput" class="w-full p-3.5 rounded-xl text-white text-base bg-white/5 border border-white/20 focus:border-cyan-500 transition-colors" placeholder="Пароль">
-        </div>
-        <button id="authEmailSubmitBtn" class="w-full py-3.5 rounded-xl font-bold text-white text-sm mt-2 transition-all" style="background: linear-gradient(135deg, #06b6d4, #8b5cf6);">Войти / Создать аккаунт</button>
+      <!-- Form -->
+      <div class="space-y-3 mb-5">
+        <input type="email" id="authEmail" class="w-full p-3.5 rounded-xl text-white text-sm" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);" placeholder="Email">
+        <input type="password" id="authPassword" class="w-full p-3.5 rounded-xl text-white text-sm" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);" placeholder="Пароль">
       </div>
 
-      <p id="authErrorMsg" class="text-red-400 text-xs text-center mb-4 hidden bg-red-500/10 p-2 rounded-lg"></p>
+      <p id="authError" class="text-red-400 text-sm text-center mb-3 hidden"></p>
+
+      <button id="authSubmitBtn" class="w-full py-3.5 rounded-xl font-bold text-white text-sm mb-5" style="background: linear-gradient(135deg, #06b6d4, #8b5cf6);">Войти</button>
 
       <!-- Divider -->
       <div class="flex items-center gap-3 mb-5">
         <div class="flex-1 border-t border-white/10"></div>
-        <span class="text-white/30 text-[10px] uppercase tracking-wider font-bold">Или войти через</span>
+        <span class="text-white/30 text-xs">или</span>
         <div class="flex-1 border-t border-white/10"></div>
       </div>
 
       <!-- Social buttons -->
-      <div class="flex gap-3 justify-center">
-        <button id="authSocialTg" class="w-12 h-12 rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95" style="background: rgba(36,161,222,0.15); border: 1px solid rgba(36,161,222,0.3);">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="color:#29b6f6;"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+      <div class="flex gap-3 justify-center mb-6">
+        <button id="authTgBtn" class="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-white text-sm font-semibold transition" style="background: rgba(36,161,222,0.15); border: 1px solid rgba(36,161,222,0.3);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="color:#29b6f6;"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+          Telegram
         </button>
-        <button id="authSocialGoogle" class="w-12 h-12 rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95" style="background: rgba(234,67,53,0.1); border: 1px solid rgba(234,67,53,0.25);">
-          <svg width="24" height="24" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-        </button>
-        <button id="authSocialApple" class="w-12 h-12 rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25);">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="color:#ffffff;"><path d="M16.365 21.444c-1.332 1.405-2.651 1.4-3.955.086-1.19-1.2-2.316-1.187-3.486 0-1.385 1.4-2.721 1.428-4.043.08-3.036-3.111-4.707-8.31-2.482-12.825 1.134-2.296 3.013-3.714 5.234-3.743 1.572-.016 3.031.975 4.02.975.986 0 2.833-1.182 4.793-1.01 1.637.067 3.125.77 4.148 2.106-3.415 2.115-2.88 6.772.634 8.163-.787 2.111-1.956 4.316-3.863 6.168zM15.426 5.518c-.85.98-2.126 1.611-3.266 1.516-.25-1.428.468-2.85 1.258-3.791.905-1.083 2.304-1.727 3.402-1.631.183 1.428-.48 2.838-1.394 3.906z"/></svg>
+        <button id="authGoogleBtn" class="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-white text-sm font-semibold transition" style="background: rgba(234,67,53,0.1); border: 1px solid rgba(234,67,53,0.25);">
+          <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+          Google
         </button>
       </div>
+
+      <button id="authCloseBtn" class="w-full py-2 text-white/30 text-xs">Закрыть</button>
     </div>
   `;
 
   document.body.appendChild(overlay);
 
-  let currentTab = 'login';
-  
-  const loginTabBtn = overlay.querySelector('#authTabLogin');
-  const registerTabBtn = overlay.querySelector('#authTabRegister');
-  const emailSubmitBtn = overlay.querySelector('#authEmailSubmitBtn');
-  const errEl = overlay.querySelector('#authErrorMsg');
+  let isLoginMode = true;
 
-  const switchAuthTab = (tab) => {
-    currentTab = tab;
-    errEl.classList.add('hidden');
-    if (tab === 'login') {
-      loginTabBtn.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3))';
-      loginTabBtn.style.color = '#fff';
-      registerTabBtn.style.background = 'transparent';
-      registerTabBtn.style.color = 'rgba(255,255,255,0.5)';
-      emailSubmitBtn.textContent = 'Войти';
+  const updateMode = () => {
+    const submitBtn = overlay.querySelector('#authSubmitBtn');
+    const loginTab = overlay.querySelector('#authTabLogin');
+    const registerTab = overlay.querySelector('#authTabRegister');
+    if (isLoginMode) {
+      submitBtn.textContent = 'Войти';
+      loginTab.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3))';
+      loginTab.style.color = '#fff';
+      registerTab.style.background = 'transparent';
+      registerTab.style.color = 'rgba(255,255,255,0.5)';
     } else {
-      registerTabBtn.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3))';
-      registerTabBtn.style.color = '#fff';
-      loginTabBtn.style.background = 'transparent';
-      loginTabBtn.style.color = 'rgba(255,255,255,0.5)';
-      emailSubmitBtn.textContent = 'Зарегистрироваться';
+      submitBtn.textContent = 'Зарегистрироваться';
+      registerTab.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3))';
+      registerTab.style.color = '#fff';
+      loginTab.style.background = 'transparent';
+      loginTab.style.color = 'rgba(255,255,255,0.5)';
     }
   };
 
-  loginTabBtn.onclick = () => switchAuthTab('login');
-  registerTabBtn.onclick = () => switchAuthTab('register');
-  
-  overlay.querySelector('#authCloseBtn').onclick = () => overlay.remove();
+  overlay.querySelector('#authTabLogin').onclick = () => { isLoginMode = true; updateMode(); };
+  overlay.querySelector('#authTabRegister').onclick = () => { isLoginMode = false; updateMode(); };
 
-  // --- Auth Flow ---
-  const emailInput = overlay.querySelector('#authEmailInput');
-  const passwordInput = overlay.querySelector('#authPasswordInput');
-  const emailSubmitBtn = overlay.querySelector('#authEmailSubmitBtn');
-
-  const emailInput = overlay.querySelector('#authEmailInput');
-  const passwordInput = overlay.querySelector('#authPasswordInput');
-
-  emailSubmitBtn.onclick = async () => {
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
+  overlay.querySelector('#authSubmitBtn').onclick = async () => {
+    const email = overlay.querySelector('#authEmail').value.trim();
+    const password = overlay.querySelector('#authPassword').value;
+    const errEl = overlay.querySelector('#authError');
     if (!email || !password) { errEl.textContent = 'Заполните email и пароль'; errEl.classList.remove('hidden'); return; }
     errEl.classList.add('hidden');
-    emailSubmitBtn.textContent = 'Ожидайте...'; emailSubmitBtn.disabled = true;
+    const btn = overlay.querySelector('#authSubmitBtn');
+    btn.textContent = '...'; btn.disabled = true;
     try {
-      if (currentTab === 'login') {
-        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+      let result;
+      if (isLoginMode) {
+        result = await supabaseClient.auth.signInWithPassword({ email, password });
       } else {
-        const { error } = await supabaseClient.auth.signUp({ email, password });
-        if (error) throw error;
-        // Supabase sign-up returns session if email_confirm is off. If it's on, session is null.
-        // We will try to sign in just in case.
-        await supabaseClient.auth.signInWithPassword({ email, password });
+        result = await supabaseClient.auth.signUp({ email, password });
       }
-      await handleAuthSuccess(overlay);
+      if (result.error) {
+        errEl.textContent = result.error.message;
+        errEl.classList.remove('hidden');
+        btn.textContent = isLoginMode ? 'Войти' : 'Зарегистрироваться';
+        btn.disabled = false;
+      } else {
+        isRegistered = true;
+        const loginBtnEl = document.getElementById('loginBtn');
+        if (loginBtnEl) loginBtnEl.style.display = 'none';
+        overlay.remove();
+        tgUtil.alert('✅ ' + (isLoginMode ? 'Вы вошли!' : 'Аккаунт создан!'));
+        await loadUserData();
+        renderCurrentScreen();
+      }
     } catch (e) {
       errEl.textContent = e.message || 'Ошибка авторизации';
       errEl.classList.remove('hidden');
-      emailSubmitBtn.textContent = currentTab === 'login' ? 'Войти' : 'Зарегистрироваться'; 
-      emailSubmitBtn.disabled = false;
+      btn.textContent = isLoginMode ? 'Войти' : 'Зарегистрироваться';
+      btn.disabled = false;
     }
   };
 
-  // --- Socials ---
-  const tgContainer = overlay.querySelector('#authSocialTg').parentElement;
-  if (tgContainer) {
-    if (window.Telegram?.WebApp?.initData) {
-      tgContainer.innerHTML = `<button class="w-12 h-12 rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95" style="background: rgba(36,161,222,0.15); border: 1px solid rgba(36,161,222,0.3);" onclick="tgUtil.alert('Перезапустите Mini App для автоматического входа')"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="color:#29b6f6;"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg></button>`;
-    } else {
-      tgContainer.innerHTML = ''; // clear dummy buttons
-      const script = document.createElement('script');
-      script.async = true;
-      script.src = "https://telegram.org/js/telegram-widget.js?22";
-      script.setAttribute("data-telegram-login", "icelogix_bot");
-      script.setAttribute("data-size", "large");
-      script.setAttribute("data-radius", "12");
-      script.setAttribute("data-onauth", "onTelegramAuth(user)");
-      script.setAttribute("data-request-access", "write");
-      tgContainer.appendChild(script);
-    }
-  }
-  
-  overlay.querySelector('#authSocialGoogle').onclick = () => { tgUtil.alert('Вход через Google временно отключен.'); };
-  overlay.querySelector('#authSocialApple').onclick = () => { tgUtil.alert('Вход через Apple временно отключен.'); };
+  overlay.querySelector('#authTgBtn').onclick = () => tgUtil.alert('Вход через Telegram доступен автоматически при открытии через бота');
+  overlay.querySelector('#authGoogleBtn').onclick = async () => {
+    try {
+      const { error } = await supabaseClient.auth.signInWithOAuth({ provider: 'google' });
+      if (error) tgUtil.alert('Ошибка: ' + error.message);
+    } catch(e) { tgUtil.alert('Google OAuth недоступен в этом окружении'); }
+  };
+  overlay.querySelector('#authCloseBtn').onclick = () => overlay.remove();
+}
 
+async function showPhoneBinding() {
+  // Проверяем, есть ли уже номер
+  const { data } = await supabaseClient.from('users').select('phone').eq('user_id', userId).single();
+  const currentPhone = data?.phone || '';
+  
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[110] p-4 overflow-y-auto pt-16 pb-20';
+  modal.innerHTML = `
+    <div class="bg-[#1e293b] rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col border border-white/20">
+      <div class="p-5 border-b border-white/20">
+        <h3 class="text-white font-bold text-lg"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></span> Привязка телефона</h3>
+      </div>
+      <div class="p-5 overflow-y-auto flex-1">
+        <p class="text-white/70 text-sm mb-3">Номер телефона нужен для восстановления доступа и уведомлений.</p>
+        <label class="text-white/70 text-sm">Номер телефона</label>
+        <input type="tel" id="phoneInput" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-3" placeholder="+375XXXXXXXXX" value="${currentPhone}">
+        <button id="sendCodeBtn" class="btn-primary w-full mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span> Отправить код подтверждения</button>
+        <div id="codeSection" class="hidden">
+          <label class="text-white/70 text-sm">Код из SMS</label>
+          <input type="text" id="codeInput" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-3" placeholder="123456">
+          <button id="verifyCodeBtn" class="w-full bg-green-500 py-2 rounded-xl"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Подтвердить</button>
+        </div>
+      </div>
+      <div class="p-5 border-t border-white/20">
+        <button id="closePhoneModal" class="btn-secondary w-full">Закрыть</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  
+  const phoneInput = document.getElementById('phoneInput');
+  const codeSection = document.getElementById('codeSection');
+  let currentCode = null;
+  
+  modal.querySelector('#closePhoneModal').onclick = () => modal.remove();
+  
+  document.getElementById('sendCodeBtn').onclick = async () => {
+    const phone = phoneInput.value.trim();
+    if (!phone) { tgUtil.alert('Введите номер'); return; }
+    // Генерируем код
+    currentCode = Math.floor(100000 + Math.random() * 900000).toString();
+    // Отправляем код через бота (сохраняем в базе временно)
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    await supabaseClient.from('recovery_codes').insert({
+      user_id: userId,
+      code: currentCode,
+      expires_at: expiresAt
+    });
+    // В будущем здесь будет вызов бота для отправки SMS, пока просто показываем код в alert для теста
+    tgUtil.alert(`Ваш код подтверждения: ${currentCode}`);
+    codeSection.classList.remove('hidden');
+  };
   
   document.getElementById('verifyCodeBtn').onclick = async () => {
     const enteredCode = document.getElementById('codeInput').value.trim();
@@ -19456,6 +17612,4 @@ window.downloadTaxInvoicePDF = async () => {
             _watchdog.observe(_contentDiv, { childList: true, subtree: false });
           }
         }, 3000);
-  </script>
-</body>
-</html>
+  
