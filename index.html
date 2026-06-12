@@ -4154,6 +4154,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
     grid.querySelectorAll('.wishlist-heart').forEach(heart => {
       heart.onclick = async (e) => {
+          if (!window.userId) { window.requireAuth('Пожалуйста, авторизуйтесь для добавления в избранное.'); return; }
         e.stopPropagation();
         const productId = heart.dataset.productId;
         if (wishlist.has(productId)) {
@@ -12824,6 +12825,7 @@ function attachProductsCatalogHandlers() {
   // Сердечки (избранное)
   document.querySelectorAll('.wishlist-heart').forEach(heart => {
     heart.onclick = async (e) => {
+          if (!window.userId) { window.requireAuth('Пожалуйста, авторизуйтесь для добавления в избранное.'); return; }
       e.stopPropagation();
       const productId = heart.dataset.productId;
       if (wishlist.has(productId)) {
@@ -17765,18 +17767,23 @@ function showAuthPage() {
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#22d3ee;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         </div>
         <h2 class="text-white text-2xl font-bold mb-1">ICE LOGIX</h2>
-        <p class="text-white/50 text-sm">Авторизация в системе</p>
+        <p class="text-white/50 text-sm" id="authSubtitle">Вход в систему</p>
       </div>
 
-      <!-- Tabs -->
-      <div class="flex rounded-xl p-1 mb-6 bg-white/5 border border-white/10 text-xs">
-        <button id="authTabPhone" class="flex-1 py-2.5 rounded-lg font-bold transition-all text-white" style="background: linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3));">По телефону</button>
-        <button id="authTabLogin" class="flex-1 py-2.5 rounded-lg font-bold transition-all text-white/50 bg-transparent">Вход</button>
+      <!-- Главные табы: Вход / Регистрация -->
+      <div class="flex rounded-xl p-1 mb-5 bg-white/5 border border-white/10 text-xs">
+        <button id="authTabLogin" class="flex-1 py-2.5 rounded-lg font-bold transition-all text-white" style="background: linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3));">Вход</button>
         <button id="authTabRegister" class="flex-1 py-2.5 rounded-lg font-bold transition-all text-white/50 bg-transparent">Регистрация</button>
       </div>
 
+      <!-- Выбор метода: Почта / СМС -->
+      <div class="flex rounded-xl p-1 mb-4 bg-slate-800/50 border border-white/5 text-[10px]">
+        <button id="methodTabEmail" class="flex-1 py-1.5 rounded-md font-bold transition-all text-white bg-white/10">Email</button>
+        <button id="methodTabPhone" class="flex-1 py-1.5 rounded-md font-bold transition-all text-white/40 bg-transparent">Телефон</button>
+      </div>
+
       <!-- Phone Form -->
-      <div id="authPhoneForm" class="space-y-4 mb-6 block">
+      <div id="authPhoneForm" class="space-y-4 mb-6 hidden">
         <div id="phoneInputStep">
           <label class="text-white/60 text-xs font-semibold block mb-1">Номер телефона</label>
           <input type="tel" id="authPhoneInput" class="w-full p-3.5 rounded-xl text-white text-base bg-white/5 border border-white/20 focus:border-cyan-500 transition-colors" placeholder="+375XXXXXXXXX">
@@ -17784,28 +17791,21 @@ function showAuthPage() {
         </div>
       </div>
 
-      <!-- Auth Form -->
-      <div id="authEmailForm" class="space-y-4 mb-6 hidden">
-        <div>
-          <label class="text-white/60 text-xs font-semibold block mb-1">Email</label>
-          <input type="email" id="authEmailInput" class="w-full p-3.5 rounded-xl text-white text-base bg-white/5 border border-white/20 focus:border-cyan-500 transition-colors" placeholder="your@email.com">
-        </div>
-        <div>
-          <label class="text-white/60 text-xs font-semibold block mb-1">Пароль</label>
-          <input type="password" id="authPasswordInput" class="w-full p-3.5 rounded-xl text-white text-base bg-white/5 border border-white/20 focus:border-cyan-500 transition-colors" placeholder="••••••••">
-        </div>
-        <button id="authEmailSubmitBtn" class="w-full py-3.5 rounded-xl font-bold text-white text-sm mt-4 transition-all" style="background: linear-gradient(135deg, #06b6d4, #8b5cf6);">Войти</button>
-      </div>
-      <div id="authEmailForm" class="space-y-4 mb-6 hidden">
+      <!-- Email Form -->
+      <div id="authEmailForm" class="space-y-4 mb-6 block">
         <div>
           <label class="text-white/60 text-xs font-semibold block mb-1">Email</label>
           <input type="email" id="authEmailInput" class="w-full p-3.5 rounded-xl text-white text-base bg-white/5 border border-white/20 focus:border-cyan-500 transition-colors" placeholder="user@example.com">
         </div>
         <div>
           <label class="text-white/60 text-xs font-semibold block mb-1">Пароль</label>
-          <input type="password" id="authPasswordInput" class="w-full p-3.5 rounded-xl text-white text-base bg-white/5 border border-white/20 focus:border-cyan-500 transition-colors" placeholder="Пароль">
+          <input type="password" id="authPasswordInput" class="w-full p-3.5 rounded-xl text-white text-base bg-white/5 border border-white/20 focus:border-cyan-500 transition-colors" placeholder="••••••••">
         </div>
-        <button id="authEmailSubmitBtn" class="w-full py-3.5 rounded-xl font-bold text-white text-sm mt-2 transition-all" style="background: linear-gradient(135deg, #06b6d4, #8b5cf6);">Войти / Создать аккаунт</button>
+        <div id="authConfirmPasswordContainer" class="hidden">
+          <label class="text-white/60 text-xs font-semibold block mb-1">Подтвердите пароль</label>
+          <input type="password" id="authConfirmPasswordInput" class="w-full p-3.5 rounded-xl text-white text-base bg-white/5 border border-white/20 focus:border-cyan-500 transition-colors" placeholder="••••••••">
+        </div>
+        <button id="authEmailSubmitBtn" class="w-full py-3.5 rounded-xl font-bold text-white text-sm mt-2 transition-all" style="background: linear-gradient(135deg, #06b6d4, #8b5cf6);">Войти</button>
       </div>
 
       <p id="authErrorMsg" class="text-red-400 text-xs text-center mb-4 hidden bg-red-500/10 p-2 rounded-lg"></p>
@@ -17813,7 +17813,7 @@ function showAuthPage() {
       <!-- Divider -->
       <div class="flex items-center gap-3 mb-5">
         <div class="flex-1 border-t border-white/10"></div>
-        <span class="text-white/30 text-[10px] uppercase tracking-wider font-bold">Или войти через</span>
+        <span class="text-white/30 text-[10px] uppercase tracking-wider font-bold">Или через соцсети</span>
         <div class="flex-1 border-t border-white/10"></div>
       </div>
 
@@ -17834,73 +17834,112 @@ function showAuthPage() {
 
   document.body.appendChild(overlay);
 
-  let currentTab = 'phone';
+  let currentTab = 'login';
+  let currentMethod = 'email';
   
-  const phoneTabBtn = overlay.querySelector('#authTabPhone');
   const loginTabBtn = overlay.querySelector('#authTabLogin');
   const registerTabBtn = overlay.querySelector('#authTabRegister');
+  const subtitle = overlay.querySelector('#authSubtitle');
+
+  const methodEmailBtn = overlay.querySelector('#methodTabEmail');
+  const methodPhoneBtn = overlay.querySelector('#methodTabPhone');
+  
   const errEl = overlay.querySelector('#authErrorMsg');
   
   const phoneForm = overlay.querySelector('#authPhoneForm');
   const emailForm = overlay.querySelector('#authEmailForm');
-  const phoneSendCodeBtn = overlay.querySelector('#authPhoneSendCodeBtn');
+  const confirmPwdContainer = overlay.querySelector('#authConfirmPasswordContainer');
+  
+  const emailInput = overlay.querySelector('#authEmailInput');
+  const passwordInput = overlay.querySelector('#authPasswordInput');
+  const confirmPasswordInput = overlay.querySelector('#authConfirmPasswordInput');
+  const emailSubmitBtn = overlay.querySelector('#authEmailSubmitBtn');
 
+  overlay.querySelector('#authCloseBtn').onclick = () => overlay.remove();
+
+  const switchAuthTab = (tab) => {
+    currentTab = tab;
+    errEl.classList.add('hidden');
+    
+    emailInput.value = '';
+    passwordInput.value = '';
+    confirmPasswordInput.value = '';
+    
+    if (tab === 'login') {
+      loginTabBtn.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3))';
+      loginTabBtn.style.color = '#fff';
+      registerTabBtn.style.background = 'transparent';
+      registerTabBtn.style.color = 'rgba(255,255,255,0.5)';
+      subtitle.textContent = 'Вход в систему';
+      confirmPwdContainer.classList.add('hidden');
+      emailSubmitBtn.textContent = 'Войти';
+    } else {
+      registerTabBtn.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3))';
+      registerTabBtn.style.color = '#fff';
+      loginTabBtn.style.background = 'transparent';
+      loginTabBtn.style.color = 'rgba(255,255,255,0.5)';
+      subtitle.textContent = 'Регистрация аккаунта';
+      confirmPwdContainer.classList.remove('hidden');
+      emailSubmitBtn.textContent = 'Зарегистрироваться';
+    }
+  };
+
+  const switchMethodTab = (method) => {
+    currentMethod = method;
+    errEl.classList.add('hidden');
+    if (method === 'email') {
+      methodEmailBtn.style.background = 'rgba(255,255,255,0.1)';
+      methodEmailBtn.style.color = '#fff';
+      methodPhoneBtn.style.background = 'transparent';
+      methodPhoneBtn.style.color = 'rgba(255,255,255,0.4)';
+      emailForm.classList.remove('hidden');
+      emailForm.classList.add('block');
+      phoneForm.classList.remove('block');
+      phoneForm.classList.add('hidden');
+    } else {
+      methodPhoneBtn.style.background = 'rgba(255,255,255,0.1)';
+      methodPhoneBtn.style.color = '#fff';
+      methodEmailBtn.style.background = 'transparent';
+      methodEmailBtn.style.color = 'rgba(255,255,255,0.4)';
+      phoneForm.classList.remove('hidden');
+      phoneForm.classList.add('block');
+      emailForm.classList.remove('block');
+      emailForm.classList.add('hidden');
+    }
+  };
+
+  loginTabBtn.onclick = () => switchAuthTab('login');
+  registerTabBtn.onclick = () => switchAuthTab('register');
+
+  methodEmailBtn.onclick = () => switchMethodTab('email');
+  methodPhoneBtn.onclick = () => switchMethodTab('phone');
+
+  const phoneSendCodeBtn = overlay.querySelector('#authPhoneSendCodeBtn');
   if (phoneSendCodeBtn) {
     phoneSendCodeBtn.onclick = () => {
       tgUtil.alert('Вход по СМС временно недоступен. Используйте Email или Telegram.');
     };
   }
 
-  const switchAuthTab = (tab) => {
-    currentTab = tab;
-    errEl.classList.add('hidden');
-    
-    // Reset all tabs
-    [phoneTabBtn, loginTabBtn, registerTabBtn].forEach(btn => {
-      btn.style.background = 'transparent';
-      btn.style.color = 'rgba(255,255,255,0.5)';
-    });
-
-    if (tab === 'phone') {
-      phoneTabBtn.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3))';
-      phoneTabBtn.style.color = '#fff';
-      phoneForm.classList.remove('hidden');
-      phoneForm.classList.add('block');
-      emailForm.classList.remove('block');
-      emailForm.classList.add('hidden');
-    } else if (tab === 'login') {
-      loginTabBtn.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3))';
-      loginTabBtn.style.color = '#fff';
-      phoneForm.classList.remove('block');
-      phoneForm.classList.add('hidden');
-      emailForm.classList.remove('hidden');
-      emailForm.classList.add('block');
-      emailSubmitBtn.textContent = 'Войти';
-    } else if (tab === 'register') {
-      registerTabBtn.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3))';
-      registerTabBtn.style.color = '#fff';
-      phoneForm.classList.remove('block');
-      phoneForm.classList.add('hidden');
-      emailForm.classList.remove('hidden');
-      emailForm.classList.add('block');
-      emailSubmitBtn.textContent = 'Зарегистрироваться';
-    }
-  };
-
-  phoneTabBtn.onclick = () => switchAuthTab('phone');
-  loginTabBtn.onclick = () => switchAuthTab('login');
-  registerTabBtn.onclick = () => switchAuthTab('register');
-  
-  overlay.querySelector('#authCloseBtn').onclick = () => overlay.remove();
-
   // --- Auth Flow ---
-    const emailInput = overlay.querySelector('#authEmailInput');
-  const passwordInput = overlay.querySelector('#authPasswordInput');
-
   emailSubmitBtn.onclick = async () => {
     const email = emailInput.value.trim();
     const password = passwordInput.value;
     if (!email || !password) { errEl.textContent = 'Заполните email и пароль'; errEl.classList.remove('hidden'); return; }
+    
+    if (currentTab === 'register') {
+      if (password.length < 6) {
+        errEl.textContent = 'Пароль должен быть не менее 6 символов';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      if (password !== confirmPasswordInput.value) {
+        errEl.textContent = 'Пароли не совпадают';
+        errEl.classList.remove('hidden');
+        return;
+      }
+    }
+    
     errEl.classList.add('hidden');
     emailSubmitBtn.textContent = 'Ожидайте...'; emailSubmitBtn.disabled = true;
     try {
@@ -17910,8 +17949,6 @@ function showAuthPage() {
       } else {
         const { error } = await supabaseClient.auth.signUp({ email, password });
         if (error) throw error;
-        // Supabase sign-up returns session if email_confirm is off. If it's on, session is null.
-        // We will try to sign in just in case.
         await supabaseClient.auth.signInWithPassword({ email, password });
       }
       await handleAuthSuccess(overlay);
@@ -17927,29 +17964,8 @@ function showAuthPage() {
   overlay.querySelector('#authSocialTg').onclick = () => { tgUtil.alert('Вход через Telegram временно недоступен в браузерной версии.'); };
   overlay.querySelector('#authSocialGoogle').onclick = () => { tgUtil.alert('Вход через Google временно недоступен.'); };
   overlay.querySelector('#authSocialApple').onclick = () => { tgUtil.alert('Вход через Apple временно недоступен.'); };
-
-  document.getElementById('verifyCodeBtn').onclick = async () => {
-    const enteredCode = document.getElementById('codeInput').value.trim();
-    if (!enteredCode) { tgUtil.alert('Введите код'); return; }
-    const { data, error } = await supabaseClient.from('recovery_codes')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('code', enteredCode)
-      .eq('used', false)
-      .gte('expires_at', new Date().toISOString())
-      .single();
-    if (error || !data) { tgUtil.alert('Неверный или просроченный код'); return; }
-    
-    // Помечаем код использованным
-    await supabaseClient.from('recovery_codes').update({ used: true }).eq('id', data.id);
-    // Сохраняем номер
-    await supabaseClient.from('users').update({ phone: phoneInput.value.trim() }).eq('user_id', userId);
-    tgUtil.alert('Номер успешно привязан!');
-    modal.remove();
-  };
 }
-
-async function renderCart() {
+\nasync function renderCart() {
   if (!userId) return '<p class="text-center mt-10 text-white/70">Авторизуйтесь</p>';
   try {
     const { data, error } = await supabaseClient
