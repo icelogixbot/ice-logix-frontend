@@ -2,6 +2,22 @@
     if (localStorage.getItem('theme') === 'light') {
       document.documentElement.classList.add('light-theme');
     }
+
+    // --- APP CACHE FOR BLAZING FAST NAVIGATION ---
+    window.CacheDB = {
+      data: {},
+      async get(key, fetcher, ttl = 120000) { // Default 2 mins cache
+        const now = Date.now();
+        if (this.data[key] && (now - this.data[key].timestamp < ttl)) {
+          return this.data[key].value;
+        }
+        const val = await fetcher();
+        this.data[key] = { value: val, timestamp: now };
+        return val;
+      },
+      clear(key) { delete this.data[key]; },
+      clearAll() { this.data = {}; }
+    };
     // ─── BLOB URL TRACKING (prevent memory leaks from photo previews) ───
 
     // ─── GLOBAL FOOTER EVENT DELEGATION ───
@@ -1136,6 +1152,34 @@
       }
     }
 
+    window.onTelegramAuth = async function(user) {
+      const errEl = document.getElementById('authErrorMsg');
+      if(errEl) errEl.classList.add('hidden');
+      try {
+        const res = await fetch('https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/telegram-auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ widgetData: user })
+        });
+        const data = await res.json();
+        if (data.ok && data.session) {
+          await supabaseClient.auth.setSession({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
+          const overlay = document.querySelector('.fixed.inset-0.bg-black\\/90');
+          if (overlay && typeof handleAuthSuccess === 'function') await handleAuthSuccess(overlay);
+          else location.reload();
+        } else {
+          throw new Error(data.error || 'Ошибка входа');
+        }
+      } catch(e) {
+        if(errEl) {
+          errEl.textContent = e.message || 'Ошибка Telegram Widget';
+          errEl.classList.remove('hidden');
+        } else {
+          tgUtil.alert(e.message || 'Ошибка Telegram Widget');
+        }
+      }
+    };
+
     let tg = null, userId = null, userName = 'Гость', userAvatarUrl = null, isOwner = false, supabaseClient = null;
     let isRegistered = false;
     let originalAdminId = null;
@@ -1485,7 +1529,7 @@ const MAX_REQUESTS_TRUSTED = 100;
           // Mark <body> so CSS hides duplicate in-page back buttons when native BackButton is available.
           if (tg?.BackButton) document.body.classList.add('tg-native-back');
           const user = tg.initDataUnsafe?.user;
-          userId = user ? user.id : null;
+          userId = null; // Will be set via Supabase Auth
           userName = user ? (user.first_name || user.username || 'Гость') : 'Гость';
           userAvatarUrl = user?.photo_url || null;
         } else {
@@ -1508,6 +1552,36 @@ const MAX_REQUESTS_TRUSTED = 100;
           } catch (err) {
             console.error('Error loading app settings:', err);
           }
+          // --- STRICT AUTHENTICATION FLOW ---
+          let activeSession = null;
+          try {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            activeSession = session;
+            
+            if (!activeSession && tg?.initData && localStorage.getItem('ice_logged_out') !== 'true') {
+                try {
+                    const res = await fetch('https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/telegram-auth', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ initData: tg.initData })
+                    });
+                    const data = await res.json();
+                    if (data.ok && data.session) {
+                        await supabaseClient.auth.setSession({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
+                        activeSession = data.session;
+                    }
+                } catch(e) { console.error('Telegram Auth Error', e); }
+            }
+            
+            if (activeSession) {
+                const { data: profile } = await supabaseClient.from('users').select('user_id').eq('auth_id', activeSession.user.id).single();
+                if (profile) userId = profile.user_id;
+            }
+          } catch (err) {
+            console.error('Authentication Flow Error:', err);
+          }
+          // --- END AUTHENTICATION FLOW ---
+
           try {
             await loadUserData();
           } catch (err) {
@@ -1547,6 +1621,7 @@ const MAX_REQUESTS_TRUSTED = 100;
         const userCard = document.getElementById('userCard');
         if (userCard) {
           userCard.onclick = () => switchTab('profile');
+          if (!isRegistered) userCard.style.display = 'none';
         }
         const settingsBtn = document.getElementById('settingsBtn');
         if (settingsBtn) {
@@ -1559,7 +1634,13 @@ const MAX_REQUESTS_TRUSTED = 100;
         const loginBtn = document.getElementById('loginBtn');
         if (loginBtn) {
           loginBtn.onclick = () => showAuthPage();
-          if (!isRegistered) loginBtn.style.display = '';
+          if (!isRegistered) {
+            loginBtn.style.display = 'inline-block';
+            loginBtn.style.padding = '6px 14px';
+            loginBtn.style.fontSize = '13px';
+          } else {
+            loginBtn.style.display = 'none';
+          }
         }
 
         // Прогреваем кэш курсов НБРБ (1 час) — для quickEstimate в списках
@@ -2063,13 +2144,16 @@ const MAX_REQUESTS_TRUSTED = 100;
 
     async function renderPromoBanners() {
   try {
-    const { data, error } = await supabaseClient
-      .from('promotions')
-      .select('*')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(5);
-    if (error) throw error;
+    const data = await window.CacheDB.get('promotions', async () => {
+      const { data, error } = await supabaseClient
+        .from('promotions')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      return data;
+    }, 300000); // 5 mins cache
     if (!data || data.length === 0) return '';
     
     return data.map(p => `
@@ -2100,7 +2184,7 @@ const MAX_REQUESTS_TRUSTED = 100;
         <h3 class="text-white font-bold text-sm flex items-center gap-1"><span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span> Биржевой курс ICE LOGIX</h3>
         <span class="text-green-400 text-[10px] bg-green-400/20 px-2 py-0.5 rounded-full animate-pulse">Live</span>
       </div>
-      <div style="overflow-x: auto; margin: 0 -4px; padding: 2px 4px; scrollbar-width: none; -ms-overflow-style: none;">
+      <div style="overflow-x: auto; padding: 2px 0; scrollbar-width: none; -ms-overflow-style: none;">
         <div style="display: flex; gap: 6px; width: max-content; padding-bottom: 2px;">
           ${[
             { flag: '🇺🇸', code: 'USD', label: '$1',     key: 'usd_rate', def: 3.25,    mult: 1    },
@@ -2115,10 +2199,10 @@ const MAX_REQUESTS_TRUSTED = 100;
             { flag: '🇰🇷', code: 'KRW', label: '₩1000',  key: 'krw_rate', def: 0.0024,  mult: 1000 },
           ].map(c => {
             const rate = (Number(window.settings?.[c.key] || c.def) * c.mult).toFixed(2);
-            return \`<div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 6px 10px; flex-shrink: 0;">
-              <div style="font-size: 10px; color: rgba(255,255,255,0.45); white-space: nowrap; margin-bottom: 3px;">\${c.flag} \${c.code}</div>
-              <div style="font-size: 11px; font-weight: 700; color: white; white-space: nowrap;">\${c.label} ≈ <span style="color: #67e8f9;">\${rate} Br/ICE</span></div>
-            </div>\`;
+            return `<div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 6px 10px; flex-shrink: 0;">
+              <div style="font-size: 10px; color: rgba(255,255,255,0.45); white-space: nowrap; margin-bottom: 3px;">${c.flag} ${c.code}</div>
+              <div style="font-size: 11px; font-weight: 700; color: white; white-space: nowrap;">${c.label} ≈ <span style="color: #67e8f9;">${rate} Br/ICE</span></div>
+            </div>`;
           }).join('')}
         </div>
       </div>
@@ -2341,7 +2425,10 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         return;
       }
     } else {
-      const { data: popular } = await supabaseClient.from('products').select('*').eq('is_active', true).limit(10);
+      const popular = await window.CacheDB.get('popularProducts', async () => {
+        const { data } = await supabaseClient.from('products').select('*').eq('is_active', true).limit(10);
+        return data;
+      }, 300000);
       if (popular) data = popular;
     }
 
@@ -6429,24 +6516,29 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
 
         // ==================== РЕНДЕР ПРОФИЛЯ (С РЕФЕРАЛКАМИ) ====================
         async function renderProfile() {
-      let referralStats = { count: 0, bonus: 0 };
-      if (userId) {
-        try {
-          const { data, error } = await supabaseClient.from('users').select('referral_count, referral_bonus').eq('user_id', userId).single();
-          if (!error && data) {
-            referralStats.count = data.referral_count || 0;
-            referralStats.bonus = data.referral_bonus || 0;
-          }
-        } catch(e) { console.log(e); }
-      }
+      let referralStats = await window.CacheDB.get('ref_' + userId, async () => {
+        let stats = { count: 0, bonus: 0 };
+        if (userId) {
+          try {
+            const { data, error } = await supabaseClient.from('users').select('referral_count, referral_bonus').eq('user_id', userId).single();
+            if (!error && data) {
+              stats.count = data.referral_count || 0;
+              stats.bonus = data.referral_bonus || 0;
+            }
+          } catch(e) {}
+        }
+        return stats;
+      }, 60000);
       
-      let isDropshipper = false;
-      if (userId) {
-        try {
-          const { data, error } = await supabaseClient.from('dropshipper_settings').select('user_id').eq('user_id', userId).single();
-          if (!error && data) isDropshipper = true;
-        } catch(e) {}
-      }
+      let isDropshipper = await window.CacheDB.get('dropship_' + userId, async () => {
+        if (userId) {
+          try {
+            const { data, error } = await supabaseClient.from('dropshipper_settings').select('user_id').eq('user_id', userId).single();
+            if (!error && data) return true;
+          } catch(e) {}
+        }
+        return false;
+      }, 300000);
       
       const shareLink = userReferralCode ? `https://t.me/${tg.initDataUnsafe?.user?.username ? tg.initDataUnsafe.user.username : 'icelogix_bot'}?startapp=ref_${userReferralCode}` : '';
       
@@ -6525,20 +6617,6 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
       </div>
     </div>
     `}
-    
-    <!-- История (вместо транзакций — ссылка на раздел) -->
-    <div class="p-4 rounded-2xl mb-4 cursor-pointer hover:bg-white/10 transition-all active:scale-[0.98]" id="historyProfileBtn" style="background: var(--glass-bg); border: 1px solid var(--glass-border);">
-      <div class="flex justify-between items-center">
-        <p class="font-semibold flex items-center gap-2" style="color: var(--text-secondary);">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-          </svg>
-          История
-        </p>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--ice-primary);"><polyline points="9 18 15 12 9 6"/></svg>
-      </div>
-      <p class="text-xs mt-1 text-left" style="color: var(--text-muted);">Транзакции и архив заказов</p>
-    </div>
     
     <!-- Referral Program -->
     <div class="p-4 rounded-2xl mb-4" style="background: linear-gradient(135deg, rgba(52,211,153,0.15), rgba(16,185,129,0.08)); border: 1px solid rgba(52,211,153,0.25);">
@@ -6746,7 +6824,11 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
 
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
-    logoutBtn.onclick = () => tg.close();
+    logoutBtn.onclick = async () => {
+      try { await supabaseClient.auth.signOut(); } catch(e) {}
+      localStorage.setItem('ice_logged_out', 'true');
+      location.reload();
+    };
   }
 
   const copyBtn = document.getElementById('copyReferralLinkBtn');
@@ -12212,6 +12294,16 @@ function attachAdminSuppliersHandlers() {
         `;
       }
 
+      // SHOW SPINNER IMMEDIATELY FOR FAST UI RESPONSE
+      contentDiv.innerHTML = shadowBannerHtml + `
+        <div class="flex flex-col items-center justify-center min-h-[60vh] gap-3 page-enter">
+          <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-r-2 border-cyan-400"></div>
+          <div class="text-cyan-400/50 text-[10px] font-bold uppercase tracking-widest animate-pulse">Загрузка ICE LOGIX...</div>
+        </div>
+      `;
+      // Yield to browser so the spinner actually paints before JS blocks on queries
+      await new Promise(r => setTimeout(r, 10));
+
       if (currentSubScreen === 'about') {
         contentDiv.innerHTML = shadowBannerHtml + await renderAboutUs();
         attachAboutUsHandlers();
@@ -14628,9 +14720,9 @@ async function showRecoveryCodeModal() {
 
 async function showPersonalDataForm() {
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[110] p-4 overflow-y-auto';
+  modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start sm:items-center justify-center z-[110] p-0 sm:p-4 overflow-y-auto';
   modal.innerHTML = `
-    <div class="bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+    <div class="bg-slate-900/100 sm:bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-none sm:rounded-2xl max-w-md w-full h-[100dvh] sm:h-auto sm:max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
       <div class="p-5 border-b border-white/10 flex justify-between items-center bg-white/5">
         <div>
           <h3 class="text-white font-bold text-lg flex items-center gap-2">
@@ -14648,11 +14740,11 @@ async function showPersonalDataForm() {
           <h4 class="text-cyan-400 font-bold text-xs uppercase tracking-wider">Основная информация</h4>
           <div>
             <label class="text-white/60 text-xs font-semibold block mb-1">ФИО (Полное имя)</label>
-            <input type="text" id="pdFullName" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="Иванов Иван Иванович">
+            <input type="text" id="pdFullName" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-base bg-white/5 text-white" placeholder="Иванов Иван Иванович">
           </div>
           <div>
             <label class="text-white/60 text-xs font-semibold block mb-1">Номер телефона</label>
-            <input type="tel" id="pdPhone" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="+375XXXXXXXXX">
+            <input type="tel" id="pdPhone" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-base bg-white/5 text-white" placeholder="+375XXXXXXXXX">
           </div>
         </div>
         
@@ -14688,25 +14780,25 @@ async function showPersonalDataForm() {
           <p class="text-white/40 text-[10px] leading-relaxed">Хранятся в зашифрованном виде (AES-256) на стороне клиента и передаются только таможенному брокеру.</p>
           <div>
             <label class="text-white/60 text-xs font-semibold block mb-1">Серия и номер</label>
-            <input type="text" id="pdPassportSeriesNumber" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="AB 1234567">
+            <input type="text" id="pdPassportSeriesNumber" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-base bg-white/5 text-white" placeholder="AB 1234567">
           </div>
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="text-white/60 text-xs font-semibold block mb-1">Дата выдачи</label>
-              <input type="date" id="pdPassportIssueDate" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white">
+              <input type="date" id="pdPassportIssueDate" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-base bg-white/5 text-white">
             </div>
             <div>
               <label class="text-white/60 text-xs font-semibold block mb-1">Личный номер (14 цифр)</label>
-              <input type="text" id="pdPassportIdNumber" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="14 знаков">
+              <input type="text" id="pdPassportIdNumber" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-base bg-white/5 text-white" placeholder="14 знаков">
             </div>
           </div>
           <div>
             <label class="text-white/60 text-xs font-semibold block mb-1">Кем выдан</label>
-            <input type="text" id="pdPassportIssuedBy" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="ОВД Центрального района г. Минска">
+            <input type="text" id="pdPassportIssuedBy" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-base bg-white/5 text-white" placeholder="ОВД Центрального района г. Минска">
           </div>
           <div>
             <label class="text-white/60 text-xs font-semibold block mb-1">Адрес регистрации</label>
-            <input type="text" id="pdPassportAddress" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="Минск, ул. Ленина 12, кв. 34">
+            <input type="text" id="pdPassportAddress" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-base bg-white/5 text-white" placeholder="Минск, ул. Ленина 12, кв. 34">
           </div>
         </div>
 
@@ -14725,8 +14817,7 @@ async function showPersonalDataForm() {
             <p class="text-white/50 text-xs text-center py-2">Загрузка получателей...</p>
           </div>
         </div>
-      </div>
-      
+
         <!-- Семейный бюджет — перенесён в Мои данные -->
         <div class="space-y-2 pt-3 border-t border-white/5">
           <h4 class="text-cyan-400 font-bold text-xs uppercase tracking-wider flex items-center gap-1">
@@ -15726,342 +15817,170 @@ async function showAppSettings(initialTab = 'notifications') {
         <h3 class="text-white font-bold text-lg flex items-center gap-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Настройки</h3>
       </div>
       <!-- Tabs -->
-      <div class="flex border-b border-white/10">
-        <button class="settings-tab flex-1 py-3 text-sm font-medium transition ${initialTab==='notifications'?'text-cyan-400 border-b-2 border-cyan-400':'text-white/50'}"
-          data-tab="notifications"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span> Уведомления</button>
-        <button class="settings-tab flex-1 py-3 text-sm font-medium transition ${initialTab==='theme'?'text-cyan-400 border-b-2 border-cyan-400':'text-white/50'}"
-          data-tab="theme"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="2"/></svg></span> Тема</button>
-        <button class="settings-tab flex-1 py-3 text-sm font-medium transition ${initialTab==='security'?'text-cyan-400 border-b-2 border-cyan-400':'text-white/50'}"
-          data-tab="security"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span> Безопасность</button>
+      <div class="flex rounded-xl p-1 mb-6 bg-white/5 border border-white/10 text-xs">
+        <button id="authTabPhone" class="flex-1 py-2.5 rounded-lg font-bold transition-all text-white" style="background: linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3));">По телефону</button>
+        <button id="authTabLogin" class="flex-1 py-2.5 rounded-lg font-bold transition-all text-white/50 bg-transparent">Вход</button>
+        <button id="authTabRegister" class="flex-1 py-2.5 rounded-lg font-bold transition-all text-white/50 bg-transparent">Регистрация</button>
       </div>
-      <!-- Notifications panel -->
-      <div id="settingsPanel-notifications" class="p-5 overflow-y-auto flex-1 space-y-4 ${initialTab!=='notifications'?'hidden':''}">
-        <div class="flex items-center justify-between"><span class="text-white text-sm">Изменение статуса заказа</span>${toggle('notifyStatusChanges', notif.status_changes)}</div>
-        <div class="flex items-center justify-between"><span class="text-white text-sm">Новости и обновления</span>${toggle('notifyNews', notif.news)}</div>
-        <div class="flex items-center justify-between"><span class="text-white text-sm">Акции и предложения</span>${toggle('notifyPromotions', notif.promotions)}</div>
-      </div>
-      <!-- Theme panel -->
-      <div id="settingsPanel-theme" class="p-5 overflow-y-auto flex-1 space-y-4 ${initialTab!=='theme'?'hidden':''}">
-        <p class="text-white/60 text-xs mb-3">Выберите оформление интерфейса</p>
-        <div class="grid grid-cols-2 gap-3">
-          <button class="theme-btn rounded-xl p-4 border-2 transition ${currentTheme==='dark'?'border-cyan-500 bg-slate-800':'border-white/20 bg-white/5'}" data-theme="dark">
-            <p class="text-2xl mb-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span></p>
-            <p class="text-white text-sm font-bold">Тёмная</p>
-            <p class="text-white/50 text-xs">По умолчанию</p>
-          </button>
-          <button class="theme-btn rounded-xl p-4 border-2 transition ${currentTheme==='light'?'border-cyan-500 bg-slate-200':'border-white/20 bg-white/5'}" data-theme="light">
-            <p class="text-2xl mb-2"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></span></p>
-            <p class="text-white text-sm font-bold">Светлая</p>
-            <p class="text-white/50 text-xs">Эксперимент</p>
-          </button>
+
+      <!-- Phone Form -->
+      <div id="authPhoneForm" class="space-y-4 mb-6 block">
+        <div id="phoneInputStep">
+          <label class="text-white/60 text-xs font-semibold block mb-1">Номер телефона</label>
+          <input type="tel" id="authPhoneInput" class="w-full p-3.5 rounded-xl text-white text-base bg-white/5 border border-white/20 focus:border-cyan-500 transition-colors" placeholder="+375XXXXXXXXX">
+          <button id="authPhoneSendCodeBtn" class="w-full py-3.5 rounded-xl font-bold text-white text-sm mt-4 transition-all" style="background: linear-gradient(135deg, #06b6d4, #8b5cf6);">Получить код</button>
         </div>
-        <button id="resetSettingsBtn" class="mt-4 w-full text-white/40 text-xs py-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></span> Сбросить по умолчанию</button>
       </div>
-      <!-- Security panel -->
-      <div id="settingsPanel-security" class="p-5 overflow-y-auto flex-1 space-y-4 ${initialTab!=='security'?'hidden':''}">
-        <p class="text-white/60 text-sm">Управление безопасностью аккаунта и кодом восстановления доступа.</p>
-        <button id="securityRecoveryBtn" class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-left transition" style="background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3);">
-          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
-          <div class="flex-1">
-            <p class="font-semibold text-white text-sm">Код восстановления</p>
-            <p class="text-xs text-white/50">Резервный код для возврата доступа</p>
-          </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:rgba(255,255,255,0.4);"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
-      </div>
-      <div class="p-5 border-t border-white/20 flex gap-3">
-        <button id="saveAppSettings" class="btn-primary flex-1">Сохранить</button>
-        <button id="closeAppSettings" class="btn-secondary flex-1">Отмена</button>
-      </div>
-    </div>`;
-  document.body.appendChild(modal);
 
-  // Tab switching
-  let selectedTheme = currentTheme;
-  modal.querySelectorAll('.settings-tab').forEach(tab => {
-    tab.onclick = () => {
-      modal.querySelectorAll('.settings-tab').forEach(t => { t.classList.remove('text-cyan-400','border-b-2','border-cyan-400'); t.classList.add('text-white/50'); });
-      tab.classList.add('text-cyan-400','border-b-2','border-cyan-400'); tab.classList.remove('text-white/50');
-      ['notifications','theme','security'].forEach(name => {
-        modal.querySelector(`#settingsPanel-${name}`)?.classList.toggle('hidden', name !== tab.dataset.tab);
-      });
-    };
-  });
-
-  // Theme buttons
-  modal.querySelectorAll('.theme-btn').forEach(btn => {
-    btn.onclick = () => {
-      selectedTheme = btn.dataset.theme;
-      modal.querySelectorAll('.theme-btn').forEach(b => { b.classList.remove('border-cyan-500'); b.classList.add('border-white/20'); });
-      btn.classList.add('border-cyan-500'); btn.classList.remove('border-white/20');
-      applyTheme(selectedTheme); // live preview
-    };
-  });
-
-  modal.querySelector('#resetSettingsBtn').onclick = () => {
-    selectedTheme = 'dark'; applyTheme('dark');
-    modal.querySelectorAll('.theme-btn').forEach(b => { b.classList.toggle('border-cyan-500', b.dataset.theme === 'dark'); b.classList.toggle('border-white/20', b.dataset.theme !== 'dark'); });
-    modal.querySelector('#notifyStatusChanges').checked = true;
-    modal.querySelector('#notifyNews').checked = true;
-    modal.querySelector('#notifyPromotions').checked = true;
-  };
-
-  modal.querySelector('#securityRecoveryBtn')?.addEventListener('click', () => { modal.remove(); showRecoveryCodeModal(); });
-  modal.querySelector('#closeAppSettings').onclick = () => { applyTheme(currentTheme); modal.remove(); };
-  modal.querySelector('#saveAppSettings').onclick = async () => {
-    const newNotif = {
-      status_changes: modal.querySelector('#notifyStatusChanges').checked,
-      news: modal.querySelector('#notifyNews').checked,
-      promotions: modal.querySelector('#notifyPromotions').checked
-    };
-    const newApp = { theme: selectedTheme };
-    await supabaseClient.from('users').update({ notification_settings: newNotif, app_settings: newApp }).eq('user_id', userId);
-    applyTheme(selectedTheme);
-    tgUtil.alert('✅ Настройки сохранены');
-    modal.remove();
-  };
-}
-
-async function showNotificationsPanel() {
-  const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[110] p-4 overflow-y-auto pt-16 pb-20';
-
-  let notifications = [];
-  let loadError = null;
-  if (supabaseClient && userId) {
-    const { data, error } = await supabaseClient.from('user_notifications')
-      .select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(50);
-    if (!error && data) notifications = data;
-    else if (error) loadError = error;
-  }
-
-  const unread = notifications.filter(n => !n.is_read);
-
-  modal.innerHTML = `
-    <div class="bg-[#1e293b] rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col border border-white/20">
-      <div class="p-5 border-b border-white/20 flex items-center justify-between">
-        <h3 class="text-white font-bold text-lg flex items-center gap-2">
-          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
-          Уведомления
-          ${unread.length > 0 ? `<span class="ml-1 px-2 py-0.5 rounded-full text-xs font-bold" style="background:#ef4444;color:#fff;">${unread.length}</span>` : ''}
-        </h3>
-        <button id="closeNotifPanel" class="text-white/50 hover:text-white transition p-1">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
-        </button>
-      </div>
-      <div class="p-4 overflow-y-auto flex-1">
-        ${loadError ? `<p class="text-red-400 text-sm text-center py-6">Ошибка загрузки уведомлений</p>` :
-          notifications.length === 0
-            ? `<p class="text-white/50 text-center py-8">Уведомлений пока нет</p>`
-            : notifications.map(n => `
-              <div class="p-3 rounded-xl mb-3 ${n.is_read ? 'bg-white/5' : 'bg-cyan-500/10 border border-cyan-500/20'}">
-                <div class="flex items-start justify-between gap-2">
-                  <div class="flex-1">
-                    <p class="text-white text-sm font-semibold">${n.title || 'Уведомление'}</p>
-                    ${n.body ? `<p class="text-white/60 text-xs mt-1">${n.body}</p>` : ''}
-                    <p class="text-white/30 text-xs mt-1">${new Date(n.created_at).toLocaleString('ru-RU')}</p>
-                  </div>
-                  ${!n.is_read ? '<span class="w-2 h-2 rounded-full mt-1 flex-shrink-0" style="background:#22d3ee;"></span>' : ''}
-                </div>
-              </div>
-            `).join('')
-        }
-      </div>
-    </div>`;
-
-  document.body.appendChild(modal);
-  modal.querySelector('#closeNotifPanel')?.addEventListener('click', () => modal.remove());
-  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
-
-  if (unread.length > 0 && supabaseClient && userId) {
-    const ids = unread.map(n => n.id);
-    supabaseClient.from('user_notifications').update({ is_read: true }).in('id', ids).then(() => {
-      const badge = document.getElementById('notifBadge');
-      if (badge) { badge.classList.add('hidden'); badge.textContent = '0'; }
-    });
-  }
-}
-
-function showAuthPage() {
-  const overlay = document.createElement('div');
-  overlay.id = 'authPageOverlay';
-  overlay.className = 'fixed inset-0 z-[200] flex flex-col items-center justify-center p-4 overflow-y-auto';
-  overlay.style.cssText = 'background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);';
-
-  overlay.innerHTML = `
-    <div class="w-full max-w-sm">
-      <div class="text-center mb-8">
-        <div class="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style="background: linear-gradient(135deg, rgba(6,182,212,0.2), rgba(139,92,246,0.2)); border: 1px solid rgba(6,182,212,0.3);">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#22d3ee;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <!-- Auth Form -->
+      <div id="authEmailForm" class="space-y-4 mb-6 hidden">
+        <div>
+          <label class="text-white/60 text-xs font-semibold block mb-1">Email</label>
+          <input type="email" id="authEmailInput" class="w-full p-3.5 rounded-xl text-white text-base bg-white/5 border border-white/20 focus:border-cyan-500 transition-colors" placeholder="your@email.com">
         </div>
-        <h2 class="text-white text-2xl font-bold mb-1">ICE LOGIX</h2>
-        <p class="text-white/50 text-sm">Войдите или создайте аккаунт</p>
+        <div>
+          <label class="text-white/60 text-xs font-semibold block mb-1">Пароль</label>
+          <input type="password" id="authPasswordInput" class="w-full p-3.5 rounded-xl text-white text-base bg-white/5 border border-white/20 focus:border-cyan-500 transition-colors" placeholder="••••••••">
+        </div>
+        <button id="authEmailSubmitBtn" class="w-full py-3.5 rounded-xl font-bold text-white text-sm mt-4 transition-all" style="background: linear-gradient(135deg, #06b6d4, #8b5cf6);">Войти</button>
+      </div>
+      <div id="authEmailForm" class="space-y-4 mb-6 hidden">
+        <div>
+          <label class="text-white/60 text-xs font-semibold block mb-1">Email</label>
+          <input type="email" id="authEmailInput" class="w-full p-3.5 rounded-xl text-white text-base bg-white/5 border border-white/20 focus:border-cyan-500 transition-colors" placeholder="user@example.com">
+        </div>
+        <div>
+          <label class="text-white/60 text-xs font-semibold block mb-1">Пароль</label>
+          <input type="password" id="authPasswordInput" class="w-full p-3.5 rounded-xl text-white text-base bg-white/5 border border-white/20 focus:border-cyan-500 transition-colors" placeholder="Пароль">
+        </div>
+        <button id="authEmailSubmitBtn" class="w-full py-3.5 rounded-xl font-bold text-white text-sm mt-2 transition-all" style="background: linear-gradient(135deg, #06b6d4, #8b5cf6);">Войти / Создать аккаунт</button>
       </div>
 
-      <!-- Tabs -->
-      <div class="flex rounded-xl p-1 mb-6" style="background: rgba(255,255,255,0.08);">
-        <button id="authTabLogin" class="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all text-white" style="background: linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3));">Войти</button>
-        <button id="authTabRegister" class="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all text-white/50">Регистрация</button>
-      </div>
-
-      <!-- Form -->
-      <div class="space-y-3 mb-5">
-        <input type="email" id="authEmail" class="w-full p-3.5 rounded-xl text-white text-sm" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);" placeholder="Email">
-        <input type="password" id="authPassword" class="w-full p-3.5 rounded-xl text-white text-sm" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);" placeholder="Пароль">
-      </div>
-
-      <p id="authError" class="text-red-400 text-sm text-center mb-3 hidden"></p>
-
-      <button id="authSubmitBtn" class="w-full py-3.5 rounded-xl font-bold text-white text-sm mb-5" style="background: linear-gradient(135deg, #06b6d4, #8b5cf6);">Войти</button>
+      <p id="authErrorMsg" class="text-red-400 text-xs text-center mb-4 hidden bg-red-500/10 p-2 rounded-lg"></p>
 
       <!-- Divider -->
       <div class="flex items-center gap-3 mb-5">
         <div class="flex-1 border-t border-white/10"></div>
-        <span class="text-white/30 text-xs">или</span>
+        <span class="text-white/30 text-[10px] uppercase tracking-wider font-bold">Или войти через</span>
         <div class="flex-1 border-t border-white/10"></div>
       </div>
 
       <!-- Social buttons -->
-      <div class="flex gap-3 justify-center mb-6">
-        <button id="authTgBtn" class="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-white text-sm font-semibold transition" style="background: rgba(36,161,222,0.15); border: 1px solid rgba(36,161,222,0.3);">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="color:#29b6f6;"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
-          Telegram
+      <div class="flex gap-3 justify-center">
+        <button id="authSocialTg" class="w-12 h-12 rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95" style="background: rgba(36,161,222,0.15); border: 1px solid rgba(36,161,222,0.3);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="color:#29b6f6;"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
         </button>
-        <button id="authGoogleBtn" class="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-white text-sm font-semibold transition" style="background: rgba(234,67,53,0.1); border: 1px solid rgba(234,67,53,0.25);">
-          <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-          Google
+        <button id="authSocialGoogle" class="w-12 h-12 rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95" style="background: rgba(234,67,53,0.1); border: 1px solid rgba(234,67,53,0.25);">
+          <svg width="24" height="24" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        </button>
+        <button id="authSocialApple" class="w-12 h-12 rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="color:#ffffff;"><path d="M16.365 21.444c-1.332 1.405-2.651 1.4-3.955.086-1.19-1.2-2.316-1.187-3.486 0-1.385 1.4-2.721 1.428-4.043.08-3.036-3.111-4.707-8.31-2.482-12.825 1.134-2.296 3.013-3.714 5.234-3.743 1.572-.016 3.031.975 4.02.975.986 0 2.833-1.182 4.793-1.01 1.637.067 3.125.77 4.148 2.106-3.415 2.115-2.88 6.772.634 8.163-.787 2.111-1.956 4.316-3.863 6.168zM15.426 5.518c-.85.98-2.126 1.611-3.266 1.516-.25-1.428.468-2.85 1.258-3.791.905-1.083 2.304-1.727 3.402-1.631.183 1.428-.48 2.838-1.394 3.906z"/></svg>
         </button>
       </div>
-
-      <button id="authCloseBtn" class="w-full py-2 text-white/30 text-xs">Закрыть</button>
     </div>
   `;
 
   document.body.appendChild(overlay);
 
-  let isLoginMode = true;
+  let currentTab = 'phone';
+  
+  const phoneTabBtn = overlay.querySelector('#authTabPhone');
+  const loginTabBtn = overlay.querySelector('#authTabLogin');
+  const registerTabBtn = overlay.querySelector('#authTabRegister');
+  const emailSubmitBtn = overlay.querySelector('#authEmailSubmitBtn');
+  const errEl = overlay.querySelector('#authErrorMsg');
+  
+  const phoneForm = overlay.querySelector('#authPhoneForm');
+  const emailForm = overlay.querySelector('#authEmailForm');
+  const phoneSendCodeBtn = overlay.querySelector('#authPhoneSendCodeBtn');
 
-  const updateMode = () => {
-    const submitBtn = overlay.querySelector('#authSubmitBtn');
-    const loginTab = overlay.querySelector('#authTabLogin');
-    const registerTab = overlay.querySelector('#authTabRegister');
-    if (isLoginMode) {
-      submitBtn.textContent = 'Войти';
-      loginTab.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3))';
-      loginTab.style.color = '#fff';
-      registerTab.style.background = 'transparent';
-      registerTab.style.color = 'rgba(255,255,255,0.5)';
-    } else {
-      submitBtn.textContent = 'Зарегистрироваться';
-      registerTab.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3))';
-      registerTab.style.color = '#fff';
-      loginTab.style.background = 'transparent';
-      loginTab.style.color = 'rgba(255,255,255,0.5)';
+  if (phoneSendCodeBtn) {
+    phoneSendCodeBtn.onclick = () => {
+      tgUtil.alert('Вход по СМС временно недоступен. Используйте Email или Telegram.');
+    };
+  }
+
+  const switchAuthTab = (tab) => {
+    currentTab = tab;
+    errEl.classList.add('hidden');
+    
+    // Reset all tabs
+    [phoneTabBtn, loginTabBtn, registerTabBtn].forEach(btn => {
+      btn.style.background = 'transparent';
+      btn.style.color = 'rgba(255,255,255,0.5)';
+    });
+
+    if (tab === 'phone') {
+      phoneTabBtn.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3))';
+      phoneTabBtn.style.color = '#fff';
+      phoneForm.classList.remove('hidden');
+      phoneForm.classList.add('block');
+      emailForm.classList.remove('block');
+      emailForm.classList.add('hidden');
+    } else if (tab === 'login') {
+      loginTabBtn.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3))';
+      loginTabBtn.style.color = '#fff';
+      phoneForm.classList.remove('block');
+      phoneForm.classList.add('hidden');
+      emailForm.classList.remove('hidden');
+      emailForm.classList.add('block');
+      emailSubmitBtn.textContent = 'Войти';
+    } else if (tab === 'register') {
+      registerTabBtn.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3))';
+      registerTabBtn.style.color = '#fff';
+      phoneForm.classList.remove('block');
+      phoneForm.classList.add('hidden');
+      emailForm.classList.remove('hidden');
+      emailForm.classList.add('block');
+      emailSubmitBtn.textContent = 'Зарегистрироваться';
     }
   };
 
-  overlay.querySelector('#authTabLogin').onclick = () => { isLoginMode = true; updateMode(); };
-  overlay.querySelector('#authTabRegister').onclick = () => { isLoginMode = false; updateMode(); };
+  phoneTabBtn.onclick = () => switchAuthTab('phone');
+  loginTabBtn.onclick = () => switchAuthTab('login');
+  registerTabBtn.onclick = () => switchAuthTab('register');
+  
+  overlay.querySelector('#authCloseBtn').onclick = () => overlay.remove();
 
-  overlay.querySelector('#authSubmitBtn').onclick = async () => {
-    const email = overlay.querySelector('#authEmail').value.trim();
-    const password = overlay.querySelector('#authPassword').value;
-    const errEl = overlay.querySelector('#authError');
+  // --- Auth Flow ---
+  const emailInput = overlay.querySelector('#authEmailInput');
+  const passwordInput = overlay.querySelector('#authPasswordInput');
+  const emailSubmitBtn = overlay.querySelector('#authEmailSubmitBtn');
+
+  const emailInput = overlay.querySelector('#authEmailInput');
+  const passwordInput = overlay.querySelector('#authPasswordInput');
+
+  emailSubmitBtn.onclick = async () => {
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
     if (!email || !password) { errEl.textContent = 'Заполните email и пароль'; errEl.classList.remove('hidden'); return; }
     errEl.classList.add('hidden');
-    const btn = overlay.querySelector('#authSubmitBtn');
-    btn.textContent = '...'; btn.disabled = true;
+    emailSubmitBtn.textContent = 'Ожидайте...'; emailSubmitBtn.disabled = true;
     try {
-      let result;
-      if (isLoginMode) {
-        result = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (currentTab === 'login') {
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) throw error;
       } else {
-        result = await supabaseClient.auth.signUp({ email, password });
+        const { error } = await supabaseClient.auth.signUp({ email, password });
+        if (error) throw error;
+        // Supabase sign-up returns session if email_confirm is off. If it's on, session is null.
+        // We will try to sign in just in case.
+        await supabaseClient.auth.signInWithPassword({ email, password });
       }
-      if (result.error) {
-        errEl.textContent = result.error.message;
-        errEl.classList.remove('hidden');
-        btn.textContent = isLoginMode ? 'Войти' : 'Зарегистрироваться';
-        btn.disabled = false;
-      } else {
-        isRegistered = true;
-        const loginBtnEl = document.getElementById('loginBtn');
-        if (loginBtnEl) loginBtnEl.style.display = 'none';
-        overlay.remove();
-        tgUtil.alert('✅ ' + (isLoginMode ? 'Вы вошли!' : 'Аккаунт создан!'));
-        await loadUserData();
-        renderCurrentScreen();
-      }
+      await handleAuthSuccess(overlay);
     } catch (e) {
       errEl.textContent = e.message || 'Ошибка авторизации';
       errEl.classList.remove('hidden');
-      btn.textContent = isLoginMode ? 'Войти' : 'Зарегистрироваться';
-      btn.disabled = false;
+      emailSubmitBtn.textContent = currentTab === 'login' ? 'Войти' : 'Зарегистрироваться'; 
+      emailSubmitBtn.disabled = false;
     }
   };
 
-  overlay.querySelector('#authTgBtn').onclick = () => tgUtil.alert('Вход через Telegram доступен автоматически при открытии через бота');
-  overlay.querySelector('#authGoogleBtn').onclick = async () => {
-    try {
-      const { error } = await supabaseClient.auth.signInWithOAuth({ provider: 'google' });
-      if (error) tgUtil.alert('Ошибка: ' + error.message);
-    } catch(e) { tgUtil.alert('Google OAuth недоступен в этом окружении'); }
-  };
-  overlay.querySelector('#authCloseBtn').onclick = () => overlay.remove();
-}
+  // --- Socials ---
+  overlay.querySelector('#authSocialTg').onclick = () => { tgUtil.alert('Вход через Telegram временно недоступен в браузерной версии.'); };
+  overlay.querySelector('#authSocialGoogle').onclick = () => { tgUtil.alert('Вход через Google временно недоступен.'); };
+  overlay.querySelector('#authSocialApple').onclick = () => { tgUtil.alert('Вход через Apple временно недоступен.'); }; };
 
-async function showPhoneBinding() {
-  // Проверяем, есть ли уже номер
-  const { data } = await supabaseClient.from('users').select('phone').eq('user_id', userId).single();
-  const currentPhone = data?.phone || '';
-  
-  const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[110] p-4 overflow-y-auto pt-16 pb-20';
-  modal.innerHTML = `
-    <div class="bg-[#1e293b] rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col border border-white/20">
-      <div class="p-5 border-b border-white/20">
-        <h3 class="text-white font-bold text-lg"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></span> Привязка телефона</h3>
-      </div>
-      <div class="p-5 overflow-y-auto flex-1">
-        <p class="text-white/70 text-sm mb-3">Номер телефона нужен для восстановления доступа и уведомлений.</p>
-        <label class="text-white/70 text-sm">Номер телефона</label>
-        <input type="tel" id="phoneInput" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-3" placeholder="+375XXXXXXXXX" value="${currentPhone}">
-        <button id="sendCodeBtn" class="btn-primary w-full mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span> Отправить код подтверждения</button>
-        <div id="codeSection" class="hidden">
-          <label class="text-white/70 text-sm">Код из SMS</label>
-          <input type="text" id="codeInput" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-3" placeholder="123456">
-          <button id="verifyCodeBtn" class="w-full bg-green-500 py-2 rounded-xl"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Подтвердить</button>
-        </div>
-      </div>
-      <div class="p-5 border-t border-white/20">
-        <button id="closePhoneModal" class="btn-secondary w-full">Закрыть</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(modal);
-  
-  const phoneInput = document.getElementById('phoneInput');
-  const codeSection = document.getElementById('codeSection');
-  let currentCode = null;
-  
-  modal.querySelector('#closePhoneModal').onclick = () => modal.remove();
-  
-  document.getElementById('sendCodeBtn').onclick = async () => {
-    const phone = phoneInput.value.trim();
-    if (!phone) { tgUtil.alert('Введите номер'); return; }
-    // Генерируем код
-    currentCode = Math.floor(100000 + Math.random() * 900000).toString();
-    // Отправляем код через бота (сохраняем в базе временно)
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-    await supabaseClient.from('recovery_codes').insert({
-      user_id: userId,
-      code: currentCode,
-      expires_at: expiresAt
-    });
-    // В будущем здесь будет вызов бота для отправки SMS, пока просто показываем код в alert для теста
-    tgUtil.alert(`Ваш код подтверждения: ${currentCode}`);
-    codeSection.classList.remove('hidden');
-  };
   
   document.getElementById('verifyCodeBtn').onclick = async () => {
     const enteredCode = document.getElementById('codeInput').value.trim();
