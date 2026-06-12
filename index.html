@@ -2851,6 +2851,34 @@
       }
     }
 
+    window.onTelegramAuth = async function(user) {
+      const errEl = document.getElementById('authErrorMsg');
+      if(errEl) errEl.classList.add('hidden');
+      try {
+        const res = await fetch('https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/telegram-auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ widgetData: user })
+        });
+        const data = await res.json();
+        if (data.ok && data.session) {
+          await supabaseClient.auth.setSession({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
+          const overlay = document.querySelector('.fixed.inset-0.bg-black\\/90');
+          if (overlay && typeof handleAuthSuccess === 'function') await handleAuthSuccess(overlay);
+          else location.reload();
+        } else {
+          throw new Error(data.error || 'Ошибка входа');
+        }
+      } catch(e) {
+        if(errEl) {
+          errEl.textContent = e.message || 'Ошибка Telegram Widget';
+          errEl.classList.remove('hidden');
+        } else {
+          tgUtil.alert(e.message || 'Ошибка Telegram Widget');
+        }
+      }
+    };
+
     let tg = null, userId = null, userName = 'Гость', userAvatarUrl = null, isOwner = false, supabaseClient = null;
     let isRegistered = false;
     let originalAdminId = null;
@@ -17770,10 +17798,9 @@ function showAuthPage() {
     errEl.classList.add('hidden');
     sendCodeBtn.textContent = 'Отправка...'; sendCodeBtn.disabled = true;
     try {
-      const { error } = await supabaseClient.auth.signInWithOtp({ phone });
-      if (error) throw error;
-      phoneInputStep.classList.add('hidden');
-      phoneCodeStep.classList.remove('hidden');
+      // Stub for phone auth
+      tgUtil.alert('Вход по СМС временно недоступен. Используйте Email или Telegram.');
+      throw new Error('СМС недоступны');
     } catch(e) {
       errEl.textContent = e.message || 'Ошибка отправки SMS';
       errEl.classList.remove('hidden');
@@ -17827,103 +17854,27 @@ function showAuthPage() {
   };
 
   // --- Socials ---
-  overlay.querySelector('#authSocialTg').onclick = () => {
-    tgUtil.alert('Авторизация через Telegram будет происходить автоматически при переходе из бота.');
-  };
-  overlay.querySelector('#authSocialGoogle').onclick = async () => {
-    try {
-      const { error } = await supabaseClient.auth.signInWithOAuth({ provider: 'google' });
-      if (error) throw error;
-    } catch(e) { tgUtil.alert('Google OAuth временно недоступен: ' + e.message); }
-  };
-  overlay.querySelector('#authSocialApple').onclick = async () => {
-    try {
-      const { error } = await supabaseClient.auth.signInWithOAuth({ provider: 'apple' });
-      if (error) throw error;
-    } catch(e) { tgUtil.alert('Apple OAuth временно недоступен: ' + e.message); }
-  };
-}
-
-async function handleAuthSuccess(overlay) {
-  localStorage.removeItem('ice_logged_out');
-  
-  // Refresh session and map auth_id to userId
-  try {
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (session) {
-      const { data: profile } = await supabaseClient.from('users').select('user_id').eq('auth_id', session.user.id).single();
-      if (profile) userId = profile.user_id;
+  const tgContainer = overlay.querySelector('#authSocialTg').parentElement;
+  if (tgContainer) {
+    if (window.Telegram?.WebApp?.initData) {
+      tgContainer.innerHTML = `<button class="w-12 h-12 rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95" style="background: rgba(36,161,222,0.15); border: 1px solid rgba(36,161,222,0.3);" onclick="tgUtil.alert('Перезапустите Mini App для автоматического входа')"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="color:#29b6f6;"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg></button>`;
+    } else {
+      tgContainer.innerHTML = ''; // clear dummy buttons
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = "https://telegram.org/js/telegram-widget.js?22";
+      script.setAttribute("data-telegram-login", "icelogix_bot");
+      script.setAttribute("data-size", "large");
+      script.setAttribute("data-radius", "12");
+      script.setAttribute("data-onauth", "onTelegramAuth(user)");
+      script.setAttribute("data-request-access", "write");
+      tgContainer.appendChild(script);
     }
-  } catch(e) { console.error('Error fetching session after login', e); }
-
-  isRegistered = true;
-  const loginBtnEl = document.getElementById('loginBtn');
-  const userCardEl = document.getElementById('userCard');
-  if (loginBtnEl) loginBtnEl.style.display = 'none';
-  if (userCardEl) userCardEl.style.display = 'flex';
-  overlay.remove();
-  tgUtil.haptic('success');
-  tgUtil.alert('✅ Успешная авторизация!');
-  await loadUserData();
-  if (typeof renderCurrentScreen === 'function') {
-    renderCurrentScreen();
-  } else {
-    location.reload();
   }
-}
+  
+  overlay.querySelector('#authSocialGoogle').onclick = () => { tgUtil.alert('Вход через Google временно отключен.'); };
+  overlay.querySelector('#authSocialApple').onclick = () => { tgUtil.alert('Вход через Apple временно отключен.'); };
 
-async function showPhoneBinding() {
-  // Проверяем, есть ли уже номер
-  const { data } = await supabaseClient.from('users').select('phone').eq('user_id', userId).single();
-  const currentPhone = data?.phone || '';
-  
-  const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[110] p-4 overflow-y-auto pt-16 pb-20';
-  modal.innerHTML = `
-    <div class="bg-[#1e293b] rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col border border-white/20">
-      <div class="p-5 border-b border-white/20">
-        <h3 class="text-white font-bold text-lg"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></span> Привязка телефона</h3>
-      </div>
-      <div class="p-5 overflow-y-auto flex-1">
-        <p class="text-white/70 text-sm mb-3">Номер телефона нужен для восстановления доступа и уведомлений.</p>
-        <label class="text-white/70 text-sm">Номер телефона</label>
-        <input type="tel" id="phoneInput" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-3" placeholder="+375XXXXXXXXX" value="${currentPhone}">
-        <button id="sendCodeBtn" class="btn-primary w-full mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span> Отправить код подтверждения</button>
-        <div id="codeSection" class="hidden">
-          <label class="text-white/70 text-sm">Код из SMS</label>
-          <input type="text" id="codeInput" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-3" placeholder="123456">
-          <button id="verifyCodeBtn" class="w-full bg-green-500 py-2 rounded-xl"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Подтвердить</button>
-        </div>
-      </div>
-      <div class="p-5 border-t border-white/20">
-        <button id="closePhoneModal" class="btn-secondary w-full">Закрыть</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(modal);
-  
-  const phoneInput = document.getElementById('phoneInput');
-  const codeSection = document.getElementById('codeSection');
-  let currentCode = null;
-  
-  modal.querySelector('#closePhoneModal').onclick = () => modal.remove();
-  
-  document.getElementById('sendCodeBtn').onclick = async () => {
-    const phone = phoneInput.value.trim();
-    if (!phone) { tgUtil.alert('Введите номер'); return; }
-    // Генерируем код
-    currentCode = Math.floor(100000 + Math.random() * 900000).toString();
-    // Отправляем код через бота (сохраняем в базе временно)
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-    await supabaseClient.from('recovery_codes').insert({
-      user_id: userId,
-      code: currentCode,
-      expires_at: expiresAt
-    });
-    // В будущем здесь будет вызов бота для отправки SMS, пока просто показываем код в alert для теста
-    tgUtil.alert(`Ваш код подтверждения: ${currentCode}`);
-    codeSection.classList.remove('hidden');
-  };
   
   document.getElementById('verifyCodeBtn').onclick = async () => {
     const enteredCode = document.getElementById('codeInput').value.trim();
