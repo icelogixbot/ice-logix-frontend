@@ -17965,7 +17965,7 @@ function showAuthPage() {
   overlay.querySelector('#authSocialGoogle').onclick = () => { tgUtil.alert('Вход через Google временно недоступен.'); };
   overlay.querySelector('#authSocialApple').onclick = () => { tgUtil.alert('Вход через Apple временно недоступен.'); };
 }
-\nasync function renderCart() {
+async function renderCart() {
   if (!userId) return '<p class="text-center mt-10 text-white/70">Авторизуйтесь</p>';
   try {
     const { data, error } = await supabaseClient
