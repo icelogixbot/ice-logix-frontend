@@ -4038,12 +4038,6 @@ const MAX_REQUESTS_TRUSTED = 100;
         </div>
         <span class="story-label">Акции</span>
       </div>
-      <div class="story-card" data-story="resale">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(236,72,153,0.2), rgba(219,39,119,0.1));">
-          <span style="font-size: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"><span class="ix text-pink-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span></span>
-        </div>
-        <span class="story-label">Пристрой</span>
-      </div>
       <div class="story-card" data-story="academy">
         <div class="story-icon" style="background: linear-gradient(145deg, rgba(139,92,246,0.2), rgba(109,40,217,0.15));">
           <span style="font-size: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></span></span>
@@ -4135,7 +4129,6 @@ function attachHomeHandlers() {
         if (!window.userId) { window.requireAuth('Для доступа к академии необходимо войти или зарегистрироваться.'); return; }
         switchTab('academy');
       });
-      document.querySelector('[data-story="resale"]')?.addEventListener('click', () => switchTab('resale'));
       document.getElementById('moreMarketplacesBtn')?.addEventListener('click', () => {
         switchTab('catalogs', 'marketplaces');
       });
@@ -7835,7 +7828,7 @@ async function renderMyOrders() {
             ${order.status === 'delivered' ? `
             <div class="mt-2">
               <button class="btn-primary w-full text-white text-xs bg-pink-500/20 hover:bg-pink-500/30 border border-pink-500/30 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors" onclick="publishToResale('${order.id}', '${(order.description || '').replace(/'/g, "\\'")}')">
-                <span class="ix text-pink-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg></span> Выставить в Пристрой
+                <span class="ix text-pink-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg></span> Выставить в Наличие
               </button>
             </div>
             ` : ''}
@@ -12590,43 +12583,9 @@ async function sendNotification(userId, message, orderId = null) {
     }
 
 
-    window.renderCatalogHub = async () => {
+    window.renderSizeGuides = async () => {
   return `
-    <button class="global-back-btn" onclick="switchTab('home')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
-    <div class="glass-card mb-5 page-enter">
-      <h2 class="text-xl font-bold text-white mb-2"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/></svg></span> Каталог и Подборки</h2>
-      <p class="text-white/50 text-sm mb-4">Выберите категорию для просмотра товаров или ознакомьтесь с нашими гайдами.</p>
-      
-      <div class="grid grid-cols-2 gap-3 mb-6">
-        <div class="bg-gradient-to-br from-blue-500/20 to-purple-500/20 p-4 rounded-xl border border-white/10 cursor-pointer hover:border-blue-400 transition" onclick="switchTab('catalogs', 'productsCatalog')">
-          <span class="text-3xl mb-2 block">👟</span>
-          <h3 class="text-white font-bold text-sm">Все товары</h3>
-          <p class="text-white/50 text-[10px]">Витрина кроссовок и одежды</p>
-        </div>
-        <div class="bg-gradient-to-br from-emerald-500/20 to-teal-500/20 p-4 rounded-xl border border-white/10 cursor-pointer hover:border-emerald-400 transition" onclick="glassToast('Категория скоро появится!', {kind:'info'})">
-          <span class="text-3xl mb-2 block">🎒</span>
-          <h3 class="text-white font-bold text-sm">Аксессуары</h3>
-          <p class="text-white/50 text-[10px]">Сумки, очки, украшения</p>
-        </div>
-        <div class="bg-gradient-to-br from-amber-500/20 to-orange-500/20 p-4 rounded-xl border border-white/10 cursor-pointer hover:border-amber-400 transition" onclick="switchTab('catalogs', 'marketplaces')">
-          <span class="text-3xl mb-2 block">🛍️</span>
-          <h3 class="text-white font-bold text-sm">Площадки</h3>
-          <p class="text-white/50 text-[10px]">Poizon, Taobao, 1688</p>
-        </div>
-        <div class="bg-gradient-to-br from-rose-500/20 to-pink-500/20 p-4 rounded-xl border border-white/10 cursor-pointer hover:border-rose-400 transition" onclick="switchTab('catalogs', 'sizeGuides')">
-          <span class="text-3xl mb-2 block">📏</span>
-          <h3 class="text-white font-bold text-sm">Размеры</h3>
-          <p class="text-white/50 text-[10px]">Гайд по размерным сеткам</p>
-        </div>
-      </div>
-    </div>
-    ${renderFooter()}
-  `;
-};
-
-window.renderSizeGuides = async () => {
-  return `
-    <button class="global-back-btn" onclick="switchTab('catalogs', 'catalogHub')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад в Каталог</button>
+    <button class="global-back-btn" onclick="switchTab('catalogs')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад в Каталог</button>
     <div class="glass-card mb-5 page-enter">
       <h2 class="text-xl font-bold text-white mb-4"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></span> Гайд по размерам</h2>
       <p class="text-white/60 text-xs mb-4">Интерактивная база данных. Здесь мы собираем информацию о том, маломерят вещи или идут в размер, чтобы вы точно не ошиблись при заказе с площадок.</p>
@@ -14200,12 +14159,6 @@ function attachAdminSuppliersHandlers() {
         if (isShadowMode) attachShadowModeExit();
         return;
       }
-      if (currentSubScreen === 'catalogHub') {
-        contentDiv.innerHTML = shadowBannerHtml + await renderCatalogHub();
-        ensureBackButtonForSubscreen();
-        if (isShadowMode) attachShadowModeExit();
-        return;
-      }
       if (currentSubScreen === 'sizeGuides') {
         contentDiv.innerHTML = shadowBannerHtml + await renderSizeGuides();
         ensureBackButtonForSubscreen();
@@ -14386,6 +14339,20 @@ async function renderCatalogs() {
             </svg>
           </div>
         </div>
+        <div class="glass-card cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all" id="openResaleBtn">
+          <div class="flex items-center gap-4">
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(236,72,153,0.25), rgba(219,39,119,0.15));">
+              <span class="text-3xl" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"><span class="ix text-pink-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg></span></span>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-white font-bold text-lg mb-1">Наличие</h3>
+              <p class="text-sm" style="color: var(--text-secondary);">Покупка и продажа вещей клиентов. Комиссия сервиса — всего 2% за продажу</p>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+        </div>
 
       </div>
     </div>
@@ -14396,8 +14363,10 @@ async function renderCatalogs() {
 function attachCatalogsHandlers() {
   const marketplacesBtn = document.getElementById('openMarketplacesBtn');
   const productsBtn = document.getElementById('openProductsCatalogBtn');
+  const resaleBtn = document.getElementById('openResaleBtn');
   if (marketplacesBtn) marketplacesBtn.onclick = () => { currentSubScreen = 'marketplaces'; renderCurrentScreen(); };
   if (productsBtn) productsBtn.onclick = () => { currentSubScreen = 'productsCatalog'; renderCurrentScreen(); };
+  if (resaleBtn) resaleBtn.onclick = () => switchTab('resale');
 
   const backBtn = document.getElementById('backFromCatalogsBtn');
   if (backBtn) backBtn.onclick = () => switchTab('home');
@@ -17469,7 +17438,7 @@ async function renderHistory() {
         `).join('');
       }
     }
-  } else {
+  } else if (subScreen === 'orders') {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const { data, error } = await supabaseClient.from('orders').select('*').eq('user_id', userId).lt('updated_at', sevenDaysAgo).order('created_at', { ascending: false }).limit(100);
     if (error || !data || !data.length) {
@@ -17486,6 +17455,110 @@ async function renderHistory() {
         </div>
       `).join('');
     }
+  } else if (subScreen === 'reviews') {
+    const { data, error } = await supabaseClient.from('reviews').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(50);
+    if (error || !data || !data.length) {
+      content = '<p class="text-white/50 text-center py-8">Вы еще не оставляли отзывы</p>';
+    } else {
+      content = '<div class="space-y-3">';
+      content += data.map(r => {
+        const stars = '⭐'.repeat(r.rating || 5);
+        const dateStr = new Date(r.created_at).toLocaleDateString('ru-RU');
+        const isPublished = r.is_published;
+        const photoUrls = r.photo_urls || [];
+        
+        return `
+          <div class="glass-card p-4 font-sans">
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <span class="text-amber-400 text-xs font-bold mr-2">${stars}</span>
+                <span class="text-[10px] text-white/40 font-mono">${dateStr}</span>
+              </div>
+              <span class="text-[10px] px-2.5 py-0.5 rounded-full ${isPublished ? 'bg-green-500/20 text-green-400 border border-green-500/35' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/35'} font-semibold">
+                ${isPublished ? 'Опубликован' : 'На модерации'}
+              </span>
+            </div>
+            <p class="text-white/90 text-sm mb-2 font-sans">${r.text || ''}</p>
+            ${photoUrls.length > 0 ? `
+              <div class="flex gap-2 overflow-x-auto py-1">
+                ${photoUrls.map(url => `<img src="${url}" class="w-12 h-12 rounded-xl object-cover border border-white/10" />`).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+      content += '</div>';
+    }
+  } else if (subScreen === 'legitchecks') {
+    const { data, error } = await supabaseClient.from('legit_check_requests').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(50);
+    if (error || !data || !data.length) {
+      content = '<p class="text-white/50 text-center py-8">Вы еще не отправляли запросы на легит-чек</p>';
+    } else {
+      content = '<div class="space-y-3">';
+      content += data.map(c => {
+        const dateStr = new Date(c.created_at).toLocaleDateString('ru-RU');
+        const statusText = c.status === 'pending' ? '⏳ На модерации' : c.status === 'original' ? '✅ Оригинал' : '❌ Не оригинал';
+        const statusClass = c.status === 'pending' ? 'text-yellow-400 bg-yellow-500/10 border border-yellow-500/20' : c.status === 'original' ? 'text-green-400 bg-green-500/10 border border-green-500/20' : 'text-red-400 bg-red-500/10 border border-red-500/20';
+        const photoUrls = (c.photos || []).map(p => {
+          if (p.startsWith('http')) return p;
+          return supabaseClient.storage.from('product-screenshots').getPublicUrl(p).data.publicUrl;
+        });
+
+        return `
+          <div class="glass-card p-4 font-sans">
+            <div class="flex justify-between items-center text-[10px] text-white/40 mb-2">
+              <span>${dateStr}</span>
+              <span class="font-mono">#${c.id.slice(0, 8)}</span>
+            </div>
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-white font-bold text-sm">Легит-чек товара</span>
+              <span class="text-[10px] px-2.5 py-0.5 rounded-full ${statusClass} font-semibold">${statusText}</span>
+            </div>
+            ${photoUrls.length > 0 ? `
+              <div class="flex gap-2 overflow-x-auto py-1">
+                ${photoUrls.map(url => `<img src="${url}" class="w-12 h-12 rounded-xl object-cover border border-white/10" />`).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+      content += '</div>';
+    }
+  } else if (subScreen === 'promotions') {
+    const { data, error } = await supabaseClient.from('promotions').select('*').order('created_at', { ascending: false }).limit(50);
+    if (error || !data || !data.length) {
+      content = '<p class="text-white/50 text-center py-8">Акций и розыгрышей пока нет</p>';
+    } else {
+      content = '<div class="space-y-3">';
+      content += data.map(p => {
+        const isActive = p.is_active;
+        const discountText = p.discount_type === 'percent' ? `${p.discount_value}%` : `${p.discount_value} BYN`;
+        const expiresStr = p.expires_at ? new Date(p.expires_at).toLocaleDateString('ru-RU') : 'Бессрочно';
+        const startsStr = p.starts_at ? new Date(p.starts_at).toLocaleDateString('ru-RU') : '';
+        
+        return `
+          <div class="glass-card overflow-hidden font-sans">
+            ${p.banner_url ? `
+              <div style="background-image: url('${p.banner_url}'); background-size: cover; background-position: center; height: 100px; width: 100%;"></div>
+            ` : ''}
+            <div class="p-4">
+              <div class="flex justify-between items-start mb-2">
+                <h3 class="text-white font-bold text-sm">${p.title || 'Акция'}</h3>
+                <span class="text-[10px] px-2.5 py-0.5 rounded-full ${isActive ? 'bg-green-500/20 text-green-400 border border-green-500/35' : 'bg-white/10 text-white/50 border border-white/15'} font-semibold">
+                  ${isActive ? 'Активна' : 'Завершена'}
+                </span>
+              </div>
+              ${p.description ? `<p class="text-white/70 text-xs mb-3 font-sans leading-relaxed">${p.description}</p>` : ''}
+              <div class="flex justify-between items-center text-[10px] text-white/40 border-t border-white/5 pt-2 font-mono">
+                <span>Скидка: <strong class="text-cyan-400 font-bold">${discountText}</strong></span>
+                <span>Сроки: ${startsStr ? startsStr + ' - ' : ''}${expiresStr}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      content += '</div>';
+    }
   }
 
   return `
@@ -17497,14 +17570,23 @@ async function renderHistory() {
         <h2 class="text-xl font-bold text-white">История</h2>
       </div>
       <div class="flex gap-2 mb-5 flex-wrap">
-        <button id="historyTabTx" class="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${subScreen === 'transactions' ? 'btn-primary' : 'glass-card'}" style="${subScreen === 'transactions' ? '' : 'border: 1px solid var(--glass-border);'}">
+        <button id="historyTabTx" class="flex-grow py-2 rounded-xl text-xs font-bold transition-all ${subScreen === 'transactions' ? 'btn-primary' : 'glass-card'}" style="${subScreen === 'transactions' ? '' : 'border: 1px solid var(--glass-border);'}">
           💳 Транзакции
         </button>
-        <button id="historyTabOrders" class="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${subScreen === 'orders' ? 'btn-primary' : 'glass-card'}" style="${subScreen === 'orders' ? '' : 'border: 1px solid var(--glass-border);'}">
-          📦 Архив заказов
+        <button id="historyTabOrders" class="flex-grow py-2 rounded-xl text-xs font-bold transition-all ${subScreen === 'orders' ? 'btn-primary' : 'glass-card'}" style="${subScreen === 'orders' ? '' : 'border: 1px solid var(--glass-border);'}">
+          📦 Архив
         </button>
-        <button id="historyTabFamily" class="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${subScreen === 'family' ? 'btn-primary' : 'glass-card'}" style="${subScreen === 'family' ? '' : 'border: 1px solid var(--glass-border);'}">
-          👨‍👩‍👧 История семьи
+        <button id="historyTabFamily" class="flex-grow py-2 rounded-xl text-xs font-bold transition-all ${subScreen === 'family' ? 'btn-primary' : 'glass-card'}" style="${subScreen === 'family' ? '' : 'border: 1px solid var(--glass-border);'}">
+          👨‍👩‍👧 Семья
+        </button>
+        <button id="historyTabReviews" class="flex-grow py-2 rounded-xl text-xs font-bold transition-all ${subScreen === 'reviews' ? 'btn-primary' : 'glass-card'}" style="${subScreen === 'reviews' ? '' : 'border: 1px solid var(--glass-border);'}">
+          💬 Отзывы
+        </button>
+        <button id="historyTabLegit" class="flex-grow py-2 rounded-xl text-xs font-bold transition-all ${subScreen === 'legitchecks' ? 'btn-primary' : 'glass-card'}" style="${subScreen === 'legitchecks' ? '' : 'border: 1px solid var(--glass-border);'}">
+          🔍 Легит-чеки
+        </button>
+        <button id="historyTabPromo" class="flex-grow py-2 rounded-xl text-xs font-bold transition-all ${subScreen === 'promotions' ? 'btn-primary' : 'glass-card'}" style="${subScreen === 'promotions' ? '' : 'border: 1px solid var(--glass-border);'}">
+          🎁 Акции
         </button>
       </div>
       <div id="historyContent">
@@ -17529,6 +17611,18 @@ function attachHistoryHandlers() {
   });
   document.getElementById('historyTabFamily')?.addEventListener('click', () => {
     window._historySubScreen = 'family';
+    renderCurrentScreen();
+  });
+  document.getElementById('historyTabReviews')?.addEventListener('click', () => {
+    window._historySubScreen = 'reviews';
+    renderCurrentScreen();
+  });
+  document.getElementById('historyTabLegit')?.addEventListener('click', () => {
+    window._historySubScreen = 'legitchecks';
+    renderCurrentScreen();
+  });
+  document.getElementById('historyTabPromo')?.addEventListener('click', () => {
+    window._historySubScreen = 'promotions';
     renderCurrentScreen();
   });
 }
@@ -19102,7 +19196,7 @@ function renderLegitPhotoPreviews() {
 window.publishToResale = async (orderId, orderTitle) => {
   if (!userId) return tgUtil.alert('Необходима авторизация');
   
-  const ok = await tgUtil.confirm('Введите цену продажи в BYN:\nКомиссия платформы 5% будет удержана при успешной сделке. Продолжить?');
+  const ok = await tgUtil.confirm('Введите цену продажи в BYN:\nКомиссия платформы 2% будет удержана при успешной сделке. Продолжить?');
   if (!ok) return;
   
   // Для надежности используем встроенный prompt браузера (работает в WebApp)
@@ -19144,12 +19238,12 @@ async function renderResale() {
     
     let html = `
       <div class="flex items-center gap-3 mb-6">
-        <button class="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-white/10 transition-colors" onclick="switchTab('home')">
+        <button class="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-white/10 transition-colors" onclick="switchTab('catalogs')">
           <span class="ix text-white"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></span>
         </button>
-        <h2 class="text-xl font-black text-white uppercase tracking-wider">ICE Resale <span class="text-pink-400">Пристрой</span></h2>
+        <h2 class="text-xl font-black text-white uppercase tracking-wider">ICE Resale <span class="text-pink-400">Наличие</span></h2>
       </div>
-      <p class="text-xs text-white/50 mb-4 bg-white/5 p-3 rounded-xl">Покупайте новые вещи напрямую у других клиентов, которым не подошел размер. Вещи уже в Беларуси!</p>
+      <p class="text-xs text-white/50 mb-4 bg-white/5 p-3 rounded-xl">Покупайте новые оригинальные вещи напрямую у других клиентов, которым не подошел размер, по сниженным ценам. Комиссия сервиса — всего 2% за продажу.</p>
     `;
     
     if (!data || data.length === 0) {
