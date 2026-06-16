@@ -189,7 +189,7 @@
       box-sizing: content-box;
       display: inline-block;
       vertical-align: middle;
-      height: 36px;
+      height: 42px;
       width: auto;
       object-fit: contain;
       cursor: pointer; 
@@ -292,22 +292,39 @@
     }
     .icon-btn:active { transform: scale(0.9); }
     
-    /* User Card */
+    /* User Card - Premium Rounded Rectangle Layout */
     .user-card {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 4px 10px 4px 4px;
-      background: var(--glass-bg);
-      border: 1px solid var(--glass-border);
-      border-radius: 20px;
+      gap: 10px;
+      padding: 6px 12px 6px 6px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%);
+      border: 1px solid var(--glass-border-strong);
+      border-radius: 16px;
+      box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255,255,255,0.1);
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .user-card:hover {
-      background: var(--glass-bg-strong);
-      border-color: var(--glass-border-strong);
+      background: linear-gradient(135deg, rgba(91,191,235,0.2) 0%, rgba(46,158,212,0.1) 100%);
+      border-color: rgba(91, 191, 235, 0.4);
       transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), 0 0 15px rgba(91, 191, 235, 0.15);
+    }
+    .user-card .balance-island {
+      background: none !important;
+      border: none !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .story-icon img {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+      border-radius: 8px;
     }
     
     .user-avatar {
@@ -616,7 +633,7 @@
       box-sizing: content-box;
       display: block;
       width: auto;
-      height: 48px;
+      height: 56px;
       object-fit: contain;
       margin: 0 auto 12px;
       opacity: 0.8;
@@ -1606,19 +1623,12 @@
     <div class="app-header">
       <div class="header-left">
         <img id="logoImg" class="logo-img" src="./assets/logo.png" alt="ICE LOGIX">
-        <!-- Balance Island Widget — moved to left of header for cleaner right cluster -->
-        <div class="balance-island" id="balanceIsland">
-          <div class="balance-amount">
-            <span id="headerBalance">0</span>
-            <span class="balance-icon" aria-hidden="true" title="ICE Валюта"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
-          </div>
-          <span id="familyBalanceHeader" style="display:none; font-size:10px; color:rgba(52,211,153,0.9); font-weight:700; padding: 0 4px; border-left: 1px solid rgba(255,255,255,0.2);">
-            <span id="familyBalanceValue">0</span>👨‍👩‍👧
-          </span>
-          <button class="balance-add" id="addBalanceBtn" title="Пополнить баланс">+</button>
-        </div>
-      </div>
-      <div class="header-right">
+        <button class="icon-btn" id="settingsBtn" title="Настройки">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
         <button class="icon-btn relative" id="notificationsBtn" title="Уведомления">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -1626,15 +1636,21 @@
           </svg>
           <span id="notifBadge" class="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[10px] font-bold flex items-center justify-center hidden" style="background: #ef4444; color: #fff;">0</span>
         </button>
-        <button class="icon-btn" id="settingsBtn" title="Настройки">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-          </svg>
-        </button>
+      </div>
+      <div class="header-right">
         <div class="user-card" id="userCard">
           <div class="user-avatar" id="avatar"></div>
-          <span class="user-name" id="userNameHeader">Гость</span>
+          <div class="balance-island" id="balanceIsland">
+            <div class="balance-amount">
+              <span id="headerBalance">0</span>
+              <span class="balance-icon" aria-hidden="true" title="ICE Валюта"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+            </div>
+            <span id="familyBalanceHeader" style="display:none; font-size:10px; color:rgba(52,211,153,0.9); font-weight:700; padding: 0 4px; border-left: 1px solid rgba(255,255,255,0.2);">
+              <span id="familyBalanceValue">0</span>👨‍👩‍👧
+            </span>
+            <button class="balance-add" id="addBalanceBtn" title="Пополнить баланс">+</button>
+          </div>
+          <span class="user-name" id="userNameHeader" style="display:none;">Гость</span>
         </div>
         <button class="icon-btn" id="loginBtn" title="Войти/Зарегистрироваться" style="display:none; background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.4); color: #22d3ee; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 10px; white-space: nowrap;">Войти/Зарегистрироваться</button>
       </div>
@@ -1713,6 +1729,53 @@
   <script>
     if (localStorage.getItem('theme') === 'light') {
       document.documentElement.classList.add('light-theme');
+    }
+
+    function preprocessProducts(products) {
+      if (!products) return [];
+      const fallbacks = {
+        'Nike Dunk Low': 'https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=500&auto=format&fit=crop&q=80',
+        'Jordan 1 Retro': 'https://images.unsplash.com/photo-1556906781-9a412961c28c?w=500&auto=format&fit=crop&q=80',
+        'Yeezy 350': 'https://images.unsplash.com/photo-1582588678413-dbf45f4823e9?w=500&auto=format&fit=crop&q=80',
+        'Adidas Samba': 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=500&auto=format&fit=crop&q=80',
+        'New Balance 550': 'https://images.unsplash.com/photo-1539185441755-769473a23570?w=500&auto=format&fit=crop&q=80',
+        'Asics Gel Kayano': 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=500&auto=format&fit=crop&q=80',
+        'Puma Suede': 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=500&auto=format&fit=crop&q=80',
+        'Reebok Club C': 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&auto=format&fit=crop&q=80',
+        'Converse Chuck': 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=500&auto=format&fit=crop&q=80',
+        'Vans Old Skool': 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=500&auto=format&fit=crop&q=80',
+      };
+      return products.map(p => {
+        if (!p.image_url || p.image_url.includes('placeholder.com') || p.image_url === '') {
+          p.image_url = fallbacks[p.title] || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&auto=format&fit=crop&q=80';
+        }
+        return p;
+      });
+    }
+
+    function preprocessMarketplaces(marketplaces) {
+      if (!marketplaces) return [];
+      return marketplaces.map(mp => {
+        if (!mp.logo_url || mp.logo_url === '') {
+          const nameLower = (mp.name || '').toLowerCase();
+          if (nameLower.includes('пиндуодуо') || nameLower.includes('pinduoduo')) {
+            mp.logo_url = 'https://logo.clearbit.com/pinduoduo.com';
+          } else if (nameLower.includes('poizon')) {
+            mp.logo_url = 'https://logo.clearbit.com/dewu.com';
+          } else if (nameLower.includes('taobao')) {
+            mp.logo_url = 'https://logo.clearbit.com/taobao.com';
+          } else if (nameLower.includes('1688')) {
+            mp.logo_url = 'https://logo.clearbit.com/1688.com';
+          } else if (nameLower.includes('zalando')) {
+            mp.logo_url = 'https://logo.clearbit.com/zalando.com';
+          } else if (nameLower.includes('nike')) {
+            mp.logo_url = 'https://logo.clearbit.com/nike.com';
+          } else if (nameLower.includes('asos')) {
+            mp.logo_url = 'https://logo.clearbit.com/asos.com';
+          }
+        }
+        return mp;
+      });
     }
 
     // --- APP CACHE FOR BLAZING FAST NAVIGATION ---
@@ -3797,7 +3860,8 @@ const MAX_REQUESTS_TRUSTED = 100;
     }
 
     function attachEventListeners() {
-      document.getElementById('addBalanceBtn').onclick = () => {
+      document.getElementById('addBalanceBtn').onclick = (e) => {
+        if (e) e.stopPropagation();
         tgUtil.haptic('medium');
         const amount = prompt('Введите сумму пополнения (в ICE / BYN):', '50');
         if (amount && !isNaN(amount) && Number(amount) > 0) {
@@ -3911,6 +3975,11 @@ const MAX_REQUESTS_TRUSTED = 100;
                 <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
               </svg>
             </div>
+            <div class="social-icon" data-social="tiktok" title="TikTok">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .8.11V9.4a6.27 6.27 0 0 0-8.31 6 6.36 6.36 0 0 0 10.94 4.39 6.27 6.27 0 0 0 2.91-5.22V7.74a8.29 8.29 0 0 0 5.4 1.93V6.22a4.79 4.79 0 0 1-1.42-.53 4.85 4.85 0 0 1-1.32-1z"/>
+              </svg>
+            </div>
             <div class="social-icon" data-social="ig" title="Instagram">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
@@ -3918,15 +3987,25 @@ const MAX_REQUESTS_TRUSTED = 100;
                 <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
               </svg>
             </div>
+            <div class="social-icon" data-social="pinterest" title="Pinterest">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.08 3.16 9.42 7.63 11.16-.1-.95-.2-2.4.04-3.43.22-.93 1.4-5.93 1.4-5.93s-.36-.72-.36-1.77c0-1.66.96-2.9 2.18-2.9 1.03 0 1.53.77 1.53 1.7 0 1.03-.66 2.58-.99 4.02-.28 1.2.6 2.17 1.78 2.17 2.14 0 3.78-2.26 3.78-5.5 0-2.88-2.07-4.9-5.02-4.9-3.43 0-5.45 2.57-5.45 5.23 0 1.04.4 2.15.9 2.75.1.12.11.23.08.35-.1.38-.3.1.33-1.37.14-.59-.06-.85-.35-.97-.24-.1-1-.4-1.37-1.16-.68-1.42-1.07-2.9-1.07-4.68 0-3.8 2.76-7.3 7.97-7.3 4.18 0 7.43 2.98 7.43 6.96 0 4.16-2.62 7.5-6.26 7.5-1.22 0-2.37-.63-2.76-1.38L9.16 21.3c-.4 1.56-1.5 3.52-2.24 4.7 1.13.34 2.3.5 3.54.5 6.63 0 12-5.37 12-12S18.63 0 12 0z"/>
+              </svg>
+            </div>
             <div class="social-icon" data-social="vk" title="VK">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M15.684 0H8.316C1.592 0 0 1.592 0 8.316v7.368C0 22.408 1.592 24 8.316 24h7.368C22.408 24 24 22.408 24 15.684V8.316C24 1.592 22.408 0 15.684 0zm3.692 17.123h-1.744c-.66 0-.862-.523-2.049-1.714-1.033-1.01-1.49-1.135-1.744-1.135-.356 0-.458.102-.458.597v1.575c0 .424-.135.678-1.253.678-1.846 0-3.896-1.118-5.335-3.202C4.624 10.857 4 8.684 4 8.277c0-.254.102-.491.597-.491h1.744c.447 0 .615.2.786.678.867 2.49 2.31 4.674 2.905 4.674.224 0 .33-.102.33-.66V9.721c-.068-1.186-.695-1.287-.695-1.71 0-.203.17-.407.44-.407h2.744c.373 0 .508.203.508.644v3.499c0 .373.17.508.271.508.224 0 .407-.135.814-.542 1.27-1.422 2.18-3.61 2.18-3.61.119-.254.322-.491.763-.491h1.744c.525 0 .644.27.525.644-.22 1.017-2.354 4.031-2.354 4.031-.186.305-.254.44 0 .78.186.254.796.779 1.203 1.253.745.847 1.32 1.558 1.473 2.049.17.491-.085.744-.576.744z"/>
               </svg>
             </div>
+            <div class="social-icon" data-social="youtube" title="YouTube">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.11C19.517 3.545 12 3.545 12 3.545s-7.517 0-9.388.508a3.003 3.003 0 0 0-2.11 2.11C0 8.033 0 12 0 12s0 3.967.502 5.837a3.003 3.003 0 0 0 2.11 2.11c1.871.508 9.388.508 9.388.508s7.517 0 9.388-.508a3.003 3.003 0 0 0 2.11-2.11C24 15.967 24 12 24 12s0-3.967-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+              </svg>
+            </div>
           </div>
           <div class="footer-links">
-            <span class="footer-link" data-link="offer">Оферта</span>
-            <span class="footer-link" data-link="privacy">Конфиденциальность</span>
+            <span class="footer-link" data-link="offer">Публичная оферта</span>
+            <span class="footer-link" data-link="privacy">Политика конфиденциальности</span>
             <span class="footer-link" data-link="contacts">Контакты</span>
             <span class="footer-link" data-link="faq">Ответы на вопросы (FAQ)</span>
           </div>
@@ -4215,7 +4294,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       if (views && views.length > 0) {
         const ids = views.map(v => v.product_id);
         const { data: viewed } = await supabaseClient.from('products').select('*').in('id', ids).eq('is_active', true);
-        if (viewed) data = viewed;
+        if (viewed) data = preprocessProducts(viewed);
       }
       if (data.length === 0) {
         grid.innerHTML = '<p class="text-white/50 text-sm col-span-2 text-center py-4">Просматривайте товары, чтобы получить рекомендации</p>';
@@ -4226,7 +4305,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         const { data } = await supabaseClient.from('products').select('*').eq('is_active', true).limit(10);
         return data;
       }, 300000);
-      if (popular) data = popular;
+      if (popular) data = preprocessProducts(popular);
     }
 
     grid.innerHTML = data.map(p => `
@@ -13815,8 +13894,9 @@ async function renderProductsCatalog() {
 
     const from = (productsPage - 1) * 20;
     const to = from + 19;
-    const { data, count, error } = await query.range(from, to);
+    const { data: rawData, count, error } = await query.range(from, to);
     if (error) throw error;
+    const data = preprocessProducts(rawData);
 
     productsTotalPages = Math.ceil((count || 0) / 20);
 
@@ -15406,13 +15486,14 @@ function attachCatalogsHandlers() {
 // ==================== РЕНДЕР ПОДКАТАЛОГА ПЛОЩАДОК ====================
 async function renderMarketplaces() {
   try {
-    const { data, error } = await supabaseClient
+    const { data: rawData, error } = await supabaseClient
       .from('marketplaces')
       .select('*')
       .eq('is_active', true)
       .order('sort_order', { ascending: true });
       
     if (error) throw error;
+    const data = preprocessMarketplaces(rawData);
     if (!data || data.length === 0) {
       return `<p class="text-center mt-10 text-white/70">Каталог площадок пока пуст</p>`;
     }
@@ -15473,7 +15554,7 @@ function attachMarketplacesHandlers() {
   async function renderFilteredGrid() {
     if (marketplacesData.length === 0) {
       const { data } = await supabaseClient.from('marketplaces').select('*').eq('is_active', true);
-      marketplacesData = data || [];
+      marketplacesData = preprocessMarketplaces(data || []);
     }
     
     const activeCountry = document.querySelector('#filterCountries .filter-chip.active')?.dataset.country || 'all';
