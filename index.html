@@ -1089,6 +1089,13 @@
     ::-webkit-scrollbar-thumb:hover {
       background: rgba(255, 255, 255, 0.25);
     }
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none !important;
+    }
+    .hide-scrollbar {
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+    }
 
     /* Specific input states overrides */
     input.is-invalid, textarea.is-invalid, select.is-invalid {
@@ -3274,8 +3281,15 @@ const MAX_REQUESTS_TRUSTED = 100;
             }
             
             if (activeSession) {
-                const { data: profile } = await supabaseClient.from('users').select('user_id').eq('auth_id', activeSession.user.id).single();
-                if (profile) userId = profile.user_id;
+                let uId = null;
+                try {
+                    const { data: profile } = await supabaseClient.from('users').select('user_id').eq('auth_id', activeSession.user.id).single();
+                    if (profile) uId = profile.user_id;
+                } catch (err) {
+                    console.warn('Profile not found in users table for auth_id:', activeSession.user.id);
+                }
+                userId = uId || activeSession.user.id;
+                isRegistered = true;
             }
           } catch (err) {
             console.error('Authentication Flow Error:', err);
@@ -3488,7 +3502,23 @@ const MAX_REQUESTS_TRUSTED = 100;
         // Update family balance in header — fire-and-forget, must not block init
         setTimeout(() => updateHeaderFamilyBalance().catch(() => {}), 0);
       } else {
+        isRegistered = true;
         applyTheme('dark');
+        
+        // Fallback: Create default row in users table client-side if missing
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) {
+          try {
+            await supabaseClient.from('users').insert({
+              user_id: userId,
+              auth_id: session.user.id,
+              role: 'user',
+              ices_balance: 0
+            });
+          } catch (insertErr) {
+            console.error('Failed to auto-create user profile row:', insertErr);
+          }
+        }
       }
 
       // Fetch global vacation & exchange buffer settings from the owner's row
@@ -17802,6 +17832,28 @@ window.requireAuth = function(message) {
   });
 };
 
+async function handleAuthSuccess(overlay) {
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+      localStorage.removeItem('ice_logged_out');
+      let uId = null;
+      try {
+        const { data: profile } = await supabaseClient.from('users').select('user_id').eq('auth_id', session.user.id).single();
+        if (profile) uId = profile.user_id;
+      } catch (err) {
+        console.warn('Profile not found in users table yet:', err);
+      }
+      userId = uId || session.user.id;
+      await loadUserData();
+    }
+  } catch (e) {
+    console.error('Error in handleAuthSuccess:', e);
+  }
+  if (overlay) overlay.remove();
+  location.reload();
+}
+
 function showAuthPage() {
   const overlay = document.createElement('div');
   overlay.id = 'authPageOverlay';
@@ -17809,7 +17861,7 @@ function showAuthPage() {
   overlay.style.cssText = 'background: rgba(15, 23, 42, 0.85);';
 
   overlay.innerHTML = `
-    <div class="w-full max-w-sm bg-slate-900/90 border border-white/10 rounded-3xl shadow-2xl p-6 overflow-y-auto max-h-[85vh] relative scrollbar-thin">
+    <div class="w-full max-w-sm bg-slate-900/90 border border-white/10 rounded-3xl shadow-2xl p-6 overflow-y-auto max-h-[85vh] relative hide-scrollbar">
       <button id="authCloseBtn" class="absolute top-4 right-4 text-white/50 hover:text-white transition-colors">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
@@ -17870,7 +17922,7 @@ function showAuthPage() {
       </div>
 
       <!-- Social buttons -->
-      <div class="flex gap-3 justify-center">
+      <div class="flex gap-3 justify-center mb-2">
         <button id="authSocialTg" class="w-12 h-12 rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95" style="background: rgba(36,161,222,0.15); border: 1px solid rgba(36,161,222,0.3);">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="color:#29b6f6;"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
         </button>
@@ -17881,6 +17933,9 @@ function showAuthPage() {
           <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="color:#ffffff;"><path d="M16.365 21.444c-1.332 1.405-2.651 1.4-3.955.086-1.19-1.2-2.316-1.187-3.486 0-1.385 1.4-2.721 1.428-4.043.08-3.036-3.111-4.707-8.31-2.482-12.825 1.134-2.296 3.013-3.714 5.234-3.743 1.572-.016 3.031.975 4.02.975.986 0 2.833-1.182 4.793-1.01 1.637.067 3.125.77 4.148 2.106-3.415 2.115-2.88 6.772.634 8.163-.787 2.111-1.956 4.316-3.863 6.168zM15.426 5.518c-.85.98-2.126 1.611-3.266 1.516-.25-1.428.468-2.85 1.258-3.791.905-1.083 2.304-1.727 3.402-1.631.183 1.428-.48 2.838-1.394 3.906z"/></svg>
         </button>
       </div>
+
+      <!-- Telegram Login Widget Container (for browser/domain fallback) -->
+      <div id="telegramLoginWidgetContainer" class="hidden my-3 flex justify-center"></div>
     </div>
   `;
 
@@ -18049,7 +18104,56 @@ function showAuthPage() {
         emailSubmitBtn.disabled = false;
       }
     } else {
-      tgUtil.alert('Вход через Telegram доступен только внутри Telegram WebApp.');
+      // Browser/Website fallback: Render official Telegram login widget inside the container
+      const widgetContainer = overlay.querySelector('#telegramLoginWidgetContainer');
+      if (widgetContainer) {
+        if (widgetContainer.classList.contains('hidden')) {
+          widgetContainer.classList.remove('hidden');
+          widgetContainer.innerHTML = '<p class="text-white/40 text-xs mb-2">Ожидайте загрузку виджета Telegram...</p>';
+          
+          window.onTelegramAuth = async function(user) {
+            errEl.classList.add('hidden');
+            emailSubmitBtn.textContent = 'Ожидайте...'; emailSubmitBtn.disabled = true;
+            try {
+              const res = await fetch('https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/telegram-auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ widgetData: user })
+              });
+              const data = await res.json();
+              if (data.ok && data.session) {
+                await supabaseClient.auth.setSession({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
+                await handleAuthSuccess(overlay);
+              } else {
+                throw new Error(data.error || 'Не удалось авторизоваться через Telegram');
+              }
+            } catch (e) {
+              errEl.textContent = e.message || 'Ошибка авторизации через Telegram';
+              errEl.classList.remove('hidden');
+              emailSubmitBtn.textContent = currentTab === 'login' ? 'Войти' : 'Зарегистрироваться'; 
+              emailSubmitBtn.disabled = false;
+            }
+          };
+
+          const script = document.createElement('script');
+          script.async = true;
+          script.src = 'https://telegram.org/js/telegram-widget.js?22';
+          script.setAttribute('data-telegram-login', 'ice_logix_bot');
+          script.setAttribute('data-size', 'large');
+          script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+          script.setAttribute('data-request-access', 'write');
+          
+          // Clear loading text when script renders
+          script.onload = () => {
+            const loadingText = widgetContainer.querySelector('p');
+            if (loadingText) loadingText.remove();
+          };
+          
+          widgetContainer.appendChild(script);
+        } else {
+          widgetContainer.classList.add('hidden');
+        }
+      }
     }
   };
   overlay.querySelector('#authSocialGoogle').onclick = () => { tgUtil.alert('Вход через Google временно недоступен.'); };
