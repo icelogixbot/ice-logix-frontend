@@ -8643,6 +8643,8 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
     logoutBtn.onclick = async () => {
+      const confirmLogout = await tgUtil.confirm('Вы действительно хотите выйти из аккаунта?');
+      if (!confirmLogout) return;
       try { await supabaseClient.auth.signOut(); } catch(e) {}
       localStorage.setItem('ice_logged_out', 'true');
       location.reload();
@@ -17704,6 +17706,32 @@ async function showAppSettings(initialTab = 'notifications') {
   // Build Security panel items dynamically
   let identitiesHtml = '';
 
+  // Telegram Link (FIRST - per user request)
+  if (userTelegramId) {
+    identitiesHtml += `
+      <div class="w-full py-3 px-4 rounded-xl flex items-center justify-between" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);">
+        <div class="flex items-center gap-3">
+          <span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.19 2.5a24.22 24.22 0 0 0-9 1.56 24.43 24.43 0 0 0-9-1.56c-.53 0-1 .47-1 1a24 24 0 0 0 3.25 12c1.72 2.7 4.19 4.7 7.21 6a.52.52 0 0 0 .39 0c3-.78 5.76-2.58 7.37-5.12A24.08 24.08 0 0 0 22.19 3.5c0-.53-.47-1-1-1z"/></svg></span>
+          <span class="font-semibold text-white/50 text-sm">Telegram привязан</span>
+        </div>
+        <span class="text-xs text-green-400 font-bold">Привязан ✓</span>
+      </div>
+    `;
+  } else {
+    identitiesHtml += `
+      <div class="space-y-2">
+        <button id="linkTelegramBtn" class="w-full py-3 px-4 rounded-xl flex items-center justify-between transition animate-pulse-subtle" style="background: rgba(14,165,233,0.15); border: 1px solid rgba(14,165,233,0.3);">
+          <div class="flex items-center gap-3">
+            <span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.19 2.5a24.22 24.22 0 0 0-9 1.56 24.43 24.43 0 0 0-9-1.56c-.53 0-1 .47-1 1a24 24 0 0 0 3.25 12c1.72 2.7 4.19 4.7 7.21 6a.52.52 0 0 0 .39 0c3-.78 5.76-2.58 7.37-5.12A24.08 24.08 0 0 0 22.19 3.5c0-.53-.47-1-1-1z"/></svg></span>
+            <span class="font-semibold text-white text-sm">Привязать Telegram</span>
+          </div>
+          <span class="text-xs text-cyan-300 font-bold">Привязать</span>
+        </button>
+        <div id="settingsTelegramWidgetContainer" class="hidden flex justify-center p-2 bg-slate-900/50 rounded-xl"></div>
+      </div>
+    `;
+  }
+
   // Google Link
   identitiesHtml += `
     <button id="linkGoogleBtn" class="w-full py-3 px-4 rounded-xl flex items-center justify-between transition" style="background: rgba(234,67,53,0.1); border: 1px solid rgba(234,67,53,0.25);">
@@ -17744,33 +17772,7 @@ async function showAppSettings(initialTab = 'notifications') {
           <span class="ix text-white/40"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
           <span class="font-semibold text-white/50 text-sm">Email привязан</span>
         </div>
-        <span class="text-xs text-white/40 max-w-[150px] truncate">${userEmail}</span>
-      </div>
-    `;
-  }
-
-  // Telegram Link
-  if (userTelegramId) {
-    identitiesHtml += `
-      <div class="w-full py-3 px-4 rounded-xl flex items-center justify-between" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);">
-        <div class="flex items-center gap-3">
-          <span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.19 2.5a24.22 24.22 0 0 0-9 1.56 24.43 24.43 0 0 0-9-1.56c-.53 0-1 .47-1 1a24 24 0 0 0 3.25 12c1.72 2.7 4.19 4.7 7.21 6a.52.52 0 0 0 .39 0c3-.78 5.76-2.58 7.37-5.12A24.08 24.08 0 0 0 22.19 3.5c0-.53-.47-1-1-1z"/></svg></span>
-          <span class="font-semibold text-white/50 text-sm">Telegram привязан</span>
-        </div>
-        <span class="text-xs text-green-400 font-bold">Привязан ✓</span>
-      </div>
-    `;
-  } else {
-    identitiesHtml += `
-      <div class="space-y-2">
-        <button id="linkTelegramBtn" class="w-full py-3 px-4 rounded-xl flex items-center justify-between transition animate-pulse-subtle" style="background: rgba(14,165,233,0.15); border: 1px solid rgba(14,165,233,0.3);">
-          <div class="flex items-center gap-3">
-            <span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.19 2.5a24.22 24.22 0 0 0-9 1.56 24.43 24.43 0 0 0-9-1.56c-.53 0-1 .47-1 1a24 24 0 0 0 3.25 12c1.72 2.7 4.19 4.7 7.21 6a.52.52 0 0 0 .39 0c3-.78 5.76-2.58 7.37-5.12A24.08 24.08 0 0 0 22.19 3.5c0-.53-.47-1-1-1z"/></svg></span>
-            <span class="font-semibold text-white text-sm">Привязать Telegram</span>
-          </div>
-          <span class="text-xs text-cyan-300 font-bold">Привязать</span>
-        </button>
-        <div id="settingsTelegramWidgetContainer" class="hidden flex justify-center p-2 bg-slate-900/50 rounded-xl"></div>
+        <span class="text-xs text-white/40 max-w-[120px] truncate">${userEmail}</span>
       </div>
     `;
   }
@@ -17824,13 +17826,13 @@ async function showAppSettings(initialTab = 'notifications') {
         </button>
       </div>
       <!-- Notifications panel -->
-      <div id="settingsPanel-notifications" class="p-5 overflow-y-auto flex-1 space-y-4 ${initialTab!=='notifications'?'hidden':''}">
+      <div id="settingsPanel-notifications" class="p-5 flex-1 space-y-4 ${initialTab!=='notifications'?'hidden':''}" style="overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none;">
         <div class="flex items-center justify-between"><span class="text-white text-sm">Изменение статуса заказа</span>${toggle('notifyStatusChanges', notif.status_changes)}</div>
         <div class="flex items-center justify-between"><span class="text-white text-sm">Новости и обновления</span>${toggle('notifyNews', notif.news)}</div>
         <div class="flex items-center justify-between"><span class="text-white text-sm">Акции и предложения</span>${toggle('notifyPromotions', notif.promotions)}</div>
       </div>
       <!-- Theme panel -->
-      <div id="settingsPanel-theme" class="p-5 overflow-y-auto flex-1 space-y-4 ${initialTab!=='theme'?'hidden':''}">
+      <div id="settingsPanel-theme" class="p-5 flex-1 space-y-4 ${initialTab!=='theme'?'hidden':''}" style="overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none;">
         <p class="text-white/60 text-xs mb-3">Выберите оформление интерфейса</p>
         <div class="grid grid-cols-2 gap-3">
           <button class="theme-btn rounded-xl p-4 border-2 transition ${currentTheme==='dark'?'border-cyan-500 bg-slate-800':'border-white/20 bg-white/5'}" data-theme="dark">
@@ -17847,24 +17849,35 @@ async function showAppSettings(initialTab = 'notifications') {
         <button id="resetSettingsBtn" class="mt-4 w-full text-white/40 text-xs py-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></span> Сбросить по умолчанию</button>
       </div>
       <!-- Security panel -->
-      <div id="settingsPanel-security" class="p-5 overflow-y-auto flex-1 space-y-4 ${initialTab!=='security'?'hidden':''}">
-        <p class="text-white/60 text-sm">Управление способами входа и безопасностью.</p>
+      <div id="settingsPanel-security" class="p-4 flex-1 space-y-3 ${initialTab!=='security'?'hidden':''}" style="overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none;">
+        <p class="text-white/60 text-xs">Управление способами входа и безопасностью.</p>
         
-        <div class="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
-          <p class="text-white text-xs font-semibold uppercase tracking-wider mb-2 text-white/50">Привязка аккаунтов</p>
+        <div class="bg-white/5 border border-white/10 rounded-xl p-3 space-y-2">
+          <p class="text-white text-xs font-semibold uppercase tracking-wider text-white/50 pb-1">Привязка аккаунтов</p>
           ${identitiesHtml}
         </div>
 
+        ${!isDummyEmail ? `
+        <button id="changePasswordBtn" class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-left transition" style="background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3);">
+          <span class="ix text-purple-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-white text-sm">Изменить пароль</p>
+            <p class="text-xs text-white/50">Обновить пароль аккаунта</p>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:rgba(255,255,255,0.4);flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        ` : ''}
+
         <button id="securityRecoveryBtn" class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-left transition" style="background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3);">
-          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
-          <div class="flex-1">
+          <span class="ix text-indigo-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+          <div class="flex-1 min-w-0">
             <p class="font-semibold text-white text-sm">Сброс аккаунта</p>
             <p class="text-xs text-white/50">Полный выход со всех устройств</p>
           </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:rgba(255,255,255,0.4);"><polyline points="9 18 15 12 9 6"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:rgba(255,255,255,0.4);flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
       </div>
-      <div class="p-5 border-t border-white/20 flex gap-3">
+      <div class="p-4 border-t border-white/20 flex gap-3">
         <button id="saveAppSettings" class="btn-primary flex-1">Сохранить</button>
         <button id="closeAppSettings" class="btn-secondary flex-1">Отмена</button>
       </div>
@@ -18003,6 +18016,27 @@ async function showAppSettings(initialTab = 'notifications') {
   if (linkPhone) {
     linkPhone.onclick = () => {
       tgUtil.alert('Привязка телефона временно недоступна (СМС-шлюз отключен).');
+    };
+  }
+
+  const changePasswordBtn = modal.querySelector('#changePasswordBtn');
+  if (changePasswordBtn) {
+    changePasswordBtn.onclick = async () => {
+      const newPassword = prompt('Введите новый пароль (минимум 6 символов):');
+      if (!newPassword) return;
+      if (newPassword.length < 6) { tgUtil.alert('Пароль слишком короткий. Минимум 6 символов.'); return; }
+      const confirmPassword = prompt('Повторите новый пароль:');
+      if (!confirmPassword) return;
+      if (newPassword !== confirmPassword) { tgUtil.alert('Пароли не совпадают.'); return; }
+      try {
+        const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+        if (error) throw error;
+        tgUtil.haptic('success');
+        tgUtil.alert('✅ Пароль успешно изменён!');
+      } catch(e) {
+        tgUtil.haptic('error');
+        tgUtil.alert('Ошибка смены пароля: ' + e.message);
+      }
     };
   }
 
