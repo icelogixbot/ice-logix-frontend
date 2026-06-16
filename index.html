@@ -8551,15 +8551,26 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
     </div>
   </div>
   
-  <!-- Logout Button -->
-  <button id="logoutBtn" class="w-full p-4 rounded-2xl font-semibold flex items-center justify-center gap-2 page-enter" style="animation-delay: 0.2s; background: rgba(248,113,113,0.15); border: 1px solid rgba(248,113,113,0.3); color: #F87171;">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-      <polyline points="16 17 21 12 16 7"/>
-      <line x1="21" y1="12" x2="9" y2="12"/>
-    </svg>
-    Выйти из аккаунта
-  </button>
+  <!-- Logout & Delete Account Buttons -->
+  <div class="flex gap-3 w-full page-enter" style="animation-delay: 0.2s;">
+    <button id="logoutBtn" class="w-1/2 p-4 rounded-2xl font-semibold flex items-center justify-center gap-2" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+      Выйти
+    </button>
+    <button id="deleteAccountBtn" class="w-1/2 p-4 rounded-2xl font-semibold flex items-center justify-center gap-2" style="background: rgba(248,113,113,0.15); border: 1px solid rgba(248,113,113,0.3); color: #F87171;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"/>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+        <line x1="10" y1="11" x2="10" y2="17"/>
+        <line x1="14" y1="11" x2="14" y2="17"/>
+      </svg>
+      Удалить аккаунт
+    </button>
+  </div>
   
   ${renderFooter()}
 `;
@@ -8635,6 +8646,77 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
       try { await supabaseClient.auth.signOut(); } catch(e) {}
       localStorage.setItem('ice_logged_out', 'true');
       location.reload();
+    };
+  }
+
+  const deleteAccountBtn = document.getElementById('deleteAccountBtn');
+  if (deleteAccountBtn) {
+    deleteAccountBtn.onclick = async () => {
+      const confirmDelete = await tgUtil.confirm('Вы действительно хотите полностью удалить ваш аккаунт и все связанные с ним данные? Это действие необратимо.');
+      if (!confirmDelete) return;
+
+      try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) throw new Error("Пользователь не найден");
+
+        const userEmail = user.email || '';
+        const isTelegramUser = userEmail.startsWith('tg_') && userEmail.endsWith('@icelogix.by');
+        const session = (await supabaseClient.auth.getSession()).data.session;
+        const accessToken = session?.access_token;
+
+        if (isTelegramUser) {
+          tgUtil.haptic('light');
+          const otpRes = await fetch('https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/telegram-auth', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`
+            },
+            body: JSON.stringify({ action: 'send-delete-otp' })
+          });
+          const otpData = await otpRes.json();
+          if (!otpData.ok) throw new Error(otpData.error || 'Не удалось отправить код подтверждения');
+
+          const code = prompt('Код подтверждения отправлен в ваш Telegram. Введите его для удаления аккаунта:');
+          if (!code) return;
+
+          const deleteRes = await fetch('https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/telegram-auth', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`
+            },
+            body: JSON.stringify({ action: 'delete-account', otpCode: code.trim() })
+          });
+          const deleteData = await deleteRes.json();
+          if (!deleteData.ok) throw new Error(deleteData.error || 'Не удалось удалить аккаунт');
+
+        } else {
+          const pwd = prompt('Для подтверждения удаления введите пароль от вашего аккаунта:');
+          if (!pwd) return;
+
+          const deleteRes = await fetch('https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/telegram-auth', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`
+            },
+            body: JSON.stringify({ action: 'delete-account', password: pwd })
+          });
+          const deleteData = await deleteRes.json();
+          if (!deleteData.ok) throw new Error(deleteData.error || 'Не удалось удалить аккаунт');
+        }
+
+        tgUtil.haptic('success');
+        await supabaseClient.auth.signOut();
+        localStorage.setItem('ice_logged_out', 'true');
+        tgUtil.alert('Ваш аккаунт был успешно удален.');
+        location.reload();
+
+      } catch (err) {
+        tgUtil.haptic('error');
+        tgUtil.alert('Ошибка удаления аккаунта: ' + err.message);
+      }
     };
   }
 
@@ -17594,17 +17676,127 @@ async function showAccountRecovery() {
 async function showNotificationSettings() { return showAppSettings('notifications'); }
 
 async function showAppSettings(initialTab = 'notifications') {
+  // Fetch auth user to check email and identities
+  const { data: authUserData } = await supabaseClient.auth.getUser();
+  const authUser = authUserData?.user;
+
   const { data } = await supabaseClient.from('users')
-    .select('notification_settings, app_settings').eq('user_id', userId).single();
+    .select('notification_settings, app_settings, telegram_id, phone, username').eq('user_id', userId).single();
   const notif = data?.notification_settings || { status_changes: true, news: true, promotions: true };
   const appSettings = data?.app_settings || { theme: 'dark' };
   const currentTheme = appSettings.theme || 'dark';
+
+  const userTelegramId = authUser?.user_metadata?.telegram_id || data?.telegram_id || null;
+  const userPhone = authUser?.phone || data?.phone || null;
+  const userEmail = authUser?.email || '';
+  const isDummyEmail = userEmail.startsWith('tg_') && userEmail.endsWith('@icelogix.by');
+
+  const linkedIdentities = authUser?.identities || [];
+  const isGoogleLinked = linkedIdentities.some(id => id.provider === 'google');
+  const isAppleLinked = linkedIdentities.some(id => id.provider === 'apple');
 
   const toggle = (id, checked) => `
     <label class="relative inline-flex items-center cursor-pointer">
       <input type="checkbox" id="${id}" class="sr-only peer" ${checked ? 'checked' : ''}>
       <div class="btn-primary w-11 h-6 bg-gray-700 rounded-full peer peer-checked: peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
     </label>`;
+
+  // Build Security panel items dynamically
+  let identitiesHtml = '';
+
+  // Google Link
+  identitiesHtml += `
+    <button id="linkGoogleBtn" class="w-full py-3 px-4 rounded-xl flex items-center justify-between transition" style="background: rgba(234,67,53,0.1); border: 1px solid rgba(234,67,53,0.25);">
+      <div class="flex items-center gap-3">
+        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        <span class="font-semibold text-white text-sm">Google</span>
+      </div>
+      <span class="text-xs ${isGoogleLinked ? 'text-green-400 font-bold' : 'text-white/50'}">${isGoogleLinked ? 'Привязан ✓' : 'Привязать'}</span>
+    </button>
+  `;
+
+  // Apple Link
+  identitiesHtml += `
+    <button id="linkAppleBtn" class="w-full py-3 px-4 rounded-xl flex items-center justify-between transition" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+      <div class="flex items-center gap-3">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="color:#ffffff;"><path d="M16.365 21.444c-1.332 1.405-2.651 1.4-3.955.086-1.19-1.2-2.316-1.187-3.486 0-1.385 1.4-2.721 1.428-4.043.08-3.036-3.111-4.707-8.31-2.482-12.825 1.134-2.296 3.013-3.714 5.234-3.743 1.572-.016 3.031.975 4.02.975.986 0 2.833-1.182 4.793-1.01 1.637.067 3.125.77 4.148 2.106-3.415 2.115-2.88 6.772.634 8.163-.787 2.111-1.956 4.316-3.863 6.168zM15.426 5.518c-.85.98-2.126 1.611-3.266 1.516-.25-1.428.468-2.85 1.258-3.791.905-1.083 2.304-1.727 3.402-1.631.183 1.428-.48 2.838-1.394 3.906z"/></svg>
+        <span class="font-semibold text-white text-sm">Apple</span>
+      </div>
+      <span class="text-xs ${isAppleLinked ? 'text-green-400 font-bold' : 'text-white/50'}">${isAppleLinked ? 'Привязан ✓' : 'Привязать'}</span>
+    </button>
+  `;
+
+  // Email Link
+  if (isDummyEmail) {
+    identitiesHtml += `
+      <button id="linkEmailBtn" class="w-full py-3 px-4 rounded-xl flex items-center justify-between transition" style="background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3);">
+        <div class="flex items-center gap-3">
+          <span class="ix text-purple-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+          <span class="font-semibold text-white text-sm">Привязать Email</span>
+        </div>
+        <span class="text-xs text-purple-300 font-bold">Установить</span>
+      </button>
+    `;
+  } else {
+    identitiesHtml += `
+      <div class="w-full py-3 px-4 rounded-xl flex items-center justify-between" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);">
+        <div class="flex items-center gap-3">
+          <span class="ix text-white/40"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
+          <span class="font-semibold text-white/50 text-sm">Email привязан</span>
+        </div>
+        <span class="text-xs text-white/40 max-w-[150px] truncate">${userEmail}</span>
+      </div>
+    `;
+  }
+
+  // Telegram Link
+  if (userTelegramId) {
+    identitiesHtml += `
+      <div class="w-full py-3 px-4 rounded-xl flex items-center justify-between" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);">
+        <div class="flex items-center gap-3">
+          <span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.19 2.5a24.22 24.22 0 0 0-9 1.56 24.43 24.43 0 0 0-9-1.56c-.53 0-1 .47-1 1a24 24 0 0 0 3.25 12c1.72 2.7 4.19 4.7 7.21 6a.52.52 0 0 0 .39 0c3-.78 5.76-2.58 7.37-5.12A24.08 24.08 0 0 0 22.19 3.5c0-.53-.47-1-1-1z"/></svg></span>
+          <span class="font-semibold text-white/50 text-sm">Telegram привязан</span>
+        </div>
+        <span class="text-xs text-green-400 font-bold">Привязан ✓</span>
+      </div>
+    `;
+  } else {
+    identitiesHtml += `
+      <div class="space-y-2">
+        <button id="linkTelegramBtn" class="w-full py-3 px-4 rounded-xl flex items-center justify-between transition animate-pulse-subtle" style="background: rgba(14,165,233,0.15); border: 1px solid rgba(14,165,233,0.3);">
+          <div class="flex items-center gap-3">
+            <span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.19 2.5a24.22 24.22 0 0 0-9 1.56 24.43 24.43 0 0 0-9-1.56c-.53 0-1 .47-1 1a24 24 0 0 0 3.25 12c1.72 2.7 4.19 4.7 7.21 6a.52.52 0 0 0 .39 0c3-.78 5.76-2.58 7.37-5.12A24.08 24.08 0 0 0 22.19 3.5c0-.53-.47-1-1-1z"/></svg></span>
+            <span class="font-semibold text-white text-sm">Привязать Telegram</span>
+          </div>
+          <span class="text-xs text-cyan-300 font-bold">Привязать</span>
+        </button>
+        <div id="settingsTelegramWidgetContainer" class="hidden flex justify-center p-2 bg-slate-900/50 rounded-xl"></div>
+      </div>
+    `;
+  }
+
+  // Phone Link
+  if (userPhone) {
+    identitiesHtml += `
+      <div class="w-full py-3 px-4 rounded-xl flex items-center justify-between" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);">
+        <div class="flex items-center gap-3">
+          <span class="ix text-white/40"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
+          <span class="font-semibold text-white/50 text-sm">Телефон привязан</span>
+        </div>
+        <span class="text-xs text-white/40">${userPhone}</span>
+      </div>
+    `;
+  } else {
+    identitiesHtml += `
+      <button id="linkPhoneBtn" class="w-full py-3 px-4 rounded-xl flex items-center justify-between transition" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+        <div class="flex items-center gap-3">
+          <span class="ix text-white/40"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
+          <span class="font-semibold text-white text-sm">Привязать Телефон</span>
+        </div>
+        <span class="text-xs text-white/50">Привязать</span>
+      </button>
+    `;
+  }
 
   const modal = document.createElement('div');
   modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[110] p-4 overflow-y-auto pt-16 pb-20';
@@ -17660,30 +17852,7 @@ async function showAppSettings(initialTab = 'notifications') {
         
         <div class="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
           <p class="text-white text-xs font-semibold uppercase tracking-wider mb-2 text-white/50">Привязка аккаунтов</p>
-          
-          <button id="linkGoogleBtn" class="w-full py-3 px-4 rounded-xl flex items-center justify-between transition" style="background: rgba(234,67,53,0.1); border: 1px solid rgba(234,67,53,0.25);">
-            <div class="flex items-center gap-3">
-              <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-              <span class="font-semibold text-white text-sm">Google</span>
-            </div>
-            <span class="text-xs text-white/50">Привязать</span>
-          </button>
-          
-          <button id="linkAppleBtn" class="w-full py-3 px-4 rounded-xl flex items-center justify-between transition" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
-            <div class="flex items-center gap-3">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="color:#ffffff;"><path d="M16.365 21.444c-1.332 1.405-2.651 1.4-3.955.086-1.19-1.2-2.316-1.187-3.486 0-1.385 1.4-2.721 1.428-4.043.08-3.036-3.111-4.707-8.31-2.482-12.825 1.134-2.296 3.013-3.714 5.234-3.743 1.572-.016 3.031.975 4.02.975.986 0 2.833-1.182 4.793-1.01 1.637.067 3.125.77 4.148 2.106-3.415 2.115-2.88 6.772.634 8.163-.787 2.111-1.956 4.316-3.863 6.168zM15.426 5.518c-.85.98-2.126 1.611-3.266 1.516-.25-1.428.468-2.85 1.258-3.791.905-1.083 2.304-1.727 3.402-1.631.183 1.428-.48 2.838-1.394 3.906z"/></svg>
-              <span class="font-semibold text-white text-sm">Apple</span>
-            </div>
-            <span class="text-xs text-white/50">Привязать</span>
-          </button>
-          
-          <button id="addEmailPasswordBtn" class="w-full py-3 px-4 rounded-xl flex items-center justify-between transition" style="background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3);">
-            <div class="flex items-center gap-3">
-              <span class="ix text-purple-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
-              <span class="font-semibold text-white text-sm">Добавить пароль</span>
-            </div>
-            <span class="text-xs text-white/50">Установить</span>
-          </button>
+          ${identitiesHtml}
         </div>
 
         <button id="securityRecoveryBtn" class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-left transition" style="background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3);">
@@ -17749,26 +17918,91 @@ async function showAppSettings(initialTab = 'notifications') {
     };
   }
 
-  const addPassword = modal.querySelector('#addEmailPasswordBtn');
-  if (addPassword) {
-    addPassword.onclick = async () => {
-      const { data: { user } } = await supabaseClient.auth.getUser();
-      if (user?.email?.includes('@icelogix.local')) {
-        tgUtil.alert('Вы вошли через Telegram. В целях безопасности, смена пароля для таких аккаунтов пока недоступна.');
-        return;
-      }
-      const newPwd = prompt('Введите новый пароль для входа по Email (минимум 6 символов):');
-      if (!newPwd || newPwd.length < 6) {
-        if (newPwd !== null) tgUtil.alert('Пароль слишком короткий.');
+  const linkEmail = modal.querySelector('#linkEmailBtn');
+  if (linkEmail) {
+    linkEmail.onclick = async () => {
+      const email = prompt('Введите ваш Email для привязки:');
+      if (!email) return;
+      const password = prompt('Придумайте пароль для входа (минимум 6 символов):');
+      if (!password || password.length < 6) {
+        if (password) tgUtil.alert('Пароль слишком короткий.');
         return;
       }
       try {
-        const { error } = await supabaseClient.auth.updateUser({ password: newPwd });
+        const { error } = await supabaseClient.auth.updateUser({ email, password });
         if (error) throw error;
-        tgUtil.alert('Пароль успешно установлен! Теперь вы можете входить по Email.');
-      } catch(e) {
-        tgUtil.alert('Ошибка установки пароля: ' + e.message);
+        tgUtil.alert('Email для подтверждения отправлен. Пожалуйста, подтвердите его.');
+        modal.remove();
+        location.reload();
+      } catch (e) {
+        tgUtil.alert('Ошибка привязки Email: ' + e.message);
       }
+    };
+  }
+
+  const linkTelegram = modal.querySelector('#linkTelegramBtn');
+  if (linkTelegram) {
+    linkTelegram.onclick = () => {
+      const widgetContainer = modal.querySelector('#settingsTelegramWidgetContainer');
+      if (!widgetContainer) return;
+      
+      if (widgetContainer.classList.contains('hidden')) {
+        widgetContainer.classList.remove('hidden');
+        widgetContainer.innerHTML = '<p class="text-white/40 text-xs py-2">Загрузка виджета Telegram...</p>';
+        
+        window.onTelegramSettingsAuth = async function(user) {
+          try {
+            const { data: existing } = await supabaseClient.from('users')
+              .select('user_id')
+              .eq('telegram_id', user.id)
+              .maybeSingle();
+              
+            if (existing) {
+              tgUtil.alert('Этот Telegram-аккаунт уже привязан к другому профилю.');
+              return;
+            }
+            
+            const { error } = await supabaseClient.from('users').update({
+              telegram_id: user.id,
+              username: user.username || null,
+              full_name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || null
+            }).eq('user_id', userId);
+            
+            if (error) throw error;
+            
+            tgUtil.alert('Telegram успешно привязан!');
+            modal.remove();
+            showAppSettings('security');
+          } catch(e) {
+            tgUtil.alert('Ошибка привязки Telegram: ' + e.message);
+          }
+        };
+        
+        const script = document.createElement('script');
+        script.async = true;
+        script.src = 'https://telegram.org/js/telegram-widget.js?22';
+        script.setAttribute('data-telegram-login', 'icelogix_bot');
+        script.setAttribute('data-size', 'medium');
+        script.setAttribute('data-onauth', 'onTelegramSettingsAuth(user)');
+        script.setAttribute('data-request-access', 'write');
+        
+        script.onload = () => {
+          const loadingText = widgetContainer.querySelector('p');
+          if (loadingText) loadingText.remove();
+        };
+        
+        widgetContainer.appendChild(script);
+      } else {
+        widgetContainer.classList.add('hidden');
+        widgetContainer.innerHTML = '';
+      }
+    };
+  }
+
+  const linkPhone = modal.querySelector('#linkPhoneBtn');
+  if (linkPhone) {
+    linkPhone.onclick = () => {
+      tgUtil.alert('Привязка телефона временно недоступна (СМС-шлюз отключен).');
     };
   }
 
@@ -18100,6 +18334,8 @@ function showAuthPage() {
       let errMsg = e.message || 'Ошибка авторизации';
       if (errMsg.toLowerCase().includes('confirm')) {
         errMsg = 'Email не подтвержден. Пожалуйста, подтвердите его по ссылке на почте, либо отключите "Confirm email" в настройках Supabase (Auth -> Providers -> Email).';
+      } else if (errMsg.includes('Invalid login credentials') || errMsg.toLowerCase().includes('credentials')) {
+        errMsg = 'Аккаунт не существует или введен неверный пароль.';
       }
       errEl.textContent = errMsg;
       errEl.classList.remove('hidden');
