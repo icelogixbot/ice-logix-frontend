@@ -4096,7 +4096,7 @@ const MAX_REQUESTS_TRUSTED = 100;
       const fileName = `${sessionId}/products/${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
       const { error: uploadError } = await supabaseClient.storage
         .from('product-screenshots')
-        .upload(fileName, file, { contentType: file.type, upsert: true });
+        .upload(fileName, file, { contentType: file.type, upsert: false });
       if (uploadError) throw new Error('Ошибка при загрузке изображения: ' + uploadError.message);
       const { data } = supabaseClient.storage.from('product-screenshots').getPublicUrl(fileName);
       return data.publicUrl;
@@ -4833,6 +4833,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         </div>
       </div>
     `).join('');
+    initCardSliders();
 
 
 
