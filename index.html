@@ -11,13 +11,12 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/vfs_fonts.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
   <script src="./pricing-engine.js"></script>
   <script src="./onboarding.js"></script>
+  <script async src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/vfs_fonts.js"></script>
   <style>
     /* ═══════════════════════════════════════════════════════════════════════════
        ICE LOGIX - GLASSMORPHISM DESIGN SYSTEM
@@ -101,6 +100,21 @@
     .scroll-x {
       -webkit-transform: translateZ(0);
       transform: translateZ(0);
+    }
+
+    /* Lazy-loaded images: fade in when loaded */
+    img[loading="lazy"] { opacity: 0; transition: opacity 0.3s ease; }
+    img[loading="lazy"].loaded { opacity: 1; }
+
+    /* Reduce paint cost for fixed header/footer — promote to GPU layer */
+    .app-header, .tab-bar { will-change: transform; }
+
+    /* Prevent layout shifts during image load */
+    .card-photo-container img, .product-card img { content-visibility: auto; }
+
+    /* Disable expensive snow animation on mobile for perf */
+    @media (max-width: 767px) {
+      body::before { animation: none !important; }
     }
     
     html {
@@ -937,8 +951,9 @@
     }
     
     .stars { color: #FBBF24; margin-bottom: 8px; letter-spacing: 2px; }
-    .wishlist-heart { cursor: pointer; transition: transform 0.3s ease; }
+    .wishlist-heart { cursor: pointer; transition: transform 0.3s ease; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
     .wishlist-heart:hover { transform: scale(1.2); }
+    .wishlist-heart .ix, .wishlist-heart svg, .wishlist-heart path { pointer-events: none; }
     
     /* Screenshot Widget */
     .screenshot-widget {
@@ -1631,6 +1646,9 @@
       scroll-behavior: smooth;
       scrollbar-width: none;
       -ms-overflow-style: none;
+      touch-action: pan-x;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-x: contain;
     }
     .card-slider::-webkit-scrollbar {
       display: none;
@@ -1640,6 +1658,7 @@
       width: 100%;
       height: 100%;
       scroll-snap-align: start;
+      scroll-snap-stop: always;
     }
     .card-slide img {
       width: 100%;
@@ -1718,7 +1737,10 @@
       display: flex;
       overflow-x: auto;
       scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
       scrollbar-width: none;
+      touch-action: pan-x;
+      overscroll-behavior-x: contain;
       z-index: 10001;
     }
     .image-preview-slider::-webkit-scrollbar {
@@ -1732,6 +1754,7 @@
       align-items: center;
       justify-content: center;
       scroll-snap-align: start;
+      scroll-snap-stop: always;
       padding: 24px;
     }
     .image-preview-slide img {
@@ -1983,7 +2006,7 @@
         const imgUrl = images[0];
         return `
           <div class="card-photo-container">
-            <img src="${imgUrl}" class="w-full h-full object-cover cursor-zoom-in" alt="${cardTitle}" onclick="event.stopPropagation(); window.showImagePreview('${imgUrl}')">
+            <img src="${imgUrl}" class="w-full h-full object-cover cursor-zoom-in" alt="${cardTitle}" loading="lazy" onclick="event.stopPropagation(); window.showImagePreview('${imgUrl}')">
           </div>
         `;
       }
@@ -1994,7 +2017,7 @@
           <div class="card-slider">
             ${images.map((url, idx) => `
               <div class="card-slide" onclick="event.stopPropagation(); window.showImagePreview(JSON.parse(decodeURIComponent('${escapedImages}')), ${idx})">
-                <img src="${url}" class="w-full h-full object-cover cursor-zoom-in" alt="${cardTitle}">
+                <img src="${url}" class="w-full h-full object-cover cursor-zoom-in" alt="${cardTitle}" loading="lazy">
               </div>
             `).join('')}
           </div>
@@ -2011,15 +2034,34 @@
       document.querySelectorAll('.card-slider').forEach(slider => {
         if (slider.dataset.sliderInitialized) return;
         slider.dataset.sliderInitialized = 'true';
+        let scrollTimer;
         slider.addEventListener('scroll', () => {
-          const index = Math.round(slider.scrollLeft / slider.clientWidth);
-          const dots = slider.parentElement.querySelectorAll('.card-dot');
-          dots.forEach((dot, idx) => {
-            if (idx === index) dot.classList.add('active');
-            else dot.classList.remove('active');
-          });
-        });
+          clearTimeout(scrollTimer);
+          scrollTimer = setTimeout(() => {
+            const index = Math.round(slider.scrollLeft / slider.clientWidth);
+            const dots = slider.parentElement.querySelectorAll('.card-dot');
+            dots.forEach((dot, idx) => {
+              if (idx === index) dot.classList.add('active');
+              else dot.classList.remove('active');
+            });
+          }, 50);
+        }, { passive: true });
       });
+
+      // Lazy fade-in for images with loading="lazy"
+      if ('IntersectionObserver' in window) {
+        const imgObserver = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const img = entry.target;
+              img.addEventListener('load', () => img.classList.add('loaded'), { once: true });
+              if (img.complete) img.classList.add('loaded');
+              imgObserver.unobserve(img);
+            }
+          });
+        }, { rootMargin: '100px' });
+        document.querySelectorAll('img[loading="lazy"]').forEach(img => imgObserver.observe(img));
+      }
     }
 
     window.showImagePreview = (urls, startIndex = 0) => {
@@ -2123,6 +2165,79 @@
         return `<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>`;
       }
     }
+
+    window.toggleProductWishlist = async function(productId, heartElement) {
+      if (!window.userId) {
+        window.requireAuth('Пожалуйста, авторизуйтесь для добавления в избранное.');
+        return;
+      }
+      
+      const isAdding = !wishlist.has(productId);
+      
+      // Оптимистичное обновление UI
+      if (isAdding) {
+        wishlist.add(productId);
+        if (heartElement) {
+          heartElement.innerHTML = getHeartIcon(true);
+          heartElement.classList.add('text-red-500');
+          heartElement.classList.remove('text-white/50');
+        }
+      } else {
+        wishlist.delete(productId);
+        if (heartElement) {
+          heartElement.innerHTML = getHeartIcon(false);
+          heartElement.classList.remove('text-red-500');
+          heartElement.classList.add('text-white/50');
+        }
+      }
+      tgUtil.haptic('light');
+
+      try {
+        if (isAdding) {
+          const { error } = await supabaseClient.from('wishlist').insert({ user_id: window.userId, product_id: productId });
+          if (error) throw error;
+        } else {
+          const { error } = await supabaseClient.from('wishlist').delete().eq('user_id', window.userId).eq('product_id', productId);
+          if (error) throw error;
+        }
+        
+        if (currentTab === 'wishlist') {
+          renderCurrentScreen();
+        }
+      } catch (err) {
+        console.error('Ошибка изменения избранного:', err);
+        // Откатываем UI при ошибке
+        if (isAdding) {
+          wishlist.delete(productId);
+          if (heartElement) {
+            heartElement.innerHTML = getHeartIcon(false);
+            heartElement.classList.remove('text-red-500');
+            heartElement.classList.add('text-white/50');
+          }
+        } else {
+          wishlist.add(productId);
+          if (heartElement) {
+            heartElement.innerHTML = getHeartIcon(true);
+            heartElement.classList.add('text-red-500');
+            heartElement.classList.remove('text-white/50');
+          }
+        }
+        tgUtil.alert('Не удалось обновить избранное: ' + err.message);
+      }
+    };
+
+    // Глобальное делегирование событий для сердечек избранного с перехватом клика
+    document.addEventListener('click', (e) => {
+      const heart = e.target.closest('.wishlist-heart');
+      if (heart) {
+        e.preventDefault();
+        e.stopPropagation();
+        const productId = heart.dataset.productId;
+        if (productId) {
+          window.toggleProductWishlist(productId, heart);
+        }
+      }
+    }, true);
 
     // --- APP CACHE FOR BLAZING FAST NAVIGATION ---
     window.CacheDB = {
@@ -3997,6 +4112,22 @@ const MAX_REQUESTS_TRUSTED = 100;
       return data.signedUrl;
     }
 
+    async function uploadProductImage(file) {
+      if (!supabaseClient) throw new Error('Клиент Supabase не инициализирован');
+      const fileExt = file.name.split('.').pop();
+      const fileName = `products/${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const { error: uploadError } = await supabaseClient.storage
+        .from('product-screenshots')
+        .upload(fileName, file);
+      if (uploadError) {
+        throw new Error('Ошибка при загрузке изображения: ' + uploadError.message);
+      }
+      const { data } = supabaseClient.storage
+        .from('product-screenshots')
+        .getPublicUrl(fileName);
+      return data.publicUrl;
+    }
+
     async function processScreenshot(taskId, file) {
       let sessionId = localStorage.getItem('icelogix_session_id');
       if (!sessionId) {
@@ -4322,8 +4453,8 @@ const MAX_REQUESTS_TRUSTED = 100;
               </svg>
             </div>
             <div class="social-icon" data-social="tiktok" title="TikTok">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.34-6.34V8.69a8.18 8.18 0 0 0 4.77 1.52V6.8a4.85 4.85 0 0 1-1.01-.11z"/>
               </svg>
             </div>
             <div class="social-icon" data-social="ig" title="Instagram">
@@ -4687,24 +4818,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       </div>
     `).join('');
 
-    grid.querySelectorAll('.wishlist-heart').forEach(heart => {
-      heart.onclick = async (e) => {
-        e.stopPropagation();
-        if (!window.userId) { window.requireAuth('Пожалуйста, авторизуйтесь для добавления в избранное.'); return; }
-        const productId = heart.dataset.productId;
-        if (wishlist.has(productId)) {
-          await supabaseClient.from('wishlist').delete().eq('user_id', userId).eq('product_id', productId);
-          wishlist.delete(productId);
-          heart.innerHTML = getHeartIcon(false);
-          heart.classList.remove('text-red-500');
-        } else {
-          await supabaseClient.from('wishlist').insert({ user_id: userId, product_id: productId });
-          wishlist.add(productId);
-          heart.innerHTML = getHeartIcon(true);
-          heart.classList.add('text-red-500');
-        }
-      };
-    });
+
 
     grid.querySelectorAll('.addToCartBtn').forEach(btn => {
       btn.onclick = (e) => {
@@ -4728,7 +4842,8 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
     });
 
     grid.querySelectorAll('.product-card').forEach(card => {
-      card.onclick = () => {
+      card.onclick = (e) => {
+        if (e.target.closest('.wishlist-heart') || e.target.closest('.addToCartBtn') || e.target.closest('.buyNowBtn')) return;
         const productId = card.dataset.productId;
         const url = card.querySelector('.buyNowBtn')?.dataset.url;
         const price = parseFloat(card.querySelector('.buyNowBtn')?.dataset.price);
@@ -10449,11 +10564,15 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 <option value="photo">Фото</option>
                 <option value="video">Видео</option>
               </select>
-              
-              <div id="mediaUrlsContainer" class="space-y-2 mb-2">
-                <input type="url" class="reportUrlInput btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Ссылка на фото/видео (Реальность)">
-              </div>
-              <button id="addMediaUrlBtn" class="text-cyan-400 text-xs mb-4 font-bold flex items-center gap-1"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить еще фото (например, чек)</button>
+
+              <p class="text-white/60 text-xs mb-2 font-semibold">Фото/видео:</p>
+              <div id="reportPhotoPreviews" class="flex flex-wrap gap-2 mb-3"></div>
+              <label class="cursor-pointer flex items-center gap-2 bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/30 rounded-xl px-4 py-3 mb-3 transition">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;color:#22d3ee" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                <span class="text-cyan-400 text-sm font-semibold">Выбрать из галереи</span>
+                <input type="file" id="reportFileInput" accept="image/*,video/*" multiple class="hidden">
+              </label>
+              <span id="reportUploadStatus" class="text-xs text-white/50 mb-3 block"></span>
 
               <input type="url" id="reportProductUrl" class="btn-secondary w-full p-3 rounded-xl border border-cyan-500/30 mb-3" placeholder="Ссылка на оригинальный товар (для 'Хочу такой же')">
               <div class="flex gap-3 mt-4">
@@ -10463,13 +10582,34 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             </div>
           `;
           document.body.appendChild(modal);
-          
-          modal.querySelector('#addMediaUrlBtn').onclick = () => {
-            const input = document.createElement('input');
-            input.type = 'url';
-            input.className = 'reportUrlInput btn-secondary w-full p-3 rounded-xl border border-white/30';
-            input.placeholder = 'Еще ссылка на фото/видео';
-            modal.querySelector('#mediaUrlsContainer').appendChild(input);
+
+          const uploadedUrls = [];
+          const statusEl = modal.querySelector('#reportUploadStatus');
+          const previewsEl = modal.querySelector('#reportPhotoPreviews');
+
+          modal.querySelector('#reportFileInput').onchange = async (e) => {
+            const files = Array.from(e.target.files || []);
+            if (!files.length) return;
+            statusEl.textContent = `⏳ Загрузка ${files.length} файл(а)...`;
+            statusEl.className = 'text-xs text-yellow-400 mb-3 block';
+            let ok = 0;
+            for (const file of files) {
+              try {
+                const ext = file.name.split('.').pop();
+                const fileName = `reports/${Date.now()}-${Math.random().toString(36).slice(2, 9)}.${ext}`;
+                const { error: upErr } = await supabaseClient.storage.from('product-screenshots').upload(fileName, file, { contentType: file.type });
+                if (upErr) throw upErr;
+                const { data } = supabaseClient.storage.from('product-screenshots').getPublicUrl(fileName);
+                uploadedUrls.push(data.publicUrl);
+                const thumb = document.createElement('div');
+                thumb.style.cssText = 'width:60px;height:60px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.15);flex-shrink:0;';
+                thumb.innerHTML = `<img src="${data.publicUrl}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`;
+                previewsEl.appendChild(thumb);
+                ok++;
+              } catch (err) { console.error('Upload error:', err); }
+            }
+            statusEl.textContent = ok === files.length ? `✅ Загружено ${ok} файл(а)` : `⚠️ Загружено ${ok} из ${files.length}`;
+            statusEl.className = `text-xs mb-3 block ${ok === files.length ? 'text-green-400' : 'text-yellow-400'}`;
           };
 
           modal.querySelector('#cancelReportBtn').onclick = () => modal.remove();
@@ -10478,12 +10618,10 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             const description = modal.querySelector('#reportDesc').value.trim();
             const type = modal.querySelector('#reportType').value;
             const product_url = modal.querySelector('#reportProductUrl').value.trim();
-            
-            const urlInputs = Array.from(modal.querySelectorAll('.reportUrlInput')).map(i => i.value.trim()).filter(v => v !== '');
-            if (!title || urlInputs.length === 0) { tgUtil.alert('Заполните заголовок и хотя бы одну ссылку на фото/видео'); return; }
-            
-            let finalImageUrl = urlInputs.length > 1 ? JSON.stringify(urlInputs) : urlInputs[0];
 
+            if (!title || uploadedUrls.length === 0) { tgUtil.alert('Заполните заголовок и добавьте хотя бы одно фото из галереи'); return; }
+
+            const finalImageUrl = uploadedUrls.length > 1 ? JSON.stringify(uploadedUrls) : uploadedUrls[0];
             try {
               await supabaseClient.from('public_reports').insert({ title, description, type, image_url: finalImageUrl, product_url, is_active: true, created_at: new Date().toISOString() });
               tgUtil.alert('Отчёт добавлен'); modal.remove(); renderCurrentScreen();
@@ -12929,7 +13067,17 @@ function attachAdminHandlers() {
           <option value="Обувь">Обувь</option><option value="Одежда">Одежда</option><option value="Аксессуары">Аксессуары</option>
         </select>
         <input type="text" id="productBrand" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Бренд">
-        <input type="url" id="productImage" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="URL изображения">
+        <div class="space-y-1">
+          <input type="text" id="productImage" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="URL изображения">
+          <div class="flex items-center gap-2 mt-1">
+            <span class="text-xs text-white/40">или</span>
+            <label class="cursor-pointer bg-cyan-600/30 hover:bg-cyan-600/50 text-cyan-400 border border-cyan-500/30 px-3 py-1.5 rounded-lg text-[11px] font-bold transition flex items-center gap-1">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:12px;height:12px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Выбрать фото
+              <input type="file" id="productImageFile" accept="image/*" class="hidden">
+            </label>
+            <span id="productImageUploadStatus" class="text-[11px] text-white/50"></span>
+          </div>
+        </div>
         <input type="url" id="productUrl" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Ссылка на товар">
         <label class="flex items-center gap-2 text-white/80 p-2 rounded-xl bg-purple-500/10 border border-purple-500/30"><input type="checkbox" id="productIsDrop"> 🧊 Эксклюзивный ДРОП (доступен только в окно дропов)</label>
       </div>
@@ -12943,6 +13091,26 @@ function attachAdminHandlers() {
   </div>
 `;
       document.body.appendChild(modal);
+      
+      modal.querySelector('#productImageFile').onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const statusSpan = modal.querySelector('#productImageUploadStatus');
+        statusSpan.textContent = '⏳ Загрузка...';
+        statusSpan.className = 'text-[11px] text-yellow-400';
+        try {
+          const url = await uploadProductImage(file);
+          modal.querySelector('#productImage').value = url;
+          statusSpan.textContent = '✅ Готово!';
+          statusSpan.className = 'text-[11px] text-green-400';
+        } catch (err) {
+          console.error(err);
+          statusSpan.textContent = '❌ Ошибка';
+          statusSpan.className = 'text-[11px] text-red-400';
+          tgUtil.alert('Не удалось загрузить изображение: ' + err.message);
+        }
+      };
+
       modal.querySelector('#cancelProductBtn').onclick = () => modal.remove();
       modal.querySelector('#saveProductBtn').onclick = async () => {
         const title = modal.querySelector('#productTitle').value.trim();
@@ -12990,7 +13158,17 @@ function attachAdminHandlers() {
                   <option value="Аксессуары" ${prod.category === 'Аксессуары' ? 'selected' : ''}>Аксессуары</option>
                 </select>
                 <input type="text" id="productBrand" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Бренд" value="${prod.brand || ''}">
-                <input type="text" id="productImage" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="URL изображения" value="${prod.image_url || ''}">
+                <div class="space-y-1">
+                  <input type="text" id="productImage" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="URL изображения" value="${prod.image_url || ''}">
+                  <div class="flex items-center gap-2 mt-1">
+                    <span class="text-xs text-white/40">или</span>
+                    <label class="cursor-pointer bg-cyan-600/30 hover:bg-cyan-600/50 text-cyan-400 border border-cyan-500/30 px-3 py-1.5 rounded-lg text-[11px] font-bold transition flex items-center gap-1">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:12px;height:12px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Выбрать фото
+                      <input type="file" id="productImageFile" accept="image/*" class="hidden">
+                    </label>
+                    <span id="productImageUploadStatus" class="text-[11px] text-white/50"></span>
+                  </div>
+                </div>
                 <input type="url" id="productUrl" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Ссылка на товар" value="${prod.url || ''}">
                 <label class="flex items-center gap-2 text-white/80 p-2 rounded-xl bg-purple-500/10 border border-purple-500/30">
                   <input type="checkbox" id="productIsDrop" ${prod.is_drop ? 'checked' : ''}> 🧊 Эксклюзивный ДРОП (доступен только в окно дропов)
@@ -13006,6 +13184,26 @@ function attachAdminHandlers() {
           </div>
         `;
         document.body.appendChild(modal);
+
+        modal.querySelector('#productImageFile').onchange = async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const statusSpan = modal.querySelector('#productImageUploadStatus');
+          statusSpan.textContent = '⏳ Загрузка...';
+          statusSpan.className = 'text-[11px] text-yellow-400';
+          try {
+            const url = await uploadProductImage(file);
+            modal.querySelector('#productImage').value = url;
+            statusSpan.textContent = '✅ Готово!';
+            statusSpan.className = 'text-[11px] text-green-400';
+          } catch (err) {
+            console.error(err);
+            statusSpan.textContent = '❌ Ошибка';
+            statusSpan.className = 'text-[11px] text-red-400';
+            tgUtil.alert('Не удалось загрузить изображение: ' + err.message);
+          }
+        };
+
         modal.querySelector('#cancelProductBtn').onclick = () => modal.remove();
         modal.querySelector('#saveProductBtn').onclick = async () => {
           const title = modal.querySelector('#productTitle').value.trim();
@@ -14624,7 +14822,8 @@ async function loadMoreProducts() {
             wishlist.add(p.id); heart.innerHTML = getHeartIcon(true); heart.classList.add('text-red-500');
           }
         };
-        div.onclick = () => {
+        div.onclick = (e) => {
+          if (e.target.closest('.wishlist-heart') || e.target.closest('.addToCartBtn') || e.target.closest('.buyNowBtn')) return;
           if (userId) supabaseClient.from('user_views').upsert({ user_id: userId, product_id: p.id }, { onConflict: 'user_id,product_id' }).then(() => {});
           if (p.url) { window.tempOrder = { url: p.url, price: p.price, weight: 1, total: window.iceLogixPricing.quickEstimate(p.price, 1), discountAmount: 0, appliedPromo: null }; currentTab = 'neworder'; currentSubScreen = null; appliedPromo = null; renderCurrentScreen(); }
         };
