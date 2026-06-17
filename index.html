@@ -321,10 +321,10 @@
       gap: 6px;
     }
     .story-icon img {
-      width: 40px;
-      height: 40px;
-      object-fit: contain;
-      border-radius: 8px;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: inherit;
     }
     
     .user-avatar {
@@ -1922,9 +1922,16 @@
         'Converse Chuck': 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=500&auto=format&fit=crop&q=80',
         'Vans Old Skool': 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=500&auto=format&fit=crop&q=80',
       };
-      return products.map(p => {
+      return products.map((p, idx) => {
         if (!p.image_url || p.image_url.includes('placeholder.com') || p.image_url === '') {
           p.image_url = fallbacks[p.title] || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&auto=format&fit=crop&q=80';
+        }
+        if (idx === 0) {
+          p.image_url = JSON.stringify([
+            p.image_url,
+            'https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=500&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1556906781-9a412961c28c?w=500&auto=format&fit=crop&q=80'
+          ]);
         }
         return p;
       });
@@ -4314,7 +4321,7 @@ const MAX_REQUESTS_TRUSTED = 100;
             </div>
             <div class="social-icon" data-social="tiktok" title="TikTok">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .79.11V9.28a6.15 6.15 0 0 0-1.79-.26 6.34 6.34 0 0 0-6.33 6.34 6.34 6.34 0 0 0 6.33 6.33 6.33 6.33 0 0 0 6.34-6.33V8.18a8.9 8.9 0 0 0 4.9 1.47V6.2a5.86 5.86 0 0 1-3.88-2.51z"/>
+                <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.02 1.59 4.23.85.99 2 1.7 3.29 2v3.9c-1.7-.13-3.32-.87-4.57-2.02v6.24c.02 2.36-.93 4.67-2.63 6.31-1.92 1.94-4.72 2.95-7.44 2.63-2.92-.26-5.61-2.23-6.68-4.99C-.78 14.88-.2 10.9 2.05 8.7c1.72-1.72 4.25-2.5 6.66-1.97v3.94c-1.39-.46-2.97-.08-3.99.93-.99.91-1.39 2.33-1.03 3.63.38 1.48 1.63 2.67 3.12 2.9 1.73.3 3.48-.65 3.98-2.31.11-.31.15-.65.15-.98V.02h1.59z"/>
               </svg>
             </div>
             <div class="social-icon" data-social="ig" title="Instagram">
@@ -4507,7 +4514,7 @@ const MAX_REQUESTS_TRUSTED = 100;
         ${marketplaces.map(mp => `
           <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}">
             <div class="story-icon" style="overflow:hidden; display:flex; align-items:center; justify-content:center; background: var(--glass-bg);">
-              ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-contain" style="border-radius: 50%; padding: 4px; cursor: zoom-in;" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" onclick="event.stopPropagation(); window.showImagePreview('${mp.logo_url}')">` : ''}
+              ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-cover" style="cursor: zoom-in;" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" onclick="event.stopPropagation(); window.showImagePreview('${mp.logo_url}')">` : ''}
               <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
             </div>
             <span class="story-label">${mp.name}</span>
@@ -20721,8 +20728,25 @@ async function renderResale() {
   if (!userId) return '<p class="text-center mt-10 text-red-400">Авторизуйтесь</p>';
   
   try {
-    const { data, error } = await supabaseClient.from('resale_items').select('*, users(username, full_name), orders(*)').eq('status', 'approved').order('created_at', { ascending: false });
+    const { data, error } = await supabaseClient.from('resale_items').select('*, users(username, full_name)').eq('status', 'approved').order('created_at', { ascending: false });
     if (error) throw error;
+
+    if (data && data.length > 0) {
+      const orderIds = data.map(d => d.order_id).filter(Boolean);
+      if (orderIds.length > 0) {
+        try {
+          const { data: ordersData, error: ordersError } = await supabaseClient.from('orders').select('*').in('id', orderIds);
+          if (!ordersError && ordersData) {
+            const ordersMap = new Map(ordersData.map(o => [o.id, o]));
+            data.forEach(item => {
+              item.orders = ordersMap.get(item.order_id) || null;
+            });
+          }
+        } catch (orderErr) {
+          console.error('Ошибка загрузки связанных заказов:', orderErr);
+        }
+      }
+    }
     
     let html = `
       <div class="flex items-center gap-3 mb-6">
@@ -20786,8 +20810,25 @@ async function renderAdminResale() {
   };
 
   try {
-    const { data, error } = await supabaseClient.from('resale_items').select('*, users(username), orders(*)').eq('status', 'pending');
+    const { data, error } = await supabaseClient.from('resale_items').select('*, users(username)').eq('status', 'pending');
     if (error) throw error;
+
+    if (data && data.length > 0) {
+      const orderIds = data.map(d => d.order_id).filter(Boolean);
+      if (orderIds.length > 0) {
+        try {
+          const { data: ordersData, error: ordersError } = await supabaseClient.from('orders').select('*').in('id', orderIds);
+          if (!ordersError && ordersData) {
+            const ordersMap = new Map(ordersData.map(o => [o.id, o]));
+            data.forEach(item => {
+              item.orders = ordersMap.get(item.order_id) || null;
+            });
+          }
+        } catch (orderErr) {
+          console.error('Ошибка загрузки связанных заказов:', orderErr);
+        }
+      }
+    }
     
     let html = `
       <div class="flex items-center gap-3 mb-6">
