@@ -1939,16 +1939,11 @@
         'Converse Chuck': 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=500&auto=format&fit=crop&q=80',
         'Vans Old Skool': 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=500&auto=format&fit=crop&q=80',
       };
-      return products.map((p, idx) => {
+      return products.map((p) => {
+        // Clone to avoid mutating cached CacheDB references
+        p = { ...p };
         if (!p.image_url || p.image_url.includes('placeholder.com') || p.image_url === '') {
           p.image_url = fallbacks[p.title] || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&auto=format&fit=crop&q=80';
-        }
-        if (idx === 0) {
-          p.image_url = JSON.stringify([
-            p.image_url,
-            'https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=500&auto=format&fit=crop&q=80',
-            'https://images.unsplash.com/photo-1556906781-9a412961c28c?w=500&auto=format&fit=crop&q=80'
-          ]);
         }
         return p;
       });
@@ -1999,7 +1994,7 @@
         const imgUrl = images[0];
         return `
           <div class="card-photo-container">
-            <img src="${imgUrl}" class="w-full h-full object-cover cursor-zoom-in" alt="${cardTitle}" loading="lazy" onclick="event.stopPropagation(); window.showImagePreview('${imgUrl}')">
+            <img src="${imgUrl}" class="w-full h-full object-cover cursor-zoom-in" alt="${cardTitle}" loading="eager" decoding="async" onclick="event.stopPropagation(); window.showImagePreview('${imgUrl}')">
           </div>
         `;
       }
@@ -2010,7 +2005,7 @@
           <div class="card-slider">
             ${images.map((url, idx) => `
               <div class="card-slide" onclick="event.stopPropagation(); window.showImagePreview(JSON.parse(decodeURIComponent('${escapedImages}')), ${idx})">
-                <img src="${url}" class="w-full h-full object-cover cursor-zoom-in" alt="${cardTitle}" loading="lazy">
+                <img src="${url}" class="w-full h-full object-cover cursor-zoom-in" alt="${cardTitle}" loading="${idx === 0 ? 'eager' : 'lazy'}" decoding="async">
               </div>
             `).join('')}
           </div>
@@ -2225,6 +2220,11 @@
       clear(key) { delete this.data[key]; },
       clearAll() { this.data = {}; }
     };
+
+    // Tab HTML cache: store rendered innerHTML per tab for instant restore on re-visit
+    const _tabCache = {};
+    let _suppressSpinner = false;
+
     // ─── BLOB URL TRACKING (prevent memory leaks from photo previews) ───
 
     // ─── GLOBAL FOOTER EVENT DELEGATION ───
@@ -4091,7 +4091,7 @@ const MAX_REQUESTS_TRUSTED = 100;
       const fileName = `${sessionId}/products/${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
       const { error: uploadError } = await supabaseClient.storage
         .from('product-screenshots')
-        .upload(fileName, file, { contentType: file.type, upsert: true });
+        .upload(fileName, file, { contentType: file.type, upsert: false });
       if (uploadError) throw new Error('Ошибка при загрузке изображения: ' + uploadError.message);
       const { data } = supabaseClient.storage.from('product-screenshots').getPublicUrl(fileName);
       return data.publicUrl;
@@ -4345,6 +4345,28 @@ const MAX_REQUESTS_TRUSTED = 100;
       });
     }
 
+    function _silentRefreshHandlers(tab) {
+      try {
+        if (tab === 'home') attachHomeHandlers();
+        else if (tab === 'calculator') attachCalculatorHandlers();
+        else if (tab === 'neworder') attachNewOrderHandlers();
+        else if (tab === 'legitcheck') attachLegitCheckHandlers();
+        else if (tab === 'wishlist') attachWishlistHandlers();
+        else if (tab === 'catalogs') attachCatalogsHandlers();
+        else if (tab === 'profile') { attachProfileHandlers(); if (typeof loadProfileExtras === 'function') loadProfileExtras(); }
+        else if (tab === 'dropshipper') attachDropshipperHandlers();
+        else if (tab === 'academy') attachAcademyHandlers();
+        else if (tab === 'cart') attachCartHandlers();
+        else if (tab === 'promo') attachPromoPageHandlers();
+        else if (tab === 'history') attachHistoryHandlers();
+        else if (tab === 'reviews') attachReviewsHandlers();
+        else if (tab === 'ugc') attachUGCHandlers();
+        else if (tab === 'reftree') attachReferralTreeHandlers();
+        initCardSliders();
+        if (isShadowMode) attachShadowModeExit();
+      } catch(e) {}
+    }
+
     function switchTab(tabName, subScreen = null) {
       tgUtil.hideMainButton();
       if (tabName !== 'neworder') {
@@ -4365,24 +4387,23 @@ const MAX_REQUESTS_TRUSTED = 100;
       if (activeTab) activeTab.classList.add('active');
       tgUtil.haptic('selection');
       
-      const isDifferent = (window.currentTab !== tabName) || (window.currentSubScreen !== subScreen);
-      if (isDifferent) {
-        const contentDiv = document.getElementById('content');
-        if (contentDiv) {
-          contentDiv.innerHTML = `
-            <div class="flex flex-col items-center justify-center py-24 text-center w-full min-h-[50vh] page-enter">
-              <div class="relative w-14 h-14 mb-4 flex items-center justify-center">
-                <div class="absolute inset-0 rounded-full border-3 border-cyan-500/10"></div>
-                <div class="absolute inset-0 rounded-full border-3 border-t-cyan-400 animate-spin"></div>
-                <span class="text-xl">❄️</span>
-              </div>
-              <p class="text-white/40 text-xs tracking-wider uppercase font-medium">Загрузка...</p>
-            </div>
-          `;
+      // Restore from HTML cache for instant tab switch (no spinner flicker)
+      const _ck = tabName + ':';
+      if (!subScreen && _tabCache[_ck] && Date.now() - _tabCache[_ck].ts < 45000) {
+        const _cd = document.getElementById('content');
+        if (_cd) {
+          _cd.innerHTML = _tabCache[_ck].html;
+          window.scrollTo(0, 0);
+          _silentRefreshHandlers(tabName);
+          _suppressSpinner = true;
+          const _expectedTab = tabName;
+          setTimeout(async () => {
+            try { if (currentTab === _expectedTab) await renderCurrentScreen(); }
+            finally { _suppressSpinner = false; }
+          }, 500);
+          return;
         }
       }
-      
-      // Scroll to the very top to prevent carrying scroll offset across tabs
       window.scrollTo(0, 0);
       renderCurrentScreen();
     }
@@ -4491,12 +4512,17 @@ const MAX_REQUESTS_TRUSTED = 100;
         async function renderHome() {
           let dbMarketplaces = [];
           try {
-            const { data: dbData } = await supabaseClient.from('marketplaces').select('*').eq('is_active', true).order('sort_order', { ascending: true });
+            const dbData = await window.CacheDB.get('marketplaces', async () => {
+              const { data } = await supabaseClient.from('marketplaces').select('*').eq('is_active', true).order('sort_order', { ascending: true });
+              return data;
+            }, 300000);
             if (dbData) dbMarketplaces = preprocessMarketplaces(dbData);
           } catch (e) {
             console.error(e);
           }
 
+          // Use only DB marketplaces with show_on_home=true; fall back to static list only when none configured
+          const homeDbMarketplaces = dbMarketplaces.filter(mp => mp.show_on_home);
           const staticMarketplaces = [
             { name: 'Poizon', url: 'https://poizon.com', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=dewu.com', icon: '<span class="mp-dot" style="background:#22c55e" aria-hidden="true"></span>' },
             { name: 'Taobao', url: 'https://taobao.com', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=taobao.com', icon: '<span class="mp-dot" style="background:#fb923c" aria-hidden="true"></span>' },
@@ -4506,12 +4532,8 @@ const MAX_REQUESTS_TRUSTED = 100;
             { name: 'ASOS', url: 'https://asos.com', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=asos.com', icon: '<span class="mp-dot" style="background:#3b82f6" aria-hidden="true"></span>' }
           ];
 
-          const marketplaces = [...dbMarketplaces];
-          staticMarketplaces.forEach(staticMp => {
-            if (!marketplaces.some(mp => mp.name.toLowerCase() === staticMp.name.toLowerCase())) {
-              marketplaces.push(staticMp);
-            }
-          });
+          // If admin has configured show_on_home venues — use them; otherwise fall back to the legacy static list
+          const marketplaces = homeDbMarketplaces.length > 0 ? homeDbMarketplaces : staticMarketplaces;
   
   return `
     <!-- Currency Tracker -->
@@ -4764,6 +4786,9 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       }
     } else {
       const popular = await window.CacheDB.get('popularProducts', async () => {
+        // Prefer products marked show_on_home; fall back to any active products
+        const { data: homeProds } = await supabaseClient.from('products').select('*').eq('is_active', true).eq('show_on_home', true).limit(10);
+        if (homeProds && homeProds.length > 0) return homeProds;
         const { data } = await supabaseClient.from('products').select('*').eq('is_active', true).limit(10);
         return data;
       }, 300000);
@@ -4786,6 +4811,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         </div>
       </div>
     `).join('');
+    initCardSliders();
 
 
 
@@ -11977,7 +12003,7 @@ async function renderMarketplacesAdminList() {
         <div class="flex items-center gap-2">
           ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-8 h-8 object-contain rounded">` : '<span class="btn-secondary w-8 h-8 flex items-center justify-center"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span></span>'}
           <div>
-            <span class="text-white">${mp.name}</span>
+            <span class="text-white">${mp.name} ${mp.show_on_home ? '<span class="text-cyan-400 text-xs">🏠</span>' : ''}</span>
             <span class="text-white/50 text-xs block">${mp.country}</span>
           </div>
         </div>
@@ -12383,7 +12409,7 @@ async function renderAdmin() {
             ${products.map(p => `
               <div class="flex justify-between items-center p-2 bg-white/5 rounded-lg">
                 <div class="flex-1 min-w-0">
-                  <p class="text-white text-sm truncate">${p.title}</p>
+                  <p class="text-white text-sm truncate">${p.title} ${p.show_on_home ? '<span class="text-cyan-400 text-xs">🏠</span>' : ''}</p>
                   <p class="text-cyan-400 text-xs">${p.price} ${p.currency}</p>
                 </div>
                 <div class="flex gap-1.5 ml-2 flex-shrink-0">
@@ -13046,6 +13072,7 @@ function attachAdminHandlers() {
         </div>
         <input type="url" id="productUrl" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Ссылка на товар">
         <label class="flex items-center gap-2 text-white/80 p-2 rounded-xl bg-purple-500/10 border border-purple-500/30"><input type="checkbox" id="productIsDrop"> 🧊 Эксклюзивный ДРОП (доступен только в окно дропов)</label>
+        <label class="flex items-center gap-2 text-white/80 p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30"><input type="checkbox" id="productShowOnHome"> 🏠 Показывать на главной странице</label>
       </div>
     </div>
     <div class="p-5 border-t border-white/20">
@@ -13090,6 +13117,7 @@ function attachAdminHandlers() {
         const brand = modal.querySelector('#productBrand').value.trim();
         const url = modal.querySelector('#productUrl').value.trim();
         const is_drop = modal.querySelector('#productIsDrop').checked;
+        const show_on_home = modal.querySelector('#productShowOnHome').checked;
         if (!title || !price) { tgUtil.alert('Заполните название и цену'); return; }
         if (!addPhotoFiles.length) { tgUtil.alert('Добавьте хотя бы одно фото'); return; }
         const saveBtn = modal.querySelector('#saveProductBtn');
@@ -13097,7 +13125,8 @@ function attachAdminHandlers() {
         try {
           const urls = await Promise.all(addPhotoFiles.map(f => uploadProductImage(f)));
           const image_url = urls.length === 1 ? urls[0] : JSON.stringify(urls);
-          await supabaseClient.from('products').insert({ title, description, price, category, brand, image_url, url, currency: 'CNY', is_active: true, is_drop });
+          await supabaseClient.from('products').insert({ title, description, price, category, brand, image_url, url, currency: 'CNY', is_active: true, is_drop, show_on_home });
+          window.CacheDB.clear('popularProducts');
           logAdminAction('create_product', { title, category, price, is_drop });
           tgUtil.alert('Товар добавлен');
           modal.remove();
@@ -13143,6 +13172,9 @@ function attachAdminHandlers() {
                 <input type="url" id="productUrl" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Ссылка на товар" value="${prod.url || ''}">
                 <label class="flex items-center gap-2 text-white/80 p-2 rounded-xl bg-purple-500/10 border border-purple-500/30">
                   <input type="checkbox" id="productIsDrop" ${prod.is_drop ? 'checked' : ''}> 🧊 Эксклюзивный ДРОП (доступен только в окно дропов)
+                </label>
+                <label class="flex items-center gap-2 text-white/80 p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
+                  <input type="checkbox" id="productShowOnHome" ${prod.show_on_home ? 'checked' : ''}> 🏠 Показывать на главной странице
                 </label>
               </div>
             </div>
@@ -13199,6 +13231,7 @@ function attachAdminHandlers() {
           const brand = modal.querySelector('#productBrand').value.trim();
           const url = modal.querySelector('#productUrl').value.trim();
           const is_drop = modal.querySelector('#productIsDrop').checked;
+          const show_on_home = modal.querySelector('#productShowOnHome').checked;
           if (!title || !price) { tgUtil.alert('Заполните название и цену'); return; }
           if (!editPhotoUrls.length && !editPhotoFiles.length) { tgUtil.alert('Добавьте хотя бы одно фото'); return; }
           const saveBtn = modal.querySelector('#saveProductBtn');
@@ -13207,7 +13240,8 @@ function attachAdminHandlers() {
             const newUrls = await Promise.all(editPhotoFiles.map(f => uploadProductImage(f)));
             const allUrls = [...editPhotoUrls, ...newUrls];
             const image_url = allUrls.length === 1 ? allUrls[0] : JSON.stringify(allUrls);
-            await supabaseClient.from('products').update({ title, description, price, category, brand, image_url, url, is_drop }).eq('id', id);
+            await supabaseClient.from('products').update({ title, description, price, category, brand, image_url, url, is_drop, show_on_home }).eq('id', id);
+            window.CacheDB.clear('popularProducts');
             logAdminAction('update_product', { id, title });
             tgUtil.alert('Товар обновлён');
             modal.remove();
@@ -13304,6 +13338,7 @@ function attachAdminHandlers() {
           </div>
           <input type="number" id="mpSortOrder" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Порядок сортировки" value="${marketplace?.sort_order || 0}">
           <label class="flex items-center gap-2 text-white/80"><input type="checkbox" id="mpActive" ${marketplace?.is_active !== false ? 'checked' : ''}> Активна</label>
+          <label class="flex items-center gap-2 text-white/80 p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30"><input type="checkbox" id="mpShowOnHome" ${marketplace?.show_on_home ? 'checked' : ''}> 🏠 Показывать на главной странице</label>
         </div>
       </div>
       <div class="p-5 border-t border-white/20">
@@ -13330,6 +13365,7 @@ function attachAdminHandlers() {
       const requires_vpn = modal.querySelector('#mpVpn').checked;
       const sort_order = parseInt(modal.querySelector('#mpSortOrder').value) || 0;
       const is_active = modal.querySelector('#mpActive').checked;
+      const show_on_home = modal.querySelector('#mpShowOnHome').checked;
       let logo_url = modal.querySelector('#mpLogoUrl').value.trim();
       const logoFile = modal.querySelector('#mpLogoFile').files[0];
       if (logoFile) {
@@ -13339,13 +13375,14 @@ function attachAdminHandlers() {
         const { data: publicUrl } = supabaseClient.storage.from('marketplace-logos').getPublicUrl(fileName);
         logo_url = publicUrl.publicUrl;
       }
-      const payload = { name, website_url: url, country, categories, gender, description, instruction, requires_vpn, sort_order, is_active, logo_url };
+      const payload = { name, website_url: url, country, categories, gender, description, instruction, requires_vpn, sort_order, is_active, logo_url, show_on_home };
       try {
         if (isEdit) {
           await supabaseClient.from('marketplaces').update(payload).eq('id', marketplace.id);
         } else {
           await supabaseClient.from('marketplaces').insert(payload);
         }
+        window.CacheDB.clear('marketplaces');
         tgUtil.alert(isEdit ? 'Площадка обновлена' : 'Площадка добавлена');
         modal.remove();
         renderCurrentScreen();
@@ -14633,6 +14670,8 @@ async function renderProductsCatalog() {
 }
 
 function attachProductsCatalogHandlers() {
+  // Init image sliders & dots for catalog cards
+  initCardSliders();
   // Кнопка сброса фильтров в шапке
   const resetFiltersBtn = document.getElementById('resetFiltersBtn');
   if (resetFiltersBtn) {
@@ -14784,9 +14823,9 @@ async function loadMoreProducts() {
         div.className = 'product-card';
         div.dataset.productId = p.id;
         div.innerHTML = `
-          <div class="aspect-square bg-white/10 flex items-center justify-center relative">
-            <img src="${p.image_url || 'https://via.placeholder.com/150'}" class="w-full h-full object-cover">
-            <span class="absolute top-2 right-2 wishlist-heart text-xl ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/50'}" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
+          <div class="relative">
+            ${renderCardMedia(p.image_url, p.title)}
+            <span class="absolute top-2 right-2 wishlist-heart text-xl ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/50'} z-20" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
           </div>
           <div class="p-2">
             <p class="text-white font-bold text-sm truncate">${p.title}</p>
@@ -14820,6 +14859,7 @@ async function loadMoreProducts() {
         };
         grid.appendChild(div);
       });
+      initCardSliders();
     }
     // Обновляем sentinel
     const sentinel = document.getElementById('catalogSentinel');
@@ -15865,15 +15905,16 @@ function attachAdminSuppliersHandlers() {
         `;
       }
 
-      // SHOW SPINNER IMMEDIATELY FOR FAST UI RESPONSE
-      contentDiv.innerHTML = shadowBannerHtml + `
-        <div class="flex flex-col items-center justify-center min-h-[60vh] gap-3 page-enter">
-          <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-r-2 border-cyan-400"></div>
-          <div class="text-cyan-400/50 text-[10px] font-bold uppercase tracking-widest animate-pulse">Загрузка ICE LOGIX...</div>
-        </div>
-      `;
-      // Yield to browser so the spinner actually paints before JS blocks on queries
-      await new Promise(r => setTimeout(r, 10));
+      // SHOW SPINNER IMMEDIATELY — skipped on silent background refresh (restoring from tab cache)
+      if (!_suppressSpinner) {
+        contentDiv.innerHTML = shadowBannerHtml + `
+          <div class="flex flex-col items-center justify-center min-h-[60vh] gap-3 page-enter">
+            <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-r-2 border-cyan-400"></div>
+            <div class="text-cyan-400/50 text-[10px] font-bold uppercase tracking-widest animate-pulse">Загрузка ICE LOGIX...</div>
+          </div>
+        `;
+        await new Promise(r => setTimeout(r, 10));
+      }
 
       if (currentSubScreen === 'about') {
         contentDiv.innerHTML = shadowBannerHtml + await renderAboutUs();
@@ -16022,8 +16063,12 @@ function attachAdminSuppliersHandlers() {
         ensureBackButton();
       }
       initCardSliders();
+      // Save rendered HTML to cache for instant restore on next tab switch
+      if (!currentSubScreen && currentTab && contentDiv && contentDiv.innerHTML) {
+        _tabCache[currentTab + ':'] = { html: contentDiv.innerHTML, ts: Date.now() };
+      }
     }
-    
+
     function attachShadowModeExit() {
       const btn = document.getElementById('exitShadowModeBtn');
       if (btn) {
