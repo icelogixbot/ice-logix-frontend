@@ -15,8 +15,8 @@
   <script src="./pricing-engine.js"></script>
   <script src="./onboarding.js"></script>
   <script async src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/vfs_fonts.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/vfs_fonts.js"></script>
   <style>
     /* ═══════════════════════════════════════════════════════════════════════════
        ICE LOGIX - GLASSMORPHISM DESIGN SYSTEM
@@ -102,15 +102,8 @@
       transform: translateZ(0);
     }
 
-    /* Lazy-loaded images: fade in when loaded */
-    img[loading="lazy"] { opacity: 0; transition: opacity 0.3s ease; }
-    img[loading="lazy"].loaded { opacity: 1; }
-
     /* Reduce paint cost for fixed header/footer — promote to GPU layer */
     .app-header, .tab-bar { will-change: transform; }
-
-    /* Prevent layout shifts during image load */
-    .card-photo-container img, .product-card img { content-visibility: auto; }
 
     /* Disable expensive snow animation on mobile for perf */
     @media (max-width: 767px) {
@@ -2034,34 +2027,12 @@
       document.querySelectorAll('.card-slider').forEach(slider => {
         if (slider.dataset.sliderInitialized) return;
         slider.dataset.sliderInitialized = 'true';
-        let scrollTimer;
         slider.addEventListener('scroll', () => {
-          clearTimeout(scrollTimer);
-          scrollTimer = setTimeout(() => {
-            const index = Math.round(slider.scrollLeft / slider.clientWidth);
-            const dots = slider.parentElement.querySelectorAll('.card-dot');
-            dots.forEach((dot, idx) => {
-              if (idx === index) dot.classList.add('active');
-              else dot.classList.remove('active');
-            });
-          }, 50);
+          const index = Math.round(slider.scrollLeft / slider.clientWidth);
+          const dots = slider.parentElement.querySelectorAll('.card-dot');
+          dots.forEach((dot, idx) => dot.classList.toggle('active', idx === index));
         }, { passive: true });
       });
-
-      // Lazy fade-in for images with loading="lazy"
-      if ('IntersectionObserver' in window) {
-        const imgObserver = new IntersectionObserver((entries) => {
-          entries.forEach(entry => {
-            if (entry.isIntersecting) {
-              const img = entry.target;
-              img.addEventListener('load', () => img.classList.add('loaded'), { once: true });
-              if (img.complete) img.classList.add('loaded');
-              imgObserver.unobserve(img);
-            }
-          });
-        }, { rootMargin: '100px' });
-        document.querySelectorAll('img[loading="lazy"]').forEach(img => imgObserver.observe(img));
-      }
     }
 
     window.showImagePreview = (urls, startIndex = 0) => {
@@ -4114,17 +4085,15 @@ const MAX_REQUESTS_TRUSTED = 100;
 
     async function uploadProductImage(file) {
       if (!supabaseClient) throw new Error('Клиент Supabase не инициализирован');
-      const fileExt = file.name.split('.').pop();
-      const fileName = `products/${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      let sessionId = localStorage.getItem('icelogix_session_id');
+      if (!sessionId) { sessionId = crypto.randomUUID(); localStorage.setItem('icelogix_session_id', sessionId); }
+      const fileExt = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const fileName = `${sessionId}/products/${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
       const { error: uploadError } = await supabaseClient.storage
         .from('product-screenshots')
-        .upload(fileName, file);
-      if (uploadError) {
-        throw new Error('Ошибка при загрузке изображения: ' + uploadError.message);
-      }
-      const { data } = supabaseClient.storage
-        .from('product-screenshots')
-        .getPublicUrl(fileName);
+        .upload(fileName, file, { contentType: file.type, upsert: true });
+      if (uploadError) throw new Error('Ошибка при загрузке изображения: ' + uploadError.message);
+      const { data } = supabaseClient.storage.from('product-screenshots').getPublicUrl(fileName);
       return data.publicUrl;
     }
 
@@ -13067,16 +13036,13 @@ function attachAdminHandlers() {
           <option value="Обувь">Обувь</option><option value="Одежда">Одежда</option><option value="Аксессуары">Аксессуары</option>
         </select>
         <input type="text" id="productBrand" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Бренд">
-        <div class="space-y-1">
-          <input type="text" id="productImage" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="URL изображения">
-          <div class="flex items-center gap-2 mt-1">
-            <span class="text-xs text-white/40">или</span>
-            <label class="cursor-pointer bg-cyan-600/30 hover:bg-cyan-600/50 text-cyan-400 border border-cyan-500/30 px-3 py-1.5 rounded-lg text-[11px] font-bold transition flex items-center gap-1">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:12px;height:12px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Выбрать фото
-              <input type="file" id="productImageFile" accept="image/*" class="hidden">
-            </label>
-            <span id="productImageUploadStatus" class="text-[11px] text-white/50"></span>
-          </div>
+        <div class="space-y-2">
+          <label class="cursor-pointer w-full p-3 rounded-xl border border-dashed border-cyan-500/40 flex items-center justify-center gap-2 text-sm text-cyan-400 hover:bg-cyan-500/10 transition">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:16px;height:16px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Фото из галереи (до 8)
+            <input type="file" id="productImageFile" accept="image/*" multiple class="hidden">
+          </label>
+          <div id="productPhotoPreviews" class="grid grid-cols-4 gap-2"></div>
         </div>
         <input type="url" id="productUrl" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Ссылка на товар">
         <label class="flex items-center gap-2 text-white/80 p-2 rounded-xl bg-purple-500/10 border border-purple-500/30"><input type="checkbox" id="productIsDrop"> 🧊 Эксклюзивный ДРОП (доступен только в окно дропов)</label>
@@ -13092,23 +13058,27 @@ function attachAdminHandlers() {
 `;
       document.body.appendChild(modal);
       
-      modal.querySelector('#productImageFile').onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const statusSpan = modal.querySelector('#productImageUploadStatus');
-        statusSpan.textContent = '⏳ Загрузка...';
-        statusSpan.className = 'text-[11px] text-yellow-400';
-        try {
-          const url = await uploadProductImage(file);
-          modal.querySelector('#productImage').value = url;
-          statusSpan.textContent = '✅ Готово!';
-          statusSpan.className = 'text-[11px] text-green-400';
-        } catch (err) {
-          console.error(err);
-          statusSpan.textContent = '❌ Ошибка';
-          statusSpan.className = 'text-[11px] text-red-400';
-          tgUtil.alert('Не удалось загрузить изображение: ' + err.message);
+      const addPhotoFiles = [];
+      const addPhotoGrid = modal.querySelector('#productPhotoPreviews');
+      function renderAddPhotos() {
+        if (!addPhotoFiles.length) { addPhotoGrid.innerHTML = ''; return; }
+        addPhotoGrid.innerHTML = addPhotoFiles.map((f, i) =>
+          `<div class="relative rounded-lg overflow-hidden bg-white/10" style="aspect-ratio:1">
+            <img src="${URL.createObjectURL(f)}" class="w-full h-full object-cover">
+            <button class="ap-rm absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full w-5 h-5 text-xs font-bold leading-none flex items-center justify-center" data-i="${i}">×</button>
+          </div>`
+        ).join('');
+        addPhotoGrid.querySelectorAll('.ap-rm').forEach(b => {
+          b.onclick = e => { e.stopPropagation(); addPhotoFiles.splice(+b.dataset.i, 1); renderAddPhotos(); };
+        });
+      }
+      modal.querySelector('#productImageFile').onchange = e => {
+        for (const f of e.target.files) {
+          if (addPhotoFiles.length >= 8) { tgUtil.alert('Максимум 8 фото'); break; }
+          addPhotoFiles.push(f);
         }
+        e.target.value = '';
+        renderAddPhotos();
       };
 
       modal.querySelector('#cancelProductBtn').onclick = () => modal.remove();
@@ -13118,17 +13088,21 @@ function attachAdminHandlers() {
         const price = parseFloat(modal.querySelector('#productPrice').value);
         const category = modal.querySelector('#productCategory').value;
         const brand = modal.querySelector('#productBrand').value.trim();
-        const image_url = modal.querySelector('#productImage').value.trim();
         const url = modal.querySelector('#productUrl').value.trim();
         const is_drop = modal.querySelector('#productIsDrop').checked;
         if (!title || !price) { tgUtil.alert('Заполните название и цену'); return; }
+        if (!addPhotoFiles.length) { tgUtil.alert('Добавьте хотя бы одно фото'); return; }
+        const saveBtn = modal.querySelector('#saveProductBtn');
+        saveBtn.disabled = true; saveBtn.textContent = 'Загружаю фото…';
         try {
+          const urls = await Promise.all(addPhotoFiles.map(f => uploadProductImage(f)));
+          const image_url = urls.length === 1 ? urls[0] : JSON.stringify(urls);
           await supabaseClient.from('products').insert({ title, description, price, category, brand, image_url, url, currency: 'CNY', is_active: true, is_drop });
           logAdminAction('create_product', { title, category, price, is_drop });
           tgUtil.alert('Товар добавлен');
           modal.remove();
           renderCurrentScreen();
-        } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }
+        } catch (err) { saveBtn.disabled = false; saveBtn.textContent = 'Сохранить'; tgUtil.alert('Ошибка: ' + err.message); }
       };
     };
   }
@@ -13158,16 +13132,13 @@ function attachAdminHandlers() {
                   <option value="Аксессуары" ${prod.category === 'Аксессуары' ? 'selected' : ''}>Аксессуары</option>
                 </select>
                 <input type="text" id="productBrand" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Бренд" value="${prod.brand || ''}">
-                <div class="space-y-1">
-                  <input type="text" id="productImage" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="URL изображения" value="${prod.image_url || ''}">
-                  <div class="flex items-center gap-2 mt-1">
-                    <span class="text-xs text-white/40">или</span>
-                    <label class="cursor-pointer bg-cyan-600/30 hover:bg-cyan-600/50 text-cyan-400 border border-cyan-500/30 px-3 py-1.5 rounded-lg text-[11px] font-bold transition flex items-center gap-1">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:12px;height:12px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Выбрать фото
-                      <input type="file" id="productImageFile" accept="image/*" class="hidden">
-                    </label>
-                    <span id="productImageUploadStatus" class="text-[11px] text-white/50"></span>
-                  </div>
+                <div class="space-y-2">
+                  <label class="cursor-pointer w-full p-3 rounded-xl border border-dashed border-cyan-500/40 flex items-center justify-center gap-2 text-sm text-cyan-400 hover:bg-cyan-500/10 transition">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:16px;height:16px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    Добавить фото (до 8)
+                    <input type="file" id="productImageFile" accept="image/*" multiple class="hidden">
+                  </label>
+                  <div id="productPhotoPreviews" class="grid grid-cols-4 gap-2"></div>
                 </div>
                 <input type="url" id="productUrl" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Ссылка на товар" value="${prod.url || ''}">
                 <label class="flex items-center gap-2 text-white/80 p-2 rounded-xl bg-purple-500/10 border border-purple-500/30">
@@ -13185,24 +13156,39 @@ function attachAdminHandlers() {
         `;
         document.body.appendChild(modal);
 
-        modal.querySelector('#productImageFile').onchange = async (e) => {
-          const file = e.target.files[0];
-          if (!file) return;
-          const statusSpan = modal.querySelector('#productImageUploadStatus');
-          statusSpan.textContent = '⏳ Загрузка...';
-          statusSpan.className = 'text-[11px] text-yellow-400';
-          try {
-            const url = await uploadProductImage(file);
-            modal.querySelector('#productImage').value = url;
-            statusSpan.textContent = '✅ Готово!';
-            statusSpan.className = 'text-[11px] text-green-400';
-          } catch (err) {
-            console.error(err);
-            statusSpan.textContent = '❌ Ошибка';
-            statusSpan.className = 'text-[11px] text-red-400';
-            tgUtil.alert('Не удалось загрузить изображение: ' + err.message);
+        const editPhotoUrls = [...getProductImages(prod.image_url)];
+        const editPhotoFiles = [];
+        const editPhotoGrid = modal.querySelector('#productPhotoPreviews');
+        function renderEditPhotos() {
+          const urlItems = editPhotoUrls.map((u, i) =>
+            `<div class="relative rounded-lg overflow-hidden bg-white/10" style="aspect-ratio:1">
+              <img src="${u}" class="w-full h-full object-cover">
+              <button class="ep-rm-url absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full w-5 h-5 text-xs font-bold leading-none flex items-center justify-center" data-i="${i}">×</button>
+            </div>`
+          );
+          const fileItems = editPhotoFiles.map((f, i) =>
+            `<div class="relative rounded-lg overflow-hidden bg-white/10" style="aspect-ratio:1">
+              <img src="${URL.createObjectURL(f)}" class="w-full h-full object-cover">
+              <button class="ep-rm-file absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full w-5 h-5 text-xs font-bold leading-none flex items-center justify-center" data-i="${i}">×</button>
+            </div>`
+          );
+          editPhotoGrid.innerHTML = [...urlItems, ...fileItems].join('');
+          editPhotoGrid.querySelectorAll('.ep-rm-url').forEach(b => {
+            b.onclick = e => { e.stopPropagation(); editPhotoUrls.splice(+b.dataset.i, 1); renderEditPhotos(); };
+          });
+          editPhotoGrid.querySelectorAll('.ep-rm-file').forEach(b => {
+            b.onclick = e => { e.stopPropagation(); editPhotoFiles.splice(+b.dataset.i, 1); renderEditPhotos(); };
+          });
+        }
+        modal.querySelector('#productImageFile').onchange = e => {
+          for (const f of e.target.files) {
+            if (editPhotoUrls.length + editPhotoFiles.length >= 8) { tgUtil.alert('Максимум 8 фото'); break; }
+            editPhotoFiles.push(f);
           }
+          e.target.value = '';
+          renderEditPhotos();
         };
+        renderEditPhotos();
 
         modal.querySelector('#cancelProductBtn').onclick = () => modal.remove();
         modal.querySelector('#saveProductBtn').onclick = async () => {
@@ -13211,17 +13197,22 @@ function attachAdminHandlers() {
           const price = parseFloat(modal.querySelector('#productPrice').value);
           const category = modal.querySelector('#productCategory').value;
           const brand = modal.querySelector('#productBrand').value.trim();
-          const image_url = modal.querySelector('#productImage').value.trim();
           const url = modal.querySelector('#productUrl').value.trim();
           const is_drop = modal.querySelector('#productIsDrop').checked;
           if (!title || !price) { tgUtil.alert('Заполните название и цену'); return; }
+          if (!editPhotoUrls.length && !editPhotoFiles.length) { tgUtil.alert('Добавьте хотя бы одно фото'); return; }
+          const saveBtn = modal.querySelector('#saveProductBtn');
+          saveBtn.disabled = true; saveBtn.textContent = 'Загружаю фото…';
           try {
+            const newUrls = await Promise.all(editPhotoFiles.map(f => uploadProductImage(f)));
+            const allUrls = [...editPhotoUrls, ...newUrls];
+            const image_url = allUrls.length === 1 ? allUrls[0] : JSON.stringify(allUrls);
             await supabaseClient.from('products').update({ title, description, price, category, brand, image_url, url, is_drop }).eq('id', id);
             logAdminAction('update_product', { id, title });
             tgUtil.alert('Товар обновлён');
             modal.remove();
             renderCurrentScreen();
-          } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }
+          } catch (err) { saveBtn.disabled = false; saveBtn.textContent = 'Сохранить'; tgUtil.alert('Ошибка: ' + err.message); }
         };
       } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }
     };
