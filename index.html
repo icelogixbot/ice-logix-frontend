@@ -1999,7 +1999,7 @@
         const imgUrl = images[0];
         return `
           <div class="card-photo-container">
-            <img src="${imgUrl}" class="w-full h-full object-cover cursor-zoom-in" alt="${cardTitle}" loading="lazy" onclick="event.stopPropagation(); window.showImagePreview('${imgUrl}')">
+            <img src="${imgUrl}" class="w-full h-full object-cover cursor-zoom-in" alt="${cardTitle}" loading="eager" decoding="async" onclick="event.stopPropagation(); window.showImagePreview('${imgUrl}')">
           </div>
         `;
       }
@@ -2010,7 +2010,7 @@
           <div class="card-slider">
             ${images.map((url, idx) => `
               <div class="card-slide" onclick="event.stopPropagation(); window.showImagePreview(JSON.parse(decodeURIComponent('${escapedImages}')), ${idx})">
-                <img src="${url}" class="w-full h-full object-cover cursor-zoom-in" alt="${cardTitle}" loading="lazy">
+                <img src="${url}" class="w-full h-full object-cover cursor-zoom-in" alt="${cardTitle}" loading="${idx === 0 ? 'eager' : 'lazy'}" decoding="async">
               </div>
             `).join('')}
           </div>
@@ -2225,6 +2225,11 @@
       clear(key) { delete this.data[key]; },
       clearAll() { this.data = {}; }
     };
+
+    // Tab HTML cache: store rendered innerHTML per tab for instant restore on re-visit
+    const _tabCache = {};
+    let _suppressSpinner = false;
+
     // ─── BLOB URL TRACKING (prevent memory leaks from photo previews) ───
 
     // ─── GLOBAL FOOTER EVENT DELEGATION ───
@@ -4345,6 +4350,28 @@ const MAX_REQUESTS_TRUSTED = 100;
       });
     }
 
+    function _silentRefreshHandlers(tab) {
+      try {
+        if (tab === 'home') attachHomeHandlers();
+        else if (tab === 'calculator') attachCalculatorHandlers();
+        else if (tab === 'neworder') attachNewOrderHandlers();
+        else if (tab === 'legitcheck') attachLegitCheckHandlers();
+        else if (tab === 'wishlist') attachWishlistHandlers();
+        else if (tab === 'catalogs') attachCatalogsHandlers();
+        else if (tab === 'profile') { attachProfileHandlers(); if (typeof loadProfileExtras === 'function') loadProfileExtras(); }
+        else if (tab === 'dropshipper') attachDropshipperHandlers();
+        else if (tab === 'academy') attachAcademyHandlers();
+        else if (tab === 'cart') attachCartHandlers();
+        else if (tab === 'promo') attachPromoPageHandlers();
+        else if (tab === 'history') attachHistoryHandlers();
+        else if (tab === 'reviews') attachReviewsHandlers();
+        else if (tab === 'ugc') attachUGCHandlers();
+        else if (tab === 'reftree') attachReferralTreeHandlers();
+        initCardSliders();
+        if (isShadowMode) attachShadowModeExit();
+      } catch(e) {}
+    }
+
     function switchTab(tabName, subScreen = null) {
       tgUtil.hideMainButton();
       if (tabName !== 'neworder') {
@@ -4382,7 +4409,24 @@ const MAX_REQUESTS_TRUSTED = 100;
         }
       }
       
-      // Scroll to the very top to prevent carrying scroll offset across tabs
+      // Restore from HTML cache for instant tab switch (no spinner flicker)
+      _suppressSpinner = false;
+      const _ck = tabName + ':';
+      if (!subScreen && _tabCache[_ck] && Date.now() - _tabCache[_ck].ts < 45000) {
+        const _cd = document.getElementById('content');
+        if (_cd) {
+          _cd.innerHTML = _tabCache[_ck].html;
+          window.scrollTo(0, 0);
+          _silentRefreshHandlers(tabName);
+          _suppressSpinner = true;
+          const _expectedTab = tabName;
+          setTimeout(async () => {
+            try { if (currentTab === _expectedTab) await renderCurrentScreen(); }
+            finally { _suppressSpinner = false; }
+          }, 500);
+          return;
+        }
+      }
       window.scrollTo(0, 0);
       renderCurrentScreen();
     }
@@ -4491,7 +4535,10 @@ const MAX_REQUESTS_TRUSTED = 100;
         async function renderHome() {
           let dbMarketplaces = [];
           try {
-            const { data: dbData } = await supabaseClient.from('marketplaces').select('*').eq('is_active', true).order('sort_order', { ascending: true });
+            const dbData = await window.CacheDB.get('marketplaces', async () => {
+              const { data } = await supabaseClient.from('marketplaces').select('*').eq('is_active', true).order('sort_order', { ascending: true });
+              return data;
+            }, 300000);
             if (dbData) dbMarketplaces = preprocessMarketplaces(dbData);
           } catch (e) {
             console.error(e);
@@ -15865,15 +15912,16 @@ function attachAdminSuppliersHandlers() {
         `;
       }
 
-      // SHOW SPINNER IMMEDIATELY FOR FAST UI RESPONSE
-      contentDiv.innerHTML = shadowBannerHtml + `
-        <div class="flex flex-col items-center justify-center min-h-[60vh] gap-3 page-enter">
-          <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-r-2 border-cyan-400"></div>
-          <div class="text-cyan-400/50 text-[10px] font-bold uppercase tracking-widest animate-pulse">Загрузка ICE LOGIX...</div>
-        </div>
-      `;
-      // Yield to browser so the spinner actually paints before JS blocks on queries
-      await new Promise(r => setTimeout(r, 10));
+      // SHOW SPINNER IMMEDIATELY — skipped on silent background refresh (restoring from tab cache)
+      if (!_suppressSpinner) {
+        contentDiv.innerHTML = shadowBannerHtml + `
+          <div class="flex flex-col items-center justify-center min-h-[60vh] gap-3 page-enter">
+            <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-r-2 border-cyan-400"></div>
+            <div class="text-cyan-400/50 text-[10px] font-bold uppercase tracking-widest animate-pulse">Загрузка ICE LOGIX...</div>
+          </div>
+        `;
+        await new Promise(r => setTimeout(r, 10));
+      }
 
       if (currentSubScreen === 'about') {
         contentDiv.innerHTML = shadowBannerHtml + await renderAboutUs();
@@ -16022,8 +16070,12 @@ function attachAdminSuppliersHandlers() {
         ensureBackButton();
       }
       initCardSliders();
+      // Save rendered HTML to cache for instant restore on next tab switch
+      if (!currentSubScreen && currentTab && contentDiv && contentDiv.innerHTML) {
+        _tabCache[currentTab + ':'] = { html: contentDiv.innerHTML, ts: Date.now() };
+      }
     }
-    
+
     function attachShadowModeExit() {
       const btn = document.getElementById('exitShadowModeBtn');
       if (btn) {
