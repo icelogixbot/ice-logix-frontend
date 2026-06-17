@@ -1609,9 +1609,186 @@
     }
 
     /* Star rating helper — replaces ★☆ emoji groups */
+    /* Star rating helper — replaces ★☆ emoji groups */
     .star-row { display: inline-flex; gap: 2px; align-items: center; color: var(--status-warning); }
     .star-row .ix { width: 0.95em; height: 0.95em; }
     .star-row.muted { color: rgba(255,255,255,0.25); }
+
+    /* Photo Gallery Sliders & Image Preview Modal */
+    .card-photo-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .card-slider {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .card-slider::-webkit-scrollbar {
+      display: none;
+    }
+    .card-slide {
+      flex: 0 0 100%;
+      width: 100%;
+      height: 100%;
+      scroll-snap-align: start;
+    }
+    .card-slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+    }
+    .card-dots {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 5px;
+      z-index: 10;
+      background: rgba(0, 0, 0, 0.45);
+      padding: 4px 8px;
+      border-radius: 10px;
+      backdrop-filter: blur(4px);
+    }
+    .card-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.4);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .card-dot.active {
+      background: var(--ice-primary);
+      transform: scale(1.3);
+      box-shadow: 0 0 8px var(--ice-primary);
+    }
+    .image-preview-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: previewFadeIn 0.3s forwards;
+    }
+    .image-preview-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.9);
+      backdrop-filter: blur(10px);
+    }
+    .image-preview-close {
+      position: absolute;
+      top: max(20px, env(safe-area-inset-top));
+      right: 20px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      font-size: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 10002;
+      transition: all 0.2s ease;
+      line-height: 1;
+      padding-bottom: 4px;
+    }
+    .image-preview-close:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: scale(1.05);
+    }
+    .image-preview-slider {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      z-index: 10001;
+    }
+    .image-preview-slider::-webkit-scrollbar {
+      display: none;
+    }
+    .image-preview-slide {
+      flex: 0 0 100%;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      scroll-snap-align: start;
+      padding: 24px;
+    }
+    .image-preview-slide img {
+      max-width: 100%;
+      max-height: 80vh;
+      object-fit: contain;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      animation: previewZoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .image-preview-dots {
+      position: absolute;
+      bottom: max(30px, env(safe-area-inset-bottom));
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      z-index: 10002;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 6px 12px;
+      border-radius: 20px;
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .image-preview-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      transition: all 0.25s ease;
+    }
+    .image-preview-dot.active {
+      background: var(--ice-primary);
+      transform: scale(1.2);
+      box-shadow: 0 0 8px var(--ice-primary);
+    }
+    @keyframes previewFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes previewZoomIn {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .image-preview-modal.closing {
+      animation: previewFadeOut 0.2s forwards;
+    }
+    .image-preview-modal.closing .image-preview-slide img {
+      animation: previewZoomOut 0.2s forwards;
+    }
+    @keyframes previewFadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+    @keyframes previewZoomOut {
+      from { transform: scale(1); opacity: 1; }
+      to { transform: scale(0.9); opacity: 0; }
+    }
   </style>
 </head>
 <body>
@@ -1753,25 +1930,177 @@
       });
     }
 
+    function getProductImages(imageUrl) {
+      if (!imageUrl) return [];
+      let urls = [];
+      const trimmed = String(imageUrl).trim();
+      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        try {
+          urls = JSON.parse(trimmed);
+        } catch (e) {
+          urls = [imageUrl];
+        }
+      } else if (trimmed.includes(',')) {
+        urls = trimmed.split(',').map(u => u.trim()).filter(Boolean);
+      } else {
+        urls = [imageUrl];
+      }
+      return urls;
+    }
+
+    function getResaleImages(item) {
+      if (item.image_url) return getProductImages(item.image_url);
+      if (item.images) return getProductImages(item.images);
+      
+      const orderItems = item.orders?.items || item.orders?.cart_items;
+      if (Array.isArray(orderItems) && orderItems.length > 0) {
+        const img = orderItems[0].imageUrl || orderItems[0].image_url || orderItems[0].image;
+        if (img) return getProductImages(img);
+      }
+      
+      if (item.orders && Array.isArray(item.orders.photo_reports) && item.orders.photo_reports.length > 0) {
+        return item.orders.photo_reports;
+      }
+      
+      return ['https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&auto=format&fit=crop&q=80'];
+    }
+
+    function renderCardMedia(mediaUrls, cardTitle) {
+      let images = Array.isArray(mediaUrls) ? mediaUrls : getProductImages(mediaUrls);
+      if (images.length === 0) {
+        images = ['https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&auto=format&fit=crop&q=80'];
+      }
+      
+      if (images.length <= 1) {
+        const imgUrl = images[0];
+        return `
+          <div class="card-photo-container">
+            <img src="${imgUrl}" class="w-full h-full object-cover cursor-zoom-in" alt="${cardTitle}" onclick="event.stopPropagation(); window.showImagePreview('${imgUrl}')">
+          </div>
+        `;
+      }
+
+      return `
+        <div class="card-photo-container">
+          <div class="card-slider">
+            ${images.map((url, idx) => `
+              <div class="card-slide" onclick="event.stopPropagation(); window.showImagePreview(${JSON.stringify(images)}, ${idx})">
+                <img src="${url}" class="w-full h-full object-cover cursor-zoom-in" alt="${cardTitle}">
+              </div>
+            `).join('')}
+          </div>
+          <div class="card-dots">
+            ${images.map((_, idx) => `
+              <div class="card-dot ${idx === 0 ? 'active' : ''}"></div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function initCardSliders() {
+      document.querySelectorAll('.card-slider').forEach(slider => {
+        if (slider.dataset.sliderInitialized) return;
+        slider.dataset.sliderInitialized = 'true';
+        slider.addEventListener('scroll', () => {
+          const index = Math.round(slider.scrollLeft / slider.clientWidth);
+          const dots = slider.parentElement.querySelectorAll('.card-dot');
+          dots.forEach((dot, idx) => {
+            if (idx === index) dot.classList.add('active');
+            else dot.classList.remove('active');
+          });
+        });
+      });
+    }
+
+    window.showImagePreview = (urls, startIndex = 0) => {
+      if (typeof urls === 'string') urls = [urls];
+      if (!urls || urls.length === 0) return;
+
+      const modal = document.createElement('div');
+      modal.className = 'image-preview-modal';
+      
+      modal.innerHTML = `
+        <div class="image-preview-backdrop"></div>
+        <button class="image-preview-close">&times;</button>
+        <div class="image-preview-slider">
+          ${urls.map((url, idx) => `
+            <div class="image-preview-slide">
+              <img src="${url}" alt="Product image preview">
+            </div>
+          `).join('')}
+        </div>
+        ${urls.length > 1 ? `
+          <div class="image-preview-dots">
+            ${urls.map((_, idx) => `
+              <div class="image-preview-dot ${idx === startIndex ? 'active' : ''}"></div>
+            `).join('')}
+          </div>
+        ` : ''}
+      `;
+
+      document.body.appendChild(modal);
+
+      const slider = modal.querySelector('.image-preview-slider');
+      
+      setTimeout(() => {
+        if (slider && startIndex > 0) {
+          slider.scrollLeft = startIndex * slider.clientWidth;
+        }
+      }, 50);
+
+      if (urls.length > 1) {
+        slider.addEventListener('scroll', () => {
+          const index = Math.round(slider.scrollLeft / slider.clientWidth);
+          const dots = modal.querySelectorAll('.image-preview-dot');
+          dots.forEach((dot, idx) => {
+            if (idx === index) dot.classList.add('active');
+            else dot.classList.remove('active');
+          });
+        });
+      }
+
+      const closeBtn = modal.querySelector('.image-preview-close');
+      const backdrop = modal.querySelector('.image-preview-backdrop');
+      
+      const closeModal = () => {
+        modal.classList.add('closing');
+        setTimeout(() => {
+          modal.remove();
+        }, 200);
+      };
+
+      closeBtn.onclick = closeModal;
+      backdrop.onclick = closeModal;
+    };
+
     function preprocessMarketplaces(marketplaces) {
       if (!marketplaces) return [];
       return marketplaces.map(mp => {
-        if (!mp.logo_url || mp.logo_url === '') {
+        if (!mp.logo_url || mp.logo_url === '' || mp.logo_url.includes('clearbit.com')) {
           const nameLower = (mp.name || '').toLowerCase();
+          let domain = '';
           if (nameLower.includes('пиндуодуо') || nameLower.includes('pinduoduo')) {
-            mp.logo_url = 'https://logo.clearbit.com/pinduoduo.com';
-          } else if (nameLower.includes('poizon')) {
-            mp.logo_url = 'https://logo.clearbit.com/dewu.com';
+            domain = 'pinduoduo.com';
+          } else if (nameLower.includes('poizon') || nameLower.includes('dewu')) {
+            domain = 'dewu.com';
           } else if (nameLower.includes('taobao')) {
-            mp.logo_url = 'https://logo.clearbit.com/taobao.com';
+            domain = 'taobao.com';
           } else if (nameLower.includes('1688')) {
-            mp.logo_url = 'https://logo.clearbit.com/1688.com';
+            domain = '1688.com';
           } else if (nameLower.includes('zalando')) {
-            mp.logo_url = 'https://logo.clearbit.com/zalando.com';
+            domain = 'zalando.de';
           } else if (nameLower.includes('nike')) {
-            mp.logo_url = 'https://logo.clearbit.com/nike.com';
+            domain = 'nike.com';
           } else if (nameLower.includes('asos')) {
-            mp.logo_url = 'https://logo.clearbit.com/asos.com';
+            domain = 'asos.com';
+          } else if (mp.website_url) {
+            try {
+              domain = new URL(mp.website_url).hostname;
+            } catch(e) {}
+          }
+          if (domain) {
+            mp.logo_url = `https://www.google.com/s2/favicons?sz=128&domain=${domain}`;
           }
         }
         return mp;
@@ -3985,7 +4314,7 @@ const MAX_REQUESTS_TRUSTED = 100;
             </div>
             <div class="social-icon" data-social="tiktok" title="TikTok">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12.53.02C13.84 0 15.14.01 16.44 0c.08 1.53.63 3.02 1.59 4.23.95 1.18 2.27 2.01 3.73 2.38v3.83c-1.39-.01-2.76-.37-3.99-1.05-.72-.4-1.36-.91-1.89-1.52v7.14c-.04 2.38-.97 4.67-2.6 6.32-1.62 1.64-3.86 2.58-6.19 2.62-2.33.04-4.63-.83-6.32-2.42-1.7-1.6-2.68-3.86-2.72-6.21-.04-2.35.88-4.65 2.53-6.3C4.02 8.35 6.33 7.42 8.68 7.46c1.05.02 2.09.24 3.05.66v4.02c-.93-.47-1.97-.71-3.02-.68-1.16.03-2.28.49-3.11 1.29-.83.8-1.32 1.91-1.37 3.08-.05 1.16.35 2.31 1.1 3.16.75.85 1.83 1.37 2.99 1.45 1.16.08 2.31-.32 3.17-1.11.87-.79 1.39-1.92 1.44-3.1V0z"/>
+                <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .79.11V9.28a6.15 6.15 0 0 0-1.79-.26 6.34 6.34 0 0 0-6.33 6.34 6.34 6.34 0 0 0 6.33 6.33 6.33 6.33 0 0 0 6.34-6.33V8.18a8.9 8.9 0 0 0 4.9 1.47V6.2a5.86 5.86 0 0 1-3.88-2.51z"/>
               </svg>
             </div>
             <div class="social-icon" data-social="ig" title="Instagram">
@@ -4060,12 +4389,12 @@ const MAX_REQUESTS_TRUSTED = 100;
           }
 
           const staticMarketplaces = [
-            { name: 'Poizon', url: 'https://poizon.com', logo_url: 'https://logo.clearbit.com/dewu.com', icon: '<span class="mp-dot" style="background:#22c55e" aria-hidden="true"></span>' },
-            { name: 'Taobao', url: 'https://taobao.com', logo_url: 'https://logo.clearbit.com/taobao.com', icon: '<span class="mp-dot" style="background:#fb923c" aria-hidden="true"></span>' },
-            { name: '1688', url: 'https://1688.com', logo_url: 'https://logo.clearbit.com/1688.com', icon: '<span class="mp-dot" style="background:#facc15" aria-hidden="true"></span>' },
-            { name: 'Zalando', url: 'https://zalando.de', logo_url: 'https://logo.clearbit.com/zalando.com', icon: '<span class="mp-dot" style="background:#92400e" aria-hidden="true"></span>' },
-            { name: 'Nike', url: 'https://nike.com', logo_url: 'https://logo.clearbit.com/nike.com', icon: '<span class="mp-dot" style="background:#374151" aria-hidden="true"></span>' },
-            { name: 'ASOS', url: 'https://asos.com', logo_url: 'https://logo.clearbit.com/asos.com', icon: '<span class="mp-dot" style="background:#3b82f6" aria-hidden="true"></span>' }
+            { name: 'Poizon', url: 'https://poizon.com', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=dewu.com', icon: '<span class="mp-dot" style="background:#22c55e" aria-hidden="true"></span>' },
+            { name: 'Taobao', url: 'https://taobao.com', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=taobao.com', icon: '<span class="mp-dot" style="background:#fb923c" aria-hidden="true"></span>' },
+            { name: '1688', url: 'https://1688.com', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=1688.com', icon: '<span class="mp-dot" style="background:#facc15" aria-hidden="true"></span>' },
+            { name: 'Zalando', url: 'https://zalando.de', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=zalando.de', icon: '<span class="mp-dot" style="background:#92400e" aria-hidden="true"></span>' },
+            { name: 'Nike', url: 'https://nike.com', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=nike.com', icon: '<span class="mp-dot" style="background:#374151" aria-hidden="true"></span>' },
+            { name: 'ASOS', url: 'https://asos.com', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=asos.com', icon: '<span class="mp-dot" style="background:#3b82f6" aria-hidden="true"></span>' }
           ];
 
           const marketplaces = [...dbMarketplaces];
@@ -4178,7 +4507,7 @@ const MAX_REQUESTS_TRUSTED = 100;
         ${marketplaces.map(mp => `
           <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}">
             <div class="story-icon" style="overflow:hidden; display:flex; align-items:center; justify-content:center; background: var(--glass-bg);">
-              ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-contain" style="border-radius: 50%; padding: 4px;" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
+              ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-contain" style="border-radius: 50%; padding: 4px; cursor: zoom-in;" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" onclick="event.stopPropagation(); window.showImagePreview('${mp.logo_url}')">` : ''}
               <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
             </div>
             <span class="story-label">${mp.name}</span>
@@ -4334,9 +4663,9 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
     grid.innerHTML = data.map(p => `
       <div class="product-card" data-product-id="${p.id}">
-        <div class="aspect-square bg-white/10 flex items-center justify-center relative">
-          <img src="${p.image_url || 'https://via.placeholder.com/150'}" class="w-full h-full object-cover">
-          <span class="absolute top-2 right-2 wishlist-heart text-xl ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/50'}" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
+        <div class="relative">
+          ${renderCardMedia(p.image_url, p.title)}
+          <span class="absolute top-2 right-2 wishlist-heart text-xl ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/50'} z-20" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
         </div>
         <div class="p-2">
           <p class="text-white font-bold text-sm truncate">${p.title}</p>
@@ -14001,9 +14330,9 @@ async function renderProductsCatalog() {
       <div class="grid grid-cols-2 gap-4" id="productsGrid">
         ${data.map(p => `
           <div class="product-card" data-product-id="${p.id}">
-            <div class="aspect-square bg-white/10 flex items-center justify-center relative">
-              <img src="${p.image_url || 'https://via.placeholder.com/150'}" class="w-full h-full object-cover">
-              <span class="absolute top-2 right-2 wishlist-heart text-xl ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/50'}" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
+            <div class="relative">
+              ${renderCardMedia(p.image_url, p.title)}
+              <span class="absolute top-2 right-2 wishlist-heart text-xl ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/50'} z-20" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
             </div>
             <div class="p-2">
               <p class="text-white font-bold text-sm truncate">${p.title}</p>
@@ -15415,6 +15744,7 @@ function attachAdminSuppliersHandlers() {
       if (currentTab !== 'home' && currentTab !== 'catalogs' && currentTab !== 'reports' && currentTab !== 'reviews' && currentTab !== 'academy' && currentTab !== 'dropshipper' && currentTab !== 'products' && currentTab !== 'wishlist' && !currentSubScreen) {
         ensureBackButton();
       }
+      initCardSliders();
     }
     
     function attachShadowModeExit() {
@@ -15585,12 +15915,12 @@ function attachMarketplacesHandlers() {
         console.error(e);
       }
       const staticMarketplaces = [
-        { name: 'Poizon', country: 'Китай', description: 'Популярный маркетплейс брендовых вещей', website_url: 'https://poizon.com', url: 'https://poizon.com', logo_url: 'https://logo.clearbit.com/dewu.com', icon: '<span class="mp-dot" style="background:#22c55e" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] },
-        { name: 'Taobao', country: 'Китай', description: 'Крупнейший интернет-магазин Китая', website_url: 'https://taobao.com', url: 'https://taobao.com', logo_url: 'https://logo.clearbit.com/taobao.com', icon: '<span class="mp-dot" style="background:#fb923c" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] },
-        { name: '1688', country: 'Китай', description: 'Оптовая платформа от Alibaba Group', website_url: 'https://1688.com', url: 'https://1688.com', logo_url: 'https://logo.clearbit.com/1688.com', icon: '<span class="mp-dot" style="background:#facc15" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] },
-        { name: 'Zalando', country: 'Германия', description: 'Европейский интернет-магазин одежды и обуви', website_url: 'https://zalando.de', url: 'https://zalando.de', logo_url: 'https://logo.clearbit.com/zalando.com', icon: '<span class="mp-dot" style="background:#92400e" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] },
-        { name: 'Nike', country: 'США', description: 'Официальный магазин спортивного бренда', website_url: 'https://nike.com', url: 'https://nike.com', logo_url: 'https://logo.clearbit.com/nike.com', icon: '<span class="mp-dot" style="background:#374151" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] },
-        { name: 'ASOS', country: 'Великобритания', description: 'Британский интернет-магазин одежды и косметики', website_url: 'https://asos.com', url: 'https://asos.com', logo_url: 'https://logo.clearbit.com/asos.com', icon: '<span class="mp-dot" style="background:#3b82f6" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] }
+        { name: 'Poizon', country: 'Китай', description: 'Популярный маркетплейс брендовых вещей', website_url: 'https://poizon.com', url: 'https://poizon.com', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=dewu.com', icon: '<span class="mp-dot" style="background:#22c55e" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] },
+        { name: 'Taobao', country: 'Китай', description: 'Крупнейший интернет-магазин Китая', website_url: 'https://taobao.com', url: 'https://taobao.com', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=taobao.com', icon: '<span class="mp-dot" style="background:#fb923c" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] },
+        { name: '1688', country: 'Китай', description: 'Оптовая платформа от Alibaba Group', website_url: 'https://1688.com', url: 'https://1688.com', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=1688.com', icon: '<span class="mp-dot" style="background:#facc15" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] },
+        { name: 'Zalando', country: 'Германия', description: 'Европейский интернет-магазин одежды и обуви', website_url: 'https://zalando.de', url: 'https://zalando.de', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=zalando.de', icon: '<span class="mp-dot" style="background:#92400e" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] },
+        { name: 'Nike', country: 'США', description: 'Официальный магазин спортивного бренда', website_url: 'https://nike.com', url: 'https://nike.com', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=nike.com', icon: '<span class="mp-dot" style="background:#374151" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] },
+        { name: 'ASOS', country: 'Великобритания', description: 'Британский интернет-магазин одежды и косметики', website_url: 'https://asos.com', url: 'https://asos.com', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=asos.com', icon: '<span class="mp-dot" style="background:#3b82f6" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] }
       ];
       marketplacesData = [...dbData];
       staticMarketplaces.forEach(staticMp => {
@@ -15627,7 +15957,7 @@ function attachMarketplacesHandlers() {
       return `
       <div class="product-card flex flex-col h-full">
         <div class="aspect-square flex items-center justify-center p-4 relative" style="background: var(--glass-bg-strong); overflow:hidden;">
-          ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''}
+          ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-contain" style="cursor: zoom-in;" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" onclick="event.stopPropagation(); window.showImagePreview('${mp.logo_url}')">` : ''}
           <span style="${mp.logo_url ? 'display:none;' : ''}" class="text-5xl flex items-center justify-center"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span></span>
           ${mp.country === 'США' || mp.country === 'Япония' || mp.country === 'ОАЭ' ? '<span class="absolute top-2 right-2 bg-yellow-500/80 text-black text-xs px-2 py-1 rounded-full">Скоро</span>' : ''}
         </div>
@@ -19753,7 +20083,7 @@ async function renderCart() {
       totalPrice += itemTotal;
       return `
         <div class="glass-card p-3 flex items-center gap-3" data-cart-id="${item.id}" data-current-qty="${item.quantity}">
-          <input type="checkbox" class="cart-item-checkbox" data-product-id="${product.id}" data-price="${product.price}" data-url="${product.url}" data-title="${product.title.replace(/"/g, '&quot;')}" checked>
+          <input type="checkbox" class="cart-item-checkbox" data-product-id="${product.id}" data-price="${product.price}" data-url="${product.url}" data-title="${product.title.replace(/"/g, '&quot;')}" data-image-url="${product.image_url || ''}" checked>
           <img src="${product.image_url || 'https://via.placeholder.com/150'}" class="w-16 h-16 object-cover rounded-lg">
           <div class="flex-1">
   <p class="text-white font-bold">${product.title}</p>
@@ -19940,6 +20270,8 @@ function attachCartHandlers() {
           title: cb.dataset.title,
           price: parseFloat(cb.dataset.price),
           url: cb.dataset.url,
+          imageUrl: cb.dataset.imageUrl || '',
+          image_url: cb.dataset.imageUrl || '',
           quantity: quantity
         });
       });
@@ -20389,7 +20721,7 @@ async function renderResale() {
   if (!userId) return '<p class="text-center mt-10 text-red-400">Авторизуйтесь</p>';
   
   try {
-    const { data, error } = await supabaseClient.from('resale_items').select('*, users(username, full_name)').eq('status', 'approved').order('created_at', { ascending: false });
+    const { data, error } = await supabaseClient.from('resale_items').select('*, users(username, full_name), orders(*)').eq('status', 'approved').order('created_at', { ascending: false });
     if (error) throw error;
     
     let html = `
@@ -20408,12 +20740,15 @@ async function renderResale() {
       html += '<div class="grid grid-cols-2 gap-3">';
       html += data.map(item => `
         <div class="glass-card flex flex-col relative overflow-hidden">
-          <div class="absolute top-2 right-2 bg-pink-500/80 text-white text-[10px] font-bold px-1.5 py-0.5 rounded border border-pink-400 backdrop-blur-md">В наличии</div>
-          <div class="p-3 flex-1">
+          <div class="absolute top-2 right-2 bg-pink-500/80 text-white text-[10px] font-bold px-1.5 py-0.5 rounded border border-pink-400 backdrop-blur-md z-20">В наличии</div>
+          <div class="relative">
+            ${renderCardMedia(getResaleImages(item), item.title)}
+          </div>
+          <div class="p-3 flex-1 flex flex-col">
             <p class="text-white font-bold text-sm leading-tight mb-1 line-clamp-2">${item.title}</p>
             <p class="text-xs text-white/70 mb-2 line-clamp-2">${item.description || ''}</p>
-            <p class="text-cyan-400 font-bold mb-2">${item.price_byn} BYN</p>
-            <div class="flex items-center gap-1 mt-auto text-[10px] text-white/50">
+            <p class="text-cyan-400 font-bold mb-2 mt-auto">${item.price_byn} BYN</p>
+            <div class="flex items-center gap-1 text-[10px] text-white/50">
               <span class="ix" style="width:12px;height:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
               ${item.users?.username ? '@' + item.users.username : (item.users?.full_name || 'Продавец')}
             </div>
@@ -20451,7 +20786,7 @@ async function renderAdminResale() {
   };
 
   try {
-    const { data, error } = await supabaseClient.from('resale_items').select('*, users(username)').eq('status', 'pending');
+    const { data, error } = await supabaseClient.from('resale_items').select('*, users(username), orders(*)').eq('status', 'pending');
     if (error) throw error;
     
     let html = `
@@ -20467,18 +20802,27 @@ async function renderAdminResale() {
       html += '<p class="text-white/50 text-center">Нет новых заявок</p>';
     } else {
       html += '<div class="space-y-3">';
-      html += data.map(item => `
-        <div class="glass-card p-3">
-          <p class="font-bold text-sm text-white">${item.title}</p>
-          <p class="text-xs text-white/70 mb-1">От: @${item.users?.username || item.user_id}</p>
-          <p class="text-xs text-white/70 mb-2">Цена: ${item.price_byn} BYN</p>
-          <p class="text-xs text-white/50 italic mb-3">"${item.description}"</p>
-          <div class="flex gap-2">
-            <button class="btn-primary flex-1 bg-green-500/20 text-green-400 text-xs" onclick="approveResale('${item.id}')">Одобрить</button>
-            <button class="btn-primary flex-1 bg-red-500/20 text-red-400 text-xs" onclick="rejectResale('${item.id}')">Отклонить</button>
+      html += data.map(item => {
+        const images = getResaleImages(item);
+        const firstImg = images[0] || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&auto=format&fit=crop&q=80';
+        return `
+          <div class="glass-card p-3 flex gap-3">
+            <div style="width: 80px; height: 80px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: var(--glass-bg);">
+              <img src="${firstImg}" class="w-full h-full object-cover cursor-zoom-in" onclick="window.showImagePreview(${JSON.stringify(images)})">
+            </div>
+            <div class="flex-1">
+              <p class="font-bold text-sm text-white">${item.title}</p>
+              <p class="text-xs text-white/70 mb-1">От: @${item.users?.username || item.user_id}</p>
+              <p class="text-xs text-white/70 mb-2">Цена: ${item.price_byn} BYN</p>
+              <p class="text-xs text-white/50 italic mb-3">"${item.description}"</p>
+              <div class="flex gap-2">
+                <button class="btn-primary flex-1 bg-green-500/20 text-green-400 text-xs" onclick="approveResale('${item.id}')">Одобрить</button>
+                <button class="btn-primary flex-1 bg-red-500/20 text-red-400 text-xs" onclick="rejectResale('${item.id}')">Отклонить</button>
+              </div>
+            </div>
           </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
       html += '</div>';
     }
     return html;
