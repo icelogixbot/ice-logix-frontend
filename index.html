@@ -1628,6 +1628,7 @@
       height: 100%;
       overflow-x: auto;
       scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
       scrollbar-width: none;
       -ms-overflow-style: none;
     }
@@ -1987,11 +1988,12 @@
         `;
       }
 
+      const escapedImages = encodeURIComponent(JSON.stringify(images));
       return `
         <div class="card-photo-container">
           <div class="card-slider">
             ${images.map((url, idx) => `
-              <div class="card-slide" onclick="event.stopPropagation(); window.showImagePreview(${JSON.stringify(images)}, ${idx})">
+              <div class="card-slide" onclick="event.stopPropagation(); window.showImagePreview(JSON.parse(decodeURIComponent('${escapedImages}')), ${idx})">
                 <img src="${url}" class="w-full h-full object-cover cursor-zoom-in" alt="${cardTitle}">
               </div>
             `).join('')}
@@ -4320,8 +4322,8 @@ const MAX_REQUESTS_TRUSTED = 100;
               </svg>
             </div>
             <div class="social-icon" data-social="tiktok" title="TikTok">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.02 1.59 4.23.85.99 2 1.7 3.29 2v3.9c-1.7-.13-3.32-.87-4.57-2.02v6.24c.02 2.36-.93 4.67-2.63 6.31-1.92 1.94-4.72 2.95-7.44 2.63-2.92-.26-5.61-2.23-6.68-4.99C-.78 14.88-.2 10.9 2.05 8.7c1.72-1.72 4.25-2.5 6.66-1.97v3.94c-1.39-.46-2.97-.08-3.99.93-.99.91-1.39 2.33-1.03 3.63.38 1.48 1.63 2.67 3.12 2.9 1.73.3 3.48-.65 3.98-2.31.11-.31.15-.65.15-.98V.02h1.59z"/>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/>
               </svg>
             </div>
             <div class="social-icon" data-social="ig" title="Instagram">
@@ -4740,6 +4742,9 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         }
       };
     });
+    
+    // Инициализируем обработчики прокрутки фото для карточек товаров
+    initCardSliders();
   } catch(e) {
     console.error('Ошибка загрузки товаров на главной:', e);
   }
@@ -12268,7 +12273,18 @@ async function renderAdmin() {
           <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Управление товарами</h3>
           <button id="addProductBtn" class="btn-primary w-full mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить товар</button>
           <div class="space-y-2 max-h-60 overflow-y-auto">
-            ${products.map(p => `<div class="flex justify-between items-center p-2 bg-white/5 rounded-lg"><div><span class="text-white">${p.title}</span><span class="text-cyan-400 ml-2">${p.price} ${p.currency}</span></div><button class="deleteProductBtn bg-red-600 px-2 py-1 rounded text-xs" data-id="${p.id}">Удалить</button></div>`).join('')}
+            ${products.map(p => `
+              <div class="flex justify-between items-center p-2 bg-white/5 rounded-lg">
+                <div class="flex-1 min-w-0">
+                  <p class="text-white text-sm truncate">${p.title}</p>
+                  <p class="text-cyan-400 text-xs">${p.price} ${p.currency}</p>
+                </div>
+                <div class="flex gap-1.5 ml-2 flex-shrink-0">
+                  <button class="editProductBtn bg-cyan-600/70 hover:bg-cyan-600 px-2 py-1 rounded text-xs text-white transition" data-id="${p.id}">Изменить</button>
+                  <button class="deleteProductBtn bg-red-600/70 hover:bg-red-600 px-2 py-1 rounded text-xs text-white transition" data-id="${p.id}">Удалить</button>
+                </div>
+              </div>
+            `).join('')}
           </div>
         </div>
         
@@ -12948,6 +12964,70 @@ function attachAdminHandlers() {
       };
     };
   }
+
+  document.querySelectorAll('.editProductBtn').forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.getAttribute('data-id');
+      try {
+        const { data: prod, error } = await supabaseClient.from('products').select('*').eq('id', id).single();
+        if (error || !prod) { tgUtil.alert('Не удалось загрузить данные товара'); return; }
+        
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[110] p-4 overflow-y-auto pt-16 pb-20';
+        modal.innerHTML = `
+          <div class="bg-[#1e293b] rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col border border-white/20">
+            <div class="p-5 border-b border-white/20">
+              <h3 class="text-white font-bold text-lg"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span> Редактировать товар</h3>
+            </div>
+            <div class="p-5 overflow-y-auto flex-1">
+              <div class="space-y-3">
+                <input type="text" id="productTitle" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Название" value="${prod.title || ''}">
+                <textarea id="productDesc" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Описание" rows="2">${prod.description || ''}</textarea>
+                <input type="number" id="productPrice" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Цена" value="${prod.price || 0}">
+                <select id="productCategory" class="btn-secondary w-full p-3 rounded-xl border border-white/30">
+                  <option value="Обувь" ${prod.category === 'Обувь' ? 'selected' : ''}>Обувь</option>
+                  <option value="Одежда" ${prod.category === 'Одежда' ? 'selected' : ''}>Одежда</option>
+                  <option value="Аксессуары" ${prod.category === 'Аксессуары' ? 'selected' : ''}>Аксессуары</option>
+                </select>
+                <input type="text" id="productBrand" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Бренд" value="${prod.brand || ''}">
+                <input type="text" id="productImage" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="URL изображения" value="${prod.image_url || ''}">
+                <input type="url" id="productUrl" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Ссылка на товар" value="${prod.url || ''}">
+                <label class="flex items-center gap-2 text-white/80 p-2 rounded-xl bg-purple-500/10 border border-purple-500/30">
+                  <input type="checkbox" id="productIsDrop" ${prod.is_drop ? 'checked' : ''}> 🧊 Эксклюзивный ДРОП (доступен только в окно дропов)
+                </label>
+              </div>
+            </div>
+            <div class="p-5 border-t border-white/20">
+              <div class="flex gap-3">
+                <button id="saveProductBtn" class="btn-primary flex-1">Сохранить</button>
+                <button id="cancelProductBtn" class="btn-secondary flex-1">Отмена</button>
+              </div>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        modal.querySelector('#cancelProductBtn').onclick = () => modal.remove();
+        modal.querySelector('#saveProductBtn').onclick = async () => {
+          const title = modal.querySelector('#productTitle').value.trim();
+          const description = modal.querySelector('#productDesc').value.trim();
+          const price = parseFloat(modal.querySelector('#productPrice').value);
+          const category = modal.querySelector('#productCategory').value;
+          const brand = modal.querySelector('#productBrand').value.trim();
+          const image_url = modal.querySelector('#productImage').value.trim();
+          const url = modal.querySelector('#productUrl').value.trim();
+          const is_drop = modal.querySelector('#productIsDrop').checked;
+          if (!title || !price) { tgUtil.alert('Заполните название и цену'); return; }
+          try {
+            await supabaseClient.from('products').update({ title, description, price, category, brand, image_url, url, is_drop }).eq('id', id);
+            logAdminAction('update_product', { id, title });
+            tgUtil.alert('Товар обновлён');
+            modal.remove();
+            renderCurrentScreen();
+          } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }
+        };
+      } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }
+    };
+  });
 
   document.querySelectorAll('.deleteProductBtn').forEach(btn => {
     btn.onclick = async () => {
@@ -15847,14 +15927,16 @@ function attachCatalogsHandlers() {
 // ==================== РЕНДЕР ПОДКАТАЛОГА ПЛОЩАДОК ====================
 async function renderMarketplaces() {
   try {
-    const { data: rawData, error } = await supabaseClient
-      .from('marketplaces')
-      .select('*')
-      .eq('is_active', true)
-      .order('sort_order', { ascending: true });
-      
-    if (error) throw error;
-    const data = preprocessMarketplaces(rawData);
+    if (!window.marketplacesCache) {
+      const { data: rawData, error } = await supabaseClient
+        .from('marketplaces')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+      window.marketplacesCache = preprocessMarketplaces(rawData);
+    }
+    const data = window.marketplacesCache;
     if (!data || data.length === 0) {
       return `<p class="text-center mt-10 text-white/70">Каталог площадок пока пуст</p>`;
     }
@@ -15896,7 +15978,7 @@ async function renderMarketplaces() {
         </div>
       </div>
       
-      <div class="grid grid-cols-2 gap-4" id="marketplacesGrid"></div>
+      <div class="flex flex-col gap-3" id="marketplacesGrid"></div>
       
       ${renderFooter()}
     `;
@@ -15915,11 +15997,18 @@ function attachMarketplacesHandlers() {
   async function renderFilteredGrid() {
     if (marketplacesData.length === 0) {
       let dbData = [];
-      try {
-        const { data } = await supabaseClient.from('marketplaces').select('*').eq('is_active', true);
-        if (data) dbData = preprocessMarketplaces(data);
-      } catch(e) {
-        console.error(e);
+      if (window.marketplacesCache) {
+        dbData = [...window.marketplacesCache];
+      } else {
+        try {
+          const { data } = await supabaseClient.from('marketplaces').select('*').eq('is_active', true);
+          if (data) {
+            dbData = preprocessMarketplaces(data);
+            window.marketplacesCache = dbData;
+          }
+        } catch(e) {
+          console.error(e);
+        }
       }
       const staticMarketplaces = [
         { name: 'Poizon', country: 'Китай', description: 'Популярный маркетплейс брендовых вещей', website_url: 'https://poizon.com', url: 'https://poizon.com', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=dewu.com', icon: '<span class="mp-dot" style="background:#22c55e" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] },
@@ -15950,51 +16039,54 @@ function attachMarketplacesHandlers() {
     if (!grid) return;
     
     if (filtered.length === 0) {
-      grid.innerHTML = '<p class="text-white/70 col-span-2 text-center py-10">Нет площадок, соответствующих фильтрам</p>';
+      grid.innerHTML = '<p class="text-white/70 text-center py-10">Нет площадок, соответствующих фильтрам</p>';
       return;
     }
     
     grid.innerHTML = filtered.map(mp => {
       let tagsHtml = '';
       const name = (mp.name || '').toLowerCase();
-      if (mp.requires_vpn || name.includes('poizon')) tagsHtml += '<span class="text-[10px] px-1.5 py-0.5 rounded-sm bg-red-500/20 text-red-400 border border-red-500/30 mt-1">Нужен VPN</span>';
-      if (name.includes('1688')) tagsHtml += '<span class="text-[10px] px-1.5 py-0.5 rounded-sm bg-orange-500/20 text-orange-400 border border-orange-500/30 mt-1">Только опт</span>';
-      if (name.includes('taobao') || name.includes('wechat')) tagsHtml += '<span class="text-[10px] px-1.5 py-0.5 rounded-sm bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 mt-1">Сложная рег.</span>';
+      if (mp.requires_vpn || name.includes('poizon')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">Нужен VPN</span>';
+      if (name.includes('1688')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">Только опт</span>';
+      if (name.includes('taobao') || name.includes('wechat')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">Сложная рег.</span>';
       
       return `
-      <div class="product-card flex flex-col h-full">
-        <div class="aspect-square flex items-center justify-center p-4 relative" style="background: var(--glass-bg-strong); overflow:hidden;">
-          ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-contain" style="cursor: zoom-in;" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" onclick="event.stopPropagation(); window.showImagePreview('${mp.logo_url}')">` : ''}
-          <span style="${mp.logo_url ? 'display:none;' : ''}" class="text-5xl flex items-center justify-center"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span></span>
-          ${mp.country === 'США' || mp.country === 'Япония' || mp.country === 'ОАЭ' ? '<span class="absolute top-2 right-2 bg-yellow-500/80 text-black text-xs px-2 py-1 rounded-full">Скоро</span>' : ''}
+      <div class="glass-card flex gap-3 p-3 items-center page-enter">
+        <!-- Левая часть: квадратный контейнер логотипа -->
+        <div style="width: 68px; height: 68px; flex-shrink: 0; border-radius: 16px; overflow:hidden; background: var(--glass-bg-strong); display:flex; align-items:center; justify-content:center; border: 1px solid var(--glass-border-strong);" class="relative">
+          ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-cover cursor-zoom-in" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" onclick="event.stopPropagation(); window.showImagePreview('${mp.logo_url}')">` : ''}
+          <span style="${mp.logo_url ? 'display:none;' : ''}" class="text-4xl flex items-center justify-center"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span></span>
+          ${mp.country === 'США' || mp.country === 'Япония' || mp.country === 'ОАЭ' ? '<span class="absolute bottom-0 right-0 bg-yellow-500 text-black text-[8px] font-bold px-1 rounded-tl">Скоро</span>' : ''}
         </div>
-        <div class="p-3 flex-1 flex flex-col relative">
-          <h3 class="font-bold text-white text-lg">${mp.name}</h3>
-          <p class="text-white/70 text-xs mb-1">${mp.country}</p>
-          <div class="flex flex-wrap gap-1 mb-2">
+        
+        <!-- Центр: вся нужная информация -->
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <h3 class="font-bold text-white text-sm truncate">${mp.name}</h3>
+            <span class="text-[9px] text-white/50 bg-white/5 px-1.5 py-0.2 rounded-full border border-white/5">${mp.country}</span>
+          </div>
+          <p class="text-white/60 text-[11px] mt-1 line-clamp-1 leading-tight">${mp.description || ''}</p>
+          <div class="flex flex-wrap gap-1 mt-1.5 items-center">
             ${tagsHtml}
+            ${mp.categories?.slice(0, 2).map(cat => `<span class="text-white/40 text-[9px] bg-white/5 px-1.5 py-0.5 rounded border border-white/5">${cat}</span>`).join('') || ''}
           </div>
-          <div class="flex flex-wrap gap-1 mt-auto">
-            ${mp.gender?.slice(0, 2).map(g => `<span class="text-xs px-2 py-0.5 rounded-full" style="color: var(--text-secondary); background: var(--glass-bg);">${g}</span>`).join('') || ''}
-          </div>
-          <div class="flex flex-wrap gap-1 mt-1">
-            ${mp.categories?.slice(0, 2).map(cat => `<span class="text-white/50 text-xs bg-white/10 px-2 py-0.5 rounded-full">${cat}</span>`).join('')}
-            ${mp.categories?.length > 2 ? `<span class="text-white/50 text-xs">+${mp.categories.length - 2}</span>` : ''}
-          </div>
-          <p class="text-white/80 text-sm mt-2 line-clamp-2">${mp.description || ''}</p>
-          
-          <div class="flex items-center justify-between mt-3 pt-2 border-t border-white/10">
-            <a href="${mp.website_url}" target="_blank" class="text-cyan-400 text-sm underline">Перейти</a>
-            <button class="instruction-btn flex items-center gap-1 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 px-3 py-1.5 rounded-lg text-xs font-bold transition" 
-              data-name="${mp.name.replace(/"/g, '&quot;')}" 
-              data-instruction="${(mp.instruction || '').replace(/"/g, '&quot;')}"
-              data-instruction-images='${JSON.stringify(mp.instruction_images || [])}'
-              data-requires-vpn="${mp.requires_vpn}">
-              <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span> Как покупать
-            </button>
-          </div>
+        </div>
+
+        <!-- Правая часть: кнопка перехода и инструкция -->
+        <div class="flex flex-col gap-1.5 items-end justify-center flex-shrink-0">
+          <a href="${mp.website_url}" target="_blank" class="btn-primary py-1 px-3 rounded-lg text-[10px] font-bold text-center w-24 bg-cyan-500 text-white hover:bg-cyan-600 transition flex items-center justify-center gap-1">
+            Перейти
+          </a>
+          <button class="instruction-btn bg-white/5 hover:bg-white/10 text-white/80 py-1 px-2 rounded-lg text-[10px] font-bold transition flex items-center justify-center gap-1 w-24 text-center justify-center" 
+            data-name="${mp.name.replace(/"/g, '&quot;')}" 
+            data-instruction="${(mp.instruction || '').replace(/"/g, '&quot;')}"
+            data-instruction-images='${JSON.stringify(mp.instruction_images || [])}'
+            data-requires-vpn="${mp.requires_vpn}">
+            <span class="ix" style="width:10px;height:10px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span> Инструкция
+          </button>
         </div>
       </div>
+      `;
     `}).join('');
     
     document.querySelectorAll('.instruction-btn').forEach(btn => {
