@@ -470,7 +470,7 @@
     
     .main-content { 
       padding: 16px; 
-      padding-top: 80px;
+      padding-top: 96px;
       padding-bottom: 100px;
       position: relative;
       z-index: 1;
@@ -1776,6 +1776,14 @@
         }
         return mp;
       });
+    }
+
+    function getHeartIcon(isActive) {
+      if (isActive) {
+        return `<span class="ix ix-error"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>`;
+      } else {
+        return `<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>`;
+      }
     }
 
     // --- APP CACHE FOR BLAZING FAST NAVIGATION ---
@@ -3977,7 +3985,7 @@ const MAX_REQUESTS_TRUSTED = 100;
             </div>
             <div class="social-icon" data-social="tiktok" title="TikTok">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .8.11V9.4a6.27 6.27 0 0 0-8.31 6 6.36 6.36 0 0 0 10.94 4.39 6.27 6.27 0 0 0 2.91-5.22V7.74a8.29 8.29 0 0 0 5.4 1.93V6.22a4.79 4.79 0 0 1-1.42-.53 4.85 4.85 0 0 1-1.32-1z"/>
+                <path d="M12.53.02C13.84 0 15.14.01 16.44 0c.08 1.53.63 3.02 1.59 4.23.95 1.18 2.27 2.01 3.73 2.38v3.83c-1.39-.01-2.76-.37-3.99-1.05-.72-.4-1.36-.91-1.89-1.52v7.14c-.04 2.38-.97 4.67-2.6 6.32-1.62 1.64-3.86 2.58-6.19 2.62-2.33.04-4.63-.83-6.32-2.42-1.7-1.6-2.68-3.86-2.72-6.21-.04-2.35.88-4.65 2.53-6.3C4.02 8.35 6.33 7.42 8.68 7.46c1.05.02 2.09.24 3.05.66v4.02c-.93-.47-1.97-.71-3.02-.68-1.16.03-2.28.49-3.11 1.29-.83.8-1.32 1.91-1.37 3.08-.05 1.16.35 2.31 1.1 3.16.75.85 1.83 1.37 2.99 1.45 1.16.08 2.31-.32 3.17-1.11.87-.79 1.39-1.92 1.44-3.1V0z"/>
               </svg>
             </div>
             <div class="social-icon" data-social="ig" title="Instagram">
@@ -3989,7 +3997,7 @@ const MAX_REQUESTS_TRUSTED = 100;
             </div>
             <div class="social-icon" data-social="pinterest" title="Pinterest">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.08 3.16 9.42 7.63 11.16-.1-.95-.2-2.4.04-3.43.22-.93 1.4-5.93 1.4-5.93s-.36-.72-.36-1.77c0-1.66.96-2.9 2.18-2.9 1.03 0 1.53.77 1.53 1.7 0 1.03-.66 2.58-.99 4.02-.28 1.2.6 2.17 1.78 2.17 2.14 0 3.78-2.26 3.78-5.5 0-2.88-2.07-4.9-5.02-4.9-3.43 0-5.45 2.57-5.45 5.23 0 1.04.4 2.15.9 2.75.1.12.11.23.08.35-.1.38-.3.1.33-1.37.14-.59-.06-.85-.35-.97-.24-.1-1-.4-1.37-1.16-.68-1.42-1.07-2.9-1.07-4.68 0-3.8 2.76-7.3 7.97-7.3 4.18 0 7.43 2.98 7.43 6.96 0 4.16-2.62 7.5-6.26 7.5-1.22 0-2.37-.63-2.76-1.38L9.16 21.3c-.4 1.56-1.5 3.52-2.24 4.7 1.13.34 2.3.5 3.54.5 6.63 0 12-5.37 12-12S18.63 0 12 0z"/>
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.494 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.342-.091.382-.294 1.197-.333 1.36-.053.21-.173.255-.399.149-1.492-.695-2.424-2.877-2.424-4.628 0-3.769 2.737-7.229 7.892-7.229 4.143 0 7.362 2.953 7.362 6.899 0 4.117-2.597 7.431-6.202 7.431-1.211 0-2.35-.63-2.739-1.373l-.747 2.846c-.27 1.029-.999 2.319-1.488 3.111C9.079 23.774 10.493 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/>
               </svg>
             </div>
             <div class="social-icon" data-social="vk" title="VK">
@@ -4043,14 +4051,29 @@ const MAX_REQUESTS_TRUSTED = 100;
 
         // ==================== РЕНДЕР ГЛАВНОЙ СТРАНИЦЫ ====================
         async function renderHome() {
-  const marketplaces = [
-    { id: 1, name: 'Poizon', url: 'https://poizon.com', icon: '<span class="mp-dot" style="background:#22c55e" aria-hidden="true"></span>' },
-    { id: 2, name: 'Taobao', url: 'https://taobao.com', icon: '<span class="mp-dot" style="background:#fb923c" aria-hidden="true"></span>' },
-    { id: 3, name: '1688', url: 'https://1688.com', icon: '<span class="mp-dot" style="background:#facc15" aria-hidden="true"></span>' },
-    { id: 4, name: 'Zalando', url: 'https://zalando.de', icon: '<span class="mp-dot" style="background:#92400e" aria-hidden="true"></span>' },
-    { id: 5, name: 'Nike', url: 'https://nike.com', icon: '<span class="mp-dot" style="background:#374151" aria-hidden="true"></span>' },
-    { id: 6, name: 'ASOS', url: 'https://asos.com', icon: '<span class="mp-dot" style="background:#3b82f6" aria-hidden="true"></span>' }
-  ];
+          let dbMarketplaces = [];
+          try {
+            const { data: dbData } = await supabaseClient.from('marketplaces').select('*').eq('is_active', true).order('sort_order', { ascending: true });
+            if (dbData) dbMarketplaces = preprocessMarketplaces(dbData);
+          } catch (e) {
+            console.error(e);
+          }
+
+          const staticMarketplaces = [
+            { name: 'Poizon', url: 'https://poizon.com', logo_url: 'https://logo.clearbit.com/dewu.com', icon: '<span class="mp-dot" style="background:#22c55e" aria-hidden="true"></span>' },
+            { name: 'Taobao', url: 'https://taobao.com', logo_url: 'https://logo.clearbit.com/taobao.com', icon: '<span class="mp-dot" style="background:#fb923c" aria-hidden="true"></span>' },
+            { name: '1688', url: 'https://1688.com', logo_url: 'https://logo.clearbit.com/1688.com', icon: '<span class="mp-dot" style="background:#facc15" aria-hidden="true"></span>' },
+            { name: 'Zalando', url: 'https://zalando.de', logo_url: 'https://logo.clearbit.com/zalando.com', icon: '<span class="mp-dot" style="background:#92400e" aria-hidden="true"></span>' },
+            { name: 'Nike', url: 'https://nike.com', logo_url: 'https://logo.clearbit.com/nike.com', icon: '<span class="mp-dot" style="background:#374151" aria-hidden="true"></span>' },
+            { name: 'ASOS', url: 'https://asos.com', logo_url: 'https://logo.clearbit.com/asos.com', icon: '<span class="mp-dot" style="background:#3b82f6" aria-hidden="true"></span>' }
+          ];
+
+          const marketplaces = [...dbMarketplaces];
+          staticMarketplaces.forEach(staticMp => {
+            if (!marketplaces.some(mp => mp.name.toLowerCase() === staticMp.name.toLowerCase())) {
+              marketplaces.push(staticMp);
+            }
+          });
   
   return `
     <!-- Currency Tracker -->
@@ -4153,9 +4176,10 @@ const MAX_REQUESTS_TRUSTED = 100;
       <div class="swipe-hint-icon">👉</div>
       <div class="scroll-x" style="padding: 4px 0;">
         ${marketplaces.map(mp => `
-          <div class="story-card marketplace-story" data-url="${mp.url}">
-            <div class="story-icon">
-              <span style="font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));">${mp.icon}</span>
+          <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}">
+            <div class="story-icon" style="overflow:hidden; display:flex; align-items:center; justify-content:center; background: var(--glass-bg);">
+              ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-contain" style="border-radius: 50%; padding: 4px;" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
+              <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
             </div>
             <span class="story-label">${mp.name}</span>
           </div>
@@ -4312,7 +4336,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       <div class="product-card" data-product-id="${p.id}">
         <div class="aspect-square bg-white/10 flex items-center justify-center relative">
           <img src="${p.image_url || 'https://via.placeholder.com/150'}" class="w-full h-full object-cover">
-          <span class="absolute top-2 right-2 wishlist-heart text-xl ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/50'}" data-product-id="${p.id}">${wishlist.has(p.id) ? '<span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>' : '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>'}</span>
+          <span class="absolute top-2 right-2 wishlist-heart text-xl ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/50'}" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
         </div>
         <div class="p-2">
           <p class="text-white font-bold text-sm truncate">${p.title}</p>
@@ -4333,12 +4357,12 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         if (wishlist.has(productId)) {
           await supabaseClient.from('wishlist').delete().eq('user_id', userId).eq('product_id', productId);
           wishlist.delete(productId);
-          heart.innerHTML = '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>';
+          heart.innerHTML = getHeartIcon(false);
           heart.classList.remove('text-red-500');
         } else {
           await supabaseClient.from('wishlist').insert({ user_id: userId, product_id: productId });
           wishlist.add(productId);
-          heart.innerHTML = '<span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>';
+          heart.innerHTML = getHeartIcon(true);
           heart.classList.add('text-red-500');
         }
       };
@@ -9947,7 +9971,7 @@ async function renderAcademy() {
             <div class="product-card" data-product-id="${p.id}">
               <div class="aspect-square bg-white/10 flex items-center justify-center relative">
                 <img src="${p.image_url || 'https://via.placeholder.com/150'}" class="w-full h-full object-cover">
-                <span class="absolute top-2 right-2 wishlist-heart text-xl text-red-500 cursor-pointer" data-product-id="${p.id}"><span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span></span>
+                <span class="absolute top-2 right-2 wishlist-heart text-xl text-red-500 cursor-pointer" data-product-id="${p.id}">${getHeartIcon(true)}</span>
               </div>
               <div class="p-2">
                 <p class="text-white font-bold text-sm truncate">${p.title}</p>
@@ -13979,7 +14003,7 @@ async function renderProductsCatalog() {
           <div class="product-card" data-product-id="${p.id}">
             <div class="aspect-square bg-white/10 flex items-center justify-center relative">
               <img src="${p.image_url || 'https://via.placeholder.com/150'}" class="w-full h-full object-cover">
-              <span class="absolute top-2 right-2 wishlist-heart text-xl ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/50'}" data-product-id="${p.id}">${wishlist.has(p.id) ? '<span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>' : '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>'}</span>
+              <span class="absolute top-2 right-2 wishlist-heart text-xl ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/50'}" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
             </div>
             <div class="p-2">
               <p class="text-white font-bold text-sm truncate">${p.title}</p>
@@ -14085,12 +14109,12 @@ function attachProductsCatalogHandlers() {
       if (wishlist.has(productId)) {
         await supabaseClient.from('wishlist').delete().eq('user_id', userId).eq('product_id', productId);
         wishlist.delete(productId);
-        heart.innerHTML = '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>';
+        heart.innerHTML = getHeartIcon(false);
         heart.classList.remove('text-red-500');
       } else {
         await supabaseClient.from('wishlist').insert({ user_id: userId, product_id: productId });
         wishlist.add(productId);
-        heart.innerHTML = '<span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>';
+        heart.innerHTML = getHeartIcon(true);
         heart.classList.add('text-red-500');
       }
     };
@@ -14157,7 +14181,7 @@ async function loadMoreProducts() {
         div.innerHTML = `
           <div class="aspect-square bg-white/10 flex items-center justify-center relative">
             <img src="${p.image_url || 'https://via.placeholder.com/150'}" class="w-full h-full object-cover">
-            <span class="absolute top-2 right-2 wishlist-heart text-xl ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/50'}" data-product-id="${p.id}">${wishlist.has(p.id) ? '<span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>' : '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>'}</span>
+            <span class="absolute top-2 right-2 wishlist-heart text-xl ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/50'}" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
           </div>
           <div class="p-2">
             <p class="text-white font-bold text-sm truncate">${p.title}</p>
@@ -14178,10 +14202,10 @@ async function loadMoreProducts() {
           const heart = e.currentTarget;
           if (wishlist.has(p.id)) {
             await supabaseClient.from('wishlist').delete().eq('user_id', userId).eq('product_id', p.id);
-            wishlist.delete(p.id); heart.innerHTML = '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>'; heart.classList.remove('text-red-500');
+            wishlist.delete(p.id); heart.innerHTML = getHeartIcon(false); heart.classList.remove('text-red-500');
           } else {
             await supabaseClient.from('wishlist').insert({ user_id: userId, product_id: p.id });
-            wishlist.add(p.id); heart.innerHTML = '<span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>'; heart.classList.add('text-red-500');
+            wishlist.add(p.id); heart.innerHTML = getHeartIcon(true); heart.classList.add('text-red-500');
           }
         };
         div.onclick = () => {
@@ -15553,8 +15577,27 @@ function attachMarketplacesHandlers() {
   
   async function renderFilteredGrid() {
     if (marketplacesData.length === 0) {
-      const { data } = await supabaseClient.from('marketplaces').select('*').eq('is_active', true);
-      marketplacesData = preprocessMarketplaces(data || []);
+      let dbData = [];
+      try {
+        const { data } = await supabaseClient.from('marketplaces').select('*').eq('is_active', true);
+        if (data) dbData = preprocessMarketplaces(data);
+      } catch(e) {
+        console.error(e);
+      }
+      const staticMarketplaces = [
+        { name: 'Poizon', country: 'Китай', description: 'Популярный маркетплейс брендовых вещей', website_url: 'https://poizon.com', url: 'https://poizon.com', logo_url: 'https://logo.clearbit.com/dewu.com', icon: '<span class="mp-dot" style="background:#22c55e" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] },
+        { name: 'Taobao', country: 'Китай', description: 'Крупнейший интернет-магазин Китая', website_url: 'https://taobao.com', url: 'https://taobao.com', logo_url: 'https://logo.clearbit.com/taobao.com', icon: '<span class="mp-dot" style="background:#fb923c" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] },
+        { name: '1688', country: 'Китай', description: 'Оптовая платформа от Alibaba Group', website_url: 'https://1688.com', url: 'https://1688.com', logo_url: 'https://logo.clearbit.com/1688.com', icon: '<span class="mp-dot" style="background:#facc15" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] },
+        { name: 'Zalando', country: 'Германия', description: 'Европейский интернет-магазин одежды и обуви', website_url: 'https://zalando.de', url: 'https://zalando.de', logo_url: 'https://logo.clearbit.com/zalando.com', icon: '<span class="mp-dot" style="background:#92400e" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] },
+        { name: 'Nike', country: 'США', description: 'Официальный магазин спортивного бренда', website_url: 'https://nike.com', url: 'https://nike.com', logo_url: 'https://logo.clearbit.com/nike.com', icon: '<span class="mp-dot" style="background:#374151" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] },
+        { name: 'ASOS', country: 'Великобритания', description: 'Британский интернет-магазин одежды и косметики', website_url: 'https://asos.com', url: 'https://asos.com', logo_url: 'https://logo.clearbit.com/asos.com', icon: '<span class="mp-dot" style="background:#3b82f6" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] }
+      ];
+      marketplacesData = [...dbData];
+      staticMarketplaces.forEach(staticMp => {
+        if (!marketplacesData.some(mp => mp.name.toLowerCase() === staticMp.name.toLowerCase())) {
+          marketplacesData.push(staticMp);
+        }
+      });
     }
     
     const activeCountry = document.querySelector('#filterCountries .filter-chip.active')?.dataset.country || 'all';
@@ -15583,8 +15626,9 @@ function attachMarketplacesHandlers() {
       
       return `
       <div class="product-card flex flex-col h-full">
-        <div class="aspect-square flex items-center justify-center p-4 relative" style="background: var(--glass-bg-strong);">
-          ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-contain" alt="${mp.name}">` : '<span class="text-5xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span></span>'}
+        <div class="aspect-square flex items-center justify-center p-4 relative" style="background: var(--glass-bg-strong); overflow:hidden;">
+          ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''}
+          <span style="${mp.logo_url ? 'display:none;' : ''}" class="text-5xl flex items-center justify-center"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span></span>
           ${mp.country === 'США' || mp.country === 'Япония' || mp.country === 'ОАЭ' ? '<span class="absolute top-2 right-2 bg-yellow-500/80 text-black text-xs px-2 py-1 rounded-full">Скоро</span>' : ''}
         </div>
         <div class="p-3 flex-1 flex flex-col relative">
