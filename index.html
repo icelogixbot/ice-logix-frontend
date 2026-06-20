@@ -190,7 +190,7 @@
       to { transform: translateY(0); opacity: 1; }
     }
     
-    .header-left { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .header-left { display: flex; align-items: center; gap: 10px; flex-shrink: 0; margin-left: 20px; }
     
     .logo-img { 
       box-sizing: content-box;
@@ -309,14 +309,7 @@
       border: 1px solid var(--glass-border-strong);
       border-radius: 16px;
       box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255,255,255,0.1);
-      cursor: pointer;
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .user-card:hover {
-      background: linear-gradient(135deg, rgba(91,191,235,0.2) 0%, rgba(46,158,212,0.1) 100%);
-      border-color: rgba(91, 191, 235, 0.4);
-      transform: translateY(-1px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), 0 0 15px rgba(91, 191, 235, 0.15);
     }
     .user-card .balance-island {
       background: none !important;
@@ -347,6 +340,15 @@
       font-weight: 700;
       color: white;
       box-shadow: 0 2px 8px rgba(91,191,235,0.3);
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .user-avatar:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(91,191,235,0.5);
+    }
+    .user-avatar:active {
+      transform: scale(0.9);
     }
     .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
     
@@ -1195,73 +1197,143 @@
       }
     }
     
-    /* Light theme overrides - preserved for compatibility */
-    html.light body { background: linear-gradient(165deg, #E8F4FC 0%, #D1E9F6 50%, #B8E0F6 100%); }
-    html.light .app-header { background: rgba(255,255,255,0.7); border-color: rgba(91,191,235,0.2); }
-    html.light .tab-bar { background: rgba(255,255,255,0.7); border-color: rgba(91,191,235,0.2); }
-    html.light .text-white { color: #1a3a5c !important; }
-    html.light .text-white\/70 { color: rgba(26,59,92,0.7) !important; }
-    html.light .text-white\/50, html.light .text-white\/60 { color: rgba(26,59,92,0.55) !important; }
-
-    /* Settings modal light theme styling */
-    html.light #settingsModalCard {
-      background: rgba(255, 255, 255, 0.95) !important;
+    /* Light theme overrides */
+    html.light-theme body { 
+      background: linear-gradient(165deg, #E8F4FC 0%, #F5FAFD 50%, #D9EAF5 100%) !important; 
+    }
+    html.light-theme .app-header,
+    html.light-theme .tab-bar { 
+      background: linear-gradient(135deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.7) 100%) !important;
+      border-color: rgba(91,191,235,0.3) !important;
+      box-shadow: 0 4px 24px rgba(91, 191, 235, 0.1), 0 0 40px rgba(91, 191, 235, 0.15) !important;
+    }
+    
+    /* Text Color Mappings for Light Theme */
+    html.light-theme .text-white { color: #0F2847 !important; }
+    html.light-theme .text-white\/90 { color: rgba(15, 40, 71, 0.9) !important; }
+    html.light-theme .text-white\/80 { color: rgba(15, 40, 71, 0.8) !important; }
+    html.light-theme .text-white\/70 { color: rgba(15, 40, 71, 0.75) !important; }
+    html.light-theme .text-white\/60 { color: rgba(15, 40, 71, 0.65) !important; }
+    html.light-theme .text-white\/50 { color: rgba(15, 40, 71, 0.5) !important; }
+    html.light-theme .text-white\/40 { color: rgba(15, 40, 71, 0.4) !important; }
+    html.light-theme .text-white\/30 { color: rgba(15, 40, 71, 0.3) !important; }
+    html.light-theme .text-white\/20 { color: rgba(15, 40, 71, 0.2) !important; }
+    
+    html.light-theme .text-slate-400 { color: rgba(15, 40, 71, 0.55) !important; }
+    html.light-theme .text-slate-300 { color: rgba(15, 40, 71, 0.75) !important; }
+    html.light-theme .text-cyan-400 { color: #0284c7 !important; }
+    html.light-theme .text-cyan-300 { color: #0369a1 !important; }
+    
+    /* Background & Border Mappings for Light Theme */
+    html.light-theme .bg-white\/5 { background-color: rgba(15, 40, 71, 0.04) !important; }
+    html.light-theme .bg-white\/10 { background-color: rgba(15, 40, 71, 0.08) !important; }
+    html.light-theme .bg-white\/15 { background-color: rgba(15, 40, 71, 0.12) !important; }
+    html.light-theme .bg-white\/20 { background-color: rgba(15, 40, 71, 0.16) !important; }
+    
+    html.light-theme .border-white\/5 { border-color: rgba(15, 40, 71, 0.05) !important; }
+    html.light-theme .border-white\/10 { border-color: rgba(15, 40, 71, 0.1) !important; }
+    html.light-theme .border-white\/20 { border-color: rgba(15, 40, 71, 0.18) !important; }
+    html.light-theme .border-white\/30 { border-color: rgba(15, 40, 71, 0.25) !important; }
+    
+    /* Card Styles */
+    html.light-theme .glass-card {
+      background: linear-gradient(135deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.7) 100%) !important;
+      border-color: rgba(200, 220, 240, 0.6) !important;
+      box-shadow: 0 8px 32px rgba(91, 191, 235, 0.08) !important;
+    }
+    html.light-theme .product-card {
+      background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.8) 100%) !important;
+      border-color: rgba(200, 220, 240, 0.6) !important;
+      box-shadow: 0 6px 20px rgba(91, 191, 235, 0.06) !important;
+    }
+    
+    /* Modals & Slate elements */
+    html.light-theme .bg-\[\#1e293b\],
+    html.light-theme .bg-slate-900,
+    html.light-theme .bg-slate-900\/90,
+    html.light-theme .bg-slate-900\/95,
+    html.light-theme .bg-slate-800,
+    html.light-theme .bg-slate-950\/40,
+    html.light-theme .bg-slate-950\/60 {
+      background-color: #FFFFFF !important;
+      color: #0F2847 !important;
       border-color: rgba(91, 191, 235, 0.3) !important;
-      backdrop-filter: blur(20px);
-      box-shadow: 0 10px 30px rgba(91, 191, 235, 0.2);
     }
-    html.light #settingsModalCard .border-white\/20,
-    html.light #settingsModalCard .border-white\/10 {
-      border-color: rgba(91, 191, 235, 0.2) !important;
+    html.light-theme .bg-slate-900\/40 {
+      background-color: rgba(184, 224, 246, 0.3) !important;
     }
-    html.light #settingsModalCard .bg-slate-900\/40 {
-      background: rgba(91, 191, 235, 0.05) !important;
+    html.light-theme .bg-slate-900\/50 {
+      background-color: rgba(184, 224, 246, 0.4) !important;
     }
-    html.light #settingsModalCard .settings-tab:not(.text-cyan-400) {
+    html.light-theme [style*="background: rgba(15, 23, 42, 0.9)"] {
+      background: rgba(255, 255, 255, 0.95) !important;
+      color: #0F2847 !important;
+    }
+    html.light-theme [style*="background: rgba(255,255,255,0.06)"] {
+      background: rgba(15, 40, 71, 0.05) !important;
+      border-color: rgba(15, 40, 71, 0.1) !important;
+    }
+    
+    /* Settings Modal specifics */
+    html.light-theme #settingsModalCard {
+      background: #FFFFFF !important;
+      border-color: rgba(91, 191, 235, 0.4) !important;
+      box-shadow: 0 10px 30px rgba(91, 191, 235, 0.25) !important;
+    }
+    html.light-theme #settingsModalCard .settings-tab:not(.text-cyan-400) {
       color: rgba(26, 59, 92, 0.6) !important;
     }
-    html.light #settingsModalCard svg:not(.text-cyan-400):not(.text-purple-400) {
+    html.light-theme #settingsModalCard svg:not(.text-cyan-400):not(.text-purple-400) {
       color: #1a3a5c !important;
     }
-    html.light #settingsModalCard .text-white\/50,
-    html.light #settingsModalCard .text-white\/40,
-    html.light #settingsModalCard .text-white\/60 {
-      color: rgba(26, 59, 92, 0.6) !important;
-    }
-    html.light #settingsModalCard .text-white {
-      color: #1a3a5c !important;
-    }
-    html.light #settingsModalCard div[style*="background: rgba(255,255,255,0.02)"] {
+    html.light-theme #settingsModalCard div[style*="background: rgba(255,255,255,0.02)"] {
       background: rgba(26, 59, 92, 0.04) !important;
       border-color: rgba(26, 59, 92, 0.08) !important;
     }
-    html.light #settingsModalCard button[style*="background: rgba(255,255,255,0.05)"],
-    html.light #settingsModalCard button[style*="background: rgba(255,255,255,0.1)"] {
+    html.light-theme #settingsModalCard button[style*="background: rgba(255,255,255,0.05)"],
+    html.light-theme #settingsModalCard button[style*="background: rgba(255,255,255,0.1)"] {
       background: rgba(26, 59, 92, 0.05) !important;
       border-color: rgba(26, 59, 92, 0.1) !important;
       color: #1a3a5c !important;
     }
-    html.light #settingsModalCard button[style*="background: rgba(255,255,255,0.05)"] span,
-    html.light #settingsModalCard button[style*="background: rgba(255,255,255,0.1)"] span {
+    html.light-theme #settingsModalCard button[style*="background: rgba(255,255,255,0.05)"] span,
+    html.light-theme #settingsModalCard button[style*="background: rgba(255,255,255,0.1)"] span {
       color: #1a3a5c !important;
     }
-    html.light #settingsModalCard button[style*="color:#ffffff"] {
+    html.light-theme #settingsModalCard button[style*="color:#ffffff"] {
       color: #1a3a5c !important;
     }
-    html.light #settingsModalCard svg[style*="color:#ffffff"] {
+    html.light-theme #settingsModalCard svg[style*="color:#ffffff"] {
       color: #1a3a5c !important;
     }
-    html.light #settingsModalCard .theme-btn {
+    html.light-theme #settingsModalCard .theme-btn {
       border-color: rgba(91, 191, 235, 0.2) !important;
     }
-    html.light #settingsModalCard .theme-btn.border-cyan-500 {
+    html.light-theme #settingsModalCard .theme-btn.border-cyan-500 {
       border-color: var(--ice-primary) !important;
+      background-color: rgba(91, 191, 235, 0.1) !important;
     }
-    html.light #settingsModalCard .theme-btn:not(.border-cyan-500) {
+    html.light-theme #settingsModalCard .theme-btn:not(.border-cyan-500) {
       background: rgba(255, 255, 255, 0.5) !important;
     }
-    html.light #settingsModalCard input:not(:checked) + div {
+    html.light-theme #settingsModalCard input:not(:checked) + div {
       background: rgba(26, 59, 92, 0.15) !important;
+    }
+    html.light-theme input::placeholder, 
+    html.light-theme textarea::placeholder {
+      color: rgba(15, 40, 71, 0.4) !important;
+    }
+    html.light-theme select option {
+      background-color: #FFFFFF !important;
+      color: #0F2847 !important;
+    }
+    html.light-theme .btn-secondary {
+      background: rgba(15, 40, 71, 0.08) !important;
+      color: #0F2847 !important;
+      border-color: rgba(15, 40, 71, 0.15) !important;
+    }
+    html.light-theme .btn-secondary:hover {
+      background: rgba(15, 40, 71, 0.12) !important;
     }
 
     /* ═══════════════════════════════════════════════════════════════════════════
@@ -1992,6 +2064,130 @@
     if (localStorage.getItem('theme') === 'light') {
       document.documentElement.classList.add('light-theme');
     }
+
+    const i18n = {
+      ru: {
+        tab_home: 'Главная',
+        tab_calc: 'Калькулятор',
+        tab_order: 'Заказ',
+        tab_catalogs: 'Каталоги',
+        tab_profile: 'Профиль',
+        quick_actions: 'Быстрые действия',
+        my_orders: 'Мои заказы',
+        my_orders_sub: 'История покупок',
+        favorites: 'Избранное',
+        favorites_sub: 'Сохранённое',
+        cart: 'Корзина',
+        cart_sub: 'Товары к заказу',
+        history: 'История',
+        history_sub: 'Транзакции и заказы',
+        other: 'Другое',
+        my_data: 'Мои данные',
+        my_data_sub: 'ФИО, телефон, паспорт и замеры',
+        dropshipper_cabinet: 'Кабинет дропшиппера',
+        dropshipper_cabinet_sub: 'Управление магазином',
+        earn_with_us: 'Зарабатывай с нами',
+        earn_with_us_sub: 'Стань партнёром ICE LOGIX',
+        settings_title: 'Настройки',
+        settings_save: 'Сохранить',
+        settings_cancel: 'Отмена',
+        settings_lang: 'Язык',
+        settings_theme: 'Тема',
+        settings_notifications: 'Уведомления',
+        settings_security: 'Безопасность'
+      },
+      be: {
+        tab_home: 'Галоўная',
+        tab_calc: 'Калькулятар',
+        tab_order: 'Заказ',
+        tab_catalogs: 'Каталогі',
+        tab_profile: 'Профіль',
+        quick_actions: 'Хуткія дзеянні',
+        my_orders: 'Мае заказы',
+        my_orders_sub: 'Гісторыя пакупак',
+        favorites: 'Обранае',
+        favorites_sub: 'Захаванае',
+        cart: 'Кошык',
+        cart_sub: 'Тавары да заказу',
+        history: 'Гісторыя',
+        history_sub: 'Транзакцыі і заказы',
+        other: 'Іншае',
+        my_data: 'Мае дадзеныя',
+        my_data_sub: 'ФІА, тэлефон, пашпарт і замеры',
+        dropshipper_cabinet: 'Кабінет дропшыпера',
+        dropshipper_cabinet_sub: 'Кіраванне крамай',
+        earn_with_us: 'Зарабляй з намі',
+        earn_with_us_sub: 'Стань партнёрам ICE LOGIX',
+        settings_title: 'Налады',
+        settings_save: 'Захаваць',
+        settings_cancel: 'Адмена',
+        settings_lang: 'Мова',
+        settings_theme: 'Тэма',
+        settings_notifications: 'Апавяшчэнні',
+        settings_security: 'Бяспека'
+      },
+      en: {
+        tab_home: 'Home',
+        tab_calc: 'Calculator',
+        tab_order: 'Order',
+        tab_catalogs: 'Catalogs',
+        tab_profile: 'Profile',
+        quick_actions: 'Quick Actions',
+        my_orders: 'My Orders',
+        my_orders_sub: 'Purchase history',
+        favorites: 'Favorites',
+        favorites_sub: 'Saved items',
+        cart: 'Cart',
+        cart_sub: 'Items to order',
+        history: 'History',
+        history_sub: 'Transactions & orders',
+        other: 'Other',
+        my_data: 'My Info',
+        my_data_sub: 'Name, phone, passport & size',
+        dropshipper_cabinet: 'Dropshipper Cabinet',
+        dropshipper_cabinet_sub: 'Store management',
+        earn_with_us: 'Earn with us',
+        earn_with_us_sub: 'Become an ICE LOGIX partner',
+        settings_title: 'Settings',
+        settings_save: 'Save',
+        settings_cancel: 'Cancel',
+        settings_lang: 'Language',
+        settings_theme: 'Theme',
+        settings_notifications: 'Notifications',
+        settings_security: 'Security'
+      }
+    };
+
+    function t(key, fallback = '') {
+      const lang = localStorage.getItem('lang') || 'ru';
+      return i18n[lang]?.[key] || fallback || key;
+    }
+
+    function applyLanguage(lang) {
+      localStorage.setItem('lang', lang);
+      const tabLabels = {
+        home: t('tab_home', 'Главная'),
+        calculator: t('tab_calc', 'Калькулятор'),
+        neworder: t('tab_order', 'Заказ'),
+        catalogs: t('tab_catalogs', 'Каталоги'),
+        profile: t('tab_profile', 'Профиль')
+      };
+      document.querySelectorAll('#tabBar .tab-item').forEach(item => {
+        const tabName = item.dataset.tab;
+        const labelSpan = item.querySelector('.tab-label');
+        if (labelSpan && tabLabels[tabName]) {
+          labelSpan.textContent = tabLabels[tabName];
+        }
+      });
+      if (typeof renderCurrentScreen === 'function') {
+        renderCurrentScreen();
+      }
+    }
+
+    // Apply language on load immediately
+    setTimeout(() => {
+      applyLanguage(localStorage.getItem('lang') || 'ru');
+    }, 0);
 
     function preprocessProducts(products) {
       if (!products) return [];
@@ -3916,8 +4112,11 @@ const MAX_REQUESTS_TRUSTED = 100;
         }
         const userCard = document.getElementById('userCard');
         if (userCard) {
-          userCard.onclick = () => switchTab('profile');
           if (!isRegistered) userCard.style.display = 'none';
+        }
+        const avatar = document.getElementById('avatar');
+        if (avatar) {
+          avatar.onclick = () => switchTab('profile');
         }
         // Скрыть баланс, уведомления, настройки для неавторизованных
         const balanceIsland = document.getElementById('balanceIsland');
@@ -9084,36 +9283,36 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
   <!-- Quick Actions Grid -->
   <div class="mb-5 page-enter" style="animation-delay: 0.1s;">
     <h3 class="text-white font-bold mb-4 flex items-center gap-2">
-      <span><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span></span> Быстрые действия
+      <span><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span></span> ${t('quick_actions', 'Быстрые действия')}
     </h3>
     <div class="grid grid-cols-2 gap-3">
       <button id="myOrdersBtn" class="glass-card p-4 text-left flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98]">
         <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style="background: linear-gradient(135deg, rgba(96,165,250,0.2), rgba(59,130,246,0.1));"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span></div>
         <div>
-          <p class="font-bold text-white text-sm">Мои заказы</p>
-          <p class="text-xs" style="color: var(--text-muted);">История покупок</p>
+          <p class="font-bold text-white text-sm">${t('my_orders', 'Мои заказы')}</p>
+          <p class="text-xs" style="color: var(--text-muted);">${t('my_orders_sub', 'История покупок')}</p>
         </div>
       </button>
       <button id="wishlistBtn" class="glass-card p-4 text-left flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98]">
         <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style="background: linear-gradient(135deg, rgba(248,113,113,0.2), rgba(239,68,68,0.1));"><span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span></div>
         <div>
-          <p class="font-bold text-white text-sm">Избранное</p>
-          <p class="text-xs" style="color: var(--text-muted);">Сохранённое</p>
+          <p class="font-bold text-white text-sm">${t('favorites', 'Избранное')}</p>
+          <p class="text-xs" style="color: var(--text-muted);">${t('favorites_sub', 'Сохранённое')}</p>
         </div>
       </button>
       <button id="cartBtn" class="glass-card p-4 text-left flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98] relative">
         <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style="background: linear-gradient(135deg, rgba(251,191,36,0.2), rgba(245,158,11,0.1));"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span></div>
         <div>
-          <p class="font-bold text-white text-sm">Корзина</p>
-          <p class="text-xs" style="color: var(--text-muted);">Товары к заказу</p>
+          <p class="font-bold text-white text-sm">${t('cart', 'Корзина')}</p>
+          <p class="text-xs" style="color: var(--text-muted);">${t('cart_sub', 'Товары к заказу')}</p>
         </div>
         <span id="cartBadge" class="absolute top-2 right-2 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center hidden" style="background: var(--status-error);">0</span>
       </button>
       <button id="historyQuickBtn" class="glass-card p-4 text-left flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98]">
         <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style="background: linear-gradient(135deg, rgba(168,85,247,0.2), rgba(139,92,246,0.1));"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span></div>
         <div>
-          <p class="font-bold text-white text-sm">История</p>
-          <p class="text-xs" style="color: var(--text-muted);">Транзакции и заказы</p>
+          <p class="font-bold text-white text-sm">${t('history', 'История')}</p>
+          <p class="text-xs" style="color: var(--text-muted);">${t('history_sub', 'Транзакции и заказы')}</p>
         </div>
       </button>
     </div>
@@ -9124,38 +9323,25 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
   <!-- Другое Grid -->
   <div class="mb-5 page-enter" style="animation-delay: 0.15s;">
     <h3 class="text-white font-bold mb-4 flex items-center gap-2">
-      <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></span> Другое
+      <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></span> ${t('other', 'Другое')}
     </h3>
     <div class="glass-card p-2">
       <button id="myPersonalDataBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition">
         <span class="text-xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span></span>
         <div class="flex-1">
-          <p class="font-semibold text-white text-sm">Мои данные</p>
-          <p class="text-xs" style="color: var(--text-muted);">ФИО, телефон, паспорт и замеры</p>
+          <p class="font-semibold text-white text-sm">${t('my_data', 'Мои данные')}</p>
+          <p class="text-xs" style="color: var(--text-muted);">${t('my_data_sub', 'ФИО, телефон, паспорт и замеры')}</p>
         </div>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
       <button id="dropshipperProfileBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition border-t border-white/5">
         <span class="text-xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span></span>
         <div class="flex-1">
-          <p class="font-semibold text-white text-sm">${isDropshipper ? 'Кабинет дропшиппера' : 'Зарабатывай с нами'}</p>
-          <p class="text-xs" style="color: var(--text-muted);">${isDropshipper ? 'Управление магазином' : 'Стань партнёром ICE LOGIX'}</p>
+          <p class="font-semibold text-white text-sm">${isDropshipper ? t('dropshipper_cabinet', 'Кабинет дропшиппера') : t('earn_with_us', 'Зарабатывай с нами')}</p>
+          <p class="text-xs" style="color: var(--text-muted);">${isDropshipper ? t('dropshipper_cabinet_sub', 'Управление магазином') : t('earn_with_us_sub', 'Стань партнёром ICE LOGIX')}</p>
         </div>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
-      <div class="w-full p-3 rounded-xl flex items-center justify-between border-t border-white/5">
-        <div class="flex items-center gap-3">
-          <span class="text-xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></span></span>
-          <div>
-            <p class="font-semibold text-white text-sm">Светлая тема</p>
-            <p class="text-xs" style="color: var(--text-muted);">Внешний вид</p>
-          </div>
-        </div>
-        <label class="relative inline-flex items-center cursor-pointer">
-          <input type="checkbox" id="themeToggleCheckbox" class="sr-only peer">
-          <div class="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
-        </label>
-      </div>
       ${isOwner ? `
       <button id="adminPanelBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition" style="border-top: 1px solid var(--glass-border);">
         <span class="text-xl"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zM5 20h14"/></svg></span></span>
@@ -9240,21 +9426,7 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
     adminBtn.onclick = () => switchTab('admin');
   }
 
-  const themeToggle = document.getElementById('themeToggleCheckbox');
-  if (themeToggle) {
-    const isLight = localStorage.getItem('theme') === 'light';
-    themeToggle.checked = isLight;
-    themeToggle.onchange = (e) => {
-      const light = e.target.checked;
-      if (light) {
-        document.documentElement.classList.add('light-theme');
-        localStorage.setItem('theme', 'light');
-      } else {
-        document.documentElement.classList.remove('light-theme');
-        localStorage.setItem('theme', 'dark');
-      }
-    };
-  }
+  // themeToggle removed
 
 
 
@@ -10487,8 +10659,9 @@ async function renderAcademy() {
       <button id="backFromWishlistBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
       <div class="grid grid-cols-2 gap-4">
         ${wishlistItems.map(item => {
-          const p = item.products;
+          let p = item.products;
           if (!p) return '';
+          p = preprocessProducts([p])[0];
           return `
             <div class="product-card" data-product-id="${p.id}">
               <div class="aspect-square bg-white/10 flex items-center justify-center relative">
@@ -16617,8 +16790,11 @@ function maskCard(cardNumber) {
   return '**** **** **** ' + n.slice(-4);
 }
 function applyTheme(theme) {
-  if (theme === 'light') document.documentElement.classList.add('light');
-  else document.documentElement.classList.remove('light');
+  if (theme === 'light') {
+    document.documentElement.classList.add('light-theme');
+  } else {
+    document.documentElement.classList.remove('light-theme');
+  }
 }
 
 function showSizeTablesModal() {
@@ -19023,6 +19199,7 @@ async function showOwnerControlsForm() {
   };
 }
 
+
 function showMeasurementsForm() {
   const modal = document.createElement('div');
   modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[110] p-4 overflow-y-auto pt-16 pb-20';
@@ -19333,7 +19510,7 @@ async function renderPromoPage() {
     : '<p class="text-white/50 text-center py-6">Акций пока нет. Следите за обновлениями!</p>';
 
   return `
-    <div class="page-enter pb-8">
+    <div class="page-enter">
       <div class="px-4">
         <div class="flex items-center gap-3 mb-5 mt-2">
           <button id="backFromPromoBtn" class="global-back-btn">
@@ -19767,8 +19944,9 @@ async function showAppSettings(initialTab = 'notifications') {
   const { data } = await supabaseClient.from('users')
     .select('notification_settings, app_settings, telegram_id, phone, username').eq('user_id', userId).single();
   const notif = data?.notification_settings || { status_changes: true, news: true, promotions: true };
-  const appSettings = data?.app_settings || { theme: 'dark' };
+  const appSettings = data?.app_settings || { theme: 'dark', lang: 'ru' };
   const currentTheme = appSettings.theme || 'dark';
+  const currentLang = appSettings.lang || localStorage.getItem('lang') || 'ru';
 
   const userTelegramId = authUser?.user_metadata?.telegram_id || data?.telegram_id || null;
   const userPhone = authUser?.phone || data?.phone || null;
@@ -19885,26 +20063,31 @@ async function showAppSettings(initialTab = 'notifications') {
   const modal = document.createElement('div');
   modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[110] p-4';
   modal.innerHTML = `
-    <div id="settingsModalCard" class="bg-[#1e293b] rounded-2xl max-w-md w-full flex flex-col border border-white/20" style="${initialTab === 'security' ? 'height: min(92vh, 600px);' : 'max-height: 90vh;'} overflow: hidden;">
+    <div id="settingsModalCard" class="bg-[#1e293b] rounded-2xl max-w-md w-full flex flex-col border border-white/20" style="${initialTab === 'security' || initialTab === 'language' ? 'height: min(92vh, 600px);' : 'max-height: 90vh;'} overflow: hidden;">
       <div class="p-5 border-b border-white/20">
-        <h3 class="text-white font-bold text-lg flex items-center gap-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Настройки</h3>
+        <h3 class="text-white font-bold text-lg flex items-center gap-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> ${t('settings_title', 'Настройки')}</h3>
       </div>
       <!-- Tabs -->
       <div class="flex border-b border-white/10 bg-slate-900/40">
         <button class="settings-tab flex-1 py-2.5 text-[10px] sm:text-xs font-medium transition flex flex-col items-center gap-1 ${initialTab==='notifications'?'text-cyan-400 border-b-2 border-cyan-400':'text-white/50'}"
           data-tab="notifications">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          <span>Уведомления</span>
+          <span>${t('settings_notifications', 'Уведомления')}</span>
         </button>
         <button class="settings-tab flex-1 py-2.5 text-[10px] sm:text-xs font-medium transition flex flex-col items-center gap-1 ${initialTab==='theme'?'text-cyan-400 border-b-2 border-cyan-400':'text-white/50'}"
           data-tab="theme">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="2"/></svg>
-          <span>Тема</span>
+          <span>${t('settings_theme', 'Тема')}</span>
+        </button>
+        <button class="settings-tab flex-1 py-2.5 text-[10px] sm:text-xs font-medium transition flex flex-col items-center gap-1 ${initialTab==='language'?'text-cyan-400 border-b-2 border-cyan-400':'text-white/50'}"
+          data-tab="language">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          <span>${t('settings_lang', 'Язык')}</span>
         </button>
         <button class="settings-tab flex-1 py-2.5 text-[10px] sm:text-xs font-medium transition flex flex-col items-center gap-1 ${initialTab==='security'?'text-cyan-400 border-b-2 border-cyan-400':'text-white/50'}"
           data-tab="security">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          <span>Безопасность</span>
+          <span>${t('settings_security', 'Безопасность')}</span>
         </button>
       </div>
       <!-- Notifications panel -->
@@ -19929,6 +20112,24 @@ async function showAppSettings(initialTab = 'notifications') {
           </button>
         </div>
         <button id="resetSettingsBtn" class="mt-4 w-full text-white/40 text-xs py-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></span> Сбросить по умолчанию</button>
+      </div>
+      <!-- Language panel -->
+      <div id="settingsPanel-language" class="p-5 flex-1 space-y-4 ${initialTab!=='language'?'hidden':''}" style="overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none;">
+        <p class="text-white/60 text-xs mb-3">Выберите язык интерфейса / Выберыце мову інтэрфейсу / Choose interface language</p>
+        <div class="space-y-2">
+          <button class="lang-btn w-full rounded-xl p-3 border-2 transition text-left flex items-center justify-between ${currentLang==='ru'?'border-cyan-500 bg-slate-800':'border-white/20 bg-white/5'}" data-lang="ru">
+            <span class="text-white text-sm font-bold">Русский</span>
+            <span class="text-xs text-white/50">По умолчанию</span>
+          </button>
+          <button class="lang-btn w-full rounded-xl p-3 border-2 transition text-left flex items-center justify-between ${currentLang==='be'?'border-cyan-500 bg-slate-800':'border-white/20 bg-white/5'}" data-lang="be">
+            <span class="text-white text-sm font-bold">Беларуская</span>
+            <span class="text-xs text-white/50">Зробена з любоўю</span>
+          </button>
+          <button class="lang-btn w-full rounded-xl p-3 border-2 transition text-left flex items-center justify-between ${currentLang==='en'?'border-cyan-500 bg-slate-800':'border-white/20 bg-white/5'}" data-lang="en">
+            <span class="text-white text-sm font-bold">English</span>
+            <span class="text-xs text-white/50">International</span>
+          </button>
+        </div>
       </div>
       <!-- Security panel -->
       <div id="settingsPanel-security" class="p-4 flex-1 space-y-3 ${initialTab!=='security'?'hidden':''}" style="overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none;">
@@ -19960,25 +20161,26 @@ async function showAppSettings(initialTab = 'notifications') {
         </button>
       </div>
       <div class="p-4 border-t border-white/20 flex gap-3">
-        <button id="saveAppSettings" class="btn-primary flex-1">Сохранить</button>
-        <button id="closeAppSettings" class="btn-secondary flex-1">Отмена</button>
+        <button id="closeAppSettings" class="btn-secondary flex-1">${t('settings_cancel', 'Отмена')}</button>
+        <button id="saveAppSettings" class="btn-primary flex-1">${t('settings_save', 'Сохранить')}</button>
       </div>
     </div>`;
   document.body.appendChild(modal);
 
   // Tab switching
   let selectedTheme = currentTheme;
+  let selectedLang = currentLang;
   const settingsCard = modal.querySelector('#settingsModalCard');
   modal.querySelectorAll('.settings-tab').forEach(tab => {
     tab.onclick = () => {
       modal.querySelectorAll('.settings-tab').forEach(t => { t.classList.remove('text-cyan-400','border-b-2','border-cyan-400'); t.classList.add('text-white/50'); });
       tab.classList.add('text-cyan-400','border-b-2','border-cyan-400'); tab.classList.remove('text-white/50');
-      ['notifications','theme','security'].forEach(name => {
+      ['notifications','theme','security','language'].forEach(name => {
         modal.querySelector(`#settingsPanel-${name}`)?.classList.toggle('hidden', name !== tab.dataset.tab);
       });
-      // Resize card: Security = fixed height, others = auto
+      // Resize card: Security/Language = fixed height, others = auto
       if (settingsCard) {
-        if (tab.dataset.tab === 'security') {
+        if (tab.dataset.tab === 'security' || tab.dataset.tab === 'language') {
           settingsCard.style.height = 'min(92vh, 600px)';
           settingsCard.style.maxHeight = '';
         } else {
@@ -19996,6 +20198,15 @@ async function showAppSettings(initialTab = 'notifications') {
       modal.querySelectorAll('.theme-btn').forEach(b => { b.classList.remove('border-cyan-500'); b.classList.add('border-white/20'); });
       btn.classList.add('border-cyan-500'); btn.classList.remove('border-white/20');
       applyTheme(selectedTheme); // live preview
+    };
+  });
+
+  // Language buttons click handling
+  modal.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.onclick = () => {
+      selectedLang = btn.dataset.lang;
+      modal.querySelectorAll('.lang-btn').forEach(b => { b.classList.remove('border-cyan-500'); b.classList.add('border-white/20'); });
+      btn.classList.add('border-cyan-500'); btn.classList.remove('border-white/20');
     };
   });
 
@@ -20141,9 +20352,10 @@ async function showAppSettings(initialTab = 'notifications') {
       news: modal.querySelector('#notifyNews').checked,
       promotions: modal.querySelector('#notifyPromotions').checked
     };
-    const newApp = { theme: selectedTheme };
+    const newApp = { theme: selectedTheme, lang: selectedLang };
     await supabaseClient.from('users').update({ notification_settings: newNotif, app_settings: newApp }).eq('user_id', userId);
     applyTheme(selectedTheme);
+    applyLanguage(selectedLang);
     tgUtil.alert('✅ Настройки сохранены');
     modal.remove();
   };
@@ -20577,6 +20789,13 @@ async function renderCart() {
       return '<div class="text-center py-10"><p class="text-white/70 mb-4"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span> Ваша корзина пуста</p><button id="goToCatalogBtn" class="btn-primary">Перейти в каталог</button></div>' + renderFooter();
     }
     
+    // Preprocess nested products to resolve placeholders/missing URLs
+    data.forEach(item => {
+      if (item.products) {
+        item.products = preprocessProducts([item.products])[0];
+      }
+    });
+
     let totalPrice = 0;
     const itemsHtml = data.map(item => {
       const product = item.products;
