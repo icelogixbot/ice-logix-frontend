@@ -2426,6 +2426,7 @@
       delete _tabCache['wishlist:'];
       delete _tabCache['home:'];
       delete _tabCache['catalogs:'];
+      updateCartBadge();
 
       try {
         if (isAdding) {
@@ -4834,7 +4835,6 @@ const MAX_REQUESTS_TRUSTED = 100;
 
     <!-- Quick Actions - Story Cards with 3D-style icons -->
     <div class="scroll-hint-container mb-6 page-enter" style="animation-delay: 0.15s;">
-    <div class="swipe-hint-icon">👉</div>
     <div class="scroll-x" style="padding: 4px 0;">
       <div class="story-card" data-story="onboarding">
         <div class="story-icon" style="background: linear-gradient(145deg, rgba(99,202,253,0.2), rgba(59,130,246,0.1));">
@@ -4877,7 +4877,6 @@ const MAX_REQUESTS_TRUSTED = 100;
 
     <!-- Promo Banners -->
     <div class="scroll-hint-container mb-6 page-enter" style="animation-delay: 0.2s;">
-    <div class="swipe-hint-icon">👉</div>
     <div class="scroll-x" id="promoBannersContainer">
       ${await renderPromoBanners()}
     </div>
@@ -4899,7 +4898,6 @@ const MAX_REQUESTS_TRUSTED = 100;
         </button>
       </div>
       <div class="scroll-hint-container">
-      <div class="swipe-hint-icon">👉</div>
       <div class="scroll-x" style="padding: 4px 0;">
         ${marketplaces.map(mp => `
           <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}">
@@ -9286,27 +9284,28 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
       <span><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span></span> ${t('quick_actions', 'Быстрые действия')}
     </h3>
     <div class="grid grid-cols-2 gap-3">
-      <button id="myOrdersBtn" class="glass-card p-4 text-left flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98]">
-        <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style="background: linear-gradient(135deg, rgba(96,165,250,0.2), rgba(59,130,246,0.1));"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span></div>
-        <div>
-          <p class="font-bold text-white text-sm">${t('my_orders', 'Мои заказы')}</p>
-          <p class="text-xs" style="color: var(--text-muted);">${t('my_orders_sub', 'История покупок')}</p>
-        </div>
-      </button>
-      <button id="wishlistBtn" class="glass-card p-4 text-left flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98]">
-        <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style="background: linear-gradient(135deg, rgba(248,113,113,0.2), rgba(239,68,68,0.1));"><span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span></div>
-        <div>
-          <p class="font-bold text-white text-sm">${t('favorites', 'Избранное')}</p>
-          <p class="text-xs" style="color: var(--text-muted);">${t('favorites_sub', 'Сохранённое')}</p>
-        </div>
-      </button>
       <button id="cartBtn" class="glass-card p-4 text-left flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98] relative">
         <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style="background: linear-gradient(135deg, rgba(251,191,36,0.2), rgba(245,158,11,0.1));"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span></div>
         <div>
           <p class="font-bold text-white text-sm">${t('cart', 'Корзина')}</p>
           <p class="text-xs" style="color: var(--text-muted);">${t('cart_sub', 'Товары к заказу')}</p>
         </div>
-        <span id="cartBadge" class="absolute top-2 right-2 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center hidden" style="background: var(--status-error);">0</span>
+        <span id="cartBadge" class="absolute top-2 right-2 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center hidden" style="background: #ef4444; color: #fff;">0</span>
+      </button>
+      <button id="wishlistBtn" class="glass-card p-4 text-left flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98] relative">
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style="background: linear-gradient(135deg, rgba(248,113,113,0.2), rgba(239,68,68,0.1));"><span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span></div>
+        <div>
+          <p class="font-bold text-white text-sm">${t('favorites', 'Избранное')}</p>
+          <p class="text-xs" style="color: var(--text-muted);">${t('favorites_sub', 'Сохранённое')}</p>
+        </div>
+        <span id="wishlistBadge" class="absolute top-2 right-2 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center hidden" style="background: #ef4444; color: #fff;">0</span>
+      </button>
+      <button id="myOrdersBtn" class="glass-card p-4 text-left flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98]">
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style="background: linear-gradient(135deg, rgba(96,165,250,0.2), rgba(59,130,246,0.1));"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span></div>
+        <div>
+          <p class="font-bold text-white text-sm">${t('my_orders', 'Мои заказы')}</p>
+          <p class="text-xs" style="color: var(--text-muted);">${t('my_orders_sub', 'История покупок')}</p>
+        </div>
       </button>
       <button id="historyQuickBtn" class="glass-card p-4 text-left flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98]">
         <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style="background: linear-gradient(135deg, rgba(168,85,247,0.2), rgba(139,92,246,0.1));"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span></div>
@@ -10695,6 +10694,7 @@ function attachWishlistHandlers() {
       const productId = heart.dataset.productId;
       await supabaseClient.from('wishlist').delete().eq('user_id', userId).eq('product_id', productId);
       wishlist.delete(productId);
+      updateCartBadge();
       renderCurrentScreen();
     });
   });
@@ -15103,6 +15103,7 @@ function attachProductsCatalogHandlers() {
         heart.innerHTML = getHeartIcon(true);
         heart.classList.add('text-red-500');
       }
+      updateCartBadge();
     };
   });
 
@@ -15202,6 +15203,7 @@ async function loadMoreProducts() {
             await supabaseClient.from('wishlist').insert({ user_id: userId, product_id: p.id });
             wishlist.add(p.id); heart.innerHTML = getHeartIcon(true); heart.classList.add('text-red-500');
           }
+          updateCartBadge();
         };
         div.onclick = (e) => {
           if (e.target.closest('.wishlist-heart') || e.target.closest('.addToCartBtn') || e.target.closest('.buyNowBtn') || e.target.closest('.card-photo-container')) return;
@@ -15339,7 +15341,6 @@ async function addToCart(productId, quantity = 1, skipAlert = false) {
     await updateCartBadge();
     delete _tabCache['cart:'];
     tgUtil.haptic('success');
-    if (!skipAlert) tgUtil.alert('✅ Товар добавлен в корзину');
   } catch (err) {
     tgUtil.haptic('error');
     tgUtil.alert('<span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span> Ошибка: ' + err.message);
@@ -15959,7 +15960,6 @@ function attachAdminSuppliersHandlers() {
           try {
             await addToCart(id, 1, true);
             tgUtil.haptic && tgUtil.haptic('success');
-            tgUtil.alert('Добавлено в корзину! Можно оформить даже после закрытия дропа.');
           } catch (e) { tgUtil.alert('Ошибка: ' + e.message); }
         };
       });
@@ -19447,6 +19447,7 @@ async function loadProfileExtras() {
       </div>
     `).join('');
   }
+  updateCartBadge();
 }
 
 function getTransactionTypeText(type) {
@@ -19936,16 +19937,18 @@ async function showAccountRecovery() {
 // Kept for back-compat if called directly
 async function showNotificationSettings() { return showAppSettings('notifications'); }
 
-async function showAppSettings(initialTab = 'notifications') {
+async function showAppSettings(initialTab = 'security') {
   // Fetch auth user to check email and identities
   const { data: authUserData } = await supabaseClient.auth.getUser();
   const authUser = authUserData?.user;
 
   const { data } = await supabaseClient.from('users')
     .select('notification_settings, app_settings, telegram_id, phone, username').eq('user_id', userId).single();
-  const notif = data?.notification_settings || { status_changes: true, news: true, promotions: true };
-  const appSettings = data?.app_settings || { theme: 'dark', lang: 'ru' };
-  const currentTheme = appSettings.theme || 'dark';
+  
+  const localNotif = JSON.parse(localStorage.getItem('notification_settings') || '{"status_changes":true,"news":true,"promotions":true}');
+  const notif = data?.notification_settings || localNotif;
+  const appSettings = data?.app_settings || {};
+  const currentTheme = appSettings.theme || localStorage.getItem('theme') || 'dark';
   const currentLang = appSettings.lang || localStorage.getItem('lang') || 'ru';
 
   const userTelegramId = authUser?.user_metadata?.telegram_id || data?.telegram_id || null;
@@ -20067,27 +20070,27 @@ async function showAppSettings(initialTab = 'notifications') {
       <div class="p-5 border-b border-white/20">
         <h3 class="text-white font-bold text-lg flex items-center gap-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> ${t('settings_title', 'Настройки')}</h3>
       </div>
-      <!-- Tabs -->
+      <!-- Tabs (Reordered per user request: Security, Notifications, Language, Theme) -->
       <div class="flex border-b border-white/10 bg-slate-900/40">
+        <button class="settings-tab flex-1 py-2.5 text-[10px] sm:text-xs font-medium transition flex flex-col items-center gap-1 ${initialTab==='security'?'text-cyan-400 border-b-2 border-cyan-400':'text-white/50'}"
+          data-tab="security">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span>${t('settings_security', 'Безопасность')}</span>
+        </button>
         <button class="settings-tab flex-1 py-2.5 text-[10px] sm:text-xs font-medium transition flex flex-col items-center gap-1 ${initialTab==='notifications'?'text-cyan-400 border-b-2 border-cyan-400':'text-white/50'}"
           data-tab="notifications">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           <span>${t('settings_notifications', 'Уведомления')}</span>
-        </button>
-        <button class="settings-tab flex-1 py-2.5 text-[10px] sm:text-xs font-medium transition flex flex-col items-center gap-1 ${initialTab==='theme'?'text-cyan-400 border-b-2 border-cyan-400':'text-white/50'}"
-          data-tab="theme">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="2"/></svg>
-          <span>${t('settings_theme', 'Тема')}</span>
         </button>
         <button class="settings-tab flex-1 py-2.5 text-[10px] sm:text-xs font-medium transition flex flex-col items-center gap-1 ${initialTab==='language'?'text-cyan-400 border-b-2 border-cyan-400':'text-white/50'}"
           data-tab="language">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
           <span>${t('settings_lang', 'Язык')}</span>
         </button>
-        <button class="settings-tab flex-1 py-2.5 text-[10px] sm:text-xs font-medium transition flex flex-col items-center gap-1 ${initialTab==='security'?'text-cyan-400 border-b-2 border-cyan-400':'text-white/50'}"
-          data-tab="security">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          <span>${t('settings_security', 'Безопасность')}</span>
+        <button class="settings-tab flex-1 py-2.5 text-[10px] sm:text-xs font-medium transition flex flex-col items-center gap-1 ${initialTab==='theme'?'text-cyan-400 border-b-2 border-cyan-400':'text-white/50'}"
+          data-tab="theme">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="2"/></svg>
+          <span>${t('settings_theme', 'Тема')}</span>
         </button>
       </div>
       <!-- Notifications panel -->
@@ -20161,13 +20164,18 @@ async function showAppSettings(initialTab = 'notifications') {
         </button>
       </div>
       <div class="p-4 border-t border-white/20 flex gap-3">
-        <button id="closeAppSettings" class="btn-secondary flex-1">${t('settings_cancel', 'Отмена')}</button>
+        <button id="closeAppSettings" class="btn-secondary flex-1">${currentLang === 'be' ? 'Закрыць' : currentLang === 'en' ? 'Close' : 'Закрыть'}</button>
         <button id="saveAppSettings" class="btn-primary flex-1">${t('settings_save', 'Сохранить')}</button>
       </div>
     </div>`;
   document.body.appendChild(modal);
 
   // Tab switching
+  let initialTheme = currentTheme;
+  let initialLang = currentLang;
+  let savedTheme = currentTheme;
+  let savedLang = currentLang;
+
   let selectedTheme = currentTheme;
   let selectedLang = currentLang;
   const settingsCard = modal.querySelector('#settingsModalCard');
@@ -20345,7 +20353,18 @@ async function showAppSettings(initialTab = 'notifications') {
   }
 
   modal.querySelector('#securityRecoveryBtn')?.addEventListener('click', () => { modal.remove(); showRecoveryCodeModal(); });
-  modal.querySelector('#closeAppSettings').onclick = () => { applyTheme(currentTheme); modal.remove(); };
+
+  const handleClose = () => {
+    applyTheme(savedTheme);
+    applyLanguage(savedLang);
+    modal.remove();
+    if (savedLang !== initialLang) {
+      location.reload();
+    }
+  };
+
+  modal.querySelector('#closeAppSettings').onclick = handleClose;
+  
   modal.querySelector('#saveAppSettings').onclick = async () => {
     const newNotif = {
       status_changes: modal.querySelector('#notifyStatusChanges').checked,
@@ -20353,12 +20372,47 @@ async function showAppSettings(initialTab = 'notifications') {
       promotions: modal.querySelector('#notifyPromotions').checked
     };
     const newApp = { theme: selectedTheme, lang: selectedLang };
-    await supabaseClient.from('users').update({ notification_settings: newNotif, app_settings: newApp }).eq('user_id', userId);
+    
+    // Save to localStorage immediately
+    localStorage.setItem('notification_settings', JSON.stringify(newNotif));
+    localStorage.setItem('theme', selectedTheme);
+    localStorage.setItem('lang', selectedLang);
+
+    if (supabaseClient && userId) {
+      try {
+        await supabaseClient.from('users').update({ notification_settings: newNotif, app_settings: newApp }).eq('user_id', userId);
+      } catch (e) {
+        console.error('Failed to save settings to database:', e);
+      }
+    }
+    
+    savedTheme = selectedTheme;
+    savedLang = selectedLang;
+    
     applyTheme(selectedTheme);
     applyLanguage(selectedLang);
-    tgUtil.alert('✅ Настройки сохранены');
-    modal.remove();
+    
+    // Smooth inline save button feedback
+    const saveBtn = modal.querySelector('#saveAppSettings');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = 'Сохранено ✓';
+    saveBtn.classList.remove('btn-primary');
+    saveBtn.classList.add('bg-green-500', 'text-white');
+    tgUtil.haptic('success');
+    
+    // Dynamic close button label update based on active language
+    const closeBtn = modal.querySelector('#closeAppSettings');
+    if (closeBtn) {
+      closeBtn.innerText = savedLang === 'be' ? 'Закрыць' : savedLang === 'en' ? 'Close' : 'Закрыть';
+    }
+
+    setTimeout(() => {
+      saveBtn.innerHTML = originalText;
+      saveBtn.classList.add('btn-primary');
+      saveBtn.classList.remove('bg-green-500', 'text-white');
+    }, 1500);
   };
+}
 }
 
 async function showNotificationsPanel() {
@@ -21037,15 +21091,33 @@ function attachCartHandlers() {
 
 async function updateCartBadge() {
   if (!userId) return;
-  const { count } = await supabaseClient.from('cart').select('*', { count: 'exact', head: true }).eq('user_id', userId);
-  const badge = document.getElementById('cartBadge');
-  if (badge) {
-    if (count > 0) {
-      badge.innerText = count > 99 ? '99+' : count;
-      badge.classList.remove('hidden');
-    } else {
-      badge.classList.add('hidden');
+  try {
+    const { count } = await supabaseClient.from('cart').select('*', { count: 'exact', head: true }).eq('user_id', userId);
+    const badge = document.getElementById('cartBadge');
+    if (badge) {
+      if (count > 0) {
+        badge.innerText = count > 99 ? '99+' : count;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
     }
+  } catch (e) {
+    console.error('Failed to update cart badge:', e);
+  }
+  try {
+    const { count } = await supabaseClient.from('wishlist').select('*', { count: 'exact', head: true }).eq('user_id', userId);
+    const badge = document.getElementById('wishlistBadge');
+    if (badge) {
+      if (count > 0) {
+        badge.innerText = count > 99 ? '99+' : count;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+  } catch (e) {
+    console.error('Failed to update wishlist badge:', e);
   }
 }
 
