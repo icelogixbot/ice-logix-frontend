@@ -65,6 +65,11 @@
       --shadow-island: 0 4px 24px rgba(0, 0, 0, 0.25), 0 0 40px rgba(91, 191, 235, 0.1);
     }
     
+    .no-transitions * {
+      transition: none !important;
+      animation: none !important;
+    }
+    
     html.light-theme {
       --bg-gradient-start: #E8F4FC;
       --bg-gradient-mid: #F5FAFD;
@@ -190,9 +195,9 @@
       to { transform: translateY(0); opacity: 1; }
     }
     
-    .header-left { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; margin-left: 12px; }
-    .header-center { display: flex; align-items: center; gap: 8px; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); justify-content: center; }
-    .header-right { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; justify-content: flex-end; margin-right: 12px; }
+    .header-left { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; margin-left: 4px; }
+    .header-center { display: flex; align-items: center; gap: 8px; justify-content: center; flex: 0 0 auto; }
+    .header-right { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; justify-content: flex-end; margin-right: 4px; }
     
     .logo-img { 
       box-sizing: content-box;
@@ -209,8 +214,6 @@
     }
     .logo-img:hover { transform: scale(1.05) rotate(-2deg); }
     .logo-img:active { transform: scale(0.95); }
-    
-    .header-right { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; justify-content: flex-end; margin-right: 12px; }
     
     /* Balance Island Widget */
     .balance-island {
@@ -261,13 +264,13 @@
     }
     
     .balance-add {
-      width: 24px;
-      height: 24px;
+      width: 18px;
+      height: 18px;
       border-radius: 50%;
       background: linear-gradient(135deg, var(--ice-primary), var(--ice-deep));
       border: none;
       color: white;
-      font-size: 14px;
+      font-size: 11px;
       font-weight: 700;
       cursor: pointer;
       display: flex;
@@ -306,7 +309,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 6px 12px 6px 6px;
+      padding: 6px 10px;
       background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%);
       border: 1px solid var(--glass-border-strong);
       border-radius: 16px;
@@ -474,6 +477,78 @@
     
     .tab-item.new-order .tab-icon { font-size: 20px; }
     .tab-item.new-order .tab-label { font-size: 11px; font-weight: 700; }
+    
+    /* Product card buttons & quantity stepper styling overrides */
+    .addToCartBtn, .buyNowBtn, .cart-stepper {
+      height: 32px !important;
+      min-height: 32px !important;
+      max-height: 32px !important;
+      border-radius: 10px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      box-sizing: border-box !important;
+      padding: 0 8px !important;
+      margin: 0 !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      text-transform: none !important;
+      letter-spacing: normal !important;
+      transition: all 0.2s ease !important;
+    }
+    
+    .buyNowBtn {
+      background: linear-gradient(135deg, var(--ice-primary) 0%, var(--ice-deep) 100%) !important;
+      border: 1px solid rgba(255,255,255,0.2) !important;
+      color: white !important;
+    }
+    .buyNowBtn:hover {
+      opacity: 0.9 !important;
+      transform: scale(1.02) !important;
+    }
+    
+    .addToCartBtn {
+      background: linear-gradient(135deg, #102a43 0%, #1c3d5a 100%) !important;
+      border: 1px solid rgba(255,255,255,0.1) !important;
+      color: white !important;
+    }
+    .addToCartBtn:hover {
+      background: linear-gradient(135deg, #183d5d 0%, #244e75 100%) !important;
+      transform: scale(1.02) !important;
+    }
+    
+    .cart-stepper {
+      background: linear-gradient(135deg, #102a43 0%, #1c3d5a 100%) !important;
+      border: 1px solid rgba(255,255,255,0.1) !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+    }
+    
+    .cart-stepper .cart-step-btn {
+      flex: 0 0 32px !important;
+      height: 32px !important;
+      background: transparent !important;
+      border: none !important;
+      color: white !important;
+      font-size: 16px !important;
+      font-weight: 700 !important;
+      cursor: pointer !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      transition: background 0.2s ease !important;
+    }
+    .cart-stepper .cart-step-btn:hover {
+      background: rgba(255,255,255,0.1) !important;
+    }
+    .cart-stepper .cart-step-count {
+      flex: 1 !important;
+      text-align: center !important;
+      color: white !important;
+      font-size: 13px !important;
+      font-weight: 700 !important;
+      line-height: 32px !important;
+    }
     
     /* ═══════════════════════════════════════════════════════════════════════════
        MAIN CONTENT AREA
@@ -1267,11 +1342,11 @@
     html.light-theme .bg-slate-900\/50 {
       background-color: rgba(184, 224, 246, 0.4) !important;
     }
-    html.light-theme [style*="background: rgba(15, 23, 42, 0.9)"] {
+    html.light-theme .alert-modal-card {
       background: rgba(255, 255, 255, 0.95) !important;
       color: #0F2847 !important;
     }
-    html.light-theme [style*="background: rgba(255,255,255,0.06)"] {
+    html.light-theme .rate-tracker-card {
       background: rgba(15, 40, 71, 0.05) !important;
       border-color: rgba(15, 40, 71, 0.1) !important;
     }
@@ -1288,24 +1363,19 @@
     html.light-theme #settingsModalCard svg:not(.text-cyan-400):not(.text-purple-400) {
       color: #1a3a5c !important;
     }
-    html.light-theme #settingsModalCard div[style*="background: rgba(255,255,255,0.02)"] {
+    html.light-theme #settingsModalCard .settings-row-bg {
       background: rgba(26, 59, 92, 0.04) !important;
       border-color: rgba(26, 59, 92, 0.08) !important;
     }
-    html.light-theme #settingsModalCard button[style*="background: rgba(255,255,255,0.05)"],
-    html.light-theme #settingsModalCard button[style*="background: rgba(255,255,255,0.1)"] {
+    html.light-theme #settingsModalCard .settings-action-btn {
       background: rgba(26, 59, 92, 0.05) !important;
       border-color: rgba(26, 59, 92, 0.1) !important;
       color: #1a3a5c !important;
     }
-    html.light-theme #settingsModalCard button[style*="background: rgba(255,255,255,0.05)"] span,
-    html.light-theme #settingsModalCard button[style*="background: rgba(255,255,255,0.1)"] span {
+    html.light-theme #settingsModalCard .settings-action-btn span {
       color: #1a3a5c !important;
     }
-    html.light-theme #settingsModalCard button[style*="color:#ffffff"] {
-      color: #1a3a5c !important;
-    }
-    html.light-theme #settingsModalCard svg[style*="color:#ffffff"] {
+    html.light-theme #settingsModalCard .settings-action-btn svg {
       color: #1a3a5c !important;
     }
     html.light-theme #settingsModalCard .theme-btn {
@@ -1402,9 +1472,9 @@
       inset: 0;
       z-index: 9000;
       display: flex;
-      align-items: flex-end;
+      align-items: center;
       justify-content: center;
-      padding: 0;
+      padding: 16px;
       background: rgba(10, 22, 40, 0.55);
       backdrop-filter: blur(6px);
       -webkit-backdrop-filter: blur(6px);
@@ -1416,28 +1486,24 @@
       opacity: 1;
       pointer-events: auto;
     }
-    @media (min-width: 540px) {
-      .glass-modal-overlay { align-items: center; }
-    }
 
     .glass-modal {
       width: 100%;
-      max-width: 420px;
+      max-width: 340px;
       margin: 0;
       padding: 22px 22px 18px;
       background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.08) 100%);
       backdrop-filter: blur(28px) saturate(150%);
       -webkit-backdrop-filter: blur(28px) saturate(150%);
       border: 1px solid var(--glass-border-strong);
-      border-bottom: none;
-      border-radius: 28px 28px 0 0;
-      box-shadow: 0 -10px 40px rgba(0,0,0,0.4), 0 0 60px rgba(91, 191, 235, 0.15);
-      transform: translateY(40px);
+      border-radius: 24px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4), 0 0 60px rgba(91, 191, 235, 0.15);
+      transform: scale(0.9) translateY(10px);
       opacity: 0;
-      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+      transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.22s ease;
     }
     .glass-modal-overlay.show .glass-modal {
-      transform: translateY(0);
+      transform: scale(1) translateY(0);
       opacity: 1;
     }
     @media (min-width: 540px) {
@@ -1960,12 +2026,23 @@
          HEADER ISLAND - Floating navigation with balance widget
          ═══════════════════════════════════════════════════════════════════════ -->
     <div class="app-header">
-      <!-- LEFT: Logo -->
+      <!-- LEFT: Balance + avatar -->
       <div class="header-left">
-        <img id="logoImg" class="logo-img" src="./assets/logo.png" alt="ICE LOGIX">
+        <div class="user-card" id="userCard">
+          <div class="user-avatar" id="avatar"></div>
+          <div class="balance-island" id="balanceIsland">
+            <div class="balance-amount">
+              <span id="headerBalance">0</span>
+              <span class="balance-icon" aria-hidden="true" title="ICE Валюта"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+            </div>
+            <button class="balance-add" id="addBalanceBtn" title="Пополнить баланс">+</button>
+          </div>
+          <span class="user-name" id="userNameHeader" style="display:none;">Гость</span>
+        </div>
+        <button class="icon-btn" id="loginBtn" title="Войти/Зарегистрироваться" style="display:none; background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.4); color: #22d3ee; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 10px; white-space: nowrap;">Войти/Зарегистрироваться</button>
       </div>
       <!-- CENTER: Action buttons -->
-      <div class="header-center" style="flex:1; justify-content:center;">
+      <div class="header-center">
         <button class="icon-btn relative" id="notificationsBtn" title="Уведомления">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -1980,20 +2057,9 @@
           </svg>
         </button>
       </div>
-      <!-- RIGHT: Balance + avatar -->
+      <!-- RIGHT: Logo -->
       <div class="header-right">
-        <div class="user-card" id="userCard">
-          <div class="balance-island" id="balanceIsland">
-            <div class="balance-amount">
-              <span id="headerBalance">0</span>
-              <span class="balance-icon" aria-hidden="true" title="ICE Валюта"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
-            </div>
-            <button class="balance-add" id="addBalanceBtn" title="Пополнить баланс">+</button>
-          </div>
-          <div class="user-avatar" id="avatar"></div>
-          <span class="user-name" id="userNameHeader" style="display:none;">Гость</span>
-        </div>
-        <button class="icon-btn" id="loginBtn" title="Войти/Зарегистрироваться" style="display:none; background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.4); color: #22d3ee; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 10px; white-space: nowrap;">Войти/Зарегистрироваться</button>
+        <img id="logoImg" class="logo-img" src="./assets/logo.png" alt="ICE LOGIX">
       </div>
     </div>
     
@@ -2170,6 +2236,73 @@
       return i18n[lang]?.[key] || fallback || key;
     }
 
+    let _googleTranslateInitStarted = false;
+    let _googleTranslateLoaded = false;
+
+    function setGoogleTranslateLanguage(langCode) {
+      const combo = document.querySelector('.goog-te-combo');
+      if (combo) {
+        const val = langCode === 'ru' ? '' : langCode;
+        if (combo.value !== val) {
+          combo.value = val;
+          combo.dispatchEvent(new Event('change'));
+        }
+      } else {
+        setTimeout(() => setGoogleTranslateLanguage(langCode), 300);
+      }
+    }
+
+    function initGoogleTranslateWidget() {
+      if (_googleTranslateInitStarted) return;
+      _googleTranslateInitStarted = true;
+
+      const container = document.createElement('div');
+      container.id = 'google_translate_element';
+      container.style.display = 'none';
+      document.body.appendChild(container);
+
+      window.googleTranslateElementInit = function() {
+        new google.translate.TranslateElement({
+          pageLanguage: 'ru',
+          includedLanguages: 'ru,en,be',
+          layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+          autoDisplay: false
+        }, 'google_translate_element');
+        _googleTranslateLoaded = true;
+        
+        const savedLang = localStorage.getItem('lang') || 'ru';
+        if (savedLang !== 'ru') {
+          setTimeout(() => {
+            setGoogleTranslateLanguage(savedLang);
+          }, 500);
+        }
+      };
+
+      const script = document.createElement('script');
+      script.id = 'google-translate-script';
+      script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+      document.head.appendChild(script);
+
+      const style = document.createElement('style');
+      style.id = 'google-translate-styles';
+      style.innerHTML = `
+        iframe.skiptranslate,
+        iframe[class*="skiptranslate"],
+        .goog-logo-link,
+        .goog-te-gadget span,
+        .goog-te-banner-frame,
+        #goog-gt-tt,
+        .goog-te-balloon-frame {
+          display: none !important;
+          visibility: hidden !important;
+        }
+        body {
+          top: 0px !important;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
     function applyLanguage(lang) {
       localStorage.setItem('lang', lang);
       const tabLabels = {
@@ -2194,6 +2327,10 @@
       if (lang !== 'ru') {
         requestAnimationFrame(() => translateDOM(document.body));
       }
+      
+      // Load and trigger Google Translate widget for dynamic content
+      initGoogleTranslateWidget();
+      setGoogleTranslateLanguage(lang);
     }
 
     // ============================================================
@@ -2338,24 +2475,52 @@
 
     function _setupTranslationObserver() {
       if (window._i18nObserver) return;
-      let queue = [];
-      let pending = false;
+      let queue = new Set();
+      let throttleTimeout = null;
+      
       window._i18nObserver = new MutationObserver(muts => {
         const lang = localStorage.getItem('lang') || 'ru';
         if (lang === 'ru') return;
+        
         for (const m of muts) {
           for (const node of m.addedNodes) {
-            if (node.nodeType === 1 || node.nodeType === 3) queue.push(node);
+            if (node.nodeType === 1 || node.nodeType === 3) {
+              queue.add(node);
+            }
           }
         }
-        if (pending || !queue.length) return;
-        pending = true;
-        requestAnimationFrame(() => {
-          pending = false;
-          const items = queue;
-          queue = [];
-          items.forEach(node => translateDOM(node));
-        });
+        
+        if (queue.size === 0) return;
+        if (throttleTimeout) return;
+        
+        throttleTimeout = setTimeout(() => {
+          throttleTimeout = null;
+          
+          const nodesArray = Array.from(queue);
+          queue.clear();
+          
+          const topLevelNodes = nodesArray.filter(node => {
+            if (node.nodeType === 3 && node.parentNode && nodesArray.includes(node.parentNode)) {
+              return false;
+            }
+            if (node.nodeType === 1) {
+              let parent = node.parentNode;
+              while (parent) {
+                if (nodesArray.includes(parent)) return false;
+                parent = parent.parentNode;
+              }
+            }
+            return true;
+          });
+          
+          requestAnimationFrame(() => {
+            topLevelNodes.forEach(node => {
+              if (node.parentNode || node.nodeType === 3) {
+                translateDOM(node);
+              }
+            });
+          });
+        }, 80);
       });
       window._i18nObserver.observe(document.body, { childList: true, subtree: true });
     }
@@ -3581,7 +3746,7 @@
       const modal = document.createElement('div');
       modal.className = 'fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center z-[120] p-4';
       modal.innerHTML = `
-        <div class="glass-card max-w-sm w-full p-5 text-center flex flex-col items-center relative overflow-hidden border border-white/20 shadow-2xl" style="background: rgba(15, 23, 42, 0.9);">
+        <div class="glass-card alert-modal-card max-w-sm w-full p-5 text-center flex flex-col items-center relative overflow-hidden border border-white/20 shadow-2xl" style="background: rgba(15, 23, 42, 0.9);">
           <div class="absolute -left-20 -top-20 w-44 h-44 rounded-full blur-3xl opacity-30" style="background: var(--ice-primary);"></div>
           <div class="absolute -right-20 -bottom-20 w-44 h-44 rounded-full blur-3xl opacity-20" style="background: #8B5CF6;"></div>
 
@@ -4017,6 +4182,17 @@
           });
         }
         try { localStorage.removeItem(key); return true; } catch { return false; }
+      },
+      openLink(url) {
+        if (!url) return;
+        try {
+          const w = this._tg;
+          if (w?.openLink) {
+            w.openLink(url);
+            return;
+          }
+        } catch (_) {}
+        window.open(url, '_blank');
       },
     };
     window.tgUtil = tgUtil;
@@ -4988,10 +5164,10 @@ const MAX_REQUESTS_TRUSTED = 100;
       <div style="overflow-x: auto; padding: 2px 0; scrollbar-width: none; -ms-overflow-style: none;">
         <div style="display: flex; gap: 6px; width: max-content; padding-bottom: 2px;">
           ${[
-            { flag: '🇺🇸', code: 'USD', label: '$1',     key: 'usd_rate', def: 3.25,    mult: 1    },
+            { flag: '🇨🇳', code: 'CNY', label: '¥1',     key: 'cny_rate', def: 0.46,    mult: 1    },
             { flag: '🇪🇺', code: 'EUR', label: '€1',     key: 'eur_rate', def: 3.55,    mult: 1    },
             { flag: '🇷🇺', code: 'RUB', label: '₽1',     key: 'rub_rate', def: 0.031,   mult: 1    },
-            { flag: '🇨🇳', code: 'CNY', label: '¥1',     key: 'cny_rate', def: 0.46,    mult: 1    },
+            { flag: '🇺🇸', code: 'USD', label: '$1',     key: 'usd_rate', def: 3.25,    mult: 1    },
             { flag: '🇵🇱', code: 'PLN', label: 'zł1',    key: 'pln_rate', def: 0.80,    mult: 1    },
             { flag: '🇯🇵', code: 'JPY', label: '¥100',   key: 'jpy_rate', def: 0.022,   mult: 100  },
             { flag: '🇻🇳', code: 'VND', label: '₫1000',  key: 'vnd_rate', def: 0.00013, mult: 1000 },
@@ -5000,7 +5176,7 @@ const MAX_REQUESTS_TRUSTED = 100;
             { flag: '🇰🇷', code: 'KRW', label: '₩1000',  key: 'krw_rate', def: 0.0024,  mult: 1000 },
           ].map(c => {
             const rate = (Number(window.settings?.[c.key] || c.def) * c.mult).toFixed(2);
-            return `<div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 6px 10px; flex-shrink: 0;">
+            return `<div class="rate-tracker-card" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 6px 10px; flex-shrink: 0;">
               <div style="font-size: 10px; color: rgba(255,255,255,0.45); white-space: nowrap; margin-bottom: 3px;">${c.flag} ${c.code}</div>
               <div style="font-size: 11px; font-weight: 700; color: white; white-space: nowrap;">${c.label} ≈ <span style="color: #67e8f9;">${rate} Br/ICE</span></div>
             </div>`;
@@ -5077,8 +5253,8 @@ const MAX_REQUESTS_TRUSTED = 100;
       <div class="scroll-x" style="padding: 4px 0;">
         ${marketplaces.map(mp => `
           <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}">
-            <div class="story-icon" style="overflow:hidden; display:flex; align-items:center; justify-content:center; background: var(--glass-bg);">
-              ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-cover" style="cursor: zoom-in;" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" onclick="event.stopPropagation(); window.showImagePreview('${mp.logo_url}')">` : ''}
+            <div class="story-icon" style="overflow:hidden; display:flex; align-items:center; justify-content:center; background: var(--glass-bg); cursor: pointer;">
+              ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-cover" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
               <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
             </div>
             <span class="story-label">${mp.name}</span>
@@ -5141,7 +5317,7 @@ function attachHomeHandlers() {
       document.querySelectorAll('.marketplace-story').forEach(el => {
         el.addEventListener('click', () => {
           const url = el.getAttribute('data-url');
-          if (url) window.open(url, '_blank');
+          if (url) tgUtil.openLink(url);
           else tgUtil.alert('Ссылка на площадку будет добавлена позже');
         });
       });
@@ -5245,8 +5421,8 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           <p class="text-white font-bold text-sm truncate">${p.title}</p>
           <p class="text-cyan-400 text-xs">${p.price} ${p.currency}</p>
           <div class="flex gap-1 mt-2">
-            <button class="btn-primary addToCartBtn flex-1 bg-cyan-500/70 hover:" data-product-id="${p.id}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span></button>
-            <button class="buyNowBtn flex-1 bg-green-500/70 hover:bg-green-500 py-1 rounded text-xs" data-url="${p.url}" data-price="${p.price}"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span></button>
+            <button class="btn-primary addToCartBtn flex-1" data-product-id="${p.id}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span></button>
+            <button class="buyNowBtn flex-1" data-url="${p.url}" data-price="${p.price}"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span></button>
           </div>
         </div>
       </div>
@@ -6252,7 +6428,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             ${priceLine}
             <div class="flex gap-2 mt-2">
               <button data-calc-result-pick="${i}" class="btn-primary"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Использовать</button>
-              ${safeHref ? `<a href="${escHtmlC(safeHref)}" target="_blank" rel="noopener noreferrer" class="btn-secondary bg-white/10 hover: font-bold"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span> Открыть</a>` : ''}
+              ${safeHref ? `<button onclick="tgUtil.openLink('${escHtmlC(safeHref)}')" class="btn-secondary bg-white/10 hover: font-bold"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span> Открыть</button>` : ''}
             </div>
           </div>
         </div>`;
@@ -8200,7 +8376,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                   ${priceLine}
                   <div class="flex gap-2 mt-2">
                     <button data-result-pick="${i}" class="btn-primary"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Использовать</button>
-                    ${safeHref ? `<a href="${escHtml(safeHref)}" target="_blank" rel="noopener noreferrer" class="btn-secondary bg-white/10 hover: font-bold"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span> Открыть</a>` : ''}
+                    ${safeHref ? `<button onclick="tgUtil.openLink('${escHtml(safeHref)}')" class="btn-secondary bg-white/10 hover: font-bold"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span> Открыть</button>` : ''}
                   </div>
                 </div>
               </div>
@@ -9531,17 +9707,17 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
   </div>
   
   <!-- Logout & Delete Account Buttons -->
-  <div class="flex gap-3 w-full page-enter" style="animation-delay: 0.2s;">
-    <button id="logoutBtn" class="w-1/2 py-2 px-3 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <div class="flex gap-3 w-full justify-center page-enter" style="animation-delay: 0.2s; max-width: 320px; margin: 0 auto;">
+    <button id="logoutBtn" class="w-1/2 py-3 px-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
         <polyline points="16 17 21 12 16 7"/>
         <line x1="21" y1="12" x2="9" y2="12"/>
       </svg>
       Выйти
     </button>
-    <button id="deleteAccountBtn" class="w-1/2 py-2 px-3 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5" style="background: rgba(248,113,113,0.15); border: 1px solid rgba(248,113,113,0.3); color: #F87171;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <button id="deleteAccountBtn" class="w-1/2 py-3 px-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5" style="background: rgba(248,113,113,0.15); border: 1px solid rgba(248,113,113,0.3); color: #F87171;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="3 6 5 6 21 6"/>
         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
         <line x1="10" y1="11" x2="10" y2="17"/>
@@ -10847,8 +11023,8 @@ async function renderAcademy() {
                 <p class="text-white font-bold text-sm truncate">${p.title}</p>
                 <p class="text-cyan-400 text-xs">${p.price} ${p.currency}</p>
                 <div class="flex gap-1 mt-2">
-                  <button class="btn-primary addToCartBtn flex-1 bg-cyan-500/70 hover:" data-product-id="${p.id}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span></button>
-                  <button class="buyNowBtn flex-1 bg-green-500/70 hover:bg-green-500 py-1 rounded text-xs" data-url="${p.url}" data-price="${p.price}"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span></button>
+                  <button class="btn-primary addToCartBtn flex-1" data-product-id="${p.id}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span></button>
+                  <button class="buyNowBtn flex-1" data-url="${p.url}" data-price="${p.price}"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span></button>
                 </div>
               </div>
             </div>
@@ -15170,8 +15346,8 @@ async function renderProductsCatalog() {
               <p class="text-cyan-400 text-xs">${p.price} ${p.currency}</p>
               <p class="text-white/50 text-xs">${p.brand || ''} ${p.category || ''}</p>
               <div class="flex gap-1 mt-2">
-                <button class="btn-primary addToCartBtn flex-1 bg-cyan-500/70 hover:" data-product-id="${p.id}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span></button>
-                <button class="buyNowBtn flex-1 bg-green-500/70 hover:bg-green-500 py-1 rounded text-xs" data-url="${p.url}" data-price="${p.price}"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span> Купить</button>
+                <button class="btn-primary addToCartBtn flex-1" data-product-id="${p.id}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span></button>
+                <button class="buyNowBtn flex-1" data-url="${p.url}" data-price="${p.price}"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span> Купить</button>
               </div>
             </div>
           </div>
@@ -15549,14 +15725,14 @@ async function loadCartQty() {
 const CART_ICON_SVG = '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span>';
 
 function cartAddBtnHTML(productId) {
-  return `<button class="btn-primary addToCartBtn flex-1 bg-cyan-500/70 hover:" data-product-id="${productId}">${CART_ICON_SVG}</button>`;
+  return `<button class="btn-primary addToCartBtn flex-1" data-product-id="${productId}">${CART_ICON_SVG}</button>`;
 }
 
 function cartStepperHTML(productId, qty) {
-  return `<div class="cart-stepper flex-1" data-product-id="${productId}" style="display:flex;align-items:center;justify-content:space-between;gap:2px;background:rgba(6,182,212,0.85);border-radius:6px;overflow:hidden;min-height:28px;">`
-    + `<button class="cart-step-btn" data-action="dec" data-product-id="${productId}" aria-label="Уменьшить" style="flex:0 0 28px;height:28px;color:#fff;font-size:18px;font-weight:700;line-height:1;background:rgba(255,255,255,0.18);border:none;cursor:pointer;">−</button>`
-    + `<span class="cart-step-count" data-product-id="${productId}" style="flex:1;text-align:center;color:#fff;font-size:13px;font-weight:700;">${qty}</span>`
-    + `<button class="cart-step-btn" data-action="inc" data-product-id="${productId}" aria-label="Увеличить" style="flex:0 0 28px;height:28px;color:#fff;font-size:18px;font-weight:700;line-height:1;background:rgba(255,255,255,0.18);border:none;cursor:pointer;">+</button>`
+  return `<div class="cart-stepper flex-1" data-product-id="${productId}">`
+    + `<button class="cart-step-btn" data-action="dec" data-product-id="${productId}" aria-label="Уменьшить">−</button>`
+    + `<span class="cart-step-count" data-product-id="${productId}">${qty}</span>`
+    + `<button class="cart-step-btn" data-action="inc" data-product-id="${productId}" aria-label="Увеличить">+</button>`
     + `</div>`;
 }
 
@@ -16864,33 +17040,12 @@ async function renderMarketplaces() {
     const allCategories = allowedCategories.filter(cat => data.some(mp => mp.categories && mp.categories.includes(cat)));
     
     return `
-      <button id="backFromMarketplacesBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
-      
-      <!-- Фильтры -->
-      <div class="mb-4">
-        <div class="flex items-center justify-between mb-2">
-          <h3 class="text-white font-bold"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span> Страны</h3>
-        </div>
-        <div class="flex gap-2 overflow-x-auto pb-2" id="filterCountries">
-          <button class="filter-chip active" data-country="all">Все</button>
-          ${allCountries.map(c => `<button class="filter-chip" data-country="${c}">${c}</button>`).join('')}
-        </div>
-        
-        <div class="mt-3">
-          <h3 class="text-white font-bold mb-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span> Категории</h3>
-          <div class="flex gap-2 overflow-x-auto pb-2" id="filterCategories">
-            <button class="filter-chip active" data-category="all">Все</button>
-            ${allCategories.map(cat => `<button class="filter-chip" data-category="${cat}">${cat}</button>`).join('')}
-          </div>
-        </div>
-        
-        <div class="mt-3">
-          <h3 class="text-white font-bold mb-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> Пол</h3>
-          <div class="flex gap-2 overflow-x-auto pb-2" id="filterGenders">
-            <button class="filter-chip active" data-gender="all">Все</button>
-            ${allGenders.map(g => `<button class="filter-chip" data-gender="${g}">${g}</button>`).join('')}
-          </div>
-        </div>
+      <div class="flex items-center justify-between mb-4 mt-2">
+        <button id="backFromMarketplacesBtn" class="global-back-btn m-0"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
+        <button id="openMarketplaceFiltersBtn" class="btn-secondary py-1.5 px-4 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-white/20">
+          <span class="ix" style="width: 14px; height: 14px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></span> Фильтр
+          <span id="activeFiltersBadge" class="hidden bg-cyan-500 text-white text-[9.5px] w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold ml-1">0</span>
+        </button>
       </div>
       
       <div class="flex flex-col gap-3" id="marketplacesGrid"></div>
@@ -16901,6 +17056,118 @@ async function renderMarketplaces() {
     console.error(err);
     return '<p class="text-center mt-10 text-red-400">Ошибка загрузки каталога</p>';
   }
+}
+
+function showMarketplaceFiltersSheet(allCountries, allCategories, allGenders, onApply) {
+  const container = document.createElement('div');
+  container.className = 'fixed inset-0 z-[120] flex items-end justify-center bg-black/60 backdrop-blur-xs transition-opacity duration-300';
+  
+  const card = document.createElement('div');
+  card.className = 'bg-[#1a2333] border-t border-white/20 rounded-t-3xl w-full max-w-md p-5 pb-8 space-y-5 transform translate-y-full transition-transform duration-300 shadow-2xl';
+  card.style.maxHeight = '80vh';
+  card.style.overflowY = 'auto';
+
+  let tempCountry = window.mpFilterCountry || 'all';
+  let tempCategory = window.mpFilterCategory || 'all';
+  let tempGender = window.mpFilterGender || 'all';
+
+  const renderChips = (type, list, activeVal) => {
+    return `
+      <button class="filter-chip ${activeVal === 'all' ? 'active' : ''}" data-type="${type}" data-val="all">Все</button>
+      ${list.map(item => `
+        <button class="filter-chip ${activeVal === item ? 'active' : ''}" data-type="${type}" data-val="${item}">${item}</button>
+      `).join('')}
+    `;
+  };
+
+  card.innerHTML = `
+    <div class="flex items-center justify-between border-b border-white/10 pb-3">
+      <h3 class="text-white font-bold text-base flex items-center gap-2">
+        <span class="ix" style="width:16px;height:16px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></span> Фильтры
+      </h3>
+      <button id="closeFiltersSheet" class="text-white/60 hover:text-white"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+
+    <div class="space-y-4">
+      <div>
+        <p class="text-white/60 text-xs mb-2 font-semibold flex items-center gap-1.5"><span class="ix" style="width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span> Страны</p>
+        <div class="flex gap-2 flex-wrap" id="sheetFilterCountries">
+          ${renderChips('country', allCountries, tempCountry)}
+        </div>
+      </div>
+
+      <div>
+        <p class="text-white/60 text-xs mb-2 font-semibold flex items-center gap-1.5"><span class="ix" style="width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span> Категории</p>
+        <div class="flex gap-2 flex-wrap" id="sheetFilterCategories">
+          ${renderChips('category', allCategories, tempCategory)}
+        </div>
+      </div>
+
+      <div>
+        <p class="text-white/60 text-xs mb-2 font-semibold flex items-center gap-1.5"><span class="ix" style="width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> Пол</p>
+        <div class="flex gap-2 flex-wrap" id="sheetFilterGenders">
+          ${renderChips('gender', allGenders, tempGender)}
+        </div>
+      </div>
+    </div>
+
+    <div class="flex gap-3 pt-2">
+      <button id="resetFiltersSheet" class="btn-secondary flex-1 py-3 text-xs font-bold rounded-xl border border-white/20">Сбросить</button>
+      <button id="applyFiltersSheet" class="btn-primary flex-1 py-3 text-xs font-bold rounded-xl bg-cyan-500 text-white">Применить</button>
+    </div>
+  `;
+
+  container.appendChild(card);
+  document.body.appendChild(container);
+
+  // Trigger animations
+  requestAnimationFrame(() => {
+    card.classList.remove('translate-y-full');
+  });
+
+  const closeSheet = () => {
+    card.classList.add('translate-y-full');
+    setTimeout(() => {
+      container.remove();
+    }, 300);
+  };
+
+  container.addEventListener('click', (e) => {
+    if (e.target === container) closeSheet();
+  });
+  
+  card.querySelector('#closeFiltersSheet').onclick = closeSheet;
+
+  // Handle chip clicks
+  card.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.onclick = () => {
+      const type = chip.dataset.type;
+      const val = chip.dataset.val;
+      
+      chip.parentNode.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+
+      if (type === 'country') tempCountry = val;
+      else if (type === 'category') tempCategory = val;
+      else if (type === 'gender') tempGender = val;
+    };
+  });
+
+  card.querySelector('#resetFiltersSheet').onclick = () => {
+    card.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    card.querySelectorAll('.filter-chip[data-val="all"]').forEach(c => c.classList.add('active'));
+    tempCountry = 'all';
+    tempCategory = 'all';
+    tempGender = 'all';
+  };
+
+  card.querySelector('#applyFiltersSheet').onclick = () => {
+    window.mpFilterCountry = tempCountry;
+    window.mpFilterCategory = tempCategory;
+    window.mpFilterGender = tempGender;
+    onApply();
+    closeSheet();
+  };
 }
 
 function attachMarketplacesHandlers() {
@@ -16941,9 +17208,23 @@ function attachMarketplacesHandlers() {
       });
     }
     
-    const activeCountry = document.querySelector('#filterCountries .filter-chip.active')?.dataset.country || 'all';
-    const activeCategory = document.querySelector('#filterCategories .filter-chip.active')?.dataset.category || 'all';
-    const activeGender = document.querySelector('#filterGenders .filter-chip.active')?.dataset.gender || 'all';
+    const activeCountry = window.mpFilterCountry || 'all';
+    const activeCategory = window.mpFilterCategory || 'all';
+    const activeGender = window.mpFilterGender || 'all';
+    
+    // Update active filters badge
+    const activeCount = (activeCountry !== 'all' ? 1 : 0) +
+                        (activeCategory !== 'all' ? 1 : 0) +
+                        (activeGender !== 'all' ? 1 : 0);
+    const badge = document.getElementById('activeFiltersBadge');
+    if (badge) {
+      if (activeCount > 0) {
+        badge.textContent = activeCount;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
     
     let filtered = marketplacesData;
     if (activeCountry !== 'all') filtered = filtered.filter(mp => mp.country === activeCountry);
@@ -16967,14 +17248,12 @@ function attachMarketplacesHandlers() {
       
       return `
       <div class="glass-card flex gap-3 p-3 items-center page-enter">
-        <!-- Левая часть: квадратный контейнер логотипа -->
         <div style="width: 68px; height: 68px; flex-shrink: 0; border-radius: 16px; overflow:hidden; background: var(--glass-bg-strong); display:flex; align-items:center; justify-content:center; border: 1px solid var(--glass-border-strong);" class="relative">
-          ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-cover cursor-zoom-in" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" onclick="event.stopPropagation(); window.showImagePreview('${mp.logo_url}')">` : ''}
+          ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-cover cursor-pointer" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" onclick="event.stopPropagation(); tgUtil.openLink('${mp.website_url || mp.url}')">` : ''}
           <span style="${mp.logo_url ? 'display:none;' : ''}" class="text-4xl flex items-center justify-center"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span></span>
           ${mp.country === 'США' || mp.country === 'Япония' || mp.country === 'ОАЭ' ? '<span class="absolute bottom-0 right-0 bg-yellow-500 text-black text-[8px] font-bold px-1 rounded-tl">Скоро</span>' : ''}
         </div>
         
-        <!-- Центр: вся нужная информация -->
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
             <h3 class="font-bold text-white text-sm truncate">${mp.name}</h3>
@@ -16987,11 +17266,10 @@ function attachMarketplacesHandlers() {
           </div>
         </div>
 
-        <!-- Правая часть: кнопка перехода и инструкция -->
         <div class="flex flex-col gap-1.5 items-end justify-center flex-shrink-0">
-          <a href="${mp.website_url}" target="_blank" class="btn-primary py-1 px-3 rounded-lg text-[10px] font-bold text-center w-24 bg-cyan-500 text-white hover:bg-cyan-600 transition flex items-center justify-center gap-1">
+          <button onclick="event.stopPropagation(); tgUtil.openLink('${mp.website_url || mp.url}')" class="btn-primary py-1 px-3 rounded-lg text-[10px] font-bold text-center w-24 bg-cyan-500 text-white hover:bg-cyan-600 transition flex items-center justify-center gap-1">
             Перейти
-          </a>
+          </button>
           <button class="instruction-btn bg-white/5 hover:bg-white/10 text-white/80 py-1 px-2 rounded-lg text-[10px] font-bold transition flex items-center justify-center gap-1 w-24 text-center justify-center" 
             data-name="${mp.name.replace(/"/g, '&quot;')}" 
             data-instruction="${(mp.instruction || '').replace(/"/g, '&quot;')}"
@@ -17038,22 +17316,20 @@ function attachMarketplacesHandlers() {
     modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
   }
 
-    const saveCustomsLimitsBtn = document.getElementById('saveCustomsLimitsBtn');
-    if (saveCustomsLimitsBtn) {
-      saveCustomsLimitsBtn.onclick = async () => {
-        const limit = document.getElementById('customsLimitEur').value;
-        const percent = document.getElementById('customsDutyPercent').value;
-        const { error } = await supabaseClient.from('settings').upsert({ key: 'customs_limits', value: { limit, percent } });
-        if (error) alert('Ошибка сохранения: ' + error.message);
-        else alert('Таможенные лимиты обновлены!');
-      };
-    }
+  const saveCustomsLimitsBtn = document.getElementById('saveCustomsLimitsBtn');
+  if (saveCustomsLimitsBtn) {
+    saveCustomsLimitsBtn.onclick = async () => {
+      const limit = document.getElementById('customsLimitEur').value;
+      const percent = document.getElementById('customsDutyPercent').value;
+      const { error } = await supabaseClient.from('settings').upsert({ key: 'customs_limits', value: { limit, percent } });
+      if (error) alert('Ошибка сохранения: ' + error.message);
+      else alert('Таможенные лимиты обновлены!');
+    };
+  }
 
-      // ================== РЕДАКТИРОВАНИЕ / УДАЛЕНИЕ ПЛОЩАДОК (ДЕЛЕГИРОВАНИЕ) ==================
   if (!window._marketplaceHandlers) {
     window._marketplaceHandlers = true;
     document.addEventListener('click', async (e) => {
-      // Редактирование
       const editBtn = e.target.closest('.editMarketplaceBtn');
       if (editBtn) {
         const id = editBtn.dataset.id;
@@ -17062,7 +17338,6 @@ function attachMarketplacesHandlers() {
         return;
       }
       
-      // Удаление
       const deleteBtn = e.target.closest('.deleteMarketplaceBtn');
       if (deleteBtn) {
         const id = deleteBtn.dataset.id;
@@ -17075,23 +17350,23 @@ function attachMarketplacesHandlers() {
     });
   }
   
-  function setupFilters() {
-    ['#filterCountries', '#filterCategories', '#filterGenders'].forEach(selector => {
-      const container = document.querySelector(selector);
-      if (!container) return;
-      container.querySelectorAll('.filter-chip').forEach(chip => {
-        chip.addEventListener('click', () => {
-          container.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-          chip.classList.add('active');
-          renderFilteredGrid();
-        });
-      });
-    });
-  }
-  
   (async () => {
     await renderFilteredGrid();
-    setupFilters();
+    
+    // Bind opening of the bottom sheet
+    const filtersBtn = document.getElementById('openMarketplaceFiltersBtn');
+    if (filtersBtn) {
+      filtersBtn.onclick = () => {
+        const allowedCategories = ['Обувь', 'Одежда', 'Аксессуары'];
+        const allCountries = [...new Set(marketplacesData.map(mp => mp.country))];
+        const allGenders = [...new Set(marketplacesData.flatMap(mp => mp.gender || []))];
+        const allCategories = allowedCategories.filter(cat => marketplacesData.some(mp => mp.categories && mp.categories.includes(cat)));
+
+        showMarketplaceFiltersSheet(allCountries, allCategories, allGenders, () => {
+          renderFilteredGrid();
+        });
+      };
+    }
   })();
 }
 
@@ -17118,11 +17393,17 @@ function maskCard(cardNumber) {
   return '**** **** **** ' + n.slice(-4);
 }
 function applyTheme(theme) {
+  document.documentElement.classList.add('no-transitions');
   if (theme === 'light') {
     document.documentElement.classList.add('light-theme');
   } else {
     document.documentElement.classList.remove('light-theme');
   }
+  // Force layout reflow
+  void document.documentElement.offsetHeight;
+  setTimeout(() => {
+    document.documentElement.classList.remove('no-transitions');
+  }, 50);
 }
 
 function showSizeTablesModal() {
@@ -18606,6 +18887,12 @@ window.openSupportChat = (orderId, isAdmin = false) => {
       modal.remove();
     };
   }
+  modal.onclick = (e) => {
+    if (e.target === modal) {
+      clearInterval(chatInterval);
+      modal.remove();
+    }
+  };
 
   const sendBtn = document.getElementById('sendChatMessageBtn');
   const inputEl = document.getElementById('chatMessageInput');
@@ -20196,9 +20483,14 @@ async function showAccountRecovery() {
       </div>
     </div>`;
   document.body.appendChild(modal);
-  modal.querySelector('#closeRecoveryModal').onclick = () => modal.remove();
-
   let resendInterval = null;
+  const cleanClose = () => {
+    if (resendInterval) clearInterval(resendInterval);
+    modal.remove();
+  };
+  modal.querySelector('#closeRecoveryModal').onclick = cleanClose;
+  modal.onclick = (e) => { if (e.target === modal) cleanClose(); };
+
   const startResendTimer = () => {
     let secs = 60;
     const timerEl = modal.querySelector('#recoveryTimer');
@@ -20300,7 +20592,7 @@ async function showAppSettings(initialTab = 'security') {
   // Telegram Link (FIRST - per user request)
   if (userTelegramId) {
     identitiesHtml += `
-      <div class="w-full py-3 px-4 rounded-xl flex items-center justify-between" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);">
+      <div class="w-full py-3 px-4 rounded-xl flex items-center justify-between settings-row-bg" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);">
         <div class="flex items-center gap-3">
           <span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.19 2.5a24.22 24.22 0 0 0-9 1.56 24.43 24.43 0 0 0-9-1.56c-.53 0-1 .47-1 1a24 24 0 0 0 3.25 12c1.72 2.7 4.19 4.7 7.21 6a.52.52 0 0 0 .39 0c3-.78 5.76-2.58 7.37-5.12A24.08 24.08 0 0 0 22.19 3.5c0-.53-.47-1-1-1z"/></svg></span>
           <span class="font-semibold text-white/50 text-sm">Telegram привязан</span>
@@ -20336,7 +20628,7 @@ async function showAppSettings(initialTab = 'security') {
 
   // Apple Link
   identitiesHtml += `
-    <button id="linkAppleBtn" class="w-full py-3 px-4 rounded-xl flex items-center justify-between transition" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+    <button id="linkAppleBtn" class="w-full py-3 px-4 rounded-xl flex items-center justify-between settings-action-btn transition" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
       <div class="flex items-center gap-3">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="color:#ffffff;"><path d="M16.365 21.444c-1.332 1.405-2.651 1.4-3.955.086-1.19-1.2-2.316-1.187-3.486 0-1.385 1.4-2.721 1.428-4.043.08-3.036-3.111-4.707-8.31-2.482-12.825 1.134-2.296 3.013-3.714 5.234-3.743 1.572-.016 3.031.975 4.02.975.986 0 2.833-1.182 4.793-1.01 1.637.067 3.125.77 4.148 2.106-3.415 2.115-2.88 6.772.634 8.163-.787 2.111-1.956 4.316-3.863 6.168zM15.426 5.518c-.85.98-2.126 1.611-3.266 1.516-.25-1.428.468-2.85 1.258-3.791.905-1.083 2.304-1.727 3.402-1.631.183 1.428-.48 2.838-1.394 3.906z"/></svg>
         <span class="font-semibold text-white text-sm">Apple</span>
@@ -20358,7 +20650,7 @@ async function showAppSettings(initialTab = 'security') {
     `;
   } else {
     identitiesHtml += `
-      <div class="w-full py-3 px-4 rounded-xl flex items-center justify-between" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);">
+      <div class="w-full py-3 px-4 rounded-xl flex items-center justify-between settings-row-bg" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);">
         <div class="flex items-center gap-3">
           <span class="ix text-white/40"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
           <span class="font-semibold text-white/50 text-sm">Email привязан</span>
@@ -20371,7 +20663,7 @@ async function showAppSettings(initialTab = 'security') {
   // Phone Link
   if (userPhone) {
     identitiesHtml += `
-      <div class="w-full py-3 px-4 rounded-xl flex items-center justify-between" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);">
+      <div class="w-full py-3 px-4 rounded-xl flex items-center justify-between settings-row-bg" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);">
         <div class="flex items-center gap-3">
           <span class="ix text-white/40"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
           <span class="font-semibold text-white/50 text-sm">Телефон привязан</span>
@@ -20381,7 +20673,7 @@ async function showAppSettings(initialTab = 'security') {
     `;
   } else {
     identitiesHtml += `
-      <button id="linkPhoneBtn" class="w-full py-3 px-4 rounded-xl flex items-center justify-between transition" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+      <button id="linkPhoneBtn" class="w-full py-3 px-4 rounded-xl flex items-center justify-between settings-action-btn transition" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
         <div class="flex items-center gap-3">
           <span class="ix text-white/40"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
           <span class="font-semibold text-white text-sm">Привязать Телефон</span>
@@ -20686,9 +20978,6 @@ async function showAppSettings(initialTab = 'security') {
     applyTheme(savedTheme);
     applyLanguage(savedLang);
     modal.remove();
-    if (savedLang !== initialLang) {
-      location.reload();
-    }
   };
 
   modal.querySelector('#closeAppSettings').onclick = handleClose;
@@ -21291,6 +21580,13 @@ function attachCartHandlers() {
         
       if (!error) {
         row.dataset.currentQty = String(newQty);
+        const pid = priceCheckbox?.dataset.productId;
+        if (pid) {
+          window.cartQty = window.cartQty || {};
+          window.cartQty[String(pid)] = newQty;
+        }
+        if (typeof _tabCache !== 'undefined') delete _tabCache['cart:'];
+        
         // Обновляем все отображения количества в карточке
         qtySpans.forEach(span => span.innerText = newQty);
         // Обновляем примерную стоимость
@@ -21318,9 +21614,16 @@ function attachCartHandlers() {
     const removeBtn = e.target.closest('.cart-remove-btn');
     if (removeBtn) {
       const cartId = removeBtn.dataset.id;
+      const row = removeBtn.closest('[data-cart-id]');
+      const priceCheckbox = row?.querySelector('.cart-item-checkbox');
+      const pid = priceCheckbox?.dataset.productId;
+      
       await supabaseClient.from('cart').delete().eq('id', cartId);
+      if (pid) {
+        delete window.cartQty[String(pid)];
+      }
       if (typeof updateCartBadge === 'function') updateCartBadge();
-      delete _tabCache['cart:'];
+      if (typeof _tabCache !== 'undefined') delete _tabCache['cart:'];
       renderCurrentScreen(); // Перерисовываем корзину
       return;
     }
@@ -21335,8 +21638,9 @@ function attachCartHandlers() {
       if (!(await tgUtil.confirm('Удалить все товары из корзины?'))) return;
       tgUtil.haptic('warning');
       await supabaseClient.from('cart').delete().eq('user_id', userId);
+      window.cartQty = {};
       if (typeof updateCartBadge === 'function') updateCartBadge();
-      delete _tabCache['cart:'];
+      if (typeof _tabCache !== 'undefined') delete _tabCache['cart:'];
       renderCurrentScreen();
     };
   }
@@ -21416,7 +21720,11 @@ function attachCartHandlers() {
 async function updateCartBadge() {
   if (!userId) return;
   try {
-    const { count } = await supabaseClient.from('cart').select('*', { count: 'exact', head: true }).eq('user_id', userId);
+    const { data } = await supabaseClient.from('cart').select('quantity').eq('user_id', userId);
+    let count = 0;
+    if (data) {
+      count = data.reduce((sum, item) => sum + (item.quantity || 0), 0);
+    }
     const badge = document.getElementById('cartBadge');
     if (badge) {
       if (count > 0) {
