@@ -199,9 +199,10 @@
       to { transform: translateY(0); opacity: 1; }
     }
     
-    .header-left { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; margin-left: 4px; }
-    .header-center { display: flex; align-items: center; gap: 8px; justify-content: center; flex: 0 0 auto; }
-    .header-right { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; justify-content: flex-end; margin-right: 4px; }
+    .header-left { display: flex; align-items: center; gap: 8px; flex-shrink: 0; min-width: 0; }
+    .header-center { display: flex; align-items: center; gap: 12px; justify-content: center; flex-shrink: 0; }
+    .header-right { display: flex; align-items: center; justify-content: flex-end; flex-shrink: 0; min-width: 0; }
+    .header-spacer { flex: 1 1 0%; min-width: 8px; }
     
     .logo-img { 
       box-sizing: content-box;
@@ -213,7 +214,6 @@
       cursor: pointer; 
       padding: 4px;
       margin: 0;
-      margin-left: 12px;
       transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
       filter: drop-shadow(0 2px 8px rgba(91, 191, 235, 0.45));
     }
@@ -221,6 +221,27 @@
       .logo-img:hover { transform: scale(1.05) rotate(-2deg); }
     }
     .logo-img:active { transform: scale(0.95); }
+
+    /* Сочная анимация клика */
+    @keyframes clickPulse {
+      0% { transform: scale(1); }
+      20% { transform: scale(0.85) rotate(-5deg); }
+      50% { transform: scale(1.15) rotate(5deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+    .click-animate {
+      animation: clickPulse 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+    }
+
+    /* Анимация успеха при добавлении в корзину */
+    .addToCartBtn.adding-success {
+      background: rgba(16, 185, 129, 0.2) !important;
+      border-color: rgba(16, 185, 129, 0.5) !important;
+      color: #10b981 !important;
+      transform: scale(0.95);
+      pointer-events: none;
+      transition: all 0.3s ease;
+    }
     
     /* Balance Island Widget */
     .balance-island {
@@ -2576,8 +2597,12 @@
         </div>
         <button class="icon-btn" id="loginBtn" title="Войти/Зарегистрироваться" style="display:none; background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.4); color: #22d3ee; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 10px; white-space: nowrap;">Войти/Зарегистрироваться</button>
       </div>
-      <!-- RIGHT: Action buttons + Logo -->
-      <div class="header-right">
+      
+      <!-- SPACER 1 -->
+      <div class="header-spacer"></div>
+
+      <!-- CENTER: Action buttons -->
+      <div class="header-center">
         <button class="icon-btn relative" id="notificationsBtn" title="Уведомления">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -2591,6 +2616,13 @@
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
           </svg>
         </button>
+      </div>
+
+      <!-- SPACER 2 -->
+      <div class="header-spacer"></div>
+
+      <!-- RIGHT: Logo -->
+      <div class="header-right">
         <img id="logoImg" class="logo-img" src="./assets/logo.png" alt="ICE LOGIX">
       </div>
     </div>
@@ -4993,7 +5025,7 @@ const MAX_REQUESTS_TRUSTED = 100;
         }
         const logoImg = document.getElementById('logoImg');
         if (logoImg) {
-          logoImg.onclick = () => switchTab('home');
+          logoImg.onclick = () => { animateClick(logoImg); switchTab('home'); };
         }
         const userCard = document.getElementById('userCard');
         if (userCard) {
@@ -5001,7 +5033,7 @@ const MAX_REQUESTS_TRUSTED = 100;
         }
         const avatar = document.getElementById('avatar');
         if (avatar) {
-          avatar.onclick = () => switchTab('profile');
+          avatar.onclick = () => { animateClick(avatar); switchTab('profile'); };
         }
         // Скрыть баланс, уведомления, настройки для неавторизованных
         const balanceIsland = document.getElementById('balanceIsland');
@@ -5461,6 +5493,13 @@ const MAX_REQUESTS_TRUSTED = 100;
         if (data) data.forEach(item => wishlist.add(item.product_id));
       } catch(e) {}
     }
+
+    function animateClick(el) {
+      if (!el) return;
+      el.classList.add('click-animate');
+      setTimeout(() => el.classList.remove('click-animate'), 1200);
+    }
+    window.animateClick = animateClick;
 
     function attachEventListeners() {
       document.getElementById('addBalanceBtn').onclick = (e) => {
@@ -10428,6 +10467,15 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
   const changeAvatarBtn = document.getElementById('changeAvatarBtn');
   if (changeAvatarBtn) changeAvatarBtn.onclick = () => showAvatarUploader();
 
+  const profileAvatar = document.getElementById('profileAvatar');
+  if (profileAvatar) {
+    profileAvatar.style.cursor = 'pointer';
+    profileAvatar.onclick = (e) => {
+      e.stopPropagation();
+      animateClick(profileAvatar);
+    };
+  }
+
   // Редактирование имени открывает компактный prompt
   const editNameBtn = document.getElementById('editNameBtn');
   if (editNameBtn) editNameBtn.onclick = () => showEditNameForm();
@@ -11921,7 +11969,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           ];
 
           return `
-            <div class="space-y-6 page-enter text-left">
+            <div class="space-y-6 page-enter text-left mb-6">
               <!-- Визуальная досочка (Инфо-плашка) -->
               <div class="reviews-board p-5 border border-white/10 text-center relative overflow-hidden">
                 <div class="absolute -right-10 -top-10 w-28 h-28 bg-cyan-500/10 rounded-full blur-2xl"></div>
@@ -12112,7 +12160,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           );
 
           return `
-            <div class="space-y-4 page-enter pb-10 text-left">
+            <div class="space-y-4 page-enter text-left mb-6">
               <div class="flex items-center gap-3">
                 <button id="feedBackToHubBtn" class="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
                   <span class="text-white text-lg">➔</span>
@@ -16377,7 +16425,7 @@ function attachAboutUsHandlers() {
 
 
 
-async function addToCart(productId, quantity = 1, skipAlert = false) {
+async function addToCart(productId, quantity = 1, skipAlert = false, isFromBtn = false) {
   if (!userId) {
     window.requireAuth('Авторизуйтесь для добавления товаров в корзину');
     return;
@@ -16390,7 +16438,13 @@ async function addToCart(productId, quantity = 1, skipAlert = false) {
   // 1. Optimistically update local memory and UI
   window.cartQty[pid] = newQty;
   window._cartQtyLoaded = true;
-  if (typeof updateProductCartUI === 'function') updateProductCartUI(pid);
+  if (typeof updateProductCartUI === 'function') {
+    if (isFromBtn) {
+      setTimeout(() => updateProductCartUI(pid), 1200);
+    } else {
+      updateProductCartUI(pid);
+    }
+  }
   if (typeof _tabCache !== 'undefined') delete _tabCache['cart:'];
   tgUtil.haptic('success');
 
@@ -16472,7 +16526,9 @@ function makeAddBtn(productId) {
   btn.onclick = (e) => {
     e.stopPropagation();
     if (!window.userId && !userId) { window.requireAuth('Для добавления в корзину необходимо войти или зарегистрироваться.'); return; }
-    addToCart(productId);
+    btn.classList.add('adding-success');
+    btn.innerHTML = `<span class="ix text-green-400 font-bold flex items-center justify-center gap-1" style="animation: scaleUp 0.3s ease;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><polyline points="20 6 9 17 4 12"/></svg></span>`;
+    addToCart(productId, 1, true, true);
   };
   return btn;
 }
@@ -17485,12 +17541,20 @@ function attachAdminSuppliersHandlers() {
     }
 
     async function renderAdminScreen() {
+      const contentDiv = document.getElementById('content');
+      const currentHeight = contentDiv ? contentDiv.offsetHeight : 0;
+      if (contentDiv && currentHeight > 0) {
+        contentDiv.style.minHeight = `${currentHeight}px`;
+      }
       const scrollPos = window.scrollY || document.documentElement.scrollTop;
       _suppressSpinner = true;
       try {
         await renderCurrentScreen();
       } finally {
         _suppressSpinner = false;
+        if (contentDiv) {
+          contentDiv.style.minHeight = '';
+        }
       }
       requestAnimationFrame(() => {
         window.scrollTo({ top: scrollPos, behavior: 'instant' });
