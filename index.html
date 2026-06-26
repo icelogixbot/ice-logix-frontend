@@ -12819,9 +12819,12 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             const newPinned = !data.is_pinned;
             const { error: updateErr } = await supabaseClient.from('reviews').update({ is_pinned: newPinned }).eq('id', reviewId);
             if (updateErr) throw updateErr;
-
+            if (window.adminCache && window.adminCache.reviews) {
+              const r = window.adminCache.reviews.find(r => r.id === reviewId);
+              if (r) r.is_pinned = newPinned;
+            }
             tgUtil.haptic('success');
-            renderAdminScreen();
+            renderAdminScreen(false);
           } catch (e) {
             console.error('Failed to toggle review pin status:', e);
             tgUtil.alert('Не удалось изменить статус закрепления: ' + e.message);
@@ -12887,8 +12890,8 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
             const prevBtn = document.getElementById('feedPrevPage');
             const nextBtn = document.getElementById('feedNextPage');
-            if (prevBtn) prevBtn.onclick = () => { if (reviewsPage > 1) { reviewsPage--; renderAdminScreen(); } };
-            if (nextBtn) nextBtn.onclick = () => { if (reviewsPage < reviewsTotalPages) { reviewsPage++; renderAdminScreen(); } };
+            if (prevBtn) prevBtn.onclick = () => { if (reviewsPage > 1) { reviewsPage--; renderAdminScreen(true); } };
+            if (nextBtn) nextBtn.onclick = () => { if (reviewsPage < reviewsTotalPages) { reviewsPage++; renderAdminScreen(true); } };
 
             const leaveBtn = document.getElementById('feedLeaveReviewBtn');
             if (leaveBtn) {
@@ -13312,11 +13315,154 @@ window.adminUpdateTracking = async (orderId) => {
   }
 };
 
+async function preloadAdminData(force = false) {
+  const cacheDuration = 15000;
+  const now = Date.now();
+  
+  const isParamsMatch = window.adminCache && 
+                        window.adminCache.ordersPage === adminOrdersPage &&
+                        window.adminCache.ordersMode === adminOrdersMode &&
+                        window.adminCache.ordersFilter === adminOrdersFilter;
+                        
+  const isCacheFresh = window.adminCache && window.adminCache.ts && (now - window.adminCache.ts < cacheDuration);
+
+  if (!force && isCacheFresh && isParamsMatch) {
+    return;
+  }
+  
+  if (!force && isCacheFresh && !isParamsMatch) {
+    let ordersQuery = supabaseClient.from('orders').select('*', { count: 'exact' });
+    if (adminOrdersMode === 'active') {
+      ordersQuery = ordersQuery.is('archived_at', null);
+    } else {
+      ordersQuery = ordersQuery.not('archived_at', 'is', null);
+    }
+    if (adminOrdersFilter !== 'all') {
+      ordersQuery = ordersQuery.eq('status', adminOrdersFilter);
+    }
+    ordersQuery = ordersQuery.order('created_at', { ascending: false });
+    const from = (adminOrdersPage - 1) * 30;
+    const to = from + 29;
+    ordersQuery = ordersQuery.range(from, to);
+
+    try {
+      const ordersRes = await ordersQuery;
+      const orders = ordersRes.data || [];
+      const count = ordersRes.count || 0;
+      const userMap = {};
+      
+      if (orders.length > 0) {
+        const userIds = [...new Set(orders.map(o => o.user_id))];
+        const { data: usersData } = await supabaseClient.from('users').select('user_id, full_name, username, is_toxic').in('user_id', userIds);
+        if (usersData) {
+          usersData.forEach(u => { userMap[u.user_id] = u; });
+        }
+      }
+      
+      window.adminCache.orders = orders;
+      window.adminCache.ordersCount = count;
+      window.adminCache.ordersUserMap = userMap;
+      window.adminCache.ordersPage = adminOrdersPage;
+      window.adminCache.ordersMode = adminOrdersMode;
+      window.adminCache.ordersFilter = adminOrdersFilter;
+    } catch(e) {
+      console.error('Failed to reload orders incrementally:', e);
+    }
+    return;
+  }
+  
+  let ordersQuery = supabaseClient.from('orders').select('*', { count: 'exact' });
+  if (adminOrdersMode === 'active') {
+    ordersQuery = ordersQuery.is('archived_at', null);
+  } else {
+    ordersQuery = ordersQuery.not('archived_at', 'is', null);
+  }
+  if (adminOrdersFilter !== 'all') {
+    ordersQuery = ordersQuery.eq('status', adminOrdersFilter);
+  }
+  ordersQuery = ordersQuery.order('created_at', { ascending: false });
+  const from = (adminOrdersPage - 1) * 30;
+  const to = from + 29;
+  ordersQuery = ordersQuery.range(from, to);
+
+  const [
+    promoCodes,
+    payoutRequests,
+    reviews,
+    allProducts,
+    courses,
+    promotions,
+    tickets,
+    claims,
+    legitChecks,
+    marketplaces,
+    settings,
+    users,
+    ordersRes
+  ] = await Promise.all([
+    supabaseClient.from('promocodes').select('*').order('created_at', { ascending: false }).then(r => r.data || []).catch(e => { console.error('promoCodes load failed:', e); return []; }),
+    supabaseClient.from('payout_requests').select('*').eq('status', 'pending').then(r => r.data || []).catch(e => { console.error('payoutRequests load failed:', e); return []; }),
+    supabaseClient.from('reviews').select('*').eq('is_published', false).order('created_at', { ascending: false }).then(r => r.data || []).catch(e => { console.error('reviews load failed:', e); return []; }),
+    supabaseClient.from('products').select('*').order('created_at', { ascending: false }).then(r => r.data || []).catch(e => { console.error('products load failed:', e); return []; }),
+    supabaseClient.from('courses').select('*').order('created_at', { ascending: true }).then(r => r.data || []).catch(e => { console.error('courses load failed:', e); return []; }),
+    supabaseClient.from('promotions').select('*').order('created_at', { ascending: false }).then(r => r.data || []).catch(e => { console.error('promotions load failed:', e); return []; }),
+    supabaseClient.from('order_messages').select('order_id, user_id, message_text, created_at, sender_role').order('created_at', { ascending: false }).then(r => r.data || []).catch(e => { console.error('order_messages load failed:', e); return []; }),
+    supabaseClient.from('insurance_claims').select('*, orders(total_byn, status)').order('created_at', { ascending: false }).then(r => r.data || []).catch(e => { console.error('claims load failed:', e); return []; }),
+    supabaseClient.from('legit_check_requests').select('*').order('created_at', { ascending: false }).then(r => r.data || []).catch(e => { console.error('legitChecks load failed:', e); return []; }),
+    supabaseClient.from('marketplaces').select('*').order('sort_order', { ascending: true }).then(r => r.data || []).catch(e => { console.error('marketplaces load failed:', e); return []; }),
+    supabaseClient.from('admin_settings').select('*').eq('owner_id', userId).maybeSingle().then(r => r.data || null).catch(e => { console.error('admin_settings load failed:', e); return null; }),
+    supabaseClient.from('users').select('*').order('created_at', { ascending: false }).then(r => r.data || []).catch(e => { console.error('users load failed:', e); return []; }),
+    ordersQuery.catch(e => { console.error('orders load failed:', e); return { data: [], count: 0 }; })
+  ]);
+
+  const orders = ordersRes?.data || [];
+  const count = ordersRes?.count || 0;
+  const userMap = {};
+  
+  if (orders.length > 0) {
+    try {
+      const userIds = [...new Set(orders.map(o => o.user_id))];
+      const { data: usersData } = await supabaseClient.from('users').select('user_id, full_name, username, is_toxic').in('user_id', userIds);
+      if (usersData) {
+        usersData.forEach(u => { userMap[u.user_id] = u; });
+      }
+    } catch(e) {
+      console.error('userMap load failed:', e);
+    }
+  }
+
+  window.adminCache = {
+    ts: now,
+    promoCodes,
+    payoutRequests,
+    reviews,
+    allProducts,
+    courses,
+    promotions,
+    tickets,
+    claims,
+    legitChecks,
+    marketplaces,
+    settings,
+    users,
+    orders,
+    ordersCount: count,
+    ordersUserMap: userMap,
+    ordersPage: adminOrdersPage,
+    ordersMode: adminOrdersMode,
+    ordersFilter: adminOrdersFilter
+  };
+}
+
 async function renderAdminUsersList() {
   try {
-    let query = supabaseClient.from('users').select('*').order('created_at', { ascending: false });
-    const { data: users, error } = await query;
-    if (error) throw error;
+    if (!window.adminCache || !window.adminCache.users) {
+      const { data, error } = await supabaseClient.from('users').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      window.adminCache = window.adminCache || {};
+      window.adminCache.users = data || [];
+    }
+    const users = window.adminCache.users;
     
     let filtered = users;
     if (adminUsersSearch) {
@@ -13357,12 +13503,10 @@ async function renderAdminUsersList() {
 
 async function renderMarketplacesAdminList() {
   try {
-    const cacheDuration = 15000;
-    const now = Date.now();
-    if (!window.adminCache || !window.adminCache.marketplaces || (now - window.adminCache.ts > cacheDuration)) {
+    if (!window.adminCache || !window.adminCache.marketplaces) {
       const { data, error } = await supabaseClient.from('marketplaces').select('*').order('sort_order', { ascending: true });
       if (error) throw error;
-      if (!window.adminCache) window.adminCache = { ts: now };
+      window.adminCache = window.adminCache || {};
       window.adminCache.marketplaces = data || [];
     }
     
@@ -13404,12 +13548,10 @@ async function renderMarketplacesAdminList() {
 
 async function renderPromotionsAdminList() {
   try {
-    const cacheDuration = 15000;
-    const now = Date.now();
-    if (!window.adminCache || !window.adminCache.promotions || (now - window.adminCache.ts > cacheDuration)) {
+    if (!window.adminCache || !window.adminCache.promotions) {
       const { data, error } = await supabaseClient.from('promotions').select('*').order('created_at', { ascending: false });
       if (error) throw error;
-      if (!window.adminCache) window.adminCache = { ts: now };
+      window.adminCache = window.adminCache || {};
       window.adminCache.promotions = data || [];
     }
     const data = window.adminCache.promotions;
@@ -13458,12 +13600,17 @@ function downloadCSV(csvContent, filename) {
 
 async function renderAdminClaimsList() {
   try {
-    const { data: claims, error } = await supabaseClient
-      .from('insurance_claims')
-      .select('*, orders(total_byn, status)')
-      .order('created_at', { ascending: false });
+    if (!window.adminCache || !window.adminCache.claims) {
+      const { data: claims, error } = await supabaseClient
+        .from('insurance_claims')
+        .select('*, orders(total_byn, status)')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      window.adminCache = window.adminCache || {};
+      window.adminCache.claims = data || [];
+    }
+    const claims = window.adminCache.claims;
 
-    if (error) throw error;
     if (!claims || claims.length === 0) {
       return '<p class="text-xs text-white/40 text-center py-4">Нет активных страховых претензий</p>';
     }
@@ -13516,12 +13663,17 @@ async function renderAdminClaimsList() {
 
 async function renderAdminLegitChecksList() {
   try {
-    const { data: checks, error } = await supabaseClient
-      .from('legit_check_requests')
-      .select('*')
-      .order('created_at', { ascending: false });
+    if (!window.adminCache || !window.adminCache.legitChecks) {
+      const { data: checks, error } = await supabaseClient
+        .from('legit_check_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      window.adminCache = window.adminCache || {};
+      window.adminCache.legitChecks = data || [];
+    }
+    const checks = window.adminCache.legitChecks;
 
-    if (error) throw error;
     if (!checks || checks.length === 0) {
       return '<p class="text-xs text-white/40 text-center py-4">Нет заявок на Legit-Check</p>';
     }
@@ -13553,8 +13705,8 @@ async function renderAdminLegitChecksList() {
               `).join('')}
             </div>
             <div class="mt-3 flex gap-2">
-              <button class="flex-1 bg-white/20 hover:bg-white/30 py-2 rounded-lg text-sm text-white" onclick="window.open('https://t.me/icelogix_bot?text=Вопрос по заказу ${order.id.slice(0,8)}', '_blank')">💬 Поддержка</button>
-              <button class="flex-1 bg-blue-500/50 hover:bg-blue-500/70 py-2 rounded-lg text-sm text-white" onclick="downloadCustomsInvoice('${order.id}')">📄 PDF Инвойс</button>
+              <button class="flex-1 bg-white/20 hover:bg-white/30 py-2 rounded-lg text-sm text-white" onclick="window.open('https://t.me/icelogix_bot?text=Вопрос по заказу ${c.order_id ? c.order_id.slice(0,8) : c.id.slice(0,8)}', '_blank')">💬 Поддержка</button>
+              <button class="flex-1 bg-blue-500/50 hover:bg-blue-500/70 py-2 rounded-lg text-sm text-white" onclick="downloadCustomsInvoice('${c.order_id || c.id}')">📄 PDF Инвойс</button>
             </div>
           </div>
           ${isPending ? `
@@ -13599,19 +13751,19 @@ async function renderAdmin2FA() {
         <div class="w-4 h-4 rounded-full bg-white/20 border border-white/10 transition-colors duration-200"></div>
       </div>
       
-      <div class="grid grid-cols-3 gap-3 mb-4" id="pinKeyboard">
-        <button class="bg-white/5 hover:bg-white/10 text-white font-bold text-xl py-4 rounded-xl border border-white/10" data-digit="1">1</button>
-        <button class="bg-white/5 hover:bg-white/10 text-white font-bold text-xl py-4 rounded-xl border border-white/10" data-digit="2">2</button>
-        <button class="bg-white/5 hover:bg-white/10 text-white font-bold text-xl py-4 rounded-xl border border-white/10" data-digit="3">3</button>
-        <button class="bg-white/5 hover:bg-white/10 text-white font-bold text-xl py-4 rounded-xl border border-white/10" data-digit="4">4</button>
-        <button class="bg-white/5 hover:bg-white/10 text-white font-bold text-xl py-4 rounded-xl border border-white/10" data-digit="5">5</button>
-        <button class="bg-white/5 hover:bg-white/10 text-white font-bold text-xl py-4 rounded-xl border border-white/10" data-digit="6">6</button>
-        <button class="bg-white/5 hover:bg-white/10 text-white font-bold text-xl py-4 rounded-xl border border-white/10" data-digit="7">7</button>
-        <button class="bg-white/5 hover:bg-white/10 text-white font-bold text-xl py-4 rounded-xl border border-white/10" data-digit="8">8</button>
-        <button class="bg-white/5 hover:bg-white/10 text-white font-bold text-xl py-4 rounded-xl border border-white/10" data-digit="9">9</button>
+      <div class="grid grid-cols-3 gap-3 mb-4 transition-opacity duration-200" id="pinKeyboard">
+        <div role="button" tabindex="-1" class="bg-white/5 hover:bg-white/10 active:bg-white/15 text-white font-bold text-xl py-4 rounded-xl border border-white/10 cursor-pointer select-none flex items-center justify-center transition-all active:scale-[0.95]" data-digit="1">1</div>
+        <div role="button" tabindex="-1" class="bg-white/5 hover:bg-white/10 active:bg-white/15 text-white font-bold text-xl py-4 rounded-xl border border-white/10 cursor-pointer select-none flex items-center justify-center transition-all active:scale-[0.95]" data-digit="2">2</div>
+        <div role="button" tabindex="-1" class="bg-white/5 hover:bg-white/10 active:bg-white/15 text-white font-bold text-xl py-4 rounded-xl border border-white/10 cursor-pointer select-none flex items-center justify-center transition-all active:scale-[0.95]" data-digit="3">3</div>
+        <div role="button" tabindex="-1" class="bg-white/5 hover:bg-white/10 active:bg-white/15 text-white font-bold text-xl py-4 rounded-xl border border-white/10 cursor-pointer select-none flex items-center justify-center transition-all active:scale-[0.95]" data-digit="4">4</div>
+        <div role="button" tabindex="-1" class="bg-white/5 hover:bg-white/10 active:bg-white/15 text-white font-bold text-xl py-4 rounded-xl border border-white/10 cursor-pointer select-none flex items-center justify-center transition-all active:scale-[0.95]" data-digit="5">5</div>
+        <div role="button" tabindex="-1" class="bg-white/5 hover:bg-white/10 active:bg-white/15 text-white font-bold text-xl py-4 rounded-xl border border-white/10 cursor-pointer select-none flex items-center justify-center transition-all active:scale-[0.95]" data-digit="6">6</div>
+        <div role="button" tabindex="-1" class="bg-white/5 hover:bg-white/10 active:bg-white/15 text-white font-bold text-xl py-4 rounded-xl border border-white/10 cursor-pointer select-none flex items-center justify-center transition-all active:scale-[0.95]" data-digit="7">7</div>
+        <div role="button" tabindex="-1" class="bg-white/5 hover:bg-white/10 active:bg-white/15 text-white font-bold text-xl py-4 rounded-xl border border-white/10 cursor-pointer select-none flex items-center justify-center transition-all active:scale-[0.95]" data-digit="8">8</div>
+        <div role="button" tabindex="-1" class="bg-white/5 hover:bg-white/10 active:bg-white/15 text-white font-bold text-xl py-4 rounded-xl border border-white/10 cursor-pointer select-none flex items-center justify-center transition-all active:scale-[0.95]" data-digit="9">9</div>
         <div></div>
-        <button class="bg-white/5 hover:bg-white/10 text-white font-bold text-xl py-4 rounded-xl border border-white/10" data-digit="0">0</button>
-        <button class="bg-white/5 hover:bg-white/10 text-red-400 font-bold text-xl py-4 rounded-xl border border-white/10" id="pinDeleteBtn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg></span></button>
+        <div role="button" tabindex="-1" class="bg-white/5 hover:bg-white/10 active:bg-white/15 text-white font-bold text-xl py-4 rounded-xl border border-white/10 cursor-pointer select-none flex items-center justify-center transition-all active:scale-[0.95]" data-digit="0">0</div>
+        <div role="button" tabindex="-1" class="bg-white/5 hover:bg-white/10 active:bg-white/15 text-red-400 font-bold text-xl py-4 rounded-xl border border-white/10 cursor-pointer select-none flex items-center justify-center transition-all active:scale-[0.95]" id="pinDeleteBtn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg></span></div>
       </div>
       <div id="recentTransactions" class="mt-2 text-left"></div>
     </div>
@@ -13623,12 +13775,25 @@ async function renderAdmin2FA() {
 
 
 let currentPin = '';
+let isCheckingPin = false;
+
 function attachAdmin2FAHandlers() {
   currentPin = '';
-  document.getElementById('cancelAdmin2FA').onclick = () => switchTab('home');
+  isCheckingPin = false;
+  
+  const cancelBtn = document.getElementById('cancelAdmin2FA');
+  if (cancelBtn) cancelBtn.onclick = () => switchTab('home');
   const dots = document.querySelectorAll('#pinDots div');
+  const keyboard = document.getElementById('pinKeyboard');
   
   async function checkPin() {
+    if (isCheckingPin) return;
+    isCheckingPin = true;
+    if (keyboard) {
+      keyboard.style.opacity = '0.5';
+      keyboard.style.pointerEvents = 'none';
+    }
+    
     try {
       const { data } = await supabaseClient.from('users').select('pin_code').eq('user_id', userId).single();
       if (!data || !data.pin_code) {
@@ -13649,7 +13814,16 @@ function attachAdmin2FAHandlers() {
         tgUtil.alert('❌ Неверный ПИН-код');
         currentPin = ''; updateDots();
       }
-    } catch(e) { tgUtil.alert('Ошибка ' + e.message); currentPin = ''; updateDots(); }
+    } catch(e) { 
+      tgUtil.alert('Ошибка ' + e.message); 
+      currentPin = ''; updateDots(); 
+    } finally {
+      isCheckingPin = false;
+      if (keyboard) {
+        keyboard.style.opacity = '1';
+        keyboard.style.pointerEvents = 'auto';
+      }
+    }
   }
 
   function updateDots() {
@@ -13667,8 +13841,9 @@ function attachAdmin2FAHandlers() {
     }
   }
 
-  document.querySelectorAll('#pinKeyboard button[data-digit]').forEach(btn => {
+  document.querySelectorAll('#pinKeyboard div[data-digit]').forEach(btn => {
     btn.onclick = () => {
+      if (isCheckingPin) return;
       if (currentPin.length < 4) {
         tgUtil.haptic('light');
         currentPin += btn.dataset.digit;
@@ -13677,49 +13852,26 @@ function attachAdmin2FAHandlers() {
     };
   });
   
-  document.getElementById('pinDeleteBtn').onclick = () => {
-    if (currentPin.length > 0) {
-      tgUtil.haptic('light');
-      currentPin = currentPin.slice(0, -1);
-      updateDots();
-    }
-  };
+  const delBtn = document.getElementById('pinDeleteBtn');
+  if (delBtn) {
+    delBtn.onclick = () => {
+      if (isCheckingPin) return;
+      if (currentPin.length > 0) {
+        tgUtil.haptic('light');
+        currentPin = currentPin.slice(0, -1);
+        updateDots();
+      }
+    };
+  }
 }
+
 
 
 
 async function renderAdmin() {
   if (!isOwner) return '<p class="text-center mt-10 text-red-400">Доступ запрещён</p>';
   try {
-    const cacheDuration = 15000;
-    const now = Date.now();
-    
-    if (!window.adminCache || !window.adminCache.promoCodes || (now - window.adminCache.ts > cacheDuration)) {
-      let promoCodes = [];
-      let payoutRequests = [];
-      let reviews = [];
-      let allProducts = [];
-      let courses = [];
-
-      try { const { data } = await supabaseClient.from('promocodes').select('*').order('created_at', { ascending: false }); if (data) promoCodes = data; } catch(e) {}
-      try { const { data } = await supabaseClient.from('payout_requests').select('*').eq('status', 'pending'); if (data) payoutRequests = data; } catch(e) {}
-      try { const { data } = await supabaseClient.from('reviews').select('*').eq('is_published', false).order('created_at', { ascending: false }); if (data) reviews = data; } catch(e) {}
-      try {
-        const { data } = await supabaseClient.from('products').select('*').order('created_at', { ascending: false });
-        if (data) allProducts = data;
-      } catch(e) {}
-      try { const { data } = await supabaseClient.from('courses').select('*').order('created_at', { ascending: true }); if (data) courses = data; } catch(e) {}
-
-      window.adminCache = {
-        ts: now,
-        promoCodes,
-        payoutRequests,
-        reviews,
-        allProducts,
-        courses
-      };
-    }
-
+    await preloadAdminData(false);
     const { promoCodes, payoutRequests, reviews, allProducts, courses } = window.adminCache;
     
     let products = allProducts;
@@ -14423,8 +14575,11 @@ function attachAdminHandlers() {
       try {
         await supabaseClient.from('promocodes').insert({ code, discount_type: type, discount_value: value, is_active: true });
         logAdminAction('create_promo', { code, type, value });
+        if (window.adminCache && window.adminCache.promoCodes) {
+          window.adminCache.promoCodes.unshift({ id: Date.now().toString(), code, discount_type: type, discount_value: value, is_active: true });
+        }
         tgUtil.alert('Промокод создан');
-        renderAdminScreen();
+        renderAdminScreen(false);
       } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }
     };
   }
@@ -14434,11 +14589,18 @@ function attachAdminHandlers() {
       const id = btn.getAttribute('data-id');
       const currentActive = btn.getAttribute('data-active') === 'true';
       try {
+        if (window.adminCache && window.adminCache.promoCodes) {
+          const promo = window.adminCache.promoCodes.find(p => p.id === id);
+          if (promo) promo.is_active = !currentActive;
+        }
+        renderAdminScreen(false);
         await supabaseClient.from('promocodes').update({ is_active: !currentActive }).eq('id', id);
         logAdminAction('toggle_promo', { id, active: !currentActive });
         tgUtil.alert('Статус обновлён');
-        renderAdminScreen();
-      } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }
+      } catch (err) { 
+        tgUtil.alert('Ошибка: ' + err.message); 
+        renderAdminScreen(true);
+      }
     };
   });
 
@@ -14447,6 +14609,10 @@ function attachAdminHandlers() {
     btn.onclick = async () => {
       const id = btn.getAttribute('data-id');
       try {
+        if (window.adminCache && window.adminCache.reviews) {
+          window.adminCache.reviews = window.adminCache.reviews.filter(r => r.id !== id);
+        }
+        renderAdminScreen(false);
         const { data: rev } = await supabaseClient.from('reviews').select('user_id, photo_urls, cashback_granted').eq('id', id).single();
         await supabaseClient.from('reviews').update({ is_published: true }).eq('id', id);
         logAdminAction('review_approved', { id });
@@ -14462,8 +14628,10 @@ function attachAdminHandlers() {
         }
         
         tgUtil.alert(alertMsg);
-        renderAdminScreen();
-      } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }
+      } catch (err) { 
+        tgUtil.alert('Ошибка: ' + err.message); 
+        renderAdminScreen(true);
+      }
     };
   });
 
@@ -14471,11 +14639,17 @@ function attachAdminHandlers() {
     btn.onclick = async () => {
       const id = btn.getAttribute('data-id');
       try {
+        if (window.adminCache && window.adminCache.reviews) {
+          window.adminCache.reviews = window.adminCache.reviews.filter(r => r.id !== id);
+        }
+        renderAdminScreen(false);
         await supabaseClient.from('reviews').delete().eq('id', id);
         logAdminAction('review_rejected', { id });
         tgUtil.alert('Отзыв отклонён');
-        renderAdminScreen();
-      } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }
+      } catch (err) { 
+        tgUtil.alert('Ошибка: ' + err.message); 
+        renderAdminScreen(true);
+      }
     };
   });
 
@@ -14712,11 +14886,17 @@ function attachAdminHandlers() {
     btn.onclick = async () => {
       const id = btn.getAttribute('data-id');
       try {
+        if (window.adminCache && window.adminCache.payoutRequests) {
+          window.adminCache.payoutRequests = window.adminCache.payoutRequests.filter(req => req.id !== id);
+        }
+        renderAdminScreen(false);
         await supabaseClient.from('payout_requests').update({ status: 'approved', processed_at: new Date() }).eq('id', id);
         logAdminAction('payout_approved', { id });
         tgUtil.alert('Заявка одобрена');
+      } catch (err) { 
+        tgUtil.alert('Ошибка: ' + err.message); 
         renderAdminScreen(true);
-      } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }
+      }
     };
   });
 
@@ -14724,11 +14904,17 @@ function attachAdminHandlers() {
     btn.onclick = async () => {
       const id = btn.getAttribute('data-id');
       try {
+        if (window.adminCache && window.adminCache.payoutRequests) {
+          window.adminCache.payoutRequests = window.adminCache.payoutRequests.filter(req => req.id !== id);
+        }
+        renderAdminScreen(false);
         await supabaseClient.from('payout_requests').update({ status: 'rejected', processed_at: new Date() }).eq('id', id);
         logAdminAction('payout_rejected', { id });
         tgUtil.alert('Заявка отклонена');
+      } catch (err) { 
+        tgUtil.alert('Ошибка: ' + err.message); 
         renderAdminScreen(true);
-      } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }
+      }
     };
   });
 
@@ -14878,7 +15064,7 @@ function attachAdminHandlers() {
           delete _tabCache['home:'];
           delete _tabCache['catalogs:'];
           glassToast('Статус товара на главной обновлен', { kind: 'success' });
-          renderAdminScreen();
+          renderAdminScreen(true);
         } catch (err) {
           tgUtil.alert('Ошибка: ' + err.message);
         }
@@ -14901,7 +15087,7 @@ function attachAdminHandlers() {
           delete _tabCache['home:'];
           delete _tabCache['catalogs:'];
           glassToast('Статус площадки на главной обновлен', { kind: 'success' });
-          renderAdminScreen();
+          renderAdminScreen(true);
         } catch (err) {
           tgUtil.alert('Ошибка: ' + err.message);
         }
@@ -14928,10 +15114,15 @@ function attachAdminHandlers() {
         const { error } = await supabaseClient.from('orders').update({ status: 'deleted' }).eq('id', orderId);
         if (error) throw error;
         logAdminAction('archive_order', { orderId });
+        if (window.adminCache && window.adminCache.orders) {
+          window.adminCache.orders = window.adminCache.orders.filter(o => o.id !== orderId);
+          if (window.adminCache.ordersCount > 0) window.adminCache.ordersCount--;
+        }
         tgUtil.alert('Заказ перемещён в архив');
-        renderAdminScreen();
+        renderAdminScreen(false);
       } catch (err) {
         tgUtil.alert('Ошибка: ' + err.message);
+        renderAdminScreen(true);
       }
     };
     document.addEventListener('click', window._globalArchiveHandler);
@@ -14974,8 +15165,12 @@ function attachAdminHandlers() {
       try {
         const { error } = await supabaseClient.from('orders').update({ weight_actual: weightActual }).eq('id', orderId);
         if (error) throw error;
+        if (window.adminCache && window.adminCache.orders) {
+          const o = window.adminCache.orders.find(o => o.id === orderId);
+          if (o) o.weight_actual = weightActual;
+        }
         glassToast('Фактический вес сохранен', { kind: 'success' });
-        renderAdminScreen();
+        renderAdminScreen(false);
       } catch (err) {
         tgUtil.alert('Ошибка: ' + err.message);
       }
@@ -15116,7 +15311,7 @@ function attachAdminHandlers() {
         setActiveChip(newStatus);
         adminOrdersFilter = newStatus;
         adminOrdersPage = 1;
-        renderAdminScreen();
+        renderAdminScreen(false);
       });
     });
   }
@@ -15124,8 +15319,8 @@ function attachAdminHandlers() {
   // ================== ПАГИНАЦИЯ ЗАКАЗОВ ==================
   const prevBtn = document.getElementById('adminOrdersPrev');
   const nextBtn = document.getElementById('adminOrdersNext');
-  if (prevBtn) prevBtn.onclick = () => { if (adminOrdersPage > 1) { adminOrdersPage--; renderAdminScreen(); } };
-  if (nextBtn) nextBtn.onclick = () => { if (adminOrdersPage < adminOrdersTotalPages) { adminOrdersPage++; renderAdminScreen(); } };
+  if (prevBtn) prevBtn.onclick = () => { if (adminOrdersPage > 1) { adminOrdersPage--; renderAdminScreen(false); } };
+  if (nextBtn) nextBtn.onclick = () => { if (adminOrdersPage < adminOrdersTotalPages) { adminOrdersPage++; renderAdminScreen(false); } };
     // ================== СМЕНА СТАТУСА ЗАКАЗА (ДЕЛЕГИРОВАНИЕ) ==================
     if (!window._statusChangeHandler) {
     window._statusChangeHandler = async (e) => {
@@ -15145,6 +15340,10 @@ function attachAdminHandlers() {
           const { error } = await supabaseClient.from('orders').update({ status: newStatus }).eq('id', orderId);
           if (error) throw error;
           logAdminAction('order_status', { orderId, newStatus, previousStatus });
+          if (window.adminCache && window.adminCache.orders) {
+            const o = window.adminCache.orders.find(o => o.id === orderId);
+            if (o) { o.status = newStatus; o.updated_at = new Date().toISOString(); }
+          }
           // Rich custom message via sendNotification below. We intentionally do
           // not also invoke `notify-status` here because that would produce a
           // second, duplicate Telegram message for the same status change.
@@ -15161,7 +15360,7 @@ function attachAdminHandlers() {
           if (message) {
             await sendNotification(userId, message, orderId);
           }
-          renderAdminScreen();
+          renderAdminScreen(false);
         } catch (err) {
           tgUtil.alert('Ошибка: ' + err.message);
           select.value = previousStatus || '';
@@ -15178,13 +15377,13 @@ if (activeBtn) activeBtn.addEventListener('click', () => {
   adminOrdersMode = 'active';
   adminOrdersPage = 1;
   adminOrdersFilter = 'all';
-  renderAdminScreen();
+  renderAdminScreen(false);
 });
 if (archiveBtn) archiveBtn.addEventListener('click', () => {
   adminOrdersMode = 'archived';
   adminOrdersPage = 1;
   adminOrdersFilter = 'all';
-  renderAdminScreen();
+  renderAdminScreen(false);
 });
 
     // ================== ВОССТАНОВЛЕНИЕ ЗАКАЗА (ДЕЛЕГИРОВАНИЕ) ==================
@@ -15204,8 +15403,12 @@ if (archiveBtn) archiveBtn.addEventListener('click', () => {
         const { error } = await supabaseClient.from('orders').update({ status: 'pending' }).eq('id', orderId);
         if (error) throw error;
         logAdminAction('restore_order', { orderId });
+        if (window.adminCache && window.adminCache.orders) {
+          window.adminCache.orders = window.adminCache.orders.filter(o => o.id !== orderId);
+          if (window.adminCache.ordersCount > 0) window.adminCache.ordersCount--;
+        }
         tgUtil.alert('Заказ восстановлен');
-        renderAdminScreen();
+        renderAdminScreen(false);
       } catch (err) {
         tgUtil.alert('Ошибка: ' + err.message);
       }
@@ -15233,8 +15436,9 @@ if (archiveBtn) archiveBtn.addEventListener('click', () => {
       tgUtil.haptic('warning');
       try {
         await supabaseClient.from('courses').delete().eq('id', btn.dataset.courseId);
+        if (window.adminCache) window.adminCache.courses = (window.adminCache.courses || []).filter(c => c.id !== btn.dataset.courseId);
         logAdminAction('delete_course', { courseId: btn.dataset.courseId });
-        renderAdminScreen();
+        renderAdminScreen(false);
       } catch(e) { tgUtil.alert('Ошибка: ' + e.message); }
     };
   });
@@ -15336,7 +15540,8 @@ if (downloadBackupBtn) {
         await sendNotification(claimUserId, `🛡️ Ваша страховая претензия по заказу #${orderId.slice(0, 8)} одобрена! Выплата ${amount.toFixed(2)} BYN зачислена на ваш баланс.`, orderId);
         
         glassToast('Страховая претензия успешно одобрена!', { kind: 'success' });
-        renderAdminScreen();
+        if (window.adminCache) window.adminCache.claims = (window.adminCache.claims || []).filter(c => c.id !== claimId);
+        renderAdminScreen(false);
       } catch(e) {
         console.error(e);
         tgUtil.alert('Ошибка: ' + e.message);
@@ -15367,7 +15572,8 @@ if (downloadBackupBtn) {
         if (error) throw error;
         
         glassToast('Претензия отклонена.', { kind: 'info' });
-        renderAdminScreen();
+        if (window.adminCache) window.adminCache.claims = (window.adminCache.claims || []).filter(c => c.id !== claimId);
+        renderAdminScreen(false);
       } catch(e) {
         console.error(e);
         tgUtil.alert('Ошибка: ' + e.message);
@@ -15389,7 +15595,8 @@ if (downloadBackupBtn) {
         if (error) throw error;
         
         glassToast('Вердикт "Оригинал" успешно сохранен!', { kind: 'success' });
-        renderAdminScreen();
+        if (window.adminCache) window.adminCache.legitChecks = (window.adminCache.legitChecks || []).filter(c => c.id !== checkId);
+        renderAdminScreen(false);
       } catch(e) {
         console.error(e);
         tgUtil.alert('Ошибка: ' + e.message);
@@ -15419,7 +15626,8 @@ if (downloadBackupBtn) {
         if (error) throw error;
         
         glassToast('Вердикт "Подделка" сохранен.', { kind: 'info' });
-        renderAdminScreen();
+        if (window.adminCache) window.adminCache.legitChecks = (window.adminCache.legitChecks || []).filter(c => c.id !== checkId);
+        renderAdminScreen(false);
       } catch(e) {
         console.error(e);
         tgUtil.alert('Ошибка: ' + e.message);
@@ -15983,30 +16191,23 @@ function generateAdminOrderCard(order, userMap, isActive) {
 
 async function renderAdminOrdersList() {
   try {
-    let query = supabaseClient.from('orders').select('*', { count: 'exact' });
-    if (adminOrdersMode === 'active') {
-      query = query.is('archived_at', null);
-    } else {
-      query = query.not('archived_at', 'is', null);
+    const isParamsMatch = window.adminCache && 
+                          window.adminCache.ordersPage === adminOrdersPage &&
+                          window.adminCache.ordersMode === adminOrdersMode &&
+                          window.adminCache.ordersFilter === adminOrdersFilter;
+                          
+    if (!window.adminCache || !window.adminCache.orders || !isParamsMatch) {
+      await preloadAdminData(true);
     }
-    if (adminOrdersFilter !== 'all') {
-      query = query.eq('status', adminOrdersFilter);
-    }
-    query = query.order('created_at', { ascending: false });
     
-    const from = (adminOrdersPage - 1) * 30; // Увеличим пагинацию для канбана
-    const to = from + 29;
-    const { data: orders, count, error } = await query.range(from, to);
-    if (error) throw error;
+    const orders = window.adminCache.orders;
+    const count = window.adminCache.ordersCount;
+    const userMap = window.adminCache.ordersUserMap;
     
     adminOrdersTotalPages = Math.ceil((count || 0) / 30);
     if (!orders || orders.length === 0) return '<p class="text-white/70 text-center py-4">Нет заказов</p>';
     
     const uniqueOrders = Array.from(new Map(orders.map(o => [o.id, o])).values());
-    const userIds = [...new Set(uniqueOrders.map(o => o.user_id))];
-    const { data: users } = await supabaseClient.from('users').select('user_id, full_name, username, is_toxic').in('user_id', userIds);
-    const userMap = {};
-    if (users) users.forEach(u => { userMap[u.user_id] = u; });
 
     if (adminOrdersMode === 'active' && adminOrdersFilter === 'all') {
       const columns = [
