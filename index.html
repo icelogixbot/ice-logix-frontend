@@ -4576,6 +4576,10 @@
     let originalAdminId = null;
     let isShadowMode = false;
     let adminAuthenticated = false;
+    window.adminCache = null;
+    window.invalidateAdminCache = function() {
+      window.adminCache = null;
+    };
     let currentTab = 'home', previousTab = null, currentSubScreen = null;
 
     // ==================== Telegram WebApp native helpers ====================
@@ -13353,14 +13357,23 @@ async function renderAdminUsersList() {
 
 async function renderMarketplacesAdminList() {
   try {
-    let query = supabaseClient.from('marketplaces').select('*');
-    if (window.adminMpFilter === 'home') {
-      query = query.eq('show_on_home', true);
+    const cacheDuration = 15000;
+    const now = Date.now();
+    if (!window.adminCache || !window.adminCache.marketplaces || (now - window.adminCache.ts > cacheDuration)) {
+      const { data, error } = await supabaseClient.from('marketplaces').select('*').order('sort_order', { ascending: true });
+      if (error) throw error;
+      if (!window.adminCache) window.adminCache = { ts: now };
+      window.adminCache.marketplaces = data || [];
     }
-    const { data, error } = await query.order('sort_order', { ascending: true });
-    if (error) throw error;
-    if (!data || data.length === 0) return '<p class="text-white/70 text-center py-4 text-xs">Нет площадок в данной категории</p>';
-    return data.map(mp => `
+    
+    const data = window.adminCache.marketplaces;
+    let filteredData = data;
+    if (window.adminMpFilter === 'home') {
+      filteredData = data.filter(mp => mp.show_on_home);
+    }
+    
+    if (filteredData.length === 0) return '<p class="text-white/70 text-center py-4 text-xs">Нет площадок в данной категории</p>';
+    return filteredData.map(mp => `
       <div class="flex items-center justify-between p-2 bg-white/5 rounded-lg">
         <div class="flex items-center gap-2 min-w-0 flex-1">
           ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-8 h-8 object-contain rounded flex-shrink-0">` : '<span class="btn-secondary w-8 h-8 flex items-center justify-center flex-shrink-0"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span></span>'}
@@ -13391,8 +13404,15 @@ async function renderMarketplacesAdminList() {
 
 async function renderPromotionsAdminList() {
   try {
-    const { data, error } = await supabaseClient.from('promotions').select('*').order('created_at', { ascending: false });
-    if (error) throw error;
+    const cacheDuration = 15000;
+    const now = Date.now();
+    if (!window.adminCache || !window.adminCache.promotions || (now - window.adminCache.ts > cacheDuration)) {
+      const { data, error } = await supabaseClient.from('promotions').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      if (!window.adminCache) window.adminCache = { ts: now };
+      window.adminCache.promotions = data || [];
+    }
+    const data = window.adminCache.promotions;
     if (!data || data.length === 0) return '<p class="text-white/70 text-center py-2">Нет акций</p>';
     
     return data.map(p => `
@@ -13671,24 +13691,41 @@ function attachAdmin2FAHandlers() {
 async function renderAdmin() {
   if (!isOwner) return '<p class="text-center mt-10 text-red-400">Доступ запрещён</p>';
   try {
-    let promoCodes = [];
-    let payoutRequests = [];
-    let reviews = [];
-    let products = [];
+    const cacheDuration = 15000;
+    const now = Date.now();
     
-    try { const { data } = await supabaseClient.from('promocodes').select('*').order('created_at', { ascending: false }); if (data) promoCodes = data; } catch(e) {}
-    try { const { data } = await supabaseClient.from('payout_requests').select('*').eq('status', 'pending'); if (data) payoutRequests = data; } catch(e) {}
-    try { const { data } = await supabaseClient.from('reviews').select('*').eq('is_published', false).order('created_at', { ascending: false }); if (data) reviews = data; } catch(e) {}
-    try {
-      let query = supabaseClient.from('products').select('*');
-      if (window.adminProductFilter === 'home') {
-        query = query.eq('show_on_home', true);
-      }
-      const { data } = await query.order('created_at', { ascending: false });
-      if (data) products = data;
-    } catch(e) {}
-    let courses = [];
-    try { const { data } = await supabaseClient.from('courses').select('*').order('created_at', { ascending: true }); if (data) courses = data; } catch(e) {}
+    if (!window.adminCache || !window.adminCache.promoCodes || (now - window.adminCache.ts > cacheDuration)) {
+      let promoCodes = [];
+      let payoutRequests = [];
+      let reviews = [];
+      let allProducts = [];
+      let courses = [];
+
+      try { const { data } = await supabaseClient.from('promocodes').select('*').order('created_at', { ascending: false }); if (data) promoCodes = data; } catch(e) {}
+      try { const { data } = await supabaseClient.from('payout_requests').select('*').eq('status', 'pending'); if (data) payoutRequests = data; } catch(e) {}
+      try { const { data } = await supabaseClient.from('reviews').select('*').eq('is_published', false).order('created_at', { ascending: false }); if (data) reviews = data; } catch(e) {}
+      try {
+        const { data } = await supabaseClient.from('products').select('*').order('created_at', { ascending: false });
+        if (data) allProducts = data;
+      } catch(e) {}
+      try { const { data } = await supabaseClient.from('courses').select('*').order('created_at', { ascending: true }); if (data) courses = data; } catch(e) {}
+
+      window.adminCache = {
+        ts: now,
+        promoCodes,
+        payoutRequests,
+        reviews,
+        allProducts,
+        courses
+      };
+    }
+
+    const { promoCodes, payoutRequests, reviews, allProducts, courses } = window.adminCache;
+    
+    let products = allProducts;
+    if (window.adminProductFilter === 'home') {
+      products = allProducts.filter(p => p.show_on_home);
+    }
 
     return `
       <div class="space-y-4">
@@ -13786,8 +13823,8 @@ async function renderAdmin() {
           <button id="addProductBtn" class="btn-primary w-full mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить товар</button>
           
           <div class="flex gap-2 mb-3">
-            <button class="btn-secondary text-xs px-2.5 py-1 rounded-lg ${window.adminProductFilter === 'all' || !window.adminProductFilter ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400' : 'border-white/10'}" onclick="window.adminProductFilter = 'all'; renderAdminScreen();">Все товары</button>
-            <button class="btn-secondary text-xs px-2.5 py-1 rounded-lg ${window.adminProductFilter === 'home' ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400' : 'border-white/10'}" onclick="window.adminProductFilter = 'home'; renderAdminScreen();">На главной 🏠</button>
+            <button class="btn-secondary text-xs px-2.5 py-1 rounded-lg ${window.adminProductFilter === 'all' || !window.adminProductFilter ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400' : 'border-white/10'}" onclick="window.adminProductFilter = 'all'; renderAdminScreen(false);">Все товары</button>
+            <button class="btn-secondary text-xs px-2.5 py-1 rounded-lg ${window.adminProductFilter === 'home' ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400' : 'border-white/10'}" onclick="window.adminProductFilter = 'home'; renderAdminScreen(false);">На главной 🏠</button>
           </div>
 
           <div class="space-y-2 max-h-60 overflow-y-auto">
@@ -13841,8 +13878,8 @@ async function renderAdmin() {
           <button id="addMarketplaceBtn" class="btn-primary w-full mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить площадку</button>
           
           <div class="flex gap-2 mb-3">
-            <button class="btn-secondary text-xs px-2.5 py-1 rounded-lg ${window.adminMpFilter === 'all' || !window.adminMpFilter ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400' : 'border-white/10'}" onclick="window.adminMpFilter = 'all'; renderAdminScreen();">Все площадки</button>
-            <button class="btn-secondary text-xs px-2.5 py-1 rounded-lg ${window.adminMpFilter === 'home' ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400' : 'border-white/10'}" onclick="window.adminMpFilter = 'home'; renderAdminScreen();">На главной 🏠</button>
+            <button class="btn-secondary text-xs px-2.5 py-1 rounded-lg ${window.adminMpFilter === 'all' || !window.adminMpFilter ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400' : 'border-white/10'}" onclick="window.adminMpFilter = 'all'; renderAdminScreen(false);">Все площадки</button>
+            <button class="btn-secondary text-xs px-2.5 py-1 rounded-lg ${window.adminMpFilter === 'home' ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400' : 'border-white/10'}" onclick="window.adminMpFilter = 'home'; renderAdminScreen(false);">На главной 🏠</button>
           </div>
 
           <div class="space-y-2 max-h-80 overflow-y-auto" id="marketplacesList">
@@ -14025,7 +14062,7 @@ function attachAdminHandlers() {
         if (error) throw error;
         
         glassToast('Режим отпуска ' + (window.buyerVacation.active ? 'ВКЛЮЧЕН' : 'ВЫКЛЮЧЕН'), { kind: 'success' });
-        renderCurrentScreen();
+        renderAdminScreen(true);
       } catch (err) {
         glassToast('Ошибка сохранения: ' + err.message, { kind: 'error' });
       }
@@ -14532,7 +14569,7 @@ function attachAdminHandlers() {
           logAdminAction('create_product', { title, category, price, is_drop });
           tgUtil.alert('Товар добавлен');
           modal.remove();
-          renderCurrentScreen();
+          renderAdminScreen(true);
         } catch (err) { saveBtn.disabled = false; saveBtn.textContent = 'Сохранить'; tgUtil.alert('Ошибка: ' + err.message); }
       };
     };
@@ -14649,7 +14686,7 @@ function attachAdminHandlers() {
             logAdminAction('update_product', { id, title });
             tgUtil.alert('Товар обновлён');
             modal.remove();
-            renderCurrentScreen();
+            renderAdminScreen(true);
           } catch (err) { saveBtn.disabled = false; saveBtn.textContent = 'Сохранить'; tgUtil.alert('Ошибка: ' + err.message); }
         };
       } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }
@@ -14665,7 +14702,7 @@ function attachAdminHandlers() {
         delete _tabCache['home:'];
         delete _tabCache['catalogs:'];
         logAdminAction('delete_product', { id });
-        renderCurrentScreen();
+        renderAdminScreen(true);
       }
     };
   });
@@ -14678,7 +14715,7 @@ function attachAdminHandlers() {
         await supabaseClient.from('payout_requests').update({ status: 'approved', processed_at: new Date() }).eq('id', id);
         logAdminAction('payout_approved', { id });
         tgUtil.alert('Заявка одобрена');
-        renderCurrentScreen();
+        renderAdminScreen(true);
       } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }
     };
   });
@@ -14690,7 +14727,7 @@ function attachAdminHandlers() {
         await supabaseClient.from('payout_requests').update({ status: 'rejected', processed_at: new Date() }).eq('id', id);
         logAdminAction('payout_rejected', { id });
         tgUtil.alert('Заявка отклонена');
-        renderCurrentScreen();
+        renderAdminScreen(true);
       } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }
     };
   });
@@ -14791,7 +14828,7 @@ function attachAdminHandlers() {
         window.CacheDB.clear('marketplaces');
         tgUtil.alert(isEdit ? 'Площадка обновлена' : 'Площадка добавлена');
         modal.remove();
-        renderCurrentScreen();
+        renderAdminScreen(true);
       } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }
     };
   }
@@ -14816,7 +14853,7 @@ function attachAdminHandlers() {
         tgUtil.haptic('warning');
         await supabaseClient.from('marketplaces').delete().eq('id', id);
         tgUtil.alert('Удалено');
-        renderCurrentScreen();
+        renderAdminScreen(true);
         return;
       }
     });
@@ -16109,8 +16146,8 @@ async function renderProductsCatalog() {
               <p class="text-cyan-400 text-xs">${p.price} ${p.currency}</p>
               <p class="text-white/50 text-xs">${p.brand || ''} ${p.category || ''}</p>
               <div class="flex gap-1 mt-2">
-                <button class="btn-primary addToCartBtn flex-1" data-product-id="${p.id}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span></button>
-                <button class="buyNowBtn flex-1" data-url="${p.url}" data-price="${p.price}"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span> Купить</button>
+                <button class="btn-primary addToCartBtn flex-1" data-product-id="${p.id}">Корзина</button>
+                <button class="buyNowBtn flex-1" data-url="${p.url}" data-price="${p.price}">Купить</button>
               </div>
             </div>
           </div>
@@ -16299,8 +16336,8 @@ async function loadMoreProducts() {
             <p class="text-cyan-400 text-xs">${p.price} ${p.currency}</p>
             <p class="text-white/50 text-xs">${p.brand || ''} ${p.category || ''}</p>
             <div class="flex gap-1 mt-2">
-              <button class="btn-primary addToCartBtn flex-1 bg-cyan-500/70 hover:" data-product-id="${p.id}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span></button>
-              <button class="buyNowBtn flex-1 bg-green-500/70 hover:bg-green-500 py-1 rounded text-xs" data-url="${p.url}" data-price="${p.price}"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span> Купить</button>
+              <button class="btn-primary addToCartBtn flex-1 bg-cyan-500/70 hover:" data-product-id="${p.id}">Корзина</button>
+              <button class="buyNowBtn flex-1 bg-green-500/70 hover:bg-green-500 py-1 rounded text-xs" data-url="${p.url}" data-price="${p.price}">Купить</button>
             </div>
           </div>`;
         div.querySelector('.addToCartBtn').onclick = (e) => { e.stopPropagation(); addToCart(p.id); };
@@ -17545,7 +17582,10 @@ function attachAdminSuppliersHandlers() {
       });
     }
 
-    async function renderAdminScreen() {
+    async function renderAdminScreen(force = true) {
+      if (force) {
+        window.invalidateAdminCache();
+      }
       const contentDiv = document.getElementById('content');
       const currentHeight = contentDiv ? contentDiv.offsetHeight : 0;
       if (contentDiv && currentHeight > 0) {
