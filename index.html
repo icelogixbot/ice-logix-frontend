@@ -2017,6 +2017,507 @@
       from { transform: scale(1); opacity: 1; }
       to { transform: scale(0.9); opacity: 0; }
     }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       NEW SMART REVIEWS SYSTEM (Wildberries & TikTok Inspired)
+       ═══════════════════════════════════════════════════════════════════════════ */
+    
+    .reviews-board {
+      background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--shadow-island);
+      border-radius: 24px;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    .reviews-hub-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+    
+    .reviews-hub-tile-btn {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 16px;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 110px;
+    }
+    
+    .reviews-hub-tile-btn:hover {
+      transform: translateY(-4px);
+      border-color: rgba(91, 191, 235, 0.4);
+      box-shadow: 0 8px 24px rgba(91, 191, 235, 0.15);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.05) 100%);
+    }
+    
+    .reviews-hub-tile-btn:active {
+      transform: scale(0.96);
+    }
+    
+    .reviews-hub-tile-btn.full-width {
+      grid-column: span 2;
+      height: 76px;
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 16px;
+    }
+
+    .reviews-category-chips, .reviews-country-chips {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding: 4px 2px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .reviews-category-chips::-webkit-scrollbar, .reviews-country-chips::-webkit-scrollbar {
+      display: none;
+    }
+    
+    .filter-chip {
+      padding: 8px 14px;
+      border-radius: 40px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+      border: 1px solid var(--glass-border);
+      background: var(--glass-bg);
+      color: var(--text-secondary);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      cursor: pointer;
+    }
+    
+    .filter-chip:hover {
+      background: var(--glass-bg-strong);
+      color: var(--text-primary);
+      border-color: var(--glass-border-strong);
+    }
+    
+    .filter-chip.active {
+      background: linear-gradient(135deg, var(--ice-primary) 0%, var(--ice-deep) 100%);
+      color: white;
+      border-color: rgba(255,255,255,0.25);
+      box-shadow: 0 4px 12px rgba(91, 191, 235, 0.4);
+    }
+
+    .filter-chip.disabled-future {
+      opacity: 0.4;
+      cursor: not-allowed;
+      background: rgba(255, 255, 255, 0.02);
+      border-color: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+    }
+    .filter-chip.disabled-future:hover {
+      transform: none !important;
+      background: rgba(255, 255, 255, 0.02) !important;
+      color: var(--text-muted) !important;
+    }
+    
+    .reviews-gallery-ribbon {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding: 4px 0;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 16px;
+    }
+    .reviews-gallery-ribbon::-webkit-scrollbar {
+      display: none;
+    }
+    
+    .reviews-gallery-item {
+      width: 76px;
+      height: 76px;
+      object-fit: cover;
+      border-radius: 14px;
+      cursor: pointer;
+      border: 1px solid var(--glass-border);
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+    
+    .reviews-gallery-item:hover {
+      transform: scale(1.05);
+      border-color: var(--ice-primary);
+      box-shadow: 0 4px 12px rgba(91, 191, 235, 0.3);
+    }
+    
+    /* WB-style monolithic review card */
+    .review-card-wb {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.04) 100%);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 18px;
+      box-shadow: var(--shadow-card);
+      position: relative;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow: hidden;
+    }
+    
+    .review-card-wb:hover {
+      border-color: rgba(91, 191, 235, 0.25);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    }
+    
+    .review-card-wb-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+    }
+    
+    .review-card-wb-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--ice-primary), var(--ice-arctic));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      font-size: 16px;
+      font-weight: 800;
+      color: white;
+      border: 1.5px solid rgba(255,255,255,0.2);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+      flex-shrink: 0;
+    }
+    
+    .review-card-wb-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .review-card-wb-info {
+      flex: 1;
+      min-width: 0;
+      text-align: left;
+    }
+    
+    .review-card-wb-name {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .review-card-wb-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    
+    .review-card-wb-category {
+      font-size: 9px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: rgba(91, 191, 235, 0.15);
+      color: var(--ice-primary);
+    }
+    
+    .review-card-wb-time {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    
+    .review-card-wb-pin-btn {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-secondary);
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 12px;
+    }
+    
+    .review-card-wb-pin-btn:hover {
+      transform: scale(1.1);
+      background: rgba(255, 255, 255, 0.15);
+      color: var(--ice-primary);
+    }
+    
+    .review-card-wb-pin-btn.pinned {
+      background: rgba(251, 191, 36, 0.2);
+      border-color: rgba(251, 191, 36, 0.4);
+      color: #fbbf24;
+    }
+    
+    .review-card-wb-body {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    
+    .review-card-wb-media-block {
+      width: 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    
+    .review-card-wb-media-preview {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .review-card-wb-media-preview:hover {
+      transform: scale(1.03);
+      border-color: var(--ice-primary);
+    }
+    
+    .review-card-wb-media-more {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      width: 80px;
+      height: 80px;
+    }
+    .review-card-wb-media-more img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.4;
+    }
+    .review-card-wb-media-more-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    
+    .review-card-wb-text-container {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .review-card-wb-stars {
+      display: flex;
+      gap: 2px;
+      font-size: 13px;
+      color: #fbbf24;
+    }
+    
+    .review-card-wb-text {
+      font-size: 13.5px;
+      font-weight: 500;
+      line-height: 1.45;
+      color: var(--text-primary);
+      text-align: left;
+    }
+    
+    /* Collapsible action details */
+    .review-card-wb-collapsible {
+      margin-top: 4px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    .review-card-wb-collapsible-trigger {
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      user-select: none;
+    }
+    
+    .review-card-wb-collapsible-trigger:hover {
+      background: rgba(255,255,255,0.06);
+    }
+    
+    .review-card-wb-collapsible-content {
+      padding: 0 12px 10px;
+      display: none;
+      border-top: 1px solid rgba(255,255,255,0.03);
+      animation: slideDownFade 0.25s ease-out;
+    }
+    
+    .review-card-wb-collapsible-content.expanded {
+      display: block;
+    }
+    
+    @keyframes slideDownFade {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .review-card-wb-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 10px;
+      margin-top: 4px;
+    }
+    
+    /* TikTok heart like mechanic */
+    .review-like-btn-heart {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      user-select: none;
+    }
+    
+    .review-like-btn-heart svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.2;
+      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .review-like-btn-heart.liked {
+      color: #ef4444;
+    }
+    
+    .review-like-btn-heart.liked svg {
+      fill: #ef4444;
+      stroke: #ef4444;
+      transform: scale(1.15);
+    }
+    
+    .review-like-btn-heart:active svg {
+      transform: scale(0.85);
+    }
+    
+    .review-card-wb-verified {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 800;
+      color: #34d399;
+      background: rgba(52, 211, 153, 0.12);
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(52, 211, 153, 0.2);
+    }
+
+    /* Floating heart double tap animation */
+    .double-tap-heart {
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      transform: translate(-50%, -50%) scale(0);
+      color: #ef4444;
+      fill: currentColor;
+      pointer-events: none;
+      animation: heartPop 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      z-index: 10;
+      filter: drop-shadow(0 4px 10px rgba(239, 68, 68, 0.4));
+    }
+    
+    @keyframes heartPop {
+      0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+      15% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.9; }
+      30% { transform: translate(-50%, -50%) scale(1); opacity: 0.9; }
+      80% { transform: translate(-50%, -50%) scale(0.9) translateY(-20px); opacity: 0.9; }
+      100% { transform: translate(-50%, -50%) scale(0) translateY(-40px); opacity: 0; }
+    }
+    
+    /* Fixed bottom review write button */
+    .reviews-write-footer-sticky {
+      position: fixed;
+      bottom: 82px; /* above the tab bar footer which is bottom: 12px, height is around 50px */
+      left: 16px;
+      right: 16px;
+      z-index: 95;
+      display: flex;
+      justify-content: center;
+      pointer-events: none;
+    }
+    
+    .reviews-write-floating-btn {
+      pointer-events: auto;
+      background: linear-gradient(135deg, var(--ice-primary) 0%, var(--ice-deep) 100%);
+      color: white;
+      border-radius: 24px;
+      padding: 12px 28px;
+      font-size: 13px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 8px 24px rgba(91, 191, 235, 0.5), 0 0 40px rgba(91, 191, 235, 0.2);
+      border: 1.5px solid rgba(255,255,255,0.3);
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      animation: bounceBtn 3s ease-in-out infinite;
+    }
+    
+    .reviews-write-floating-btn:hover {
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 12px 30px rgba(91, 191, 235, 0.6), 0 0 50px rgba(91, 191, 235, 0.3);
+    }
+    
+    .reviews-write-floating-btn:active {
+      transform: scale(0.95);
+    }
+    
+    @keyframes bounceBtn {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
   </style>
 </head>
 <body>
@@ -11230,11 +11731,27 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       });
     }
 
-                // ==================== РЕНДЕР ОТЗЫВОВ ====================
+        // ==================== РЕНДЕР ОТЗЫВОВ ====================
         window.reviewsScreen = window.reviewsScreen || 'hub';
         window.currentReviewsCategory = window.currentReviewsCategory || 'all';
         window.currentReviewsCountry = window.currentReviewsCountry || 'all';
         window.currentReviewsConfig = window.currentReviewsConfig || null;
+        window.likedReviewsCache = window.likedReviewsCache || null;
+
+        // Helper function for external links using Telegram SDK or browser window
+        function openExternalLink(url) {
+          if (!url) return;
+          try {
+            const tg = window.Telegram?.WebApp;
+            if (tg && typeof tg.openLink === 'function') {
+              tg.openLink(url);
+            } else {
+              window.open(url, '_blank');
+            }
+          } catch (e) {
+            window.open(url, '_blank');
+          }
+        }
 
         async function loadUserLikes() {
           if (!userId) return;
@@ -11250,21 +11767,40 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           }
         }
 
+        async function loadReviewsConfig() {
+          if (window.currentReviewsConfig) return window.currentReviewsConfig;
+          try {
+            const { data, error } = await supabaseClient.from('settings').select('value').eq('key', 'reviews_config').single();
+            if (!error && data && data.value) {
+              window.currentReviewsConfig = data.value;
+            }
+          } catch (e) {
+            console.error('Failed to load reviews config:', e);
+          }
+          if (!window.currentReviewsConfig) {
+            window.currentReviewsConfig = {
+              yandex_maps_link: "https://yandex.by/maps/org/ice_logix/12345678",
+              google_maps_link: "https://maps.google.com/?cid=12345678",
+              gis_2_link: "https://2gis.by/minsk/firm/12345678",
+              telegram_group_link: "https://t.me/icelogix_reviews",
+              bonus_internal_pct: 2.0,
+              bonus_external_text_pct: 1.0,
+              bonus_external_media_pct: 3.0,
+              partner_user_ids: []
+            };
+          }
+          return window.currentReviewsConfig;
+        }
+
         async function renderReviews() {
           try {
             await loadUserLikes();
+            const config = await loadReviewsConfig();
 
-            if (!window.currentReviewsConfig) {
-              try {
-                const { data, error } = await supabaseClient.from('settings').select('value').eq('key', 'reviews_config').single();
-                if (data && data.value) {
-                  window.currentReviewsConfig = data.value;
-                }
-              } catch (e) {
-                console.error('Failed to load reviews config:', e);
-              }
+            // Run async dropshipper action evaluation in background if user is logged in
+            if (userId) {
+              checkAndCreateDropshipperAction();
             }
-            const config = window.currentReviewsConfig || {};
 
             if (window.reviewsScreen === 'hub') {
               return await renderReviewsHub(config);
@@ -11277,9 +11813,60 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           }
         }
 
+        async function checkAndCreateDropshipperAction() {
+          if (!userId) return;
+          try {
+            // 1. Check if user has dropshipper settings
+            const { data: dsSettings, error: dsErr } = await supabaseClient.from('dropshipper_settings').select('user_id').eq('user_id', userId).maybeSingle();
+            if (dsErr || !dsSettings) return;
+
+            // 2. Count dropshipping reviews
+            const { count: K, error: kErr } = await supabaseClient.from('reviews').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('category', 'dropshipping');
+            if (kErr) return;
+
+            // 3. Count completed payouts
+            const { count: P, error: pErr } = await supabaseClient.from('payout_requests').select('id', { count: 'exact', head: true }).eq('user_id', userId).in('status', ['approved', 'completed']);
+            if (pErr) return;
+
+            // 4. Get S (sales)
+            const { data: referrals, error: refErr } = await supabaseClient.from('referrals').select('referred_id').eq('referrer_id', userId);
+            if (refErr || !referrals || referrals.length === 0) return;
+            
+            const referredIds = referrals.map(r => r.referred_id);
+            const { count: S, error: sErr } = await supabaseClient.from('orders').select('id', { count: 'exact', head: true }).in('user_id', referredIds).eq('status', 'delivered').gt('drop_margin', 0);
+            if (sErr) return;
+
+            // 5. Qualify checks: K=0 -> S>=1 & P>=1; K>0 -> S>=1+3*K & P>=1
+            let qualifies = false;
+            if (K === 0) {
+              qualifies = (S >= 1 && P >= 1);
+            } else {
+              qualifies = (S >= (1 + 3 * K) && P >= 1);
+            }
+
+            if (qualifies) {
+              const targetId = 'dropshipping_' + K;
+              // Check if it already exists to prevent duplicates
+              const { data: existing, error: existErr } = await supabaseClient.from('review_actions').select('id').eq('category', 'dropshipping').eq('target_id', targetId).maybeSingle();
+              if (!existErr && !existing) {
+                await supabaseClient.from('review_actions').insert({
+                  user_id: userId,
+                  category: 'dropshipping',
+                  target_id: targetId,
+                  title: K === 0 ? 'Дропшиппинг (Первая продажа)' : `Дропшиппинг (Успешные продажи: ${S})`,
+                  details: { product: 'Программа дропшиппинга B2B', amount: 'Выплаты по B2B-программе', delivery: 'РБ/РФ', term: 'Постоянно' },
+                  status: 'pending'
+                });
+              }
+            }
+          } catch (err) {
+            console.error('Error checking/creating dropshipper action:', err);
+          }
+        }
+
         async function renderReviewsHub(config) {
           let reviewsCount = 0;
-          let avgRating = 5.0;
+          let avgRating = 4.9;
           try {
             const { data } = await supabaseClient.from('reviews').select('rating').eq('is_published', true);
             if (data && data.length > 0) {
@@ -11291,134 +11878,88 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             console.error('Error fetching review stats:', e);
           }
 
-          let pendingActionsCount = 0;
-          if (userId) {
-            try {
-              const { data } = await supabaseClient.from('review_actions').select('id').eq('user_id', userId).eq('status', 'pending');
-              pendingActionsCount = data ? data.length : 0;
-            } catch (e) {}
-          }
-
-          const partnerUserIds = config.partner_user_ids || [];
-          const isPartnerUser = userId && (
-            partnerUserIds.map(id => id.toString()).includes(userId.toString()) ||
-            (window.userRole === 'partner')
-          );
-
           const categories = [
-            { id: 'orders', label: 'Заказы', icon: '🛒', desc: 'Доставка товаров из Китая, Европы и США' },
-            { id: 'promotions', label: 'Акции', icon: '🔥', desc: 'Впечатления от наших раздач и скидок' },
-            { id: 'dropshipping', label: 'Дропшиппинг', icon: '📦', desc: 'Отзывы партнеров о прямой поставке' },
-            { id: 'referral', label: 'Рефералы', icon: '👥', desc: 'Впечатления о партнерской сети и выплатах' },
-            { id: 'advertising', label: 'Реклама', icon: '📢', desc: 'Интеграции с блогерами и промо-кейсы' },
-            { id: 'academy', label: 'Академия', icon: '🎓', desc: 'Обучение бизнесу и закупкам' },
-            { id: 'legitcheck', label: 'Legit Check', icon: '🔍', desc: 'Проверка оригинальности брендов' },
-            { id: 'partnership', label: 'Партнерство', icon: '🤝', desc: 'Отзывы о совместных B2B проектах' }
+            { id: 'orders', label: 'Заказы', icon: '🛒', desc: 'Отзывы розничных клиентов о доставленных вещах' },
+            { id: 'promotions', label: 'Акции / Розыгрыши', icon: '🎁', desc: 'Впечатления победителей конкурсов и участников акций' },
+            { id: 'dropshipping', label: 'Дропшиппинг', icon: '💼', desc: 'Отзывы оптовых B2B-партнеров нашей программы' },
+            { id: 'referral', label: 'Рефералка', icon: '👥', desc: 'Отзывы участников, получающих реферальные выплаты' },
+            { id: 'advertising', label: 'Реклама', icon: '📢', desc: 'Отзывы блогеров и администраторов об интеграциях' },
+            { id: 'academy', label: 'Обучение', icon: '🎓', desc: 'Отзывы учеников о курсах по самостоятельному выкупу' },
+            { id: 'legitcheck', label: 'Legit Check', icon: '🔍', desc: 'Отзывы о проверке подлинности брендовых вещей' },
+            { id: 'partnership', label: 'Партнерство', icon: '🤝', desc: 'Отзывы от B2B партнеров (ShopByShop, легит-чекеры)' }
           ];
 
           return `
-            <div class="space-y-6 page-enter pb-8">
-              <div class="flex items-center justify-between">
-                <h2 class="text-white text-2xl font-bold flex items-center gap-2">
-                  <span class="text-amber-400">⭐</span> Отзывы клиентов
-                </h2>
-              </div>
-
-              ${pendingActionsCount > 0 ? `
-                <div class="reviews-board p-4 rounded-2xl flex items-center justify-between gap-4 border border-cyan-500/30 cursor-pointer animate-pulse" id="hubPendingActionsAlert">
-                  <div class="flex items-center gap-3">
-                    <span class="text-2xl">🎉</span>
-                    <div class="text-left">
-                      <p class="text-white font-bold text-sm">У вас есть доступные действия!</p>
-                      <p class="text-cyan-300 text-xs font-semibold">Напишите ${pendingActionsCount} ${pendingActionsCount === 1 ? 'отзыв' : pendingActionsCount < 5 ? 'отзыва' : 'отзывов'} и получите бонусы</p>
-                    </div>
-                  </div>
-                  <button class="bg-cyan-500 hover:bg-cyan-600 text-white text-xs px-3 py-1.5 rounded-xl font-bold transition">Написать</button>
-                </div>
-              ` : ''}
-
-              <div class="reviews-board p-5 rounded-3xl border border-cyan-500/20 text-center relative overflow-hidden">
-                <div class="absolute -right-10 -top-10 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl"></div>
-                <div class="absolute -left-10 -bottom-10 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl"></div>
+            <div class="space-y-6 page-enter pb-16 text-left">
+              <!-- Визуальная досочка (Инфо-плашка) -->
+              <div class="reviews-board p-5 border border-white/10 text-center relative overflow-hidden">
+                <div class="absolute -right-10 -top-10 w-28 h-28 bg-cyan-500/10 rounded-full blur-2xl"></div>
+                <div class="absolute -left-10 -bottom-10 w-28 h-28 bg-blue-500/10 rounded-full blur-2xl"></div>
                 
-                <p class="text-cyan-400 text-xs font-bold uppercase tracking-widest mb-1">ICE LOGIX Доверие</p>
+                <p class="text-cyan-400 text-[10px] font-extrabold uppercase tracking-widest mb-1">Рейтинг ICE LOGIX</p>
                 <div class="flex justify-center items-baseline gap-1.5 my-2">
-                  <span class="text-white text-4xl font-extrabold">${avgRating.toFixed(1)}</span>
-                  <span class="text-white/60 text-lg">/ 5.0</span>
+                  <span class="text-white text-4xl font-black">${avgRating.toFixed(1)}</span>
+                  <span class="text-white/60 text-base font-semibold">/ 5.0</span>
                 </div>
                 
-                <div class="flex justify-center gap-1 text-lg mb-4">
+                <div class="flex justify-center gap-1 text-base mb-4">
                   ${'⭐'.repeat(Math.min(5, Math.max(1, Math.round(avgRating))))}${'☆'.repeat(Math.max(0, 5 - Math.min(5, Math.max(1, Math.round(avgRating)))))}
                 </div>
 
-                <div class="grid grid-cols-3 gap-3 border-t border-white/10 pt-4 mt-2">
-                  <div>
-                    <p class="text-white text-lg font-bold">${reviewsCount}</p>
-                    <p class="text-white/40 text-[10px] uppercase font-bold">Отзывов</p>
-                  </div>
-                  <div>
-                    <p class="text-white text-lg font-bold">99.4%</p>
-                    <p class="text-white/40 text-[10px] uppercase font-bold">Доверие</p>
-                  </div>
-                  <div>
-                    <p class="text-white text-lg font-bold">12k+</p>
-                    <p class="text-white/40 text-[10px] uppercase font-bold">Заказов</p>
-                  </div>
+                <p class="text-white/50 text-[11px] mb-4">На основе ${reviewsCount} отзывов покупателей</p>
+
+                <!-- Внешние гео-ресурсы и соцсети -->
+                <div class="grid grid-cols-5 gap-2 border-t border-white/10 pt-4">
+                  <button onclick="openExternalLink('${config.yandex_maps_link || 'https://yandex.by/maps/'}')" class="btn-secondary py-2 rounded-xl flex flex-col items-center justify-center gap-1 border border-white/5" title="Яндекс.Карты">
+                    <span class="text-lg">🇷🇺</span>
+                    <span class="text-[9px] font-extrabold text-white/70">Яндекс</span>
+                  </button>
+                  <button onclick="openExternalLink('${config.google_maps_link || 'https://maps.google.com/'}')" class="btn-secondary py-2 rounded-xl flex flex-col items-center justify-center gap-1 border border-white/5" title="Google Maps">
+                    <span class="text-lg">🌐</span>
+                    <span class="text-[9px] font-extrabold text-white/70">Google</span>
+                  </button>
+                  <button onclick="openExternalLink('${config.gis_2_link || 'https://2gis.by/'}')" class="btn-secondary py-2 rounded-xl flex flex-col items-center justify-center gap-1 border border-white/5" title="2ГИС">
+                    <span class="text-lg">🟢</span>
+                    <span class="text-[9px] font-extrabold text-white/70">2ГИС</span>
+                  </button>
+                  <button onclick="openExternalLink('${config.telegram_group_link || 'https://t.me/'}')" class="btn-secondary py-2 rounded-xl flex flex-col items-center justify-center gap-1 border border-white/5" title="Telegram Отзывы">
+                    <span class="text-lg">💬</span>
+                    <span class="text-[9px] font-extrabold text-white/70">Чат</span>
+                  </button>
+                  <button onclick="openExternalLink('${config.social_media_links?.vk || 'https://vk.com/'}')" class="btn-secondary py-2 rounded-xl flex flex-col items-center justify-center gap-1 border border-white/5" title="ВКонтакте">
+                    <span class="text-lg">🔵</span>
+                    <span class="text-[9px] font-extrabold text-white/70">VK</span>
+                  </button>
                 </div>
               </div>
 
+              <!-- Плиточная сетка категорий -->
               <div>
-                <p class="text-white/60 text-xs font-bold uppercase tracking-widest mb-3 text-left">Выберите категорию</p>
-                <div class="grid grid-cols-2 gap-3">
+                <p class="text-white/60 text-xs font-black uppercase tracking-widest mb-3">Разделы отзывов</p>
+                <div class="reviews-hub-grid">
+                  <!-- Крупная кнопка Все отзывы -->
+                  <div class="reviews-hub-tile-btn full-width" data-category="all">
+                    <div class="w-12 h-12 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-2xl flex-shrink-0">📦</div>
+                    <div>
+                      <h4 class="text-white font-extrabold text-sm leading-tight">Все отзывы</h4>
+                      <p class="text-white/50 text-[10.5px] mt-0.5 leading-snug">Лента вообще всех отзывов сервиса ICE LOGIX</p>
+                    </div>
+                  </div>
+                  
+                  <!-- Остальные 8 категорий -->
                   ${categories.map(c => `
-                    <div class="reviews-hub-tile-btn p-4 rounded-2xl flex flex-col gap-2 cursor-pointer h-full text-left" data-category="${c.id}">
-                      <div class="flex items-center justify-between">
+                    <div class="reviews-hub-tile-btn" data-category="${c.id}">
+                      <div class="flex items-center justify-between w-full">
                         <span class="text-2xl">${c.icon}</span>
                         <span class="text-white/30 text-xs">➔</span>
                       </div>
-                      <div class="mt-2">
-                        <h4 class="text-white font-bold text-sm leading-tight">${c.label}</h4>
-                        <p class="text-white/50 text-[10.5px] mt-1 leading-snug line-clamp-2">${c.desc}</p>
+                      <div>
+                        <h4 class="text-white font-extrabold text-xs leading-tight">${c.label}</h4>
+                        <p class="text-white/50 text-[9.5px] mt-1 leading-snug line-clamp-2">${c.desc}</p>
                       </div>
                     </div>
                   `).join('')}
                 </div>
-              </div>
-
-              <div class="glass-card p-4 rounded-2xl border border-white/5 text-left">
-                <h4 class="text-white font-bold text-sm mb-3 flex items-center gap-2">
-                  📢 Напишите о нас на картах
-                </h4>
-                <p class="text-white/60 text-xs mb-4">Получите дополнительные бонусы на баланс за отзывы с фото на внешних площадках!</p>
-                <div class="grid grid-cols-3 gap-2">
-                  ${config.yandex_maps_link ? `
-                    <a href="${config.yandex_maps_link}" target="_blank" class="btn-secondary py-2.5 rounded-xl text-center text-[10.5px] flex flex-col items-center justify-center gap-1 border border-white/5">
-                      <span>🇷🇺 Яндекс</span>
-                    </a>
-                  ` : ''}
-                  ${config.google_maps_link ? `
-                    <a href="${config.google_maps_link}" target="_blank" class="btn-secondary py-2.5 rounded-xl text-center text-[10.5px] flex flex-col items-center justify-center gap-1 border border-white/5">
-                      <span>🌐 Google</span>
-                    </a>
-                  ` : ''}
-                  ${config.gis_2_link ? `
-                    <a href="${config.gis_2_link}" target="_blank" class="btn-secondary py-2.5 rounded-xl text-center text-[10.5px] flex flex-col items-center justify-center gap-1 border border-white/5">
-                      <span>🗺️ 2ГИС</span>
-                    </a>
-                  ` : ''}
-                </div>
-              </div>
-
-              <div class="flex gap-3">
-                ${(pendingActionsCount > 0 || isPartnerUser) ? `
-                  <button id="hubLeaveReviewBtn" class="btn-primary flex-1 py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2">
-                    ✍️ Написать отзыв
-                  </button>
-                ` : `
-                  <div class="w-full text-center text-white/50 text-xs p-3 bg-white/5 rounded-xl border border-white/5">
-                    🔒 Оставить отзыв можно после завершения заказа
-                  </div>
-                `}
               </div>
             </div>
             ${renderFooter()}
@@ -11429,41 +11970,47 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           const categories = [
             { id: 'all', label: 'Все отзывы' },
             { id: 'orders', label: 'Заказы 🛒' },
-            { id: 'promotions', label: 'Акции 🔥' },
-            { id: 'dropshipping', label: 'Дропшиппинг 📦' },
-            { id: 'referral', label: 'Рефералы 👥' },
+            { id: 'promotions', label: 'Акции 🎁' },
+            { id: 'dropshipping', label: 'Дропшиппинг 💼' },
+            { id: 'referral', label: 'Рефералка 💸' },
             { id: 'advertising', label: 'Реклама 📢' },
-            { id: 'academy', label: 'Академия 🎓' },
+            { id: 'academy', label: 'Обучение 🎓' },
             { id: 'legitcheck', label: 'Legit Check 🔍' },
             { id: 'partnership', label: 'Партнерство 🤝' }
           ];
 
           const countries = [
-            { id: 'all', label: 'Все страны 🌐' },
-            { id: 'china', label: 'Китай 🇨🇳' },
-            { id: 'europe', label: 'Европа 🇪🇺' },
-            { id: 'russia', label: 'Россия 🇷🇺' },
-            { id: 'usa', label: 'США 🇺🇸' },
-            { id: 'uae', label: 'ОАЭ 🇦🇪' }
+            { id: 'all', label: 'Все страны 🌐', active: true },
+            { id: 'china', label: 'Китай 🇨🇳', active: true },
+            { id: 'russia', label: 'Россия 🇷🇺 (Скоро)', active: false },
+            { id: 'europe', label: 'Евросоюз 🇪🇺 (Скоро)', active: false },
+            { id: 'usa', label: 'США 🇺🇸 (Скоро)', active: false },
+            { id: 'turkey', label: 'Турция 🇹🇷 (Скоро)', active: false },
+            { id: 'japan', label: 'Япония 🇯🇵 (Скоро)', active: false },
+            { id: 'korea', label: 'Южная Корея 🇰🇷 (Скоро)', active: false },
+            { id: 'vietnam', label: 'Вьетнам 🇻🇳 (Скоро)', active: false },
+            { id: 'uae', label: 'ОАЭ 🇦🇪 (Скоро)', active: false }
           ];
 
-          let query = supabaseClient.from('reviews').select('*, target_action:review_actions(*), orders(items)', { count: 'exact' }).eq('is_published', true);
-          
-          if (window.currentReviewsCategory !== 'all') {
-            query = query.eq('category', window.currentReviewsCategory);
+          // 1. Calculate specific category rating & total count
+          let avgRating = 4.9;
+          let categoryReviewsCount = 0;
+          try {
+            let statsQuery = supabaseClient.from('reviews').select('rating').eq('is_published', true);
+            if (window.currentReviewsCategory !== 'all') {
+              statsQuery = statsQuery.eq('category', window.currentReviewsCategory);
+            }
+            const { data } = await statsQuery;
+            if (data && data.length > 0) {
+              categoryReviewsCount = data.length;
+              const totalStars = data.reduce((sum, r) => sum + (r.rating || 0), 0);
+              avgRating = totalStars / categoryReviewsCount;
+            }
+          } catch(e) {
+            console.error('Error getting feed stats:', e);
           }
-          
-          if (window.currentReviewsCategory === 'orders' && window.currentReviewsCountry !== 'all') {
-            query = query.eq('region', window.currentReviewsCountry);
-          }
 
-          query = query.order('is_pinned', { ascending: false }).order('created_at', { ascending: false });
-
-          const { data: feedReviews, count: totalCount, error } = await query.range((reviewsPage - 1) * 10, reviewsPage * 10 - 1);
-          if (error) throw error;
-
-          reviewsTotalPages = Math.ceil((totalCount || 0) / 10);
-
+          // 2. Fetch media files for horizontal ribbon gallery
           let ribbonPhotos = [];
           try {
             let ribbonQuery = supabaseClient.from('reviews')
@@ -11475,7 +12022,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               ribbonQuery = ribbonQuery.eq('category', window.currentReviewsCategory);
             }
             
-            const { data: ribbonData } = await ribbonQuery.order('created_at', { ascending: false }).limit(20);
+            const { data: ribbonData } = await ribbonQuery.order('created_at', { ascending: false }).limit(30);
             if (ribbonData) {
               ribbonData.forEach(r => {
                 if (Array.isArray(r.photo_urls)) {
@@ -11491,6 +12038,35 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             console.error('Error fetching gallery ribbon photos:', e);
           }
 
+          // 3. Fetch review cards (paginated)
+          const pageSize = 10;
+          const fromRow = (reviewsPage - 1) * pageSize;
+          const toRow = fromRow + pageSize - 1;
+
+          let reviewsQuery = supabaseClient.from('reviews')
+            .select('*, review_actions(*)', { count: 'exact' })
+            .eq('is_published', true);
+
+          if (window.currentReviewsCategory !== 'all') {
+            reviewsQuery = reviewsQuery.eq('category', window.currentReviewsCategory);
+          }
+          if (window.currentReviewsCategory === 'orders' && window.currentReviewsCountry !== 'all') {
+            reviewsQuery = reviewsQuery.eq('region', window.currentReviewsCountry);
+          }
+
+          // Sort: pinned first, then newest
+          const { data: feedReviewsData, count: totalCount, error: fetchErr } = await reviewsQuery
+            .order('is_pinned', { ascending: false })
+            .order('created_at', { ascending: false })
+            .range(fromRow, toRow);
+
+          if (fetchErr) {
+            console.error('Error fetching reviews feed:', fetchErr);
+          }
+
+          const feedReviews = feedReviewsData || [];
+          reviewsTotalPages = Math.ceil((totalCount || 0) / pageSize) || 1;
+
           let pendingActionsCount = 0;
           if (userId) {
             try {
@@ -11505,7 +12081,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           );
 
           return `
-            <div class="space-y-4 page-enter pb-8 text-left">
+            <div class="space-y-4 page-enter pb-24 text-left">
               <div class="flex items-center gap-3">
                 <button id="feedBackToHubBtn" class="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
                   <span class="text-white text-lg">➔</span>
@@ -11516,6 +12092,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 </div>
               </div>
 
+              <!-- Категории скролл -->
               <div class="reviews-category-chips pb-1" id="feedCategoryChips">
                 ${categories.map(c => `
                   <button class="filter-chip ${window.currentReviewsCategory === c.id ? 'active' : ''}" data-category="${c.id}">
@@ -11524,29 +12101,48 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 `).join('')}
               </div>
 
+              <!-- Страны скролл (если Заказы) -->
               ${window.currentReviewsCategory === 'orders' ? `
                 <div class="reviews-country-chips pb-1" id="feedCountryChips">
-                  ${countries.map(c => `
-                    <button class="filter-chip ${window.currentReviewsCountry === c.id ? 'active' : ''}" data-country="${c.id}">
-                      ${c.label}
-                    </button>
-                  `).join('')}
+                  ${countries.map(c => {
+                    if (c.active) {
+                      return `
+                        <button class="filter-chip ${window.currentReviewsCountry === c.id ? 'active' : ''}" data-country="${c.id}">
+                          ${c.label}
+                        </button>
+                      `;
+                    } else {
+                      return `
+                        <button class="filter-chip disabled-future" disabled>
+                          ${c.label}
+                        </button>
+                      `;
+                    }
+                  }).join('')}
                 </div>
               ` : ''}
 
+              <!-- Галерея медиа -->
               ${ribbonPhotos.length > 0 ? `
                 <div class="space-y-1.5">
                   <p class="text-white/50 text-[10px] uppercase font-bold tracking-wider">Галерея покупателей</p>
                   <div class="reviews-gallery-ribbon">
-                    ${ribbonPhotos.map(url => `
-                      <img src="${url}" class="reviews-gallery-item" onclick="tgUtil.popup('${url}', 'Фото клиента')">
+                    ${ribbonPhotos.map((url, i) => `
+                      <img src="${url}" class="reviews-gallery-item" onclick="event.stopPropagation(); window.showImagePreview(${JSON.stringify(ribbonPhotos)}, ${i})">
                     `).join('')}
                   </div>
                 </div>
               ` : ''}
 
+              <!-- Заголовок подраздела и статистика -->
+              <div class="flex justify-between items-center bg-white/5 p-3 rounded-2xl border border-white/5 text-xs text-white/60">
+                <span>⭐ Раздел: ${avgRating.toFixed(1)} / 5.0</span>
+                <span>Всего: ${categoryReviewsCount} отзывов</span>
+              </div>
+
+              <!-- Список отзывов -->
               <div class="space-y-4 mt-2">
-                ${!feedReviews || feedReviews.length === 0 ? `
+                ${feedReviews.length === 0 ? `
                   <div class="text-center py-12 text-white/50 bg-white/5 rounded-2xl border border-white/5">
                     <span class="text-3xl block mb-2">📭</span>
                     Пока нет отзывов в этой категории
@@ -11558,9 +12154,14 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
                   let hasDetails = false;
                   let detailsHtml = '';
-                  if (review.target_action && review.target_action.details) {
+                  let targetAction = review.review_actions || review.target_action;
+                  if (Array.isArray(targetAction)) {
+                    targetAction = targetAction[0];
+                  }
+
+                  if (targetAction && targetAction.details) {
                     hasDetails = true;
-                    const details = review.target_action.details;
+                    const details = targetAction.details;
                     detailsHtml = `
                       <div class="text-[11px] text-white/70 space-y-1 font-medium text-left">
                         ${details.product ? `<div>🛍️ Товар: <span class="text-cyan-300">${details.product}</span></div>` : ''}
@@ -11584,95 +12185,89 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                   const isLiked = window.likedReviewsCache && window.likedReviewsCache.has(review.id);
 
                   return `
-                    <div class="review-card-redesign relative" data-review-id="${review.id}">
-                      ${isPinned ? `
-                        <div class="absolute right-3 top-3 bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <div class="review-card-wb relative" data-review-id="${review.id}">
+                      ${isOwner ? `
+                        <button class="review-card-wb-pin-btn ${isPinned ? 'pinned' : ''}" onclick="event.stopPropagation(); toggleReviewPin('${review.id}')" title="${isPinned ? 'Открепить' : 'Закрепить'}">
+                          📌
+                        </button>
+                      ` : (isPinned ? `
+                        <div class="absolute right-4 top-4 bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[9px] font-bold px-2 py-0.5 rounded-full">
                           📌 Закреплено
                         </div>
-                      ` : ''}
+                      ` : '')}
 
-                      <div class="review-card-header">
-                        <div class="review-avatar">${initials}</div>
-                        <div>
-                          <div class="flex items-center gap-1.5">
-                            <p class="text-white font-bold text-sm">${review.user_name || 'Клиент'}</p>
-                            ${review.is_verified ? `
-                              <span class="text-emerald-400 text-xs flex items-center gap-0.5" title="Заказ проверен">
-                                <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a.75.75 0 00-.708-.523H4.5a2 2 0 00-2 2v1.076a.75.75 0 00.523.708l3.142.943a.75.75 0 00.91-.708V5.163a.75.75 0 00-.81-.708L6.267 3.455zM10.25 15.5a1.25 1.25 0 11-2.5 0 1.25 1.25 0 012.5 0z" clip-rule="evenodd"/></svg>
-                              </span>
-                            ` : ''}
+                      <div class="review-card-wb-header">
+                        <div class="review-card-wb-avatar">${initials}</div>
+                        <div class="review-card-wb-info">
+                          <div class="review-card-wb-name">
+                            <span>${review.user_name || 'Клиент'}</span>
                           </div>
-                          <div class="flex items-center gap-2 mt-0.5">
-                            <span class="text-[9px] bg-white/5 px-2 py-0.5 rounded-full text-white/50 uppercase font-bold tracking-wider">
-                              ${review.category}
-                            </span>
-                            <span class="text-[10px] text-white/40">
+                          <div class="review-card-wb-meta">
+                            <span class="review-card-wb-category">${review.category}</span>
+                            <span class="review-card-wb-time">
                               ${new Date(review.created_at).toLocaleDateString('ru-RU')}
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      <div class="review-card-content-block">
+                      <div class="review-card-wb-body">
                         ${hasPhotos ? `
-                          <div class="review-media-side">
-                            ${review.photo_urls.slice(0, 2).map(url => `
-                              <img src="${url}" class="w-full object-cover rounded-lg" onclick="event.stopPropagation(); tgUtil.popup('${url}', 'Фото клиента')">
+                          <div class="review-card-wb-media-block">
+                            ${review.photo_urls.slice(0, 2).map((url, i) => `
+                              <img src="${url}" class="review-card-wb-media-preview" onclick="event.stopPropagation(); window.showImagePreview(${JSON.stringify(review.photo_urls)}, ${i})">
                             `).join('')}
                             ${review.photo_urls.length > 2 ? `
-                              <div class="relative cursor-pointer rounded-lg overflow-hidden border border-white/5" onclick="event.stopPropagation(); tgUtil.popup('${review.photo_urls[2]}', 'Фото клиента')">
-                                <img src="${review.photo_urls[2]}" class="w-full object-cover opacity-50 rounded-lg">
-                                <div class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white bg-black/40">
-                                  +${review.photo_urls.length - 2}
-                                </div>
+                              <div class="review-card-wb-media-more" onclick="event.stopPropagation(); window.showImagePreview(${JSON.stringify(review.photo_urls)}, 2)">
+                                <img src="${review.photo_urls[2]}">
+                                <div class="review-card-wb-media-more-overlay">+${review.photo_urls.length - 2}</div>
                               </div>
                             ` : ''}
                           </div>
                         ` : ''}
 
-                        <div class="review-text-side">
-                          <div class="flex gap-0.5 text-xs text-amber-400 mb-1.5">
+                        <div class="review-card-wb-text-container">
+                          <div class="review-card-wb-stars">
                             ${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}
                           </div>
-                          <p class="review-text-paragraph font-medium">
+                          <p class="review-card-wb-text">
                             "${review.text}"
                           </p>
 
                           ${hasDetails ? `
-                            <div class="review-collapsible-trigger" data-expanded="false">
-                              <span>⚙️ Детали действия</span>
-                              <span class="text-[9px] transform transition-transform duration-200">▼</span>
-                            </div>
-                            <div class="review-collapsible-content">
-                              ${detailsHtml}
+                            <div class="review-card-wb-collapsible">
+                              <div class="review-card-wb-collapsible-trigger" data-expanded="false">
+                                <span>⚙️ Детали действия</span>
+                                <span>▼</span>
+                              </div>
+                              <div class="review-card-wb-collapsible-content">
+                                ${detailsHtml}
+                              </div>
                             </div>
                           ` : ''}
                         </div>
                       </div>
 
-                      <div class="double-tap-heart-anchor absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
-
-                      <div class="flex items-center justify-between border-t border-white/5 pt-3 mt-3">
-                        <div class="flex items-center gap-4">
-                          <div class="tiktok-like-btn ${isLiked ? 'liked' : ''}" data-review-id="${review.id}">
-                            <svg class="w-4 h-4 fill-none stroke-current" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                            </svg>
-                            <span class="likes-count font-bold">${review.likes_count || 0}</span>
-                          </div>
-                        </div>
-                        
+                      <div class="review-card-wb-footer">
                         ${review.is_verified ? `
-                          <div class="text-[10px] text-emerald-400 font-semibold bg-emerald-400/10 px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                            ✓ Подтверждено
+                          <div class="review-card-wb-verified">
+                            ✓ Заказ проверен
                           </div>
-                        ` : ''}
+                        ` : '<div></div>'}
+                        
+                        <div class="review-like-btn-heart ${isLiked ? 'liked' : ''}" data-review-id="${review.id}">
+                          <svg viewBox="0 0 24 24">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                          </svg>
+                          <span class="likes-count font-bold">${review.likes_count || 0}</span>
+                        </div>
                       </div>
                     </div>
                   `;
                 }).join('')}
               </div>
 
+              <!-- Пагинация -->
               ${reviewsTotalPages > 1 ? `
                 <div class="flex justify-center gap-2 mt-6">
                   <button id="feedPrevPage" class="btn-secondary px-4 py-2 text-xs" ${reviewsPage <= 1 ? 'disabled' : ''}>
@@ -11687,13 +12282,14 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 </div>
               ` : ''}
 
-              <div class="pt-4 flex gap-3">
-                ${(pendingActionsCount > 0 || isPartnerUser) ? `
-                  <button id="feedLeaveReviewBtn" class="btn-primary flex-1 py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2">
+              <!-- Плавающая кнопка Оставить отзыв -->
+              ${(pendingActionsCount > 0 || isPartnerUser) ? `
+                <div class="reviews-write-footer-sticky">
+                  <button id="feedLeaveReviewBtn" class="reviews-write-floating-btn">
                     ✍️ Оставить отзыв
                   </button>
-                ` : ''}
-              </div>
+                </div>
+              ` : ''}
             </div>
             ${renderFooter()}
           `;
@@ -11715,12 +12311,27 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           
           const isPartner = partnerUserIds.map(id => id.toString()).includes(userId.toString()) || (window.userRole === 'partner');
 
+          // Dynamically check and create dropshipper action *before* fetching user actions
+          await checkAndCreateDropshipperAction();
+
           let actions = [];
           try {
             const { data } = await supabaseClient.from('review_actions').select('*').eq('user_id', userId).eq('status', 'pending');
             if (data) actions = data;
           } catch (e) {
             console.error(e);
+          }
+
+          // If partner, permanently insert partnership review action locally
+          if (isPartner) {
+            actions.unshift({
+              id: 'partnership_permanent',
+              category: 'partnership',
+              target_id: 'partnership_permanent',
+              title: 'Партнерство B2B (Постоянно доступно)',
+              details: { product: 'B2B Партнерство', delivery: 'РБ/РФ/СНГ', term: 'Постоянно' },
+              status: 'pending'
+            });
           }
 
           const matchedAction = preselectedTargetId ? actions.find(a => a.id === preselectedTargetId || a.target_id === preselectedTargetId) : null;
@@ -11731,12 +12342,12 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               return;
             }
 
-            if (actions.length === 0 && !isPartner) {
+            if (actions.length === 0) {
               modal.innerHTML = `
                 <div class="glass-card max-w-md w-full p-6 text-center space-y-4">
                   <span class="text-4xl">🎉</span>
                   <h3 class="text-white font-bold text-lg">Нет доступных действий</h3>
-                  <p class="text-white/60 text-xs">
+                  <p class="text-white/60 text-xs text-left">
                     Вы выполнили все доступные действия для написания отзывов! Новые действия появятся автоматически после доставки ваших заказов или участия в реферальной системе.
                   </p>
                   <button class="btn-primary w-full py-2.5 rounded-xl font-bold" id="closeReviewModalBtn">Отлично</button>
@@ -11744,12 +12355,13 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               `;
               modal.querySelector('#closeReviewModalBtn').onclick = () => {
                 modal.remove();
+                clearBlobUrls('review:');
                 renderCurrentScreen();
               };
               return;
             }
 
-            if (actions.length >= 2 && !isPartner) {
+            if (actions.length >= 2) {
               modal.innerHTML = `
                 <div class="glass-card max-w-md w-full p-6 space-y-4 text-left">
                   <div class="flex justify-between items-center">
@@ -11762,7 +12374,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                       <div class="p-3 bg-white/5 border border-white/10 hover:border-cyan-500/50 rounded-xl cursor-pointer transition select-action-card" data-action-id="${a.id}">
                         <div class="flex justify-between items-center text-left">
                           <span class="text-white font-bold text-xs uppercase bg-white/5 px-2 py-0.5 rounded-full">${a.category}</span>
-                          <span class="text-[10px] text-white/40">${new Date(a.created_at).toLocaleDateString()}</span>
+                          <span class="text-[10px] text-white/40">Доступно</span>
                         </div>
                         <h4 class="text-white font-bold text-sm mt-1.5">${a.title}</h4>
                         ${a.details && a.details.product ? `
@@ -11773,7 +12385,10 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                   </div>
                 </div>
               `;
-              modal.querySelector('#closeReviewModalBtn').onclick = () => modal.remove();
+              modal.querySelector('#closeReviewModalBtn').onclick = () => {
+                modal.remove();
+                clearBlobUrls('review:');
+              };
               modal.querySelectorAll('.select-action-card').forEach(card => {
                 card.onclick = () => {
                   const actionId = card.getAttribute('data-action-id');
@@ -11782,7 +12397,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 };
               });
             } else {
-              const selectedAction = actions.length === 1 ? actions[0] : null;
+              const selectedAction = actions[0];
               showForm(selectedAction);
             }
           };
@@ -11803,8 +12418,8 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                     <div class="font-bold text-cyan-400">Действие: ${action.title}</div>
                     ${action.details && action.details.product ? `
                       <div>🛍️ Товар: ${action.details.product}</div>
-                      <div>📏 Размер: ${action.details.size}</div>
-                      <div>📍 Направление: ${action.details.delivery}</div>
+                      ${action.details.size ? `<div>📏 Размер: ${action.details.size}</div>` : ''}
+                      ${action.details.delivery ? `<div>📍 Направление: ${action.details.delivery}</div>` : ''}
                     ` : ''}
                   </div>
                 ` : `
@@ -11855,6 +12470,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                     Фото "Вживую" (До 3 штук)
                   </label>
                   <input type="file" id="reviewFormPhotos" multiple accept="image/*" class="w-full text-white text-xs file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-cyan-500/20 file:text-cyan-400 hover:file:bg-cyan-500/30">
+                  <div id="reviewFormPhotoPreviews" class="flex gap-2 mt-2"></div>
                 </div>
 
                 <button id="submitReviewFormBtn" class="btn-primary w-full py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2">
@@ -11866,10 +12482,11 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             const backBtn = modal.querySelector('#backToActionsBtn');
             if (backBtn) {
               backBtn.onclick = () => {
-                if (actions.length >= 2 && !isPartner) {
+                if (actions.length >= 2) {
                   showState();
                 } else {
                   modal.remove();
+                  clearBlobUrls('review:');
                 }
               };
             }
@@ -11905,10 +12522,27 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               };
             });
 
+            // Live image previews
+            const photoInput = modal.querySelector('#reviewFormPhotos');
+            photoInput.onchange = () => {
+              const previewContainer = modal.querySelector('#reviewFormPhotoPreviews');
+              if (!previewContainer) return;
+              previewContainer.innerHTML = '';
+              clearBlobUrls('review:');
+              if (photoInput.files) {
+                Array.from(photoInput.files).slice(0, 3).forEach((file, index) => {
+                  const url = trackBlobUrl(`review:${index}`, file);
+                  const img = document.createElement('img');
+                  img.src = url;
+                  img.className = 'w-16 h-16 object-cover rounded-lg border border-white/10';
+                  previewContainer.appendChild(img);
+                });
+              }
+            };
+
             const submitBtn = modal.querySelector('#submitReviewFormBtn');
             submitBtn.onclick = async () => {
               const text = modal.querySelector('#reviewFormText').value.trim();
-              const photoInput = modal.querySelector('#reviewFormPhotos');
               const finalCategory = action ? action.category : modal.querySelector('#reviewFormCategory').value;
               const finalCountry = (finalCategory === 'orders') ? modal.querySelector('#reviewFormCountry').value : null;
 
@@ -11921,20 +12555,49 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               submitBtn.innerText = 'Проверка AI...';
 
               try {
+                // Client-side anti-flood check (1 review per 10 minutes limit)
+                try {
+                  const { data: lastReviews, error: lfErr } = await supabaseClient
+                    .from('reviews')
+                    .select('created_at')
+                    .eq('user_id', userId)
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+                  
+                  if (!lfErr && lastReviews && lastReviews.length > 0) {
+                    const lastTime = new Date(lastReviews[0].created_at).getTime();
+                    const now = Date.now();
+                    const diffMinutes = (now - lastTime) / (1000 * 60);
+                    if (diffMinutes < 10) {
+                      const waitMin = Math.ceil(10 - diffMinutes);
+                      tgUtil.alert(`Вы не можете оставлять отзывы слишком часто. Пожалуйста, подождите ещё ${waitMin} мин.`);
+                      submitBtn.disabled = false;
+                      submitBtn.innerText = '🚀 Отправить отзыв';
+                      return;
+                    }
+                  }
+                } catch (e) {
+                  console.warn('Anti-flood check error:', e);
+                }
+
                 let processedText = text;
                 try {
                   const aiResult = await supabaseClient.functions.invoke('ai-review-correction', {
                     body: { text: text }
                   });
-                  if (aiResult && aiResult.data && aiResult.data.correctedText) {
-                    processedText = aiResult.data.correctedText;
+                  if (aiResult && aiResult.data) {
+                    if (aiResult.data.corrected && aiResult.data.text) {
+                      processedText = aiResult.data.text;
+                    } else if (aiResult.data.correctedText) {
+                      processedText = aiResult.data.correctedText;
+                    }
                   }
                 } catch (e) {
                   console.warn('AI Correction call error:', e);
                 }
 
                 if (processedText !== text) {
-                  const userConfirmed = confirm(`Бот-помощник адаптировал ваш отзыв для публикации (заменил стоп-слова):\n\n"${processedText}"\n\nПродолжить отправку?`);
+                  const userConfirmed = await tgUtil.confirm(`Бот-помощник адаптировал ваш отзыв для публикации (заменил стоп-слова):\n\n"${processedText}"\n\nПродолжить отправку?`);
                   if (!userConfirmed) {
                     submitBtn.disabled = false;
                     submitBtn.innerText = '🚀 Отправить отзыв';
@@ -11969,7 +12632,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                   photo_urls: photoUrls,
                   category: finalCategory,
                   region: finalCountry,
-                  target_action_id: action ? action.id : null,
+                  target_action_id: (action && action.id !== 'partnership_permanent') ? action.id : null,
                   moderation_status: 'pending',
                   is_published: false
                 };
@@ -11977,7 +12640,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 const { data: insertedReview, error: insertErr } = await supabaseClient.from('reviews').insert(reviewData).select().single();
                 if (insertErr) throw insertErr;
 
-                if (action) {
+                if (action && action.id !== 'partnership_permanent') {
                   await supabaseClient.from('review_actions').update({ status: 'reviewed' }).eq('id', action.id);
                   actions = actions.filter(a => a.id !== action.id);
                 }
@@ -11985,7 +12648,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 tgUtil.alert('Спасибо за отзыв! Он появится после модерации.');
 
                 if (actions.length > 0) {
-                  const writeAnother = confirm('У вас есть еще доступные действия для отзыва! Хотите написать еще один отзыв?');
+                  const writeAnother = await tgUtil.confirm('У вас есть еще доступные действия для отзыва! Хотите написать еще один отзыв?');
                   if (writeAnother) {
                     showState();
                     return;
@@ -11993,6 +12656,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 }
 
                 modal.remove();
+                clearBlobUrls('review:');
                 renderCurrentScreen();
 
               } catch (err) {
@@ -12010,20 +12674,17 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         async function triggerDoubleTapLike(card, reviewId, x, y) {
           if (!userId) { window.requireAuth('Для взаимодействия с отзывами необходимо войти.'); return; }
 
-          const heartAnchor = card.querySelector('.double-tap-heart-anchor');
-          if (heartAnchor) {
-            const heart = document.createElement('div');
-            heart.className = 'double-tap-heart';
-            heart.style.left = `${x}px`;
-            heart.style.top = `${y}px`;
-            heart.innerHTML = `
-              <svg viewBox="0 0 24 24" class="w-full h-full">
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-              </svg>
-            `;
-            heartAnchor.appendChild(heart);
-            setTimeout(() => heart.remove(), 800);
-          }
+          const heart = document.createElement('div');
+          heart.className = 'double-tap-heart';
+          heart.style.left = `${x}px`;
+          heart.style.top = `${y}px`;
+          heart.innerHTML = `
+            <svg viewBox="0 0 24 24" class="w-full h-full">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          `;
+          card.appendChild(heart);
+          setTimeout(() => heart.remove(), 800);
 
           if (window.likedReviewsCache && !window.likedReviewsCache.has(reviewId)) {
             await toggleReviewLike(card, reviewId);
@@ -12036,7 +12697,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           window.likedReviewsCache = window.likedReviewsCache || new Set();
           const isLiked = window.likedReviewsCache.has(reviewId);
           
-          const likeBtn = card.querySelector('.tiktok-like-btn');
+          const likeBtn = card.querySelector('.review-like-btn-heart');
           const countSpan = likeBtn.querySelector('.likes-count');
           let count = parseInt(countSpan.innerText) || 0;
 
@@ -12059,6 +12720,24 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             }
           } catch (err) {
             console.error('Failed to sync like status:', err);
+          }
+        }
+
+        async function toggleReviewPin(reviewId) {
+          if (!isOwner) return;
+          try {
+            const { data, error } = await supabaseClient.from('reviews').select('is_pinned').eq('id', reviewId).single();
+            if (error || !data) throw error || new Error('Review not found');
+
+            const newPinned = !data.is_pinned;
+            const { error: updateErr } = await supabaseClient.from('reviews').update({ is_pinned: newPinned }).eq('id', reviewId);
+            if (updateErr) throw updateErr;
+
+            tgUtil.haptic('success');
+            renderCurrentScreen();
+          } catch (e) {
+            console.error('Failed to toggle review pin status:', e);
+            tgUtil.alert('Не удалось изменить статус закрепления: ' + e.message);
           }
         }
 
@@ -12131,12 +12810,12 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               };
             }
 
-            const collapsibleTriggers = document.querySelectorAll('.review-collapsible-trigger');
+            const collapsibleTriggers = document.querySelectorAll('.review-card-wb-collapsible-trigger');
             collapsibleTriggers.forEach(trig => {
               trig.onclick = (e) => {
                 e.stopPropagation();
-                const card = trig.closest('.review-card-redesign');
-                const content = card.querySelector('.review-collapsible-content');
+                const card = trig.closest('.review-card-wb');
+                const content = card.querySelector('.review-card-wb-collapsible-content');
                 const arrow = trig.querySelector('span:last-child');
                 const isExpanded = trig.getAttribute('data-expanded') === 'true';
 
@@ -12152,7 +12831,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               };
             });
 
-            const cards = document.querySelectorAll('.review-card-redesign');
+            const cards = document.querySelectorAll('.review-card-wb');
             cards.forEach(card => {
               const reviewId = card.getAttribute('data-review-id');
               let lastTap = 0;
@@ -12177,7 +12856,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 triggerDoubleTapLike(card, reviewId, x, y);
               });
 
-              const likeBtn = card.querySelector('.tiktok-like-btn');
+              const likeBtn = card.querySelector('.review-like-btn-heart');
               if (likeBtn) {
                 likeBtn.onclick = (e) => {
                   e.stopPropagation();
