@@ -117,6 +117,9 @@
     
     html {
       background: linear-gradient(165deg, var(--bg-gradient-start) 0%, var(--bg-gradient-mid) 50%, var(--bg-gradient-end) 100%);
+      background-attachment: fixed;
+      background-repeat: no-repeat;
+      background-size: cover;
       min-height: 100vh;
       -webkit-tap-highlight-color: transparent;
       scrollbar-width: none;
@@ -264,13 +267,13 @@
     }
     
     .balance-add {
-      width: 18px;
-      height: 18px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
       background: linear-gradient(135deg, var(--ice-primary), var(--ice-deep));
       border: none;
       color: white;
-      font-size: 11px;
+      font-size: 13px;
       font-weight: 700;
       cursor: pointer;
       display: flex;
@@ -501,6 +504,9 @@
       background: linear-gradient(135deg, var(--ice-primary) 0%, var(--ice-deep) 100%) !important;
       border: 1px solid rgba(255,255,255,0.2) !important;
       color: white !important;
+      flex: 1 1 50% !important;
+      max-width: 50% !important;
+      width: 50% !important;
     }
     .buyNowBtn:hover {
       opacity: 0.9 !important;
@@ -511,6 +517,9 @@
       background: linear-gradient(135deg, #102a43 0%, #1c3d5a 100%) !important;
       border: 1px solid rgba(255,255,255,0.1) !important;
       color: white !important;
+      flex: 1 1 50% !important;
+      max-width: 50% !important;
+      width: 50% !important;
     }
     .addToCartBtn:hover {
       background: linear-gradient(135deg, #183d5d 0%, #244e75 100%) !important;
@@ -522,6 +531,12 @@
       border: 1px solid rgba(255,255,255,0.1) !important;
       padding: 0 !important;
       overflow: hidden !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      flex: 1 1 50% !important;
+      max-width: 50% !important;
+      width: 50% !important;
     }
     
     .cart-stepper .cart-step-btn {
@@ -1277,6 +1292,9 @@
     /* Light theme overrides */
     html.light-theme body { 
       background: linear-gradient(165deg, #E8F4FC 0%, #F5FAFD 50%, #D9EAF5 100%) !important; 
+      background-attachment: fixed !important;
+      background-repeat: no-repeat !important;
+      background-size: cover !important;
     }
     html.light-theme .app-header,
     html.light-theme .tab-bar { 
@@ -2542,8 +2560,8 @@
         </div>
         <button class="icon-btn" id="loginBtn" title="Войти/Зарегистрироваться" style="display:none; background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.4); color: #22d3ee; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 10px; white-space: nowrap;">Войти/Зарегистрироваться</button>
       </div>
-      <!-- CENTER: Action buttons -->
-      <div class="header-center">
+      <!-- RIGHT: Action buttons + Logo -->
+      <div class="header-right">
         <button class="icon-btn relative" id="notificationsBtn" title="Уведомления">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -2557,9 +2575,6 @@
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
           </svg>
         </button>
-      </div>
-      <!-- RIGHT: Logo -->
-      <div class="header-right">
         <img id="logoImg" class="logo-img" src="./assets/logo.png" alt="ICE LOGIX">
       </div>
     </div>
@@ -11890,7 +11905,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           ];
 
           return `
-            <div class="space-y-6 page-enter pb-16 text-left">
+            <div class="space-y-6 page-enter text-left">
               <!-- Визуальная досочка (Инфо-плашка) -->
               <div class="reviews-board p-5 border border-white/10 text-center relative overflow-hidden">
                 <div class="absolute -right-10 -top-10 w-28 h-28 bg-cyan-500/10 rounded-full blur-2xl"></div>
@@ -12081,7 +12096,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           );
 
           return `
-            <div class="space-y-4 page-enter pb-24 text-left">
+            <div class="space-y-4 page-enter pb-10 text-left">
               <div class="flex items-center gap-3">
                 <button id="feedBackToHubBtn" class="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
                   <span class="text-white text-lg">➔</span>
@@ -12734,7 +12749,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             if (updateErr) throw updateErr;
 
             tgUtil.haptic('success');
-            renderCurrentScreen();
+            renderAdminScreen();
           } catch (e) {
             console.error('Failed to toggle review pin status:', e);
             tgUtil.alert('Не удалось изменить статус закрепления: ' + e.message);
@@ -12800,8 +12815,8 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
             const prevBtn = document.getElementById('feedPrevPage');
             const nextBtn = document.getElementById('feedNextPage');
-            if (prevBtn) prevBtn.onclick = () => { if (reviewsPage > 1) { reviewsPage--; renderCurrentScreen(); } };
-            if (nextBtn) nextBtn.onclick = () => { if (reviewsPage < reviewsTotalPages) { reviewsPage++; renderCurrentScreen(); } };
+            if (prevBtn) prevBtn.onclick = () => { if (reviewsPage > 1) { reviewsPage--; renderAdminScreen(); } };
+            if (nextBtn) nextBtn.onclick = () => { if (reviewsPage < reviewsTotalPages) { reviewsPage++; renderAdminScreen(); } };
 
             const leaveBtn = document.getElementById('feedLeaveReviewBtn');
             if (leaveBtn) {
@@ -13702,8 +13717,8 @@ async function renderAdmin() {
           <button id="addProductBtn" class="btn-primary w-full mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить товар</button>
           
           <div class="flex gap-2 mb-3">
-            <button class="btn-secondary text-xs px-2.5 py-1 rounded-lg ${window.adminProductFilter === 'all' || !window.adminProductFilter ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400' : 'border-white/10'}" onclick="window.adminProductFilter = 'all'; renderCurrentScreen();">Все товары</button>
-            <button class="btn-secondary text-xs px-2.5 py-1 rounded-lg ${window.adminProductFilter === 'home' ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400' : 'border-white/10'}" onclick="window.adminProductFilter = 'home'; renderCurrentScreen();">На главной 🏠</button>
+            <button class="btn-secondary text-xs px-2.5 py-1 rounded-lg ${window.adminProductFilter === 'all' || !window.adminProductFilter ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400' : 'border-white/10'}" onclick="window.adminProductFilter = 'all'; renderAdminScreen();">Все товары</button>
+            <button class="btn-secondary text-xs px-2.5 py-1 rounded-lg ${window.adminProductFilter === 'home' ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400' : 'border-white/10'}" onclick="window.adminProductFilter = 'home'; renderAdminScreen();">На главной 🏠</button>
           </div>
 
           <div class="space-y-2 max-h-60 overflow-y-auto">
@@ -13757,8 +13772,8 @@ async function renderAdmin() {
           <button id="addMarketplaceBtn" class="btn-primary w-full mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить площадку</button>
           
           <div class="flex gap-2 mb-3">
-            <button class="btn-secondary text-xs px-2.5 py-1 rounded-lg ${window.adminMpFilter === 'all' || !window.adminMpFilter ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400' : 'border-white/10'}" onclick="window.adminMpFilter = 'all'; renderCurrentScreen();">Все площадки</button>
-            <button class="btn-secondary text-xs px-2.5 py-1 rounded-lg ${window.adminMpFilter === 'home' ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400' : 'border-white/10'}" onclick="window.adminMpFilter = 'home'; renderCurrentScreen();">На главной 🏠</button>
+            <button class="btn-secondary text-xs px-2.5 py-1 rounded-lg ${window.adminMpFilter === 'all' || !window.adminMpFilter ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400' : 'border-white/10'}" onclick="window.adminMpFilter = 'all'; renderAdminScreen();">Все площадки</button>
+            <button class="btn-secondary text-xs px-2.5 py-1 rounded-lg ${window.adminMpFilter === 'home' ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400' : 'border-white/10'}" onclick="window.adminMpFilter = 'home'; renderAdminScreen();">На главной 🏠</button>
           </div>
 
           <div class="space-y-2 max-h-80 overflow-y-auto" id="marketplacesList">
@@ -14303,7 +14318,7 @@ function attachAdminHandlers() {
         await supabaseClient.from('promocodes').insert({ code, discount_type: type, discount_value: value, is_active: true });
         logAdminAction('create_promo', { code, type, value });
         tgUtil.alert('Промокод создан');
-        renderCurrentScreen();
+        renderAdminScreen();
       } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }
     };
   }
@@ -14316,7 +14331,7 @@ function attachAdminHandlers() {
         await supabaseClient.from('promocodes').update({ is_active: !currentActive }).eq('id', id);
         logAdminAction('toggle_promo', { id, active: !currentActive });
         tgUtil.alert('Статус обновлён');
-        renderCurrentScreen();
+        renderAdminScreen();
       } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }
     };
   });
@@ -14341,7 +14356,7 @@ function attachAdminHandlers() {
         }
         
         tgUtil.alert(alertMsg);
-        renderCurrentScreen();
+        renderAdminScreen();
       } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }
     };
   });
@@ -14353,7 +14368,7 @@ function attachAdminHandlers() {
         await supabaseClient.from('reviews').delete().eq('id', id);
         logAdminAction('review_rejected', { id });
         tgUtil.alert('Отзыв отклонён');
-        renderCurrentScreen();
+        renderAdminScreen();
       } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }
     };
   });
@@ -14757,7 +14772,7 @@ function attachAdminHandlers() {
           delete _tabCache['home:'];
           delete _tabCache['catalogs:'];
           glassToast('Статус товара на главной обновлен', { kind: 'success' });
-          renderCurrentScreen();
+          renderAdminScreen();
         } catch (err) {
           tgUtil.alert('Ошибка: ' + err.message);
         }
@@ -14780,7 +14795,7 @@ function attachAdminHandlers() {
           delete _tabCache['home:'];
           delete _tabCache['catalogs:'];
           glassToast('Статус площадки на главной обновлен', { kind: 'success' });
-          renderCurrentScreen();
+          renderAdminScreen();
         } catch (err) {
           tgUtil.alert('Ошибка: ' + err.message);
         }
@@ -14808,7 +14823,7 @@ function attachAdminHandlers() {
         if (error) throw error;
         logAdminAction('archive_order', { orderId });
         tgUtil.alert('Заказ перемещён в архив');
-        renderCurrentScreen();
+        renderAdminScreen();
       } catch (err) {
         tgUtil.alert('Ошибка: ' + err.message);
       }
@@ -14854,7 +14869,7 @@ function attachAdminHandlers() {
         const { error } = await supabaseClient.from('orders').update({ weight_actual: weightActual }).eq('id', orderId);
         if (error) throw error;
         glassToast('Фактический вес сохранен', { kind: 'success' });
-        renderCurrentScreen();
+        renderAdminScreen();
       } catch (err) {
         tgUtil.alert('Ошибка: ' + err.message);
       }
@@ -14995,7 +15010,7 @@ function attachAdminHandlers() {
         setActiveChip(newStatus);
         adminOrdersFilter = newStatus;
         adminOrdersPage = 1;
-        renderCurrentScreen();
+        renderAdminScreen();
       });
     });
   }
@@ -15003,8 +15018,8 @@ function attachAdminHandlers() {
   // ================== ПАГИНАЦИЯ ЗАКАЗОВ ==================
   const prevBtn = document.getElementById('adminOrdersPrev');
   const nextBtn = document.getElementById('adminOrdersNext');
-  if (prevBtn) prevBtn.onclick = () => { if (adminOrdersPage > 1) { adminOrdersPage--; renderCurrentScreen(); } };
-  if (nextBtn) nextBtn.onclick = () => { if (adminOrdersPage < adminOrdersTotalPages) { adminOrdersPage++; renderCurrentScreen(); } };
+  if (prevBtn) prevBtn.onclick = () => { if (adminOrdersPage > 1) { adminOrdersPage--; renderAdminScreen(); } };
+  if (nextBtn) nextBtn.onclick = () => { if (adminOrdersPage < adminOrdersTotalPages) { adminOrdersPage++; renderAdminScreen(); } };
     // ================== СМЕНА СТАТУСА ЗАКАЗА (ДЕЛЕГИРОВАНИЕ) ==================
     if (!window._statusChangeHandler) {
     window._statusChangeHandler = async (e) => {
@@ -15040,7 +15055,7 @@ function attachAdminHandlers() {
           if (message) {
             await sendNotification(userId, message, orderId);
           }
-          renderCurrentScreen();
+          renderAdminScreen();
         } catch (err) {
           tgUtil.alert('Ошибка: ' + err.message);
           select.value = previousStatus || '';
@@ -15057,13 +15072,13 @@ if (activeBtn) activeBtn.addEventListener('click', () => {
   adminOrdersMode = 'active';
   adminOrdersPage = 1;
   adminOrdersFilter = 'all';
-  renderCurrentScreen();
+  renderAdminScreen();
 });
 if (archiveBtn) archiveBtn.addEventListener('click', () => {
   adminOrdersMode = 'archived';
   adminOrdersPage = 1;
   adminOrdersFilter = 'all';
-  renderCurrentScreen();
+  renderAdminScreen();
 });
 
     // ================== ВОССТАНОВЛЕНИЕ ЗАКАЗА (ДЕЛЕГИРОВАНИЕ) ==================
@@ -15084,7 +15099,7 @@ if (archiveBtn) archiveBtn.addEventListener('click', () => {
         if (error) throw error;
         logAdminAction('restore_order', { orderId });
         tgUtil.alert('Заказ восстановлен');
-        renderCurrentScreen();
+        renderAdminScreen();
       } catch (err) {
         tgUtil.alert('Ошибка: ' + err.message);
       }
@@ -15113,7 +15128,7 @@ if (archiveBtn) archiveBtn.addEventListener('click', () => {
       try {
         await supabaseClient.from('courses').delete().eq('id', btn.dataset.courseId);
         logAdminAction('delete_course', { courseId: btn.dataset.courseId });
-        renderCurrentScreen();
+        renderAdminScreen();
       } catch(e) { tgUtil.alert('Ошибка: ' + e.message); }
     };
   });
@@ -15215,7 +15230,7 @@ if (downloadBackupBtn) {
         await sendNotification(claimUserId, `🛡️ Ваша страховая претензия по заказу #${orderId.slice(0, 8)} одобрена! Выплата ${amount.toFixed(2)} BYN зачислена на ваш баланс.`, orderId);
         
         glassToast('Страховая претензия успешно одобрена!', { kind: 'success' });
-        renderCurrentScreen();
+        renderAdminScreen();
       } catch(e) {
         console.error(e);
         tgUtil.alert('Ошибка: ' + e.message);
@@ -15246,7 +15261,7 @@ if (downloadBackupBtn) {
         if (error) throw error;
         
         glassToast('Претензия отклонена.', { kind: 'info' });
-        renderCurrentScreen();
+        renderAdminScreen();
       } catch(e) {
         console.error(e);
         tgUtil.alert('Ошибка: ' + e.message);
@@ -15268,7 +15283,7 @@ if (downloadBackupBtn) {
         if (error) throw error;
         
         glassToast('Вердикт "Оригинал" успешно сохранен!', { kind: 'success' });
-        renderCurrentScreen();
+        renderAdminScreen();
       } catch(e) {
         console.error(e);
         tgUtil.alert('Ошибка: ' + e.message);
@@ -15298,7 +15313,7 @@ if (downloadBackupBtn) {
         if (error) throw error;
         
         glassToast('Вердикт "Подделка" сохранен.', { kind: 'info' });
-        renderCurrentScreen();
+        renderAdminScreen();
       } catch(e) {
         console.error(e);
         tgUtil.alert('Ошибка: ' + e.message);
@@ -17422,6 +17437,19 @@ function attachAdminSuppliersHandlers() {
             renderCurrentScreen();
           } catch (e) { tgUtil.alert('Ошибка: ' + e.message); }
         };
+      });
+    }
+
+    async function renderAdminScreen() {
+      const scrollPos = window.scrollY || document.documentElement.scrollTop;
+      _suppressSpinner = true;
+      try {
+        await renderCurrentScreen();
+      } finally {
+        _suppressSpinner = false;
+      }
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: scrollPos, behavior: 'instant' });
       });
     }
 
