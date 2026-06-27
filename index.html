@@ -5945,7 +5945,7 @@ let adminOrdersTotalPages = 1;
             { flag: '🇰🇷', code: 'KRW', label: '₩1000',  key: 'krw_rate', def: 0.0024,  mult: 1000 },
           ].map(c => {
             const rate = (Number(window.appSettings?.[c.key] || c.def) * c.mult).toFixed(2);
-            return `<div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 6px 10px; flex-shrink: 0;">
+            return `<div class="rate-tracker-card" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 6px 10px; flex-shrink: 0;">
               <div style="font-size: 10px; color: rgba(255,255,255,0.45); white-space: nowrap; margin-bottom: 3px;">${c.flag} ${c.code}</div>
               <div style="font-size: 11px; font-weight: 700; color: white; white-space: nowrap;">${c.label} ≈ <span style="color: #67e8f9;">${rate} Br/ICE</span></div>
             </div>`;
@@ -5956,7 +5956,6 @@ let adminOrdersTotalPages = 1;
 
     <!-- Quick Actions - Story Cards with 3D-style icons -->
     <div class="scroll-hint-container mb-6 page-enter" style="animation-delay: 0.15s;">
-    <div class="swipe-hint-icon">👉</div>
     <div class="scroll-x" style="padding: 4px 0;">
       <div class="story-card" data-story="onboarding">
         <div class="story-icon" style="background: linear-gradient(145deg, rgba(99,202,253,0.2), rgba(59,130,246,0.1));">
@@ -5988,12 +5987,6 @@ let adminOrdersTotalPages = 1;
         </div>
         <span class="story-label">Акции</span>
       </div>
-      <div class="story-card" data-story="resale">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(236,72,153,0.2), rgba(219,39,119,0.1));">
-          <span style="font-size: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"><span class="ix text-pink-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span></span>
-        </div>
-        <span class="story-label">Пристрой</span>
-      </div>
       <div class="story-card" data-story="academy">
         <div class="story-icon" style="background: linear-gradient(145deg, rgba(139,92,246,0.2), rgba(109,40,217,0.15));">
           <span style="font-size: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></span></span>
@@ -6005,11 +5998,11 @@ let adminOrdersTotalPages = 1;
 
     <!-- Promo Banners -->
     <div class="scroll-hint-container mb-6 page-enter" style="animation-delay: 0.2s;">
-    <div class="swipe-hint-icon">👉</div>
     <div class="scroll-x" id="promoBannersContainer">
       ${await renderPromoBanners()}
     </div>
     </div>
+    
     
     <!-- Popular Marketplaces Section -->
     <div class="mb-6 page-enter" style="animation-delay: 0.25s;">
@@ -6026,12 +6019,12 @@ let adminOrdersTotalPages = 1;
         </button>
       </div>
       <div class="scroll-hint-container">
-      <div class="swipe-hint-icon">👉</div>
       <div class="scroll-x" style="padding: 4px 0;">
         ${marketplaces.map(mp => `
-          <div class="story-card marketplace-story" data-url="${mp.url}">
-            <div class="story-icon">
-              <span style="font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));">${mp.icon}</span>
+          <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}">
+            <div class="story-icon" style="overflow:hidden; display:flex; align-items:center; justify-content:center; background: var(--glass-bg); cursor: pointer;">
+              ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-cover" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
+              <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
             </div>
             <span class="story-label">${mp.name}</span>
           </div>
@@ -6070,85 +6063,93 @@ let adminOrdersTotalPages = 1;
 
 // ==================== ОБРАБОТЧИК ГЛАВНОЙ ====================
 function attachHomeHandlers() {
-  document.querySelector('[data-story="onboarding"]')?.addEventListener('click', () => {
-    if (window.iceLogixOnboarding) window.iceLogixOnboarding.open();
-  });
-  document.querySelector('[data-story="reports"]')?.addEventListener('click', () => switchTab('reports'));
-  document.querySelector('[data-story="reviews"]')?.addEventListener('click', () => switchTab('reviews'));
-  document.querySelector('[data-story="promo"]')?.addEventListener('click', () => switchTab('promo'));
-  document.querySelector('[data-story="academy"]')?.addEventListener('click', () => switchTab('academy'));
-  document.querySelector('[data-story="legitcheck"]')?.addEventListener('click', () => switchTab('legitcheck'));
-  document.querySelector('[data-story="resale"]')?.addEventListener('click', () => switchTab('resale'));
-  document.getElementById('moreMarketplacesBtn')?.addEventListener('click', () => {
-    switchTab('catalogs', 'marketplaces');
-  });
-  document.getElementById('moreProductsBtn')?.addEventListener('click', () => {
-    switchTab('catalogs', 'productsCatalog');
-  });
-  document.querySelectorAll('.marketplace-story').forEach(el => {
-    el.addEventListener('click', () => {
-      const url = el.getAttribute('data-url');
-      if (url) window.open(url, '_blank');
-      else tgUtil.alert('Ссылка на площадку будет добавлена позже');
-    });
-  });
-  document.querySelectorAll('.banner-slide').forEach(el => {
-    el.addEventListener('click', () => tgUtil.alert('Подробнее о акции будет позже'));
-  });
-  document.querySelectorAll('.social-icon').forEach(el => {
-    el.addEventListener('click', () => tgUtil.alert('Соцсети будут подключены позже'));
-  });
+      document.querySelector('[data-story="onboarding"]')?.addEventListener('click', () => {
+        if (window.iceLogixOnboarding) window.iceLogixOnboarding.open();
+      });
+      document.querySelector('[data-story="reports"]')?.addEventListener('click', () => switchTab('reports'));
+      document.querySelector('[data-story="reviews"]')?.addEventListener('click', () => switchTab('reviews'));
+      document.querySelector('[data-story="promo"]')?.addEventListener('click', () => switchTab('promo'));
+      document.querySelector('[data-story="legitcheck"]')?.addEventListener('click', () => {
+        if (!window.userId) { window.requireAuth('Для проверки подлинности необходимо войти или зарегистрироваться.'); return; }
+        switchTab('legitcheck');
+      });
+      document.querySelector('[data-story="academy"]')?.addEventListener('click', () => {
+        if (!window.userId) { window.requireAuth('Для доступа к академии необходимо войти или зарегистрироваться.'); return; }
+        switchTab('academy');
+      });
+      document.getElementById('moreMarketplacesBtn')?.addEventListener('click', () => {
+        switchTab('catalogs', 'marketplaces');
+      });
+      document.getElementById('moreProductsBtn')?.addEventListener('click', () => {
+        switchTab('catalogs', 'productsCatalog');
+      });
+      document.querySelectorAll('.marketplace-story').forEach(el => {
+        el.addEventListener('click', () => {
+          const url = el.getAttribute('data-url');
+          if (url) tgUtil.openLink(url);
+          else tgUtil.alert('Ссылка на площадку будет добавлена позже');
+        });
+      });
+      document.querySelectorAll('.banner-slide').forEach(el => {
+        el.addEventListener('click', () => tgUtil.alert('Подробнее о акции будет позже'));
+      });
+      document.querySelectorAll('.social-icon').forEach(el => {
+        el.addEventListener('click', () => tgUtil.alert('Соцсети будут подключены позже'));
+      });
 
-  loadHomeProducts('popular');
-  document.getElementById('tabPopular')?.addEventListener('click', () => {
-    document.getElementById('tabPopular').classList.add('active');
-    document.getElementById('tabForYou').classList.remove('active');
-    loadHomeProducts('popular');
+      loadHomeProducts('popular');
+      document.getElementById('tabPopular')?.addEventListener('click', () => {
+        document.getElementById('tabPopular').classList.add('active');
+        document.getElementById('tabForYou').classList.remove('active');
+        loadHomeProducts('popular');
+      });
+      document.getElementById('tabForYou')?.addEventListener('click', () => {
+        document.getElementById('tabForYou').classList.add('active');
+        document.getElementById('tabPopular').classList.remove('active');
+        loadHomeProducts('for_you');
+      });
+      document.querySelectorAll('.banner-slide').forEach(el => {
+  el.addEventListener('click', () => {
+    const promoId = el.dataset.promotionId;
+    if (promoId) {
+      // При клике на баннер активируем акцию в калькуляторе
+      window.activePromotionId = promoId;
+      tgUtil.alert('Акция применена! Перейдите в калькулятор.');
+    }
   });
-  document.getElementById('tabForYou')?.addEventListener('click', () => {
-    document.getElementById('tabForYou').classList.add('active');
-    document.getElementById('tabPopular').classList.remove('active');
-    loadHomeProducts('for_you');
-  });
-  document.querySelectorAll('.banner-slide').forEach(el => {
-    el.addEventListener('click', () => {
-      const promoId = el.dataset.promotionId;
-      if (promoId) {
-        window.activePromotionId = promoId;
-        tgUtil.alert('Акция применена! Перейдите в калькулятор.');
-      }
-    });
-  });
+});
 
-  document.querySelectorAll('.addToCartBtn').forEach(btn => {
-    btn.onclick = (e) => {
-      e.stopPropagation();
-      const productId = btn.dataset.productId;
-      if (productId) addToCart(productId);
-    };
-  });
+document.querySelectorAll('.addToCartBtn').forEach(btn => {
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    if (!window.userId) { window.requireAuth('Для добавления в корзину необходимо войти или зарегистрироваться.'); return; }
+    const productId = btn.dataset.productId;
+    if (productId) addToCart(productId);
+  };
+});
 
-  document.querySelectorAll('.buyNowBtn').forEach(btn => {
-    btn.onclick = (e) => {
-      e.stopPropagation();
-      const url = btn.dataset.url;
-      const price = parseFloat(btn.dataset.price);
-      if (url && !isNaN(price)) {
-        window.tempOrder = {
-          url: url,
-          price: price,
-          weight: 1,
-          total: window.iceLogixPricing.quickEstimate(price, 1),
-          discountAmount: 0,
-          appliedPromo: null
-        };
-        switchTab('neworder');
-      }
-    };
-  });
-}
+document.querySelectorAll('.buyNowBtn').forEach(btn => {
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    if (!window.userId) { window.requireAuth('Для оформления заказа необходимо войти или зарегистрироваться.'); return; }
+    const url = btn.dataset.url;
+    const price = parseFloat(btn.dataset.price);
+    if (url && !isNaN(price)) {
+      window.tempOrder = {
+        url: url,
+        price: price,
+        weight: 1,
+        total: window.iceLogixPricing.quickEstimate(price, 1),
+        discountAmount: 0,
+        appliedPromo: null
+      };
+      switchTab('neworder');
+    }
+  };
+});
+    }
 
-async function loadHomeProducts(tab = 'popular') {
+    async function loadHomeProducts(tab = 'popular') {
   const grid = document.getElementById('homeProductsGrid');
   if (!grid) return;
   try {
@@ -6162,7 +6163,7 @@ async function loadHomeProducts(tab = 'popular') {
       if (views && views.length > 0) {
         const ids = views.map(v => v.product_id);
         const { data: viewed } = await supabaseClient.from('products').select('*').in('id', ids).eq('is_active', true);
-        if (viewed) data = viewed;
+        if (viewed) data = preprocessProducts(viewed);
       }
       if (data.length === 0) {
         grid.innerHTML = '<p class="text-white/50 text-sm col-span-2 text-center py-4">Просматривайте товары, чтобы получить рекомендации</p>';
@@ -6170,46 +6171,32 @@ async function loadHomeProducts(tab = 'popular') {
       }
     } else {
       const popular = await window.CacheDB.get('popularProducts', async () => {
+        // Prefer products marked show_on_home; fall back to any active products
+        const { data: homeProds } = await supabaseClient.from('products').select('*').eq('is_active', true).eq('show_on_home', true).limit(10);
+        if (homeProds && homeProds.length > 0) return homeProds;
         const { data } = await supabaseClient.from('products').select('*').eq('is_active', true).limit(10);
         return data;
       }, 300000);
-      if (popular) data = popular;
+      if (popular) data = preprocessProducts(popular);
     }
 
     grid.innerHTML = data.map(p => `
       <div class="product-card" data-product-id="${p.id}">
-        <div class="aspect-square bg-white/10 flex items-center justify-center relative">
-          <img src="${p.image_url || 'https://via.placeholder.com/150'}" class="w-full h-full object-cover">
-          <span class="absolute top-2 right-2 wishlist-heart text-xl ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/50'}" data-product-id="${p.id}">${wishlist.has(p.id) ? '<span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>' : '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>'}</span>
+        <div class="relative">
+          ${renderCardMedia(p.image_url, p.title)}
+          <span class="absolute top-0 right-0 wishlist-heart text-xl ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/50'} z-20" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
         </div>
         <div class="p-2">
           <p class="text-white font-bold text-sm truncate">${p.title}</p>
           <p class="text-cyan-400 text-xs">${p.price} ${p.currency}</p>
           <div class="flex gap-1 mt-2">
-            <button class="btn-primary addToCartBtn flex-1 bg-cyan-500/70" data-product-id="${p.id}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span></button>
-            <button class="buyNowBtn flex-1 bg-green-500/70 hover:bg-green-500 py-1 rounded text-xs" data-url="${p.url}" data-price="${p.price}"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span></button>
+            <button class="btn-primary addToCartBtn flex-1" data-product-id="${p.id}">В корзину</button>
+            <button class="buyNowBtn flex-1" data-url="${p.url}" data-price="${p.price}">Купить</button>
           </div>
         </div>
       </div>
     `).join('');
-
-    grid.querySelectorAll('.wishlist-heart').forEach(heart => {
-      heart.onclick = async (e) => {
-        e.stopPropagation();
-        const productId = heart.dataset.productId;
-        if (wishlist.has(productId)) {
-          await supabaseClient.from('wishlist').delete().eq('user_id', userId).eq('product_id', productId);
-          wishlist.delete(productId);
-          heart.innerHTML = '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>';
-          heart.classList.remove('text-red-500');
-        } else {
-          await supabaseClient.from('wishlist').insert({ user_id: userId, product_id: productId });
-          wishlist.add(productId);
-          heart.innerHTML = '<span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>';
-          heart.classList.add('text-red-500');
-        }
-      };
-    });
+    initCardSliders();
 
     grid.querySelectorAll('.addToCartBtn').forEach(btn => {
       btn.onclick = (e) => {
@@ -6222,6 +6209,7 @@ async function loadHomeProducts(tab = 'popular') {
     grid.querySelectorAll('.buyNowBtn').forEach(btn => {
       btn.onclick = (e) => {
         e.stopPropagation();
+        if (!window.userId) { window.requireAuth('Для оформления заказа необходимо войти или зарегистрироваться.'); return; }
         const url = btn.dataset.url;
         const price = parseFloat(btn.dataset.price);
         if (url && !isNaN(price)) {
@@ -6232,7 +6220,8 @@ async function loadHomeProducts(tab = 'popular') {
     });
 
     grid.querySelectorAll('.product-card').forEach(card => {
-      card.onclick = () => {
+      card.onclick = (e) => {
+        if (e.target.closest('.wishlist-heart') || e.target.closest('.addToCartBtn') || e.target.closest('.cart-stepper') || e.target.closest('.buyNowBtn') || e.target.closest('.card-photo-container')) return;
         const productId = card.dataset.productId;
         const url = card.querySelector('.buyNowBtn')?.dataset.url;
         const price = parseFloat(card.querySelector('.buyNowBtn')?.dataset.price);
@@ -6240,11 +6229,15 @@ async function loadHomeProducts(tab = 'popular') {
           supabaseClient.from('user_views').upsert({ user_id: userId, product_id: productId }, { onConflict: 'user_id,product_id' }).then(() => {});
         }
         if (url && !isNaN(price)) {
+          if (!window.userId) { window.requireAuth('Для оформления заказа необходимо войти или зарегистрироваться.'); return; }
           window.tempOrder = { url, price, weight: 1, total: window.iceLogixPricing.quickEstimate(price, 1), discountAmount: 0, appliedPromo: null };
           switchTab('neworder');
         }
       };
     });
+    
+    // Инициализируем обработчики прокрутки фото для карточек товаров
+    initCardSliders();
   } catch(e) {
     console.error('Ошибка загрузки товаров на главной:', e);
   }
