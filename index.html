@@ -13412,7 +13412,7 @@ async function preloadAdminData(force = false) {
     supabaseClient.from('marketplaces').select('*').order('sort_order', { ascending: true }).then(r => r.data || []).catch(e => { console.error('marketplaces load failed:', e); return []; }),
     supabaseClient.from('admin_settings').select('*').eq('owner_id', userId).maybeSingle().then(r => r.data || null).catch(e => { console.error('admin_settings load failed:', e); return null; }),
     supabaseClient.from('users').select('*').order('created_at', { ascending: false }).then(r => r.data || []).catch(e => { console.error('users load failed:', e); return []; }),
-    ordersQuery.catch(e => { console.error('orders load failed:', e); return { data: [], count: 0 }; })
+    ordersQuery.then(r => r).catch(e => { console.error('orders load failed:', e); return { data: [], count: 0 }; })
   ]);
 
   const orders = ordersRes?.data || [];
