@@ -6267,10 +6267,31 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           : '';
 
         return `
+          <style>
+            .calc-mode-card {
+              transition: all 0.2s ease-in-out;
+            }
+            .calc-mode-card:hover {
+              border-color: rgba(6, 182, 212, 0.4) !important;
+              transform: translateY(-2px) scale(1.01);
+              box-shadow: 0 4px 20px -2px rgba(6, 182, 212, 0.15);
+            }
+            .calc-mode-card:active {
+              transform: scale(0.97) !important;
+              background-color: rgba(6, 182, 212, 0.08) !important;
+              border-color: rgba(6, 182, 212, 0.7) !important;
+              box-shadow: 0 0 10px rgba(6, 182, 212, 0.3);
+            }
+          </style>
+
           <div class="flex items-center justify-center min-h-[70vh] p-2 page-enter">
             <div class="glass-card w-full max-w-md p-6 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
               <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
               <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
+
+              <button type="button" class="absolute top-4 right-4 text-white/40 hover:text-cyan-400 text-[10px] font-bold bg-white/5 border border-white/10 px-2 py-1.5 rounded-lg transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.switchTab('history'); window._historySubScreen = 'calculations'; window.renderCurrentScreen();">
+                🕒 История
+              </button>
 
               <h2 class="text-xl font-extrabold text-white text-center mb-1">ICE LOGIX Калькулятор</h2>
               <p class="text-white/60 text-xs text-center mb-5">Выберите способ расчета стоимости товара</p>
@@ -6279,7 +6300,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
               <div class="flex flex-col gap-3">
                 <!-- Manual -->
-                <div class="calc-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all hover:scale-[1.02] duration-300" onclick="window.selectCalculatorMode('manual')">
+                <div class="calc-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.selectCalculatorMode('manual')">
                   <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center text-cyan-400 text-lg">
                       ✍️
@@ -6289,14 +6310,14 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                       <p class="text-white/50 text-[11px] leading-normal mt-0.5">Для тех, кто уже нашёл товар и готов ввести данные вручную.</p>
                       <div class="text-[10px] text-cyan-400 font-bold mt-1.5 flex items-center gap-1">
                         <span>📊 Лимит:</span>
-                        <span>${limits.manual.max === Infinity ? 'Безлимитно' : `${limits.manual.remaining}/${limits.manual.max} осталось`}</span>
+                        <span>${limits.manual.max === Infinity ? 'Безлимитно расчетов на день' : `${limits.manual.remaining}/${limits.manual.max} расчетов осталось на день`}</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 <!-- Link -->
-                <div class="calc-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all hover:scale-[1.02] duration-300" onclick="window.selectCalculatorMode('link')">
+                <div class="calc-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.selectCalculatorMode('link')">
                   <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/25 flex items-center justify-center text-purple-400 text-lg">
                       🔗
@@ -6306,41 +6327,41 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                       <p class="text-white/50 text-[11px] leading-normal mt-0.5">Просто вставьте ссылку на товар — нейросеть сама внесет его параметры.</p>
                       <div class="text-[10px] text-purple-400 font-bold mt-1.5 flex items-center gap-1">
                         <span>🔮 Лимит ИИ:</span>
-                        <span>${limits.ai.remaining}/${limits.ai.max} осталось</span>
+                        <span>${limits.ai.remaining}/${limits.ai.max} расчетов осталось на день</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 <!-- Photo -->
-                <div class="calc-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all hover:scale-[1.02] duration-300" onclick="window.selectCalculatorMode('photo')">
+                <div class="calc-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.selectCalculatorMode('photo')">
                   <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-pink-500/10 border border-pink-500/25 flex items-center justify-center text-pink-400 text-lg">
                       📸
                     </div>
                     <div class="flex-1 min-w-0">
                       <h3 class="font-bold text-white text-sm">По фото</h3>
-                      <p class="text-white/50 text-[11px] leading-normal mt-0.5">Загрузите фото товара, выберите лучший вариант, а ИИ внесет все данные.</p>
+                      <p class="text-white/50 text-[11px] leading-normal mt-0.5">Загрузите фото товара, выберите лучший вариант из найденных, а ИИ внесет все данные.</p>
                       <div class="text-[10px] text-pink-400 font-bold mt-1.5 flex items-center gap-1">
                         <span>🔮 Лимит ИИ:</span>
-                        <span>${limits.ai.remaining}/${limits.ai.max} осталось</span>
+                        <span>${limits.ai.remaining}/${limits.ai.max} расчетов осталось на день</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 <!-- Description -->
-                <div class="calc-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all hover:scale-[1.02] duration-300" onclick="window.selectCalculatorMode('text')">
+                <div class="calc-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.selectCalculatorMode('text')">
                   <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400 text-lg">
                       📝
                     </div>
                     <div class="flex-1 min-w-0">
                       <h3 class="font-bold text-white text-sm">По описанию</h3>
-                      <p class="text-white/50 text-[11px] leading-normal mt-0.5">Введите описание товара, выберите нужный из списка. Нейросеть заполнит данные.</p>
+                      <p class="text-white/50 text-[11px] leading-normal mt-0.5">Введите то, что знаете о товаре, и выберите нужный из списка. Нейросеть сама заполнит все данные.</p>
                       <div class="text-[10px] text-amber-400 font-bold mt-1.5 flex items-center gap-1">
                         <span>🔮 Лимит ИИ:</span>
-                        <span>${limits.ai.remaining}/${limits.ai.max} осталось</span>
+                        <span>${limits.ai.remaining}/${limits.ai.max} расчетов осталось на день</span>
                       </div>
                     </div>
                   </div>
@@ -6358,16 +6379,41 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
       // ── Step 2: Calculator Form ──
       const modeText = window.currentCalcMode === 'manual' ? '✍️ Вручную' : window.currentCalcMode === 'link' ? '🔗 По ссылке' : window.currentCalcMode === 'photo' ? '📸 По фото' : '📝 По описанию';
+      const showFormFields = (window.currentCalcMode !== 'link' || window.calcLinkAnalyzed);
+      
+      const countryText = window.calcCountry === 'CN' 
+        ? '🇨🇳 Китай (возим)' 
+        : window.calcCountry === 'RU'
+        ? '🇷🇺 Россия (Скоро...)'
+        : window.calcCountry === 'EU'
+        ? '🇪🇺 Евросоюз (Скоро...)'
+        : window.calcCountry === 'US'
+        ? '🇺🇸 США (Скоро...)'
+        : window.calcCountry === 'TR'
+        ? '🇹🇷 Турция (Скоро...)'
+        : window.calcCountry === 'JP'
+        ? '🇯🇵 Япония (Скоро...)'
+        : window.calcCountry === 'KR'
+        ? '🇰🇷 Южная Корея (Скоро...)'
+        : window.calcCountry === 'VN'
+        ? '🇻🇳 Вьетнам (Скоро...)'
+        : window.calcCountry === 'AE'
+        ? '🇦🇪 ОАЭ (Скоро...)'
+        : '<span class="text-white/40">— выберите страну —</span>';
 
       return `
-        <div class="glass-card page-enter">
+        <div class="glass-card page-enter relative">
+          <button type="button" class="absolute top-4 right-4 text-white/40 hover:text-cyan-400 text-[10px] font-bold bg-white/5 border border-white/10 px-2 py-1.5 rounded-lg transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.switchTab('history'); window._historySubScreen = 'calculations'; window.renderCurrentScreen();">
+            🕒 История
+          </button>
+
           <!-- Mode indicator / switcher -->
-          <div class="flex justify-between items-center mb-3 bg-white/5 px-3.5 py-2.5 rounded-2xl border border-white/5">
+          <div class="flex justify-between items-center mb-3 bg-white/5 px-3.5 py-2.5 rounded-2xl border border-white/5" style="max-width: 80%;">
             <div class="flex items-center gap-2">
               <span class="text-xs text-white/50">Режим:</span>
               <span class="text-xs font-bold text-cyan-400">${modeText}</span>
             </div>
-            <button type="button" class="text-[10px] text-cyan-400 font-bold bg-white/10 px-2.5 py-1.5 rounded-lg hover:bg-white/15 transition active:scale-95 border border-white/5" onclick="window.currentCalcMode=null; renderCurrentScreen()">
+            <button type="button" class="text-[10px] text-cyan-400 font-bold bg-white/10 px-2.5 py-1.5 rounded-lg hover:bg-white/15 transition active:scale-95 border border-white/5" onclick="window.currentCalcMode=null; window.calcLinkAnalyzed=false; renderCurrentScreen()">
               🔄 Сменить способ
             </button>
           </div>
@@ -6381,11 +6427,11 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           </div>
 
           <!-- Mode: link & manual — URL input -->
-          <div data-calc-mode-pane="link manual">
+          <div data-calc-mode-pane="link manual" class="${window.currentCalcMode === 'photo' || window.currentCalcMode === 'text' ? 'hidden' : ''}">
             <label class="text-white/70 text-sm">Ссылка на товар <span class="text-red-400 font-bold">*</span></label>
             <div class="flex flex-wrap gap-2 mt-1 mb-1 items-stretch">
               <div class="flex-1 min-w-[200px] flex gap-1 bg-white/5 border border-white/30 rounded-xl overflow-hidden px-1.5 py-1">
-                <input type="text" id="calcUrl" class="bg-transparent flex-1 border-0 outline-none p-2 text-sm text-white" placeholder="https://poizon.com/...">
+                <input type="text" id="calcUrl" class="bg-transparent flex-1 border-0 outline-none p-2 text-sm text-white" placeholder="https://poizon.com/... | taobao, zalando, etc.">
                 <button type="button" id="calcPasteBtn" class="bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg px-3.5 transition flex items-center justify-center text-cyan-400 gap-1.5 text-xs font-bold" title="Вставить из буфера">
                   ${ix('clipboard', { size: '14px' })}
                   <span>Вставить</span>
@@ -6397,7 +6443,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           </div>
 
           <!-- Mode: photo (search by image) -->
-          <div data-calc-mode-pane="photo" class="hidden">
+          <div data-calc-mode-pane="photo" class="${window.currentCalcMode === 'photo' ? '' : 'hidden'}">
             <label class="text-white/70 text-sm">Фото товара (до 5 штук)</label>
             <div id="calcPhotoUploadZone" class="mt-1 mb-2 p-4 border-2 border-dashed border-white/30 rounded-xl text-center cursor-pointer hover:bg-white/5 transition">
               <div class="text-3xl mb-1"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span></div>
@@ -6434,7 +6480,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           </div>
 
           <!-- Mode: text (search by description) -->
-          <div data-calc-mode-pane="text" class="hidden">
+          <div data-calc-mode-pane="text" class="${window.currentCalcMode === 'text' ? '' : 'hidden'}">
             <label class="text-white/70 text-sm">Описание товара <span class="text-red-400 font-bold">*</span></label>
             <input type="text" id="calcTextQuery" class="btn-secondary w-full mt-1 p-3 rounded-xl border border-white/30 mb-2" placeholder="Например: Nike Dunk Low Panda кроссовки">
             <p class="text-white/40 text-xs mb-2">Бренд + модель + цвет + категория.</p>
@@ -6471,15 +6517,15 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
           <!-- Search results (shared by photo/text modes) -->
           <div id="calcSearchResults" class="hidden mb-3"></div>
-          <div id="calcScreenshotWidget" class="hidden"></div>
+          <div id="calcScreenshotWidget" class="hidden mb-3"></div>
 
           <!-- Input fields area -->
-          <div class="mt-4 border-t border-white/5 pt-4">
+          <div id="calcFormFields" class="${showFormFields ? '' : 'hidden'} mt-4 border-t border-white/5 pt-4">
             <!-- Country Selector -->
             <label class="text-white/70 text-sm block">Страна отправления товара <span class="text-red-400 font-bold">*</span></label>
             <div class="relative mt-1 mb-3">
               <div id="calcCountryDropdownTrigger" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm flex justify-between items-center cursor-pointer">
-                <span id="calcCountrySelectedText">🇨🇳 Китай (возим)</span>
+                <span id="calcCountrySelectedText">${countryText}</span>
                 <span>▼</span>
               </div>
               <div id="calcCountryDropdownList" class="hidden absolute left-0 right-0 mt-1 bg-slate-900 border border-white/10 rounded-xl shadow-2xl z-30 max-h-60 overflow-y-auto">
@@ -6530,14 +6576,20 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               </div>
             </div>
 
-            <!-- Gender -->
+            <!-- Gender Selector Dropdown -->
             <label class="text-white/70 text-sm block mt-2">Пол человека <span class="text-red-400 font-bold">*</span></label>
-            <div class="grid grid-cols-3 gap-2 mt-1 mb-3">
-              <button type="button" id="genderMale" class="btn-secondary py-2 rounded-xl text-xs font-bold transition-all border border-white/10" onclick="setCalcGender('Мужской')">Мужской</button>
-              <button type="button" id="genderFemale" class="btn-secondary py-2 rounded-xl text-xs font-bold transition-all border border-white/10" onclick="setCalcGender('Женский')">Женский</button>
-              <button type="button" id="genderUnisex" class="btn-secondary py-2 rounded-xl text-xs font-bold transition-all border border-white/10" onclick="setCalcGender('Унисекс')">Унисекс</button>
+            <div class="relative mt-1 mb-3">
+              <div id="calcGenderDropdownTrigger" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm flex justify-between items-center cursor-pointer">
+                <span id="calcGenderSelectedText">Унисекс</span>
+                <span>▼</span>
+              </div>
+              <input type="hidden" id="calcGender" value="Унисекс">
+              <div id="calcGenderDropdownList" class="hidden absolute left-0 right-0 mt-1 bg-slate-900 border border-white/10 rounded-xl shadow-2xl z-30 max-h-48 overflow-y-auto">
+                <div class="p-3 hover:bg-white/5 cursor-pointer text-sm text-white border-b border-white/5" onclick="setCalcGender('Мужской')">Мужской</div>
+                <div class="p-3 hover:bg-white/5 cursor-pointer text-sm text-white border-b border-white/5" onclick="setCalcGender('Женский')">Женский</div>
+                <div class="p-3 hover:bg-white/5 cursor-pointer text-sm text-white" onclick="setCalcGender('Унисекс')">Унисекс</div>
+              </div>
             </div>
-            <input type="hidden" id="calcGender" value="Унисекс">
 
             <!-- Category & Subcategory Single Row -->
             <label class="text-white/70 text-sm block mt-2">Наименование и категория товара <span class="text-red-400 font-bold">*</span></label>
@@ -6590,8 +6642,8 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             <input type="hidden" id="calcColor" value="">
 
             <!-- Description (Optional) -->
-            <label class="text-white/70 text-sm block mt-2">Описание <span class="text-white/40 text-xs">(необязательно)</span></label>
-            <textarea id="calcDescription" rows="2" class="btn-secondary w-full mt-1 p-3 rounded-xl border border-white/30 mb-3 text-sm" placeholder="Цвет, особенности, материал товара..."></textarea>
+            <label class="text-white/70 text-sm block mt-2">Описание (необязательно)</label>
+            <textarea id="calcDescription" rows="2" class="btn-secondary w-full mt-1 p-3 rounded-xl border border-white/30 mb-3 text-sm" placeholder="особенности, material и другое — в текстовой форме"></textarea>
 
             <!-- Weight slider & numeric input + AI weight calculator -->
             <label class="text-white/70 text-sm block">Вес товара (кг) <span class="text-red-400 font-bold">*</span></label>
@@ -6610,8 +6662,8 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             <div class="mb-4">
               <label class="text-white/70 text-sm block mb-1">Метод доставки по РБ <span class="text-red-400 font-bold">*</span></label>
               <select id="calcDeliveryMethod" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm">
-                <option value="europost" selected>Европочта (5 BYN)</option>
-                <option value="belpost">Белпочта (7 BYN)</option>
+                <option value="belpost" selected>Белпочта (7 BYN)</option>
+                <option value="europost">Европочта (5 BYN)</option>
                 <option value="pickup">Самовывоз (Несвиж) (Бесплатно)</option>
               </select>
             </div>
@@ -6627,7 +6679,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
             <!-- Keep original packaging -->
             <div class="flex items-center gap-2 mb-3 bg-white/5 p-3 rounded-xl border border-white/5">
-              <input type="checkbox" id="keepBox" class="w-4 h-4 accent-cyan-500 cursor-pointer">
+              <input type="checkbox" id="keepBox" checked class="w-4 h-4 accent-cyan-500 cursor-pointer">
               <label for="keepBox" class="text-white/70 text-sm cursor-pointer flex flex-col">
                 <span class="font-bold">📦 Сохранить оригинальную коробку</span>
                 <span class="text-[10px] text-white/40">Если снять коробку, вес посылки уменьшится (примерно на 0.3 кг), что снизит доставку.</span>
@@ -6635,7 +6687,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             </div>
           </div>
 
-          <button id="calcBtn" class="btn-primary mt-5 w-full transition"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Рассчитать стоимость</button>
+          <button id="calcBtn" class="btn-primary mt-5 w-full transition ${showFormFields ? '' : 'hidden'}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Рассчитать стоимость</button>
 
           <!-- Result box -->
           <div id="calcResult" class="mt-5 hidden">
@@ -6651,10 +6703,10 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               <!-- Secondary buttons: cart / wishlist grid -->
               <div class="grid grid-cols-2 gap-2">
                 <button type="button" id="calcAddToCartBtn" class="py-2.5 rounded-xl text-xs font-bold transition-all hover:bg-white/10 active:scale-95 text-cyan-400 border border-cyan-500/20 bg-cyan-500/5 flex items-center justify-center gap-1.5" onclick="window.addCalcToCart()">
-                  🛒 В корзину
+                  🛒 Добавить в корзину
                 </button>
                 <button type="button" id="calcAddToWishlistBtn" class="py-2.5 rounded-xl text-xs font-bold transition-all hover:bg-white/10 active:scale-95 text-rose-400 border border-rose-500/20 bg-rose-500/5 flex items-center justify-center gap-1.5" onclick="window.addCalcToWishlist()">
-                  ❤️ В избранное
+                  ❤️ Добавить в избранное
                 </button>
               </div>
 
@@ -6673,9 +6725,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         </div>
         ${renderFooter()}
       `;
-    }
-
-    async function attachCalculatorHandlers() {
+    }    async function attachCalculatorHandlers() {
       // Trigger dynamic loads
       if (!window.activeMarketplaces || window.activeMarketplaces.length === 0) {
         try {
@@ -6747,14 +6797,82 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             
             hiddenColor.value = colors.join(', ');
             hiddenColor.dispatchEvent(new Event('change', { bubbles: true }));
+            if (typeof window.updatePriceForVariation === 'function') {
+              window.updatePriceForVariation();
+            }
           };
         });
+      };
+
+      // Variation update check
+      window.updatePriceForVariation = () => {
+        if (!window.calcProductVariations || window.calcProductVariations.length === 0) return;
+        const sizeInput = document.getElementById('calcSize');
+        const colorInput = document.getElementById('calcColor');
+        const priceInput = document.getElementById('calcPrice');
+        if (!sizeInput || !colorInput || !priceInput) return;
+        
+        const currentSize = sizeInput.value.trim().toLowerCase();
+        const selectedColors = colorInput.value ? colorInput.value.split(', ').map(c => c.trim().toLowerCase()) : [];
+        
+        let bestMatch = null;
+        
+        // Try exact match (both size and color)
+        for (const v of window.calcProductVariations) {
+          const vSize = v.size ? String(v.size).trim().toLowerCase() : '';
+          const vColor = v.color ? String(v.color).trim().toLowerCase() : '';
+          
+          if (vSize === currentSize && selectedColors.includes(vColor)) {
+            bestMatch = v;
+            break;
+          }
+        }
+        
+        // Try size-only match
+        if (!bestMatch && currentSize) {
+          for (const v of window.calcProductVariations) {
+            const vSize = v.size ? String(v.size).trim().toLowerCase() : '';
+            if (vSize === currentSize) {
+              bestMatch = v;
+              break;
+            }
+          }
+        }
+        
+        // Try color-only match
+        if (!bestMatch && selectedColors.length > 0) {
+          for (const v of window.calcProductVariations) {
+            const vColor = v.color ? String(v.color).trim().toLowerCase() : '';
+            if (selectedColors.includes(vColor)) {
+              bestMatch = v;
+              break;
+            }
+          }
+        }
+        
+        if (bestMatch && bestMatch.price) {
+          priceInput.value = bestMatch.price;
+          priceInput.dispatchEvent(new Event('change', { bubbles: true }));
+          glassToast(`Цена автоматически обновлена для выбранного варианта: ${bestMatch.price}!`, { kind: 'info' });
+        }
       };
 
       window.applyPastSize = () => {
         const sizeInput = document.getElementById('calcSize');
         if (!sizeInput) return;
-        const pastSize = window.lastOrderSize || (window.userSizing?.measure ? `${window.userSizing.measure}см` : null) || (window.userSizing?.height && window.userSizing?.weight ? `${window.userSizing.height}см/${window.userSizing.weight}кг` : null);
+        
+        // Load from local storage or memory
+        let localSizing = null;
+        try {
+          localSizing = JSON.parse(localStorage.getItem('ice_user_sizing'));
+        } catch(e) {}
+        
+        const sz = window.userSizing || localSizing;
+        
+        const pastSize = window.lastOrderSize 
+          || (sz?.measure ? `${sz.measure}см` : null) 
+          || (sz?.height && sz?.weight ? `${sz.height}см/${sz.weight}кг` : null);
+          
         if (pastSize) {
           sizeInput.value = pastSize;
           tgUtil.haptic('light');
@@ -6768,22 +6886,42 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       window.openCalcAiSizeModal = () => {
         const category = document.getElementById('calcCategory')?.value || '';
         const isShoes = ['Обувь', 'Кеды', 'Кроссовки', 'Ботинки', 'Туфли', 'Сандалии'].includes(category);
+        const isClothing = ['Одежда', 'Футболка', 'Поло', 'Худи', 'Свитшот', 'Толстовка', 'Джинсы', 'Брюки', 'Шорты', 'Куртка', 'Пуховик', 'Пальто', 'Платье', 'Юбка', 'Костюм', 'Купальник'].includes(category);
         
+        if (!isShoes && !isClothing) {
+          tgUtil.haptic('warning');
+          glassToast('Пожалуйста, сначала выберите категорию (Одежда или Обувь) для подбора размера!', { kind: 'info' });
+          return;
+        }
+
+        let localSizing = null;
+        try {
+          localSizing = JSON.parse(localStorage.getItem('ice_user_sizing'));
+        } catch(e) {}
+        const activeSizing = window.userSizing || localSizing || {};
+
         let modalHtml = `
           <div id="calcAiSizeModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md page-enter">
-            <div class="glass-card w-full max-w-sm p-6 border border-white/15 rounded-3xl relative" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px);">
+            <div class="glass-card w-full max-w-sm p-6 border border-white/15 rounded-3xl relative shadow-2xl" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px);">
               <button onclick="document.getElementById('calcAiSizeModal').remove()" class="absolute top-4 right-4 text-white/50 hover:text-white text-xl">×</button>
               <h3 class="text-lg font-extrabold text-white mb-2 flex items-center gap-1.5">
-                <span>🔮 ИИ советчик по размеру</span>
+                <span>🔮 Подобрать размер</span>
               </h3>
               <p class="text-white/60 text-xs mb-4">Укажите ваши параметры, и ИИ подберет идеальный размер для бренда <strong>${document.getElementById('calcBrand')?.value || 'данного бренда'}</strong>.</p>
+              
+              <div class="mb-4 p-3 rounded-xl border border-yellow-500/20 bg-yellow-500/5 text-xs text-yellow-300 flex gap-2">
+                <span>⚠️</span>
+                <div class="text-left leading-normal">
+                  Рекомендация носит справочный характер. Размеры могут отличаться в зависимости от модели и кроя конкретного бренда.
+                </div>
+              </div>
         `;
 
         if (isShoes) {
           modalHtml += `
               <div class="mb-4">
                 <label class="text-white/70 text-xs block mb-1">Длина стельки (см) <span class="text-red-400 font-bold">*</span></label>
-                <input type="number" id="calcAiMeasure" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Например: 27" value="${window.userSizing?.measure || ''}">
+                <input type="number" id="calcAiMeasure" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Например: 27" value="${activeSizing.measure || ''}">
               </div>
           `;
         } else {
@@ -6791,11 +6929,11 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               <div class="grid grid-cols-2 gap-3 mb-4">
                 <div>
                   <label class="text-white/70 text-xs block mb-1">Рост (см) <span class="text-red-400 font-bold">*</span></label>
-                  <input type="number" id="calcAiHeight" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Например: 180" value="${window.userSizing?.height || ''}">
+                  <input type="number" id="calcAiHeight" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Например: 180" value="${activeSizing.height || ''}">
                 </div>
                 <div>
                   <label class="text-white/70 text-xs block mb-1">Вес (кг) <span class="text-red-400 font-bold">*</span></label>
-                  <input type="number" id="calcAiWeight" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Например: 75" value="${window.userSizing?.weight || ''}">
+                  <input type="number" id="calcAiWeight" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Например: 75" value="${activeSizing.weight || ''}">
                 </div>
               </div>
           `;
@@ -6804,7 +6942,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         modalHtml += `
               <div class="flex items-center gap-2 mb-5">
                 <input type="checkbox" id="calcAiRemember" class="w-4 h-4 accent-cyan-500 cursor-pointer" checked>
-                <label for="calcAiRemember" class="text-white/70 text-xs cursor-pointer">Запомнить мои замеры</label>
+                <label for="calcAiRemember" class="text-white/70 text-xs cursor-pointer">Запомнить эти данные на будущие подборы</label>
               </div>
               
               <button id="calcAiSizeSubmitBtn" class="btn-primary w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition active:scale-95" onclick="window.submitCalcAiSize(${isShoes})">
@@ -6880,16 +7018,25 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           };
           window.userSizing = updatedSizing;
           
-          if (remember && userId) {
-            const currentSettings = window.userSettings || {};
-            currentSettings.sizing = updatedSizing;
-            await supabaseClient.from('users').update({ settings: currentSettings }).eq('user_id', userId);
-            window.userSettings = currentSettings;
+          if (remember) {
+            // Save to localStorage
+            localStorage.setItem('ice_user_sizing', JSON.stringify(updatedSizing));
+            
+            if (userId) {
+              const currentSettings = window.userSettings || {};
+              currentSettings.sizing = updatedSizing;
+              await supabaseClient.from('users').update({ settings: currentSettings }).eq('user_id', userId);
+              window.userSettings = currentSettings;
+            }
           }
           
           tgUtil.haptic('success');
           document.getElementById('calcAiSizeModal')?.remove();
           tgUtil.alert(`🔮 Рекомендация ИИ: ${data.advice || `Выбран размер ${data.size}`}`);
+          
+          // Show history size button if it was hidden
+          const sizeHistBtn = document.getElementById('calcHistorySizeBtn');
+          if (sizeHistBtn) sizeHistBtn.classList.remove('hidden');
           
         } catch (err) {
           tgUtil.haptic('warning');
@@ -6949,8 +7096,8 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           }
           
           const keepBox = document.getElementById('keepBox');
-          if (keepBox && keepBox.checked) {
-            estWeight += 0.3;
+          if (keepBox && !keepBox.checked) {
+            estWeight = Math.max(0.1, estWeight - 0.3);
           }
           
           estWeight = parseFloat(estWeight.toFixed(1));
@@ -6977,13 +7124,6 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         const overlay = document.createElement('div');
         overlay.className = 'gx-sheet-overlay show';
         
-        let filteredCategories = CATEGORY_MAP;
-        if (gender === 'Мужской') {
-          filteredCategories = CATEGORY_MAP.filter(c => !['Платье', 'Юбка', 'Купальник'].includes(c.value));
-        }
-        
-        const groups = ['Обувь', 'Одежда', 'Аксессуары'];
-        
         overlay.innerHTML = `
           <div class="gx-sheet" role="dialog" aria-modal="true" style="max-height: 80vh; display: flex; flex-direction: column;">
             <div class="gx-sheet-handle"></div>
@@ -6992,57 +7132,80 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               <button class="gx-sheet-close" aria-label="Закрыть">${ix('x', { size: '18px' })}</button>
             </div>
             <div class="gx-sheet-list" role="listbox" style="flex-grow: 1; overflow-y: auto; padding-bottom: 24px;">
-              <!-- Render categories -->
+              <!-- Dynamic step rendering -->
             </div>
           </div>
         `;
         
         const list = overlay.querySelector('.gx-sheet-list');
-        const items = [];
         const currentVal = document.getElementById('calcCategory')?.value || '';
         
-        groups.forEach(g => {
-          const subItems = filteredCategories.filter(c => c.broad === g);
-          if (subItems.length === 0) return;
-          
-          const groupIcon = CATEGORY_GROUP_ICONS[g] ? ix(CATEGORY_GROUP_ICONS[g], { size: '14px' }) : '';
-          items.push(`<div class="gx-sheet-group-label" style="font-weight: 800; color: rgba(255,255,255,0.4); font-size: 11px; text-transform: uppercase; padding: 12px 16px 6px; letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px;">${groupIcon}<span>${g}</span></div>`);
-          
-          subItems.forEach(c => {
-            const isSelected = (c.value === currentVal);
-            const iconHtml = c.icon ? ix(c.icon, { size: '20px' }) : '';
-            items.push(`
-              <button class="gx-sheet-opt" role="option" data-value="${escapeHtml(c.value)}" data-broad="${escapeHtml(g)}" aria-selected="${isSelected}" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border: 0; background: transparent; color: white; cursor: pointer; text-align: left; transition: background 0.2s;">
-                <span style="display: flex; align-items: center; gap: 10px;">
-                  ${iconHtml}
-                  <span class="gx-sheet-opt-label" style="font-size: 14px; font-weight: 500;">${escapeHtml(c.value)}</span>
-                </span>
-                <span class="gx-sheet-opt-check" style="color: var(--ice-primary); opacity: ${isSelected ? 1 : 0}; transition: opacity 0.2s;">${ix('check', { size: '18px' })}</span>
+        window.renderStep1 = () => {
+          list.innerHTML = `
+            <div class="p-4 flex flex-col gap-3">
+              <button type="button" class="gx-sheet-opt font-bold flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-2xl w-full text-left cursor-pointer transition active:scale-95" onclick="window.selectBroadGroup('Обувь')">
+                <span class="text-2xl">👟</span>
+                <div class="flex-1">
+                  <div class="text-white text-sm">Обувь</div>
+                  <div class="text-white/40 text-xs font-normal mt-0.5">Кроссовки, кеды, туфли, ботинки</div>
+                </div>
+                <span class="text-white/30 text-sm">➔</span>
               </button>
-            `);
-          });
-        });
-        
-        list.innerHTML = items.join('');
-        
-        document.body.appendChild(overlay);
-        
-        const closeSheet = () => {
-          overlay.classList.remove('show');
-          setTimeout(() => overlay.remove(), 300);
+              <button type="button" class="gx-sheet-opt font-bold flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-2xl w-full text-left cursor-pointer transition active:scale-95" onclick="window.selectBroadGroup('Одежда')">
+                <span class="text-2xl">👕</span>
+                <div class="flex-1">
+                  <div class="text-white text-sm">Одежда</div>
+                  <div class="text-white/40 text-xs font-normal mt-0.5">Худи, футболки, джинсы, куртки</div>
+                </div>
+                <span class="text-white/30 text-sm">➔</span>
+              </button>
+              <button type="button" class="gx-sheet-opt font-bold flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-2xl w-full text-left cursor-pointer transition active:scale-95" onclick="window.selectBroadGroup('Аксессуары')">
+                <span class="text-2xl">👜</span>
+                <div class="flex-1">
+                  <div class="text-white text-sm">Аксессуары</div>
+                  <div class="text-white/40 text-xs font-normal mt-0.5">Рюкзаки, очки, часы, ремни, парфюм</div>
+                </div>
+                <span class="text-white/30 text-sm">➔</span>
+              </button>
+            </div>
+          `;
         };
         
-        overlay.querySelector('.gx-sheet-close').addEventListener('click', closeSheet);
-        overlay.addEventListener('click', (e) => {
-          if (e.target === overlay) closeSheet();
-        });
-        
-        list.addEventListener('click', (e) => {
-          const btn = e.target.closest('.gx-sheet-opt');
-          if (!btn) return;
-          const val = btn.dataset.value;
-          const broad = btn.dataset.broad;
+        window.selectBroadGroup = (g) => {
+          tgUtil.haptic('light');
+          let filtered = CATEGORY_MAP.filter(c => c.broad === g);
+          if (gender === 'Мужской') {
+            filtered = filtered.filter(c => !['Платье', 'Юбка', 'Купальник'].includes(c.value));
+          }
           
+          const backBtn = `
+            <button type="button" class="flex items-center gap-1.5 px-4 py-3 text-cyan-400 font-bold text-xs bg-white/5 w-full text-left border-b border-white/5 transition hover:bg-white/10 cursor-pointer" onclick="window.renderStep1()">
+              <span>←</span>
+              <span>Назад к категориям</span>
+            </button>
+          `;
+          
+          const items = filtered.map(c => {
+            const isSelected = (c.value === currentVal);
+            const iconHtml = c.icon ? ix(c.icon, { size: '20px' }) : '';
+            return `
+              <button type="button" class="w-full flex justify-between items-center p-4 bg-transparent border-0 border-b border-white/5 text-white cursor-pointer text-left transition hover:bg-white/5" onclick="window.selectSubcategory('${escapeHtml(c.value)}', '${escapeHtml(g)}')">
+                <span class="flex items-center gap-3">
+                  ${iconHtml}
+                  <span class="text-sm font-semibold">${escapeHtml(c.value)}</span>
+                </span>
+                <span class="text-cyan-400 transition-opacity duration-200" style="opacity: ${isSelected ? 1 : 0};">
+                  ${ix('check', { size: '18px' })}
+                </span>
+              </button>
+            `;
+          }).join('');
+          
+          list.innerHTML = backBtn + `<div class="flex flex-col">${items}</div>`;
+        };
+        
+        window.selectSubcategory = (val, broad) => {
+          tgUtil.haptic('medium');
           const hiddenCategory = document.getElementById('calcCategory');
           const categoryText = document.getElementById('calcCategorySelectedText');
           
@@ -7054,7 +7217,24 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             hiddenCategory.dispatchEvent(new Event('change', { bubbles: true }));
           }
           
+          // Also set default size suggestions list
+          const sizeInput = document.getElementById('calcSize');
+          if (sizeInput) sizeInput.value = '';
+          
           closeSheet();
+        };
+
+        renderStep1();
+        document.body.appendChild(overlay);
+        
+        const closeSheet = () => {
+          overlay.classList.remove('show');
+          setTimeout(() => overlay.remove(), 300);
+        };
+        
+        overlay.querySelector('.gx-sheet-close').addEventListener('click', closeSheet);
+        overlay.addEventListener('click', (e) => {
+          if (e.target === overlay) closeSheet();
         });
       };
 
@@ -7224,6 +7404,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         const descInput = document.getElementById('calcDescription');
         if (descInput) descInput.value = '';
         
+        window.calcProductVariations = [];
         window.renderColorChips();
         
         const slider = document.getElementById('calcWeight');
@@ -7236,12 +7417,18 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         
         window.calcPickedImageUrl = '';
         
-        window.calcCountry = 'CN';
+        window.calcCountry = null;
         const countrySelectedText = document.getElementById('calcCountrySelectedText');
-        if (countrySelectedText) countrySelectedText.innerText = '🇨🇳 Китай (возим)';
+        if (countrySelectedText) {
+          countrySelectedText.innerHTML = '<span class="text-white/40">— выберите страну —</span>';
+        }
         
         const currencySelect = document.getElementById('calcCurrency');
-        if (currencySelect) currencySelect.value = 'CNY';
+        if (currencySelect) {
+          currencySelect.value = 'CNY';
+          currencySelect.disabled = true;
+          currencySelect.classList.add('cursor-not-allowed', 'opacity-60');
+        }
         
         const categoryText = document.getElementById('calcCategorySelectedText');
         const hiddenCategory = document.getElementById('calcCategory');
@@ -7253,6 +7440,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         }
         
         window.currentCalcMode = null;
+        window.calcLinkAnalyzed = false;
         renderCurrentScreen();
       };
 
@@ -7467,7 +7655,11 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       if (!window.currentCalcMode) return;
 
       // Check if size recommendations exists to show History size button
-      const hasHistoryData = window.lastOrderSize || window.userSizing?.measure || (window.userSizing?.height && window.userSizing?.weight);
+      let localSizing = null;
+      try {
+        localSizing = JSON.parse(localStorage.getItem('ice_user_sizing'));
+      } catch(e) {}
+      const hasHistoryData = window.lastOrderSize || (window.userSizing?.measure || localSizing?.measure) || ((window.userSizing?.height || localSizing?.height) && (window.userSizing?.weight || localSizing?.weight));
       const sizeHistBtn = document.getElementById('calcHistorySizeBtn');
       if (sizeHistBtn && hasHistoryData) {
         sizeHistBtn.classList.remove('hidden');
@@ -7556,7 +7748,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           `).join('');
           const manualBtnHtml = `
             <div class="px-3 py-2.5 hover:bg-cyan-500/10 cursor-pointer text-xs text-cyan-400 font-bold flex items-center justify-between" onclick="selectBrandManualOverride()">
-              <span>➕ В списке нет бренда, ввести "${brandInput.value}" вручную</span>
+              <span>➕ В списке нет бренда, введу вручную без ошибок</span>
             </div>
           `;
           brandList.innerHTML = title + itemsHtml + manualBtnHtml;
@@ -7573,33 +7765,52 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         window.selectBrandManualOverride = () => {
           brandSelected.value = 'manual';
           brandList.classList.add('hidden');
+          glassToast('Ввод вручную подтвержден!', { kind: 'success' });
         };
       }
 
       // Gender settings
-      window.setCalcGender = (gender) => {
-        ['genderMale', 'genderFemale', 'genderUnisex'].forEach(id => {
-          const btn = document.getElementById(id);
-          if (btn) {
-            if (btn.innerText === gender) {
-              btn.classList.remove('btn-secondary');
-              btn.classList.add('btn-primary', 'border-cyan-500');
-            } else {
-              btn.classList.add('btn-secondary');
-              btn.classList.remove('btn-primary', 'border-cyan-500');
-            }
+      const genderTrigger = document.getElementById('calcGenderDropdownTrigger');
+      const genderList = document.getElementById('calcGenderDropdownList');
+      if (genderTrigger && genderList) {
+        genderTrigger.onclick = (e) => {
+          e.stopPropagation();
+          genderList.classList.toggle('hidden');
+        };
+        document.addEventListener('click', (e) => {
+          if (!e.target.closest('#calcGenderDropdownTrigger')) {
+            genderList.classList.add('hidden');
           }
         });
+      }
+
+      window.setCalcGender = (gender) => {
         const input = document.getElementById('calcGender');
+        const triggerText = document.getElementById('calcGenderSelectedText');
         if (input) {
           input.value = gender;
           input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        if (triggerText) {
+          triggerText.innerText = gender;
+        }
+        if (genderList) {
+          genderList.classList.add('hidden');
+        }
+        // If gender changes, reset category since it's filtered
+        const hiddenCategory = document.getElementById('calcCategory');
+        const categoryText = document.getElementById('calcCategorySelectedText');
+        if (hiddenCategory && categoryText) {
+          hiddenCategory.value = '';
+          categoryText.innerText = '— выберите категорию и тип товара —';
+          categoryText.classList.add('text-white/40');
+          categoryText.classList.remove('text-white');
         }
       };
       
       // Default gender state setup
       const currentGender = document.getElementById('calcGender')?.value || 'Унисекс';
-      setCalcGender(currentGender);
+      window.setCalcGender(currentGender);
 
       // Category trigger
       const catTrigger = document.getElementById('calcCategoryTrigger');
@@ -7612,7 +7823,12 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       const sizeList = document.getElementById('calcSizeDropdownList');
       if (sizeInput && sizeList) {
         sizeInput.addEventListener('focus', () => updateSizeSuggestions());
-        sizeInput.addEventListener('input', () => updateSizeSuggestions());
+        sizeInput.addEventListener('input', () => {
+          updateSizeSuggestions();
+          if (typeof window.updatePriceForVariation === 'function') {
+            window.updatePriceForVariation();
+          }
+        });
         document.addEventListener('click', (e) => {
           if (!e.target.closest('#calcSize') && !e.target.closest('#calcSizeDropdownList')) {
             sizeList.classList.add('hidden');
@@ -7653,6 +7869,9 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           sizeInput.value = s;
           sizeList.classList.add('hidden');
           sizeInput.dispatchEvent(new Event('change', { bubbles: true }));
+          if (typeof window.updatePriceForVariation === 'function') {
+            window.updatePriceForVariation();
+          }
         };
       }
 
@@ -7675,21 +7894,45 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         
         window.changeCalcCountry = (c) => {
           cList.classList.add('hidden');
+          const selectedText = document.getElementById('calcCountrySelectedText');
+          const currencySelect = document.getElementById('calcCurrency');
+          
           if (c === 'CN') {
             window.calcCountry = 'CN';
-            const selectedText = document.getElementById('calcCountrySelectedText');
-            if (selectedText) selectedText.innerText = '🇨🇳 Китай (возим)';
-            const currencySelect = document.getElementById('calcCurrency');
-            if (currencySelect) currencySelect.value = 'CNY';
+            if (selectedText) selectedText.innerHTML = '🇨🇳 Китай (возим)';
+            if (currencySelect) {
+              currencySelect.value = 'CNY';
+              currencySelect.disabled = true;
+              currencySelect.classList.add('cursor-not-allowed', 'opacity-60');
+            }
             
             // Trigger recalculation if result open
             const resultBox = document.getElementById('calcResult');
             if (resultBox && !resultBox.classList.contains('hidden')) {
               doCalc();
             }
-          } else {
+          } else if (c === 'EU') {
+            window.calcCountry = 'EU';
+            if (selectedText) selectedText.innerHTML = '🇪🇺 Евросоюз (Скоро...)';
+            if (currencySelect) {
+              currencySelect.value = 'EUR';
+              currencySelect.disabled = false;
+              currencySelect.classList.remove('cursor-not-allowed', 'opacity-60');
+            }
             tgUtil.haptic('warning');
-            glassToast('Данное направление временно недоступно. Скоро мы запустим доставку из этой страны!', { kind: 'info' });
+            glassToast('Данное направление (Евросоюз) временно недоступно для расчета стоимости.', { kind: 'info' });
+          } else {
+            const countryNames = {
+              RU: 'Россия',
+              US: 'США',
+              TR: 'Турция',
+              JP: 'Япония',
+              KR: 'Южная Корея',
+              VN: 'Вьетнам',
+              AE: 'ОАЭ'
+            };
+            tgUtil.haptic('warning');
+            glassToast(`Направление (${countryNames[c] || c}) временно недоступно. Скоро мы запустим доставку из этой страны!`, { kind: 'info' });
           }
         };
       }
@@ -7777,6 +8020,18 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           const sizeInputEl = document.getElementById('calcSize');
           const colorInput = document.getElementById('calcColor');
           
+          if (!window.calcCountry) {
+            tgUtil.haptic('warning');
+            tgUtil.alert('Пожалуйста, выберите страну отправления товара!');
+            return;
+          }
+          
+          if (window.calcCountry !== 'CN') {
+            tgUtil.haptic('warning');
+            tgUtil.alert('Расчет стоимости временно доступен только для Китая. Другие направления в разработке!');
+            return;
+          }
+
           if (mode === 'manual' || mode === 'link') {
             if (mode === 'link' && (!urlInput || !urlInput.value.trim())) {
               tgUtil.haptic('warning');
@@ -7805,7 +8060,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           
           if (!brandInputEl || !brandInputEl.value.trim() || brandSelVal === 'false') {
             tgUtil.haptic('warning');
-            tgUtil.alert('Выберите бренд из выпадающего списка (или нажмите "ввести вручную" под списком)!');
+            tgUtil.alert('Выберите бренд из выпадающего списка или нажмите "В списке нет бренда, введу вручную без ошибок"!');
             brandInputEl?.focus();
             return;
           }
@@ -7823,16 +8078,17 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             return;
           }
           
-          // Check limits
-          const limitCheck = await checkAndUpdateLimit(mode);
-          if (!limitCheck.allowed) {
-            tgUtil.haptic('warning');
-            tgUtil.alert(`Вы исчерпали дневной лимит расчетов (${limitCheck.currentCount}/${limitCheck.maxRequests}). Оформите заказ, чтобы продолжить.`);
-            return;
+          // Check limits only for manual mode when calculating. AI modes check limits on their action click.
+          if (mode === 'manual') {
+            const limitCheck = await checkAndUpdateLimit('manual');
+            if (!limitCheck.allowed) {
+              tgUtil.haptic('warning');
+              tgUtil.alert(`Вы исчерпали дневной лимит ручных расчетов (${limitCheck.currentCount}/${limitCheck.maxRequests}). Оформите заказ, чтобы продолжить.`);
+              return;
+            }
+            // Increment limit count
+            await incrementLimitCount('manual');
           }
-          
-          // Increment limit count
-          await incrementLimitCount(mode);
           
           // Execute calculation
           await doCalc();
@@ -7921,16 +8177,19 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           const url = urlInput?.value.trim();
           if (!url) { tgUtil.haptic('warning'); tgUtil.alert('Вставьте ссылку'); return; }
 
-          const limitCheck = await checkAndUpdateLimit('link');
+          const limitCheck = await checkAndUpdateLimit('ai');
           if (!limitCheck.allowed) {
             tgUtil.haptic('warning');
-            tgUtil.alert(`Лимит исчерпан (${limitCheck.currentCount}/${limitCheck.maxRequests}).`);
+            tgUtil.alert(`Дневной лимит ИИ-расчетов исчерпан (${limitCheck.currentCount}/${limitCheck.maxRequests}).`);
             return;
           }
 
           const originalText = analyzeBtn.innerText;
           analyzeBtn.innerHTML = isHardDomain(url) ? '<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Обходим защиту…' : '<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Анализ...';
           analyzeBtn.disabled = true;
+
+          // Increment AI limit count at the start of the action
+          await incrementLimitCount('ai');
 
           try {
             const { data: queueData, error: insErr } = await supabaseClient
@@ -7985,9 +8244,6 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
             if (!result && !manualRequired) throw new Error('Таймаут ожидания парсинга');
             if (manualRequired) return;
-
-            // Increment AI mode limit
-            await incrementLimitCount('link');
 
             const calcPriceEl = document.getElementById('calcPrice');
             if (calcPriceEl) {
@@ -8049,8 +8305,20 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               }
             }
             
+            // Unpack variations from description JSON
+            let variations = [];
+            let descriptionText = result.description || "";
+            if (result.description && result.description.trim().startsWith('{')) {
+              try {
+                const parsedDesc = JSON.parse(result.description);
+                descriptionText = parsedDesc.text || "";
+                variations = parsedDesc.variations || [];
+              } catch (e) {}
+            }
+            window.calcProductVariations = variations;
+            
             const descParts = [];
-            if (result.description) descParts.push(result.description);
+            if (descriptionText) descParts.push(descriptionText);
             if (result.color) descParts.push('Цвет: ' + result.color);
             if (descParts.length) setIfEmpty('calcDescription', descParts.join(' · '));
             
@@ -8058,10 +8326,32 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               window.calcPickedImageUrl = result.image_url;
             }
             
+            // Auto select first color from result color if matching color chips
+            if (result.color) {
+              const mainColor = result.color.split('/')[0].split(',')[0].trim();
+              const matchedChip = CALC_COLORS.find(c => c.toLowerCase().includes(mainColor.toLowerCase()) || mainColor.toLowerCase().includes(c.toLowerCase()));
+              if (matchedChip) {
+                const hiddenColor = document.getElementById('calcColor');
+                if (hiddenColor) {
+                  hiddenColor.value = matchedChip;
+                  window.renderColorChips();
+                }
+              }
+            }
+
             analyzeBtn.classList.add('bg-green-500');
             setTimeout(() => analyzeBtn.classList.remove('bg-green-500'), 1000);
             tgUtil.haptic('success');
             
+            // Set link analyzed to true to reveal form fields
+            window.calcLinkAnalyzed = true;
+            renderCurrentScreen();
+            
+            // Check variations price update
+            if (typeof window.updatePriceForVariation === 'function') {
+              window.updatePriceForVariation();
+            }
+
             window.doCalc();
             
           } catch (err) {
@@ -8076,421 +8366,576 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         });
       }
 
-  // ---- Sanitization helpers (XSS) — те же что и в attachOrderForm ----
-  const _ESC_MAP_C = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;' };
-  function escHtmlC(s) { return String(s == null ? '' : s).replace(/[&<>"'\/]/g, (c) => _ESC_MAP_C[c]); }
-  function safeUrlC(u) {
-    const s = String(u || '').trim();
-    if (!s) return '';
-    try {
-      const parsed = new URL(s);
-      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.href;
-    } catch { /* not a valid URL */ }
-    return '';
-  }
+      // ---- Sanitization helpers (XSS) ----
+      const _ESC_MAP_C = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;' };
+      function escHtmlC(s) { return String(s == null ? '' : s).replace(/[&<>"'\/]/g, (c) => _ESC_MAP_C[c]); }
+      function safeUrlC(u) {
+        const s = String(u || '').trim();
+        if (!s) return '';
+        try {
+          const parsed = new URL(s);
+          if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.href;
+        } catch { /* not a valid URL */ }
+        return '';
+      }
 
-  function renderCalcSearchResults(payload) {
-    if (!calcResultsBox) return;
-    const updateCalc = () => { if(document.getElementById('calcResult').classList.contains('hidden')) return; doCalc(); };
-        document.getElementById('calcPrice').addEventListener('input', updateCalc);
-        document.getElementById('calcCurrency').addEventListener('change', updateCalc);
-        document.getElementById('calcCategory').addEventListener('change', updateCalc);
-        document.getElementById('calcWeight').addEventListener('input', updateCalc);
-        document.getElementById('calcInsurance').addEventListener('change', updateCalc);
-        document.getElementById('calcDeliveryMethod')?.addEventListener('change', updateCalc);
-        document.getElementById('keepBox')?.addEventListener('change', updateCalc);
-        document.getElementById('calcBtn').addEventListener('click', doCalc);
-    const list = (payload && payload.results) || [];
-    if (list.length === 0) {
-      calcResultsBox.classList.remove('hidden');
-      const errPlatforms = (payload?.errors || []).map((e) => escHtmlC(e.platform)).join(', ');
-      calcResultsBox.innerHTML = `
-        <div class="bg-red-500/20 border border-red-400/30 rounded-xl p-3 text-sm text-white/80">
-          <span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span> Ничего не нашли. Попробуйте уточнить запрос или другой режим.
-          ${errPlatforms ? '<br><span class="text-xs text-white/50">Площадки с ошибками: ' + errPlatforms + '</span>' : ''}
-        </div>`;
-      return;
-    }
-    const cards = list.map((r, i) => {
-      const priceNum = (typeof r.price === 'number' && isFinite(r.price)) ? r.price : null;
-      const currency = typeof r.currency === 'string' ? escHtmlC(r.currency) : '';
-      const priceLine = (priceNum && currency)
-        ? `<div class="text-cyan-400 font-bold text-sm mt-1">${escHtmlC(priceNum)} ${currency}</div>`
-        : '<div class="text-white/40 text-xs mt-1">Цена не определена</div>';
-      const safeImg = safeUrlC(r.image_url);
-      const img = safeImg
-        ? `<img src="${escHtmlC(safeImg)}" class="w-16 h-16 object-cover rounded-lg flex-shrink-0" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'">`
-        : '<div class="w-16 h-16 bg-white/10 rounded-lg flex-shrink-0 flex items-center justify-center text-2xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span></div>';
-      const safeHref = safeUrlC(r.url);
-      const titleEsc = escHtmlC(r.title || '(без названия)');
-      const platformLabel = escHtmlC(r.platform_label || r.platform || '');
-      const flag = escHtmlC(r.flag || '');
-      return `
-        <div class="bg-white/5 border border-white/10 rounded-xl p-3 flex gap-3" data-calc-result-idx="${i}">
-          ${img}
-          <div class="flex-1 min-w-0">
-            <div class="text-xs text-white/60 mb-1">${flag} ${platformLabel}</div>
-            <div class="text-sm font-semibold text-white truncate" title="${titleEsc}">${titleEsc}</div>
-            ${priceLine}
-            <div class="flex gap-2 mt-2">
-              <button data-calc-result-pick="${i}" class="btn-primary"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Использовать</button>
-              ${safeHref ? `<button onclick="tgUtil.openLink('${escHtmlC(safeHref)}')" class="btn-secondary bg-white/10 hover: font-bold"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span> Открыть</button>` : ''}
+      // Render search results pane
+      const calcResultsBox = document.getElementById('calcSearchResults');
+      
+      window.renderCalcSearchResults = (payload) => {
+        if (!calcResultsBox) return;
+        
+        const list = (payload && payload.results) || [];
+        if (list.length === 0) {
+          calcResultsBox.classList.remove('hidden');
+          const errPlatforms = (payload?.errors || []).map((e) => escHtmlC(e.platform)).join(', ');
+          
+          calcResultsBox.innerHTML = `
+            <div class="bg-red-500/20 border border-red-400/30 rounded-xl p-3 text-sm text-white/80">
+              <span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span> Ничего не нашли. Попробуйте уточнить запрос или другой режим.
+              ${errPlatforms ? '<br><span class="text-xs text-white/50">Площадки с ошибками: ' + errPlatforms + '</span>' : ''}
             </div>
+            
+            <div class="flex gap-2 mt-4">
+              <button type="button" class="btn-secondary flex-1 py-3 text-xs font-bold text-white transition active:scale-95 border border-white/15" onclick="window.repeatSearchQuery()">
+                🔄 Повторить поиск
+              </button>
+              <button type="button" class="btn-secondary flex-1 py-3 text-xs font-bold text-white/50 transition active:scale-95 border border-white/10" onclick="window.resetSearchQuery()">
+                🗑️ Найти новый товар
+              </button>
+            </div>
+          `;
+          return;
+        }
+        
+        const cards = list.map((r, i) => {
+          const priceNum = (typeof r.price === 'number' && isFinite(r.price)) ? r.price : null;
+          const currency = typeof r.currency === 'string' ? escHtmlC(r.currency) : '';
+          const priceLine = (priceNum && currency)
+            ? `<div class="text-cyan-400 font-bold text-sm mt-1">${escHtmlC(priceNum)} ${currency}</div>`
+            : '<div class="text-white/40 text-xs mt-1">Цена не определена</div>';
+          const safeImg = safeUrlC(r.image_url);
+          const img = safeImg
+            ? `<img src="${escHtmlC(safeImg)}" class="w-16 h-16 object-cover rounded-lg flex-shrink-0" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'">`
+            : '<div class="w-16 h-16 bg-white/10 rounded-lg flex-shrink-0 flex items-center justify-center text-2xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span></div>';
+          const safeHref = safeUrlC(r.url);
+          const titleEsc = escHtmlC(r.title || '(без названия)');
+          const platformLabel = escHtmlC(r.platform_label || r.platform || '');
+          const flag = escHtmlC(r.flag || '');
+          return `
+            <div class="bg-white/5 border border-white/10 rounded-xl p-3 flex gap-3" data-calc-result-idx="${i}">
+              ${img}
+              <div class="flex-1 min-w-0">
+                <div class="text-xs text-white/60 mb-1">${flag} ${platformLabel}</div>
+                <div class="text-sm font-semibold text-white truncate" title="${titleEsc}">${titleEsc}</div>
+                ${priceLine}
+                <div class="flex gap-2 mt-2">
+                  <button data-calc-result-pick="${i}" class="btn-primary"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Выбрать</button>
+                  ${safeHref ? `<button onclick="tgUtil.openLink('${escHtmlC(safeHref)}')" class="btn-secondary bg-white/10 hover: font-bold"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span> Открыть</button>` : ''}
+                </div>
+              </div>
+            </div>`;
+        }).join('');
+        
+        const sourceLabel = payload.source === 'apify' || payload.source === 'apify+search-products'
+          ? '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Google Lens'
+          : (payload.source === 'vision-fallback' ? '<span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/></svg></span> AI распознал' : null);
+        const queryText = payload.query || payload.vision_query;
+        const queryLine = (queryText && sourceLabel)
+          ? `<div class="text-xs text-white/50 mb-2">${sourceLabel}: <span class="text-cyan-300">"\"${escHtmlC(queryText)}\""</span></div>`
+          : '';
+        const replicaBanner = payload.authenticity_tier === 'replica' 
+          ? `<div class="bg-orange-500/20 border border-orange-500/50 text-orange-400 p-2 rounded-lg text-xs font-bold mb-3 flex items-center gap-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span> 🔍 Найдены реплики</div>` 
+          : '';
+        const platformsCount = Array.isArray(payload.platforms) ? payload.platforms.length : 0;
+        
+        calcResultsBox.classList.remove('hidden');
+        calcResultsBox.innerHTML = `
+          <div class="text-white/70 text-xs mb-2 mt-2">Найдено ${list.length} результатов на ${platformsCount} площадках:</div>
+          ${queryLine}
+          ${replicaBanner}
+          <div class="flex flex-col gap-2">${cards}</div>
+          
+          <div class="flex gap-2 mt-4">
+            <button type="button" class="btn-secondary flex-1 py-3 text-xs font-bold text-white transition active:scale-95 border border-white/15 cursor-pointer" onclick="window.repeatSearchQuery()">
+              🔄 Повторить поиск
+            </button>
+            <button type="button" class="btn-secondary flex-1 py-3 text-xs font-bold text-white/50 transition active:scale-95 border border-white/10 cursor-pointer" onclick="window.resetSearchQuery()">
+              🗑️ Найти новый товар
+            </button>
           </div>
-        </div>`;
-    }).join('');
-    const sourceLabel = payload.source === 'apify' || payload.source === 'apify+search-products'
-      ? '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Google Lens'
-      : (payload.source === 'vision-fallback' ? '<span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/></svg></span> AI распознал' : null);
-    const queryText = payload.query || payload.vision_query;
-    const queryLine = (queryText && sourceLabel)
-      ? `<div class="text-xs text-white/50 mb-2">${sourceLabel}: <span class="text-cyan-300">"${escHtmlC(queryText)}"</span></div>`
-      : '';
-    const replicaBanner = payload.authenticity_tier === 'replica' 
-      ? `<div class="bg-orange-500/20 border border-orange-500/50 text-orange-400 p-2 rounded-lg text-xs font-bold mb-3 flex items-center gap-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span> 🔍 Найдены реплики</div>` 
-      : '';
-    const platformsCount = Array.isArray(payload.platforms) ? payload.platforms.length : 0;
-    calcResultsBox.classList.remove('hidden');
-    calcResultsBox.innerHTML = `
-      <div class="text-white/70 text-xs mb-2 mt-2">Найдено ${list.length} результатов на ${platformsCount} площадках:</div>
-      ${queryLine}
-      ${replicaBanner}
-      <div class="flex flex-col gap-2">${cards}</div>`;
-    calcResultsBox.querySelectorAll('[data-calc-result-pick]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const idx = parseInt(btn.dataset.calcResultPick, 10);
-        const picked = list[idx];
-        if (!picked) return;
-        const cleanedUrl = safeUrlC(picked.url);
-        if (!cleanedUrl) return;
-        setCalcMode('link');
-        const urlEl = document.getElementById('calcUrl');
-        if (urlEl) urlEl.value = cleanedUrl;
-        if (picked.price) {
-          const priceEl = document.getElementById('calcPrice');
-          if (priceEl) priceEl.value = picked.price;
-        }
-        if (picked.currency) {
-          const sel = document.getElementById('calcCurrency');
-          if (sel) {
-            const opt = Array.from(sel.options).find((o) => o.value === picked.currency);
-            if (opt) sel.value = picked.currency;
-          }
-          const lbl = document.getElementById('calcPriceCurrency');
-          const curSym = { GBP: '£', USD: '$', EUR: '€', CNY: '¥', RUB: '₽', BYN: 'Br' };
-          if (lbl) lbl.innerText = curSym[picked.currency] || picked.currency;
-        }
-        if (picked.title) {
-          const titleInp = document.getElementById('calcTitle');
-          if (titleInp && !titleInp.value) titleInp.value = picked.title;
-        }
-        if (picked.platform_label) {
-          const mpInp = document.getElementById('calcMarketplace');
-          if (mpInp && !mpInp.value) mpInp.value = picked.platform_label;
-        }
-        // Запускаем существующий парсер для уточнения веса/категории/описания
-        const aBtn = document.getElementById('analyzeLinkBtn');
-        if (aBtn) aBtn.click();
-      });
-    });
-  }
-
-  // ---- Mode: photo (search-by-image) ----
-  const calcPhotoZone = document.getElementById('calcPhotoUploadZone');
-  const calcPhotoInput = document.getElementById('calcPhotoInput');
-  const calcPhotoPreview = document.getElementById('calcPhotoPreview');
-  const calcPhotoSearchBtn = document.getElementById('calcPhotoSearchBtn');
-  const calcPhotoHint = document.getElementById('calcPhotoHint');
-  const calcPhotoFiles = []; // multi-photo (до 5)
-  function renderCalcPhotoPreviews() {
-    if (!calcPhotoPreview) return;
-    if (calcPhotoFiles.length === 0) {
-      calcPhotoPreview.classList.add('hidden');
-      calcPhotoPreview.innerHTML = '';
-      if (calcPhotoSearchBtn) calcPhotoSearchBtn.classList.add('hidden');
-      return;
-    }
-    calcPhotoPreview.classList.remove('hidden');
-    calcPhotoPreview.innerHTML = calcPhotoFiles.map((f, i) =>
-      `<div class="relative">
-        <img src="${trackBlobUrl('calc:photo:' + i, f)}" class="rounded-xl w-full h-24 object-cover">
-        <button type="button" data-rm-calc-photo="${i}" class="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center shadow-lg">×</button>
-      </div>`).join('');
-    if (calcPhotoSearchBtn) calcPhotoSearchBtn.classList.remove('hidden');
-    calcPhotoPreview.querySelectorAll('[data-rm-calc-photo]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const i = parseInt(btn.dataset.rmCalcPhoto, 10);
-        calcPhotoFiles.splice(i, 1);
-        renderCalcPhotoPreviews();
-      });
-    });
-  }
-  if (calcPhotoZone && calcPhotoInput) {
-    calcPhotoZone.addEventListener('click', () => calcPhotoInput.click());
-    calcPhotoZone.addEventListener('dragover', (ev) => { ev.preventDefault(); calcPhotoZone.classList.add('bg-white/10'); });
-    calcPhotoZone.addEventListener('dragleave', () => calcPhotoZone.classList.remove('bg-white/10'));
-    calcPhotoZone.addEventListener('drop', (ev) => {
-      ev.preventDefault();
-      calcPhotoZone.classList.remove('bg-white/10');
-      handleCalcPhotoFiles(ev.dataTransfer?.files);
-    });
-    calcPhotoInput.addEventListener('change', () => handleCalcPhotoFiles(calcPhotoInput.files));
-  }
-  function handleCalcPhotoFiles(files) {
-    if (!files || !files.length) return;
-    for (const f of files) {
-      if (!f.type.startsWith('image/')) continue;
-      if (f.size > 10 * 1024 * 1024) { tgUtil.alert(`${f.name}: больше 10 МБ`); continue; }
-      if (calcPhotoFiles.length >= 5) { tgUtil.alert('Можно загрузить максимум 5 фото'); break; }
-      calcPhotoFiles.push(f);
-    }
-    renderCalcPhotoPreviews();
-  }
-  if (calcPhotoSearchBtn) {
-    calcPhotoSearchBtn.addEventListener('click', async () => {
-      if (calcPhotoFiles.length === 0) return;
-      if (!supabaseClient) { tgUtil.alert('База данных недоступна'); return; }
-      const original = calcPhotoSearchBtn.innerText;
-      calcPhotoSearchBtn.innerHTML = '<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Загружаю фото…';
-      calcPhotoSearchBtn.disabled = true;
-      if (calcResultsBox) {
-        calcResultsBox.classList.remove('hidden');
-        calcResultsBox.innerHTML = '<div class="text-white/60 text-sm py-2"><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Распознаём товар на фото и ищем на площадках…</div>';
-      }
-      try {
-        let sessionId = localStorage.getItem('icelogix_session_id');
-        if (!sessionId) {
-          sessionId = crypto.randomUUID();
-          localStorage.setItem('icelogix_session_id', sessionId);
-        }
-        // Загружаем все фото параллельно, передаём первое (Apify Lens работает с одним) + список всех
-        const paths = await Promise.all(calcPhotoFiles.map(async (f) => {
-          const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 50);
-          const path = `${sessionId}/${Date.now()}_search_${safeName}`;
-          const { error: upErr } = await supabaseClient.storage
-            .from('product-screenshots')
-            .upload(path, f, { contentType: f.type, upsert: false });
-          if (upErr) throw new Error('Загрузка: ' + upErr.message);
-          return path;
-        }));
-        calcPhotoSearchBtn.innerHTML = '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Ищем на площадках…';
-        const { data, error } = await supabaseClient.functions.invoke('search-by-image', {
-          body: {
-            screenshotPath: paths[0],
-            screenshotPaths: paths,
-            descriptionHint: (calcPhotoHint?.value || '').trim() || null,
-          },
-        });
-        if (error) throw new Error(error.message);
-        if (!data?.ok) throw new Error(data?.error || 'Не удалось найти');
-        renderCalcSearchResults(data);
-      } catch (e) {
-        if (calcResultsBox) {
-          calcResultsBox.classList.remove('hidden');
-          calcResultsBox.innerHTML = `<div class="bg-red-500/20 border border-red-400/30 rounded-xl p-3 text-sm text-white/80"><span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span> ${escHtmlC(e.message)}</div>`;
-        }
-      } finally {
-        calcPhotoSearchBtn.innerText = original;
-        calcPhotoSearchBtn.disabled = false;
-      }
-    });
-  }
-
-  // ---- Mode: text (search-products by description, optional photo) ----
-  const calcTextInput = document.getElementById('calcTextQuery');
-  const calcTextSearchBtn = document.getElementById('calcTextSearchBtn');
-  const calcTextPhotoZone = document.getElementById('calcTextPhotoZone');
-  const calcTextPhotoInput = document.getElementById('calcTextPhotoInput');
-  const calcTextPhotoPreview = document.getElementById('calcTextPhotoPreview');
-  let calcTextPhotoFile = null;
-  if (calcTextPhotoZone && calcTextPhotoInput) {
-    calcTextPhotoZone.addEventListener('click', () => calcTextPhotoInput.click());
-    calcTextPhotoInput.addEventListener('change', () => {
-      const f = calcTextPhotoInput.files?.[0];
-      if (!f) return;
-      if (!f.type.startsWith('image/')) { tgUtil.alert('Только изображения'); return; }
-      if (f.size > 10 * 1024 * 1024) { tgUtil.alert('Файл больше 10 МБ'); return; }
-      calcTextPhotoFile = f;
-      if (calcTextPhotoPreview) {
-        calcTextPhotoPreview.classList.remove('hidden');
-        calcTextPhotoPreview.innerHTML =
-          `<div class="relative inline-block">
-            <img src="${trackBlobUrl('calc:textphoto', f)}" class="rounded-xl max-h-32 object-contain">
-            <button type="button" id="calcTextPhotoRemove" class="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center shadow-lg">×</button>
-          </div>`;
-        document.getElementById('calcTextPhotoRemove')?.addEventListener('click', () => {
-          calcTextPhotoFile = null;
-          calcTextPhotoPreview.classList.add('hidden');
-          calcTextPhotoPreview.innerHTML = '';
-          calcTextPhotoInput.value = '';
-        });
-      }
-    });
-  }
-  if (calcTextSearchBtn && calcTextInput) {
-    const runCalcTextSearch = async () => {
-      const q = (calcTextInput.value || '').trim();
-      if (q.length < 3) { tgUtil.alert('Минимум 3 символа в описании'); return; }
-      if (!supabaseClient) { tgUtil.alert('База данных недоступна'); return; }
-      const original = calcTextSearchBtn.innerText;
-      calcTextSearchBtn.innerHTML = '<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Ищем на площадках…';
-      calcTextSearchBtn.disabled = true;
-      if (calcResultsBox) {
-        calcResultsBox.classList.remove('hidden');
-        calcResultsBox.innerHTML = '<div class="text-white/60 text-sm py-2"><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> ИИ улучшает запрос и параллельно опрашивает площадки…</div>';
-      }
-      try {
-        // Если приложили фото — отправляем через search-by-image (фото как primary, текст как hint)
-        if (calcTextPhotoFile) {
-          let sessionId = localStorage.getItem('icelogix_session_id');
-          if (!sessionId) {
-            sessionId = crypto.randomUUID();
-            localStorage.setItem('icelogix_session_id', sessionId);
-          }
-          const safeName = calcTextPhotoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 50);
-          const path = `${sessionId}/${Date.now()}_search_${safeName}`;
-          const { error: upErr } = await supabaseClient.storage
-            .from('product-screenshots')
-            .upload(path, calcTextPhotoFile, { contentType: calcTextPhotoFile.type, upsert: false });
-          if (upErr) throw new Error('Загрузка фото: ' + upErr.message);
-          const { data, error } = await supabaseClient.functions.invoke('search-by-image', {
-            body: { screenshotPath: path, descriptionHint: q },
+        `;
+        
+        calcResultsBox.querySelectorAll('[data-calc-result-pick]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const idx = parseInt(btn.dataset.calcResultPick, 10);
+            const picked = list[idx];
+            if (!picked) return;
+            const cleanedUrl = safeUrlC(picked.url);
+            if (!cleanedUrl) return;
+            
+            // Switch current mode to link
+            window.currentCalcMode = 'link';
+            
+            const urlEl = document.getElementById('calcUrl');
+            if (urlEl) urlEl.value = cleanedUrl;
+            
+            if (picked.price) {
+              const priceEl = document.getElementById('calcPrice');
+              if (priceEl) priceEl.value = picked.price;
+            }
+            if (picked.currency) {
+              const sel = document.getElementById('calcCurrency');
+              if (sel) {
+                const opt = Array.from(sel.options).find((o) => o.value === picked.currency);
+                if (opt) sel.value = picked.currency;
+              }
+            }
+            if (picked.title) {
+              const titleInp = document.getElementById('calcTitle');
+              if (titleInp) titleInp.value = picked.title;
+            }
+            if (picked.brand) {
+              const brandInp = document.getElementById('calcBrand');
+              if (brandInp) {
+                brandInp.value = picked.brand;
+                const brandSelected = document.getElementById('calcBrandSelected');
+                if (brandSelected) brandSelected.value = 'true';
+              }
+            }
+            if (picked.platform_label) {
+              const mpInp = document.getElementById('calcMarketplace');
+              const mpText = document.getElementById('calcMarketplaceSelectedText');
+              if (mpInp && mpText) {
+                mpInput.value = picked.platform_label;
+                mpText.innerText = picked.platform_label;
+                mpText.classList.remove('text-white/40');
+                mpText.classList.add('text-white');
+              }
+            }
+            
+            window.calcPickedImageUrl = picked.image_url || '';
+            
+            // Auto check/run parser for weight/category/variations extraction
+            window.calcLinkAnalyzed = false;
+            
+            renderCurrentScreen();
+            
+            const aBtn = document.getElementById('analyzeLinkBtn');
+            if (aBtn) aBtn.click();
           });
-          if (error) throw new Error(error.message);
-          if (!data?.ok) throw new Error(data?.error || 'Не удалось найти');
-          renderCalcSearchResults(data);
-        } else {
-          const { data, error } = await supabaseClient.functions.invoke('search-products', {
-            body: { query: q, user_id: userId },
-          });
-          if (error) throw new Error(error.message);
-          if (!data?.ok) throw new Error(data?.error || 'Не удалось найти');
-          renderCalcSearchResults(data);
+        });
+      };
+
+      // Repeat & Reset search helper functions
+      window.repeatSearchQuery = () => {
+        tgUtil.haptic('light');
+        const mode = window.currentCalcMode;
+        if (mode === 'photo') {
+          const hint = document.getElementById('calcPhotoHint');
+          if (hint) {
+            hint.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            hint.focus();
+          }
+        } else if (mode === 'text') {
+          const query = document.getElementById('calcTextQuery');
+          if (query) {
+            query.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            query.focus();
+          }
         }
-      } catch (e) {
+      };
+
+      window.resetSearchQuery = () => {
+        tgUtil.haptic('medium');
+        const mode = window.currentCalcMode;
+        if (mode === 'photo') {
+          const hint = document.getElementById('calcPhotoHint');
+          if (hint) hint.value = '';
+          const filesInput = document.getElementById('calcPhotoInput');
+          if (filesInput) filesInput.value = '';
+          const priceMin = document.getElementById('calcPhotoPriceMin');
+          if (priceMin) priceMin.value = '';
+          const priceMax = document.getElementById('calcPhotoPriceMax');
+          if (priceMax) priceMax.value = '';
+          window.calcPhotoFiles = [];
+          if (typeof window.renderCalcPhotoPreviews === 'function') {
+            window.renderCalcPhotoPreviews();
+          }
+        } else if (mode === 'text') {
+          const query = document.getElementById('calcTextQuery');
+          if (query) query.value = '';
+          const filesInput = document.getElementById('calcTextPhotoInput');
+          if (filesInput) filesInput.value = '';
+          const priceMin = document.getElementById('calcTextPriceMin');
+          if (priceMin) priceMin.value = '';
+          const priceMax = document.getElementById('calcTextPriceMax');
+          if (priceMax) priceMax.value = '';
+          window.calcTextPhotoFile = null;
+          const preview = document.getElementById('calcTextPhotoPreview');
+          if (preview) {
+            preview.classList.add('hidden');
+            preview.innerHTML = '';
+          }
+        }
+        
         if (calcResultsBox) {
-          calcResultsBox.classList.remove('hidden');
-          calcResultsBox.innerHTML = `<div class="bg-red-500/20 border border-red-400/30 rounded-xl p-3 text-sm text-white/80"><span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span> ${escHtmlC(e.message)}</div>`;
+          calcResultsBox.classList.add('hidden');
+          calcResultsBox.innerHTML = '';
         }
-      } finally {
-        calcTextSearchBtn.innerText = original;
-        calcTextSearchBtn.disabled = false;
+        
+        const calcContainer = document.querySelector('.glass-card');
+        if (calcContainer) {
+          calcContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      };
+
+      // ---- Mode: photo (search-by-image) ----
+      const calcPhotoZone = document.getElementById('calcPhotoUploadZone');
+      const calcPhotoInput = document.getElementById('calcPhotoInput');
+      const calcPhotoPreview = document.getElementById('calcPhotoPreview');
+      const calcPhotoSearchBtn = document.getElementById('calcPhotoSearchBtn');
+      const calcPhotoHint = document.getElementById('calcPhotoHint');
+      
+      window.calcPhotoFiles = window.calcPhotoFiles || []; // multi-photo (до 5)
+      
+      window.renderCalcPhotoPreviews = () => {
+        if (!calcPhotoPreview) return;
+        if (window.calcPhotoFiles.length === 0) {
+          calcPhotoPreview.classList.add('hidden');
+          calcPhotoPreview.innerHTML = '';
+          if (calcPhotoSearchBtn) calcPhotoSearchBtn.classList.add('hidden');
+          return;
+        }
+        calcPhotoPreview.classList.remove('hidden');
+        calcPhotoPreview.innerHTML = window.calcPhotoFiles.map((f, i) =>
+          `<div class="relative">
+            <img src="${trackBlobUrl('calc:photo:' + i, f)}" class="rounded-xl w-full h-24 object-cover">
+            <button type="button" data-rm-calc-photo="${i}" class="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center shadow-lg">×</button>
+          </div>`).join('');
+        if (calcPhotoSearchBtn) calcPhotoSearchBtn.classList.remove('hidden');
+        calcPhotoPreview.querySelectorAll('[data-rm-calc-photo]').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const i = parseInt(btn.dataset.rmCalcPhoto, 10);
+            window.calcPhotoFiles.splice(i, 1);
+            window.renderCalcPhotoPreviews();
+          });
+        });
+      };
+      
+      if (calcPhotoZone && calcPhotoInput) {
+        calcPhotoZone.onclick = (e) => {
+          e.stopPropagation();
+          calcPhotoInput.click();
+        };
+        calcPhotoZone.addEventListener('dragover', (ev) => { ev.preventDefault(); calcPhotoZone.classList.add('bg-white/10'); });
+        calcPhotoZone.addEventListener('dragleave', () => calcPhotoZone.classList.remove('bg-white/10'));
+        calcPhotoZone.addEventListener('drop', (ev) => {
+          ev.preventDefault();
+          calcPhotoZone.classList.remove('bg-white/10');
+          handleCalcPhotoFiles(ev.dataTransfer?.files);
+        });
+        calcPhotoInput.addEventListener('change', () => handleCalcPhotoFiles(calcPhotoInput.files));
       }
-    };
-    calcTextSearchBtn.addEventListener('click', runCalcTextSearch);
-    calcTextInput.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Enter') { ev.preventDefault(); runCalcTextSearch(); }
-    });
-  }
-  
-  // Handle to new order button
-  const toNewOrderBtn = document.getElementById('toNewOrderBtn');
-  if (toNewOrderBtn) {
-    toNewOrderBtn.onclick = () => {
-      tgUtil.haptic('medium');
-      const price = parseFloat(document.getElementById('calcPrice')?.value) || 0;
-      const weight = parseFloat(document.getElementById('calcWeight')?.value) || 1;
-      const currency = document.getElementById('calcCurrency')?.value || 'CNY';
-      const category = document.getElementById('calcCategory')?.value || '';
-      const insurance = true;
-      const title = document.getElementById('calcTitle')?.value || '';
-      const brand = document.getElementById('calcBrand')?.value || '';
-      const marketplace = document.getElementById('calcMarketplace')?.value || '';
-      const desc = document.getElementById('calcDescription')?.value || '';
-      const size = document.getElementById('calcSize')?.value || '';
-      const url = document.getElementById('calcUrl')?.value || '';
-      const keepBox = document.getElementById('keepBox')?.checked || false;
       
-      let promotionId = null;
-      let promoExtraDiscount = 0;
-      if (window.currentPromotion) {
-        const roughTotal = window.iceLogixPricing.quickEstimate(price, weight, currency, window.calcCountry);
-        if (roughTotal >= (window.currentPromotion.min_order_amount || 0)) {
-          promoExtraDiscount = window.currentPromotion.discount_type === 'percent'
-            ? roughTotal * (window.currentPromotion.discount_value / 100)
-            : Math.min(window.currentPromotion.discount_value, roughTotal);
-          promotionId = window.currentPromotion.id;
+      function handleCalcPhotoFiles(files) {
+        if (!files || !files.length) return;
+        for (const f of files) {
+          if (!f.type.startsWith('image/')) continue;
+          if (f.size > 10 * 1024 * 1024) { tgUtil.alert(`${f.name}: больше 10 МБ`); continue; }
+          if (window.calcPhotoFiles.length >= 5) { tgUtil.alert('Можно загрузить максимум 5 фото'); break; }
+          window.calcPhotoFiles.push(f);
         }
+        window.renderCalcPhotoPreviews();
       }
       
-      // Switch to new order and pass this data
-      window.orderCountry = window.calcCountry || 'CN';
-      window.startOrderAddMode = window.startOrderAddMode || function() {};
-      window.orderAddMode = true;
-      window.orderAddSubMode = 'manual';
-      
-      setTimeout(() => {
-        if (document.getElementById('orderPrice')) {
-          document.getElementById('orderPrice').value = price;
-          document.getElementById('orderPrice').dispatchEvent(new Event('input', { bubbles: true }));
-        }
-        if (document.getElementById('orderWeight')) {
-          document.getElementById('orderWeight').value = weight;
-          document.getElementById('orderWeight').dispatchEvent(new Event('input', { bubbles: true }));
-        }
-        if (document.getElementById('orderCurrency')) {
-          document.getElementById('orderCurrency').value = currency;
-          document.getElementById('orderCurrency').dispatchEvent(new Event('change', { bubbles: true }));
-        }
-        if (document.getElementById('orderCategory')) {
-          const orderCat = document.getElementById('orderCategory');
-          orderCat.value = category;
-          const broad = getCategoryBroad(category);
-          const orderCatSelectedText = document.getElementById('orderCategorySelectedText');
-          if (orderCatSelectedText) {
-            orderCatSelectedText.innerText = `${broad} / ${category}`;
-            orderCatSelectedText.classList.remove('text-white/40');
-            orderCatSelectedText.classList.add('text-white');
+      if (calcPhotoSearchBtn) {
+        calcPhotoSearchBtn.addEventListener('click', async () => {
+          if (window.calcPhotoFiles.length === 0) return;
+          if (!supabaseClient) { tgUtil.alert('База данных недоступна'); return; }
+
+          const limitCheck = await checkAndUpdateLimit('ai');
+          if (!limitCheck.allowed) {
+            tgUtil.haptic('warning');
+            tgUtil.alert(`Дневной лимит ИИ-расчетов исчерпан (${limitCheck.currentCount}/${limitCheck.maxRequests}).`);
+            return;
           }
-          orderCat.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-        if (document.getElementById('orderTitle')) {
-          document.getElementById('orderTitle').value = title;
-          document.getElementById('orderTitle').dispatchEvent(new Event('input', { bubbles: true }));
-        }
-        if (document.getElementById('orderBrand')) {
-          document.getElementById('orderBrand').value = brand;
-          document.getElementById('orderBrand').dispatchEvent(new Event('input', { bubbles: true }));
-        }
-        if (document.getElementById('orderSize')) {
-          document.getElementById('orderSize').value = size;
-          document.getElementById('orderSize').dispatchEvent(new Event('input', { bubbles: true }));
-        }
-        if (document.getElementById('orderUrl')) {
-          document.getElementById('orderUrl').value = url;
-          document.getElementById('orderUrl').dispatchEvent(new Event('input', { bubbles: true }));
-        }
-        if (document.getElementById('orderMarketplace')) {
-          const orderMp = document.getElementById('orderMarketplace');
-          orderMp.value = marketplace;
-          const orderMpSelectedText = document.getElementById('orderMarketplaceSelectedText');
-          if (orderMpSelectedText) {
-            orderMpSelectedText.innerText = marketplace;
-            orderMpSelectedText.classList.remove('text-white/40');
-            orderMpSelectedText.classList.add('text-white');
+
+          const original = calcPhotoSearchBtn.innerText;
+          calcPhotoSearchBtn.innerHTML = '<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Загружаю фото…';
+          calcPhotoSearchBtn.disabled = true;
+
+          // Increment limit count at start of AI photo search action
+          await incrementLimitCount('ai');
+
+          if (calcResultsBox) {
+            calcResultsBox.classList.remove('hidden');
+            calcResultsBox.innerHTML = '<div class="text-white/60 text-sm py-2"><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l-4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Распознаём товар на фото и ищем на площадках…</div>';
           }
-          orderMp.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-      }, 100);
+          try {
+            let sessionId = localStorage.getItem('icelogix_session_id');
+            if (!sessionId) {
+              sessionId = crypto.randomUUID();
+              localStorage.setItem('icelogix_session_id', sessionId);
+            }
+            // Загружаем все фото параллельно, передаём первое (Apify Lens работает с одним) + список всех
+            const paths = await Promise.all(window.calcPhotoFiles.map(async (f) => {
+              const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 50);
+              const path = `${sessionId}/${Date.now()}_search_${safeName}`;
+              const { error: upErr } = await supabaseClient.storage
+                .from('product-screenshots')
+                .upload(path, f, { contentType: f.type, upsert: false });
+              if (upErr) throw new Error('Загрузка: ' + upErr.message);
+              return path;
+            }));
+            calcPhotoSearchBtn.innerHTML = '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Ищем на площадках…';
+            
+            const minPrice = parseFloat(document.getElementById('calcPhotoPriceMin')?.value) || null;
+            const maxPrice = parseFloat(document.getElementById('calcPhotoPriceMax')?.value) || null;
+            const authenticity = document.getElementById('calcPhotoAuthenticity')?.value || 'any';
+
+            const { data, error } = await supabaseClient.functions.invoke('search-by-image', {
+              body: {
+                screenshotPath: paths[0],
+                screenshotPaths: paths,
+                descriptionHint: (calcPhotoHint?.value || '').trim() || null,
+                minPrice,
+                maxPrice,
+                authenticity,
+              },
+            });
+            if (error) throw new Error(error.message);
+            if (!data?.ok) throw new Error(data?.error || 'Не удалось найти');
+            window.renderCalcSearchResults(data);
+          } catch (e) {
+            if (calcResultsBox) {
+              calcResultsBox.classList.remove('hidden');
+              calcResultsBox.innerHTML = `<div class="bg-red-500/20 border border-red-400/30 rounded-xl p-3 text-sm text-white/80"><span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span> ${escHtmlC(e.message)}</div>`;
+            }
+          } finally {
+            calcPhotoSearchBtn.innerText = original;
+            calcPhotoSearchBtn.disabled = false;
+          }
+        });
+      }
+
+      // ---- Mode: text (search-products by description, optional photo) ----
+      const calcTextInput = document.getElementById('calcTextQuery');
+      const calcTextSearchBtn = document.getElementById('calcTextSearchBtn');
+      const calcTextPhotoZone = document.getElementById('calcTextPhotoZone');
+      const calcTextPhotoInput = document.getElementById('calcTextPhotoInput');
+      const calcTextPhotoPreview = document.getElementById('calcTextPhotoPreview');
       
-      switchTab('neworder');
-    };
-  }
+      window.calcTextPhotoFile = window.calcTextPhotoFile || null;
+      
+      if (calcTextPhotoZone && calcTextPhotoInput) {
+        calcTextPhotoZone.onclick = (e) => {
+          e.stopPropagation();
+          calcTextPhotoInput.click();
+        };
+        calcTextPhotoInput.addEventListener('change', () => {
+          const f = calcTextPhotoInput.files?.[0];
+          if (!f) return;
+          if (!f.type.startsWith('image/')) { tgUtil.alert('Только изображения'); return; }
+          if (f.size > 10 * 1024 * 1024) { tgUtil.alert('Файл больше 10 МБ'); return; }
+          window.calcTextPhotoFile = f;
+          if (calcTextPhotoPreview) {
+            calcTextPhotoPreview.classList.remove('hidden');
+            calcTextPhotoPreview.innerHTML =
+              `<div class="relative inline-block">
+                <img src="${trackBlobUrl('calc:textphoto', f)}" class="rounded-xl max-h-32 object-contain">
+                <button type="button" id="calcTextPhotoRemove" class="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center shadow-lg">×</button>
+              </div>`;
+            document.getElementById('calcTextPhotoRemove')?.addEventListener('click', () => {
+              window.calcTextPhotoFile = null;
+              calcTextPhotoPreview.classList.add('hidden');
+              calcTextPhotoPreview.innerHTML = '';
+              calcTextPhotoInput.value = '';
+            });
+          }
+        });
+      }
+      
+      if (calcTextSearchBtn && calcTextInput) {
+        const runCalcTextSearch = async () => {
+          const q = (calcTextInput.value || '').trim();
+          if (q.length < 3) { tgUtil.alert('Минимум 3 символа в описании'); return; }
+          if (!supabaseClient) { tgUtil.alert('База данных недоступна'); return; }
 
-  // Auto-fill color tags chips
-  if (window.currentCalcMode) {
-    window.renderColorChips();
-  }
+          const limitCheck = await checkAndUpdateLimit('ai');
+          if (!limitCheck.allowed) {
+            tgUtil.haptic('warning');
+            tgUtil.alert(`Дневной лимит ИИ-расчетов исчерпан (${limitCheck.currentCount}/${limitCheck.maxRequests}).`);
+            return;
+          }
 
-  // Pre-selected mode check
-  if (window.calcPreselectMode) {
-    window.currentCalcMode = window.calcPreselectMode;
-    window.calcPreselectMode = null;
-    renderCurrentScreen();
-  }
-}
+          const original = calcTextSearchBtn.innerText;
+          calcTextSearchBtn.innerHTML = '<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Ищем на площадках…';
+          calcTextSearchBtn.disabled = true;
 
-    // ==================== GLOBAL ORDER WIZARD STATE HELPERS ====================
+          // Increment limit count at start of AI text search action
+          await incrementLimitCount('ai');
+
+          if (calcResultsBox) {
+            calcResultsBox.classList.remove('hidden');
+            calcResultsBox.innerHTML = '<div class="text-white/60 text-sm py-2"><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l-4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> ИИ улучшает запрос и параллельно опрашивает площадки…</div>';
+          }
+          try {
+            const minPrice = parseFloat(document.getElementById('calcTextPriceMin')?.value) || null;
+            const maxPrice = parseFloat(document.getElementById('calcTextPriceMax')?.value) || null;
+            const authenticity = document.getElementById('calcTextAuthenticity')?.value || 'any';
+
+            // Если приложили фото — отправляем через search-by-image (фото как primary, текст как hint)
+            if (window.calcTextPhotoFile) {
+              let sessionId = localStorage.getItem('icelogix_session_id');
+              if (!sessionId) {
+                sessionId = crypto.randomUUID();
+                localStorage.setItem('icelogix_session_id', sessionId);
+              }
+              const safeName = window.calcTextPhotoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 50);
+              const path = `${sessionId}/${Date.now()}_search_${safeName}`;
+              const { error: upErr } = await supabaseClient.storage
+                .from('product-screenshots')
+                .upload(path, window.calcTextPhotoFile, { contentType: window.calcTextPhotoFile.type, upsert: false });
+              if (upErr) throw new Error('Загрузка фото: ' + upErr.message);
+              const { data, error } = await supabaseClient.functions.invoke('search-by-image', {
+                body: { screenshotPath: path, descriptionHint: q, minPrice, maxPrice, authenticity },
+              });
+              if (error) throw new Error(error.message);
+              if (!data?.ok) throw new Error(data?.error || 'Не удалось найти');
+              window.renderCalcSearchResults(data);
+            } else {
+              const { data, error } = await supabaseClient.functions.invoke('search-products', {
+                body: { query: q, user_id: userId, minPrice, maxPrice, authenticity },
+              });
+              if (error) throw new Error(error.message);
+              if (!data?.ok) throw new Error(data?.error || 'Не удалось найти');
+              window.renderCalcSearchResults(data);
+            }
+          } catch (e) {
+            if (calcResultsBox) {
+              calcResultsBox.classList.remove('hidden');
+              calcResultsBox.innerHTML = `<div class="bg-red-500/20 border border-red-400/30 rounded-xl p-3 text-sm text-white/80"><span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span> ${escHtmlC(e.message)}</div>`;
+            }
+          } finally {
+            calcTextSearchBtn.innerText = original;
+            calcTextSearchBtn.disabled = false;
+          }
+        };
+        
+        calcTextSearchBtn.addEventListener('click', runCalcTextSearch);
+        calcTextInput.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter') { ev.preventDefault(); runCalcTextSearch(); }
+        });
+      }
+      
+      // Handle to new order button
+      const toNewOrderBtn = document.getElementById('toNewOrderBtn');
+      if (toNewOrderBtn) {
+        toNewOrderBtn.onclick = () => {
+          tgUtil.haptic('medium');
+          const price = parseFloat(document.getElementById('calcPrice')?.value) || 0;
+          const weight = parseFloat(document.getElementById('calcWeight')?.value) || 1;
+          const currency = document.getElementById('calcCurrency')?.value || 'CNY';
+          const category = document.getElementById('calcCategory')?.value || '';
+          const insurance = true;
+          const title = document.getElementById('calcTitle')?.value || '';
+          const brand = document.getElementById('calcBrand')?.value || '';
+          const marketplace = document.getElementById('calcMarketplace')?.value || '';
+          const desc = document.getElementById('calcDescription')?.value || '';
+          const size = document.getElementById('calcSize')?.value || '';
+          const url = document.getElementById('calcUrl')?.value || '';
+          const keepBox = document.getElementById('keepBox')?.checked || false;
+          
+          let promotionId = null;
+          let promoExtraDiscount = 0;
+          if (window.currentPromotion) {
+            const roughTotal = window.iceLogixPricing.quickEstimate(price, weight, currency, window.calcCountry);
+            if (roughTotal >= (window.currentPromotion.min_order_amount || 0)) {
+              promoExtraDiscount = window.currentPromotion.discount_type === 'percent'
+                ? roughTotal * (window.currentPromotion.discount_value / 100)
+                : Math.min(window.currentPromotion.discount_value, roughTotal);
+              promotionId = window.currentPromotion.id;
+            }
+          }
+          
+          // Switch to new order and pass this data
+          window.orderCountry = window.calcCountry || 'CN';
+          window.startOrderAddMode = window.startOrderAddMode || function() {};
+          window.orderAddMode = true;
+          window.orderAddSubMode = 'manual';
+          
+          setTimeout(() => {
+            if (document.getElementById('orderPrice')) {
+              document.getElementById('orderPrice').value = price;
+              document.getElementById('orderPrice').dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            if (document.getElementById('orderWeight')) {
+              document.getElementById('orderWeight').value = weight;
+              document.getElementById('orderWeight').dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            if (document.getElementById('orderCurrency')) {
+              document.getElementById('orderCurrency').value = currency;
+              document.getElementById('orderCurrency').dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            if (document.getElementById('orderCategory')) {
+              const orderCat = document.getElementById('orderCategory');
+              orderCat.value = category;
+              const broad = getCategoryBroad(category);
+              const orderCatSelectedText = document.getElementById('orderCategorySelectedText');
+              if (orderCatSelectedText) {
+                orderCatSelectedText.innerText = `${broad} / ${category}`;
+                orderCatSelectedText.classList.remove('text-white/40');
+                orderCatSelectedText.classList.add('text-white');
+              }
+              orderCat.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            if (document.getElementById('orderTitle')) {
+              document.getElementById('orderTitle').value = title;
+              document.getElementById('orderTitle').dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            if (document.getElementById('orderBrand')) {
+              document.getElementById('orderBrand').value = brand;
+              document.getElementById('orderBrand').dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            if (document.getElementById('orderSize')) {
+              document.getElementById('orderSize').value = size;
+              document.getElementById('orderSize').dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            if (document.getElementById('orderUrl')) {
+              document.getElementById('orderUrl').value = url;
+              document.getElementById('orderUrl').dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            if (document.getElementById('orderMarketplace')) {
+              const orderMp = document.getElementById('orderMarketplace');
+              orderMp.value = marketplace;
+              const orderMpSelectedText = document.getElementById('orderMarketplaceSelectedText');
+              if (orderMpSelectedText) {
+                orderMpSelectedText.innerText = marketplace;
+                orderMpSelectedText.classList.remove('text-white/40');
+                orderMpSelectedText.classList.add('text-white');
+              }
+              orderMp.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          }, 100);
+          
+          switchTab('neworder');
+        };
+      }
+
+      // Auto-fill color tags chips
+      if (window.currentCalcMode) {
+        window.renderColorChips();
+      }
+
+      // Pre-selected mode check
+      if (window.calcPreselectMode) {
+        window.currentCalcMode = window.calcPreselectMode;
+        window.calcPreselectMode = null;
+        renderCurrentScreen();
+      }
+    }    // ==================== GLOBAL ORDER WIZARD STATE HELPERS ====================
     window.selectOrderCountry = (country) => {
       window.orderCountry = country;
       if (!window.tempOrder) {

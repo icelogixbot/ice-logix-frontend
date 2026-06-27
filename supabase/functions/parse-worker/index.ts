@@ -516,11 +516,10 @@ interface ExtractedData {
   color: string | null;
   brand: string | null;
   marketplace: string | null;
+  variations?: Array<{ size?: string; color?: string; price: number }> | null;
 }
 
 async function extractData(content: string, url: string): Promise<ExtractedData> {
-  if (!DEEPSEEK_KEY) throw new Error("DEEPSEEK_API_KEY not configured");
-}> {
   if (!OPENROUTER_KEY) throw new Error("OPENROUTER_API_KEY not configured");
 
   const isHtml = content.trimStart().startsWith("<");
@@ -547,6 +546,7 @@ Fields to extract:
 - description: A concise product description (1-2 sentences) in Russian, summarizing key features. If not available, return null.
 - color: The main color(s) in Russian, e.g., "Черный/Белый". If not found, return null.
 - brand: The manufacturer brand name, e.g., "Nike", "Adidas". If not found, return null.
+- variations: A JSON array of objects representing available size/color variations and their price, if visible or mentioned in the text/HTML, e.g. [{"size": "M", "color": "blue", "price": 49.99}]. If not found, return null.
 
 URL of the page being analyzed: ${url}
 
@@ -642,6 +642,7 @@ ${content.substring(0, 8000)}`;
     color: strOrNull(parsed.color),
     brand: strOrNull(parsed.brand),
     marketplace,
+    variations: Array.isArray(parsed.variations) ? parsed.variations : null,
   };
 }
 
@@ -753,6 +754,13 @@ Deno.serve(async (req) => {
           : "Не удалось определить цену и название. Загрузите скриншот товара или введите данные вручную.")
       : null;
 
+    const descToSave = extracted.variations && extracted.variations.length > 0
+      ? JSON.stringify({
+          text: extracted.description || "",
+          variations: extracted.variations
+        })
+      : extracted.description;
+
     const { error: updateErr } = await supabase
       .from("parse_queue")
       .update({
@@ -762,7 +770,7 @@ Deno.serve(async (req) => {
         currency: extracted.currency,
         country: extracted.country,
         category: extracted.category,
-        description: extracted.description,
+        description: descToSave,
         color: extracted.color,
         brand: extracted.brand,
         marketplace_name: extracted.marketplace,
