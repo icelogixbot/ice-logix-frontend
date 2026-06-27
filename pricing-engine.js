@@ -14,7 +14,7 @@
     base_commission_pct: 20,      // % от стоимости товара
     min_commission_byn: 9,        // минимум для маленьких заказов
     min_commission_threshold_byn: 60, // если итог ≤ 60 BYN → берём minimum
-    insurance_pct: 1.5,             // 1.5% если включено
+    insurance_pct: 2.0,             // 2% если включено
     legit_check_byn: 15,          // фикс
     currency_buffer_pct: 3,       // буфер на колебания курса
     customs_limit_eur: 200,       // беспошлинный лимит РБ (200€)
@@ -65,26 +65,15 @@
   const LOCAL_DELIVERY_RATES = {
     'europost': {
       label: 'Европочта',
-      calc: (w) => {
-        if (w <= 1) return 4.00;
-        if (w <= 2) return 4.50;
-        if (w <= 5) return 5.50;
-        if (w <= 10) return 7.50;
-        if (w <= 20) return 10.50;
-        return 14.00;
-      }
-    },
-    'sdek': {
-      label: 'СДЭК',
-      calc: (w) => 10 + (w * 2)
+      calc: (w) => 5.00
     },
     'belpost': {
       label: 'Белпочта',
-      calc: (w) => 5 + (w * 1.5)
+      calc: (w) => 7.00
     },
     'pickup': {
-      label: 'Самовывоз (Минск)',
-      calc: (w) => 0
+      label: 'Самовывоз (Несвиж)',
+      calc: (w) => 0.00
     }
   };
 
