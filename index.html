@@ -16394,7 +16394,9 @@ async function renderProductsCatalog() {
       `}
 
       <div class="flex items-center gap-3 mb-4">
-        <button id="openFilterModalBtn" class="btn-secondary flex items-center gap-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></span> Фильтры</button>
+        <button id="openFilterModalBtn" class="btn-secondary py-1.5 px-4 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-white/20">
+          <span class="ix" style="width: 14px; height: 14px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></span> Фильтры
+        </button>
         ${activeFilters ? `<p class="text-white/50 text-xs truncate flex-1">Активно: ${activeFilters}</p><button id="resetFiltersBtn" class="text-cyan-400 text-xs flex-shrink-0">Сбросить</button>` : '<p class="text-white/50 text-xs">Все товары</p>'}
       </div>
       <div class="grid grid-cols-2 gap-4" id="productsGrid">
@@ -16446,46 +16448,88 @@ function attachProductsCatalogHandlers() {
       const { data: allP } = await supabaseClient.from('products').select('category, brand').eq('is_active', true);
       const allCats = [...new Set(allP?.map(p => p.category).filter(Boolean) || [])];
       const allBrands = [...new Set(allP?.map(p => p.brand).filter(Boolean) || [])];
+      
       const modal = document.createElement('div');
-      modal.className = 'fixed inset-0 bg-black/80 flex items-end justify-center z-50';
-      modal.innerHTML = `
-        <div class="bg-slate-900 rounded-t-3xl w-full overflow-y-auto p-6" style="max-height:80vh">
-          <h3 class="text-white font-bold text-lg mb-4 flex items-center gap-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></span> Фильтры</h3>
-          <label class="text-white/70 text-sm mb-1 block">Категория</label>
-          <select id="mfCategory" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-3">
-            <option value="all">Все категории</option>
-            ${allCats.map(c => `<option value="${c}" ${productsFilter.category === c ? 'selected' : ''}>${c}</option>`).join('')}
-          </select>
-          <label class="text-white/70 text-sm mb-1 block">Бренд</label>
-          <select id="mfBrand" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-3">
-            <option value="all">Все бренды</option>
-            ${allBrands.map(b => `<option value="${b}" ${productsFilter.brand === b ? 'selected' : ''}>${b}</option>`).join('')}
-          </select>
-          <label class="text-white/70 text-sm mb-1 block">Сортировка</label>
-          <select id="mfSort" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-5">
-            <option value="new" ${productsFilter.sort === 'new' ? 'selected' : ''}>Новинки</option>
-            <option value="price_asc" ${productsFilter.sort === 'price_asc' ? 'selected' : ''}>Цена <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></span></option>
-            <option value="price_desc" ${productsFilter.sort === 'price_desc' ? 'selected' : ''}>Цена <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></span></option>
-          </select>
-          <div class="flex gap-3 mb-3">
-            <button id="mfApply" class="btn-primary flex-1">Применить</button>
-            <button id="mfReset" class="btn-secondary flex-1">Сбросить</button>
+      modal.className = 'fixed inset-0 z-[120] flex items-end justify-center bg-black/60 backdrop-blur-xs transition-opacity duration-300';
+      
+      const card = document.createElement('div');
+      card.className = 'bg-[#1a2333] border-t border-white/20 rounded-t-3xl w-full max-w-md p-5 pb-8 space-y-5 transform translate-y-full transition-transform duration-300 shadow-2xl';
+      card.style.maxHeight = '80vh';
+      card.style.overflowY = 'auto';
+      
+      card.innerHTML = `
+        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+          <h3 class="text-white font-bold text-base flex items-center gap-2">
+            <span class="ix" style="width:16px;height:16px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></span> Фильтры
+          </h3>
+          <button id="closeFiltersSheet" class="text-white/60 hover:text-white"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="text-white/60 text-xs mb-2 font-semibold flex items-center gap-1.5"><span class="ix" style="width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span> Категория</label>
+            <select id="mfCategory" class="btn-secondary w-full p-3 rounded-xl border border-white/10 bg-[#1e293b] text-white text-xs">
+              <option value="all">Все категории</option>
+              ${allCats.map(c => `<option value="${c}" ${productsFilter.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+            </select>
           </div>
-          <button id="mfClose" class="w-full py-2 text-white/40 text-sm">Закрыть</button>
-        </div>`;
+
+          <div>
+            <label class="text-white/60 text-xs mb-2 font-semibold flex items-center gap-1.5"><span class="ix" style="width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m16.2 7.8-2 2v-2ZM12 8v4M9.8 16.2l2-2v2Z"/></svg></span> Бренд</label>
+            <select id="mfBrand" class="btn-secondary w-full p-3 rounded-xl border border-white/10 bg-[#1e293b] text-white text-xs">
+              <option value="all">Все бренды</option>
+              ${allBrands.map(b => `<option value="${b}" ${productsFilter.brand === b ? 'selected' : ''}>${b}</option>`).join('')}
+            </select>
+          </div>
+
+          <div>
+            <label class="text-white/60 text-xs mb-2 font-semibold flex items-center gap-1.5"><span class="ix" style="width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Сортировка</label>
+            <select id="mfSort" class="btn-secondary w-full p-3 rounded-xl border border-white/10 bg-[#1e293b] text-white text-xs">
+              <option value="new" ${productsFilter.sort === 'new' ? 'selected' : ''}>Новинки</option>
+              <option value="price_asc" ${productsFilter.sort === 'price_asc' ? 'selected' : ''}>Цена: по возрастанию</option>
+              <option value="price_desc" ${productsFilter.sort === 'price_desc' ? 'selected' : ''}>Цена: по убыванию</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex gap-3 pt-2">
+          <button id="mfReset" class="btn-secondary flex-1 py-3 text-xs font-bold rounded-xl border border-white/20">Сбросить</button>
+          <button id="mfApply" class="btn-primary flex-1 py-3 text-xs font-bold rounded-xl bg-cyan-500 text-white">Применить</button>
+        </div>
+      `;
+
+      modal.appendChild(card);
       document.body.appendChild(modal);
-      document.getElementById('mfApply').onclick = () => {
-        productsFilter.category = document.getElementById('mfCategory').value;
-        productsFilter.brand = document.getElementById('mfBrand').value;
-        productsFilter.sort = document.getElementById('mfSort').value;
-        productsPage = 1; modal.remove(); renderCurrentScreen();
+      
+      requestAnimationFrame(() => {
+        card.classList.remove('translate-y-full');
+      });
+      
+      const closeSheet = () => {
+        card.classList.add('translate-y-full');
+        setTimeout(() => {
+          modal.remove();
+        }, 300);
       };
-      document.getElementById('mfReset').onclick = () => {
+      
+      card.querySelector('#closeFiltersSheet').onclick = closeSheet;
+      modal.addEventListener('click', (e) => { if (e.target === modal) closeSheet(); });
+      
+      card.querySelector('#mfApply').onclick = () => {
+        productsFilter.category = card.querySelector('#mfCategory').value;
+        productsFilter.brand = card.querySelector('#mfBrand').value;
+        productsFilter.sort = card.querySelector('#mfSort').value;
+        productsPage = 1;
+        closeSheet();
+        renderCurrentScreen();
+      };
+      
+      card.querySelector('#mfReset').onclick = () => {
         productsFilter = { category: 'all', brand: 'all', sort: 'new' };
-        productsPage = 1; modal.remove(); renderCurrentScreen();
+        productsPage = 1;
+        closeSheet();
+        renderCurrentScreen();
       };
-      document.getElementById('mfClose').onclick = () => modal.remove();
-      modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
     };
   }
 
