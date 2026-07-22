@@ -6725,7 +6725,132 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         </div>
         ${renderFooter()}
       `;
-    }    async function attachCalculatorHandlers() {
+    }        // ==================== CATEGORY PICKER SHEET ====================
+    window.openCategoryPickerSheet = (prefix = 'calc') => {
+      window._activeCategoryPickerPrefix = prefix;
+      const gender = document.getElementById(`${prefix}Gender`)?.value || 'Унисекс';
+      const overlay = document.createElement('div');
+      overlay.className = 'gx-sheet-overlay show';
+      
+      overlay.innerHTML = `
+        <div class="gx-sheet" role="dialog" aria-modal="true" style="max-height: 80vh; display: flex; flex-direction: column;">
+          <div class="gx-sheet-handle"></div>
+          <div class="gx-sheet-header" style="flex-shrink: 0;">
+            <div class="gx-sheet-title">Выбор категории товара</div>
+            <button class="gx-sheet-close" aria-label="Закрыть">${ix('x', { size: '18px' })}</button>
+          </div>
+          <div class="gx-sheet-list" role="listbox" style="flex-grow: 1; overflow-y: auto; padding-bottom: 24px;">
+            <!-- Dynamic step rendering -->
+          </div>
+        </div>
+      `;
+      
+      const list = overlay.querySelector('.gx-sheet-list');
+      const currentVal = document.getElementById(`${prefix}Category`)?.value || '';
+      
+      window.renderStep1 = () => {
+        list.innerHTML = `
+          <div class="p-4 flex flex-col gap-3">
+            <button type="button" class="gx-sheet-opt font-bold flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-2xl w-full text-left cursor-pointer transition active:scale-95" onclick="window.selectBroadGroup('Обувь')">
+              <span class="text-2xl">👟</span>
+              <div class="flex-1">
+                <div class="text-white text-sm">Обувь</div>
+                <div class="text-white/40 text-xs font-normal mt-0.5">Кроссовки, кеды, туфли, ботинки</div>
+              </div>
+              <span class="text-white/30 text-sm">➔</span>
+            </button>
+            <button type="button" class="gx-sheet-opt font-bold flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-2xl w-full text-left cursor-pointer transition active:scale-95" onclick="window.selectBroadGroup('Одежда')">
+              <span class="text-2xl">👕</span>
+              <div class="flex-1">
+                <div class="text-white text-sm">Одежда</div>
+                <div class="text-white/40 text-xs font-normal mt-0.5">Худи, футболки, джинсы, куртки</div>
+              </div>
+              <span class="text-white/30 text-sm">➔</span>
+            </button>
+            <button type="button" class="gx-sheet-opt font-bold flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-2xl w-full text-left cursor-pointer transition active:scale-95" onclick="window.selectBroadGroup('Аксессуары')">
+              <span class="text-2xl">👜</span>
+              <div class="flex-1">
+                <div class="text-white text-sm">Аксессуары</div>
+                <div class="text-white/40 text-xs font-normal mt-0.5">Рюкзаки, очки, часы, ремни, парфюм</div>
+              </div>
+              <span class="text-white/30 text-sm">➔</span>
+            </button>
+          </div>
+        `;
+      };
+      
+      window.selectBroadGroup = (g) => {
+        const pref = window._activeCategoryPickerPrefix || 'calc';
+        const gend = document.getElementById(`${pref}Gender`)?.value || 'Унисекс';
+        const curVal = document.getElementById(`${pref}Category`)?.value || '';
+        tgUtil.haptic('light');
+        let filtered = CATEGORY_MAP.filter(c => c.broad === g);
+        if (gend === 'Мужской') {
+          filtered = filtered.filter(c => !['Платье', 'Юбка', 'Купальник'].includes(c.value));
+        }
+        
+        const backBtn = `
+          <button type="button" class="flex items-center gap-1.5 px-4 py-3 text-cyan-400 font-bold text-xs bg-white/5 w-full text-left border-b border-white/5 transition hover:bg-white/10 cursor-pointer" onclick="window.renderStep1()">
+            <span>←</span>
+            <span>Назад к категориям</span>
+          </button>
+        `;
+        
+        const items = filtered.map(c => {
+          const isSelected = (c.value === curVal);
+          const iconHtml = c.icon ? ix(c.icon, { size: '20px' }) : '';
+          return `
+            <button type="button" class="w-full flex justify-between items-center p-4 bg-transparent border-0 border-b border-white/5 text-white cursor-pointer text-left transition hover:bg-white/5" onclick="window.selectSubcategory('${escapeHtml(c.value)}', '${escapeHtml(g)}')">
+              <span class="flex items-center gap-3">
+                ${iconHtml}
+                <span class="text-sm font-semibold">${escapeHtml(c.value)}</span>
+              </span>
+              <span class="text-cyan-400 transition-opacity duration-200" style="opacity: ${isSelected ? 1 : 0};">
+                ${ix('check', { size: '18px' })}
+              </span>
+            </button>
+          `;
+        }).join('');
+        
+        list.innerHTML = backBtn + `<div class="flex flex-col">${items}</div>`;
+      };
+      
+      window.selectSubcategory = (val, broad) => {
+        const pref = window._activeCategoryPickerPrefix || 'calc';
+        tgUtil.haptic('medium');
+        const hiddenCategory = document.getElementById(`${pref}Category`);
+        const categoryText = document.getElementById(`${pref}CategorySelectedText`);
+        
+        if (hiddenCategory && categoryText) {
+          hiddenCategory.value = val;
+          categoryText.innerText = `${broad} / ${val}`;
+          categoryText.classList.remove('text-white/40');
+          categoryText.classList.add('text-white');
+          hiddenCategory.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        
+        // Also set default size suggestions list
+        const sizeInput = document.getElementById(`${pref}Size`);
+        if (sizeInput) sizeInput.value = '';
+        
+        closeSheet();
+      };
+
+      renderStep1();
+      document.body.appendChild(overlay);
+      
+      const closeSheet = () => {
+        overlay.classList.remove('show');
+        setTimeout(() => overlay.remove(), 300);
+      };
+      
+      overlay.querySelector('.gx-sheet-close').addEventListener('click', closeSheet);
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeSheet();
+      });
+    };
+
+    async function attachCalculatorHandlers() {
       // Trigger dynamic loads
       if (!window.activeMarketplaces || window.activeMarketplaces.length === 0) {
         try {
@@ -7119,124 +7244,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         }, 1000);
       };
 
-      window.openCategoryPickerSheet = () => {
-        const gender = document.getElementById('calcGender')?.value || 'Унисекс';
-        const overlay = document.createElement('div');
-        overlay.className = 'gx-sheet-overlay show';
-        
-        overlay.innerHTML = `
-          <div class="gx-sheet" role="dialog" aria-modal="true" style="max-height: 80vh; display: flex; flex-direction: column;">
-            <div class="gx-sheet-handle"></div>
-            <div class="gx-sheet-header" style="flex-shrink: 0;">
-              <div class="gx-sheet-title">Выбор категории товара</div>
-              <button class="gx-sheet-close" aria-label="Закрыть">${ix('x', { size: '18px' })}</button>
-            </div>
-            <div class="gx-sheet-list" role="listbox" style="flex-grow: 1; overflow-y: auto; padding-bottom: 24px;">
-              <!-- Dynamic step rendering -->
-            </div>
-          </div>
-        `;
-        
-        const list = overlay.querySelector('.gx-sheet-list');
-        const currentVal = document.getElementById('calcCategory')?.value || '';
-        
-        window.renderStep1 = () => {
-          list.innerHTML = `
-            <div class="p-4 flex flex-col gap-3">
-              <button type="button" class="gx-sheet-opt font-bold flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-2xl w-full text-left cursor-pointer transition active:scale-95" onclick="window.selectBroadGroup('Обувь')">
-                <span class="text-2xl">👟</span>
-                <div class="flex-1">
-                  <div class="text-white text-sm">Обувь</div>
-                  <div class="text-white/40 text-xs font-normal mt-0.5">Кроссовки, кеды, туфли, ботинки</div>
-                </div>
-                <span class="text-white/30 text-sm">➔</span>
-              </button>
-              <button type="button" class="gx-sheet-opt font-bold flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-2xl w-full text-left cursor-pointer transition active:scale-95" onclick="window.selectBroadGroup('Одежда')">
-                <span class="text-2xl">👕</span>
-                <div class="flex-1">
-                  <div class="text-white text-sm">Одежда</div>
-                  <div class="text-white/40 text-xs font-normal mt-0.5">Худи, футболки, джинсы, куртки</div>
-                </div>
-                <span class="text-white/30 text-sm">➔</span>
-              </button>
-              <button type="button" class="gx-sheet-opt font-bold flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-2xl w-full text-left cursor-pointer transition active:scale-95" onclick="window.selectBroadGroup('Аксессуары')">
-                <span class="text-2xl">👜</span>
-                <div class="flex-1">
-                  <div class="text-white text-sm">Аксессуары</div>
-                  <div class="text-white/40 text-xs font-normal mt-0.5">Рюкзаки, очки, часы, ремни, парфюм</div>
-                </div>
-                <span class="text-white/30 text-sm">➔</span>
-              </button>
-            </div>
-          `;
-        };
-        
-        window.selectBroadGroup = (g) => {
-          tgUtil.haptic('light');
-          let filtered = CATEGORY_MAP.filter(c => c.broad === g);
-          if (gender === 'Мужской') {
-            filtered = filtered.filter(c => !['Платье', 'Юбка', 'Купальник'].includes(c.value));
-          }
-          
-          const backBtn = `
-            <button type="button" class="flex items-center gap-1.5 px-4 py-3 text-cyan-400 font-bold text-xs bg-white/5 w-full text-left border-b border-white/5 transition hover:bg-white/10 cursor-pointer" onclick="window.renderStep1()">
-              <span>←</span>
-              <span>Назад к категориям</span>
-            </button>
-          `;
-          
-          const items = filtered.map(c => {
-            const isSelected = (c.value === currentVal);
-            const iconHtml = c.icon ? ix(c.icon, { size: '20px' }) : '';
-            return `
-              <button type="button" class="w-full flex justify-between items-center p-4 bg-transparent border-0 border-b border-white/5 text-white cursor-pointer text-left transition hover:bg-white/5" onclick="window.selectSubcategory('${escapeHtml(c.value)}', '${escapeHtml(g)}')">
-                <span class="flex items-center gap-3">
-                  ${iconHtml}
-                  <span class="text-sm font-semibold">${escapeHtml(c.value)}</span>
-                </span>
-                <span class="text-cyan-400 transition-opacity duration-200" style="opacity: ${isSelected ? 1 : 0};">
-                  ${ix('check', { size: '18px' })}
-                </span>
-              </button>
-            `;
-          }).join('');
-          
-          list.innerHTML = backBtn + `<div class="flex flex-col">${items}</div>`;
-        };
-        
-        window.selectSubcategory = (val, broad) => {
-          tgUtil.haptic('medium');
-          const hiddenCategory = document.getElementById('calcCategory');
-          const categoryText = document.getElementById('calcCategorySelectedText');
-          
-          if (hiddenCategory && categoryText) {
-            hiddenCategory.value = val;
-            categoryText.innerText = `${broad} / ${val}`;
-            categoryText.classList.remove('text-white/40');
-            categoryText.classList.add('text-white');
-            hiddenCategory.dispatchEvent(new Event('change', { bubbles: true }));
-          }
-          
-          // Also set default size suggestions list
-          const sizeInput = document.getElementById('calcSize');
-          if (sizeInput) sizeInput.value = '';
-          
-          closeSheet();
-        };
-
-        renderStep1();
-        document.body.appendChild(overlay);
-        
-        const closeSheet = () => {
-          overlay.classList.remove('show');
-          setTimeout(() => overlay.remove(), 300);
-        };
-        
-        overlay.querySelector('.gx-sheet-close').addEventListener('click', closeSheet);
-        overlay.addEventListener('click', (e) => {
-          if (e.target === overlay) closeSheet();
-        });
-      };
+      // openCategoryPickerSheet moved to global scope;
 
       window.addCalcToCart = async () => {
         if (!userId) {
