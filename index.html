@@ -4778,6 +4778,18 @@ let adminOrdersTotalPages = 1;
     let userLimits = { dailyCount: 0, lastDate: null, isTrusted: false };
     let userPaidOrdersCount = 0;
     
+    const ALL_COUNTRIES = [
+      { code: 'CN', name: 'Китай', platforms: 'Poizon, Taobao, 1688', flag: '🇨🇳', desc: 'Огромный выбор, лучшие цены на оригиналы', active: true },
+      { code: 'RU', name: 'Россия', platforms: 'WB, Ozon, Lamoda', flag: '🇷🇺', desc: 'Сверхбыстрая доставка, без пошлин ЕАЭС', active: false },
+      { code: 'EU', name: 'Евросоюз', platforms: 'Zalando, ASOS, Farfetch', flag: '🇪🇺', desc: '100% оригинальные европейские коллекции', active: false },
+      { code: 'US', name: 'США', platforms: 'StockX, eBay, Amazon', flag: '🇺🇸', desc: 'Доставка брендовых вещей из-за океана', active: false },
+      { code: 'TR', name: 'Турция', platforms: 'Trendyol, Zara, H&M', flag: '🇹🇷', desc: 'Выгодный шопинг из турецких магазинов', active: false },
+      { code: 'JP', name: 'Япония', platforms: 'Mercari, Yahoo, Rakuten', flag: '🇯🇵', desc: 'Уникальные товары и аукционы Японии', active: false },
+      { code: 'KR', name: 'Южная Корея', platforms: 'Kream, Musinsa, Coupang', flag: '🇰🇷', desc: 'Корейская мода и косметика напрямую', active: false },
+      { code: 'VN', name: 'Вьетнам', platforms: 'Shopee, Lazada, Tiki', flag: '🇻🇳', desc: 'Доступные цены из местных маркетплейсов', active: false },
+      { code: 'AE', name: 'ОАЭ', platforms: 'Amazon, Noon, Ounass', flag: '🇦🇪', desc: 'Доставка из торговых центров и сайтов Дубая', active: false }
+    ];
+
     const LIMITS_CONFIG = {
       guest: { manual: 3, ai: 1 },
       registered: {
@@ -5804,6 +5816,32 @@ let adminOrdersTotalPages = 1;
         tgUtil.setBackButton(null);
         return;
       }
+      
+      if (currentTab === 'new-order') {
+        tgUtil.setBackButton(() => {
+          tgUtil.haptic('light');
+          if (window.orderAddMode) {
+            if (window.orderAddSubMode) {
+              window.orderAddSubMode = null;
+              window.orderLinkAnalyzed = false;
+              renderCurrentScreen();
+              syncTelegramBackButton();
+            } else {
+              window.orderAddMode = false;
+              renderCurrentScreen();
+              syncTelegramBackButton();
+            }
+            return;
+          }
+          if (previousTab && previousTab !== currentTab) {
+            switchTab(previousTab);
+          } else {
+            switchTab('home');
+          }
+        });
+        return;
+      }
+
       tgUtil.setBackButton(() => {
         tgUtil.haptic('light');
         if (currentSubScreen) {
@@ -6260,7 +6298,59 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         `;
       }
 
-      // ── Step 1: Mode Selection Overlay (if no mode selected yet) ──
+      // ── Step 1: Country Selection Overlay (if no country selected yet) ──
+      if (!window.calcCountry) {
+        return `
+          <div class="flex items-center justify-center min-h-[70vh] p-2 page-enter">
+            <div class="glass-card w-full max-w-md p-6 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
+              <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
+              <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
+
+              <button type="button" class="absolute top-4 left-4 text-white/60 hover:text-cyan-400 text-xs font-bold transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.switchTab('home');">
+                ← Назад
+              </button>
+
+              <h2 class="text-xl font-extrabold text-white text-center mb-1 mt-4">Выберите страну отправления</h2>
+              <p class="text-white/60 text-xs text-center mb-5">От страны зависят тарифы на доставку и сроки</p>
+
+              <div class="flex flex-col gap-2.5 max-h-[50vh] overflow-y-auto pr-1">
+                ${ALL_COUNTRIES.map(c => {
+                  if (c.active) {
+                    return `
+                      <div class="border border-white/10 hover:border-cyan-500/50 p-3.5 rounded-2xl bg-white/5 cursor-pointer transition-all duration-200" onclick="window.selectCalculatorCountry('${c.code}')">
+                        <div class="flex items-center gap-3">
+                          <div class="text-2xl">${c.flag}</div>
+                          <div class="flex-1 text-left">
+                            <h3 class="font-bold text-white text-sm">${c.name} (${c.platforms})</h3>
+                            <p class="text-white/40 text-[10px] leading-normal mt-0.5">${c.desc}</p>
+                          </div>
+                          <span class="text-cyan-400 text-xs font-bold bg-cyan-500/10 px-2 py-0.5 rounded-lg border border-cyan-500/20">Работает</span>
+                        </div>
+                      </div>
+                    `;
+                  } else {
+                    return `
+                      <div class="border border-white/5 p-3.5 rounded-2xl bg-white/[0.02] opacity-50 cursor-pointer transition-all duration-200" onclick="window.selectCalculatorCountry('${c.code}')">
+                        <div class="flex items-center gap-3">
+                          <div class="text-2xl">${c.flag}</div>
+                          <div class="flex-1 text-left">
+                            <h3 class="font-bold text-white/70 text-sm">${c.name} (${c.platforms})</h3>
+                            <p class="text-white/30 text-[10px] leading-normal mt-0.5">${c.desc}</p>
+                          </div>
+                          <span class="text-white/40 text-[10px] font-semibold bg-white/5 px-2 py-0.5 rounded-lg border border-white/10">Скоро</span>
+                        </div>
+                      </div>
+                    `;
+                  }
+                }).join('')}
+              </div>
+            </div>
+          </div>
+          ${renderFooter()}
+        `;
+      }
+
+      // ── Step 1.5: Mode Selection Overlay (if country selected but no mode selected yet) ──
       if (!window.currentCalcMode) {
         const guestWarn = !limits.isRegistered 
           ? `<p class="text-amber-400 text-[10px] mt-1 text-center font-semibold">⚠️ Зарегистрируйтесь, чтобы получить безлимит вручную и больше ИИ-расчетов!</p>`
@@ -6289,11 +6379,15 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
               <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
 
+              <button type="button" class="absolute top-4 left-4 text-white/60 hover:text-cyan-400 text-xs font-bold transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.calcCountry=null; renderCurrentScreen();">
+                ← Назад
+              </button>
+
               <button type="button" class="absolute top-4 right-4 text-white/40 hover:text-cyan-400 text-[10px] font-bold bg-white/5 border border-white/10 px-2 py-1.5 rounded-lg transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.switchTab('history'); window._historySubScreen = 'calculations'; window.renderCurrentScreen();">
                 🕒 История
               </button>
 
-              <h2 class="text-xl font-extrabold text-white text-center mb-1">ICE LOGIX Калькулятор</h2>
+              <h2 class="text-xl font-extrabold text-white text-center mb-1 mt-4">ICE LOGIX Калькулятор</h2>
               <p class="text-white/60 text-xs text-center mb-5">Выберите способ расчета стоимости товара</p>
               
               ${vacationBanner}
@@ -6349,23 +6443,6 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                     </div>
                   </div>
                 </div>
-
-                <!-- Description -->
-                <div class="calc-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.selectCalculatorMode('text')">
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400 text-lg">
-                      📝
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <h3 class="font-bold text-white text-sm">По описанию</h3>
-                      <p class="text-white/50 text-[11px] leading-normal mt-0.5">Введите то, что знаете о товаре, и выберите нужный из списка. Нейросеть сама заполнит все данные.</p>
-                      <div class="text-[10px] text-amber-400 font-bold mt-1.5 flex items-center gap-1">
-                        <span>🔮 Лимит ИИ:</span>
-                        <span>${limits.ai.remaining}/${limits.ai.max} расчетов осталось на день</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
               ${guestWarn}
               <div class="text-center mt-4 border-t border-white/5 pt-3">
@@ -6377,85 +6454,13 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         `;
       }
 
-      // ── Step 1.5: Country Selection Overlay (if mode selected but country not yet) ──
-      if (!window.calcCountry) {
-        return `
-          <div class="flex items-center justify-center min-h-[70vh] p-2 page-enter">
-            <div class="glass-card w-full max-w-md p-6 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
-              <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
-              <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
-
-              <button type="button" class="absolute top-4 left-4 text-white/60 hover:text-cyan-400 text-xs font-bold transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.currentCalcMode=null; renderCurrentScreen();">
-                ← Назад
-              </button>
-
-              <h2 class="text-xl font-extrabold text-white text-center mb-1 mt-4">Выберите страну отправления</h2>
-              <p class="text-white/60 text-xs text-center mb-5">От страны зависят тарифы на доставку и сроки</p>
-
-              <div class="flex flex-col gap-2.5 max-h-[50vh] overflow-y-auto pr-1">
-                <!-- CN (Active) -->
-                <div class="border border-white/10 hover:border-cyan-500/50 p-3.5 rounded-2xl bg-white/5 cursor-pointer transition-all duration-200" onclick="window.selectCalculatorCountry('CN')">
-                  <div class="flex items-center gap-3">
-                    <div class="text-2xl">🇨🇳</div>
-                    <div class="flex-1 text-left">
-                      <h3 class="font-bold text-white text-sm">Китай</h3>
-                      <p class="text-white/40 text-[10px] leading-normal mt-0.5">Доставка из Poizon, Taobao, 1688, Dewu</p>
-                    </div>
-                    <span class="text-cyan-400 text-xs font-bold bg-cyan-500/10 px-2 py-0.5 rounded-lg border border-cyan-500/20">Работает</span>
-                  </div>
-                </div>
-                
-                <!-- Others (Inactive) -->
-                ${[
-                  { code: 'RU', name: 'Россия', flag: '🇷🇺', desc: 'Доставка из WB, Lamoda, Ozon' },
-                  { code: 'EU', name: 'Евросоюз', flag: '🇪🇺', desc: 'Доставка из Zalando, ASOS, Farfetch' },
-                  { code: 'US', name: 'США', flag: '🇺🇸', desc: 'Доставка из StockX, eBay, Amazon' },
-                  { code: 'TR', name: 'Турция', flag: '🇹🇷', desc: 'Доставка из Trendyol, Zara' },
-                  { code: 'JP', name: 'Япония', flag: '🇯🇵', desc: 'Доставка из Mercari, Yahoo' },
-                  { code: 'KR', name: 'Южная Корея', flag: '🇰🇷', desc: 'Доставка из Kream, Musinsa' },
-                  { code: 'VN', name: 'Вьетнам', flag: '🇻🇳', desc: 'Доставка из местных маркетплейсов' },
-                  { code: 'AE', name: 'ОАЭ', flag: '🇦🇪', desc: 'Доставка из торговых центров и сайтов Дубая' }
-                ].map(c => `
-                  <div class="border border-white/5 p-3.5 rounded-2xl bg-white/[0.02] opacity-50 cursor-pointer transition-all duration-200" onclick="window.selectCalculatorCountry('${c.code}')">
-                    <div class="flex items-center gap-3">
-                      <div class="text-2xl">${c.flag}</div>
-                      <div class="flex-1 text-left">
-                        <h3 class="font-bold text-white/70 text-sm">${c.name}</h3>
-                        <p class="text-white/30 text-[10px] leading-normal mt-0.5">${c.desc}</p>
-                      </div>
-                      <span class="text-white/40 text-[10px] font-semibold bg-white/5 px-2 py-0.5 rounded-lg border border-white/10">Скоро</span>
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          </div>
-          ${renderFooter()}
-        `;
-      }
-
       // ── Step 2: Calculator Form ──
       const modeText = window.currentCalcMode === 'manual' ? '✍️ Вручную' : window.currentCalcMode === 'link' ? '🔗 По ссылке' : window.currentCalcMode === 'photo' ? '📸 По фото' : '📝 По описанию';
       const showFormFields = (window.currentCalcMode !== 'link' || window.calcLinkAnalyzed);
       
-      const countryText = window.calcCountry === 'CN' 
-        ? '🇨🇳 Китай (возим)' 
-        : window.calcCountry === 'RU'
-        ? '🇷🇺 Россия (Скоро...)'
-        : window.calcCountry === 'EU'
-        ? '🇪🇺 Евросоюз (Скоро...)'
-        : window.calcCountry === 'US'
-        ? '🇺🇸 США (Скоро...)'
-        : window.calcCountry === 'TR'
-        ? '🇹🇷 Турция (Скоро...)'
-        : window.calcCountry === 'JP'
-        ? '🇯🇵 Япония (Скоро...)'
-        : window.calcCountry === 'KR'
-        ? '🇰🇷 Южная Корея (Скоро...)'
-        : window.calcCountry === 'VN'
-        ? '🇻🇳 Вьетнам (Скоро...)'
-        : window.calcCountry === 'AE'
-        ? '🇦🇪 ОАЭ (Скоро...)'
+      const selectedCountryObj = ALL_COUNTRIES.find(c => c.code === window.calcCountry);
+      const countryText = selectedCountryObj 
+        ? `${selectedCountryObj.flag} ${selectedCountryObj.name}`
         : '<span class="text-white/40">— выберите страну —</span>';
 
       return `
@@ -6478,7 +6483,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             <div class="flex justify-between items-center bg-white/5 p-2.5 rounded-xl border border-white/5">
               <div class="text-left">
                 <span class="text-[10px] text-white/40 block">Страна</span>
-                <span class="text-xs font-bold text-white">🇨🇳 Китай</span>
+                <span class="text-xs font-bold text-white">${countryText}</span>
               </div>
               <button type="button" class="text-[10px] text-cyan-400 font-bold bg-white/10 px-2 py-1 rounded-lg hover:bg-white/15 transition active:scale-95 border border-white/5" onclick="window.calcCountry=null; renderCurrentScreen()">
                 Сменить
@@ -6792,17 +6797,72 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         }, 50);
       } else {
         tgUtil.haptic('warning');
-        const countryNames = {
-          RU: 'Россия',
-          EU: 'Евросоюз',
-          US: 'США',
-          TR: 'Турция',
-          JP: 'Япония',
-          KR: 'Южная Корея',
-          VN: 'Вьетнам',
-          AE: 'ОАЭ'
-        };
-        glassToast(`Направление (${countryNames[c] || c}) временно недоступно. Скоро мы запустим доставку из этой страны!`, { kind: 'info' });
+        const cObj = ALL_COUNTRIES.find(x => x.code === c);
+        const name = cObj ? cObj.name : c;
+        glassToast(`Направление (${name}) временно недоступно. Скоро мы запустим доставку из этой страны!`, { kind: 'info' });
+      }
+    };
+
+    window.selectImportedCalculation = (serializedData) => {
+      try {
+        const c = JSON.parse(decodeURIComponent(serializedData));
+        tgUtil.haptic('success');
+        
+        window.orderAddSubMode = 'manual';
+        window.orderLinkAnalyzed = true;
+        
+        renderCurrentScreen();
+        
+        setTimeout(() => {
+          if (document.getElementById('orderUrlManual')) {
+            document.getElementById('orderUrlManual').value = c.url || '';
+          }
+          if (document.getElementById('orderBrand')) {
+            document.getElementById('orderBrand').value = c.brand || '';
+          }
+          if (document.getElementById('orderModel')) {
+            document.getElementById('orderModel').value = c.model || c.title || '';
+          }
+          if (document.getElementById('orderFeatures')) {
+            document.getElementById('orderFeatures').value = c.color || '';
+          }
+          if (document.getElementById('orderColor')) {
+            document.getElementById('orderColor').value = c.color || '';
+          }
+          if (document.getElementById('orderSize')) {
+            document.getElementById('orderSize').value = c.size || '';
+          }
+          if (document.getElementById('orderWeight')) {
+            document.getElementById('orderWeight').value = c.weight || 1.0;
+            const weightVal = document.getElementById('orderWeightVal');
+            if (weightVal) weightVal.textContent = (c.weight || 1.0) + ' кг';
+          }
+          if (document.getElementById('orderPrice')) {
+            document.getElementById('orderPrice').value = c.price || 0;
+            document.getElementById('orderPrice').dispatchEvent(new Event('input', { bubbles: true }));
+          }
+          if (document.getElementById('orderCurrency')) {
+            document.getElementById('orderCurrency').value = c.currency || 'CNY';
+          }
+          if (document.getElementById('orderCategory')) {
+            document.getElementById('orderCategory').value = c.category || '';
+          }
+          if (document.getElementById('keepBox')) {
+            document.getElementById('keepBox').checked = c.keepBox || false;
+          }
+          
+          if (c.image_url) {
+            window.orderImportedImageUrl = c.image_url;
+            if (typeof window.renderManualPhotoPreviews === 'function') {
+              window.renderManualPhotoPreviews();
+            }
+          }
+          
+          glassToast('Данные расчета успешно импортированы!', { kind: 'success' });
+        }, 50);
+      } catch(e) {
+        console.error(e);
+        glassToast('Ошибка импорта расчета', { kind: 'error' });
       }
     };
 
@@ -9037,8 +9097,9 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       }
     }    // ==================== GLOBAL ORDER WIZARD STATE HELPERS ====================
     window.selectOrderCountry = (c) => {
-      if (c === 'CN') {
-        window.orderCountry = 'CN';
+      const cObj = ALL_COUNTRIES.find(x => x.code === c);
+      if (cObj && cObj.active) {
+        window.orderCountry = c;
         if (!window.tempOrder) {
           window.tempOrder = { items: [], total: 0, discountAmount: 0, appliedPromo: null, country: c };
         } else {
@@ -9051,18 +9112,20 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         setTimeout(() => {
           const currencySelect = document.getElementById('orderCurrency');
           if (currencySelect) {
-            currencySelect.value = 'CNY';
-            currencySelect.disabled = true;
-            currencySelect.classList.add('cursor-not-allowed', 'opacity-60');
+            if (c === 'CN') {
+              currencySelect.value = 'CNY';
+              currencySelect.disabled = true;
+              currencySelect.classList.add('cursor-not-allowed', 'opacity-60');
+            } else {
+              currencySelect.disabled = false;
+              currencySelect.classList.remove('cursor-not-allowed', 'opacity-60');
+            }
           }
         }, 50);
       } else {
         tgUtil.haptic('warning');
-        const countryNames = {
-          PL: 'Польша / ЕС',
-          RU: 'Россия'
-        };
-        glassToast(`Направление (${countryNames[c] || c}) временно недоступно. Скоро мы запустим доставку из этой страны!`, { kind: 'info' });
+        const name = cObj ? cObj.name : c;
+        glassToast(`Направление (${name}) временно недоступно. Скоро мы запустим доставку из этой страны!`, { kind: 'info' });
       }
     };
 
@@ -9089,6 +9152,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
     window.stopOrderAddMode = () => {
       window.orderAddMode = false;
+      window.orderImportedImageUrl = null;
       if (typeof tgUtil !== 'undefined') {
         tgUtil.hideMainButton();
         tgUtil.setBackButton(null);
@@ -9482,10 +9546,69 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         window.orderAddMode = true;
       }
 
-      if (window.orderAddMode) {
-        // ── STEP A: Mode Selection Overlay (if no mode selected yet) ──
-        if (!window.orderAddSubMode) {
+        // ── STEP A: Country Selection Overlay (if no country selected yet) ──
+        if (!window.orderCountry) {
           return `
+            <div class="flex items-center justify-center min-h-[70vh] p-2 page-enter">
+              <div class="glass-card w-full max-w-md p-6 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
+                <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
+                <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
+
+                ${window.tempOrder.items.length > 0 ? `
+                  <button type="button" class="absolute top-4 left-4 text-white/60 hover:text-white text-xs font-bold transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.orderAddMode=false; renderCurrentScreen();">
+                    ← Назад
+                  </button>
+                ` : `
+                  <button type="button" class="absolute top-4 left-4 text-white/60 hover:text-white text-xs font-bold transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.switchTab('home');">
+                    ← Назад
+                  </button>
+                `}
+
+                <h2 class="text-xl font-extrabold text-white text-center mb-1 mt-4">Выберите страну отправления</h2>
+                <p class="text-white/60 text-xs text-center mb-5">От страны зависят тарифы на доставку и пошлины</p>
+
+                <div class="flex flex-col gap-2.5 max-h-[50vh] overflow-y-auto pr-1">
+                  ${ALL_COUNTRIES.map(c => {
+                    if (c.active) {
+                      return `
+                        <div class="border border-white/10 hover:border-cyan-500/50 p-3.5 rounded-2xl bg-white/5 cursor-pointer transition-all duration-200" onclick="window.selectOrderCountry('${c.code}')">
+                          <div class="flex items-center gap-3">
+                            <div class="text-2xl">${c.flag}</div>
+                            <div class="flex-1 text-left">
+                              <h3 class="font-bold text-white text-sm">${c.name} (${c.platforms})</h3>
+                              <p class="text-white/40 text-[10px] leading-normal mt-0.5">${c.desc}</p>
+                            </div>
+                            <span class="text-cyan-400 text-xs font-bold bg-cyan-500/10 px-2 py-0.5 rounded-lg border border-cyan-500/20">Работает</span>
+                          </div>
+                        </div>
+                      `;
+                    } else {
+                      return `
+                        <div class="border border-white/5 p-3.5 rounded-2xl bg-white/[0.02] opacity-50 cursor-pointer transition-all duration-200" onclick="window.selectOrderCountry('${c.code}')">
+                          <div class="flex items-center gap-3">
+                            <div class="text-2xl">${c.flag}</div>
+                            <div class="flex-1 text-left">
+                              <h3 class="font-bold text-white/70 text-sm">${c.name} (${c.platforms})</h3>
+                              <p class="text-white/30 text-[10px] leading-normal mt-0.5">${c.desc}</p>
+                            </div>
+                            <span class="text-white/40 text-[10px] font-semibold bg-white/5 px-2 py-0.5 rounded-lg border border-white/10">Скоро</span>
+                          </div>
+                        </div>
+                      `;
+                    }
+                  }).join('')}
+                </div>
+              </div>
+            </div>
+            ${renderFooter()}
+          `;
+        }
+
+        if (window.orderAddMode) {
+          // ── STEP B: Mode Selection Overlay (if country selected but no mode selected yet) ──
+          if (!window.orderAddSubMode) {
+            const limits = await getCalculatorLimits();
+            return `
             <style>
               .order-mode-card {
                 transition: all 0.2s ease-in-out;
@@ -9508,27 +9631,25 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
                 <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
 
-                ${window.tempOrder.items.length > 0 ? `
-                  <button type="button" class="absolute top-4 left-4 text-white/60 hover:text-white text-xs font-bold transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.orderAddMode=false; renderCurrentScreen();">
-                    ← Назад
-                  </button>
-                ` : ''}
+                <button type="button" class="absolute top-4 left-4 text-white/60 hover:text-cyan-400 text-xs font-bold transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.orderCountry=null; renderCurrentScreen();">
+                  ← Назад
+                </button>
 
-                <h2 class="text-xl font-extrabold text-white text-center mb-1">Добавление товара в заказ</h2>
+                <h2 class="text-xl font-extrabold text-white text-center mb-1 mt-4">Добавление товара в заказ</h2>
                 <p class="text-white/60 text-xs text-center mb-5">Выберите способ добавления товара</p>
                 
                 ${vacationBanner}
 
                 <div class="flex flex-col gap-3">
-                  <!-- Manual -->
-                  <div class="order-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.setOrderAddSubMode('manual')">
+                  <!-- Import from calculator -->
+                  <div class="order-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.setOrderAddSubMode('import')">
                     <div class="flex items-center gap-3">
-                      <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center text-cyan-400 text-lg">
-                        ✍️
+                      <div class="w-10 h-10 rounded-xl bg-green-500/10 border border-green-500/25 flex items-center justify-center text-green-400 text-lg">
+                        📥
                       </div>
                       <div class="flex-1 min-w-0">
-                        <h3 class="font-bold text-white text-sm">Вручную</h3>
-                        <p class="text-white/50 text-[11px] leading-normal mt-0.5">Введите параметры товара самостоятельно.</p>
+                        <h3 class="font-bold text-white text-sm">Импорт из расчетов</h3>
+                        <p class="text-white/50 text-[11px] leading-normal mt-0.5">Выберите готовый расчет из вашей истории калькулятора.</p>
                       </div>
                     </div>
                   </div>
@@ -9540,8 +9661,12 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                         🔗
                       </div>
                       <div class="flex-1 min-w-0">
-                        <h3 class="font-bold text-white text-sm">По ссылке</h3>
+                        <h3 class="font-bold text-white text-sm">Заказать по ссылке</h3>
                         <p class="text-white/50 text-[11px] leading-normal mt-0.5">Вставьте ссылку на товар — нейросеть заполнит форму сама.</p>
+                        <div class="text-[10px] text-purple-400 font-bold mt-1.5 flex items-center gap-1">
+                          <span>🔮 Лимит ИИ:</span>
+                          <span>${limits.ai.remaining}/${limits.ai.max} расчетов осталось на день</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -9553,8 +9678,12 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                         📸
                       </div>
                       <div class="flex-1 min-w-0">
-                        <h3 class="font-bold text-white text-sm">По фото</h3>
+                        <h3 class="font-bold text-white text-sm">Заказать по фото</h3>
                         <p class="text-white/50 text-[11px] leading-normal mt-0.5">Поиск товара по изображению и автозаполнение.</p>
+                        <div class="text-[10px] text-pink-400 font-bold mt-1.5 flex items-center gap-1">
+                          <span>🔮 Лимит ИИ:</span>
+                          <span>${limits.ai.remaining}/${limits.ai.max} расчетов осталось на день</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -9566,62 +9695,32 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                         📝
                       </div>
                       <div class="flex-1 min-w-0">
-                        <h3 class="font-bold text-white text-sm">По описанию</h3>
+                        <h3 class="font-bold text-white text-sm">Заказать по описанию</h3>
                         <p class="text-white/50 text-[11px] leading-normal mt-0.5">Текстовое описание товара для автоподбора параметров.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            ${renderFooter()}
-          `;
-        }
-
-        // ── STEP B: Country Selection Overlay (if mode selected but country not yet) ──
-        if (!window.orderCountry) {
-          return `
-            <div class="flex items-center justify-center min-h-[70vh] p-2 page-enter">
-              <div class="glass-card w-full max-w-md p-6 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
-                <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
-                <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
-
-                <button type="button" class="absolute top-4 left-4 text-white/60 hover:text-cyan-400 text-xs font-bold transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.orderAddSubMode=null; renderCurrentScreen();">
-                  ← Назад
-                </button>
-
-                <h2 class="text-xl font-extrabold text-white text-center mb-1 mt-4">Выберите страну доставки</h2>
-                <p class="text-white/60 text-xs text-center mb-5">От страны зависят тарифы на доставку и пошлины</p>
-
-                <div class="flex flex-col gap-2.5 max-h-[50vh] overflow-y-auto pr-1">
-                  <!-- CN (Active) -->
-                  <div class="border border-white/10 hover:border-cyan-500/50 p-3.5 rounded-2xl bg-white/5 cursor-pointer transition-all duration-200" onclick="window.selectOrderCountry('CN')">
-                    <div class="flex items-center gap-3">
-                      <div class="text-2xl">🇨🇳</div>
-                      <div class="flex-1 text-left">
-                        <h3 class="font-bold text-white text-sm">Китай (Poizon, Taobao, 1688)</h3>
-                        <p class="text-white/40 text-[10px] leading-normal mt-0.5">Огромный выбор, лучшие цены на оригиналы</p>
-                      </div>
-                      <span class="text-cyan-400 text-xs font-bold bg-cyan-500/10 px-2 py-0.5 rounded-lg border border-cyan-500/20">Работает</span>
-                    </div>
-                  </div>
-                  
-                  <!-- Others (Inactive) -->
-                  ${[
-                    { code: 'PL', name: 'Польша / ЕС (Zalando, ASOS, Farfetch)', flag: '🇵🇱', desc: '100% оригинальные европейские коллекции' },
-                    { code: 'RU', name: 'Россия (WB, Lamoda, Ozon)', flag: '🇷🇺', desc: 'Сверхбыстрая доставка, без пошлин ЕАЭС' }
-                  ].map(c => `
-                    <div class="border border-white/5 p-3.5 rounded-2xl bg-white/[0.02] opacity-50 cursor-pointer transition-all duration-200" onclick="window.selectOrderCountry('${c.code}')">
-                      <div class="flex items-center gap-3">
-                        <div class="text-2xl">${c.flag}</div>
-                        <div class="flex-1 text-left">
-                          <h3 class="font-bold text-white/70 text-sm">${c.name}</h3>
-                          <p class="text-white/30 text-[10px] leading-normal mt-0.5">${c.desc}</p>
+                        <div class="text-[10px] text-amber-400 font-bold mt-1.5 flex items-center gap-1">
+                          <span>🔮 Лимит ИИ:</span>
+                          <span>${limits.ai.remaining}/${limits.ai.max} расчетов осталось на день</span>
                         </div>
-                        <span class="text-white/40 text-[10px] font-semibold bg-white/5 px-2 py-0.5 rounded-lg border border-white/10">Скоро</span>
                       </div>
                     </div>
-                  `).join('')}
+                  </div>
+
+                  <!-- Manual -->
+                  <div class="order-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.setOrderAddSubMode('manual')">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center text-cyan-400 text-lg">
+                        ✍️
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <h3 class="font-bold text-white text-sm">Указать вручную (без ссылки)</h3>
+                        <p class="text-white/50 text-[11px] leading-normal mt-0.5">Введите параметры товара самостоятельно.</p>
+                        <div class="text-[10px] text-cyan-400 font-bold mt-1.5 flex items-center gap-1">
+                          <span>📊 Лимит:</span>
+                          <span>${limits.manual.max === Infinity ? 'Безлимитно расчетов на день' : `${limits.manual.remaining}/${limits.manual.max} расчетов осталось на день`}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -9631,8 +9730,57 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
         // ── STEP C: Product addition Form ──
         const subMode = window.orderAddSubMode;
-        const subModeText = subMode === 'manual' ? '✍️ Вручную' : subMode === 'link' ? '🔗 По ссылке' : subMode === 'photo' ? '📸 По фото' : '📝 По описанию';
-        const showFormFields = (subMode !== 'link' || window.orderLinkAnalyzed);
+        const subModeText = subMode === 'manual' ? '✍️ Вручную' : subMode === 'link' ? '🔗 По ссылке' : subMode === 'photo' ? '📸 По фото' : subMode === 'import' ? '📥 Из расчетов' : '📝 По описанию';
+        const showFormFields = (subMode !== 'link' && subMode !== 'import' || window.orderLinkAnalyzed);
+
+        let importListHtml = '';
+        if (subMode === 'import') {
+          let calculations = [];
+          try {
+            calculations = JSON.parse(localStorage.getItem('ice_calc_history') || '[]');
+          } catch(e) {}
+          
+          const filteredCalcs = calculations.filter(c => c.country === window.orderCountry);
+          if (filteredCalcs.length === 0) {
+            importListHtml = `
+              <div class="text-center py-8 text-white/50 text-xs bg-white/5 rounded-2xl border border-white/10 p-4">
+                <span class="text-2xl mb-2 block">📭</span>
+                <p class="font-semibold">История расчетов для этой страны пуста</p>
+                <p class="mt-1 text-white/30 text-[10px]">Сначала сделайте расчет в Калькуляторе для страны: ${window.orderCountry === 'CN' ? 'Китай' : window.orderCountry}</p>
+              </div>
+            `;
+          } else {
+            importListHtml = filteredCalcs.slice(0, 15).map(c => {
+              const dateStr = new Date(c.timestamp).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+              const imageHtml = c.image_url 
+                ? `<img src="${escHtmlC(c.image_url)}" class="w-12 h-12 object-cover rounded-xl border border-white/10 flex-shrink-0" onerror="this.style.display='none'">` 
+                : '';
+              const serialized = encodeURIComponent(JSON.stringify(c));
+              return `
+                <div class="glass-card p-3 flex gap-3 border border-white/5 hover:border-cyan-500/30 cursor-pointer transition active:scale-[0.99] text-left" onclick="window.selectImportedCalculation('${serialized}')">
+                  ${imageHtml}
+                  <div class="flex-1 min-w-0 flex flex-col justify-between">
+                    <div class="flex justify-between items-center text-[9px] text-white/40 mb-1">
+                      <span>⏱️ ${dateStr}</span>
+                      <span>${escHtmlC(c.marketplace || 'Poizon')}</span>
+                    </div>
+                    <h4 class="text-white font-bold text-xs truncate" title="${escHtmlC(c.title || 'Товар без названия')}">${escHtmlC(c.title || 'Товар без названия')}</h4>
+                    <p class="text-white/50 text-[10px] mt-0.5">Размер: ${escHtmlC(c.size || '—')} · Цвет: ${escHtmlC(c.color || '—')} · ${c.weight || 1.0} кг</p>
+                  </div>
+                  <div class="flex flex-col justify-center items-end ml-2 pl-2 border-l border-white/5">
+                    <span class="text-cyan-400 font-extrabold text-xs font-mono">${c.total_byn ? c.total_byn.toFixed(2) : '0.00'} BYN</span>
+                    <span class="text-[9px] text-cyan-400/80 font-bold bg-cyan-500/10 px-1.5 py-0.5 rounded-lg border border-cyan-500/20 mt-1">Выбрать</span>
+                  </div>
+                </div>
+              `;
+            }).join('');
+          }
+        }
+
+        const selectedOrderCountryObj = ALL_COUNTRIES.find(c => c.code === window.orderCountry);
+        const countryText = selectedOrderCountryObj 
+          ? `${selectedOrderCountryObj.flag} ${selectedOrderCountryObj.name}`
+          : (window.orderCountry || '');
 
         return `
           <div class="glass-card page-enter relative">
@@ -9654,7 +9802,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               <div class="flex justify-between items-center bg-white/5 p-2.5 rounded-xl border border-white/5">
                 <div class="text-left">
                   <span class="text-[10px] text-white/40 block">Страна</span>
-                  <span class="text-xs font-bold text-white">${window.orderCountry === 'CN' ? '🇨🇳 Китай' : window.orderCountry || ''}</span>
+                  <span class="text-xs font-bold text-white">${countryText}</span>
                 </div>
                 <button type="button" class="text-[10px] text-cyan-400 font-bold bg-white/10 px-2 py-1 rounded-lg hover:bg-white/15 transition active:scale-95 border border-white/5" onclick="window.orderCountry=null; renderCurrentScreen()">
                   Сменить
@@ -9663,6 +9811,14 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             </div>
 
             <!-- Mode-specific input views -->
+            <!-- Import Pane -->
+            <div id="paneOrderImport" class="mode-pane ${subMode === 'import' ? '' : 'hidden'} mb-4">
+              <label class="text-white/70 text-sm block mb-2">Выберите расчет для импорта</label>
+              <div class="flex flex-col gap-2.5 max-h-[50vh] overflow-y-auto pr-1">
+                ${importListHtml}
+              </div>
+            </div>
+
             <!-- Link Pane -->
             <div id="paneOrderLink" class="mode-pane ${subMode === 'link' ? '' : 'hidden'} mb-4">
               <label class="text-white/70 text-sm block mb-1">Ссылка на товар <span class="text-red-400 font-bold">*</span></label>
@@ -11094,17 +11250,30 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         const manualPhotoFiles = [];
         function renderManualPhotoPreviews() {
           if (!manualPhotoPreview) return;
-          if (manualPhotoFiles.length === 0) {
+          if (manualPhotoFiles.length === 0 && !window.orderImportedImageUrl) {
             manualPhotoPreview.classList.add('hidden');
             manualPhotoPreview.innerHTML = '';
             return;
           }
           manualPhotoPreview.classList.remove('hidden');
-          manualPhotoPreview.innerHTML = manualPhotoFiles.map((f, i) =>
-            `<div class="relative">
-              <img src="${trackBlobUrl('order:manualphoto:' + i, f)}" class="rounded-xl w-full h-24 object-cover">
-              <button type="button" data-rm-manual-photo="${i}" class="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center shadow-lg">×</button>
-            </div>`).join('');
+          
+          let html = '';
+          if (manualPhotoFiles.length > 0) {
+            html += manualPhotoFiles.map((f, i) =>
+              `<div class="relative">
+                <img src="${trackBlobUrl('order:manualphoto:' + i, f)}" class="rounded-xl w-full h-24 object-cover">
+                <button type="button" data-rm-manual-photo="${i}" class="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center shadow-lg">×</button>
+              </div>`).join('');
+          } else if (window.orderImportedImageUrl) {
+            html += `
+              <div class="relative">
+                <img src="${window.orderImportedImageUrl}" class="rounded-xl w-full h-24 object-cover">
+                <button type="button" id="rmImportedPhotoBtn" class="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center shadow-lg">×</button>
+              </div>
+            `;
+          }
+          manualPhotoPreview.innerHTML = html;
+
           manualPhotoPreview.querySelectorAll('[data-rm-manual-photo]').forEach(btn => {
             btn.addEventListener('click', () => {
               const i = parseInt(btn.dataset.rmManualPhoto, 10);
@@ -11112,7 +11281,16 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               renderManualPhotoPreviews();
             });
           });
+
+          const rmImportedBtn = document.getElementById('rmImportedPhotoBtn');
+          if (rmImportedBtn) {
+            rmImportedBtn.addEventListener('click', () => {
+              window.orderImportedImageUrl = null;
+              renderManualPhotoPreviews();
+            });
+          }
         }
+        window.renderManualPhotoPreviews = renderManualPhotoPreviews;
 
         if (manualPhotoZone && manualPhotoInput) {
           manualPhotoZone.addEventListener('click', () => manualPhotoInput.click());
@@ -11180,6 +11358,8 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                   if (upErr) throw new Error('Загрузка фото: ' + upErr.message);
                   photoPaths.push(path);
                 }
+              } else if (window.orderImportedImageUrl) {
+                photoPaths.push(window.orderImportedImageUrl);
               }
 
               let weight = 0.5;
@@ -11230,6 +11410,10 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               window.tempOrder.total = total;
 
               window.orderAddMode = false;
+              window.orderImportedImageUrl = null;
+              if (typeof manualPhotoFiles !== 'undefined') {
+                manualPhotoFiles.length = 0;
+              }
               renderCurrentScreen();
               tgUtil.toast('Товар успешно добавлен!');
             } catch (e) {
