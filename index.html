@@ -6430,7 +6430,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               </div>
             </div>
           </div>
-          \${renderFooter()}
+          ${renderFooter()}
         `;
       }
 
@@ -9508,7 +9508,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
                 <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
 
-                \${window.tempOrder.items.length > 0 ? `
+                ${window.tempOrder.items.length > 0 ? `
                   <button type="button" class="absolute top-4 left-4 text-white/60 hover:text-white text-xs font-bold transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.orderAddMode=false; renderCurrentScreen();">
                     ← Назад
                   </button>
@@ -9517,7 +9517,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 <h2 class="text-xl font-extrabold text-white text-center mb-1">Добавление товара в заказ</h2>
                 <p class="text-white/60 text-xs text-center mb-5">Выберите способ добавления товара</p>
                 
-                \${vacationBanner}
+                ${vacationBanner}
 
                 <div class="flex flex-col gap-3">
                   <!-- Manual -->
@@ -9574,7 +9574,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 </div>
               </div>
             </div>
-            \${renderFooter()}
+            ${renderFooter()}
           `;
         }
 
@@ -9607,16 +9607,16 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                   </div>
                   
                   <!-- Others (Inactive) -->
-                  \${[
+                  ${[
                     { code: 'PL', name: 'Польша / ЕС (Zalando, ASOS, Farfetch)', flag: '🇵🇱', desc: '100% оригинальные европейские коллекции' },
                     { code: 'RU', name: 'Россия (WB, Lamoda, Ozon)', flag: '🇷🇺', desc: 'Сверхбыстрая доставка, без пошлин ЕАЭС' }
                   ].map(c => `
-                    <div class="border border-white/5 p-3.5 rounded-2xl bg-white/[0.02] opacity-50 cursor-pointer transition-all duration-200" onclick="window.selectOrderCountry('\${c.code}')">
+                    <div class="border border-white/5 p-3.5 rounded-2xl bg-white/[0.02] opacity-50 cursor-pointer transition-all duration-200" onclick="window.selectOrderCountry('${c.code}')">
                       <div class="flex items-center gap-3">
-                        <div class="text-2xl">\${c.flag}</div>
+                        <div class="text-2xl">${c.flag}</div>
                         <div class="flex-1 text-left">
-                          <h3 class="font-bold text-white/70 text-sm">\${c.name}</h3>
-                          <p class="text-white/30 text-[10px] leading-normal mt-0.5">\${c.desc}</p>
+                          <h3 class="font-bold text-white/70 text-sm">${c.name}</h3>
+                          <p class="text-white/30 text-[10px] leading-normal mt-0.5">${c.desc}</p>
                         </div>
                         <span class="text-white/40 text-[10px] font-semibold bg-white/5 px-2 py-0.5 rounded-lg border border-white/10">Скоро</span>
                       </div>
@@ -9625,7 +9625,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 </div>
               </div>
             </div>
-            \${renderFooter()}
+            ${renderFooter()}
           `;
         }
 
@@ -9645,7 +9645,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               <div class="flex justify-between items-center bg-white/5 p-2.5 rounded-xl border border-white/5">
                 <div class="text-left">
                   <span class="text-[10px] text-white/40 block">Режим</span>
-                  <span class="text-xs font-bold text-white">\${subModeText}</span>
+                  <span class="text-xs font-bold text-white">${subModeText}</span>
                 </div>
                 <button type="button" class="text-[10px] text-cyan-400 font-bold bg-white/10 px-2 py-1 rounded-lg hover:bg-white/15 transition active:scale-95 border border-white/5" onclick="window.orderAddSubMode=null; window.orderLinkAnalyzed=false; renderCurrentScreen()">
                   Сменить
@@ -9654,7 +9654,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               <div class="flex justify-between items-center bg-white/5 p-2.5 rounded-xl border border-white/5">
                 <div class="text-left">
                   <span class="text-[10px] text-white/40 block">Страна</span>
-                  <span class="text-xs font-bold text-white">\${window.orderCountry === 'CN' ? '🇨🇳 Китай' : window.orderCountry || ''}</span>
+                  <span class="text-xs font-bold text-white">${window.orderCountry === 'CN' ? '🇨🇳 Китай' : window.orderCountry || ''}</span>
                 </div>
                 <button type="button" class="text-[10px] text-cyan-400 font-bold bg-white/10 px-2 py-1 rounded-lg hover:bg-white/15 transition active:scale-95 border border-white/5" onclick="window.orderCountry=null; renderCurrentScreen()">
                   Сменить
@@ -9664,13 +9664,13 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
             <!-- Mode-specific input views -->
             <!-- Link Pane -->
-            <div id="paneOrderLink" class="mode-pane \${subMode === 'link' ? '' : 'hidden'} mb-4">
+            <div id="paneOrderLink" class="mode-pane ${subMode === 'link' ? '' : 'hidden'} mb-4">
               <label class="text-white/70 text-sm block mb-1">Ссылка на товар <span class="text-red-400 font-bold">*</span></label>
               <div class="flex gap-2 items-stretch">
                 <div class="flex-1 flex gap-1 bg-white/5 border border-white/30 rounded-xl overflow-hidden px-1.5 py-1">
                   <input type="text" id="orderUrl" class="bg-transparent flex-1 border-0 outline-none p-2 text-sm text-white" placeholder="Вставьте ссылку на Poizon, Taobao...">
                   <button type="button" id="orderPasteBtn" class="bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg px-3.5 transition flex items-center justify-center text-cyan-400 gap-1.5 text-xs font-bold" title="Вставить из буфера">
-                    \${ix('clipboard', { size: '14px' })}
+                    ${ix('clipboard', { size: '14px' })}
                     <span>Вставить</span>
                   </button>
                 </div>
@@ -9680,7 +9680,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             </div>
 
             <!-- Photo Pane -->
-            <div id="paneOrderPhoto" class="mode-pane \${subMode === 'photo' ? '' : 'hidden'} mb-4">
+            <div id="paneOrderPhoto" class="mode-pane ${subMode === 'photo' ? '' : 'hidden'} mb-4">
               <label class="text-white/70 text-sm block mb-1">Фото товара (можно до 5)</label>
               <div id="orderPhotoUploadZone" class="screenshot-upload-zone p-4 border-2 border-dashed border-white/30 rounded-xl text-center cursor-pointer hover:bg-white/5 transition">
                 <span class="text-3xl mb-1 block"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span></span>
@@ -9695,7 +9695,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             </div>
 
             <!-- Text Pane -->
-            <div id="paneOrderText" class="mode-pane \${subMode === 'text' ? '' : 'hidden'} mb-4">
+            <div id="paneOrderText" class="mode-pane ${subMode === 'text' ? '' : 'hidden'} mb-4">
               <label class="text-white/70 text-sm block mb-1">Описание товара</label>
               <input type="text" id="orderTextQuery" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Например: Nike Dunk Low Panda кроссовки">
               <button id="orderTextSearchBtn" class="btn-primary w-full mt-2 transition"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Искать товар</button>
@@ -9705,7 +9705,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             <div id="orderScreenshotWidget" class="hidden mb-4"></div>
 
             <!-- Fields -->
-            <div id="orderManualForm" class="\${showFormFields ? '' : 'hidden'} mt-4 border-t border-white/10 pt-4">
+            <div id="orderManualForm" class="${showFormFields ? '' : 'hidden'} mt-4 border-t border-white/10 pt-4">
               <div class="mb-3">
                 <label class="text-white/70 text-sm block mb-1">Ссылка на товар (необязательно)</label>
                 <input type="text" id="orderUrlManual" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="https://poizon.com/...">
@@ -9752,7 +9752,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
                 <div class="mb-3">
                   <label class="text-white/50 text-xs block mb-1">Категория</label>
-                  <select id="orderCategory" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm mb-1">\${renderCategoryOptions()}</select>
+                  <select id="orderCategory" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm mb-1">${renderCategoryOptions()}</select>
                   <p id="orderCategoryHint" class="text-cyan-400 text-[10px] hidden mb-2 font-semibold ml-1"></p>
                 </div>
 
@@ -9824,7 +9824,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               </div>
             </div>
           </div>
-          \${renderFooter()}
+          ${renderFooter()}
         `;
       }
 
@@ -9877,8 +9877,8 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           const label = country === 'CN' ? 'Китай' : country === 'PL' ? 'Европа' : 'Россия';
           const active = window.activePackageTab === country;
           return `
-            <button type="button" class="flex-1 py-2 text-center text-[10px] font-bold rounded-xl border transition \${active ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'border-white/10 hover:bg-white/5 text-white/70'}" onclick="window.switchPackageTab('\${country}')">
-              \${flag} \${label} (\${count})
+            <button type="button" class="flex-1 py-2 text-center text-[10px] font-bold rounded-xl border transition ${active ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'border-white/10 hover:bg-white/5 text-white/70'}" onclick="window.switchPackageTab('${country}')">
+              ${flag} ${label} (${count})
             </button>
           `;
         }).join('');
@@ -9888,11 +9888,11 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           return `
             <div class="bg-white/5 p-3 rounded-xl border border-white/10 flex justify-between items-center gap-2 mb-2">
               <div class="flex-1 min-w-0">
-                <div class="text-sm font-bold text-white truncate">\${item.title}</div>
-                <div class="text-xs text-white/60 mt-0.5">Размер: \${item.size || 'не указан'} · Категория: \${item.category}</div>
-                <div class="text-xs text-cyan-400 font-bold mt-1">\${item.price} \${item.currency} (\${item.total_byn.toFixed(2)} BYN)</div>
+                <div class="text-sm font-bold text-white truncate">${item.title}</div>
+                <div class="text-xs text-white/60 mt-0.5">Размер: ${item.size || 'не указан'} · Категория: ${item.category}</div>
+                <div class="text-xs text-cyan-400 font-bold mt-1">${item.price} ${item.currency} (${item.total_byn.toFixed(2)} BYN)</div>
               </div>
-              <button type="button" class="bg-red-500/20 hover:bg-red-500/40 text-red-400 rounded-full w-8 h-8 flex items-center justify-center transition flex-shrink-0" onclick="deleteOrderItem(\${item._originalIndex})">\${ix('trash-2')}</button>
+              <button type="button" class="bg-red-500/20 hover:bg-red-500/40 text-red-400 rounded-full w-8 h-8 flex items-center justify-center transition flex-shrink-0" onclick="deleteOrderItem(${item._originalIndex})">${ix('trash-2')}</button>
             </div>
           `;
         }).join('');
@@ -9903,7 +9903,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         const consolidationWidget = activePackageItems.length >= 2 ? `
           <div class="flex items-center justify-between p-3.5 rounded-xl border border-cyan-500/30 bg-cyan-500/5 mt-3 mb-2 page-enter">
             <div class="flex items-center gap-2 text-left">
-              <input type="checkbox" id="pkgConsolidationCheck" class="w-5 h-5 accent-cyan-500 cursor-pointer" \${isConsolidated ? 'checked' : ''} onchange="window.togglePackageConsolidation('\${window.activePackageTab}')">
+              <input type="checkbox" id="pkgConsolidationCheck" class="w-5 h-5 accent-cyan-500 cursor-pointer" ${isConsolidated ? 'checked' : ''} onchange="window.togglePackageConsolidation('${window.activePackageTab}')">
               <label for="pkgConsolidationCheck" class="text-white text-xs font-semibold leading-snug cursor-pointer">
                 📦 Объединить товары в одну коробку (скидка 3 BYN)
               </label>
@@ -9917,17 +9917,17 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         const activeCountryLabel = window.activePackageTab === 'CN' ? 'Китае' : window.activePackageTab === 'PL' ? 'Польше' : 'России';
         const extrasWidget = `
           <div class="bg-white/5 p-3.5 rounded-xl border border-white/10 mt-2 mb-2 text-xs space-y-2.5 page-enter">
-            <p class="text-white/60 font-bold uppercase tracking-wider text-[10px]">Доп. услуги склада в \${activeCountryLabel}:</p>
+            <p class="text-white/60 font-bold uppercase tracking-wider text-[10px]">Доп. услуги склада в ${activeCountryLabel}:</p>
             <div class="flex items-center gap-2">
-              <input type="checkbox" id="extraBubble" class="w-4 h-4 accent-cyan-500 cursor-pointer" \${extras.bubble ? 'checked' : ''} onchange="window.togglePackageExtra('\${window.activePackageTab}', 'bubble')">
+              <input type="checkbox" id="extraBubble" class="w-4 h-4 accent-cyan-500 cursor-pointer" ${extras.bubble ? 'checked' : ''} onchange="window.togglePackageExtra('${window.activePackageTab}', 'bubble')">
               <label for="extraBubble" class="text-white/70 cursor-pointer">Bubble-плёнка (+3 BYN)</label>
             </div>
             <div class="flex items-center gap-2">
-              <input type="checkbox" id="extraWood" class="w-4 h-4 accent-cyan-500 cursor-pointer" \${extras.wood ? 'checked' : ''} onchange="window.togglePackageExtra('\${window.activePackageTab}', 'wood')">
+              <input type="checkbox" id="extraWood" class="w-4 h-4 accent-cyan-500 cursor-pointer" ${extras.wood ? 'checked' : ''} onchange="window.togglePackageExtra('${window.activePackageTab}', 'wood')">
               <label for="extraWood" class="text-white/70 cursor-pointer">Деревянная обрешётка (+10 BYN)</label>
             </div>
             <div class="flex items-center gap-2">
-              <input type="checkbox" id="extraCheck" class="w-4 h-4 accent-cyan-500 cursor-pointer" \${extras.check ? 'checked' : ''} onchange="window.togglePackageExtra('\${window.activePackageTab}', 'check')">
+              <input type="checkbox" id="extraCheck" class="w-4 h-4 accent-cyan-500 cursor-pointer" ${extras.check ? 'checked' : ''} onchange="window.togglePackageExtra('${window.activePackageTab}', 'check')">
               <label for="extraCheck" class="text-white/70 cursor-pointer">Детальная проверка на брак/замеры (+5 BYN)</label>
             </div>
           </div>
@@ -9937,23 +9937,23 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           <div class="space-y-3">
             <!-- Package Tabs Navigation -->
             <div class="flex gap-2 bg-white/5 p-1 rounded-2xl border border-white/5">
-              \${tabButtons}
+              ${tabButtons}
             </div>
             
             <!-- Active Package Items -->
             <div class="mt-2">
-              \${itemsListHtml}
+              ${itemsListHtml}
             </div>
 
             <!-- Package Specific Services & Discounts -->
-            \${consolidationWidget}
-            \${extrasWidget}
+            ${consolidationWidget}
+            ${extrasWidget}
           </div>
         `;
       }
 
       const discountLine = window.tempOrder.discountAmount > 0
-        ? `<p class="text-green-400 text-sm mt-1">Скидка: -\${window.tempOrder.discountAmount.toFixed(2)} BYN</p>`
+        ? `<p class="text-green-400 text-sm mt-1">Скидка: -${window.tempOrder.discountAmount.toFixed(2)} BYN</p>`
         : '';
 
       const finalTotal = Math.max(0, totalSum - (window.tempOrder.discountAmount || 0));
@@ -9963,7 +9963,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         <div class="bg-white/5 p-4 rounded-xl mb-4 space-y-3">
           <p class="text-white/60 text-xs font-bold uppercase tracking-wider mb-1">Опции заказа:</p>
           <div class="flex items-center gap-2">
-            <input type="checkbox" id="orderKeepBox" \${window.tempOrder.keepBox ? 'checked' : ''}>
+            <input type="checkbox" id="orderKeepBox" ${window.tempOrder.keepBox ? 'checked' : ''}>
             <label for="orderKeepBox" class="text-white/70 text-sm">Сохранить оригинальную коробку</label>
           </div>
           <div class="flex items-center gap-2">
@@ -9971,19 +9971,19 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             <label for="orderInsurance" class="text-white/70 text-sm"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span> Обязательная страховка ShopByShop (+2%)</label>
           </div>
           <div class="flex items-center gap-2 mt-2">
-            <input type="checkbox" id="orderExtraPhoto" \${window.tempOrder.extraPhoto ? 'checked' : ''} class="w-4 h-4 accent-cyan-500 cursor-pointer">
+            <input type="checkbox" id="orderExtraPhoto" ${window.tempOrder.extraPhoto ? 'checked' : ''} class="w-4 h-4 accent-cyan-500 cursor-pointer">
             <label for="orderExtraPhoto" class="text-white/70 text-sm cursor-pointer"><span class="text-cyan-400">📸 Детальные photo со склада</span> (+3 BYN)</label>
           </div>
           <div class="flex items-center gap-2 mt-2">
-            <input type="checkbox" id="orderExtraMeasure" \${window.tempOrder.extraMeasure ? 'checked' : ''} class="w-4 h-4 accent-cyan-500 cursor-pointer">
+            <input type="checkbox" id="orderExtraMeasure" ${window.tempOrder.extraMeasure ? 'checked' : ''} class="w-4 h-4 accent-cyan-500 cursor-pointer">
             <label for="orderExtraMeasure" class="text-white/70 text-sm cursor-pointer"><span class="text-cyan-400">📏 Замер стельки/длины</span> (+3 BYN)</label>
           </div>
           <div class="flex items-center gap-2">
-            <input type="checkbox" id="orderIsGift" \${window.tempOrder.isGift ? 'checked' : ''} class="w-4 h-4 accent-pink-500 cursor-pointer">
+            <input type="checkbox" id="orderIsGift" ${window.tempOrder.isGift ? 'checked' : ''} class="w-4 h-4 accent-pink-500 cursor-pointer">
             <label for="orderIsGift" class="text-white/70 text-sm cursor-pointer"><span class="text-pink-400">🎁 Подарок</span> (Скрыть цену и чек)</label>
           </div>
           <div class="flex items-center gap-2">
-            <input type="checkbox" id="orderRequiresVideoCheck" \${window.tempOrder.requiresVideoCheck ? 'checked' : ''} class="w-4 h-4 accent-cyan-500 cursor-pointer">
+            <input type="checkbox" id="orderRequiresVideoCheck" ${window.tempOrder.requiresVideoCheck ? 'checked' : ''} class="w-4 h-4 accent-cyan-500 cursor-pointer">
             <label for="orderRequiresVideoCheck" class="text-white/70 text-sm cursor-pointer"><span class="text-cyan-400">📹 Видео-проверка</span> со склада в Китае (+10 BYN)</label>
           </div>
         </div>
@@ -9996,22 +9996,22 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           <div>
             <label class="text-white/50 text-[10px] block mb-1">Служба доставки</label>
             <select id="pvsMethodSelect" class="w-full p-3 rounded-xl border border-white/20 text-sm bg-slate-900 text-white">
-              <option value="none" \${(!window.tempOrder.pvs || window.tempOrder.pvs.method === 'none') ? 'selected' : ''}>Самовывоз / Почта (Без дополнительной платы)</option>
-              <option value="europoshta" \${(window.tempOrder.pvs?.method === 'europoshta') ? 'selected' : ''}>Европочта (до отделения) — 5.00 BYN</option>
-              <option value="belpochta" \${(window.tempOrder.pvs?.method === 'belpochta') ? 'selected' : ''}>Белпочта (до отделения) — 5.00 BYN</option>
-              <option value="sdek" \${(window.tempOrder.pvs?.method === 'sdek') ? 'selected' : ''}>СДЭК (до отделения) — 8.00 BYN</option>
+              <option value="none" ${(!window.tempOrder.pvs || window.tempOrder.pvs.method === 'none') ? 'selected' : ''}>Самовывоз / Почта (Без дополнительной платы)</option>
+              <option value="europoshta" ${(window.tempOrder.pvs?.method === 'europoshta') ? 'selected' : ''}>Европочта (до отделения) — 5.00 BYN</option>
+              <option value="belpochta" ${(window.tempOrder.pvs?.method === 'belpochta') ? 'selected' : ''}>Белпочта (до отделения) — 5.00 BYN</option>
+              <option value="sdek" ${(window.tempOrder.pvs?.method === 'sdek') ? 'selected' : ''}>СДЭК (до отделения) — 8.00 BYN</option>
             </select>
           </div>
           
-          <div id="pvsDetailContainer" class="\${(!window.tempOrder.pvs || window.tempOrder.pvs.method === 'none') ? 'hidden' : ''} space-y-3">
+          <div id="pvsDetailContainer" class="${(!window.tempOrder.pvs || window.tempOrder.pvs.method === 'none') ? 'hidden' : ''} space-y-3">
             <button type="button" class="w-full bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 py-3 rounded-xl text-xs font-bold transition-colors flex justify-center items-center gap-2" onclick="window.openYandexMapStub()">
               <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></span> Выбрать на карте (Яндекс)
             </button>
             <div>
               <label class="text-white/50 text-[10px] block mb-1">Город</label>
               <select id="pvsCitySelect" class="w-full p-3 rounded-xl border border-white/20 text-sm bg-slate-900 text-white">
-                \${['Минск', 'Гомель', 'Брест', 'Гродно', 'Витебск', 'Могилев', 'Барановичи', 'Бобруйск', 'Борисов', 'Лида', 'Мозырь', 'Новополоцк', 'Орша', 'Пинск', 'Солигорск'].map(c => `
-                  <option value="\${c}" \${(window.tempOrder.pvs?.city === c) ? 'selected' : ''}>\${c}</option>
+                ${['Минск', 'Гомель', 'Брест', 'Гродно', 'Витебск', 'Могилев', 'Барановичи', 'Бобруйск', 'Борисов', 'Лида', 'Мозырь', 'Новополоцк', 'Орша', 'Пинск', 'Солигорск'].map(c => `
+                  <option value="${c}" ${(window.tempOrder.pvs?.city === c) ? 'selected' : ''}>${c}</option>
                 `).join('')}
               </select>
             </div>
@@ -10023,11 +10023,11 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             </div>
           </div>
           
-          \${(window.userSettings?.free_delivery_tokens > 0) ? `
+          ${(window.userSettings?.free_delivery_tokens > 0) ? `
             <div class="flex items-center justify-between p-3 rounded-xl border border-green-500/30 bg-green-500/10 mt-3">
               <div class="flex items-center gap-2 text-left">
-                <input type="checkbox" id="orderUseFreeDelivery" class="w-5 h-5 accent-green-500" \${window.tempOrder.useFreeDelivery ? 'checked' : ''}>
-                <label for="orderUseFreeDelivery" class="text-white text-xs font-semibold leading-snug">Использовать купон на бесплатную доставку (осталось: \${window.userSettings.free_delivery_tokens})</label>
+                <input type="checkbox" id="orderUseFreeDelivery" class="w-5 h-5 accent-green-500" ${window.tempOrder.useFreeDelivery ? 'checked' : ''}>
+                <label for="orderUseFreeDelivery" class="text-white text-xs font-semibold leading-snug">Использовать купон на бесплатную доставку (осталось: ${window.userSettings.free_delivery_tokens})</label>
               </div>
             </div>
           ` : ''}
@@ -10037,7 +10037,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         <div class="bg-white/5 p-4 rounded-xl mb-4">
           <label class="text-white/70 text-sm block mb-1">Промокод</label>
           <div class="flex gap-2">
-            <input type="text" id="promoCode" class="btn-secondary flex-1 p-3 rounded-xl border border-white/30 text-sm" placeholder="Введите промокод" value="\${window.tempOrder.appliedPromo?.code || ''}">
+            <input type="text" id="promoCode" class="btn-secondary flex-1 p-3 rounded-xl border border-white/30 text-sm" placeholder="Введите промокод" value="${window.tempOrder.appliedPromo?.code || ''}">
             <button id="applyPromoBtn" class="btn-primary whitespace-nowrap px-4 rounded-xl text-sm font-bold">Применить</button>
           </div>
           <p id="promoMessage" class="text-xs mt-1 hidden"></p>
@@ -10052,10 +10052,10 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           
           <div class="flex justify-between items-baseline mb-1">
             <span class="text-white font-bold">ИТОГО:</span>
-            <span class="text-cyan-400 font-bold text-xl"><span id="orderTotal">\${finalTotal.toFixed(2)}</span> <span class="text-sm">BYN</span></span>
+            <span class="text-cyan-400 font-bold text-xl"><span id="orderTotal">${finalTotal.toFixed(2)}</span> <span class="text-sm">BYN</span></span>
           </div>
-          \${discountLine}
-          <p class="text-white/70 text-xs mt-1">*Обязательная предоплата 70%: <span id="prepaymentAmount" class="font-bold text-cyan-300">\${(finalTotal * 0.70).toFixed(2)}</span> BYN</p>
+          ${discountLine}
+          <p class="text-white/70 text-xs mt-1">*Обязательная предоплата 70%: <span id="prepaymentAmount" class="font-bold text-cyan-300">${(finalTotal * 0.70).toFixed(2)}</span> BYN</p>
           
           <!-- Agree Offer -->
           <div class="mt-4 flex items-start gap-2 border-t border-white/10 pt-3 mb-2">
@@ -10097,17 +10097,17 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-bold"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></span> Оформление заказа</h2>
             <button class="text-xs text-cyan-400 bg-white/5 px-3 py-1.5 rounded-full hover:bg-white/10 transition" onclick="resetOrderCountry()">
-              \${window.orderCountry === 'CN' ? '🇨🇳 Китай' : window.orderCountry === 'PL' ? '🇵🇱 Польша' : '🇷🇺 Россия'} <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></span> Сменить
+              ${window.orderCountry === 'CN' ? '🇨🇳 Китай' : window.orderCountry === 'PL' ? '🇵🇱 Польша' : '🇷🇺 Россия'} <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></span> Сменить
             </button>
           </div>
           
-          \${vacationBanner}
-          \${limitMessage}
+          ${vacationBanner}
+          ${limitMessage}
           
           <div class="mb-4">
             <h3 class="text-sm font-semibold text-white/70 mb-2">Список выбранных товаров:</h3>
             <div id="orderItemsList" class="flex flex-col gap-3">
-              \${itemsHtml}
+              ${itemsHtml}
             </div>
           </div>
           
@@ -10116,10 +10116,10 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить товар
             </button>
             
-            \${checkoutOptionsAndTotals}
+            ${checkoutOptionsAndTotals}
           </div>
         </div>
-        \${renderFooter()}
+        ${renderFooter()}
       `;
     }
 
@@ -11814,29 +11814,29 @@ window.generateShippingManifest = async (orderId) => {
         <div style="flex: 1;">
           <div style="margin-bottom: 20px;">
             <p style="margin: 0; font-size: 10px; color: #555; text-transform: uppercase;">Получатель:</p>
-            <p style="margin: 2px 0 0 0; font-size: 18px; font-weight: bold;">\${fullName}</p>
+            <p style="margin: 2px 0 0 0; font-size: 18px; font-weight: bold;">${fullName}</p>
           </div>
           
           <div style="margin-bottom: 20px;">
             <p style="margin: 0; font-size: 10px; color: #555; text-transform: uppercase;">Телефон:</p>
-            <p style="margin: 2px 0 0 0; font-size: 16px; font-weight: bold;">\${phone}</p>
+            <p style="margin: 2px 0 0 0; font-size: 16px; font-weight: bold;">${phone}</p>
           </div>
           
           <div style="margin-bottom: 20px;">
             <p style="margin: 0; font-size: 10px; color: #555; text-transform: uppercase;">Адрес доставки / ПВЗ:</p>
-            <p style="margin: 2px 0 0 0; font-size: 14px; font-weight: bold; line-height: 1.4;">\${address.replace(/\\|/g, '<br>')}</p>
+            <p style="margin: 2px 0 0 0; font-size: 14px; font-weight: bold; line-height: 1.4;">${address.replace(/\\|/g, '<br>')}</p>
           </div>
           
           <div style="margin-bottom: 20px; border-top: 1px dashed #000; padding-top: 15px;">
             <p style="margin: 0; font-size: 10px; color: #555; text-transform: uppercase;">Заказ:</p>
-            <p style="margin: 2px 0 0 0; font-size: 14px; font-weight: bold;">#\${order.id.slice(0,8).toUpperCase()}</p>
-            <p style="margin: 5px 0 0 0; font-size: 12px;">Вес: \${order.weight_actual || order.weight_estimated || '?'} кг</p>
+            <p style="margin: 2px 0 0 0; font-size: 14px; font-weight: bold;">#${order.id.slice(0,8).toUpperCase()}</p>
+            <p style="margin: 5px 0 0 0; font-size: 12px;">Вес: ${order.weight_actual || order.weight_estimated || '?'} кг</p>
           </div>
         </div>
         
         <div style="text-align: center; border-top: 2px solid #000; padding-top: 10px; margin-top: auto;">
           <div style="height: 60px; width: 80%; margin: 0 auto; background-image: repeating-linear-gradient(90deg, #000, #000 2px, transparent 2px, transparent 4px, #000 4px, #000 7px, transparent 7px, transparent 10px);"></div>
-          <p style="margin: 5px 0 0 0; font-size: 10px; letter-spacing: 2px;">\${order.id.slice(0,12).toUpperCase()}</p>
+          <p style="margin: 5px 0 0 0; font-size: 10px; letter-spacing: 2px;">${order.id.slice(0,12).toUpperCase()}</p>
         </div>
       </div>
     `;
