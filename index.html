@@ -6289,16 +6289,11 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         
       return `
         <div class="glass-card page-enter relative text-left">
-          <!-- Back button to return to home -->
-          <button type="button" class="absolute top-4 left-4 text-white/60 hover:text-cyan-400 text-xs font-bold transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.switchTab('home');">
-            ← Назад
-          </button>
-          
           <button type="button" class="absolute top-4 right-4 text-white/40 hover:text-cyan-400 text-[10px] font-bold bg-white/5 border border-white/10 px-2 py-1.5 rounded-lg transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.switchTab('history'); window._historySubScreen = 'calculations'; window.renderCurrentScreen();">
             🕒 История
           </button>
 
-          <h2 class="text-xl font-extrabold text-white text-center mb-6 mt-4">Калькулятор доставки</h2>
+          <h2 class="text-xl font-extrabold text-white text-center mb-6 mt-8">Калькулятор доставки</h2>
 
           <form id="calculatorForm" class="space-y-4" onsubmit="event.preventDefault();">
             <!-- Наименование товара -->
@@ -6335,7 +6330,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             <div>
               <div class="flex justify-between items-center mb-1">
                 <label class="text-white/70 text-xs">Вес товара (кг) <span class="text-red-400 font-bold">*</span></label>
-                <button type="button" class="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1 cursor-pointer border-0 bg-transparent" onclick="window.openCalcWeightModal()">
+                <button type="button" class="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold bg-cyan-500/10 border border-cyan-500/20 rounded-full px-2.5 py-1.5 transition active:scale-95 cursor-pointer flex items-center gap-1 border-0" onclick="window.openCalcWeightModal()">
                   ⚖️ Помогите узнать вес
                 </button>
               </div>
@@ -6351,19 +6346,23 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                   <span>▼</span>
                 </button>
                 <input type="hidden" id="calcCountryInput" value="${window.calcCountry || 'CN'}">
-                <div id="calcCountryDropdown" class="hidden absolute left-0 right-0 mt-1 bg-slate-900 border border-white/10 rounded-xl shadow-2xl z-30 overflow-hidden">
-                  <div class="p-3 hover:bg-white/5 cursor-pointer text-xs text-white flex justify-between items-center border-b border-white/5" onclick="selectCalcCountry('CN')">
-                    <span>🇨🇳 Китай</span>
-                    <span class="text-[9px] text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">Доступно</span>
-                  </div>
-                  <div class="p-3 hover:bg-white/5 cursor-pointer text-xs text-white/50 flex justify-between items-center border-b border-white/5" onclick="selectCalcCountry('PL')">
-                    <span>🇵🇱 Польша</span>
-                    <span class="text-[9px] text-white/30 bg-white/5 px-1.5 py-0.5 rounded border border-white/10">Скоро</span>
-                  </div>
-                  <div class="p-3 hover:bg-white/5 cursor-pointer text-xs text-white/50 flex justify-between items-center" onclick="selectCalcCountry('EU')">
-                    <span>🇪🇺 Европа (Германия)</span>
-                    <span class="text-[9px] text-white/30 bg-white/5 px-1.5 py-0.5 rounded border border-white/10">Скоро</span>
-                  </div>
+                <div id="calcCountryDropdown" class="hidden absolute left-0 right-0 mt-1 bg-slate-900 border border-white/10 rounded-xl shadow-2xl z-30 overflow-hidden max-h-60 overflow-y-auto">
+                  ${ALL_COUNTRIES.map(c => {
+                    const isAvailable = c.code === 'CN';
+                    const statusBadge = isAvailable
+                      ? '<span class="text-[9px] text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">Доступно</span>'
+                      : '<span class="text-[9px] text-white/30 bg-white/5 px-1.5 py-0.5 rounded border border-white/10">Скоро</span>';
+                    const opacityClass = isAvailable ? 'text-white' : 'text-white/50 opacity-60';
+                    return `
+                      <div class="p-3 hover:bg-white/5 cursor-pointer text-xs ${opacityClass} flex justify-between items-center border-b border-white/5" onclick="selectCalcCountry('${c.code}')">
+                        <span class="flex items-center gap-2">
+                          <span class="text-base">${c.flag}</span>
+                          <span>${c.name}</span>
+                        </span>
+                        ${statusBadge}
+                      </div>
+                    `;
+                  }).join('')}
                 </div>
               </div>
             </div>
@@ -6700,18 +6699,15 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         };
         
         window.selectCalcCountry = (code) => {
-          const countryNames = {
-            CN: '🇨🇳 Китай',
-            PL: '🇵🇱 Польша',
-            EU: '🇪🇺 Европа (Германия)'
-          };
+          const selected = ALL_COUNTRIES.find(x => x.code === code);
+          if (!selected) return;
           if (code !== 'CN') {
             tgUtil.haptic('warning');
             glassToast('Данное направление временно недоступно. Скоро мы запустим доставку!', { kind: 'info' });
             return;
           }
           document.getElementById('calcCountryInput').value = code;
-          document.getElementById('calcCountryVal').innerText = countryNames[code];
+          document.getElementById('calcCountryVal').innerText = `${selected.flag} ${selected.name}`;
           countryDropdown.classList.add('hidden');
         };
         
@@ -6921,20 +6917,22 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         calcBtn.disabled = true;
         
         try {
-          const services = [];
-          if (document.getElementById('servicePhotoReport')?.checked) services.push('photo_report');
-          if (document.getElementById('serviceVideoReport')?.checked) services.push('video_report');
-          if (document.getElementById('serviceFragilePack')?.checked) services.push('fragile_pack');
+          const services = {
+            detailed_photo: !!document.getElementById('servicePhotoReport')?.checked,
+            video_360: !!document.getElementById('serviceVideoReport')?.checked,
+            fragile_packaging: !!document.getElementById('serviceFragilePack')?.checked,
+            remove_box: !!document.getElementById('serviceDiscardBox')?.checked
+          };
           
           const payload = {
             action: 'calculate',
-            product_price: price,
-            product_currency: currency,
-            source_country: country,
-            weight_kg: weight,
-            local_delivery_method: localDeliveryMethod,
-            discard_box: !!document.getElementById('serviceDiscardBox')?.checked,
-            services: services
+            title: title,
+            price: price,
+            currency: currency,
+            country: country,
+            weight: weight,
+            local_delivery: localDeliveryMethod,
+            additional_services: services
           };
           
           const { data, error } = await supabaseClient.functions.invoke('ai-calculator', {
@@ -6944,7 +6942,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           if (error) throw error;
           if (!data?.ok) throw new Error(data?.error || 'Не удалось рассчитать стоимость');
           
-          const result = data.result;
+          const result = data.calc_details;
           
           const resultBox = document.getElementById('calcResult');
           const breakdownEl = document.getElementById('calcBreakdown');
@@ -6952,12 +6950,17 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           if (resultBox && breakdownEl) {
             resultBox.classList.remove('hidden');
             
+            const selectedServices = [];
+            if (services.detailed_photo) selectedServices.push({ name: 'Детальный фотоотчет', price_byn: 5 });
+            if (services.video_360) selectedServices.push({ name: 'Видеообзор 360°', price_byn: 10 });
+            if (services.fragile_packaging) selectedServices.push({ name: 'Дополнительная упаковка', price_byn: 10 });
+            
             let servicesHtml = '';
-            if (result.details.selected_services && result.details.selected_services.length > 0) {
+            if (selectedServices.length > 0) {
               servicesHtml = `
                 <div class="mt-2 pt-2 border-t border-white/5 space-y-1">
                   <span class="text-white/40 block text-[10px]">Доп. услуги:</span>
-                  ${result.details.selected_services.map(s => `
+                  ${selectedServices.map(s => `
                     <div class="flex justify-between text-[11px] text-white/80">
                       <span>• ${s.name}</span>
                       <span class="font-mono">${s.price_byn} BYN</span>
@@ -6968,11 +6971,11 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             }
             
             let customsHtml = '';
-            if (result.details.customs_duty_byn > 0) {
+            if (result.customs_duty_byn > 0) {
               customsHtml = `
                 <div class="flex justify-between text-xs text-red-400 font-semibold">
                   <span>Таможенная пошлина:</span>
-                  <span class="font-mono">+${result.details.customs_duty_byn.toFixed(2)} BYN</span>
+                  <span class="font-mono">+${result.customs_duty_byn.toFixed(2)} BYN</span>
                 </div>
               `;
             }
@@ -6990,19 +6993,19 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                 </div>
                 <div class="flex justify-between text-white/60">
                   <span>Комиссия сервиса (30%):</span>
-                  <span class="font-mono text-white">${result.details.commission_byn.toFixed(2)} BYN</span>
+                  <span class="font-mono text-white">${result.commission_byn.toFixed(2)} BYN</span>
                 </div>
                 <div class="flex justify-between text-white/60">
-                  <span>Международная доставка (${result.details.adjusted_weight_kg.toFixed(2)} кг):</span>
-                  <span class="font-mono text-white">${result.details.intl_shipping_byn.toFixed(2)} BYN</span>
+                  <span>Международная доставка (${result.calc_weight_kg.toFixed(2)} кг):</span>
+                  <span class="font-mono text-white">${result.international_shipping_byn.toFixed(2)} BYN</span>
                 </div>
                 <div class="flex justify-between text-white/60">
                   <span>Доставка по Беларуси (${localDeliveryMethod}):</span>
-                  <span class="font-mono text-white">${result.details.local_delivery_byn.toFixed(2)} BYN</span>
+                  <span class="font-mono text-white">${result.local_delivery_byn.toFixed(2)} BYN</span>
                 </div>
                 <div class="flex justify-between text-white/60">
                   <span>Страховка (2%):</span>
-                  <span class="font-mono text-white">${result.details.insurance_byn.toFixed(2)} BYN</span>
+                  <span class="font-mono text-white">${result.insurance_byn.toFixed(2)} BYN</span>
                 </div>
                 ${customsHtml}
                 ${servicesHtml}
@@ -7022,10 +7025,10 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               country: country,
               deliveryMethod: localDeliveryMethod,
               insurance: true,
-              discardBox: !!document.getElementById('serviceDiscardBox')?.checked,
-              photoReport: !!document.getElementById('servicePhotoReport')?.checked,
-              videoReport: !!document.getElementById('serviceVideoReport')?.checked,
-              fragilePack: !!document.getElementById('serviceFragilePack')?.checked,
+              discardBox: services.remove_box,
+              photoReport: services.detailed_photo,
+              videoReport: services.video_360,
+              fragilePack: services.fragile_packaging,
               total_byn: result.total_byn,
               breakdown: result
             };
@@ -7574,25 +7577,24 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         // ── STEP A: Country Selection Overlay (if no country selected yet) ──
         if (!window.orderCountry) {
           return `
+            <style>
+              .hide-scrollbar::-webkit-scrollbar {
+                display: none;
+              }
+              .hide-scrollbar {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+              }
+            </style>
             <div class="flex items-center justify-center min-h-[70vh] p-2 page-enter">
               <div class="glass-card w-full max-w-md p-6 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
                 <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
                 <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
 
-                ${window.tempOrder.items.length > 0 ? `
-                  <button type="button" class="absolute top-4 left-4 text-white/60 hover:text-white text-xs font-bold transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.orderAddMode=false; renderCurrentScreen();">
-                    ← Назад
-                  </button>
-                ` : `
-                  <button type="button" class="absolute top-4 left-4 text-white/60 hover:text-white text-xs font-bold transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.switchTab('home');">
-                    ← Назад
-                  </button>
-                `}
-
                 <h2 class="text-xl font-extrabold text-white text-center mb-1 mt-4">Выберите страну отправления</h2>
                 <p class="text-white/60 text-xs text-center mb-5">От страны зависят тарифы на доставку и пошлины</p>
 
-                <div class="flex flex-col gap-2.5 max-h-[50vh] overflow-y-auto pr-1">
+                <div class="flex flex-col gap-2.5 max-h-[50vh] overflow-y-auto pr-1 hide-scrollbar">
                   ${ALL_COUNTRIES.map(c => {
                     if (c.active) {
                       return `
@@ -7628,7 +7630,6 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             ${renderFooter()}
           `;
         }
-
         if (window.orderAddMode) {
           // ── STEP B: Mode Selection Overlay (if country selected but no mode selected yet) ──
           if (!window.orderAddSubMode) {
