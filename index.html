@@ -6377,6 +6377,63 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         `;
       }
 
+      // ── Step 1.5: Country Selection Overlay (if mode selected but country not yet) ──
+      if (!window.calcCountry) {
+        return `
+          <div class="flex items-center justify-center min-h-[70vh] p-2 page-enter">
+            <div class="glass-card w-full max-w-md p-6 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
+              <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
+              <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
+
+              <button type="button" class="absolute top-4 left-4 text-white/60 hover:text-cyan-400 text-xs font-bold transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.currentCalcMode=null; renderCurrentScreen();">
+                ← Назад
+              </button>
+
+              <h2 class="text-xl font-extrabold text-white text-center mb-1 mt-4">Выберите страну отправления</h2>
+              <p class="text-white/60 text-xs text-center mb-5">От страны зависят тарифы на доставку и сроки</p>
+
+              <div class="flex flex-col gap-2.5 max-h-[50vh] overflow-y-auto pr-1">
+                <!-- CN (Active) -->
+                <div class="border border-white/10 hover:border-cyan-500/50 p-3.5 rounded-2xl bg-white/5 cursor-pointer transition-all duration-200" onclick="window.selectCalculatorCountry('CN')">
+                  <div class="flex items-center gap-3">
+                    <div class="text-2xl">🇨🇳</div>
+                    <div class="flex-1 text-left">
+                      <h3 class="font-bold text-white text-sm">Китай</h3>
+                      <p class="text-white/40 text-[10px] leading-normal mt-0.5">Доставка из Poizon, Taobao, 1688, Dewu</p>
+                    </div>
+                    <span class="text-cyan-400 text-xs font-bold bg-cyan-500/10 px-2 py-0.5 rounded-lg border border-cyan-500/20">Работает</span>
+                  </div>
+                </div>
+                
+                <!-- Others (Inactive) -->
+                ${[
+                  { code: 'RU', name: 'Россия', flag: '🇷🇺', desc: 'Доставка из WB, Lamoda, Ozon' },
+                  { code: 'EU', name: 'Евросоюз', flag: '🇪🇺', desc: 'Доставка из Zalando, ASOS, Farfetch' },
+                  { code: 'US', name: 'США', flag: '🇺🇸', desc: 'Доставка из StockX, eBay, Amazon' },
+                  { code: 'TR', name: 'Турция', flag: '🇹🇷', desc: 'Доставка из Trendyol, Zara' },
+                  { code: 'JP', name: 'Япония', flag: '🇯🇵', desc: 'Доставка из Mercari, Yahoo' },
+                  { code: 'KR', name: 'Южная Корея', flag: '🇰🇷', desc: 'Доставка из Kream, Musinsa' },
+                  { code: 'VN', name: 'Вьетнам', flag: '🇻🇳', desc: 'Доставка из местных маркетплейсов' },
+                  { code: 'AE', name: 'ОАЭ', flag: '🇦🇪', desc: 'Доставка из торговых центров и сайтов Дубая' }
+                ].map(c => `
+                  <div class="border border-white/5 p-3.5 rounded-2xl bg-white/[0.02] opacity-50 cursor-pointer transition-all duration-200" onclick="window.selectCalculatorCountry('${c.code}')">
+                    <div class="flex items-center gap-3">
+                      <div class="text-2xl">${c.flag}</div>
+                      <div class="flex-1 text-left">
+                        <h3 class="font-bold text-white/70 text-sm">${c.name}</h3>
+                        <p class="text-white/30 text-[10px] leading-normal mt-0.5">${c.desc}</p>
+                      </div>
+                      <span class="text-white/40 text-[10px] font-semibold bg-white/5 px-2 py-0.5 rounded-lg border border-white/10">Скоро</span>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+          \${renderFooter()}
+        `;
+      }
+
       // ── Step 2: Calculator Form ──
       const modeText = window.currentCalcMode === 'manual' ? '✍️ Вручную' : window.currentCalcMode === 'link' ? '🔗 По ссылке' : window.currentCalcMode === 'photo' ? '📸 По фото' : '📝 По описанию';
       const showFormFields = (window.currentCalcMode !== 'link' || window.calcLinkAnalyzed);
@@ -6407,15 +6464,26 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             🕒 История
           </button>
 
-          <!-- Mode indicator / switcher -->
-          <div class="flex justify-between items-center mb-3 bg-white/5 px-3.5 py-2.5 rounded-2xl border border-white/5" style="max-width: 80%;">
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-white/50">Режим:</span>
-              <span class="text-xs font-bold text-cyan-400">${modeText}</span>
+          <!-- Mode & Country Indicators -->
+          <div class="grid grid-cols-2 gap-3 mb-4 bg-white/5 p-3 rounded-2xl border border-white/5">
+            <div class="flex justify-between items-center bg-white/5 p-2.5 rounded-xl border border-white/5">
+              <div class="text-left">
+                <span class="text-[10px] text-white/40 block">Режим</span>
+                <span class="text-xs font-bold text-white">${modeText}</span>
+              </div>
+              <button type="button" class="text-[10px] text-cyan-400 font-bold bg-white/10 px-2 py-1 rounded-lg hover:bg-white/15 transition active:scale-95 border border-white/5" onclick="window.currentCalcMode=null; window.calcLinkAnalyzed=false; renderCurrentScreen()">
+                Сменить
+              </button>
             </div>
-            <button type="button" class="text-[10px] text-cyan-400 font-bold bg-white/10 px-2.5 py-1.5 rounded-lg hover:bg-white/15 transition active:scale-95 border border-white/5" onclick="window.currentCalcMode=null; window.calcLinkAnalyzed=false; renderCurrentScreen()">
-              🔄 Сменить способ
-            </button>
+            <div class="flex justify-between items-center bg-white/5 p-2.5 rounded-xl border border-white/5">
+              <div class="text-left">
+                <span class="text-[10px] text-white/40 block">Страна</span>
+                <span class="text-xs font-bold text-white">🇨🇳 Китай</span>
+              </div>
+              <button type="button" class="text-[10px] text-cyan-400 font-bold bg-white/10 px-2 py-1 rounded-lg hover:bg-white/15 transition active:scale-95 border border-white/5" onclick="window.calcCountry=null; renderCurrentScreen()">
+                Сменить
+              </button>
+            </div>
           </div>
 
           ${vacationBanner}
@@ -6521,25 +6589,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
           <!-- Input fields area -->
           <div id="calcFormFields" class="${showFormFields ? '' : 'hidden'} mt-4 border-t border-white/5 pt-4">
-            <!-- Country Selector -->
-            <label class="text-white/70 text-sm block">Страна отправления товара <span class="text-red-400 font-bold">*</span></label>
-            <div class="relative mt-1 mb-3">
-              <div id="calcCountryDropdownTrigger" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm flex justify-between items-center cursor-pointer">
-                <span id="calcCountrySelectedText">${countryText}</span>
-                <span>▼</span>
-              </div>
-              <div id="calcCountryDropdownList" class="hidden absolute left-0 right-0 mt-1 bg-slate-900 border border-white/10 rounded-xl shadow-2xl z-30 max-h-60 overflow-y-auto">
-                <div class="p-2.5 hover:bg-white/5 cursor-pointer text-sm text-white" onclick="changeCalcCountry('CN')">🇨🇳 Китай (возим)</div>
-                <div class="p-2.5 hover:bg-white/5 cursor-pointer text-sm text-white/50 flex justify-between items-center" onclick="changeCalcCountry('RU')"><span>🇷🇺 Россия</span> <span class="text-[10px] bg-white/10 text-white/60 px-1.5 py-0.5 rounded">Скоро...</span></div>
-                <div class="p-2.5 hover:bg-white/5 cursor-pointer text-sm text-white/50 flex justify-between items-center" onclick="changeCalcCountry('EU')"><span>🇪🇺 Евросоюз</span> <span class="text-[10px] bg-white/10 text-white/60 px-1.5 py-0.5 rounded">Скоро...</span></div>
-                <div class="p-2.5 hover:bg-white/5 cursor-pointer text-sm text-white/50 flex justify-between items-center" onclick="changeCalcCountry('US')"><span>🇺🇸 США</span> <span class="text-[10px] bg-white/10 text-white/60 px-1.5 py-0.5 rounded">Скоро...</span></div>
-                <div class="p-2.5 hover:bg-white/5 cursor-pointer text-sm text-white/50 flex justify-between items-center" onclick="changeCalcCountry('TR')"><span>🇹🇷 Турция</span> <span class="text-[10px] bg-white/10 text-white/60 px-1.5 py-0.5 rounded">Скоро...</span></div>
-                <div class="p-2.5 hover:bg-white/5 cursor-pointer text-sm text-white/50 flex justify-between items-center" onclick="changeCalcCountry('JP')"><span>🇯🇵 Япония</span> <span class="text-[10px] bg-white/10 text-white/60 px-1.5 py-0.5 rounded">Скоро...</span></div>
-                <div class="p-2.5 hover:bg-white/5 cursor-pointer text-sm text-white/50 flex justify-between items-center" onclick="changeCalcCountry('KR')"><span>🇰🇷 Южная Корея</span> <span class="text-[10px] bg-white/10 text-white/60 px-1.5 py-0.5 rounded">Скоро...</span></div>
-                <div class="p-2.5 hover:bg-white/5 cursor-pointer text-sm text-white/50 flex justify-between items-center" onclick="changeCalcCountry('VN')"><span>🇻🇳 Вьетнам</span> <span class="text-[10px] bg-white/10 text-white/60 px-1.5 py-0.5 rounded">Скоро...</span></div>
-                <div class="p-2.5 hover:bg-white/5 cursor-pointer text-sm text-white/50 flex justify-between items-center" onclick="changeCalcCountry('AE')"><span>🇦🇪 ОАЭ</span> <span class="text-[10px] bg-white/10 text-white/60 px-1.5 py-0.5 rounded">Скоро...</span></div>
-              </div>
-            </div>
+
 
             <!-- Price & Currency -->
             <div class="mb-3">
@@ -6549,13 +6599,12 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                   <input type="number" id="calcPrice" step="0.01" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Укажите цену товара до копейки">
                 </div>
                 <div class="w-[110px] flex-shrink-0">
-                  <select id="calcCurrency" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm cursor-not-allowed opacity-60" disabled style="padding: 14px 10px !important;">
+                  <select id="calcCurrency" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm cursor-not-allowed opacity-60" style="padding: 14px 10px !important;" disabled>
                     <option value="CNY" selected>CNY (¥)</option>
-                    <option value="RUB">RUB (₽)</option>
-                    <option value="EUR">EUR (€)</option>
                     <option value="USD">USD ($)</option>
-                    <option value="GBP">GBP (£)</option>
+                    <option value="EUR">EUR (€)</option>
                     <option value="PLN">PLN (zł)</option>
+                    <option value="RUB">RUB (₽)</option>
                     <option value="BYN">BYN (Br)</option>
                   </select>
                 </div>
@@ -6725,7 +6774,39 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         </div>
         ${renderFooter()}
       `;
-    }        // ==================== CATEGORY PICKER SHEET ====================
+    }        // ==================== GLOBAL CALCULATOR HELPERS ====================
+    window.selectCalculatorCountry = (c) => {
+      if (c === 'CN') {
+        window.calcCountry = 'CN';
+        tgUtil.haptic('success');
+        renderCurrentScreen();
+        
+        // Lock currency selection when CN is selected
+        setTimeout(() => {
+          const currencySelect = document.getElementById('calcCurrency');
+          if (currencySelect) {
+            currencySelect.value = 'CNY';
+            currencySelect.disabled = true;
+            currencySelect.classList.add('cursor-not-allowed', 'opacity-60');
+          }
+        }, 50);
+      } else {
+        tgUtil.haptic('warning');
+        const countryNames = {
+          RU: 'Россия',
+          EU: 'Евросоюз',
+          US: 'США',
+          TR: 'Турция',
+          JP: 'Япония',
+          KR: 'Южная Корея',
+          VN: 'Вьетнам',
+          AE: 'ОАЭ'
+        };
+        glassToast(`Направление (${countryNames[c] || c}) временно недоступно. Скоро мы запустим доставку из этой страны!`, { kind: 'info' });
+      }
+    };
+
+    // ==================== CATEGORY PICKER SHEET ====================
     window.openCategoryPickerSheet = (prefix = 'calc') => {
       window._activeCategoryPickerPrefix = prefix;
       const gender = document.getElementById(`${prefix}Gender`)?.value || 'Унисекс';
@@ -6851,6 +6932,17 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
     };
 
     async function attachCalculatorHandlers() {
+      // Pre-lock currency for CN
+      if (window.calcCountry === 'CN') {
+        const currencySelect = document.getElementById('calcCurrency');
+        if (currencySelect) {
+          currencySelect.value = 'CNY';
+          currencySelect.disabled = true;
+          currencySelect.classList.add('cursor-not-allowed', 'opacity-60');
+        }
+      }
+
+
       // Trigger dynamic loads
       if (!window.activeMarketplaces || window.activeMarketplaces.length === 0) {
         try {
@@ -8944,16 +9036,34 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         renderCurrentScreen();
       }
     }    // ==================== GLOBAL ORDER WIZARD STATE HELPERS ====================
-    window.selectOrderCountry = (country) => {
-      window.orderCountry = country;
-      if (!window.tempOrder) {
-        window.tempOrder = { items: [], total: 0, discountAmount: 0, appliedPromo: null, country: country };
+    window.selectOrderCountry = (c) => {
+      if (c === 'CN') {
+        window.orderCountry = 'CN';
+        if (!window.tempOrder) {
+          window.tempOrder = { items: [], total: 0, discountAmount: 0, appliedPromo: null, country: c };
+        } else {
+          window.tempOrder.country = c;
+        }
+        tgUtil.haptic('success');
+        renderCurrentScreen();
+        
+        // Lock currency selection when CN is selected
+        setTimeout(() => {
+          const currencySelect = document.getElementById('orderCurrency');
+          if (currencySelect) {
+            currencySelect.value = 'CNY';
+            currencySelect.disabled = true;
+            currencySelect.classList.add('cursor-not-allowed', 'opacity-60');
+          }
+        }, 50);
       } else {
-        window.tempOrder.country = country;
+        tgUtil.haptic('warning');
+        const countryNames = {
+          PL: 'Польша / ЕС',
+          RU: 'Россия'
+        };
+        glassToast(`Направление (${countryNames[c] || c}) временно недоступно. Скоро мы запустим доставку из этой страны!`, { kind: 'info' });
       }
-      window.orderAddMode = true; // immediately start in add mode to add the first item
-      window.orderAddSubMode = 'link';
-      renderCurrentScreen();
     };
 
     window.resetOrderCountry = () => {
@@ -8969,7 +9079,11 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
     window.startOrderAddMode = () => {
       window.orderAddMode = true;
-      window.orderAddSubMode = 'link';
+      window.orderAddSubMode = null;
+      // Only reset country if order is empty
+      if (!window.tempOrder || !window.tempOrder.items || window.tempOrder.items.length === 0) {
+        window.orderCountry = null;
+      }
       renderCurrentScreen();
     };
 
@@ -9319,7 +9433,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
     };
 
     // ==================== РЕНДЕР НОВОГО ЗАКАЗА ====================
-    async function renderNewOrder() {
+        async function renderNewOrder() {
       // Fetch recipients for customs split
       window.userRecipients = [];
       if (userId) {
@@ -9357,579 +9471,670 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         `;
       }
 
-      if (!window.orderCountry) {
-        // Step 1: Country Selection
-        return `
-          <div class="glass-card page-enter">
-            <h2 class="text-xl font-bold mb-4 text-center"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span> Выберите страну доставки</h2>
-            <p class="text-white/60 text-sm text-center mb-6">От страны зависят тарифы на доставку, сроки и таможенные пошлины.</p>
-            ${vacationBanner}
-            
-            <div class="grid grid-cols-1 gap-4">
-              <!-- China -->
-              <div class="glass-card p-4 border border-white/10 hover:border-cyan-500/50 cursor-pointer transition flex items-center gap-4" onclick="selectOrderCountry('CN')">
-                <div class="text-4xl">🇨🇳</div>
-                <div class="flex-1">
-                  <h3 class="font-bold text-white text-base">Китай (Poizon, Taobao, 1688)</h3>
-                  <p class="text-xs text-white/50 mt-0.5">Огромный выбор, лучшие цены на оригиналы</p>
-                  <div class="flex gap-4 mt-2 text-xs">
-                    <span class="text-cyan-400 font-semibold">⚡ $10 / кг</span>
-                    <span class="text-white/60"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> 10-15 дней</span>
+      // Initialize order structure
+      if (!window.tempOrder) {
+        window.tempOrder = { items: [], total: 0, discountAmount: 0, appliedPromo: null, country: null };
+      }
+      window.tempOrder.items = window.tempOrder.items || [];
+
+      // Auto force orderAddMode if no items are added yet
+      if (window.tempOrder.items.length === 0) {
+        window.orderAddMode = true;
+      }
+
+      if (window.orderAddMode) {
+        // ── STEP A: Mode Selection Overlay (if no mode selected yet) ──
+        if (!window.orderAddSubMode) {
+          return `
+            <style>
+              .order-mode-card {
+                transition: all 0.2s ease-in-out;
+              }
+              .order-mode-card:hover {
+                border-color: rgba(6, 182, 212, 0.4) !important;
+                transform: translateY(-2px) scale(1.01);
+                box-shadow: 0 4px 20px -2px rgba(6, 182, 212, 0.15);
+              }
+              .order-mode-card:active {
+                transform: scale(0.97) !important;
+                background-color: rgba(6, 182, 212, 0.08) !important;
+                border-color: rgba(6, 182, 212, 0.7) !important;
+                box-shadow: 0 0 10px rgba(6, 182, 212, 0.3);
+              }
+            </style>
+
+            <div class="flex items-center justify-center min-h-[70vh] p-2 page-enter">
+              <div class="glass-card w-full max-w-md p-6 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
+                <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
+                <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
+
+                \${window.tempOrder.items.length > 0 ? `
+                  <button type="button" class="absolute top-4 left-4 text-white/60 hover:text-white text-xs font-bold transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.orderAddMode=false; renderCurrentScreen();">
+                    ← Назад
+                  </button>
+                ` : ''}
+
+                <h2 class="text-xl font-extrabold text-white text-center mb-1">Добавление товара в заказ</h2>
+                <p class="text-white/60 text-xs text-center mb-5">Выберите способ добавления товара</p>
+                
+                \${vacationBanner}
+
+                <div class="flex flex-col gap-3">
+                  <!-- Manual -->
+                  <div class="order-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.setOrderAddSubMode('manual')">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center text-cyan-400 text-lg">
+                        ✍️
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <h3 class="font-bold text-white text-sm">Вручную</h3>
+                        <p class="text-white/50 text-[11px] leading-normal mt-0.5">Введите параметры товара самостоятельно.</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-              
-              <!-- Poland/EU -->
-              <div class="glass-card p-4 border border-white/10 hover:border-cyan-500/50 cursor-pointer transition flex items-center gap-4" onclick="selectOrderCountry('PL')">
-                <div class="text-4xl">🇵🇱</div>
-                <div class="flex-1">
-                  <h3 class="font-bold text-white text-base">Польша / ЕС (Zalando, ASOS, Farfetch)</h3>
-                  <p class="text-xs text-white/50 mt-0.5">100% оригинальные европейские коллекции</p>
-                  <div class="flex gap-4 mt-2 text-xs">
-                    <span class="text-cyan-400 font-semibold">⚡ $15 / кг</span>
-                    <span class="text-white/60"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> 14-20 дней</span>
+
+                  <!-- Link -->
+                  <div class="order-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.setOrderAddSubMode('link')">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/25 flex items-center justify-center text-purple-400 text-lg">
+                        🔗
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <h3 class="font-bold text-white text-sm">По ссылке</h3>
+                        <p class="text-white/50 text-[11px] leading-normal mt-0.5">Вставьте ссылку на товар — нейросеть заполнит форму сама.</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-              
-              <!-- Russia -->
-              <div class="glass-card p-4 border border-white/10 hover:border-cyan-500/50 cursor-pointer transition flex items-center gap-4" onclick="selectOrderCountry('RU')">
-                <div class="text-4xl">🇷🇺</div>
-                <div class="flex-1">
-                  <h3 class="font-bold text-white text-base">Россия (WB, Lamoda, Ozon)</h3>
-                  <p class="text-xs text-white/50 mt-0.5">Сверхбыстрая доставка, без пошлин ЕАЭС</p>
-                  <div class="flex gap-4 mt-2 text-xs">
-                    <span class="text-cyan-400 font-semibold">⚡ $5 / кг</span>
-                    <span class="text-white/60"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> 3-5 дней</span>
+
+                  <!-- Photo -->
+                  <div class="order-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.setOrderAddSubMode('photo')">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-xl bg-pink-500/10 border border-pink-500/25 flex items-center justify-center text-pink-400 text-lg">
+                        📸
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <h3 class="font-bold text-white text-sm">По фото</h3>
+                        <p class="text-white/50 text-[11px] leading-normal mt-0.5">Поиск товара по изображению и автозаполнение.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Description -->
+                  <div class="order-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.setOrderAddSubMode('text')">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400 text-lg">
+                        📝
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <h3 class="font-bold text-white text-sm">По описанию</h3>
+                        <p class="text-white/50 text-[11px] leading-normal mt-0.5">Текстовое описание товара для автоподбора параметров.</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+            \${renderFooter()}
+          `;
+        }
+
+        // ── STEP B: Country Selection Overlay (if mode selected but country not yet) ──
+        if (!window.orderCountry) {
+          return `
+            <div class="flex items-center justify-center min-h-[70vh] p-2 page-enter">
+              <div class="glass-card w-full max-w-md p-6 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
+                <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
+                <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
+
+                <button type="button" class="absolute top-4 left-4 text-white/60 hover:text-cyan-400 text-xs font-bold transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.orderAddSubMode=null; renderCurrentScreen();">
+                  ← Назад
+                </button>
+
+                <h2 class="text-xl font-extrabold text-white text-center mb-1 mt-4">Выберите страну доставки</h2>
+                <p class="text-white/60 text-xs text-center mb-5">От страны зависят тарифы на доставку и пошлины</p>
+
+                <div class="flex flex-col gap-2.5 max-h-[50vh] overflow-y-auto pr-1">
+                  <!-- CN (Active) -->
+                  <div class="border border-white/10 hover:border-cyan-500/50 p-3.5 rounded-2xl bg-white/5 cursor-pointer transition-all duration-200" onclick="window.selectOrderCountry('CN')">
+                    <div class="flex items-center gap-3">
+                      <div class="text-2xl">🇨🇳</div>
+                      <div class="flex-1 text-left">
+                        <h3 class="font-bold text-white text-sm">Китай (Poizon, Taobao, 1688)</h3>
+                        <p class="text-white/40 text-[10px] leading-normal mt-0.5">Огромный выбор, лучшие цены на оригиналы</p>
+                      </div>
+                      <span class="text-cyan-400 text-xs font-bold bg-cyan-500/10 px-2 py-0.5 rounded-lg border border-cyan-500/20">Работает</span>
+                    </div>
+                  </div>
+                  
+                  <!-- Others (Inactive) -->
+                  \${[
+                    { code: 'PL', name: 'Польша / ЕС (Zalando, ASOS, Farfetch)', flag: '🇵🇱', desc: '100% оригинальные европейские коллекции' },
+                    { code: 'RU', name: 'Россия (WB, Lamoda, Ozon)', flag: '🇷🇺', desc: 'Сверхбыстрая доставка, без пошлин ЕАЭС' }
+                  ].map(c => `
+                    <div class="border border-white/5 p-3.5 rounded-2xl bg-white/[0.02] opacity-50 cursor-pointer transition-all duration-200" onclick="window.selectOrderCountry('\${c.code}')">
+                      <div class="flex items-center gap-3">
+                        <div class="text-2xl">\${c.flag}</div>
+                        <div class="flex-1 text-left">
+                          <h3 class="font-bold text-white/70 text-sm">\${c.name}</h3>
+                          <p class="text-white/30 text-[10px] leading-normal mt-0.5">\${c.desc}</p>
+                        </div>
+                        <span class="text-white/40 text-[10px] font-semibold bg-white/5 px-2 py-0.5 rounded-lg border border-white/10">Скоро</span>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+            \${renderFooter()}
+          `;
+        }
+
+        // ── STEP C: Product addition Form ──
+        const subMode = window.orderAddSubMode;
+        const subModeText = subMode === 'manual' ? '✍️ Вручную' : subMode === 'link' ? '🔗 По ссылке' : subMode === 'photo' ? '📸 По фото' : '📝 По описанию';
+        const showFormFields = (subMode !== 'link' || window.orderLinkAnalyzed);
+
+        return `
+          <div class="glass-card page-enter relative">
+            <button class="absolute top-4 left-4 text-xs text-white/50 hover:text-white transition cursor-pointer flex items-center gap-1" onclick="window.stopOrderAddMode()">
+              ← К списку
+            </button>
+
+            <!-- Mode & Country Indicators -->
+            <div class="grid grid-cols-2 gap-3 mb-4 bg-white/5 p-3 rounded-2xl border border-white/5 mt-6">
+              <div class="flex justify-between items-center bg-white/5 p-2.5 rounded-xl border border-white/5">
+                <div class="text-left">
+                  <span class="text-[10px] text-white/40 block">Режим</span>
+                  <span class="text-xs font-bold text-white">\${subModeText}</span>
+                </div>
+                <button type="button" class="text-[10px] text-cyan-400 font-bold bg-white/10 px-2 py-1 rounded-lg hover:bg-white/15 transition active:scale-95 border border-white/5" onclick="window.orderAddSubMode=null; window.orderLinkAnalyzed=false; renderCurrentScreen()">
+                  Сменить
+                </button>
+              </div>
+              <div class="flex justify-between items-center bg-white/5 p-2.5 rounded-xl border border-white/5">
+                <div class="text-left">
+                  <span class="text-[10px] text-white/40 block">Страна</span>
+                  <span class="text-xs font-bold text-white">\${window.orderCountry === 'CN' ? '🇨🇳 Китай' : window.orderCountry || ''}</span>
+                </div>
+                <button type="button" class="text-[10px] text-cyan-400 font-bold bg-white/10 px-2 py-1 rounded-lg hover:bg-white/15 transition active:scale-95 border border-white/5" onclick="window.orderCountry=null; renderCurrentScreen()">
+                  Сменить
+                </button>
+              </div>
+            </div>
+
+            <!-- Mode-specific input views -->
+            <!-- Link Pane -->
+            <div id="paneOrderLink" class="mode-pane \${subMode === 'link' ? '' : 'hidden'} mb-4">
+              <label class="text-white/70 text-sm block mb-1">Ссылка на товар <span class="text-red-400 font-bold">*</span></label>
+              <div class="flex gap-2 items-stretch">
+                <div class="flex-1 flex gap-1 bg-white/5 border border-white/30 rounded-xl overflow-hidden px-1.5 py-1">
+                  <input type="text" id="orderUrl" class="bg-transparent flex-1 border-0 outline-none p-2 text-sm text-white" placeholder="Вставьте ссылку на Poizon, Taobao...">
+                  <button type="button" id="orderPasteBtn" class="bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg px-3.5 transition flex items-center justify-center text-cyan-400 gap-1.5 text-xs font-bold" title="Вставить из буфера">
+                    \${ix('clipboard', { size: '14px' })}
+                    <span>Вставить</span>
+                  </button>
+                </div>
+                <button id="analyzeOrderLinkBtn" class="btn-primary whitespace-nowrap transition flex-shrink-0"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Найти</button>
+              </div>
+              <p class="text-white/40 text-xs mt-1.5">Если ссылка не распознается, мы предложим загрузить скриншот.</p>
+            </div>
+
+            <!-- Photo Pane -->
+            <div id="paneOrderPhoto" class="mode-pane \${subMode === 'photo' ? '' : 'hidden'} mb-4">
+              <label class="text-white/70 text-sm block mb-1">Фото товара (можно до 5)</label>
+              <div id="orderPhotoUploadZone" class="screenshot-upload-zone p-4 border-2 border-dashed border-white/30 rounded-xl text-center cursor-pointer hover:bg-white/5 transition">
+                <span class="text-3xl mb-1 block"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span></span>
+                <span class="text-sm font-semibold block text-white">Загрузить фото товара</span>
+                <span class="text-xs text-white/50 block mt-1">До 5 детальных фото для точного поиска</span>
+                <input type="file" id="orderPhotoInput" accept="image/*" multiple class="hidden">
+              </div>
+              <div id="orderPhotoPreview" class="hidden mt-2 grid grid-cols-3 gap-2"></div>
+              <label class="text-white/70 text-xs mt-2 block">Описание (опционально)</label>
+              <input id="orderPhotoHint" type="text" placeholder="Напр. Nike Dunk Low Panda 42" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm">
+              <button id="orderPhotoSearchBtn" class="btn-primary w-full mt-2 transition"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Найти этот товар</button>
+            </div>
+
+            <!-- Text Pane -->
+            <div id="paneOrderText" class="mode-pane \${subMode === 'text' ? '' : 'hidden'} mb-4">
+              <label class="text-white/70 text-sm block mb-1">Описание товара</label>
+              <input type="text" id="orderTextQuery" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Например: Nike Dunk Low Panda кроссовки">
+              <button id="orderTextSearchBtn" class="btn-primary w-full mt-2 transition"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Искать товар</button>
+            </div>
+
+            <div id="orderSearchResults" class="hidden mb-4"></div>
+            <div id="orderScreenshotWidget" class="hidden mb-4"></div>
+
+            <!-- Fields -->
+            <div id="orderManualForm" class="\${showFormFields ? '' : 'hidden'} mt-4 border-t border-white/10 pt-4">
+              <div class="mb-3">
+                <label class="text-white/70 text-sm block mb-1">Ссылка на товар (необязательно)</label>
+                <input type="text" id="orderUrlManual" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="https://poizon.com/...">
+              </div>
+              
+              <div class="mb-3">
+                <label class="text-white/70 text-sm block mb-1">Фото товара (необязательно)</label>
+                <div id="orderManualPhotoUploadZone" class="screenshot-upload-zone p-3 border border-dashed border-white/30 rounded-xl text-center cursor-pointer hover:bg-white/5 transition">
+                  <span class="text-sm text-white/70"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Загрузить фото</span>
+                  <input type="file" id="orderManualPhotoInput" accept="image/*" multiple class="hidden">
+                </div>
+                <div id="orderManualPhotoPreview" class="hidden mt-2 grid grid-cols-3 gap-2"></div>
+              </div>
+
+              <!-- Title details -->
+              <div class="bg-white/5 p-3 rounded-2xl mb-3">
+                <p class="text-white/60 text-xs mb-2">Название товара:</p>
+                <div class="mb-2">
+                  <label class="text-white/50 text-xs block mb-0.5">Бренд</label>
+                  <input type="text" id="orderBrand" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Nike, Adidas, etc.">
+                </div>
+                <div class="mb-2">
+                  <label class="text-white/50 text-xs block mb-0.5">Модель</label>
+                  <input type="text" id="orderModel" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Air Force 1, etc.">
+                </div>
+                <div>
+                  <label class="text-white/50 text-xs block mb-0.5">Особенности</label>
+                  <input type="text" id="orderFeatures" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Цвет, расцветка...">
+                </div>
+              </div>
+
+              <!-- Params -->
+              <div class="bg-white/5 p-3 rounded-2xl mb-3">
+                <p class="text-white/60 text-xs mb-2">Параметры:</p>
+                <div class="mb-3">
+                  <label class="text-white/50 text-xs block mb-1">Пол</label>
+                  <div class="flex gap-2" id="orderGenderSelector">
+                    <button type="button" data-gender="Мужской" class="filter-chip flex-1 py-2 text-center text-xs border border-white/10 hover:bg-white/5 transition" onclick="window.selectOrderGender('Мужской')">Мужской</button>
+                    <button type="button" data-gender="Женский" class="filter-chip flex-1 py-2 text-center text-xs border border-white/10 hover:bg-white/5 transition" onclick="window.selectOrderGender('Женский')">Женский</button>
+                    <button type="button" data-gender="Унисекс" class="filter-chip flex-1 py-2 text-center text-xs border border-white/10 hover:bg-white/5 transition" onclick="window.selectOrderGender('Унисекс')">Унисекс</button>
+                    <input type="hidden" id="orderGender" value="Унисекс">
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="text-white/50 text-xs block mb-1">Категория</label>
+                  <select id="orderCategory" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm mb-1">\${renderCategoryOptions()}</select>
+                  <p id="orderCategoryHint" class="text-cyan-400 text-[10px] hidden mb-2 font-semibold ml-1"></p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 mb-3">
+                  <div>
+                    <label class="text-white/50 text-xs block mb-0.5">Цвет</label>
+                    <input type="text" id="orderColor" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Напр. Черный">
+                  </div>
+                  <div>
+                    <label class="text-white/50 text-xs block mb-0.5">Размер</label>
+                    <input type="text" id="orderSize" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Напр. 42">
+                  </div>
+                </div>
+
+                <!-- Sizing -->
+                <div class="border border-cyan-500/20 bg-cyan-500/5 p-3 rounded-xl">
+                  <p class="text-cyan-400 text-xs font-bold mb-1">Ввод замеров для ИИ-подбора размера (Рекомендуется)</p>
+                  <div class="grid grid-cols-3 gap-2">
+                    <div>
+                      <label class="text-white/40 text-[9px] block">Рост (см)</label>
+                      <input type="number" id="orderHeight" class="btn-secondary w-full p-2 text-xs text-center border border-white/20 rounded-lg" placeholder="180">
+                    </div>
+                    <div>
+                      <label class="text-white/40 text-[9px] block">Вес (кг)</label>
+                      <input type="number" id="orderWeightKg" class="btn-secondary w-full p-2 text-xs text-center border border-white/20 rounded-lg" placeholder="75">
+                    </div>
+                    <div>
+                      <label class="text-white/40 text-[9px] block">Стелька (см)</label>
+                      <input type="number" id="orderMeasure" class="btn-secondary w-full p-2 text-xs text-center border border-white/20 rounded-lg" placeholder="27">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Product Weight Slider -->
+              <div class="mb-4">
+                <label class="text-white/70 text-sm block">Вес товара (кг) <span class="text-white/40 text-xs">- влияет на стоимость доставки</span></label>
+                <div class="flex items-center gap-3 mt-1">
+                  <input type="range" id="orderWeight" min="0.1" max="30" step="0.1" value="1.0" class="flex-1 accent-cyan-500">
+                  <span id="orderWeightVal" class="text-white/80 bg-white/10 px-3 py-1 rounded-full text-xs font-bold">1.0 кг</span>
+                </div>
+              </div>
+
+              <!-- Price & Currency combined -->
+              <div class="mb-4">
+                <label class="text-white/70 text-sm block mb-1">Цена с валютой</label>
+                <div class="flex gap-2">
+                  <div class="flex-[3]">
+                    <input type="number" id="orderPrice" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Укажите цену товара">
+                  </div>
+                  <div class="flex-[1]">
+                    <select id="orderCurrency" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm cursor-not-allowed opacity-60" style="padding: 14px 10px !important;" disabled>
+                      <option value="CNY" selected>CNY (¥)</option>
+                      <option value="USD">USD ($)</option>
+                      <option value="EUR">EUR (€)</option>
+                      <option value="PLN">PLN (zł)</option>
+                      <option value="RUB">RUB (₽)</option>
+                      <option value="BYN">BYN (Br)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Calculation Button or final breakdown -->
+              <div class="flex flex-col gap-2 mt-4">
+                <button id="orderSaveItemBtn" class="btn-primary w-full py-3.5 rounded-xl font-bold transition flex items-center justify-center gap-2">
+                  Добавить товар в заказ
+                </button>
+              </div>
+            </div>
           </div>
-          ${renderFooter()}
+          \${renderFooter()}
         `;
       }
 
-      if (!window.orderAddMode) {
-        // Step 2: Checkout / Added Items List
-        if (!window.tempOrder) {
-          window.tempOrder = { items: [], total: 0, discountAmount: 0, appliedPromo: null, country: window.orderCountry };
-        }
-        window.tempOrder.items = window.tempOrder.items || [];
+      // Step 2: Checkout / Added Items List
+      if (!window.tempOrder) {
+        window.tempOrder = { items: [], total: 0, discountAmount: 0, appliedPromo: null, country: window.orderCountry };
+      }
+      window.tempOrder.items = window.tempOrder.items || [];
+      
+      let itemsHtml = '';
+      let totalSum = 0;
+      
+      // Sum up total from all items
+      window.tempOrder.items.forEach(item => {
+        totalSum += item.total_byn * item.quantity;
+      });
+
+      if (window.tempOrder.items.length === 0) {
+        itemsHtml = `
+          <div class="text-center py-8 text-white/40 text-sm bg-white/5 rounded-2xl border border-dashed border-white/10">
+            <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7V4h16v3M4 7l8 4 8-4M4 7v13h16V7"/></svg></span> У вас пока нет добавленных товаров.<br>Нажмите «<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить товар» ниже
+          </div>
+        `;
+      } else {
+        // Group items by country package
+        const packages = {
+          'CN': [],
+          'PL': [],
+          'RU': []
+        };
         
-        let itemsHtml = '';
-        let totalSum = 0;
-        
-        // Sum up total from all items
-        window.tempOrder.items.forEach(item => {
-          totalSum += item.total_byn * item.quantity;
+        window.tempOrder.items.forEach((item, idx) => {
+          item._originalIndex = idx;
+          const country = getPlatformCountry(item.platform);
+          packages[country].push(item);
         });
 
-        if (window.tempOrder.items.length === 0) {
-          itemsHtml = `
-            <div class="text-center py-8 text-white/40 text-sm bg-white/5 rounded-2xl border border-dashed border-white/10">
-              <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7V4h16v3M4 7l8 4 8-4M4 7v13h16V7"/></svg></span> У вас пока нет добавленных товаров.<br>Нажмите «<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить товар» ниже
-            </div>
-          `;
-        } else {
-          // Group items by country package
-          const packages = {
-            'CN': [],
-            'PL': [],
-            'RU': []
-          };
-          
-          window.tempOrder.items.forEach((item, idx) => {
-            item._originalIndex = idx;
-            const country = getPlatformCountry(item.platform);
-            packages[country].push(item);
-          });
-
-          // Auto-select tab if current active is empty
-          window.activePackageTab = window.activePackageTab || 'CN';
-          const activeTabsWithItems = Object.keys(packages).filter(c => packages[c].length > 0);
-          if (activeTabsWithItems.length > 0 && !activeTabsWithItems.includes(window.activePackageTab)) {
-            window.activePackageTab = activeTabsWithItems[0];
-          }
-
-          // Build package tabs layout
-          const tabButtons = Object.keys(packages).map(country => {
-            const count = packages[country].length;
-            if (count === 0) return '';
-            const flag = country === 'CN' ? '🇨🇳' : country === 'PL' ? '🇵🇱' : '🇷🇺';
-            const label = country === 'CN' ? 'Китай' : country === 'PL' ? 'Европа' : 'Россия';
-            const active = window.activePackageTab === country;
-            return `
-              <button type="button" class="flex-1 py-2 text-center text-[10px] font-bold rounded-xl border transition ${active ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'border-white/10 hover:bg-white/5 text-white/70'}" onclick="window.switchPackageTab('${country}')">
-                ${flag} ${label} (${count})
-              </button>
-            `;
-          }).join('');
-
-          const activePackageItems = packages[window.activePackageTab] || [];
-          const itemsListHtml = activePackageItems.map((item) => {
-            return `
-              <div class="bg-white/5 p-3 rounded-xl border border-white/10 flex justify-between items-center gap-2 mb-2">
-                <div class="flex-1 min-w-0">
-                  <div class="text-sm font-bold text-white truncate">${item.title}</div>
-                  <div class="text-xs text-white/60 mt-0.5">Размер: ${item.size || 'не указан'} · Категория: ${item.category}</div>
-                  <div class="text-xs text-cyan-400 font-bold mt-1">${item.price} ${item.currency} (${item.total_byn.toFixed(2)} BYN)</div>
-                </div>
-                <button type="button" class="bg-red-500/20 hover:bg-red-500/40 text-red-400 rounded-full w-8 h-8 flex items-center justify-center transition flex-shrink-0" onclick="deleteOrderItem(${item._originalIndex})">${ix('trash-2')}</button>
-              </div>
-            `;
-          }).join('');
-
-          // Consolidation checkbox
-          window.tempOrder.consolidation = window.tempOrder.consolidation || {};
-          const isConsolidated = window.tempOrder.consolidation[window.activePackageTab] || false;
-          const consolidationWidget = activePackageItems.length >= 2 ? `
-            <div class="flex items-center justify-between p-3.5 rounded-xl border border-cyan-500/30 bg-cyan-500/5 mt-3 mb-2 page-enter">
-              <div class="flex items-center gap-2 text-left">
-                <input type="checkbox" id="pkgConsolidationCheck" class="w-5 h-5 accent-cyan-500 cursor-pointer" ${isConsolidated ? 'checked' : ''} onchange="window.togglePackageConsolidation('${window.activePackageTab}')">
-                <label for="pkgConsolidationCheck" class="text-white text-xs font-semibold leading-snug cursor-pointer">
-                  📦 Объединить товары в одну коробку (скидка 3 BYN)
-                </label>
-              </div>
-            </div>
-          ` : '';
-
-          // Package extras checkboxes
-          window.tempOrder.packageExtras = window.tempOrder.packageExtras || {};
-          const extras = window.tempOrder.packageExtras[window.activePackageTab] || {};
-          const activeCountryLabel = window.activePackageTab === 'CN' ? 'Китае' : window.activePackageTab === 'PL' ? 'Польше' : 'России';
-          const extrasWidget = `
-            <div class="bg-white/5 p-3.5 rounded-xl border border-white/10 mt-2 mb-2 text-xs space-y-2.5 page-enter">
-              <p class="text-white/60 font-bold uppercase tracking-wider text-[10px]">Доп. услуги склада в ${activeCountryLabel}:</p>
-              <div class="flex items-center gap-2">
-                <input type="checkbox" id="extraBubble" class="w-4 h-4 accent-cyan-500 cursor-pointer" ${extras.bubble ? 'checked' : ''} onchange="window.togglePackageExtra('${window.activePackageTab}', 'bubble')">
-                <label for="extraBubble" class="text-white/70 cursor-pointer">Bubble-плёнка (+3 BYN)</label>
-              </div>
-              <div class="flex items-center gap-2">
-                <input type="checkbox" id="extraWood" class="w-4 h-4 accent-cyan-500 cursor-pointer" ${extras.wood ? 'checked' : ''} onchange="window.togglePackageExtra('${window.activePackageTab}', 'wood')">
-                <label for="extraWood" class="text-white/70 cursor-pointer">Деревянная обрешётка (+10 BYN)</label>
-              </div>
-              <div class="flex items-center gap-2">
-                <input type="checkbox" id="extraCheck" class="w-4 h-4 accent-cyan-500 cursor-pointer" ${extras.check ? 'checked' : ''} onchange="window.togglePackageExtra('${window.activePackageTab}', 'check')">
-                <label for="extraCheck" class="text-white/70 cursor-pointer">Детальная проверка на брак/замеры (+5 BYN)</label>
-              </div>
-            </div>
-          `;
-
-          itemsHtml = `
-            <div class="space-y-3">
-              <!-- Package Tabs Navigation -->
-              <div class="flex gap-2 bg-white/5 p-1 rounded-2xl border border-white/5">
-                ${tabButtons}
-              </div>
-              
-              <!-- Active Package Items -->
-              <div class="mt-2">
-                ${itemsListHtml}
-              </div>
-
-              <!-- Package Specific Services & Discounts -->
-              ${consolidationWidget}
-              ${extrasWidget}
-            </div>
-          `;
+        // Auto-select tab if current active is empty
+        window.activePackageTab = window.activePackageTab || 'CN';
+        const activeTabsWithItems = Object.keys(packages).filter(c => packages[c].length > 0);
+        if (activeTabsWithItems.length > 0 && !activeTabsWithItems.includes(window.activePackageTab)) {
+          window.activePackageTab = activeTabsWithItems[0];
         }
 
-        const discountLine = window.tempOrder.discountAmount > 0
-          ? `<p class="text-green-400 text-sm mt-1">Скидка: -${window.tempOrder.discountAmount.toFixed(2)} BYN</p>`
-          : '';
-
-        const finalTotal = Math.max(0, totalSum - (window.tempOrder.discountAmount || 0));
-
-        const checkoutOptionsAndTotals = totalSum > 0 ? `
-          <!-- Global Options -->
-          <div class="bg-white/5 p-4 rounded-xl mb-4 space-y-3">
-            <p class="text-white/60 text-xs font-bold uppercase tracking-wider mb-1">Опции заказа:</p>
-            <div class="flex items-center gap-2">
-              <input type="checkbox" id="orderKeepBox" ${window.tempOrder.keepBox ? 'checked' : ''}>
-              <label for="orderKeepBox" class="text-white/70 text-sm">Сохранить оригинальную коробку</label>
-            </div>
-            <div class="flex items-center gap-2">
-              <input type="checkbox" id="orderInsurance" checked disabled>
-              <label for="orderInsurance" class="text-white/70 text-sm"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span> Обязательная страховка ShopByShop (+2%)</label>
-            </div>
-            <div class="flex items-center gap-2 mt-2">
-              <input type="checkbox" id="orderExtraPhoto" ${window.tempOrder.extraPhoto ? 'checked' : ''} class="w-4 h-4 accent-cyan-500 cursor-pointer">
-              <label for="orderExtraPhoto" class="text-white/70 text-sm cursor-pointer"><span class="text-cyan-400">📸 Детальные фото со склада</span> (+3 BYN)</label>
-            </div>
-            <div class="flex items-center gap-2 mt-2">
-              <input type="checkbox" id="orderExtraMeasure" ${window.tempOrder.extraMeasure ? 'checked' : ''} class="w-4 h-4 accent-cyan-500 cursor-pointer">
-              <label for="orderExtraMeasure" class="text-white/70 text-sm cursor-pointer"><span class="text-cyan-400">📏 Замер стельки/длины</span> (+3 BYN)</label>
-            </div>
-            <div class="flex items-center gap-2">
-              <input type="checkbox" id="orderIsGift" ${window.tempOrder.isGift ? 'checked' : ''} class="w-4 h-4 accent-pink-500 cursor-pointer">
-              <label for="orderIsGift" class="text-white/70 text-sm cursor-pointer"><span class="text-pink-400">🎁 Подарок</span> (Скрыть цену и чек)</label>
-            </div>
-            <div class="flex items-center gap-2">
-              <input type="checkbox" id="orderRequiresVideoCheck" ${window.tempOrder.requiresVideoCheck ? 'checked' : ''} class="w-4 h-4 accent-cyan-500 cursor-pointer">
-              <label for="orderRequiresVideoCheck" class="text-white/70 text-sm cursor-pointer"><span class="text-cyan-400">📹 Видео-проверка</span> со склада в Китае (+10 BYN)</label>
-            </div>
-          </div>
-
-          <!-- Pick-up Point (PVS) Selector -->
-          <div class="bg-white/5 p-4 rounded-xl mb-4 space-y-3">
-            <p class="text-white/60 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5">
-              <span>🚚 Доставка по Беларуси:</span>
-            </p>
-            <div>
-              <label class="text-white/50 text-[10px] block mb-1">Служба доставки</label>
-              <select id="pvsMethodSelect" class="w-full p-3 rounded-xl border border-white/20 text-sm bg-slate-900 text-white">
-                <option value="none" ${(!window.tempOrder.pvs || window.tempOrder.pvs.method === 'none') ? 'selected' : ''}>Самовывоз / Почта (Без дополнительной платы)</option>
-                <option value="europoshta" ${(window.tempOrder.pvs?.method === 'europoshta') ? 'selected' : ''}>Европочта (до отделения) — 5.00 BYN</option>
-                <option value="belpochta" ${(window.tempOrder.pvs?.method === 'belpochta') ? 'selected' : ''}>Белпочта (до отделения) — 5.00 BYN</option>
-                <option value="sdek" ${(window.tempOrder.pvs?.method === 'sdek') ? 'selected' : ''}>СДЭК (до отделения) — 8.00 BYN</option>
-              </select>
-            </div>
-            
-            <div id="pvsDetailContainer" class="${(!window.tempOrder.pvs || window.tempOrder.pvs.method === 'none') ? 'hidden' : ''} space-y-3">
-              <button type="button" class="w-full bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 py-3 rounded-xl text-xs font-bold transition-colors flex justify-center items-center gap-2" onclick="window.openYandexMapStub()">
-                <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></span> Выбрать на карте (Яндекс)
-              </button>
-              <div>
-                <label class="text-white/50 text-[10px] block mb-1">Город</label>
-                <select id="pvsCitySelect" class="w-full p-3 rounded-xl border border-white/20 text-sm bg-slate-900 text-white">
-                  ${['Минск', 'Гомель', 'Брест', 'Гродно', 'Витебск', 'Могилев', 'Барановичи', 'Бобруйск', 'Борисов', 'Лида', 'Мозырь', 'Новополоцк', 'Орша', 'Пинск', 'Солигорск'].map(c => `
-                    <option value="${c}" ${(window.tempOrder.pvs?.city === c) ? 'selected' : ''}>${c}</option>
-                  `).join('')}
-                </select>
-              </div>
-              <div>
-                <label class="text-white/50 text-[10px] block mb-1">Пункт выдачи / Отделение</label>
-                <select id="pvsPointSelect" class="w-full p-3 rounded-xl border border-white/20 text-sm bg-slate-900 text-white">
-                  <!-- Will be populated dynamically -->
-                </select>
-              </div>
-            </div>
-            
-            ${(window.userSettings?.free_delivery_tokens > 0) ? `
-              <div class="flex items-center justify-between p-3 rounded-xl border border-green-500/30 bg-green-500/10 mt-3">
-                <div class="flex items-center gap-2 text-left">
-                  <input type="checkbox" id="orderUseFreeDelivery" class="w-5 h-5 accent-green-500" ${window.tempOrder.useFreeDelivery ? 'checked' : ''}>
-                  <label for="orderUseFreeDelivery" class="text-white text-xs font-semibold leading-snug">Использовать купон на бесплатную доставку (осталось: ${window.userSettings.free_delivery_tokens})</label>
-                </div>
-              </div>
-            ` : ''}
-          </div>
-
-          <!-- Promo Code -->
-          <div class="bg-white/5 p-4 rounded-xl mb-4">
-            <label class="text-white/70 text-sm block mb-1">Промокод</label>
-            <div class="flex gap-2">
-              <input type="text" id="promoCode" class="btn-secondary flex-1 p-3 rounded-xl border border-white/30 text-sm" placeholder="Введите промокод" value="${window.tempOrder.appliedPromo?.code || ''}">
-              <button id="applyPromoBtn" class="btn-primary whitespace-nowrap px-4 rounded-xl text-sm font-bold">Применить</button>
-            </div>
-            <p id="promoMessage" class="text-xs mt-1 hidden"></p>
-          </div>
-
-          <!-- Customs Split Container Placeholders -->
-          <div id="customsSplitPlaceholder"></div>
-
-          <!-- Breakdown & Totals -->
-          <div class="bg-cyan-500/10 border border-cyan-500/30 p-4 rounded-xl">
-            <div id="orderBreakdown" class="mb-3 space-y-1 text-sm border-b border-white/10 pb-3"></div>
-            
-            <div class="flex justify-between items-baseline mb-1">
-              <span class="text-white font-bold">ИТОГО:</span>
-              <span class="text-cyan-400 font-bold text-xl"><span id="orderTotal">${finalTotal.toFixed(2)}</span> <span class="text-sm">BYN</span></span>
-            </div>
-            ${discountLine}
-            <p class="text-white/70 text-xs mt-1">*Обязательная предоплата 70%: <span id="prepaymentAmount" class="font-bold text-cyan-300">${(finalTotal * 0.70).toFixed(2)}</span> BYN</p>
-            
-            <!-- Agree Offer -->
-            <div class="mt-4 flex items-start gap-2 border-t border-white/10 pt-3 mb-2">
-              <input type="checkbox" id="agreeOffer" class="mt-1">
-              <label for="agreeOffer" class="text-white/70 text-xs leading-normal">
-                Я принимаю условия <a href="https://example.com/offer.pdf" target="_blank" class="text-cyan-400 underline font-bold">публичной оферты</a> и даю согласие на обработку персональных данных
-              </label>
-            </div>
-
-            <!-- Agree Delivery Rules -->
-            <div class="flex items-start gap-2 mb-4">
-              <input type="checkbox" id="agreeDeliveryRules" class="mt-1">
-              <label for="agreeDeliveryRules" class="text-white/70 text-xs leading-normal">
-                Я прочитал и согласен с <button type="button" class="text-cyan-400 underline font-bold text-left" onclick="tgUtil.alert('Правила доставки:\\n\\n1. Сроки доставки являются ориентировочиными.\\n2. Итоговый вес может отличаться от расчетного.\\n3. Отмена выкупленного заказа невозможна.')">правилами доставки</button>.
-              </label>
-            </div>
-
-            <!-- Commission Contract -->
-            <div class="flex items-start gap-2 mb-4">
-              <input type="checkbox" id="agreeCommissionContract" class="mt-1">
-              <label for="agreeCommissionContract" class="text-white/70 text-xs leading-normal">
-                Я подписываю <button type="button" class="text-cyan-400 underline font-bold text-left" onclick="showCommissionContractModal()">📄 Договор комиссии байера (20% на услуги)</button> и подтверждаю точность предоставленных данных.
-              </label>
-            </div>
-
-            <!-- ERIP Instructions -->
-            <button type="button" class="w-full bg-slate-800 hover:bg-slate-700 text-white py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 mb-3 border border-white/10 transition" onclick="tgUtil.alert('Инструкция оплаты ЕРИП:\\n1. Платежи и переводы\\n2. Система «Расчет» (ЕРИП)\\n3. Интернет-магазины/сервисы\\n4. I -> ICE LOGIX\\n5. Введите номер заказа и сумму предоплаты.')">
-              <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span> Инструкция оплаты через ЕРИП
+        // Build package tabs layout
+        const tabButtons = Object.keys(packages).map(country => {
+          const count = packages[country].length;
+          if (count === 0) return '';
+          const flag = country === 'CN' ? '🇨🇳' : country === 'PL' ? '🇵🇱' : '🇷🇺';
+          const label = country === 'CN' ? 'Китай' : country === 'PL' ? 'Европа' : 'Россия';
+          const active = window.activePackageTab === country;
+          return `
+            <button type="button" class="flex-1 py-2 text-center text-[10px] font-bold rounded-xl border transition \${active ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'border-white/10 hover:bg-white/5 text-white/70'}" onclick="window.switchPackageTab('\${country}')">
+              \${flag} \${label} (\${count})
             </button>
+          `;
+        }).join('');
 
-            <button id="createOrderFinal" class="w-full bg-green-600 hover:bg-green-700 py-3 rounded-xl font-bold flex items-center justify-center gap-2">
-              <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></span> Оформить заказ
-            </button>
+        const activePackageItems = packages[window.activePackageTab] || [];
+        const itemsListHtml = activePackageItems.map((item) => {
+          return `
+            <div class="bg-white/5 p-3 rounded-xl border border-white/10 flex justify-between items-center gap-2 mb-2">
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-bold text-white truncate">\${item.title}</div>
+                <div class="text-xs text-white/60 mt-0.5">Размер: \${item.size || 'не указан'} · Категория: \${item.category}</div>
+                <div class="text-xs text-cyan-400 font-bold mt-1">\${item.price} \${item.currency} (\${item.total_byn.toFixed(2)} BYN)</div>
+              </div>
+              <button type="button" class="bg-red-500/20 hover:bg-red-500/40 text-red-400 rounded-full w-8 h-8 flex items-center justify-center transition flex-shrink-0" onclick="deleteOrderItem(\${item._originalIndex})">\${ix('trash-2')}</button>
+            </div>
+          `;
+        }).join('');
+
+        // Consolidation checkbox
+        window.tempOrder.consolidation = window.tempOrder.consolidation || {};
+        const isConsolidated = window.tempOrder.consolidation[window.activePackageTab] || false;
+        const consolidationWidget = activePackageItems.length >= 2 ? `
+          <div class="flex items-center justify-between p-3.5 rounded-xl border border-cyan-500/30 bg-cyan-500/5 mt-3 mb-2 page-enter">
+            <div class="flex items-center gap-2 text-left">
+              <input type="checkbox" id="pkgConsolidationCheck" class="w-5 h-5 accent-cyan-500 cursor-pointer" \${isConsolidated ? 'checked' : ''} onchange="window.togglePackageConsolidation('\${window.activePackageTab}')">
+              <label for="pkgConsolidationCheck" class="text-white text-xs font-semibold leading-snug cursor-pointer">
+                📦 Объединить товары в одну коробку (скидка 3 BYN)
+              </label>
+            </div>
           </div>
         ` : '';
 
-        return `
-          <div class="glass-card page-enter">
-            <div class="flex justify-between items-center mb-4">
-              <h2 class="text-lg font-bold"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></span> Оформление заказа</h2>
-              <button class="text-xs text-cyan-400 bg-white/5 px-3 py-1.5 rounded-full hover:bg-white/10 transition" onclick="resetOrderCountry()">
-                ${window.orderCountry === 'CN' ? '🇨🇳 Китай' : window.orderCountry === 'PL' ? '🇵🇱 Польша' : '🇷🇺 Россия'} <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></span> Сменить
-              </button>
+        // Package extras checkboxes
+        window.tempOrder.packageExtras = window.tempOrder.packageExtras || {};
+        const extras = window.tempOrder.packageExtras[window.activePackageTab] || {};
+        const activeCountryLabel = window.activePackageTab === 'CN' ? 'Китае' : window.activePackageTab === 'PL' ? 'Польше' : 'России';
+        const extrasWidget = `
+          <div class="bg-white/5 p-3.5 rounded-xl border border-white/10 mt-2 mb-2 text-xs space-y-2.5 page-enter">
+            <p class="text-white/60 font-bold uppercase tracking-wider text-[10px]">Доп. услуги склада в \${activeCountryLabel}:</p>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="extraBubble" class="w-4 h-4 accent-cyan-500 cursor-pointer" \${extras.bubble ? 'checked' : ''} onchange="window.togglePackageExtra('\${window.activePackageTab}', 'bubble')">
+              <label for="extraBubble" class="text-white/70 cursor-pointer">Bubble-плёнка (+3 BYN)</label>
             </div>
-            
-            ${vacationBanner}
-            ${limitMessage}
-            
-            <div class="mb-4">
-              <h3 class="text-sm font-semibold text-white/70 mb-2">Список выбранных товаров:</h3>
-              <div id="orderItemsList" class="flex flex-col gap-3">
-                ${itemsHtml}
-              </div>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="extraWood" class="w-4 h-4 accent-cyan-500 cursor-pointer" \${extras.wood ? 'checked' : ''} onchange="window.togglePackageExtra('\${window.activePackageTab}', 'wood')">
+              <label for="extraWood" class="text-white/70 cursor-pointer">Деревянная обрешётка (+10 BYN)</label>
             </div>
-            
-            <div class="flex flex-col gap-3 mt-4">
-              <button type="button" class="btn-secondary w-full py-3 rounded-xl flex items-center justify-center gap-2 border border-dashed border-cyan-500/30 text-cyan-400 font-bold hover:bg-cyan-500/10 transition" onclick="startOrderAddMode()">
-                <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить товар
-              </button>
-              
-              ${checkoutOptionsAndTotals}
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="extraCheck" class="w-4 h-4 accent-cyan-500 cursor-pointer" \${extras.check ? 'checked' : ''} onchange="window.togglePackageExtra('\${window.activePackageTab}', 'check')">
+              <label for="extraCheck" class="text-white/70 cursor-pointer">Детальная проверка на брак/замеры (+5 BYN)</label>
             </div>
           </div>
-          ${renderFooter()}
+        `;
+
+        itemsHtml = `
+          <div class="space-y-3">
+            <!-- Package Tabs Navigation -->
+            <div class="flex gap-2 bg-white/5 p-1 rounded-2xl border border-white/5">
+              \${tabButtons}
+            </div>
+            
+            <!-- Active Package Items -->
+            <div class="mt-2">
+              \${itemsListHtml}
+            </div>
+
+            <!-- Package Specific Services & Discounts -->
+            \${consolidationWidget}
+            \${extrasWidget}
+          </div>
         `;
       }
 
-      // Step 3 & 4: Add Product Screen
-      const subMode = window.orderAddSubMode || 'link';
+      const discountLine = window.tempOrder.discountAmount > 0
+        ? `<p class="text-green-400 text-sm mt-1">Скидка: -\${window.tempOrder.discountAmount.toFixed(2)} BYN</p>`
+        : '';
+
+      const finalTotal = Math.max(0, totalSum - (window.tempOrder.discountAmount || 0));
+
+      const checkoutOptionsAndTotals = totalSum > 0 ? `
+        <!-- Global Options -->
+        <div class="bg-white/5 p-4 rounded-xl mb-4 space-y-3">
+          <p class="text-white/60 text-xs font-bold uppercase tracking-wider mb-1">Опции заказа:</p>
+          <div class="flex items-center gap-2">
+            <input type="checkbox" id="orderKeepBox" \${window.tempOrder.keepBox ? 'checked' : ''}>
+            <label for="orderKeepBox" class="text-white/70 text-sm">Сохранить оригинальную коробку</label>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="checkbox" id="orderInsurance" checked disabled>
+            <label for="orderInsurance" class="text-white/70 text-sm"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span> Обязательная страховка ShopByShop (+2%)</label>
+          </div>
+          <div class="flex items-center gap-2 mt-2">
+            <input type="checkbox" id="orderExtraPhoto" \${window.tempOrder.extraPhoto ? 'checked' : ''} class="w-4 h-4 accent-cyan-500 cursor-pointer">
+            <label for="orderExtraPhoto" class="text-white/70 text-sm cursor-pointer"><span class="text-cyan-400">📸 Детальные photo со склада</span> (+3 BYN)</label>
+          </div>
+          <div class="flex items-center gap-2 mt-2">
+            <input type="checkbox" id="orderExtraMeasure" \${window.tempOrder.extraMeasure ? 'checked' : ''} class="w-4 h-4 accent-cyan-500 cursor-pointer">
+            <label for="orderExtraMeasure" class="text-white/70 text-sm cursor-pointer"><span class="text-cyan-400">📏 Замер стельки/длины</span> (+3 BYN)</label>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="checkbox" id="orderIsGift" \${window.tempOrder.isGift ? 'checked' : ''} class="w-4 h-4 accent-pink-500 cursor-pointer">
+            <label for="orderIsGift" class="text-white/70 text-sm cursor-pointer"><span class="text-pink-400">🎁 Подарок</span> (Скрыть цену и чек)</label>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="checkbox" id="orderRequiresVideoCheck" \${window.tempOrder.requiresVideoCheck ? 'checked' : ''} class="w-4 h-4 accent-cyan-500 cursor-pointer">
+            <label for="orderRequiresVideoCheck" class="text-white/70 text-sm cursor-pointer"><span class="text-cyan-400">📹 Видео-проверка</span> со склада в Китае (+10 BYN)</label>
+          </div>
+        </div>
+
+        <!-- Pick-up Point (PVS) Selector -->
+        <div class="bg-white/5 p-4 rounded-xl mb-4 space-y-3">
+          <p class="text-white/60 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5">
+            <span>🚚 Доставка по Беларуси:</span>
+          </p>
+          <div>
+            <label class="text-white/50 text-[10px] block mb-1">Служба доставки</label>
+            <select id="pvsMethodSelect" class="w-full p-3 rounded-xl border border-white/20 text-sm bg-slate-900 text-white">
+              <option value="none" \${(!window.tempOrder.pvs || window.tempOrder.pvs.method === 'none') ? 'selected' : ''}>Самовывоз / Почта (Без дополнительной платы)</option>
+              <option value="europoshta" \${(window.tempOrder.pvs?.method === 'europoshta') ? 'selected' : ''}>Европочта (до отделения) — 5.00 BYN</option>
+              <option value="belpochta" \${(window.tempOrder.pvs?.method === 'belpochta') ? 'selected' : ''}>Белпочта (до отделения) — 5.00 BYN</option>
+              <option value="sdek" \${(window.tempOrder.pvs?.method === 'sdek') ? 'selected' : ''}>СДЭК (до отделения) — 8.00 BYN</option>
+            </select>
+          </div>
+          
+          <div id="pvsDetailContainer" class="\${(!window.tempOrder.pvs || window.tempOrder.pvs.method === 'none') ? 'hidden' : ''} space-y-3">
+            <button type="button" class="w-full bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 py-3 rounded-xl text-xs font-bold transition-colors flex justify-center items-center gap-2" onclick="window.openYandexMapStub()">
+              <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></span> Выбрать на карте (Яндекс)
+            </button>
+            <div>
+              <label class="text-white/50 text-[10px] block mb-1">Город</label>
+              <select id="pvsCitySelect" class="w-full p-3 rounded-xl border border-white/20 text-sm bg-slate-900 text-white">
+                \${['Минск', 'Гомель', 'Брест', 'Гродно', 'Витебск', 'Могилев', 'Барановичи', 'Бобруйск', 'Борисов', 'Лида', 'Мозырь', 'Новополоцк', 'Орша', 'Пинск', 'Солигорск'].map(c => `
+                  <option value="\${c}" \${(window.tempOrder.pvs?.city === c) ? 'selected' : ''}>\${c}</option>
+                `).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="text-white/50 text-[10px] block mb-1">Пункт выдачи / Отделение</label>
+              <select id="pvsPointSelect" class="w-full p-3 rounded-xl border border-white/20 text-sm bg-slate-900 text-white">
+                <!-- Will be populated dynamically -->
+              </select>
+            </div>
+          </div>
+          
+          \${(window.userSettings?.free_delivery_tokens > 0) ? `
+            <div class="flex items-center justify-between p-3 rounded-xl border border-green-500/30 bg-green-500/10 mt-3">
+              <div class="flex items-center gap-2 text-left">
+                <input type="checkbox" id="orderUseFreeDelivery" class="w-5 h-5 accent-green-500" \${window.tempOrder.useFreeDelivery ? 'checked' : ''}>
+                <label for="orderUseFreeDelivery" class="text-white text-xs font-semibold leading-snug">Использовать купон на бесплатную доставку (осталось: \${window.userSettings.free_delivery_tokens})</label>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- Promo Code -->
+        <div class="bg-white/5 p-4 rounded-xl mb-4">
+          <label class="text-white/70 text-sm block mb-1">Промокод</label>
+          <div class="flex gap-2">
+            <input type="text" id="promoCode" class="btn-secondary flex-1 p-3 rounded-xl border border-white/30 text-sm" placeholder="Введите промокод" value="\${window.tempOrder.appliedPromo?.code || ''}">
+            <button id="applyPromoBtn" class="btn-primary whitespace-nowrap px-4 rounded-xl text-sm font-bold">Применить</button>
+          </div>
+          <p id="promoMessage" class="text-xs mt-1 hidden"></p>
+        </div>
+
+        <!-- Customs Split Container Placeholders -->
+        <div id="customsSplitPlaceholder"></div>
+
+        <!-- Breakdown & Totals -->
+        <div class="bg-cyan-500/10 border border-cyan-500/30 p-4 rounded-xl">
+          <div id="orderBreakdown" class="mb-3 space-y-1 text-sm border-b border-white/10 pb-3"></div>
+          
+          <div class="flex justify-between items-baseline mb-1">
+            <span class="text-white font-bold">ИТОГО:</span>
+            <span class="text-cyan-400 font-bold text-xl"><span id="orderTotal">\${finalTotal.toFixed(2)}</span> <span class="text-sm">BYN</span></span>
+          </div>
+          \${discountLine}
+          <p class="text-white/70 text-xs mt-1">*Обязательная предоплата 70%: <span id="prepaymentAmount" class="font-bold text-cyan-300">\${(finalTotal * 0.70).toFixed(2)}</span> BYN</p>
+          
+          <!-- Agree Offer -->
+          <div class="mt-4 flex items-start gap-2 border-t border-white/10 pt-3 mb-2">
+            <input type="checkbox" id="agreeOffer" class="mt-1">
+            <label for="agreeOffer" class="text-white/70 text-xs leading-normal">
+              Я принимаю условия <a href="https://example.com/offer.pdf" target="_blank" class="text-cyan-400 underline font-bold">публичной оферты</a> и даю согласие на обработку персональных данных
+            </label>
+          </div>
+
+          <!-- Agree Delivery Rules -->
+          <div class="flex items-start gap-2 mb-4">
+            <input type="checkbox" id="agreeDeliveryRules" class="mt-1">
+            <label for="agreeDeliveryRules" class="text-white/70 text-xs leading-normal">
+              Я прочитал и согласен с <button type="button" class="text-cyan-400 underline font-bold text-left" onclick="tgUtil.alert('Правила доставки:\\n\\n1. Сроки доставки являются ориентировочиными.\\n2. Итоговый вес может отличаться от расчетного.\\n3. Отмена выкупленного заказа невозможна.')">правилами доставки</button>.
+            </label>
+          </div>
+
+          <!-- Agree Commission Contract -->
+          <div class="flex items-start gap-2 mb-4">
+            <input type="checkbox" id="agreeCommissionContract" class="mt-1">
+            <label for="agreeCommissionContract" class="text-white/70 text-xs leading-normal">
+              Я подписываю <button type="button" class="text-cyan-400 underline font-bold text-left" onclick="showCommissionContractModal()">📄 Договор комиссии байера (20% на услуги)</button> и подтверждаю точность предоставленных данных.
+            </label>
+          </div>
+
+          <!-- ERIP Instructions -->
+          <button type="button" class="w-full bg-slate-800 hover:bg-slate-700 text-white py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 mb-3 border border-white/10 transition" onclick="tgUtil.alert('Инструкция оплаты ЕРИП:\\n1. Платежи и переводы\\n2. Система «Расчет» (ЕРИП)\\n3. Интернет-магазины/сервисы\\n4. I -> ICE LOGIX\\n5. Введите номер заказа и сумму предоплаты.')">
+            <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span> Инструкция оплаты через ЕРИП
+          </button>
+
+          <button id="createOrderFinal" class="w-full bg-green-600 hover:bg-green-700 py-3 rounded-xl font-bold flex items-center justify-center gap-2">
+            <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></span> Оформить заказ
+          </button>
+        </div>
+      ` : '';
+
       return `
         <div class="glass-card page-enter">
           <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-bold"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить новый товар</h2>
-            <button class="text-xs text-white/50 hover:text-white" onclick="stopOrderAddMode()">
-              <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg></span> Назад к списку
+            <h2 class="text-lg font-bold"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></span> Оформление заказа</h2>
+            <button class="text-xs text-cyan-400 bg-white/5 px-3 py-1.5 rounded-full hover:bg-white/10 transition" onclick="resetOrderCountry()">
+              \${window.orderCountry === 'CN' ? '🇨🇳 Китай' : window.orderCountry === 'PL' ? '🇵🇱 Польша' : '🇷🇺 Россия'} <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></span> Сменить
             </button>
           </div>
           
-          <!-- Step 3: Dual-Section Mode Selector -->
+          \${vacationBanner}
+          \${limitMessage}
+          
           <div class="mb-4">
-            <p class="text-white/60 text-xs mb-2">Ввод данных (если вы сами нашли товар):</p>
-            <div class="grid grid-cols-2 gap-2 mb-4">
-              <button type="button" class="order-mode-btn ${subMode === 'manual' ? 'btn-primary' : 'btn-secondary'} transition text-xs font-bold py-2.5" onclick="setOrderAddSubMode('manual')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span> Вручную</button>
-              <button type="button" class="order-mode-btn ${subMode === 'link' ? 'btn-primary' : 'btn-secondary'} transition text-xs font-bold py-2.5" onclick="setOrderAddSubMode('link')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span> По ссылке / Скриншоту</button>
-            </div>
-            
-            <p class="text-white/60 text-xs mb-2">Поиск товара (если хотите найти через ИИ):</p>
-            <div class="grid grid-cols-2 gap-2">
-              <button type="button" class="order-mode-btn ${subMode === 'photo' ? 'btn-primary' : 'btn-secondary'} transition text-xs font-bold py-2.5" onclick="setOrderAddSubMode('photo')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span> По фото</button>
-              <button type="button" class="order-mode-btn ${subMode === 'text' ? 'btn-primary' : 'btn-secondary'} transition text-xs font-bold py-2.5" onclick="setOrderAddSubMode('text')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span> По описанию</button>
+            <h3 class="text-sm font-semibold text-white/70 mb-2">Список выбранных товаров:</h3>
+            <div id="orderItemsList" class="flex flex-col gap-3">
+              \${itemsHtml}
             </div>
           </div>
           
-          <!-- Step 4: Mode Panes -->
-          <!-- Link Mode Pane -->
-          <div id="paneOrderLink" class="mode-pane ${subMode === 'link' ? '' : 'hidden'} mb-4">
-            <label class="text-white/70 text-sm block mb-1">Ссылка на товар</label>
-            <div class="flex gap-2 items-stretch">
-              <div class="flex-1 flex gap-1 bg-white/5 border border-white/30 rounded-xl overflow-hidden px-1.5 py-1">
-                <input type="text" id="orderUrl" class="bg-transparent flex-1 border-0 outline-none p-2 text-sm text-white" placeholder="Вставьте ссылку на Poizon, Taobao...">
-                <button type="button" id="orderPasteBtn" class="bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg px-3.5 transition flex items-center justify-center text-cyan-400 gap-1.5 text-xs font-bold" title="Вставить из буфера">
-                  ${ix('clipboard', { size: '14px' })}
-                  <span>Вставить</span>
-                </button>
-              </div>
-              <button id="analyzeOrderLinkBtn" class="btn-primary whitespace-nowrap transition flex-shrink-0"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Найти</button>
-            </div>
-            <p class="text-white/40 text-xs mt-1.5">Если ссылка не распознается, мы предложим загрузить скриншот.</p>
-          </div>
-          
-          <!-- Photo Mode Pane -->
-          <div id="paneOrderPhoto" class="mode-pane ${subMode === 'photo' ? '' : 'hidden'} mb-4">
-            <label class="text-white/70 text-sm block mb-1">Фото товара (можно до 5)</label>
-            <div id="orderPhotoUploadZone" class="screenshot-upload-zone p-4 border-2 border-dashed border-white/30 rounded-xl text-center cursor-pointer hover:bg-white/5 transition">
-              <span class="text-3xl mb-1 block"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span></span>
-              <span class="text-sm font-semibold block text-white">Загрузить фото товара</span>
-              <span class="text-xs text-white/50 block mt-1">До 5 детальных фото для точного поиска</span>
-              <input type="file" id="orderPhotoInput" accept="image/*" multiple class="hidden">
-            </div>
-            <div id="orderPhotoPreview" class="hidden mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2"></div>
-            <label class="text-white/70 text-xs mt-2 block">Описание (опционально) — улучшит поиск</label>
-            <input id="orderPhotoHint" type="text" placeholder="Напр. Calvin Klein zip hoodie серый M" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm">
-            <button id="orderPhotoSearchBtn" class="btn-primary w-full mt-2 transition"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Найти этот товар</button>
-          </div>
-          
-          <!-- Text Mode Pane -->
-          <div id="paneOrderText" class="mode-pane ${subMode === 'text' ? '' : 'hidden'} mb-4">
-            <label class="text-white/70 text-sm block mb-1">Описание товара</label>
-            <input type="text" id="orderTextQuery" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Например: Nike Dunk Low Panda кроссовки">
-            <p class="text-white/40 text-xs mt-1">ИИ распознает бренд, модель и категорию автоматически.</p>
-            <button id="orderTextSearchBtn" class="btn-primary w-full mt-2 transition"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Искать товар</button>
-          </div>
-          
-          <!-- Shared Search Results Box -->
-          <div id="orderSearchResults" class="hidden mb-4 bg-white/5 p-3 rounded-xl"></div>
-          <div id="orderScreenshotWidget" class="hidden mb-4 bg-white/5 p-3 rounded-xl"></div>
-          
-          <!-- Restructured Form: manually inputs / parsed results -->
-          <div id="orderManualForm" class="mt-4 border-t border-white/10 pt-4">
-            <!-- URL -->
-            <div class="mb-3">
-              <label class="text-white/70 text-sm block mb-1">Ссылка на товар (необязательно)</label>
-              <input type="text" id="orderUrlManual" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="https://poizon.com/...">
-            </div>
+          <div class="flex flex-col gap-3 mt-4">
+            <button type="button" class="btn-secondary w-full py-3 rounded-xl flex items-center justify-center gap-2 border border-dashed border-cyan-500/30 text-cyan-400 font-bold hover:bg-cyan-500/10 transition" onclick="startOrderAddMode()">
+              <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить товар
+            </button>
             
-            <!-- Multi-Photo Dropzone for Manual upload -->
-            <div class="mb-3">
-              <label class="text-white/70 text-sm block mb-1">Фото товара (необязательно)</label>
-              <div id="orderManualPhotoUploadZone" class="screenshot-upload-zone p-3 border border-dashed border-white/30 rounded-xl text-center cursor-pointer hover:bg-white/5 transition">
-                <span class="text-sm text-white/70"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Загрузить скриншот / фото товара</span>
-                <input type="file" id="orderManualPhotoInput" accept="image/*" multiple class="hidden">
-              </div>
-              <div id="orderManualPhotoPreview" class="hidden mt-2 grid grid-cols-3 gap-2"></div>
-            </div>
-            
-            <!-- Title Group -->
-            <div class="bg-white/5 p-3 rounded-2xl mb-3">
-              <p class="text-white/60 text-xs mb-2">Название товара:</p>
-              <div class="mb-2">
-                <label class="text-white/50 text-xs block mb-0.5">Бренд</label>
-                <input type="text" id="orderBrand" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Например: Nike, Adidas, Stone Island">
-              </div>
-              <div class="mb-2">
-                <label class="text-white/50 text-xs block mb-0.5">Модель</label>
-                <input type="text" id="orderModel" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Например: Air Force 1, Yeezy 350">
-              </div>
-              <div>
-                <label class="text-white/50 text-xs block mb-0.5">Особенности</label>
-                <input type="text" id="orderFeatures" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Например: светоотражающие шнурки, лимитированная серия">
-              </div>
-            </div>
-            
-            <!-- Description Group -->
-            <div class="bg-white/5 p-3 rounded-2xl mb-3">
-              <p class="text-white/60 text-xs mb-2">Описание и Характеристики:</p>
-              
-              <!-- Gender Chips selection -->
-              <div class="mb-3">
-                <label class="text-white/50 text-xs block mb-1">Пол</label>
-                <div class="flex gap-2" id="orderGenderSelector">
-                  <button type="button" data-gender="male" class="filter-chip flex-1 py-2 text-center text-xs border border-white/10 hover:bg-white/5 transition" onclick="selectOrderGender('male')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> Мужской</button>
-                  <button type="button" data-gender="female" class="filter-chip flex-1 py-2 text-center text-xs border border-white/10 hover:bg-white/5 transition" onclick="selectOrderGender('female')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> Женский</button>
-                  <button type="button" data-gender="unisex" class="filter-chip flex-1 py-2 text-center text-xs border border-white/10 hover:bg-white/5 transition" onclick="selectOrderGender('unisex')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> Унисекс</button>
-                  <input type="hidden" id="orderGender" value="">
-                </div>
-              </div>
-              
-              <!-- Category Single-line Dropdown -->
-              <div class="mb-3">
-                <label class="text-white/50 text-xs block mb-1">Категория</label>
-                <select id="orderCategory" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm mb-1">${renderCategoryOptions()}</select>
-                <p id="orderCategoryHint" class="text-cyan-400 text-[10px] hidden mb-2 font-semibold ml-1">💡 Обычно весит ~1.2 кг</p>
-              </div>
-              
-              <!-- Color & Size -->
-              <div class="grid grid-cols-2 gap-2 mb-3">
-                <div>
-                  <label class="text-white/50 text-xs block mb-0.5">Цвет</label>
-                  <input type="text" id="orderColor" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Напр. Черный">
-                </div>
-                <div>
-                  <div class="flex justify-between items-center mb-0.5">
-                    <label class="text-white/50 text-xs block">Размер</label>
-                    <button type="button" class="text-[9px] text-cyan-400 flex items-center gap-0.5 bg-white/5 px-1.5 py-0.5 rounded hover:bg-white/10 transition" onclick="showSizeTablesModal()">
-                      Таблица
-                    </button>
-                  </div>
-                  <input type="text" id="orderSize" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Напр. US 9, EU 42.5">
-                </div>
-              </div>
-              
-              <!-- Sizing helper inputs block -->
-              <div class="border border-cyan-500/20 bg-cyan-500/5 p-3 rounded-xl">
-                <p class="text-cyan-400 text-xs font-bold mb-1 flex items-center gap-1"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 21H3L21 3v18z"/><path d="M15 15l2-2"/><path d="M11 19l2-2"/><path d="M13 13l2-2"/></svg></span> Ввод замеров для ИИ-подбора размера (Рекомендуется)</p>
-                <p class="text-white/50 text-[10px] mb-2">Наш партнер подберет размер идеально на основе этих данных</p>
-                <div class="grid grid-cols-3 gap-2">
-                  <div>
-                    <label class="text-white/40 text-[9px] block">Рост (см)</label>
-                    <input type="number" id="orderHeight" class="btn-secondary w-full p-2 text-xs text-center border border-white/20 rounded-lg" placeholder="180">
-                  </div>
-                  <div>
-                    <label class="text-white/40 text-[9px] block">Вес (кг)</label>
-                    <input type="number" id="orderWeightKg" class="btn-secondary w-full p-2 text-xs text-center border border-white/20 rounded-lg" placeholder="75">
-                  </div>
-                  <div>
-                    <label class="text-white/40 text-[9px] block">Стелька / Обхват (см)</label>
-                    <input type="number" id="orderMeasure" class="btn-secondary w-full p-2 text-xs text-center border border-white/20 rounded-lg" placeholder="27">
-                  </div>
-                </div>
-                
-                <!-- Sanction Detector Banner (Hidden by default) -->
-                <div id="sanctionBanner" class="mt-3 p-3 rounded-xl border border-orange-500/30 bg-orange-500/10 text-xs text-white/90 hidden">
-                  <p class="text-orange-400 font-bold flex items-center gap-1">
-                    <span>⚠️ Внимание: Санкционный бренд</span>
-                  </p>
-                  <p class="mt-1 font-medium text-white/80">Товары этого бренда могут быть задержаны таможней ЕС. Наш менеджер проверит возможность транзита после оформления заказа.</p>
-                </div>
-                
-                <div id="aiSizeAdvisorBanner" class="mt-3 p-3 rounded-xl border border-violet-500/30 bg-violet-500/10 text-xs text-white/80 hidden cursor-pointer">
-                  <p class="text-violet-400 font-bold flex items-center gap-1">
-                    <span>🔮 ИИ-Советник по размеру</span>
-                  </p>
-                  <p class="mt-1 font-medium" id="aiSizeAdvisorText">Рекомендуем вам размер ... на основе ваших замеров.</p>
-                  <p class="text-white/40 text-[9px] mt-1 leading-normal">✨ Нажмите, чтобы применить рекомендованный размер</p>
-                </div>
-              </div>
-            </div>
-            
-            
-            <!-- Product Weight -->
-            <div class="mb-4">
-              <label class="text-white/70 text-sm block">Вес товара (кг) <span class="text-white/40 text-xs">- влияет на стоимость доставки</span></label>
-              <div class="flex items-center gap-3 mt-1">
-                <input type="range" id="orderWeight" min="0.1" max="30" step="0.1" value="1" class="flex-1 accent-cyan-500">
-                <span id="orderWeightVal" class="text-white/80 bg-white/10 px-3 py-1 rounded-full whitespace-nowrap text-xs font-bold">1.0 кг</span>
-              </div>
-            </div>
-
-            <!-- Price & Currency combined in a single row -->
-            <div class="mb-4">
-              <label class="text-white/70 text-sm block mb-1">Цена с валютой</label>
-              <div class="flex gap-2">
-                <div class="flex-[3]">
-                  <input type="number" id="orderPrice" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Укажите цену товара">
-                </div>
-                <div class="flex-[1]">
-                  <select id="orderCurrency" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" style="padding: 14px 10px !important;">
-                    <option value="CNY">CNY (¥)</option>
-                    <option value="USD">USD ($)</option>
-                    <option value="EUR">EUR (€)</option>
-                    <option value="PLN">PLN (zł)</option>
-                    <option value="RUB">RUB (₽)</option>
-                    <option value="BYN">BYN (Br)</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            
-            <div class="flex flex-col gap-2 mt-4">
-              <button id="orderSaveItemBtn" class="btn-primary w-full py-3.5 rounded-xl font-bold transition flex items-center justify-center gap-2">
-                <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></span> Добавить товар в заказ
-              </button>
-
-            </div>
+            \${checkoutOptionsAndTotals}
           </div>
         </div>
-        ${renderFooter()}
+        \${renderFooter()}
       `;
     }
 
     function attachNewOrderHandlers() {
+      // Pre-lock currency for CN
+      if (window.orderCountry === 'CN') {
+        const currencySelect = document.getElementById('orderCurrency');
+        if (currencySelect) {
+          currencySelect.value = 'CNY';
+          currencySelect.disabled = true;
+          currencySelect.classList.add('cursor-not-allowed', 'opacity-60');
+        }
+      }
+
+
       if (!window.orderCountry) return;
 
 
