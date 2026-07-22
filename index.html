@@ -6282,500 +6282,176 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 }
 
     async function renderCalculator() {
-      const limits = await getCalculatorLimits();
-      
-      let vacationBanner = '';
-      if (window.buyerVacation && window.buyerVacation.active) {
-        const days = window.buyerVacation.days || 0;
-        vacationBanner = `
-          <div class="mb-4 p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-sm flex gap-3 items-center">
-            <span class="text-2xl">🌴</span>
-            <div class="text-left">
-              <p class="font-bold">Байеры на каникулах</p>
-              <p class="text-xs text-white/70 mt-0.5">Сроки доставки увеличены на ${days} дн. Расчёты в калькуляторе учитывают это время.</p>
-            </div>
-          </div>
-        `;
-      }
-
-      // ── Step 1: Country Selection Overlay (if no country selected yet) ──
-      if (!window.calcCountry) {
-        return `
-          <div class="flex items-center justify-center min-h-[70vh] p-2 page-enter">
-            <div class="glass-card w-full max-w-md p-6 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
-              <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
-              <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
-
-              <button type="button" class="absolute top-4 left-4 text-white/60 hover:text-cyan-400 text-xs font-bold transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.switchTab('home');">
-                ← Назад
-              </button>
-
-              <h2 class="text-xl font-extrabold text-white text-center mb-1 mt-4">Выберите страну отправления</h2>
-              <p class="text-white/60 text-xs text-center mb-5">От страны зависят тарифы на доставку и сроки</p>
-
-              <div class="flex flex-col gap-2.5 max-h-[50vh] overflow-y-auto pr-1">
-                ${ALL_COUNTRIES.map(c => {
-                  if (c.active) {
-                    return `
-                      <div class="border border-white/10 hover:border-cyan-500/50 p-3.5 rounded-2xl bg-white/5 cursor-pointer transition-all duration-200" onclick="window.selectCalculatorCountry('${c.code}')">
-                        <div class="flex items-center gap-3">
-                          <div class="text-2xl">${c.flag}</div>
-                          <div class="flex-1 text-left">
-                            <h3 class="font-bold text-white text-sm">${c.name} (${c.platforms})</h3>
-                            <p class="text-white/40 text-[10px] leading-normal mt-0.5">${c.desc}</p>
-                          </div>
-                          <span class="text-cyan-400 text-xs font-bold bg-cyan-500/10 px-2 py-0.5 rounded-lg border border-cyan-500/20">Работает</span>
-                        </div>
-                      </div>
-                    `;
-                  } else {
-                    return `
-                      <div class="border border-white/5 p-3.5 rounded-2xl bg-white/[0.02] opacity-50 cursor-pointer transition-all duration-200" onclick="window.selectCalculatorCountry('${c.code}')">
-                        <div class="flex items-center gap-3">
-                          <div class="text-2xl">${c.flag}</div>
-                          <div class="flex-1 text-left">
-                            <h3 class="font-bold text-white/70 text-sm">${c.name} (${c.platforms})</h3>
-                            <p class="text-white/30 text-[10px] leading-normal mt-0.5">${c.desc}</p>
-                          </div>
-                          <span class="text-white/40 text-[10px] font-semibold bg-white/5 px-2 py-0.5 rounded-lg border border-white/10">Скоро</span>
-                        </div>
-                      </div>
-                    `;
-                  }
-                }).join('')}
-              </div>
-            </div>
-          </div>
-          ${renderFooter()}
-        `;
-      }
-
-      // ── Step 1.5: Mode Selection Overlay (if country selected but no mode selected yet) ──
-      if (!window.currentCalcMode) {
-        const guestWarn = !limits.isRegistered 
-          ? `<p class="text-amber-400 text-[10px] mt-1 text-center font-semibold">⚠️ Зарегистрируйтесь, чтобы получить безлимит вручную и больше ИИ-расчетов!</p>`
-          : '';
-
-        return `
-          <style>
-            .calc-mode-card {
-              transition: all 0.2s ease-in-out;
-            }
-            .calc-mode-card:hover {
-              border-color: rgba(6, 182, 212, 0.4) !important;
-              transform: translateY(-2px) scale(1.01);
-              box-shadow: 0 4px 20px -2px rgba(6, 182, 212, 0.15);
-            }
-            .calc-mode-card:active {
-              transform: scale(0.97) !important;
-              background-color: rgba(6, 182, 212, 0.08) !important;
-              border-color: rgba(6, 182, 212, 0.7) !important;
-              box-shadow: 0 0 10px rgba(6, 182, 212, 0.3);
-            }
-          </style>
-
-          <div class="flex items-center justify-center min-h-[70vh] p-2 page-enter">
-            <div class="glass-card w-full max-w-md p-6 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
-              <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
-              <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
-
-              <button type="button" class="absolute top-4 left-4 text-white/60 hover:text-cyan-400 text-xs font-bold transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.calcCountry=null; renderCurrentScreen();">
-                ← Назад
-              </button>
-
-              <button type="button" class="absolute top-4 right-4 text-white/40 hover:text-cyan-400 text-[10px] font-bold bg-white/5 border border-white/10 px-2 py-1.5 rounded-lg transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.switchTab('history'); window._historySubScreen = 'calculations'; window.renderCurrentScreen();">
-                🕒 История
-              </button>
-
-              <h2 class="text-xl font-extrabold text-white text-center mb-1 mt-4">ICE LOGIX Калькулятор</h2>
-              <p class="text-white/60 text-xs text-center mb-5">Выберите способ расчета стоимости товара</p>
-              
-              ${vacationBanner}
-
-              <div class="flex flex-col gap-3">
-                <!-- Manual -->
-                <div class="calc-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.selectCalculatorMode('manual')">
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center text-cyan-400 text-lg">
-                      ✍️
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <h3 class="font-bold text-white text-sm">Вручную</h3>
-                      <p class="text-white/50 text-[11px] leading-normal mt-0.5">Для тех, кто уже нашёл товар и готов ввести данные вручную.</p>
-                      <div class="text-[10px] text-cyan-400 font-bold mt-1.5 flex items-center gap-1">
-                        <span>📊 Лимит:</span>
-                        <span>${limits.manual.max === Infinity ? 'Безлимитно расчетов на день' : `${limits.manual.remaining}/${limits.manual.max} расчетов осталось на день`}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Link -->
-                <div class="calc-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.selectCalculatorMode('link')">
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/25 flex items-center justify-center text-purple-400 text-lg">
-                      🔗
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <h3 class="font-bold text-white text-sm">По ссылке</h3>
-                      <p class="text-white/50 text-[11px] leading-normal mt-0.5">Просто вставьте ссылку на товар — нейросеть сама внесет его параметры.</p>
-                      <div class="text-[10px] text-purple-400 font-bold mt-1.5 flex items-center gap-1">
-                        <span>🔮 Лимит ИИ:</span>
-                        <span>${limits.ai.remaining}/${limits.ai.max} расчетов осталось на день</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Photo -->
-                <div class="calc-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.selectCalculatorMode('photo')">
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-pink-500/10 border border-pink-500/25 flex items-center justify-center text-pink-400 text-lg">
-                      📸
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <h3 class="font-bold text-white text-sm">По фото</h3>
-                      <p class="text-white/50 text-[11px] leading-normal mt-0.5">Загрузите фото товара, выберите лучший вариант из найденных, а ИИ внесет все данные.</p>
-                      <div class="text-[10px] text-pink-400 font-bold mt-1.5 flex items-center gap-1">
-                        <span>🔮 Лимит ИИ:</span>
-                        <span>${limits.ai.remaining}/${limits.ai.max} расчетов осталось на день</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              ${guestWarn}
-              <div class="text-center mt-4 border-t border-white/5 pt-3">
-                <p class="text-white/40 text-[9px] leading-normal">ℹ️ История расчетов автоматически сохраняется на 14 дней в разделе "История".</p>
-              </div>
-            </div>
-          </div>
-          ${renderFooter()}
-        `;
-      }
-
-      // ── Step 2: Calculator Form ──
-      const modeText = window.currentCalcMode === 'manual' ? '✍️ Вручную' : window.currentCalcMode === 'link' ? '🔗 По ссылке' : window.currentCalcMode === 'photo' ? '📸 По фото' : '📝 По описанию';
-      const showFormFields = (window.currentCalcMode !== 'link' || window.calcLinkAnalyzed);
-      
-      const selectedCountryObj = ALL_COUNTRIES.find(c => c.code === window.calcCountry);
+      const selectedCountryObj = ALL_COUNTRIES.find(c => c.code === (window.calcCountry || 'CN'));
       const countryText = selectedCountryObj 
         ? `${selectedCountryObj.flag} ${selectedCountryObj.name}`
-        : '<span class="text-white/40">— выберите страну —</span>';
-
+        : '🇨🇳 Китай';
+        
       return `
-        <div class="glass-card page-enter relative">
+        <div class="glass-card page-enter relative text-left">
+          <!-- Back button to return to home -->
+          <button type="button" class="absolute top-4 left-4 text-white/60 hover:text-cyan-400 text-xs font-bold transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.switchTab('home');">
+            ← Назад
+          </button>
+          
           <button type="button" class="absolute top-4 right-4 text-white/40 hover:text-cyan-400 text-[10px] font-bold bg-white/5 border border-white/10 px-2 py-1.5 rounded-lg transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.switchTab('history'); window._historySubScreen = 'calculations'; window.renderCurrentScreen();">
             🕒 История
           </button>
 
-          <!-- Mode & Country Indicators -->
-          <div class="grid grid-cols-2 gap-3 mb-4 bg-white/5 p-3 rounded-2xl border border-white/5">
-            <div class="flex justify-between items-center bg-white/5 p-2.5 rounded-xl border border-white/5">
-              <div class="text-left">
-                <span class="text-[10px] text-white/40 block">Режим</span>
-                <span class="text-xs font-bold text-white">${modeText}</span>
-              </div>
-              <button type="button" class="text-[10px] text-cyan-400 font-bold bg-white/10 px-2 py-1 rounded-lg hover:bg-white/15 transition active:scale-95 border border-white/5" onclick="window.currentCalcMode=null; window.calcLinkAnalyzed=false; renderCurrentScreen()">
-                Сменить
-              </button>
-            </div>
-            <div class="flex justify-between items-center bg-white/5 p-2.5 rounded-xl border border-white/5">
-              <div class="text-left">
-                <span class="text-[10px] text-white/40 block">Страна</span>
-                <span class="text-xs font-bold text-white">${countryText}</span>
-              </div>
-              <button type="button" class="text-[10px] text-cyan-400 font-bold bg-white/10 px-2 py-1 rounded-lg hover:bg-white/15 transition active:scale-95 border border-white/5" onclick="window.calcCountry=null; renderCurrentScreen()">
-                Сменить
-              </button>
-            </div>
-          </div>
+          <h2 class="text-xl font-extrabold text-white text-center mb-6 mt-4">Калькулятор доставки</h2>
 
-          ${vacationBanner}
-
-          <div id="activePromoInfo" class="mb-3 p-3 rounded-xl border border-cyan-500/30 bg-cyan-500/10 hidden">
-            <p class="text-cyan-400 font-bold"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></span> Акция: <span id="promoTitle"></span></p>
-            <p class="text-white/70 text-sm" id="promoDesc"></p>
-            <p class="text-green-400 text-sm mt-1" id="promoDiscount"></p>
-          </div>
-
-          <!-- Mode: link & manual — URL input -->
-          <div data-calc-mode-pane="link manual" class="${window.currentCalcMode === 'photo' || window.currentCalcMode === 'text' ? 'hidden' : ''}">
-            <label class="text-white/70 text-sm">Ссылка на товар <span class="text-red-400 font-bold">*</span></label>
-            <div class="flex flex-wrap gap-2 mt-1 mb-1 items-stretch">
-              <div class="flex-1 min-w-[200px] flex gap-1 bg-white/5 border border-white/30 rounded-xl overflow-hidden px-1.5 py-1">
-                <input type="text" id="calcUrl" class="bg-transparent flex-1 border-0 outline-none p-2 text-sm text-white" placeholder="https://poizon.com/... | taobao, zalando, etc.">
-                <button type="button" id="calcPasteBtn" class="bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg px-3.5 transition flex items-center justify-center text-cyan-400 gap-1.5 text-xs font-bold" title="Вставить из буфера">
-                  ${ix('clipboard', { size: '14px' })}
-                  <span>Вставить</span>
-                </button>
-              </div>
-              <button id="analyzeLinkBtn" data-calc-mode-pane="link" class="btn-primary whitespace-nowrap transition flex-shrink-0"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Анализировать</button>
-            </div>
-            <p data-calc-mode-pane="manual" class="text-white/40 text-xs mb-2 hidden">Заполните поля ниже вручную.</p>
-          </div>
-
-          <!-- Mode: photo (search by image) -->
-          <div data-calc-mode-pane="photo" class="${window.currentCalcMode === 'photo' ? '' : 'hidden'}">
-            <label class="text-white/70 text-sm">Фото товара (до 5 штук)</label>
-            <div id="calcPhotoUploadZone" class="mt-1 mb-2 p-4 border-2 border-dashed border-white/30 rounded-xl text-center cursor-pointer hover:bg-white/5 transition">
-              <div class="text-3xl mb-1"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span></div>
-              <p class="text-white/80 text-sm font-semibold">Загрузите фото товара</p>
-              <p class="text-white/50 text-xs mt-1">До 5 шт. Больше фото = точнее поиск.</p>
-              <input type="file" id="calcPhotoInput" accept="image/*" multiple class="hidden">
-            </div>
-            <div id="calcPhotoPreview" class="hidden mb-2 grid grid-cols-3 gap-2"></div>
-            
-            <label class="text-white/70 text-xs mt-2 block">Описание товара (необязательно) — улучшит поиск</label>
-            <input id="calcPhotoHint" type="text" placeholder="Напр. Calvin Klein zip hoodie серый M" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-2 text-sm">
-
-            <div class="grid grid-cols-2 gap-2 mb-2">
-              <div>
-                <label class="text-white/70 text-[10px] block mb-1">Цена от (BYN/USD)</label>
-                <input id="calcPhotoPriceMin" type="number" placeholder="Например: 50" class="btn-secondary w-full p-2.5 rounded-lg border border-white/20 text-xs">
-              </div>
-              <div>
-                <label class="text-white/70 text-[10px] block mb-1">Цена до (BYN/USD)</label>
-                <input id="calcPhotoPriceMax" type="number" placeholder="Например: 300" class="btn-secondary w-full p-2.5 rounded-lg border border-white/20 text-xs">
-              </div>
+          <form id="calculatorForm" class="space-y-4" onsubmit="event.preventDefault();">
+            <!-- Наименование товара -->
+            <div>
+              <label class="text-white/70 text-xs block mb-1">Наименование товара <span class="text-red-400 font-bold">*</span></label>
+              <input type="text" id="calcTitle" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm" placeholder="Например: Кроссовки Nike Dunk Low">
             </div>
 
-            <div class="mb-3">
-              <label class="text-white/70 text-[10px] block mb-1">Подлинность товара</label>
-              <select id="calcPhotoAuthenticity" class="btn-secondary w-full p-2.5 rounded-lg border border-white/20 text-xs">
-                <option value="any" selected>Без разницы (по умолчанию)</option>
-                <option value="original">Оригинал</option>
-                <option value="replica">Копия (Реплика)</option>
-              </select>
-            </div>
-
-            <button id="calcPhotoSearchBtn" class="btn-primary hidden w-full transition mb-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Найти этот товар</button>
-          </div>
-
-          <!-- Mode: text (search by description) -->
-          <div data-calc-mode-pane="text" class="${window.currentCalcMode === 'text' ? '' : 'hidden'}">
-            <label class="text-white/70 text-sm">Описание товара <span class="text-red-400 font-bold">*</span></label>
-            <input type="text" id="calcTextQuery" class="btn-secondary w-full mt-1 p-3 rounded-xl border border-white/30 mb-2" placeholder="Например: Nike Dunk Low Panda кроссовки">
-            <p class="text-white/40 text-xs mb-2">Бренд + модель + цвет + категория.</p>
-            
-            <label class="text-white/70 text-xs mt-1 block">Фото товара (опционально)</label>
-            <div id="calcTextPhotoZone" class="mt-1 mb-2 p-2 border border-dashed border-white/30 rounded-xl text-center cursor-pointer hover:bg-white/5 transition text-xs text-white/60">
-              <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span> Прикрепить фото
-              <input type="file" id="calcTextPhotoInput" accept="image/*" class="hidden">
-            </div>
-            <div id="calcTextPhotoPreview" class="hidden mb-2"></div>
-
-            <div class="grid grid-cols-2 gap-2 mb-2">
-              <div>
-                <label class="text-white/70 text-[10px] block mb-1">Цена от (BYN/USD)</label>
-                <input id="calcTextPriceMin" type="number" placeholder="Например: 50" class="btn-secondary w-full p-2.5 rounded-lg border border-white/20 text-xs">
-              </div>
-              <div>
-                <label class="text-white/70 text-[10px] block mb-1">Цена до (BYN/USD)</label>
-                <input id="calcTextPriceMax" type="number" placeholder="Например: 300" class="btn-secondary w-full p-2.5 rounded-lg border border-white/20 text-xs">
-              </div>
-            </div>
-
-            <div class="mb-3">
-              <label class="text-white/70 text-[10px] block mb-1">Подлинность товара</label>
-              <select id="calcTextAuthenticity" class="btn-secondary w-full p-2.5 rounded-lg border border-white/20 text-xs">
-                <option value="any" selected>Без разницы (по умолчанию)</option>
-                <option value="original">Оригинал</option>
-                <option value="replica">Копия (Реплика)</option>
-              </select>
-            </div>
-
-            <button id="calcTextSearchBtn" class="btn-primary w-full transition mb-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Найти товар</button>
-          </div>
-
-          <!-- Search results (shared by photo/text modes) -->
-          <div id="calcSearchResults" class="hidden mb-3"></div>
-          <div id="calcScreenshotWidget" class="hidden mb-3"></div>
-
-          <!-- Input fields area -->
-          <div id="calcFormFields" class="${showFormFields ? '' : 'hidden'} mt-4 border-t border-white/5 pt-4">
-
-
-            <!-- Price & Currency -->
-            <div class="mb-3">
-              <label class="text-white/70 text-sm block mb-1">Цена с валютой <span class="text-red-400 font-bold">*</span></label>
+            <!-- Цена товара с выбором валюты -->
+            <div>
+              <label class="text-white/70 text-xs block mb-1">Стоимость товара <span class="text-red-400 font-bold">*</span></label>
               <div class="flex gap-2">
-                <div class="flex-1 min-w-0">
-                  <input type="number" id="calcPrice" step="0.01" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Укажите цену товара до копейки">
+                <div class="flex-1">
+                  <input type="number" id="calcPrice" step="0.01" min="0" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm" placeholder="Укажите цену">
                 </div>
-                <div class="w-[110px] flex-shrink-0">
-                  <select id="calcCurrency" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm cursor-not-allowed opacity-60" style="padding: 14px 10px !important;" disabled>
-                    <option value="CNY" selected>CNY (¥)</option>
-                    <option value="USD">USD ($)</option>
-                    <option value="EUR">EUR (€)</option>
-                    <option value="PLN">PLN (zł)</option>
-                    <option value="RUB">RUB (₽)</option>
-                    <option value="BYN">BYN (Br)</option>
-                  </select>
+                <div class="relative w-[110px]">
+                  <button type="button" id="calcCurrencyBtn" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm flex justify-between items-center cursor-pointer">
+                    <span id="calcCurrencyVal">CNY (¥)</span>
+                    <span>▼</span>
+                  </button>
+                  <input type="hidden" id="calcCurrency" value="CNY">
+                  <div id="calcCurrencyDropdown" class="hidden absolute right-0 mt-1 w-[120px] bg-slate-900 border border-white/10 rounded-xl shadow-2xl z-30 overflow-hidden">
+                    <div class="p-2.5 hover:bg-white/5 cursor-pointer text-xs text-white border-b border-white/5" onclick="selectCalcCurrency('CNY', 'CNY (¥)')">CNY (¥)</div>
+                    <div class="p-2.5 hover:bg-white/5 cursor-pointer text-xs text-white border-b border-white/5" onclick="selectCalcCurrency('USD', 'USD ($)')">USD ($)</div>
+                    <div class="p-2.5 hover:bg-white/5 cursor-pointer text-xs text-white border-b border-white/5" onclick="selectCalcCurrency('EUR', 'EUR (€)')">EUR (€)</div>
+                    <div class="p-2.5 hover:bg-white/5 cursor-pointer text-xs text-white border-b border-white/5" onclick="selectCalcCurrency('RUB', 'RUB (₽)')">RUB (₽)</div>
+                    <div class="p-2.5 hover:bg-white/5 cursor-pointer text-xs text-white" onclick="selectCalcCurrency('BYN', 'BYN (Br)')">BYN (Br)</div>
+                  </div>
                 </div>
               </div>
-              <p class="text-white/40 text-[10px] mt-1 leading-normal">💡 На маркетплейсах цена часто отличается в зависимости от размера или цвета. Проверьте и укажите цену именно для вашего размера!</p>
             </div>
 
-            <!-- Marketplace -->
-            <label class="text-white/70 text-sm block mt-2">Площадка (маркетплейс) <span class="text-red-400 font-bold">*</span></label>
-            <div class="relative mt-1 mb-3">
-              <div id="calcMarketplaceDropdownTrigger" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm flex justify-between items-center cursor-pointer">
-                <span id="calcMarketplaceSelectedText" class="text-white/40">— выберите площадку —</span>
-                <span>▼</span>
-              </div>
-              <input type="hidden" id="calcMarketplace">
-              <div id="calcMarketplaceDropdownList" class="hidden absolute left-0 right-0 mt-1 bg-slate-900 border border-white/10 rounded-xl shadow-2xl z-30 max-h-48 overflow-y-auto">
-                <!-- Dynamically populated -->
-              </div>
-            </div>
-
-            <!-- Gender Selector Dropdown -->
-            <label class="text-white/70 text-sm block mt-2">Пол человека <span class="text-red-400 font-bold">*</span></label>
-            <div class="relative mt-1 mb-3">
-              <div id="calcGenderDropdownTrigger" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm flex justify-between items-center cursor-pointer">
-                <span id="calcGenderSelectedText">Унисекс</span>
-                <span>▼</span>
-              </div>
-              <input type="hidden" id="calcGender" value="Унисекс">
-              <div id="calcGenderDropdownList" class="hidden absolute left-0 right-0 mt-1 bg-slate-900 border border-white/10 rounded-xl shadow-2xl z-30 max-h-48 overflow-y-auto">
-                <div class="p-3 hover:bg-white/5 cursor-pointer text-sm text-white border-b border-white/5" onclick="setCalcGender('Мужской')">Мужской</div>
-                <div class="p-3 hover:bg-white/5 cursor-pointer text-sm text-white border-b border-white/5" onclick="setCalcGender('Женский')">Женский</div>
-                <div class="p-3 hover:bg-white/5 cursor-pointer text-sm text-white" onclick="setCalcGender('Унисекс')">Унисекс</div>
-              </div>
-            </div>
-
-            <!-- Category & Subcategory Single Row -->
-            <label class="text-white/70 text-sm block mt-2">Наименование и категория товара <span class="text-red-400 font-bold">*</span></label>
-            <div class="relative mt-1 mb-3">
-              <div id="calcCategoryTrigger" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm flex justify-between items-center cursor-pointer">
-                <span id="calcCategorySelectedText" class="text-white/40">— выберите категорию и тип товара —</span>
-                <span>▼</span>
-              </div>
-              <input type="hidden" id="calcCategory" value="">
-            </div>
-
-            <!-- Title -->
-            <label class="text-white/70 text-sm block mt-2">Название товара <span class="text-red-400 font-bold">*</span></label>
-            <input type="text" id="calcTitle" class="btn-secondary w-full mt-1 p-3 rounded-xl border border-white/30 mb-3 text-sm" placeholder="Например: Nike Dunk Low Panda">
-
-            <!-- Brand Autocomplete -->
-            <label class="text-white/70 text-sm block mt-2">Бренд товара <span class="text-red-400 font-bold">*</span></label>
-            <div class="relative mt-1 mb-3">
-              <input type="text" id="calcBrand" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Введите название бренда" autocomplete="off">
-              <div id="calcBrandAutocompleteList" class="hidden absolute left-0 right-0 mt-1 bg-slate-900 border border-white/10 rounded-xl shadow-2xl z-30 max-h-48 overflow-y-auto">
-                <!-- Dynamic entries -->
-              </div>
-              <input type="hidden" id="calcBrandSelected" value="false">
-            </div>
-
-            <!-- Size with AI Advisor & Past size buttons -->
-            <div class="flex justify-between items-center mt-2 mb-0.5">
-              <label class="text-white/70 text-sm block">Размер товара <span class="text-red-400 font-bold">*</span></label>
-              <div class="flex gap-2">
-                <button type="button" id="calcHistorySizeBtn" class="hidden text-[10px] text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-1 rounded hover:bg-cyan-500/20 transition active:scale-95" onclick="applyPastSize()">
-                  📋 На основе старых данных
-                </button>
-                <button type="button" class="text-[10px] text-violet-400 bg-violet-500/10 border border-violet-500/20 px-2 py-1 rounded hover:bg-violet-500/20 transition active:scale-95" onclick="openCalcAiSizeModal()">
-                  🔮 ИИ советчик
+            <!-- Вес товара с ссылкой на помощь -->
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label class="text-white/70 text-xs">Вес товара (кг) <span class="text-red-400 font-bold">*</span></label>
+                <button type="button" class="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1 cursor-pointer border-0 bg-transparent" onclick="window.openCalcWeightModal()">
+                  ⚖️ Помогите узнать вес
                 </button>
               </div>
+              <input type="number" id="calcWeight" step="0.01" min="0.05" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm" placeholder="Например: 1.2">
             </div>
-            <div class="relative">
-              <input type="text" id="calcSize" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm mb-3" placeholder="Укажите размер (напр. M, L, 42)" autocomplete="off">
-              <div id="calcSizeDropdownList" class="hidden absolute left-0 right-0 mt-1 bg-slate-900 border border-white/10 rounded-xl shadow-2xl z-30 max-h-40 overflow-y-auto">
-                <!-- Standard sizes based on category -->
+
+            <!-- Страна покупки (выбор) -->
+            <div>
+              <label class="text-white/70 text-xs block mb-1">Страна покупки</label>
+              <div class="relative">
+                <button type="button" id="calcCountryBtn" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm flex justify-between items-center cursor-pointer">
+                  <span id="calcCountryVal">${countryText}</span>
+                  <span>▼</span>
+                </button>
+                <input type="hidden" id="calcCountryInput" value="${window.calcCountry || 'CN'}">
+                <div id="calcCountryDropdown" class="hidden absolute left-0 right-0 mt-1 bg-slate-900 border border-white/10 rounded-xl shadow-2xl z-30 overflow-hidden">
+                  <div class="p-3 hover:bg-white/5 cursor-pointer text-xs text-white flex justify-between items-center border-b border-white/5" onclick="selectCalcCountry('CN')">
+                    <span>🇨🇳 Китай</span>
+                    <span class="text-[9px] text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">Доступно</span>
+                  </div>
+                  <div class="p-3 hover:bg-white/5 cursor-pointer text-xs text-white/50 flex justify-between items-center border-b border-white/5" onclick="selectCalcCountry('PL')">
+                    <span>🇵🇱 Польша</span>
+                    <span class="text-[9px] text-white/30 bg-white/5 px-1.5 py-0.5 rounded border border-white/10">Скоро</span>
+                  </div>
+                  <div class="p-3 hover:bg-white/5 cursor-pointer text-xs text-white/50 flex justify-between items-center" onclick="selectCalcCountry('EU')">
+                    <span>🇪🇺 Европа (Германия)</span>
+                    <span class="text-[9px] text-white/30 bg-white/5 px-1.5 py-0.5 rounded border border-white/10">Скоро</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- Color Chips (multi-select) -->
-            <label class="text-white/70 text-sm block mt-2">Цвет товара <span class="text-red-400 font-bold">*</span></label>
-            <div id="calcColorChipsContainer" class="flex flex-wrap gap-1.5 mt-1.5 mb-3">
-              <!-- Colored chips rendered via js -->
-            </div>
-            <input type="hidden" id="calcColor" value="">
-
-            <!-- Description (Optional) -->
-            <label class="text-white/70 text-sm block mt-2">Описание (необязательно)</label>
-            <textarea id="calcDescription" rows="2" class="btn-secondary w-full mt-1 p-3 rounded-xl border border-white/30 mb-3 text-sm" placeholder="особенности, material и другое — в текстовой форме"></textarea>
-
-            <!-- Weight slider & numeric input + AI weight calculator -->
-            <label class="text-white/70 text-sm block">Вес товара (кг) <span class="text-red-400 font-bold">*</span></label>
-            <div class="flex items-center gap-3 mt-1 mb-4">
-              <input type="range" id="calcWeight" min="0.1" max="30" step="0.1" value="1.0" class="flex-1 accent-cyan-500" data-packaging="0.3">
-              <div class="flex items-center bg-white/10 px-2.5 py-1.5 rounded-full border border-white/20 whitespace-nowrap text-sm font-bold text-white">
-                <input type="number" id="calcWeightInput" min="0.1" max="30" step="0.1" value="1.0" class="w-12 bg-transparent text-center text-white focus:outline-none border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" style="font-size: 14px; font-weight: 700; width: 44px;">
-                <span class="mr-1">кг</span>
-              </div>
-              <button type="button" id="calcWeightBtn" class="text-xs text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-3 py-2.5 rounded-xl hover:bg-cyan-500/20 transition whitespace-nowrap active:scale-95" onclick="calculateAiWeight()">
-                ⚖️ Рассчитать вес
-              </button>
-            </div>
-
-            <!-- RB Delivery method selection -->
-            <div class="mb-4">
-              <label class="text-white/70 text-sm block mb-1">Метод доставки по РБ <span class="text-red-400 font-bold">*</span></label>
-              <select id="calcDeliveryMethod" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm">
-                <option value="belpost" selected>Белпочта (7 BYN)</option>
-                <option value="europost">Европочта (5 BYN)</option>
+            <!-- Способ доставки по Беларуси -->
+            <div>
+              <label class="text-white/70 text-xs block mb-1">Доставка по Беларуси <span class="text-red-400 font-bold">*</span></label>
+              <select id="calcDeliveryMethod" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm">
+                <option value="europost" selected>Европочта (5 BYN)</option>
+                <option value="belpost">Белпочта (7 BYN)</option>
                 <option value="pickup">Самовывоз (Несвиж) (Бесплатно)</option>
               </select>
             </div>
 
-            <!-- Insurance (Mandatory 2%) -->
-            <div class="flex items-center gap-2 mt-3 mb-3 bg-white/5 p-3 rounded-xl border border-white/5">
-              <input type="checkbox" id="calcInsurance" checked disabled class="w-4 h-4 accent-cyan-500 cursor-not-allowed">
-              <label for="calcInsurance" class="text-white/70 text-sm cursor-not-allowed flex flex-col">
-                <span class="font-bold flex items-center gap-1"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span> Страховка 2.0%</span>
-                <span class="text-[10px] text-white/40">Обязательное страхование груза от утери или повреждения нашим партнером.</span>
-              </label>
+            <!-- Дополнительные услуги -->
+            <div>
+              <label class="text-white/70 text-xs block mb-2">Дополнительные услуги</label>
+              <div class="space-y-2">
+                <div class="flex items-start gap-2.5 bg-white/5 p-3 rounded-xl border border-white/5">
+                  <input type="checkbox" id="serviceInsurance" checked disabled class="w-4 h-4 mt-0.5 accent-cyan-500 cursor-not-allowed">
+                  <div class="text-xs">
+                    <span class="font-bold text-white block">Обязательная страховка 2%</span>
+                    <span class="text-[10px] text-white/40 block mt-0.5">Обязательное страхование груза от утери или повреждения.</span>
+                  </div>
+                </div>
+                <div class="flex items-start gap-2.5 bg-white/5 p-3 rounded-xl border border-white/5 cursor-pointer" onclick="toggleCheckbox('serviceDiscardBox')">
+                  <input type="checkbox" id="serviceDiscardBox" class="w-4 h-4 mt-0.5 accent-cyan-500 cursor-pointer" onclick="event.stopPropagation();">
+                  <div class="text-xs">
+                    <span class="font-bold text-white block">Выкину оригинальную упаковку</span>
+                    <span class="text-[10px] text-white/40 block mt-0.5">Уменьшает вес посылки примерно на 0.3 кг, снижая стоимость международной доставки.</span>
+                  </div>
+                </div>
+                <div class="flex items-start gap-2.5 bg-white/5 p-3 rounded-xl border border-white/5 cursor-pointer" onclick="toggleCheckbox('servicePhotoReport')">
+                  <input type="checkbox" id="servicePhotoReport" class="w-4 h-4 mt-0.5 accent-cyan-500 cursor-pointer" onclick="event.stopPropagation();">
+                  <div class="text-xs">
+                    <span class="font-bold text-white block">Детальный фотоотчет (5 BYN)</span>
+                    <span class="text-[10px] text-white/40 block mt-0.5">Сделаем подробные фотографии товара и бирок при поступлении на склад.</span>
+                  </div>
+                </div>
+                <div class="flex items-start gap-2.5 bg-white/5 p-3 rounded-xl border border-white/5 cursor-pointer" onclick="toggleCheckbox('serviceVideoReport')">
+                  <input type="checkbox" id="serviceVideoReport" class="w-4 h-4 mt-0.5 accent-cyan-500 cursor-pointer" onclick="event.stopPropagation();">
+                  <div class="text-xs">
+                    <span class="font-bold text-white block">Видеообзор 360 градусов (10 BYN)</span>
+                    <span class="text-[10px] text-white/40 block mt-0.5">Запишем круговое видео товара для проверки качества перед отправкой.</span>
+                  </div>
+                </div>
+                <div class="flex items-start gap-2.5 bg-white/5 p-3 rounded-xl border border-white/5 cursor-pointer" onclick="toggleCheckbox('serviceFragilePack')">
+                  <input type="checkbox" id="serviceFragilePack" class="w-4 h-4 mt-0.5 accent-cyan-500 cursor-pointer" onclick="event.stopPropagation();">
+                  <div class="text-xs">
+                    <span class="font-bold text-white block">Дополнительная упаковка (10 BYN)</span>
+                    <span class="text-[10px] text-white/40 block mt-0.5">Усиленная коробка и воздушно-пузырчатая пленка для хрупких товаров.</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <!-- Keep original packaging -->
-            <div class="flex items-center gap-2 mb-3 bg-white/5 p-3 rounded-xl border border-white/5">
-              <input type="checkbox" id="keepBox" checked class="w-4 h-4 accent-cyan-500 cursor-pointer">
-              <label for="keepBox" class="text-white/70 text-sm cursor-pointer flex flex-col">
-                <span class="font-bold">📦 Сохранить оригинальную коробку</span>
-                <span class="text-[10px] text-white/40">Если снять коробку, вес посылки уменьшится (примерно на 0.3 кг), что снизит доставку.</span>
-              </label>
-            </div>
-          </div>
+            <!-- Кнопка Рассчитать -->
+            <button type="button" id="calcBtn" class="w-full py-4 mt-4 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-extrabold transition active:scale-[0.98] duration-150 flex items-center justify-center gap-2 shadow-lg shadow-red-600/30 cursor-pointer border-0">
+              <span>Рассчитать</span>
+            </button>
+          </form>
 
-          <button id="calcBtn" class="btn-primary mt-5 w-full transition ${showFormFields ? '' : 'hidden'}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Рассчитать стоимость</button>
-
-          <!-- Result box -->
-          <div id="calcResult" class="mt-5 hidden">
-            <div id="calcBreakdown" class="bg-cyan-500/10 border border-cyan-500/30 p-4 rounded-xl">
-              <p class="text-white font-bold">Примерная стоимость: <span id="totalPrice" class="font-bold text-cyan-400 text-xl">0</span> <span class="text-sm">BYN</span></p>
-              <p class="text-white/70 text-xs mt-1">*Окончательная цена после взвешивания на складе</p>
+          <!-- Блок результатов -->
+          <div id="calcResult" class="mt-6 hidden">
+            <div id="calcBreakdown" class="bg-cyan-500/10 border border-cyan-500/25 p-4 rounded-2xl text-left space-y-3">
+              <!-- Заполняется динамически -->
             </div>
             
             <div class="flex flex-col gap-2 mt-4">
-              <!-- Primary: to order -->
-              <button id="toNewOrderBtn" class="btn-primary w-full py-3 rounded-xl flex items-center justify-center gap-2 font-bold"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span> Перенести в заказ</button>
+              <button id="toNewOrderBtn" class="btn-primary w-full py-3.5 rounded-xl flex items-center justify-center gap-2 font-bold transition duration-200 border-0 cursor-pointer">
+                <span>Перенести в заказ</span>
+              </button>
               
-              <!-- Secondary buttons: cart / wishlist grid -->
-              <div class="grid grid-cols-2 gap-2">
-                <button type="button" id="calcAddToCartBtn" class="py-2.5 rounded-xl text-xs font-bold transition-all hover:bg-white/10 active:scale-95 text-cyan-400 border border-cyan-500/20 bg-cyan-500/5 flex items-center justify-center gap-1.5" onclick="window.addCalcToCart()">
-                  🛒 Добавить в корзину
-                </button>
-                <button type="button" id="calcAddToWishlistBtn" class="py-2.5 rounded-xl text-xs font-bold transition-all hover:bg-white/10 active:scale-95 text-rose-400 border border-rose-500/20 bg-rose-500/5 flex items-center justify-center gap-1.5" onclick="window.addCalcToWishlist()">
-                  ❤️ Добавить в избранное
-                </button>
-              </div>
-
-              <!-- Share calculation -->
-              <button id="calcShareBtn" class="w-full py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all hover:bg-white/10 active:scale-95" style="background: var(--glass-bg-strong); border: 1px solid var(--glass-border); color: #38bdf8;">
+              <button id="calcShareBtn" class="w-full py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition hover:bg-white/10 active:scale-95 cursor-pointer" style="background: var(--glass-bg-strong); border: 1px solid var(--glass-border); color: #38bdf8;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                 Поделиться расчетом
               </button>
 
-              <!-- Reset calculation -->
-              <button type="button" id="calcResetBtn" class="w-full py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all hover:bg-white/10 active:scale-95 text-white/50 border border-white/10" onclick="window.resetCalculatorCalculation()">
-                🗑️ Создать новый расчет
+              <button type="button" id="calcResetBtn" class="w-full py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition hover:bg-white/10 active:scale-95 text-white/50 border border-white/10 cursor-pointer bg-transparent" onclick="window.resetCalculatorCalculation()">
+                🗑️ Сбросить расчет
               </button>
             </div>
           </div>
+        </div>
+
+        <!-- Предупреждение -->
+        <div class="mt-4 text-center max-w-md mx-auto">
+          <p class="text-white/40 text-[10px]">⚠️ Обратите внимание: расчет является ориентировочным. Окончательная стоимость формируется после взвешивания на нашем складе.</p>
         </div>
         ${renderFooter()}
       `;
@@ -6992,2091 +6668,438 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
     };
 
     async function attachCalculatorHandlers() {
-      // Pre-lock currency for CN
-      if (window.calcCountry === 'CN') {
-        const currencySelect = document.getElementById('calcCurrency');
-        if (currencySelect) {
-          currencySelect.value = 'CNY';
-          currencySelect.disabled = true;
-          currencySelect.classList.add('cursor-not-allowed', 'opacity-60');
-        }
-      }
-
-
-      // Trigger dynamic loads
-      if (!window.activeMarketplaces || window.activeMarketplaces.length === 0) {
-        try {
-          const { data } = await supabaseClient.from('marketplaces').select('name, flag, domain').eq('is_active', true);
-          if (data) window.activeMarketplaces = data;
-        } catch(e) {}
-      }
+      // Toggle currency selection dropdown
+      const currencyBtn = document.getElementById('calcCurrencyBtn');
+      const currencyDropdown = document.getElementById('calcCurrencyDropdown');
       
-      const POPULAR_BRANDS = [
-        'Nike', 'Adidas', 'Jordan', 'New Balance', 'Puma', 'Reebok', 'Asics', 'Converse', 'Vans', 'Timberland',
-        'Zara', 'H&M', 'Stussy', 'Calvin Klein', 'Tommy Hilfiger', 'Ralph Lauren', 'Lacoste', 'Hugo Boss',
-        'Diesel', 'Balenciaga', 'Gucci', 'Prada', 'Louis Vuitton', 'Dior', 'Chanel', 'Versace', 'Moncler',
-        'The North Face', 'Patagonia', 'Columbia', 'Stone Island', 'C.P. Company', 'Alexander McQueen',
-        'Off-White', 'Supreme', 'Bape', 'Palace', 'Carhartt', 'Dickies', 'Levis', 'Lee', 'Wrangler',
-        'US Polo Assn', 'Armani', 'Michael Kors', 'Guess', 'Loro Piana', 'Brunello Cucinelli', 'Massimo Dutti',
-        'Mango', 'Bershka', 'Pull&Bear', 'Stradivarius', 'Crocs', 'Dr. Martens', 'UGG', 'Birkenstock'
-      ];
-      
-      if (!window.allBrands || window.allBrands.length === 0) {
-        window.allBrands = [...POPULAR_BRANDS];
-        try {
-          const { data } = await supabaseClient.from('products').select('brand');
-          if (data) {
-            const dbBrands = data.map(p => p.brand).filter(Boolean);
-            window.allBrands = [...new Set([...POPULAR_BRANDS, ...dbBrands])].sort();
-          }
-        } catch(e) {}
-      }
-
-      window.selectCalculatorMode = (mode) => {
-        window.currentCalcMode = mode;
-        tgUtil.haptic('medium');
-        renderCurrentScreen();
-      };
-
-      const CALC_COLORS = ['Черный', 'Белый', 'Серый', 'Красный', 'Синий', 'Зеленый', 'Желтый', 'Оранжевый', 'Розовый', 'Фиолетовый', 'Бежевый', 'Коричневый', 'Разноцветный'];
-      
-      window.renderColorChips = () => {
-        const container = document.getElementById('calcColorChipsContainer');
-        if (!container) return;
+      if (currencyBtn && currencyDropdown) {
+        currencyBtn.onclick = (e) => {
+          e.stopPropagation();
+          currencyDropdown.classList.toggle('hidden');
+        };
         
-        const hiddenColor = document.getElementById('calcColor');
-        const selectedColors = hiddenColor?.value ? hiddenColor.value.split(', ') : [];
+        window.selectCalcCurrency = (val, text) => {
+          document.getElementById('calcCurrency').value = val;
+          document.getElementById('calcCurrencyVal').innerText = text;
+          currencyDropdown.classList.add('hidden');
+        };
         
-        container.innerHTML = CALC_COLORS.map(color => {
-          const isSelected = selectedColors.includes(color);
-          const activeClass = isSelected ? 'bg-cyan-500 text-white border-cyan-500 font-bold shadow-lg shadow-cyan-500/20' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10';
-          return `
-            <button type="button" class="px-3 py-1.5 rounded-xl border text-xs font-semibold transition active:scale-95 duration-200 cursor-pointer ${activeClass}" data-color="${color}">
-              ${color}
-            </button>
-          `;
-        }).join('');
-        
-        container.querySelectorAll('[data-color]').forEach(btn => {
-          btn.onclick = () => {
-            tgUtil.haptic('light');
-            const color = btn.dataset.color;
-            const currentVal = hiddenColor.value;
-            let colors = currentVal ? currentVal.split(', ') : [];
-            
-            if (colors.includes(color)) {
-              colors = colors.filter(c => c !== color);
-              btn.className = 'px-3 py-1.5 rounded-xl border text-xs font-semibold transition active:scale-95 duration-200 cursor-pointer bg-white/5 text-white/70 border-white/10 hover:bg-white/10';
-            } else {
-              colors.push(color);
-              btn.className = 'px-3 py-1.5 rounded-xl border text-xs font-semibold transition active:scale-95 duration-200 cursor-pointer bg-cyan-500 text-white border-cyan-500 font-bold shadow-lg shadow-cyan-500/20';
-            }
-            
-            hiddenColor.value = colors.join(', ');
-            hiddenColor.dispatchEvent(new Event('change', { bubbles: true }));
-            if (typeof window.updatePriceForVariation === 'function') {
-              window.updatePriceForVariation();
-            }
-          };
+        document.addEventListener('click', () => {
+          if (currencyDropdown) currencyDropdown.classList.add('hidden');
         });
-      };
-
-      // Variation update check
-      window.updatePriceForVariation = () => {
-        if (!window.calcProductVariations || window.calcProductVariations.length === 0) return;
-        const sizeInput = document.getElementById('calcSize');
-        const colorInput = document.getElementById('calcColor');
-        const priceInput = document.getElementById('calcPrice');
-        if (!sizeInput || !colorInput || !priceInput) return;
+      }
+      
+      // Toggle country selection dropdown
+      const countryBtn = document.getElementById('calcCountryBtn');
+      const countryDropdown = document.getElementById('calcCountryDropdown');
+      
+      if (countryBtn && countryDropdown) {
+        countryBtn.onclick = (e) => {
+          e.stopPropagation();
+          countryDropdown.classList.toggle('hidden');
+        };
         
-        const currentSize = sizeInput.value.trim().toLowerCase();
-        const selectedColors = colorInput.value ? colorInput.value.split(', ').map(c => c.trim().toLowerCase()) : [];
-        
-        let bestMatch = null;
-        
-        // Try exact match (both size and color)
-        for (const v of window.calcProductVariations) {
-          const vSize = v.size ? String(v.size).trim().toLowerCase() : '';
-          const vColor = v.color ? String(v.color).trim().toLowerCase() : '';
-          
-          if (vSize === currentSize && selectedColors.includes(vColor)) {
-            bestMatch = v;
-            break;
+        window.selectCalcCountry = (code) => {
+          const countryNames = {
+            CN: '🇨🇳 Китай',
+            PL: '🇵🇱 Польша',
+            EU: '🇪🇺 Европа (Германия)'
+          };
+          if (code !== 'CN') {
+            tgUtil.haptic('warning');
+            glassToast('Данное направление временно недоступно. Скоро мы запустим доставку!', { kind: 'info' });
+            return;
           }
-        }
+          document.getElementById('calcCountryInput').value = code;
+          document.getElementById('calcCountryVal').innerText = countryNames[code];
+          countryDropdown.classList.add('hidden');
+        };
         
-        // Try size-only match
-        if (!bestMatch && currentSize) {
-          for (const v of window.calcProductVariations) {
-            const vSize = v.size ? String(v.size).trim().toLowerCase() : '';
-            if (vSize === currentSize) {
-              bestMatch = v;
-              break;
-            }
-          }
-        }
-        
-        // Try color-only match
-        if (!bestMatch && selectedColors.length > 0) {
-          for (const v of window.calcProductVariations) {
-            const vColor = v.color ? String(v.color).trim().toLowerCase() : '';
-            if (selectedColors.includes(vColor)) {
-              bestMatch = v;
-              break;
-            }
-          }
-        }
-        
-        if (bestMatch && bestMatch.price) {
-          priceInput.value = bestMatch.price;
-          priceInput.dispatchEvent(new Event('change', { bubbles: true }));
-          glassToast(`Цена автоматически обновлена для выбранного варианта: ${bestMatch.price}!`, { kind: 'info' });
+        document.addEventListener('click', () => {
+          if (countryDropdown) countryDropdown.classList.add('hidden');
+        });
+      }
+      
+      // Toggle checkboxes on card clicks
+      window.toggleCheckbox = (id) => {
+        const cb = document.getElementById(id);
+        if (cb) {
+          cb.checked = !cb.checked;
+          cb.dispatchEvent(new Event('change', { bubbles: true }));
         }
       };
-
-      window.applyPastSize = () => {
-        const sizeInput = document.getElementById('calcSize');
-        if (!sizeInput) return;
-        
-        // Load from local storage or memory
-        let localSizing = null;
-        try {
-          localSizing = JSON.parse(localStorage.getItem('ice_user_sizing'));
-        } catch(e) {}
-        
-        const sz = window.userSizing || localSizing;
-        
-        const pastSize = window.lastOrderSize 
-          || (sz?.measure ? `${sz.measure}см` : null) 
-          || (sz?.height && sz?.weight ? `${sz.height}см/${sz.weight}кг` : null);
-          
-        if (pastSize) {
-          sizeInput.value = pastSize;
-          tgUtil.haptic('light');
-          glassToast(`Размер ${pastSize} применен на основе прошлых данных!`, { kind: 'success' });
-          sizeInput.dispatchEvent(new Event('change', { bubbles: true }));
-        } else {
-          glassToast('Прошлые данные о размерах не найдены.', { kind: 'info' });
-        }
-      };
-
-      window.openCalcAiSizeModal = () => {
-        const category = document.getElementById('calcCategory')?.value || '';
-        const isShoes = ['Обувь', 'Кеды', 'Кроссовки', 'Ботинки', 'Туфли', 'Сандалии'].includes(category);
-        const isClothing = ['Одежда', 'Футболка', 'Поло', 'Худи', 'Свитшот', 'Толстовка', 'Джинсы', 'Брюки', 'Шорты', 'Куртка', 'Пуховик', 'Пальто', 'Платье', 'Юбка', 'Костюм', 'Купальник'].includes(category);
-        
-        if (!isShoes && !isClothing) {
-          tgUtil.haptic('warning');
-          glassToast('Пожалуйста, сначала выберите категорию (Одежда или Обувь) для подбора размера!', { kind: 'info' });
-          return;
-        }
-
-        let localSizing = null;
-        try {
-          localSizing = JSON.parse(localStorage.getItem('ice_user_sizing'));
-        } catch(e) {}
-        const activeSizing = window.userSizing || localSizing || {};
-
-        let modalHtml = `
-          <div id="calcAiSizeModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md page-enter">
+      
+      // AI weight estimation helper
+      function toBase64(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => {
+            const base64String = reader.result.split(',')[1];
+            resolve(base64String);
+          };
+          reader.onerror = error => reject(error);
+        });
+      }
+      
+      window.openCalcWeightModal = () => {
+        const modalHtml = `
+          <div id="calcWeightModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md page-enter">
             <div class="glass-card w-full max-w-sm p-6 border border-white/15 rounded-3xl relative shadow-2xl" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px);">
-              <button onclick="document.getElementById('calcAiSizeModal').remove()" class="absolute top-4 right-4 text-white/50 hover:text-white text-xl">×</button>
+              <button onclick="document.getElementById('calcWeightModal').remove()" class="absolute top-4 right-4 text-white/50 hover:text-white text-xl">×</button>
+              
               <h3 class="text-lg font-extrabold text-white mb-2 flex items-center gap-1.5">
-                <span>🔮 Подобрать размер</span>
+                <span>⚖️ Узнать примерный вес</span>
               </h3>
-              <p class="text-white/60 text-xs mb-4">Укажите ваши параметры, и ИИ подберет идеальный размер для бренда <strong>${document.getElementById('calcBrand')?.value || 'данного бренда'}</strong>.</p>
+              <p class="text-white/60 text-xs mb-4">Наш ИИ определит примерный вес товара для более точного расчета.</p>
               
-              <div class="mb-4 p-3 rounded-xl border border-yellow-500/20 bg-yellow-500/5 text-xs text-yellow-300 flex gap-2">
-                <span>⚠️</span>
-                <div class="text-left leading-normal">
-                  Рекомендация носит справочный характер. Размеры могут отличаться в зависимости от модели и кроя конкретного бренда.
-                </div>
-              </div>
-        `;
-
-        if (isShoes) {
-          modalHtml += `
-              <div class="mb-4">
-                <label class="text-white/70 text-xs block mb-1">Длина стельки (см) <span class="text-red-400 font-bold">*</span></label>
-                <input type="number" id="calcAiMeasure" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Например: 27" value="${activeSizing.measure || ''}">
-              </div>
-          `;
-        } else {
-          modalHtml += `
-              <div class="grid grid-cols-2 gap-3 mb-4">
-                <div>
-                  <label class="text-white/70 text-xs block mb-1">Рост (см) <span class="text-red-400 font-bold">*</span></label>
-                  <input type="number" id="calcAiHeight" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Например: 180" value="${activeSizing.height || ''}">
-                </div>
-                <div>
-                  <label class="text-white/70 text-xs block mb-1">Вес (кг) <span class="text-red-400 font-bold">*</span></label>
-                  <input type="number" id="calcAiWeight" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Например: 75" value="${activeSizing.weight || ''}">
-                </div>
-              </div>
-          `;
-        }
-
-        modalHtml += `
-              <div class="flex items-center gap-2 mb-5">
-                <input type="checkbox" id="calcAiRemember" class="w-4 h-4 accent-cyan-500 cursor-pointer" checked>
-                <label for="calcAiRemember" class="text-white/70 text-xs cursor-pointer">Запомнить эти данные на будущие подборы</label>
+              <div class="flex border-b border-white/10 mb-4">
+                <button type="button" id="tabDescBtn" class="flex-1 pb-2 text-xs font-bold text-cyan-400 border-b-2 border-cyan-400" onclick="switchWeightTab('desc')">По описанию</button>
+                <button type="button" id="tabPhotoBtn" class="flex-1 pb-2 text-xs font-bold text-white/60" onclick="switchWeightTab('photo')">По фото</button>
               </div>
               
-              <button id="calcAiSizeSubmitBtn" class="btn-primary w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition active:scale-95" onclick="window.submitCalcAiSize(${isShoes})">
-                <span>Получить рекомендацию</span>
-              </button>
+              <div id="tabDescContent" class="space-y-3">
+                <div>
+                  <label class="text-white/70 text-[10px] block mb-1">Описание товара или бренд/модель</label>
+                  <textarea id="calcWeightDesc" rows="3" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-xs text-white" placeholder="Например: Кроссовки зимние Adidas Terrex, размер 43"></textarea>
+                </div>
+                <button type="button" id="estimateWeightDescBtn" class="btn-primary w-full py-3 rounded-xl font-bold text-xs" onclick="estimateWeight('desc')">
+                  Определить вес
+                </button>
+              </div>
+              
+              <div id="tabPhotoContent" class="space-y-3 hidden">
+                <div id="calcWeightPhotoZone" class="p-4 border-2 border-dashed border-white/30 rounded-xl text-center cursor-pointer hover:bg-white/5 transition" onclick="document.getElementById('calcWeightPhotoInput').click()">
+                  <div class="text-2xl mb-1">📸</div>
+                  <p class="text-white/80 text-xs font-semibold">Выберите фото</p>
+                  <input type="file" id="calcWeightPhotoInput" accept="image/*" class="hidden" onchange="handleWeightPhotoSelect(this)">
+                </div>
+                <div id="calcWeightPhotoPreview" class="hidden text-center">
+                  <img id="calcWeightPhotoImg" class="mx-auto rounded-xl max-h-24 object-cover border border-white/20">
+                </div>
+                <button type="button" id="estimateWeightPhotoBtn" class="btn-primary w-full py-3 rounded-xl font-bold text-xs" onclick="estimateWeight('photo')">
+                  Определить вес
+                </button>
+              </div>
             </div>
           </div>
         `;
-        
         document.body.insertAdjacentHTML('beforeend', modalHtml);
       };
-
-      window.submitCalcAiSize = async (isShoes) => {
-        const btn = document.getElementById('calcAiSizeSubmitBtn');
-        if (!btn) return;
-        const originalText = btn.innerText;
+      
+      window.switchWeightTab = (tab) => {
+        const descBtn = document.getElementById('tabDescBtn');
+        const photoBtn = document.getElementById('tabPhotoBtn');
+        const descContent = document.getElementById('tabDescContent');
+        const photoContent = document.getElementById('tabPhotoContent');
         
-        const remember = document.getElementById('calcAiRemember')?.checked;
-        const brandVal = document.getElementById('calcBrand')?.value || '';
-        const categoryVal = document.getElementById('calcCategory')?.value || '';
-        const genderVal = document.getElementById('calcGender')?.value || 'Унисекс';
-        
-        let heightVal = null;
-        let weightVal = null;
-        let measureVal = null;
-        
-        if (isShoes) {
-          const measInput = document.getElementById('calcAiMeasure');
-          measureVal = parseFloat(measInput?.value);
-          if (!measureVal || measureVal <= 0) {
-            tgUtil.alert('Пожалуйста, укажите длину стельки!');
-            return;
-          }
+        if (tab === 'desc') {
+          descBtn.className = "flex-1 pb-2 text-xs font-bold text-cyan-400 border-b-2 border-cyan-400";
+          photoBtn.className = "flex-1 pb-2 text-xs font-bold text-white/60 border-0";
+          descContent.classList.remove('hidden');
+          photoContent.classList.add('hidden');
         } else {
-          const hInput = document.getElementById('calcAiHeight');
-          const wInput = document.getElementById('calcAiWeight');
-          heightVal = parseFloat(hInput?.value);
-          weightVal = parseFloat(wInput?.value);
-          if (!heightVal || heightVal <= 0 || !weightVal || weightVal <= 0) {
-            tgUtil.alert('Пожалуйста, укажите рост и вес!');
-            return;
-          }
+          photoBtn.className = "flex-1 pb-2 text-xs font-bold text-cyan-400 border-b-2 border-cyan-400";
+          descBtn.className = "flex-1 pb-2 text-xs font-bold text-white/60 border-0";
+          photoContent.classList.remove('hidden');
+          descContent.classList.add('hidden');
         }
+      };
+      
+      window.handleWeightPhotoSelect = (input) => {
+        const file = input.files?.[0];
+        if (!file) return;
         
-        btn.innerHTML = '<span class="ix ix-mute"><svg class="animate-spin h-3 w-3 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle class="opacity-25" cx="12" cy="12" r="10" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></span> Анализируем...';
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const preview = document.getElementById('calcWeightPhotoPreview');
+          const img = document.getElementById('calcWeightPhotoImg');
+          img.src = e.target.result;
+          preview.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+        window.calcWeightFile = file;
+      };
+      
+      window.estimateWeight = async (type) => {
+        const btnId = type === 'desc' ? 'estimateWeightDescBtn' : 'estimateWeightPhotoBtn';
+        const btn = document.getElementById(btnId);
+        if (!btn) return;
+        
+        const originalText = btn.innerText;
+        btn.innerHTML = '⌛ Оцениваем...';
         btn.disabled = true;
         
         try {
-          const { data, error } = await supabaseClient.functions.invoke('ai-size-advisor', {
-            body: {
-              category: categoryVal,
-              gender: genderVal,
-              height: heightVal,
-              weight: weightVal,
-              measure: measureVal,
-              brand: brandVal
+          let payload = { action: 'estimate_weight' };
+          
+          if (type === 'desc') {
+            const desc = document.getElementById('calcWeightDesc')?.value || '';
+            if (!desc.trim()) {
+              tgUtil.alert('Пожалуйста, введите описание товара!');
+              return;
             }
-          });
-          
-          if (error) throw new Error(error.message);
-          if (!data?.ok) throw new Error(data?.error || 'Ошибка ИИ-советника');
-          
-          const sizeInput = document.getElementById('calcSize');
-          if (sizeInput && data.size) {
-            sizeInput.value = data.size;
-            sizeInput.dispatchEvent(new Event('change', { bubbles: true }));
+            payload.description = desc;
+          } else {
+            const file = window.calcWeightFile;
+            if (!file) {
+              tgUtil.alert('Пожалуйста, выберите фото товара!');
+              return;
+            }
+            const base64 = await toBase64(file);
+            payload.image = base64;
           }
           
-          const updatedSizing = {
-            height: heightVal || window.userSizing?.height || null,
-            weight: weightVal || window.userSizing?.weight || null,
-            measure: measureVal || window.userSizing?.measure || null
-          };
-          window.userSizing = updatedSizing;
+          const { data, error } = await supabaseClient.functions.invoke('ai-calculator', {
+            body: payload
+          });
           
-          if (remember) {
-            // Save to localStorage
-            localStorage.setItem('ice_user_sizing', JSON.stringify(updatedSizing));
-            
-            if (userId) {
-              const currentSettings = window.userSettings || {};
-              currentSettings.sizing = updatedSizing;
-              await supabaseClient.from('users').update({ settings: currentSettings }).eq('user_id', userId);
-              window.userSettings = currentSettings;
-            }
+          if (error) throw error;
+          if (!data?.ok) throw new Error(data?.error || 'Не удалось оценить вес');
+          
+          const estWeight = parseFloat(data.estimated_weight);
+          if (isNaN(estWeight) || estWeight <= 0) throw new Error('Некорректный вес от ИИ');
+          
+          const weightInput = document.getElementById('calcWeight');
+          if (weightInput) {
+            weightInput.value = estWeight.toFixed(2);
+            weightInput.dispatchEvent(new Event('input', { bubbles: true }));
           }
           
           tgUtil.haptic('success');
-          document.getElementById('calcAiSizeModal')?.remove();
-          tgUtil.alert(`🔮 Рекомендация ИИ: ${data.advice || `Выбран размер ${data.size}`}`);
-          
-          // Show history size button if it was hidden
-          const sizeHistBtn = document.getElementById('calcHistorySizeBtn');
-          if (sizeHistBtn) sizeHistBtn.classList.remove('hidden');
+          glassToast(`Вес успешно определен: ${estWeight} кг`, { kind: 'success' });
+          document.getElementById('calcWeightModal')?.remove();
           
         } catch (err) {
           tgUtil.haptic('warning');
-          tgUtil.alert('Не удалось получить рекомендацию от ИИ-советника: ' + err.message);
+          tgUtil.alert('Ошибка определения веса: ' + err.message);
         } finally {
           btn.innerText = originalText;
           btn.disabled = false;
         }
       };
 
-      window.calculateAiWeight = () => {
-        const category = document.getElementById('calcCategory')?.value || '';
-        const size = document.getElementById('calcSize')?.value || '';
-        const brand = document.getElementById('calcBrand')?.value || '';
-        const description = document.getElementById('calcDescription')?.value || '';
-        const gender = document.getElementById('calcGender')?.value || '';
-        const weightBtn = document.getElementById('calcWeightBtn');
-        if (!weightBtn) return;
-        
-        const originalText = weightBtn.innerHTML;
-        weightBtn.innerHTML = '<span class="ix ix-mute"><svg class="animate-spin h-3 w-3 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle class="opacity-25" cx="12" cy="12" r="10" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></span> Оцениваем...';
-        weightBtn.disabled = true;
-        
-        setTimeout(() => {
-          let estWeight = 1.0;
-          const isShoes = ['Обувь', 'Кеды', 'Кроссовки', 'Ботинки', 'Туфли', 'Сандалии'].includes(category);
-          const isClothing = ['Одежда', 'Футболка', 'Поло', 'Худи', 'Свитшот', 'Толстовка', 'Джинсы', 'Брюки', 'Шорты', 'Куртка', 'Пуховик', 'Пальто', 'Платье', 'Юбка', 'Костюм', 'Купальник'].includes(category);
-          
-          if (isShoes) {
-            estWeight = 1.2;
-            if (category.toLowerCase().includes('ботинки') || description.toLowerCase().includes('зим') || description.toLowerCase().includes('сапог')) {
-              estWeight = 1.6;
-            }
-            const numSize = parseFloat(size);
-            if (!isNaN(numSize)) {
-              if (numSize >= 44) estWeight += 0.2;
-              if (numSize <= 38) estWeight -= 0.2;
-            }
-          } else if (isClothing) {
-            estWeight = 0.5;
-            if (category.toLowerCase().includes('худи') || category.toLowerCase().includes('свитшот') || category.toLowerCase().includes('толстовка') || category.toLowerCase().includes('джинсы') || category.toLowerCase().includes('брюки')) {
-              estWeight = 0.7;
-            }
-            if (category.toLowerCase().includes('куртка') || category.toLowerCase().includes('пальто') || category.toLowerCase().includes('пуховик')) {
-              estWeight = 1.5;
-              if (description.toLowerCase().includes('зим') || description.toLowerCase().includes('пух')) {
-                estWeight = 2.0;
-              }
-            }
-            if (['xl', 'xxl', 'xxxl'].includes(size.toLowerCase())) estWeight += 0.15;
-            if (['xxs', 'xs', 's'].includes(size.toLowerCase())) estWeight -= 0.1;
-          } else {
-            estWeight = 0.3;
-            if (description.toLowerCase().includes('рюкзак') || description.toLowerCase().includes('сумка')) {
-              estWeight = 0.6;
-            }
-          }
-          
-          const keepBox = document.getElementById('keepBox');
-          if (keepBox && !keepBox.checked) {
-            estWeight = Math.max(0.1, estWeight - 0.3);
-          }
-          
-          estWeight = parseFloat(estWeight.toFixed(1));
-          
-          const slider = document.getElementById('calcWeight');
-          const numericInput = document.getElementById('calcWeightInput');
-          if (slider) slider.value = estWeight;
-          if (numericInput) numericInput.value = estWeight.toFixed(1);
-          
-          const resultBox = document.getElementById('calcResult');
-          if (resultBox && !resultBox.classList.contains('hidden')) {
-            doCalc();
-          }
-          
-          tgUtil.haptic('success');
-          glassToast(`Вес оценен: ~${estWeight} кг`, { kind: 'success' });
-          weightBtn.innerHTML = originalText;
-          weightBtn.disabled = false;
-        }, 1000);
-      };
-
-      // openCategoryPickerSheet moved to global scope;
-
-      window.addCalcToCart = async () => {
-        if (!userId) {
-          tgUtil.haptic('warning');
-          tgUtil.alert('Для добавления товара в корзину необходимо авторизоваться.');
-          return;
-        }
-        
-        const priceInput = document.getElementById('calcPrice');
-        const price = parseFloat(priceInput?.value) || 0;
-        if (price <= 0) {
-          tgUtil.haptic('warning');
-          tgUtil.alert('Пожалуйста, сначала рассчитайте стоимость товара.');
-          return;
-        }
-        
-        const title = document.getElementById('calcTitle')?.value || '';
-        const brand = document.getElementById('calcBrand')?.value || '';
-        const size = document.getElementById('calcSize')?.value || '';
-        const color = document.getElementById('calcColor')?.value || '';
-        const category = document.getElementById('calcCategory')?.value || '';
-        const url = document.getElementById('calcUrl')?.value || '';
-        const desc = document.getElementById('calcDescription')?.value || '';
-        const image = window.calcPickedImageUrl || '';
-        
-        const displayTitle = `${title} [Размер: ${size}] [Цвет: ${color}]`;
-        const displayDesc = `Бренд: ${brand}. Категория: ${category}. ${desc}`.trim();
-        
-        const btn = document.getElementById('calcAddToCartBtn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '⌛ Добавление...';
-        btn.disabled = true;
-        
-        try {
-          const { data: prod, error: prodErr } = await supabaseClient.from('products').insert({
-            title: displayTitle,
-            description: displayDesc,
-            price,
-            category,
-            brand,
-            image_url: image,
-            url,
-            currency: document.getElementById('calcCurrency')?.value || 'CNY',
-            is_active: false,
-            is_drop: false,
-            show_on_home: false
-          }).select('id').single();
-          
-          if (prodErr) throw prodErr;
-          
-          const { error: cartErr } = await supabaseClient.from('cart').insert({
-            user_id: userId,
-            product_id: prod.id,
-            quantity: 1
-          });
-          
-          if (cartErr) throw cartErr;
-          
-          tgUtil.haptic('success');
-          glassToast('Товар успешно добавлен в корзину!', { kind: 'success' });
-          if (typeof loadCartQty === 'function') await loadCartQty();
-          if (typeof updateCartBadge === 'function') updateCartBadge();
-          
-        } catch (err) {
-          tgUtil.haptic('warning');
-          tgUtil.alert('Не удалось добавить в корзину: ' + err.message);
-        } finally {
-          btn.innerHTML = originalText;
-          btn.disabled = false;
-        }
-      };
-
-      window.addCalcToWishlist = async () => {
-        if (!userId) {
-          tgUtil.haptic('warning');
-          tgUtil.alert('Для добавления товара в избранное необходимо авторизоваться.');
-          return;
-        }
-        
-        const priceInput = document.getElementById('calcPrice');
-        const price = parseFloat(priceInput?.value) || 0;
-        if (price <= 0) {
-          tgUtil.haptic('warning');
-          tgUtil.alert('Пожалуйста, сначала рассчитайте стоимость товара.');
-          return;
-        }
-        
-        const title = document.getElementById('calcTitle')?.value || '';
-        const brand = document.getElementById('calcBrand')?.value || '';
-        const size = document.getElementById('calcSize')?.value || '';
-        const color = document.getElementById('calcColor')?.value || '';
-        const category = document.getElementById('calcCategory')?.value || '';
-        const url = document.getElementById('calcUrl')?.value || '';
-        const desc = document.getElementById('calcDescription')?.value || '';
-        const image = window.calcPickedImageUrl || '';
-        
-        const displayTitle = `${title} [Размер: ${size}] [Цвет: ${color}]`;
-        const displayDesc = `Бренд: ${brand}. Категория: ${category}. ${desc}`.trim();
-        
-        const btn = document.getElementById('calcAddToWishlistBtn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '⌛ Добавление...';
-        btn.disabled = true;
-        
-        try {
-          const { data: prod, error: prodErr } = await supabaseClient.from('products').insert({
-            title: displayTitle,
-            description: displayDesc,
-            price,
-            category,
-            brand,
-            image_url: image,
-            url,
-            currency: document.getElementById('calcCurrency')?.value || 'CNY',
-            is_active: false,
-            is_drop: false,
-            show_on_home: false
-          }).select('id').single();
-          
-          if (prodErr) throw prodErr;
-          
-          const { error: wishErr } = await supabaseClient.from('wishlist').insert({
-            user_id: userId,
-            product_id: prod.id
-          });
-          
-          if (wishErr) throw wishErr;
-          
-          tgUtil.haptic('success');
-          glassToast('Товар добавлен в избранное!', { kind: 'success' });
-          
-        } catch (err) {
-          tgUtil.haptic('warning');
-          tgUtil.alert('Не удалось добавить в избранное: ' + err.message);
-        } finally {
-          btn.innerHTML = originalText;
-          btn.disabled = false;
-        }
-      };
-
       window.resetCalculatorCalculation = () => {
         tgUtil.haptic('light');
-        
-        const urlInput = document.getElementById('calcUrl');
-        if (urlInput) urlInput.value = '';
-        
-        const priceInput = document.getElementById('calcPrice');
-        if (priceInput) priceInput.value = '';
-        
-        const titleInput = document.getElementById('calcTitle');
-        if (titleInput) titleInput.value = '';
-        
-        const brandInput = document.getElementById('calcBrand');
-        if (brandInput) brandInput.value = '';
-        
-        const brandSelected = document.getElementById('calcBrandSelected');
-        if (brandSelected) brandSelected.value = 'false';
-        
-        const sizeInput = document.getElementById('calcSize');
-        if (sizeInput) sizeInput.value = '';
-        
-        const colorInput = document.getElementById('calcColor');
-        if (colorInput) colorInput.value = '';
-        
-        const descInput = document.getElementById('calcDescription');
-        if (descInput) descInput.value = '';
-        
-        window.calcProductVariations = [];
-        window.renderColorChips();
-        
-        const slider = document.getElementById('calcWeight');
-        const numericInput = document.getElementById('calcWeightInput');
-        if (slider) slider.value = 1.0;
-        if (numericInput) numericInput.value = '1.0';
-        
-        const resultEl = document.getElementById('calcResult');
-        if (resultEl) resultEl.classList.add('hidden');
-        
-        window.calcPickedImageUrl = '';
-        
-        window.calcCountry = null;
-        const countrySelectedText = document.getElementById('calcCountrySelectedText');
-        if (countrySelectedText) {
-          countrySelectedText.innerHTML = '<span class="text-white/40">— выберите страну —</span>';
-        }
-        
-        const currencySelect = document.getElementById('calcCurrency');
-        if (currencySelect) {
-          currencySelect.value = 'CNY';
-          currencySelect.disabled = true;
-          currencySelect.classList.add('cursor-not-allowed', 'opacity-60');
-        }
-        
-        const categoryText = document.getElementById('calcCategorySelectedText');
-        const hiddenCategory = document.getElementById('calcCategory');
-        if (categoryText && hiddenCategory) {
-          hiddenCategory.value = '';
-          categoryText.innerText = '— выберите категорию и тип товара —';
-          categoryText.classList.add('text-white/40');
-          categoryText.classList.remove('text-white');
-        }
-        
-        window.currentCalcMode = null;
-        window.calcLinkAnalyzed = false;
-        renderCurrentScreen();
+        document.getElementById('calcTitle').value = '';
+        document.getElementById('calcPrice').value = '';
+        document.getElementById('calcWeight').value = '';
+        document.getElementById('serviceDiscardBox').checked = false;
+        document.getElementById('servicePhotoReport').checked = false;
+        document.getElementById('serviceVideoReport').checked = false;
+        document.getElementById('serviceFragilePack').checked = false;
+        document.getElementById('calcResult').classList.add('hidden');
+        window.tempOrder = null;
       };
 
-      window.deleteCalculation = (idx) => {
-        tgUtil.confirm('Удалить этот расчет из истории?').then(ok => {
-          if (ok) {
-            let history = [];
-            try {
-              history = JSON.parse(localStorage.getItem('ice_calc_history') || '[]');
-            } catch(e) {}
-            history.splice(idx, 1);
-            localStorage.setItem('ice_calc_history', JSON.stringify(history));
-            tgUtil.haptic('light');
-            renderCurrentScreen();
+      window.doCalculate = async () => {
+        const calcBtn = document.getElementById('calcBtn');
+        if (!calcBtn) return;
+        
+        const title = document.getElementById('calcTitle')?.value || '';
+        const price = parseFloat(document.getElementById('calcPrice')?.value) || 0;
+        const currency = document.getElementById('calcCurrency')?.value || 'CNY';
+        const weight = parseFloat(document.getElementById('calcWeight')?.value) || 0;
+        const country = document.getElementById('calcCountryInput')?.value || 'CN';
+        const localDeliveryMethod = document.getElementById('calcDeliveryMethod')?.value || 'europost';
+        
+        if (!title.trim()) {
+          tgUtil.alert('Пожалуйста, введите наименование товара!');
+          return;
+        }
+        if (price <= 0 || isNaN(price)) {
+          tgUtil.alert('Пожалуйста, укажите корректную стоимость товара!');
+          return;
+        }
+        if (weight <= 0 || isNaN(weight)) {
+          tgUtil.alert('Пожалуйста, укажите вес товара!');
+          return;
+        }
+        
+        const originalText = calcBtn.innerHTML;
+        calcBtn.innerHTML = '⌛ Рассчитываем...';
+        calcBtn.disabled = true;
+        
+        try {
+          const services = [];
+          if (document.getElementById('servicePhotoReport')?.checked) services.push('photo_report');
+          if (document.getElementById('serviceVideoReport')?.checked) services.push('video_report');
+          if (document.getElementById('serviceFragilePack')?.checked) services.push('fragile_pack');
+          
+          const payload = {
+            action: 'calculate',
+            product_price: price,
+            product_currency: currency,
+            source_country: country,
+            weight_kg: weight,
+            local_delivery_method: localDeliveryMethod,
+            discard_box: !!document.getElementById('serviceDiscardBox')?.checked,
+            services: services
+          };
+          
+          const { data, error } = await supabaseClient.functions.invoke('ai-calculator', {
+            body: payload
+          });
+          
+          if (error) throw error;
+          if (!data?.ok) throw new Error(data?.error || 'Не удалось рассчитать стоимость');
+          
+          const result = data.result;
+          
+          const resultBox = document.getElementById('calcResult');
+          const breakdownEl = document.getElementById('calcBreakdown');
+          
+          if (resultBox && breakdownEl) {
+            resultBox.classList.remove('hidden');
+            
+            let servicesHtml = '';
+            if (result.details.selected_services && result.details.selected_services.length > 0) {
+              servicesHtml = `
+                <div class="mt-2 pt-2 border-t border-white/5 space-y-1">
+                  <span class="text-white/40 block text-[10px]">Доп. услуги:</span>
+                  ${result.details.selected_services.map(s => `
+                    <div class="flex justify-between text-[11px] text-white/80">
+                      <span>• ${s.name}</span>
+                      <span class="font-mono">${s.price_byn} BYN</span>
+                    </div>
+                  `).join('')}
+                </div>
+              `;
+            }
+            
+            let customsHtml = '';
+            if (result.details.customs_duty_byn > 0) {
+              customsHtml = `
+                <div class="flex justify-between text-xs text-red-400 font-semibold">
+                  <span>Таможенная пошлина:</span>
+                  <span class="font-mono">+${result.details.customs_duty_byn.toFixed(2)} BYN</span>
+                </div>
+              `;
+            }
+
+            breakdownEl.innerHTML = `
+              <div class="text-center pb-2 border-b border-white/5">
+                <span class="text-white/40 text-[10px] block">Итоговая стоимость с доставкой</span>
+                <span class="text-2xl font-extrabold text-cyan-400 font-mono">${result.total_byn.toFixed(2)} BYN</span>
+              </div>
+              
+              <div class="space-y-2 pt-1 text-xs">
+                <div class="flex justify-between text-white/60">
+                  <span>Стоимость товара (${currency}):</span>
+                  <span class="font-mono text-white">${price.toFixed(2)} ${currency}</span>
+                </div>
+                <div class="flex justify-between text-white/60">
+                  <span>Комиссия сервиса (30%):</span>
+                  <span class="font-mono text-white">${result.details.commission_byn.toFixed(2)} BYN</span>
+                </div>
+                <div class="flex justify-between text-white/60">
+                  <span>Международная доставка (${result.details.adjusted_weight_kg.toFixed(2)} кг):</span>
+                  <span class="font-mono text-white">${result.details.intl_shipping_byn.toFixed(2)} BYN</span>
+                </div>
+                <div class="flex justify-between text-white/60">
+                  <span>Доставка по Беларуси (${localDeliveryMethod}):</span>
+                  <span class="font-mono text-white">${result.details.local_delivery_byn.toFixed(2)} BYN</span>
+                </div>
+                <div class="flex justify-between text-white/60">
+                  <span>Страховка (2%):</span>
+                  <span class="font-mono text-white">${result.details.insurance_byn.toFixed(2)} BYN</span>
+                </div>
+                ${customsHtml}
+                ${servicesHtml}
+              </div>
+              
+              <div class="mt-3 p-3 rounded-xl border border-yellow-500/20 bg-yellow-500/5 text-xs text-yellow-300 leading-normal">
+                🔮 Расчет произведен ИИ с учетом всех сборов, тарифов логистики и таможенных пошлин.
+              </div>
+            `;
+            
+            window.tempOrder = {
+              title: title,
+              url: '',
+              price: price,
+              weight: weight,
+              currency: currency,
+              country: country,
+              deliveryMethod: localDeliveryMethod,
+              insurance: true,
+              discardBox: !!document.getElementById('serviceDiscardBox')?.checked,
+              photoReport: !!document.getElementById('servicePhotoReport')?.checked,
+              videoReport: !!document.getElementById('serviceVideoReport')?.checked,
+              fragilePack: !!document.getElementById('serviceFragilePack')?.checked,
+              total_byn: result.total_byn,
+              breakdown: result
+            };
+            
+            saveCalculationToHistory(window.tempOrder);
           }
-        });
+          
+          tgUtil.haptic('success');
+        } catch (err) {
+          tgUtil.haptic('warning');
+          tgUtil.alert('Не удалось рассчитать стоимость: ' + err.message);
+        } finally {
+          calcBtn.innerHTML = originalText;
+          calcBtn.disabled = false;
+        }
       };
-
-      window.restoreCalculation = (idx) => {
+      
+      function saveCalculationToHistory(order) {
+        const key = 'ice_calc_history';
         let history = [];
         try {
-          history = JSON.parse(localStorage.getItem('ice_calc_history') || '[]');
-        } catch(e) {}
-        const item = history[idx];
-        if (!item) return;
+          history = JSON.parse(localStorage.getItem(key) || '[]');
+        } catch (e) {}
         
-        window.calcCountry = item.country || 'CN';
-        window.currentCalcMode = 'manual';
+        history = history.filter(item => !(item.title === order.title && item.price === order.price));
         
-        tgUtil.haptic('success');
-        switchTab('calculator');
-        
-        setTimeout(() => {
-          const urlInp = document.getElementById('calcUrl');
-          if (urlInp) urlInp.value = item.url || '';
-          
-          const priceInp = document.getElementById('calcPrice');
-          if (priceInp) priceInp.value = item.price || '';
-          
-          const titleInp = document.getElementById('calcTitle');
-          if (titleInp) titleInp.value = item.title || '';
-          
-          const brandInp = document.getElementById('calcBrand');
-          if (brandInp) {
-            brandInp.value = item.brand || '';
-            const brandSelected = document.getElementById('calcBrandSelected');
-            if (brandSelected) brandSelected.value = 'true';
-          }
-          
-          const sizeInp = document.getElementById('calcSize');
-          if (sizeInp) sizeInp.value = item.size || '';
-          
-          const colorInp = document.getElementById('calcColor');
-          if (colorInp) {
-            colorInp.value = item.color || '';
-            window.renderColorChips();
-          }
-          
-          const descInp = document.getElementById('calcDescription');
-          if (descInp) descInp.value = item.description || '';
-          
-          const slider = document.getElementById('calcWeight');
-          const numInp = document.getElementById('calcWeightInput');
-          if (slider) slider.value = item.weight || 1.0;
-          if (numInp) numInp.value = (item.weight || 1.0).toFixed(1);
-          
-          const deliverySelect = document.getElementById('calcDeliveryMethod');
-          if (deliverySelect) deliverySelect.value = item.deliveryMethod || 'europost';
-          
-          const keepBox = document.getElementById('keepBox');
-          if (keepBox) keepBox.checked = item.keepBox || false;
-          
-          const categoryText = document.getElementById('calcCategorySelectedText');
-          const hiddenCategory = document.getElementById('calcCategory');
-          if (categoryText && hiddenCategory && item.category) {
-            hiddenCategory.value = item.category;
-            const broad = getCategoryBroad(item.category);
-            categoryText.innerText = `${broad} / ${item.category}`;
-            categoryText.classList.remove('text-white/40');
-            categoryText.classList.add('text-white');
-          }
-          
-          window.calcPickedImageUrl = item.image_url || '';
-          
-          window.doCalc();
-        }, 200);
-      };
-
-      async function doCalc() {
-        const priceInput = document.getElementById('calcPrice');
-        const sliderEl = document.getElementById('calcWeight');
-        const currencySelect = document.getElementById('calcCurrency');
-        const categoryInput = document.getElementById('calcCategory');
-        const deliveryMethodSelect = document.getElementById('calcDeliveryMethod');
-        const insuranceCheckbox = document.getElementById('calcInsurance');
-
-        const price = parseFloat(priceInput?.value) || 0;
-        const weight = parseFloat(sliderEl?.value || 1.0);
-        const currency = currencySelect?.value || 'CNY';
-        const country = window.calcCountry || 'CN';
-        const category = categoryInput?.value || '';
-        const insurance = insuranceCheckbox?.checked || false;
-        const localDeliveryMethod = deliveryMethodSelect?.value && deliveryMethodSelect.value !== 'none' ? deliveryMethodSelect.value : null;
-
-        let promotionId = null;
-        let promoExtraDiscount = 0;
-        if (window.currentPromotion) {
-          const promo = window.currentPromotion;
-          const roughTotal = window.iceLogixPricing.quickEstimate(price, weight, currency, country);
-          if (roughTotal >= (promo.min_order_amount || 0)) {
-            promoExtraDiscount = promo.discount_type === 'percent'
-              ? roughTotal * (promo.discount_value / 100)
-              : Math.min(promo.discount_value, roughTotal);
-            promotionId = promo.id;
-          }
-        }
-
-        const result = await window.iceLogixPricing.calculatePrice({
-          product_price: price,
-          product_currency: currency,
-          source_country: country,
-          weight_kg: weight,
-          category,
-          insurance,
-          local_delivery_method: localDeliveryMethod,
-          legit_check: false,
-          client_level: window.userLevel || 'newbie',
-          is_first_order: !!window.userIsFirstOrder,
-          referral_used: !!window.referralCode,
-          extra_discount_byn: promoExtraDiscount,
-        });
-
-        const breakdownEl = document.getElementById('calcBreakdown');
-        const resultEl = document.getElementById('calcResult');
-        const toOrderBtn = document.getElementById('toNewOrderBtn');
-
-        if (!result.available) {
-          if (breakdownEl) breakdownEl.innerHTML = window.iceLogixPricing.formatBreakdownHTML(result);
-          if (resultEl) resultEl.classList.remove('hidden');
-          if (toOrderBtn) toOrderBtn.classList.add('hidden');
-          window.tempOrder = null;
-          return;
-        }
-
-        if (breakdownEl) {
-          const baseBreakdown = window.iceLogixPricing.formatBreakdownHTML(result);
-          const minskMallPrice = (result.breakdown.product_cost_byn + result.breakdown.commission_byn) * 1.7;
-          const savings = minskMallPrice - result.total_byn;
-          const savingsPercent = ((savings / minskMallPrice) * 100).toFixed(0);
-          
-          const comparisonHtml = `
-            <div class="mt-3 p-3.5 rounded-xl border border-yellow-500/20 bg-yellow-500/5 text-xs space-y-2">
-              <p class="text-yellow-400 font-bold flex items-center gap-1.5">
-                ${ix('trending-up', { size: '14px' })}
-                <span>Выгода заказа в ICE LOGIX</span>
-              </p>
-              <div class="grid grid-cols-2 gap-2 text-[11px] leading-relaxed">
-                <div class="bg-white/5 p-2 rounded-lg">
-                  <span class="text-white/40 block">В ТЦ Минска:</span>
-                  <span class="text-red-400 font-bold line-through font-mono text-sm">${minskMallPrice.toFixed(0)} BYN</span>
-                </div>
-                <div class="bg-white/5 p-2 rounded-lg border border-cyan-500/20">
-                  <span class="text-cyan-400/60 block font-bold">Наша цена:</span>
-                  <span class="text-cyan-400 font-extrabold font-mono text-sm">${result.total_byn.toFixed(2)} BYN</span>
-                </div>
-              </div>
-              <p class="text-white/80 font-medium text-[11px] text-center pt-1 border-t border-white/5">
-                🔥 Ваша чистая экономия: <strong class="text-green-400 font-bold font-mono text-xs">${savings.toFixed(0)} BYN (${savingsPercent}%)</strong>!
-              </p>
-            </div>
-          `;
-          breakdownEl.innerHTML = baseBreakdown + comparisonHtml;
-        }
-
-        if (resultEl) resultEl.classList.remove('hidden');
-        if (toOrderBtn) toOrderBtn.classList.remove('hidden');
-
-        const totalPriceEl = document.getElementById('totalPrice');
-        if (totalPriceEl) totalPriceEl.innerText = result.total_byn.toFixed(2);
-
-        window.tempOrder = {
-          url: document.getElementById('calcUrl')?.value || '',
-          price, weight,
-          currency, country, category,
-          insurance,
-          total: result.total_byn,
-          total_byn: result.total_byn,
-          total_ice: result.total_ice,
-          breakdown: result.breakdown,
-          deliveryDays: result.delivery_days,
-          finalTotal: result.total_byn,
-          discountAmount: promoExtraDiscount,
-          promotionId,
-        };
-
-        const shareBtn = document.getElementById('calcShareBtn');
-        if (shareBtn) {
-          shareBtn.onclick = () => {
-            const title = document.getElementById('calcTitle')?.value || category || 'Товар';
-            const msg = `🔥 *${title}*
-Цена с доставкой: *${result.total_byn.toFixed(2)} BYN*
-            
-Считал через ICE LOGIX! Заказываем вместе?`;
-            const botUsername = window.Telegram?.WebApp?.initDataUnsafe?.user?.username || 'icelogix_bot';
-            const shareUrl = `https://t.me/share/url?url=https://t.me/icelogix_bot/app&text=${encodeURIComponent(msg)}`;
-            tgUtil.openTelegramLink(shareUrl);
-          };
-        }
-      }
-      window.doCalc = doCalc;
-
-      if (!window.currentCalcMode) return;
-
-      // Check if size recommendations exists to show History size button
-      let localSizing = null;
-      try {
-        localSizing = JSON.parse(localStorage.getItem('ice_user_sizing'));
-      } catch(e) {}
-      const hasHistoryData = window.lastOrderSize || (window.userSizing?.measure || localSizing?.measure) || ((window.userSizing?.height || localSizing?.height) && (window.userSizing?.weight || localSizing?.weight));
-      const sizeHistBtn = document.getElementById('calcHistorySizeBtn');
-      if (sizeHistBtn && hasHistoryData) {
-        sizeHistBtn.classList.remove('hidden');
-      }
-
-      // Populate marketplaces dropdown list
-      const mpTrigger = document.getElementById('calcMarketplaceDropdownTrigger');
-      const mpList = document.getElementById('calcMarketplaceDropdownList');
-      const mpInput = document.getElementById('calcMarketplace');
-      const mpText = document.getElementById('calcMarketplaceSelectedText');
-      
-      if (mpTrigger && mpList) {
-        mpTrigger.onclick = (e) => {
-          e.stopPropagation();
-          mpList.classList.toggle('hidden');
-        };
-        
-        const mps = window.activeMarketplaces || [];
-        mpList.innerHTML = mps.map(mp => `
-          <div class="p-3 hover:bg-white/5 cursor-pointer text-sm text-white flex items-center gap-2 border-b border-white/5" onclick="selectCalcMarketplace('${mp.name}')">
-            <span>${mp.flag || '🛍️'}</span>
-            <span>${mp.name}</span>
-          </div>
-        `).join('') || '<div class="p-3 text-xs text-white/50">Нет активных площадок в базе</div>';
-        
-        window.selectCalcMarketplace = (name) => {
-          if (mpInput && mpText) {
-            mpInput.value = name;
-            mpText.innerText = name;
-            mpText.classList.remove('text-white/40');
-            mpText.classList.add('text-white');
-          }
-          mpList.classList.add('hidden');
-          
-          // Trigger recalculation if result open
-          const resultBox = document.getElementById('calcResult');
-          if (resultBox && !resultBox.classList.contains('hidden')) {
-            doCalc();
-          }
-        };
-        
-        document.addEventListener('click', (e) => {
-          if (!e.target.closest('#calcMarketplaceDropdownTrigger')) {
-            mpList.classList.add('hidden');
-          }
-        });
-      }
-
-      // Brand Autocomplete listeners
-      const brandInput = document.getElementById('calcBrand');
-      const brandList = document.getElementById('calcBrandAutocompleteList');
-      const brandSelected = document.getElementById('calcBrandSelected');
-      
-      if (brandInput && brandList) {
-        brandInput.addEventListener('input', () => {
-          brandSelected.value = 'false';
-          updateBrandAutocomplete();
-        });
-        brandInput.addEventListener('focus', () => {
-          updateBrandAutocomplete();
-        });
-        document.addEventListener('click', (e) => {
-          if (!e.target.closest('#calcBrand') && !e.target.closest('#calcBrandAutocompleteList')) {
-            brandList.classList.add('hidden');
-          }
+        history.unshift({
+          ...order,
+          timestamp: Date.now(),
+          id: 'calc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
         });
         
-        window.updateBrandAutocomplete = () => {
-          const text = brandInput.value.trim().toLowerCase();
-          if (text.length === 0) {
-            renderBrandsDropdown(POPULAR_BRANDS.slice(0, 10), true);
-            return;
-          }
-          const filtered = window.allBrands.filter(b => b.toLowerCase().includes(text));
-          renderBrandsDropdown(filtered.slice(0, 15), false);
-        };
+        const fourteenDays = 14 * 24 * 60 * 60 * 1000;
+        history = history.filter(item => Date.now() - item.timestamp < fourteenDays);
+        if (history.length > 50) history = history.slice(0, 50);
         
-        function renderBrandsDropdown(brandsListItems, isPopularSuggestions) {
-          const title = isPopularSuggestions 
-            ? '<div class="px-3 py-1.5 text-[10px] text-white/40 border-b border-white/5 font-semibold">Популярные бренды:</div>'
-            : '';
-          let itemsHtml = brandsListItems.map(b => `
-            <div class="px-3 py-2.5 hover:bg-white/5 cursor-pointer text-sm text-white border-b border-white/5" onclick="selectBrandAutocomplete('${b}')">
-              ${b}
-            </div>
-          `).join('');
-          const manualBtnHtml = `
-            <div class="px-3 py-2.5 hover:bg-cyan-500/10 cursor-pointer text-xs text-cyan-400 font-bold flex items-center justify-between" onclick="selectBrandManualOverride()">
-              <span>➕ В списке нет бренда, введу вручную без ошибок</span>
-            </div>
-          `;
-          brandList.innerHTML = title + itemsHtml + manualBtnHtml;
-          brandList.classList.remove('hidden');
-        }
-        
-        window.selectBrandAutocomplete = (brandName) => {
-          brandInput.value = brandName;
-          brandSelected.value = 'true';
-          brandList.classList.add('hidden');
-          brandInput.dispatchEvent(new Event('change', { bubbles: true }));
-        };
-        
-        window.selectBrandManualOverride = () => {
-          brandSelected.value = 'manual';
-          brandList.classList.add('hidden');
-          glassToast('Ввод вручную подтвержден!', { kind: 'success' });
-        };
+        localStorage.setItem(key, JSON.stringify(history));
       }
 
-      // Gender settings
-      const genderTrigger = document.getElementById('calcGenderDropdownTrigger');
-      const genderList = document.getElementById('calcGenderDropdownList');
-      if (genderTrigger && genderList) {
-        genderTrigger.onclick = (e) => {
-          e.stopPropagation();
-          genderList.classList.toggle('hidden');
-        };
-        document.addEventListener('click', (e) => {
-          if (!e.target.closest('#calcGenderDropdownTrigger')) {
-            genderList.classList.add('hidden');
-          }
-        });
-      }
-
-      window.setCalcGender = (gender) => {
-        const input = document.getElementById('calcGender');
-        const triggerText = document.getElementById('calcGenderSelectedText');
-        if (input) {
-          input.value = gender;
-          input.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-        if (triggerText) {
-          triggerText.innerText = gender;
-        }
-        if (genderList) {
-          genderList.classList.add('hidden');
-        }
-        // If gender changes, reset category since it's filtered
-        const hiddenCategory = document.getElementById('calcCategory');
-        const categoryText = document.getElementById('calcCategorySelectedText');
-        if (hiddenCategory && categoryText) {
-          hiddenCategory.value = '';
-          categoryText.innerText = '— выберите категорию и тип товара —';
-          categoryText.classList.add('text-white/40');
-          categoryText.classList.remove('text-white');
-        }
-      };
-      
-      // Default gender state setup
-      const currentGender = document.getElementById('calcGender')?.value || 'Унисекс';
-      window.setCalcGender(currentGender);
-
-      // Category trigger
-      const catTrigger = document.getElementById('calcCategoryTrigger');
-      if (catTrigger) {
-        catTrigger.onclick = () => openCategoryPickerSheet();
-      }
-
-      // Size Autocomplete & Suggestions
-      const sizeInput = document.getElementById('calcSize');
-      const sizeList = document.getElementById('calcSizeDropdownList');
-      if (sizeInput && sizeList) {
-        sizeInput.addEventListener('focus', () => updateSizeSuggestions());
-        sizeInput.addEventListener('input', () => {
-          updateSizeSuggestions();
-          if (typeof window.updatePriceForVariation === 'function') {
-            window.updatePriceForVariation();
-          }
-        });
-        document.addEventListener('click', (e) => {
-          if (!e.target.closest('#calcSize') && !e.target.closest('#calcSizeDropdownList')) {
-            sizeList.classList.add('hidden');
-          }
-        });
-        
-        window.updateSizeSuggestions = () => {
-          const category = document.getElementById('calcCategory')?.value || '';
-          const isShoes = ['Обувь', 'Кеды', 'Кроссовки', 'Ботинки', 'Туфли', 'Сандалии'].includes(category);
-          const isClothing = ['Одежда', 'Футболка', 'Поло', 'Худи', 'Свитшот', 'Толстовка', 'Джинсы', 'Брюки', 'Шорты', 'Куртка', 'Пуховик', 'Пальто', 'Платье', 'Юбка', 'Костюм', 'Купальник'].includes(category);
-          
-          let sizes = [];
-          if (isShoes) {
-            sizes = ['36', '37', '37.5', '38', '39', '39.5', '40', '40.5', '41', '42', '42.5', '43', '44', '44.5', '45', '46'];
-          } else if (isClothing) {
-            sizes = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
-          } else {
-            sizes = ['One Size'];
-          }
-          
-          const text = sizeInput.value.trim().toLowerCase();
-          const filtered = text.length > 0 ? sizes.filter(s => s.toLowerCase().includes(text)) : sizes;
-          
-          if (filtered.length === 0) {
-            sizeList.classList.add('hidden');
-            return;
-          }
-          
-          sizeList.classList.remove('hidden');
-          sizeList.innerHTML = filtered.map(s => `
-            <div class="px-3 py-2.5 hover:bg-white/5 cursor-pointer text-sm text-white border-b border-white/5" onclick="selectSizeSuggestion('${s}')">
-              ${s}
-            </div>
-          `).join('');
-        };
-        
-        window.selectSizeSuggestion = (s) => {
-          sizeInput.value = s;
-          sizeList.classList.add('hidden');
-          sizeInput.dispatchEvent(new Event('change', { bubbles: true }));
-          if (typeof window.updatePriceForVariation === 'function') {
-            window.updatePriceForVariation();
-          }
-        };
-      }
-
-      // Color Chips loading
-      renderColorChips();
-
-      // Country selector
-      const cTrigger = document.getElementById('calcCountryDropdownTrigger');
-      const cList = document.getElementById('calcCountryDropdownList');
-      if (cTrigger && cList) {
-        cTrigger.onclick = (e) => {
-          e.stopPropagation();
-          cList.classList.toggle('hidden');
-        };
-        document.addEventListener('click', (e) => {
-          if (!e.target.closest('#calcCountryDropdownTrigger')) {
-            cList.classList.add('hidden');
-          }
-        });
-        
-        window.changeCalcCountry = (c) => {
-          cList.classList.add('hidden');
-          const selectedText = document.getElementById('calcCountrySelectedText');
-          const currencySelect = document.getElementById('calcCurrency');
-          
-          if (c === 'CN') {
-            window.calcCountry = 'CN';
-            if (selectedText) selectedText.innerHTML = '🇨🇳 Китай (возим)';
-            if (currencySelect) {
-              currencySelect.value = 'CNY';
-              currencySelect.disabled = true;
-              currencySelect.classList.add('cursor-not-allowed', 'opacity-60');
-            }
-            
-            // Trigger recalculation if result open
-            const resultBox = document.getElementById('calcResult');
-            if (resultBox && !resultBox.classList.contains('hidden')) {
-              doCalc();
-            }
-          } else if (c === 'EU') {
-            window.calcCountry = 'EU';
-            if (selectedText) selectedText.innerHTML = '🇪🇺 Евросоюз (Скоро...)';
-            if (currencySelect) {
-              currencySelect.value = 'EUR';
-              currencySelect.disabled = false;
-              currencySelect.classList.remove('cursor-not-allowed', 'opacity-60');
-            }
-            tgUtil.haptic('warning');
-            glassToast('Данное направление (Евросоюз) временно недоступно для расчета стоимости.', { kind: 'info' });
-          } else {
-            const countryNames = {
-              RU: 'Россия',
-              US: 'США',
-              TR: 'Турция',
-              JP: 'Япония',
-              KR: 'Южная Корея',
-              VN: 'Вьетнам',
-              AE: 'ОАЭ'
-            };
-            tgUtil.haptic('warning');
-            glassToast(`Направление (${countryNames[c] || c}) временно недоступно. Скоро мы запустим доставку из этой страны!`, { kind: 'info' });
-          }
-        };
-      }
-
-      // Auto-calculation on field edits if result is already shown
-      ['calcPrice', 'calcCategory', 'calcDeliveryMethod', 'keepBox'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-          el.addEventListener('input', () => {
-            const resultBox = document.getElementById('calcResult');
-            if (resultBox && !resultBox.classList.contains('hidden')) doCalc();
-          });
-          el.addEventListener('change', () => {
-            const resultBox = document.getElementById('calcResult');
-            if (resultBox && !resultBox.classList.contains('hidden')) doCalc();
-          });
-        }
-      });
-
-      // Weight slider logic
-      const slider = document.getElementById('calcWeight');
-      const numericInput = document.getElementById('calcWeightInput');
-      
-      const updateWeightVal = (val, source) => {
-        let num = parseFloat(val);
-        if (isNaN(num)) return;
-        num = Math.max(0.1, Math.min(30, num));
-        
-        if (source !== 'slider' && slider) slider.value = num;
-        if (source !== 'input' && numericInput) numericInput.value = num.toFixed(1);
-        
-        const resultBox = document.getElementById('calcResult');
-        if (resultBox && !resultBox.classList.contains('hidden')) {
-          doCalc();
-        }
-      };
-
-      if (slider) {
-        slider.oninput = () => {
-          updateWeightVal(slider.value, 'slider');
-        };
-      }
-      if (numericInput) {
-        numericInput.oninput = () => {
-          updateWeightVal(numericInput.value, 'input');
-        };
-      }
-
-      // Check keepBox box logic
-      const keepBox = document.getElementById('keepBox');
-      if (keepBox) {
-        keepBox.onchange = () => {
-          if (slider && numericInput) {
-            let base = parseFloat(slider.value) || 1.0;
-            if (keepBox.checked) {
-              base = Math.min(30, +(base + 0.3).toFixed(1));
-            } else {
-              base = Math.max(0.1, +(base - 0.3).toFixed(1));
-            }
-            slider.value = base;
-            numericInput.value = base.toFixed(1);
-            
-            const resultBox = document.getElementById('calcResult');
-            if (resultBox && !resultBox.classList.contains('hidden')) {
-              doCalc();
-            }
-          }
-        };
-      }
-
-      // Calculate cost main trigger
       const calcBtn = document.getElementById('calcBtn');
       if (calcBtn) {
-        calcBtn.onclick = async () => {
-          tgUtil.haptic('medium');
-          
-          // Field validation
-          const mode = window.currentCalcMode;
-          const urlInput = document.getElementById('calcUrl');
-          const priceInput = document.getElementById('calcPrice');
-          const categoryInput = document.getElementById('calcCategory');
-          const marketplaceInput = document.getElementById('calcMarketplace');
-          const brandInputEl = document.getElementById('calcBrand');
-          const brandSelVal = document.getElementById('calcBrandSelected')?.value;
-          const sizeInputEl = document.getElementById('calcSize');
-          const colorInput = document.getElementById('calcColor');
-          
-          if (!window.calcCountry) {
-            tgUtil.haptic('warning');
-            tgUtil.alert('Пожалуйста, выберите страну отправления товара!');
-            return;
-          }
-          
-          if (window.calcCountry !== 'CN') {
-            tgUtil.haptic('warning');
-            tgUtil.alert('Расчет стоимости временно доступен только для Китая. Другие направления в разработке!');
-            return;
-          }
-
-          if (mode === 'manual' || mode === 'link') {
-            if (mode === 'link' && (!urlInput || !urlInput.value.trim())) {
-              tgUtil.haptic('warning');
-              tgUtil.alert('Введите ссылку на товар!');
-              return;
-            }
-          }
-          
-          if (!priceInput || !priceInput.value || parseFloat(priceInput.value) <= 0) {
-            tgUtil.haptic('warning');
-            tgUtil.alert('Укажите точную стоимость товара!');
-            return;
-          }
-          
-          if (!marketplaceInput || !marketplaceInput.value) {
-            tgUtil.haptic('warning');
-            tgUtil.alert('Выберите площадку из списка!');
-            return;
-          }
-          
-          if (!categoryInput || !categoryInput.value) {
-            tgUtil.haptic('warning');
-            tgUtil.alert('Выберите наименование и категорию товара!');
-            return;
-          }
-          
-          if (!brandInputEl || !brandInputEl.value.trim() || brandSelVal === 'false') {
-            tgUtil.haptic('warning');
-            tgUtil.alert('Выберите бренд из выпадающего списка или нажмите "В списке нет бренда, введу вручную без ошибок"!');
-            brandInputEl?.focus();
-            return;
-          }
-          
-          if (!sizeInputEl || !sizeInputEl.value.trim()) {
-            tgUtil.haptic('warning');
-            tgUtil.alert('Укажите размер товара!');
-            sizeInputEl?.focus();
-            return;
-          }
-          
-          if (!colorInput || !colorInput.value) {
-            tgUtil.haptic('warning');
-            tgUtil.alert('Выберите хотя бы один цвет товара из чипсов!');
-            return;
-          }
-          
-          // Check limits only for manual mode when calculating. AI modes check limits on their action click.
-          if (mode === 'manual') {
-            const limitCheck = await checkAndUpdateLimit('manual');
-            if (!limitCheck.allowed) {
-              tgUtil.haptic('warning');
-              tgUtil.alert(`Вы исчерпали дневной лимит ручных расчетов (${limitCheck.currentCount}/${limitCheck.maxRequests}). Оформите заказ, чтобы продолжить.`);
-              return;
-            }
-            // Increment limit count
-            await incrementLimitCount('manual');
-          }
-          
-          // Execute calculation
-          await doCalc();
-          
-          // Save to 14 days history
-          const sliderEl = document.getElementById('calcWeight');
-          const resultBox = document.getElementById('calcResult');
-          const totalVal = parseFloat(document.getElementById('totalPrice')?.innerText) || 0;
-          
-          if (resultBox && !resultBox.classList.contains('hidden')) {
-            const historyObj = {
-              url: urlInput?.value || '',
-              title: document.getElementById('calcTitle')?.value || '',
-              brand: brandInputEl.value,
-              marketplace: marketplaceInput.value,
-              price: parseFloat(priceInput.value),
-              currency: document.getElementById('calcCurrency')?.value || 'CNY',
-              category: categoryInput.value,
-              size: sizeInputEl.value,
-              color: colorInput.value,
-              weight: parseFloat(sliderEl?.value || 1.0),
-              total_byn: totalVal,
-              country: window.calcCountry || 'CN',
-              deliveryMethod: document.getElementById('calcDeliveryMethod')?.value || 'europost',
-              insurance: true,
-              keepBox: keepBox?.checked || false,
-              image_url: window.calcPickedImageUrl || '',
-              timestamp: Date.now()
-            };
-            
-            // Call save
-            const key = 'ice_calc_history';
-            let history = [];
-            try {
-              history = JSON.parse(localStorage.getItem(key) || '[]');
-            } catch (e) {}
-            
-            // deduplicate
-            history = history.filter(item => !(item.url === historyObj.url && item.price === historyObj.price && item.title === historyObj.title));
-            history.unshift({
-              ...historyObj,
-              id: 'calc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-            });
-            const fourteenDays = 14 * 24 * 60 * 60 * 1000;
-            history = history.filter(item => Date.now() - item.timestamp < fourteenDays);
-            if (history.length > 50) history = history.slice(0, 50);
-            localStorage.setItem(key, JSON.stringify(history));
-          }
-        };
+        calcBtn.onclick = () => window.doCalculate();
       }
 
-      // ---- Mode: link analyzing ----
-      const calcPasteBtn = document.getElementById('calcPasteBtn');
-      const analyzeBtn = document.getElementById('analyzeLinkBtn');
-      if (calcPasteBtn) {
-        calcPasteBtn.onclick = async () => {
-          tgUtil.haptic('light');
-          try {
-            const text = await navigator.clipboard.readText();
-            const cleaned = text?.trim();
-            if (cleaned && (cleaned.startsWith('http://') || cleaned.startsWith('https://') || cleaned.includes('dewu.com') || cleaned.includes('taobao.com') || cleaned.includes('1688.com') || cleaned.includes('poizon') || cleaned.includes('zalando') || cleaned.includes('vinted'))) {
-              const inp = document.getElementById('calcUrl');
-              if (inp) {
-                inp.value = cleaned;
-                glassToast('Ссылка успешно вставлена!', { kind: 'success' });
-                if (analyzeBtn) analyzeBtn.click();
-              }
-            } else if (cleaned) {
-              const inp = document.getElementById('calcUrl');
-              if (inp) inp.value = cleaned;
-              glassToast('Текст вставлен! Проверьте формат ссылки.', { kind: 'info' });
-            } else {
-              glassToast('Буфер обмена пуст!', { kind: 'info' });
-            }
-          } catch (err) {
-            console.error('Clipboard paste failed:', err);
-            glassToast('Нет доступа к буферу. Вставьте вручную.', { kind: 'error' });
-          }
-        };
-      }
-
-      if (analyzeBtn) {
-        analyzeBtn.addEventListener('click', async () => {
-          tgUtil.haptic('medium');
-          const urlInput = document.getElementById('calcUrl');
-          const url = urlInput?.value.trim();
-          if (!url) { tgUtil.haptic('warning'); tgUtil.alert('Вставьте ссылку'); return; }
-
-          const limitCheck = await checkAndUpdateLimit('ai');
-          if (!limitCheck.allowed) {
-            tgUtil.haptic('warning');
-            tgUtil.alert(`Дневной лимит ИИ-расчетов исчерпан (${limitCheck.currentCount}/${limitCheck.maxRequests}).`);
-            return;
-          }
-
-          const originalText = analyzeBtn.innerText;
-          analyzeBtn.innerHTML = isHardDomain(url) ? '<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Обходим защиту…' : '<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Анализ...';
-          analyzeBtn.disabled = true;
-
-          // Increment AI limit count at the start of the action
-          await incrementLimitCount('ai');
-
-          try {
-            const { data: queueData, error: insErr } = await supabaseClient
-              .from('parse_queue')
-              .insert({ user_id: userId, url, status: 'pending' })
-              .select('id')
-              .single();
-            if (insErr) throw new Error('Ошибка создания задачи: ' + insErr.message);
-
-            const taskId = queueData.id;
-            let result = null;
-            let manualRequired = false;
-
-            if (isHardDomain(url)) console.log('Hard domain detected:', url);
-            const maxIterations = isHardDomain(url) ? 90 : 75;
-            for (let i = 0; i < maxIterations; i++) {
-              await new Promise(r => setTimeout(r, 2000));
-              const { data: checkData } = await supabaseClient
-                .from('parse_queue')
-                .select('status, price, title, weight_kg, currency, country, category, description, color, brand, marketplace_name, error_message, parse_method, screenshot_path, image_url')
-                .eq('id', taskId)
-                .single();
-
-              if (checkData?.status === 'done') { result = checkData; break; }
-              if (checkData?.status === 'manual_required') {
-                manualRequired = true;
-                if (checkData.weight_kg != null) {
-                  const slider = document.getElementById('calcWeight');
-                  const valInput = document.getElementById('calcWeightInput');
-                  if (slider) slider.value = checkData.weight_kg;
-                  if (valInput) valInput.value = parseFloat(checkData.weight_kg).toFixed(1);
-                }
-                if (checkData.category) {
-                  const hiddenCategory = document.getElementById('calcCategory');
-                  const categoryText = document.getElementById('calcCategorySelectedText');
-                  if (hiddenCategory && categoryText) {
-                    hiddenCategory.value = checkData.category;
-                    const broad = getCategoryBroad(checkData.category);
-                    categoryText.innerText = `${broad} / ${checkData.category}`;
-                    categoryText.classList.remove('text-white/40');
-                    categoryText.classList.add('text-white');
-                    hiddenCategory.dispatchEvent(new Event('change', { bubbles: true }));
-                  }
-                }
-                showScreenshotWidget(taskId, checkData, 'calc');
-                break;
-              }
-              if (checkData?.status === 'error') {
-                throw new Error(checkData.error_message || 'Ошибка парсинга');
-              }
-            }
-
-            if (!result && !manualRequired) throw new Error('Таймаут ожидания парсинга');
-            if (manualRequired) return;
-
-            const calcPriceEl = document.getElementById('calcPrice');
-            if (calcPriceEl) {
-              if (result.price != null && result.price !== '' && Number(result.price) > 0) {
-                calcPriceEl.value = result.price;
-              } else {
-                calcPriceEl.value = '';
-              }
-            }
-            if (result.weight_kg != null) {
-              const slider = document.getElementById('calcWeight');
-              const numericInput = document.getElementById('calcWeightInput');
-              if (slider) slider.value = result.weight_kg;
-              if (numericInput) numericInput.value = parseFloat(result.weight_kg).toFixed(1);
-            }
-            if (result.currency) {
-              const currencySelect = document.getElementById('calcCurrency');
-              if (currencySelect) {
-                const option = Array.from(currencySelect.options).find(opt => opt.value === result.currency);
-                if (option) currencySelect.value = result.currency;
-              }
-            }
-            if (result.category) {
-              const hiddenCategory = document.getElementById('calcCategory');
-              const categoryText = document.getElementById('calcCategorySelectedText');
-              if (hiddenCategory && categoryText) {
-                hiddenCategory.value = result.category;
-                const broad = getCategoryBroad(result.category);
-                categoryText.innerText = `${broad} / ${result.category}`;
-                categoryText.classList.remove('text-white/40');
-                categoryText.classList.add('text-white');
-                hiddenCategory.dispatchEvent(new Event('change', { bubbles: true }));
-              }
-            }
-            
-            const setIfEmpty = (id, val) => {
-              const el = document.getElementById(id);
-              if (el && val && (!el.value || el.value.trim() === '')) {
-                el.value = val;
-                el.dispatchEvent(new Event('input', { bubbles: true }));
-              }
-            };
-            setIfEmpty('calcTitle', result.title);
-            setIfEmpty('calcBrand', result.brand);
-            
-            if (result.brand) {
-              const brandSelected = document.getElementById('calcBrandSelected');
-              if (brandSelected) brandSelected.value = 'true';
-            }
-            
-            if (result.marketplace_name) {
-              const mpInput = document.getElementById('calcMarketplace');
-              const mpText = document.getElementById('calcMarketplaceSelectedText');
-              if (mpInput && mpText) {
-                mpInput.value = result.marketplace_name;
-                mpText.innerText = result.marketplace_name;
-                mpText.classList.remove('text-white/40');
-                mpText.classList.add('text-white');
-              }
-            }
-            
-            // Unpack variations from description JSON
-            let variations = [];
-            let descriptionText = result.description || "";
-            if (result.description && result.description.trim().startsWith('{')) {
-              try {
-                const parsedDesc = JSON.parse(result.description);
-                descriptionText = parsedDesc.text || "";
-                variations = parsedDesc.variations || [];
-              } catch (e) {}
-            }
-            window.calcProductVariations = variations;
-            
-            const descParts = [];
-            if (descriptionText) descParts.push(descriptionText);
-            if (result.color) descParts.push('Цвет: ' + result.color);
-            if (descParts.length) setIfEmpty('calcDescription', descParts.join(' · '));
-            
-            if (result.image_url) {
-              window.calcPickedImageUrl = result.image_url;
-            }
-            
-            // Auto select first color from result color if matching color chips
-            if (result.color) {
-              const mainColor = result.color.split('/')[0].split(',')[0].trim();
-              const matchedChip = CALC_COLORS.find(c => c.toLowerCase().includes(mainColor.toLowerCase()) || mainColor.toLowerCase().includes(c.toLowerCase()));
-              if (matchedChip) {
-                const hiddenColor = document.getElementById('calcColor');
-                if (hiddenColor) {
-                  hiddenColor.value = matchedChip;
-                  window.renderColorChips();
-                }
-              }
-            }
-
-            analyzeBtn.classList.add('bg-green-500');
-            setTimeout(() => analyzeBtn.classList.remove('bg-green-500'), 1000);
-            tgUtil.haptic('success');
-            
-            // Set link analyzed to true to reveal form fields
-            window.calcLinkAnalyzed = true;
-            renderCurrentScreen();
-            
-            // Check variations price update
-            if (typeof window.updatePriceForVariation === 'function') {
-              window.updatePriceForVariation();
-            }
-
-            window.doCalc();
-            
-          } catch (err) {
-            analyzeBtn.classList.add('bg-red-500');
-            setTimeout(() => analyzeBtn.classList.remove('bg-red-500'), 2000);
-            tgUtil.haptic('error');
-            tgUtil.alert('❌ ' + (err && err.message ? err.message : 'Не удалось проанализировать ссылку. Попробуйте ввести данные вручную.'));
-          } finally {
-            analyzeBtn.innerText = originalText;
-            analyzeBtn.disabled = false;
-          }
-        });
-      }
-
-      // ---- Sanitization helpers (XSS) ----
-      const _ESC_MAP_C = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;' };
-      function escHtmlC(s) { return String(s == null ? '' : s).replace(/[&<>"'\/]/g, (c) => _ESC_MAP_C[c]); }
-      function safeUrlC(u) {
-        const s = String(u || '').trim();
-        if (!s) return '';
-        try {
-          const parsed = new URL(s);
-          if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.href;
-        } catch { /* not a valid URL */ }
-        return '';
-      }
-
-      // Render search results pane
-      const calcResultsBox = document.getElementById('calcSearchResults');
-      
-      window.renderCalcSearchResults = (payload) => {
-        if (!calcResultsBox) return;
-        
-        const list = (payload && payload.results) || [];
-        if (list.length === 0) {
-          calcResultsBox.classList.remove('hidden');
-          const errPlatforms = (payload?.errors || []).map((e) => escHtmlC(e.platform)).join(', ');
-          
-          calcResultsBox.innerHTML = `
-            <div class="bg-red-500/20 border border-red-400/30 rounded-xl p-3 text-sm text-white/80">
-              <span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span> Ничего не нашли. Попробуйте уточнить запрос или другой режим.
-              ${errPlatforms ? '<br><span class="text-xs text-white/50">Площадки с ошибками: ' + errPlatforms + '</span>' : ''}
-            </div>
-            
-            <div class="flex gap-2 mt-4">
-              <button type="button" class="btn-secondary flex-1 py-3 text-xs font-bold text-white transition active:scale-95 border border-white/15" onclick="window.repeatSearchQuery()">
-                🔄 Повторить поиск
-              </button>
-              <button type="button" class="btn-secondary flex-1 py-3 text-xs font-bold text-white/50 transition active:scale-95 border border-white/10" onclick="window.resetSearchQuery()">
-                🗑️ Найти новый товар
-              </button>
-            </div>
-          `;
-          return;
-        }
-        
-        const cards = list.map((r, i) => {
-          const priceNum = (typeof r.price === 'number' && isFinite(r.price)) ? r.price : null;
-          const currency = typeof r.currency === 'string' ? escHtmlC(r.currency) : '';
-          const priceLine = (priceNum && currency)
-            ? `<div class="text-cyan-400 font-bold text-sm mt-1">${escHtmlC(priceNum)} ${currency}</div>`
-            : '<div class="text-white/40 text-xs mt-1">Цена не определена</div>';
-          const safeImg = safeUrlC(r.image_url);
-          const img = safeImg
-            ? `<img src="${escHtmlC(safeImg)}" class="w-16 h-16 object-cover rounded-lg flex-shrink-0" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'">`
-            : '<div class="w-16 h-16 bg-white/10 rounded-lg flex-shrink-0 flex items-center justify-center text-2xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span></div>';
-          const safeHref = safeUrlC(r.url);
-          const titleEsc = escHtmlC(r.title || '(без названия)');
-          const platformLabel = escHtmlC(r.platform_label || r.platform || '');
-          const flag = escHtmlC(r.flag || '');
-          return `
-            <div class="bg-white/5 border border-white/10 rounded-xl p-3 flex gap-3" data-calc-result-idx="${i}">
-              ${img}
-              <div class="flex-1 min-w-0">
-                <div class="text-xs text-white/60 mb-1">${flag} ${platformLabel}</div>
-                <div class="text-sm font-semibold text-white truncate" title="${titleEsc}">${titleEsc}</div>
-                ${priceLine}
-                <div class="flex gap-2 mt-2">
-                  <button data-calc-result-pick="${i}" class="btn-primary"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Выбрать</button>
-                  ${safeHref ? `<button onclick="tgUtil.openLink('${escHtmlC(safeHref)}')" class="btn-secondary bg-white/10 hover: font-bold"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span> Открыть</button>` : ''}
-                </div>
-              </div>
-            </div>`;
-        }).join('');
-        
-        const sourceLabel = payload.source === 'apify' || payload.source === 'apify+search-products'
-          ? '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Google Lens'
-          : (payload.source === 'vision-fallback' ? '<span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/></svg></span> AI распознал' : null);
-        const queryText = payload.query || payload.vision_query;
-        const queryLine = (queryText && sourceLabel)
-          ? `<div class="text-xs text-white/50 mb-2">${sourceLabel}: <span class="text-cyan-300">"\"${escHtmlC(queryText)}\""</span></div>`
-          : '';
-        const replicaBanner = payload.authenticity_tier === 'replica' 
-          ? `<div class="bg-orange-500/20 border border-orange-500/50 text-orange-400 p-2 rounded-lg text-xs font-bold mb-3 flex items-center gap-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span> 🔍 Найдены реплики</div>` 
-          : '';
-        const platformsCount = Array.isArray(payload.platforms) ? payload.platforms.length : 0;
-        
-        calcResultsBox.classList.remove('hidden');
-        calcResultsBox.innerHTML = `
-          <div class="text-white/70 text-xs mb-2 mt-2">Найдено ${list.length} результатов на ${platformsCount} площадках:</div>
-          ${queryLine}
-          ${replicaBanner}
-          <div class="flex flex-col gap-2">${cards}</div>
-          
-          <div class="flex gap-2 mt-4">
-            <button type="button" class="btn-secondary flex-1 py-3 text-xs font-bold text-white transition active:scale-95 border border-white/15 cursor-pointer" onclick="window.repeatSearchQuery()">
-              🔄 Повторить поиск
-            </button>
-            <button type="button" class="btn-secondary flex-1 py-3 text-xs font-bold text-white/50 transition active:scale-95 border border-white/10 cursor-pointer" onclick="window.resetSearchQuery()">
-              🗑️ Найти новый товар
-            </button>
-          </div>
-        `;
-        
-        calcResultsBox.querySelectorAll('[data-calc-result-pick]').forEach((btn) => {
-          btn.addEventListener('click', () => {
-            const idx = parseInt(btn.dataset.calcResultPick, 10);
-            const picked = list[idx];
-            if (!picked) return;
-            const cleanedUrl = safeUrlC(picked.url);
-            if (!cleanedUrl) return;
-            
-            // Switch current mode to link
-            window.currentCalcMode = 'link';
-            
-            const urlEl = document.getElementById('calcUrl');
-            if (urlEl) urlEl.value = cleanedUrl;
-            
-            if (picked.price) {
-              const priceEl = document.getElementById('calcPrice');
-              if (priceEl) priceEl.value = picked.price;
-            }
-            if (picked.currency) {
-              const sel = document.getElementById('calcCurrency');
-              if (sel) {
-                const opt = Array.from(sel.options).find((o) => o.value === picked.currency);
-                if (opt) sel.value = picked.currency;
-              }
-            }
-            if (picked.title) {
-              const titleInp = document.getElementById('calcTitle');
-              if (titleInp) titleInp.value = picked.title;
-            }
-            if (picked.brand) {
-              const brandInp = document.getElementById('calcBrand');
-              if (brandInp) {
-                brandInp.value = picked.brand;
-                const brandSelected = document.getElementById('calcBrandSelected');
-                if (brandSelected) brandSelected.value = 'true';
-              }
-            }
-            if (picked.platform_label) {
-              const mpInp = document.getElementById('calcMarketplace');
-              const mpText = document.getElementById('calcMarketplaceSelectedText');
-              if (mpInp && mpText) {
-                mpInput.value = picked.platform_label;
-                mpText.innerText = picked.platform_label;
-                mpText.classList.remove('text-white/40');
-                mpText.classList.add('text-white');
-              }
-            }
-            
-            window.calcPickedImageUrl = picked.image_url || '';
-            
-            // Auto check/run parser for weight/category/variations extraction
-            window.calcLinkAnalyzed = false;
-            
-            renderCurrentScreen();
-            
-            const aBtn = document.getElementById('analyzeLinkBtn');
-            if (aBtn) aBtn.click();
-          });
-        });
-      };
-
-      // Repeat & Reset search helper functions
-      window.repeatSearchQuery = () => {
-        tgUtil.haptic('light');
-        const mode = window.currentCalcMode;
-        if (mode === 'photo') {
-          const hint = document.getElementById('calcPhotoHint');
-          if (hint) {
-            hint.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            hint.focus();
-          }
-        } else if (mode === 'text') {
-          const query = document.getElementById('calcTextQuery');
-          if (query) {
-            query.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            query.focus();
-          }
-        }
-      };
-
-      window.resetSearchQuery = () => {
-        tgUtil.haptic('medium');
-        const mode = window.currentCalcMode;
-        if (mode === 'photo') {
-          const hint = document.getElementById('calcPhotoHint');
-          if (hint) hint.value = '';
-          const filesInput = document.getElementById('calcPhotoInput');
-          if (filesInput) filesInput.value = '';
-          const priceMin = document.getElementById('calcPhotoPriceMin');
-          if (priceMin) priceMin.value = '';
-          const priceMax = document.getElementById('calcPhotoPriceMax');
-          if (priceMax) priceMax.value = '';
-          window.calcPhotoFiles = [];
-          if (typeof window.renderCalcPhotoPreviews === 'function') {
-            window.renderCalcPhotoPreviews();
-          }
-        } else if (mode === 'text') {
-          const query = document.getElementById('calcTextQuery');
-          if (query) query.value = '';
-          const filesInput = document.getElementById('calcTextPhotoInput');
-          if (filesInput) filesInput.value = '';
-          const priceMin = document.getElementById('calcTextPriceMin');
-          if (priceMin) priceMin.value = '';
-          const priceMax = document.getElementById('calcTextPriceMax');
-          if (priceMax) priceMax.value = '';
-          window.calcTextPhotoFile = null;
-          const preview = document.getElementById('calcTextPhotoPreview');
-          if (preview) {
-            preview.classList.add('hidden');
-            preview.innerHTML = '';
-          }
-        }
-        
-        if (calcResultsBox) {
-          calcResultsBox.classList.add('hidden');
-          calcResultsBox.innerHTML = '';
-        }
-        
-        const calcContainer = document.querySelector('.glass-card');
-        if (calcContainer) {
-          calcContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      };
-
-      // ---- Mode: photo (search-by-image) ----
-      const calcPhotoZone = document.getElementById('calcPhotoUploadZone');
-      const calcPhotoInput = document.getElementById('calcPhotoInput');
-      const calcPhotoPreview = document.getElementById('calcPhotoPreview');
-      const calcPhotoSearchBtn = document.getElementById('calcPhotoSearchBtn');
-      const calcPhotoHint = document.getElementById('calcPhotoHint');
-      
-      window.calcPhotoFiles = window.calcPhotoFiles || []; // multi-photo (до 5)
-      
-      window.renderCalcPhotoPreviews = () => {
-        if (!calcPhotoPreview) return;
-        if (window.calcPhotoFiles.length === 0) {
-          calcPhotoPreview.classList.add('hidden');
-          calcPhotoPreview.innerHTML = '';
-          if (calcPhotoSearchBtn) calcPhotoSearchBtn.classList.add('hidden');
-          return;
-        }
-        calcPhotoPreview.classList.remove('hidden');
-        calcPhotoPreview.innerHTML = window.calcPhotoFiles.map((f, i) =>
-          `<div class="relative">
-            <img src="${trackBlobUrl('calc:photo:' + i, f)}" class="rounded-xl w-full h-24 object-cover">
-            <button type="button" data-rm-calc-photo="${i}" class="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center shadow-lg">×</button>
-          </div>`).join('');
-        if (calcPhotoSearchBtn) calcPhotoSearchBtn.classList.remove('hidden');
-        calcPhotoPreview.querySelectorAll('[data-rm-calc-photo]').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const i = parseInt(btn.dataset.rmCalcPhoto, 10);
-            window.calcPhotoFiles.splice(i, 1);
-            window.renderCalcPhotoPreviews();
-          });
-        });
-      };
-      
-      if (calcPhotoZone && calcPhotoInput) {
-        calcPhotoZone.onclick = (e) => {
-          e.stopPropagation();
-          calcPhotoInput.click();
-        };
-        calcPhotoZone.addEventListener('dragover', (ev) => { ev.preventDefault(); calcPhotoZone.classList.add('bg-white/10'); });
-        calcPhotoZone.addEventListener('dragleave', () => calcPhotoZone.classList.remove('bg-white/10'));
-        calcPhotoZone.addEventListener('drop', (ev) => {
-          ev.preventDefault();
-          calcPhotoZone.classList.remove('bg-white/10');
-          handleCalcPhotoFiles(ev.dataTransfer?.files);
-        });
-        calcPhotoInput.addEventListener('change', () => handleCalcPhotoFiles(calcPhotoInput.files));
-      }
-      
-      function handleCalcPhotoFiles(files) {
-        if (!files || !files.length) return;
-        for (const f of files) {
-          if (!f.type.startsWith('image/')) continue;
-          if (f.size > 10 * 1024 * 1024) { tgUtil.alert(`${f.name}: больше 10 МБ`); continue; }
-          if (window.calcPhotoFiles.length >= 5) { tgUtil.alert('Можно загрузить максимум 5 фото'); break; }
-          window.calcPhotoFiles.push(f);
-        }
-        window.renderCalcPhotoPreviews();
-      }
-      
-      if (calcPhotoSearchBtn) {
-        calcPhotoSearchBtn.addEventListener('click', async () => {
-          if (window.calcPhotoFiles.length === 0) return;
-          if (!supabaseClient) { tgUtil.alert('База данных недоступна'); return; }
-
-          const limitCheck = await checkAndUpdateLimit('ai');
-          if (!limitCheck.allowed) {
-            tgUtil.haptic('warning');
-            tgUtil.alert(`Дневной лимит ИИ-расчетов исчерпан (${limitCheck.currentCount}/${limitCheck.maxRequests}).`);
-            return;
-          }
-
-          const original = calcPhotoSearchBtn.innerText;
-          calcPhotoSearchBtn.innerHTML = '<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Загружаю фото…';
-          calcPhotoSearchBtn.disabled = true;
-
-          // Increment limit count at start of AI photo search action
-          await incrementLimitCount('ai');
-
-          if (calcResultsBox) {
-            calcResultsBox.classList.remove('hidden');
-            calcResultsBox.innerHTML = '<div class="text-white/60 text-sm py-2"><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l-4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Распознаём товар на фото и ищем на площадках…</div>';
-          }
-          try {
-            let sessionId = localStorage.getItem('icelogix_session_id');
-            if (!sessionId) {
-              sessionId = crypto.randomUUID();
-              localStorage.setItem('icelogix_session_id', sessionId);
-            }
-            // Загружаем все фото параллельно, передаём первое (Apify Lens работает с одним) + список всех
-            const paths = await Promise.all(window.calcPhotoFiles.map(async (f) => {
-              const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 50);
-              const path = `${sessionId}/${Date.now()}_search_${safeName}`;
-              const { error: upErr } = await supabaseClient.storage
-                .from('product-screenshots')
-                .upload(path, f, { contentType: f.type, upsert: false });
-              if (upErr) throw new Error('Загрузка: ' + upErr.message);
-              return path;
-            }));
-            calcPhotoSearchBtn.innerHTML = '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Ищем на площадках…';
-            
-            const minPrice = parseFloat(document.getElementById('calcPhotoPriceMin')?.value) || null;
-            const maxPrice = parseFloat(document.getElementById('calcPhotoPriceMax')?.value) || null;
-            const authenticity = document.getElementById('calcPhotoAuthenticity')?.value || 'any';
-
-            const { data, error } = await supabaseClient.functions.invoke('search-by-image', {
-              body: {
-                screenshotPath: paths[0],
-                screenshotPaths: paths,
-                descriptionHint: (calcPhotoHint?.value || '').trim() || null,
-                minPrice,
-                maxPrice,
-                authenticity,
-              },
-            });
-            if (error) throw new Error(error.message);
-            if (!data?.ok) throw new Error(data?.error || 'Не удалось найти');
-            window.renderCalcSearchResults(data);
-          } catch (e) {
-            if (calcResultsBox) {
-              calcResultsBox.classList.remove('hidden');
-              calcResultsBox.innerHTML = `<div class="bg-red-500/20 border border-red-400/30 rounded-xl p-3 text-sm text-white/80"><span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span> ${escHtmlC(e.message)}</div>`;
-            }
-          } finally {
-            calcPhotoSearchBtn.innerText = original;
-            calcPhotoSearchBtn.disabled = false;
-          }
-        });
-      }
-
-      // ---- Mode: text (search-products by description, optional photo) ----
-      const calcTextInput = document.getElementById('calcTextQuery');
-      const calcTextSearchBtn = document.getElementById('calcTextSearchBtn');
-      const calcTextPhotoZone = document.getElementById('calcTextPhotoZone');
-      const calcTextPhotoInput = document.getElementById('calcTextPhotoInput');
-      const calcTextPhotoPreview = document.getElementById('calcTextPhotoPreview');
-      
-      window.calcTextPhotoFile = window.calcTextPhotoFile || null;
-      
-      if (calcTextPhotoZone && calcTextPhotoInput) {
-        calcTextPhotoZone.onclick = (e) => {
-          e.stopPropagation();
-          calcTextPhotoInput.click();
-        };
-        calcTextPhotoInput.addEventListener('change', () => {
-          const f = calcTextPhotoInput.files?.[0];
-          if (!f) return;
-          if (!f.type.startsWith('image/')) { tgUtil.alert('Только изображения'); return; }
-          if (f.size > 10 * 1024 * 1024) { tgUtil.alert('Файл больше 10 МБ'); return; }
-          window.calcTextPhotoFile = f;
-          if (calcTextPhotoPreview) {
-            calcTextPhotoPreview.classList.remove('hidden');
-            calcTextPhotoPreview.innerHTML =
-              `<div class="relative inline-block">
-                <img src="${trackBlobUrl('calc:textphoto', f)}" class="rounded-xl max-h-32 object-contain">
-                <button type="button" id="calcTextPhotoRemove" class="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center shadow-lg">×</button>
-              </div>`;
-            document.getElementById('calcTextPhotoRemove')?.addEventListener('click', () => {
-              window.calcTextPhotoFile = null;
-              calcTextPhotoPreview.classList.add('hidden');
-              calcTextPhotoPreview.innerHTML = '';
-              calcTextPhotoInput.value = '';
-            });
-          }
-        });
-      }
-      
-      if (calcTextSearchBtn && calcTextInput) {
-        const runCalcTextSearch = async () => {
-          const q = (calcTextInput.value || '').trim();
-          if (q.length < 3) { tgUtil.alert('Минимум 3 символа в описании'); return; }
-          if (!supabaseClient) { tgUtil.alert('База данных недоступна'); return; }
-
-          const limitCheck = await checkAndUpdateLimit('ai');
-          if (!limitCheck.allowed) {
-            tgUtil.haptic('warning');
-            tgUtil.alert(`Дневной лимит ИИ-расчетов исчерпан (${limitCheck.currentCount}/${limitCheck.maxRequests}).`);
-            return;
-          }
-
-          const original = calcTextSearchBtn.innerText;
-          calcTextSearchBtn.innerHTML = '<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Ищем на площадках…';
-          calcTextSearchBtn.disabled = true;
-
-          // Increment limit count at start of AI text search action
-          await incrementLimitCount('ai');
-
-          if (calcResultsBox) {
-            calcResultsBox.classList.remove('hidden');
-            calcResultsBox.innerHTML = '<div class="text-white/60 text-sm py-2"><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l-4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> ИИ улучшает запрос и параллельно опрашивает площадки…</div>';
-          }
-          try {
-            const minPrice = parseFloat(document.getElementById('calcTextPriceMin')?.value) || null;
-            const maxPrice = parseFloat(document.getElementById('calcTextPriceMax')?.value) || null;
-            const authenticity = document.getElementById('calcTextAuthenticity')?.value || 'any';
-
-            // Если приложили фото — отправляем через search-by-image (фото как primary, текст как hint)
-            if (window.calcTextPhotoFile) {
-              let sessionId = localStorage.getItem('icelogix_session_id');
-              if (!sessionId) {
-                sessionId = crypto.randomUUID();
-                localStorage.setItem('icelogix_session_id', sessionId);
-              }
-              const safeName = window.calcTextPhotoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 50);
-              const path = `${sessionId}/${Date.now()}_search_${safeName}`;
-              const { error: upErr } = await supabaseClient.storage
-                .from('product-screenshots')
-                .upload(path, window.calcTextPhotoFile, { contentType: window.calcTextPhotoFile.type, upsert: false });
-              if (upErr) throw new Error('Загрузка фото: ' + upErr.message);
-              const { data, error } = await supabaseClient.functions.invoke('search-by-image', {
-                body: { screenshotPath: path, descriptionHint: q, minPrice, maxPrice, authenticity },
-              });
-              if (error) throw new Error(error.message);
-              if (!data?.ok) throw new Error(data?.error || 'Не удалось найти');
-              window.renderCalcSearchResults(data);
-            } else {
-              const { data, error } = await supabaseClient.functions.invoke('search-products', {
-                body: { query: q, user_id: userId, minPrice, maxPrice, authenticity },
-              });
-              if (error) throw new Error(error.message);
-              if (!data?.ok) throw new Error(data?.error || 'Не удалось найти');
-              window.renderCalcSearchResults(data);
-            }
-          } catch (e) {
-            if (calcResultsBox) {
-              calcResultsBox.classList.remove('hidden');
-              calcResultsBox.innerHTML = `<div class="bg-red-500/20 border border-red-400/30 rounded-xl p-3 text-sm text-white/80"><span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span> ${escHtmlC(e.message)}</div>`;
-            }
-          } finally {
-            calcTextSearchBtn.innerText = original;
-            calcTextSearchBtn.disabled = false;
-          }
-        };
-        
-        calcTextSearchBtn.addEventListener('click', runCalcTextSearch);
-        calcTextInput.addEventListener('keydown', (ev) => {
-          if (ev.key === 'Enter') { ev.preventDefault(); runCalcTextSearch(); }
-        });
-      }
-      
-      // Handle to new order button
       const toNewOrderBtn = document.getElementById('toNewOrderBtn');
       if (toNewOrderBtn) {
         toNewOrderBtn.onclick = () => {
-          tgUtil.haptic('medium');
-          const price = parseFloat(document.getElementById('calcPrice')?.value) || 0;
-          const weight = parseFloat(document.getElementById('calcWeight')?.value) || 1;
-          const currency = document.getElementById('calcCurrency')?.value || 'CNY';
-          const category = document.getElementById('calcCategory')?.value || '';
-          const insurance = true;
-          const title = document.getElementById('calcTitle')?.value || '';
-          const brand = document.getElementById('calcBrand')?.value || '';
-          const marketplace = document.getElementById('calcMarketplace')?.value || '';
-          const desc = document.getElementById('calcDescription')?.value || '';
-          const size = document.getElementById('calcSize')?.value || '';
-          const url = document.getElementById('calcUrl')?.value || '';
-          const keepBox = document.getElementById('keepBox')?.checked || false;
+          if (!window.tempOrder) return;
           
-          let promotionId = null;
-          let promoExtraDiscount = 0;
-          if (window.currentPromotion) {
-            const roughTotal = window.iceLogixPricing.quickEstimate(price, weight, currency, window.calcCountry);
-            if (roughTotal >= (window.currentPromotion.min_order_amount || 0)) {
-              promoExtraDiscount = window.currentPromotion.discount_type === 'percent'
-                ? roughTotal * (window.currentPromotion.discount_value / 100)
-                : Math.min(window.currentPromotion.discount_value, roughTotal);
-              promotionId = window.currentPromotion.id;
-            }
-          }
-          
-          // Switch to new order and pass this data
-          window.orderCountry = window.calcCountry || 'CN';
-          window.startOrderAddMode = window.startOrderAddMode || function() {};
+          window.orderCountry = window.tempOrder.country || 'CN';
           window.orderAddMode = true;
           window.orderAddSubMode = 'manual';
           
           setTimeout(() => {
-            if (document.getElementById('orderPrice')) {
-              document.getElementById('orderPrice').value = price;
-              document.getElementById('orderPrice').dispatchEvent(new Event('input', { bubbles: true }));
+            const oTitle = document.getElementById('orderTitle');
+            const oPrice = document.getElementById('orderPrice');
+            const oWeight = document.getElementById('orderWeight');
+            const oCurrency = document.getElementById('orderCurrency');
+            
+            if (oTitle) {
+              oTitle.value = window.tempOrder.title;
+              oTitle.dispatchEvent(new Event('input', { bubbles: true }));
             }
-            if (document.getElementById('orderWeight')) {
-              document.getElementById('orderWeight').value = weight;
-              document.getElementById('orderWeight').dispatchEvent(new Event('input', { bubbles: true }));
+            if (oPrice) {
+              oPrice.value = window.tempOrder.price;
+              oPrice.dispatchEvent(new Event('input', { bubbles: true }));
             }
-            if (document.getElementById('orderCurrency')) {
-              document.getElementById('orderCurrency').value = currency;
-              document.getElementById('orderCurrency').dispatchEvent(new Event('change', { bubbles: true }));
+            if (oWeight) {
+              oWeight.value = window.tempOrder.weight;
+              oWeight.dispatchEvent(new Event('input', { bubbles: true }));
             }
-            if (document.getElementById('orderCategory')) {
-              const orderCat = document.getElementById('orderCategory');
-              orderCat.value = category;
-              const broad = getCategoryBroad(category);
-              const orderCatSelectedText = document.getElementById('orderCategorySelectedText');
-              if (orderCatSelectedText) {
-                orderCatSelectedText.innerText = `${broad} / ${category}`;
-                orderCatSelectedText.classList.remove('text-white/40');
-                orderCatSelectedText.classList.add('text-white');
-              }
-              orderCat.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-            if (document.getElementById('orderTitle')) {
-              document.getElementById('orderTitle').value = title;
-              document.getElementById('orderTitle').dispatchEvent(new Event('input', { bubbles: true }));
-            }
-            if (document.getElementById('orderBrand')) {
-              document.getElementById('orderBrand').value = brand;
-              document.getElementById('orderBrand').dispatchEvent(new Event('input', { bubbles: true }));
-            }
-            if (document.getElementById('orderSize')) {
-              document.getElementById('orderSize').value = size;
-              document.getElementById('orderSize').dispatchEvent(new Event('input', { bubbles: true }));
-            }
-            if (document.getElementById('orderUrl')) {
-              document.getElementById('orderUrl').value = url;
-              document.getElementById('orderUrl').dispatchEvent(new Event('input', { bubbles: true }));
-            }
-            if (document.getElementById('orderMarketplace')) {
-              const orderMp = document.getElementById('orderMarketplace');
-              orderMp.value = marketplace;
-              const orderMpSelectedText = document.getElementById('orderMarketplaceSelectedText');
-              if (orderMpSelectedText) {
-                orderMpSelectedText.innerText = marketplace;
-                orderMpSelectedText.classList.remove('text-white/40');
-                orderMpSelectedText.classList.add('text-white');
-              }
-              orderMp.dispatchEvent(new Event('change', { bubbles: true }));
+            if (oCurrency) {
+              oCurrency.value = window.tempOrder.currency;
+              oCurrency.dispatchEvent(new Event('change', { bubbles: true }));
             }
           }, 100);
           
@@ -9084,16 +7107,18 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         };
       }
 
-      // Auto-fill color tags chips
-      if (window.currentCalcMode) {
-        window.renderColorChips();
-      }
-
-      // Pre-selected mode check
-      if (window.calcPreselectMode) {
-        window.currentCalcMode = window.calcPreselectMode;
-        window.calcPreselectMode = null;
-        renderCurrentScreen();
+      const shareBtn = document.getElementById('calcShareBtn');
+      if (shareBtn) {
+        shareBtn.onclick = () => {
+          if (!window.tempOrder) return;
+          const msg = `🔥 *${window.tempOrder.title}*
+Цена с доставкой: *${window.tempOrder.total_byn.toFixed(2)} BYN*
+              
+Считал через ICE LOGIX! Заказываем вместе?`;
+          const botUsername = window.Telegram?.WebApp?.initDataUnsafe?.user?.username || 'icelogix_bot';
+          const shareUrl = `https://t.me/share/url?url=https://t.me/icelogix_bot/app&text=${encodeURIComponent(msg)}`;
+          tgUtil.openTelegramLink(shareUrl);
+        };
       }
     }    // ==================== GLOBAL ORDER WIZARD STATE HELPERS ====================
     window.selectOrderCountry = (c) => {
