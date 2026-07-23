@@ -278,14 +278,15 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 28px; height: 28px;
+      width: 26px; height: 26px;
       flex-shrink: 0;
       vertical-align: middle;
       filter: drop-shadow(0 0 6px rgba(91, 191, 235, 0.7));
       transition: transform 0.2s ease;
+      cursor: pointer;
     }
     .balance-icon:hover {
-      transform: scale(1.1);
+      transform: scale(1.12);
     }
     .balance-icon img { width: 100%; height: 100%; object-fit: contain; display: block; }
     .balance-icon svg { width: 14px; height: 14px; display: block; filter: drop-shadow(0 1px 1px rgba(255,255,255,0.8)); }
@@ -1500,9 +1501,14 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 1.35em; height: 1.35em;
-      vertical-align: -0.25em;
+      width: 1.25em; height: 1.25em;
+      vertical-align: -0.2em;
       filter: drop-shadow(0 0 4px rgba(91, 191, 235, 0.6));
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+    .brand-flake:hover {
+      transform: scale(1.12);
     }
     .brand-flake img { width: 100%; height: 100%; object-fit: contain; display: block; }
     .brand-flake svg { width: 100%; height: 100%; display: block; }
@@ -6281,13 +6287,187 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 }
 
     async function renderCalculator() {
+      window._calcMode = window._calcMode || 'menu';
+      window._aiSubTab = window._aiSubTab || 'photo';
+
       const selectedCountryObj = ALL_COUNTRIES.find(c => c.code === (window.calcCountry || 'CN'));
       const countryText = selectedCountryObj 
         ? `${selectedCountryObj.flag} ${selectedCountryObj.name}`
         : '🇨🇳 Китай';
-        
+
+      // ─── MODE 1: CHOICE MENU ─────────────────────────────────────────────
+      if (window._calcMode === 'menu') {
+        return `
+          <div class="glass-card page-enter relative text-left p-5">
+            <button type="button" class="absolute top-4 right-4 text-white/40 hover:text-cyan-400 text-[10px] font-bold bg-white/5 border border-white/10 px-2 py-1.5 rounded-lg transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.switchTab('history'); window._historySubScreen = 'calculations'; window.renderCurrentScreen();">
+              🕒 История
+            </button>
+
+            <div class="text-center mb-6 mt-4">
+              <h2 class="text-xl font-extrabold text-white tracking-tight">Калькулятор доставки</h2>
+              <p class="text-white/60 text-xs mt-1">Выберите удобный способ расчета стоимости вашего товара</p>
+            </div>
+
+            <div class="space-y-4">
+              <!-- Option A: Manual -->
+              <div onclick="window._calcMode = 'manual'; window.renderCurrentScreen();" class="glass-card p-5 border border-white/15 hover:border-cyan-400/50 rounded-2xl cursor-pointer transition duration-200 active:scale-[0.98] group relative overflow-hidden bg-gradient-to-br from-white/5 via-white/[0.02] to-cyan-500/5 shadow-lg">
+                <div class="flex items-start gap-4">
+                  <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition duration-300 shadow-inner">
+                    📦
+                  </div>
+                  <div class="flex-1">
+                    <div class="flex items-center justify-between">
+                      <h3 class="text-sm font-extrabold text-white group-hover:text-cyan-300 transition">Я нашел товар и знаю все нужные данные о нем</h3>
+                      <span class="text-cyan-400 text-xs font-semibold group-hover:translate-x-1 transition duration-200">Перейти →</span>
+                    </div>
+                    <p class="text-white/60 text-xs mt-1.5 leading-relaxed">Ввести наименование, цену и вес вручную для моментального расчета стоимости доставки.</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Option B: AI Search -->
+              <div onclick="window._calcMode = 'ai_search'; window.renderCurrentScreen();" class="glass-card p-5 border border-cyan-500/40 hover:border-cyan-400 rounded-2xl cursor-pointer transition duration-200 active:scale-[0.98] group relative overflow-hidden bg-gradient-to-br from-cyan-500/10 via-blue-600/10 to-indigo-900/20 shadow-[0_0_25px_rgba(6,182,212,0.2)]">
+                <div class="flex items-start gap-4">
+                  <div class="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition duration-300 shadow-lg shadow-cyan-500/20">
+                    ✨
+                  </div>
+                  <div class="flex-1">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <h3 class="text-sm font-extrabold text-white group-hover:text-cyan-300 transition">Помогите мне найти товар и ввести данные</h3>
+                        <span class="text-[9px] font-bold text-cyan-300 bg-cyan-500/20 px-2 py-0.5 rounded-full border border-cyan-400/30">ИИ & Парсинг</span>
+                      </div>
+                      <span class="text-cyan-400 text-xs font-semibold group-hover:translate-x-1 transition duration-200">Найти →</span>
+                    </div>
+                    <p class="text-white/60 text-xs mt-1.5 leading-relaxed">Поиск по фото или описанию. ИИ найдет товар, определит цену и ориентировочный вес.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          ${renderFooter()}
+        `;
+      }
+
+      // ─── MODE 2: AI SEARCH ───────────────────────────────────────────────
+      if (window._calcMode === 'ai_search') {
+        return `
+          <div class="glass-card page-enter relative text-left p-5 space-y-4">
+            <button type="button" class="absolute top-4 left-4 text-cyan-400 hover:text-cyan-300 text-[10px] font-bold bg-cyan-500/10 border border-cyan-500/20 px-2 py-1.5 rounded-lg transition active:scale-95 flex items-center gap-1 cursor-pointer z-10 border-0" onclick="window._calcMode = 'menu'; window.renderCurrentScreen();">
+              ← Назад к выбору
+            </button>
+            <button type="button" class="absolute top-4 right-4 text-white/40 hover:text-cyan-400 text-[10px] font-bold bg-white/5 border border-white/10 px-2 py-1.5 rounded-lg transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.switchTab('history'); window._historySubScreen = 'calculations'; window.renderCurrentScreen();">
+              🕒 История
+            </button>
+
+            <div class="text-center mb-4 mt-8">
+              <h2 class="text-lg font-extrabold text-white flex items-center justify-center gap-1.5">
+                <span>✨ Поиск товара ИИ & Парсингом</span>
+              </h2>
+              <p class="text-white/60 text-xs mt-1">ИИ и парсер подберут товар и определят данные для расчета</p>
+            </div>
+
+            <!-- Subtabs -->
+            <div class="flex bg-white/5 p-1 rounded-xl border border-white/10">
+              <button type="button" id="aiTabPhotoBtn" class="flex-1 py-2 rounded-lg text-xs font-bold transition duration-200 ${window._aiSubTab === 'photo' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'text-white/60 hover:text-white'}" onclick="window._aiSubTab = 'photo'; window.renderCurrentScreen();">
+                📸 По фото / скриншоту
+              </button>
+              <button type="button" id="aiTabDescBtn" class="flex-1 py-2 rounded-lg text-xs font-bold transition duration-200 ${window._aiSubTab === 'desc' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'text-white/60 hover:text-white'}" onclick="window._aiSubTab = 'desc'; window.renderCurrentScreen();">
+                ✍️ По описанию / названию
+              </button>
+            </div>
+
+            ${window._aiSubTab === 'photo' ? `
+              <!-- Photo Subtab -->
+              <div class="space-y-3">
+                <div>
+                  <label class="text-white/80 text-xs font-bold block mb-1">Загрузите фото или скриншот товара <span class="text-red-400">*</span></label>
+                  <div id="aiPhotoDropZone" class="p-5 border-2 border-dashed border-cyan-500/40 hover:border-cyan-400 rounded-2xl text-center cursor-pointer bg-cyan-500/5 hover:bg-cyan-500/10 transition" onclick="document.getElementById('aiPhotoInput').click()">
+                    <div class="text-3xl mb-1">📸</div>
+                    <p id="aiPhotoStatusText" class="text-white/90 text-xs font-bold">${window._aiSearchFile ? 'Выбран файл: ' + window._aiSearchFile.name : 'Нажмите, чтобы выбрать фото'}</p>
+                    <p class="text-white/40 text-[10px] mt-0.5">JPG, PNG, WEBP до 10 МБ</p>
+                    <input type="file" id="aiPhotoInput" accept="image/*" class="hidden" onchange="window.handleAiSearchPhotoSelect(this)">
+                  </div>
+                  <div id="aiPhotoPreviewBox" class="${window._aiSearchFile ? '' : 'hidden'} mt-2 text-center">
+                    <div class="relative inline-block">
+                      <img id="aiPhotoPreviewImg" class="rounded-xl max-h-32 object-contain border border-cyan-500/40 shadow-lg">
+                      <button type="button" onclick="window.clearAiSearchPhoto()" class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center shadow-lg cursor-pointer">✕</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="text-white/70 text-xs block mb-1">Дополнительное описание / название <span class="text-white/40 font-normal">(опционально)</span></label>
+                  <textarea id="aiPhotoHint" rows="2" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-xs text-white" placeholder="Например: Кроссовки Nike Dunk Low, сине-белый цвет"></textarea>
+                  <p class="text-white/40 text-[10px] mt-1">Указание обоих параметров позволит ИИ и парсеру сработать максимально точнее и быстрее.</p>
+                </div>
+              </div>
+            ` : `
+              <!-- Desc Subtab -->
+              <div class="space-y-3">
+                <div>
+                  <label class="text-white/80 text-xs font-bold block mb-1">Описание или название товара <span class="text-red-400">*</span></label>
+                  <textarea id="aiTextQuery" rows="3" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-xs text-white" placeholder="Например: Худи Stussy Basic Logo черного цвета"></textarea>
+                </div>
+
+                <div>
+                  <label class="text-white/70 text-xs block mb-1">Добавить фото / скриншот <span class="text-white/40 font-normal">(опционально)</span></label>
+                  <div id="aiDescPhotoZone" class="p-3 border border-dashed border-white/30 hover:border-cyan-400/60 rounded-xl text-center cursor-pointer bg-white/5 transition flex items-center justify-center gap-2" onclick="document.getElementById('aiDescPhotoInput').click()">
+                    <span class="text-lg">🖼️</span>
+                    <span id="aiDescPhotoStatusText" class="text-white/70 text-xs font-semibold">${window._aiSearchFile ? 'Прикреплено фото' : 'Прикрепить фото к описанию'}</span>
+                    <input type="file" id="aiDescPhotoInput" accept="image/*" class="hidden" onchange="window.handleAiSearchPhotoSelect(this)">
+                  </div>
+                  <div id="aiDescPhotoPreviewBox" class="${window._aiSearchFile ? '' : 'hidden'} mt-2 text-center">
+                    <div class="relative inline-block">
+                      <img id="aiDescPhotoPreviewImg" class="rounded-xl max-h-24 object-contain border border-cyan-500/40">
+                      <button type="button" onclick="window.clearAiSearchPhoto()" class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center shadow-lg cursor-pointer">✕</button>
+                    </div>
+                  </div>
+                  <p class="text-white/40 text-[10px] mt-1">Добавление фото ускоряет работу ИИ и помогает найти лучшую цену.</p>
+                </div>
+              </div>
+            `}
+
+            <button type="button" id="calcAiSearchRunBtn" onclick="window.runAiProductSearch()" class="btn-primary w-full py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 active:scale-95 transition cursor-pointer border-0 mt-2">
+              <span>🔍 Найти товар и рассчитать</span>
+            </button>
+
+            <!-- Search Results Output -->
+            <div id="calcAiSearchResult" class="hidden mt-4"></div>
+          </div>
+          ${renderFooter()}
+        `;
+      }
+
+      // ─── MODE 3: MANUAL CALCULATION FORM ────────────────────────────────
+      // Check if we need to auto-fill pending AI data
+      if (window._pendingAiData) {
+        const d = window._pendingAiData;
+        delete window._pendingAiData;
+        setTimeout(() => {
+          const titleInp = document.getElementById('calcTitle');
+          const priceInp = document.getElementById('calcPrice');
+          const weightInp = document.getElementById('calcWeight');
+          if (titleInp && d.title) titleInp.value = d.title;
+          if (priceInp && d.price) priceInp.value = d.price;
+          if (weightInp && d.weight) weightInp.value = parseFloat(d.weight).toFixed(2);
+          if (d.currency && typeof window.selectCalcCurrency === 'function') {
+            window.selectCalcCurrency(d.currency, `${d.currency}`);
+          }
+          if (d.country && typeof window.selectCalcCountry === 'function') {
+            window.selectCalcCountry(d.country);
+          }
+          tgUtil.haptic('success');
+          glassToast('✨ Данные товара автоматически подставлены ИИ!', { kind: 'success' });
+        }, 100);
+      }
+
       return `
         <div class="glass-card page-enter relative text-left">
+          <button type="button" class="absolute top-4 left-4 text-cyan-400 hover:text-cyan-300 text-[10px] font-bold bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-1.5 rounded-lg transition active:scale-95 flex items-center gap-1 cursor-pointer z-10 border-0" onclick="window._calcMode = 'menu'; window.renderCurrentScreen();">
+            ← Назад к выбору
+          </button>
+
           <button type="button" class="absolute top-4 right-4 text-white/40 hover:text-cyan-400 text-[10px] font-bold bg-white/5 border border-white/10 px-2 py-1.5 rounded-lg transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.switchTab('history'); window._historySubScreen = 'calculations'; window.renderCurrentScreen();">
             🕒 История
           </button>
@@ -6453,7 +6633,229 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         </div>
         ${renderFooter()}
       `;
-    }        // ==================== GLOBAL CALCULATOR HELPERS ====================
+    }
+
+    // ==================== GLOBAL CALCULATOR AI HELPERS ====================
+    window.runAiProductSearch = async () => {
+      const btn = document.getElementById('calcAiSearchRunBtn');
+      const resultBox = document.getElementById('calcAiSearchResult');
+      if (!btn || !resultBox) return;
+
+      const isPhotoTab = window._aiSubTab === 'photo';
+      const file = window._aiSearchFile;
+      const hintVal = (document.getElementById('aiPhotoHint')?.value || '').trim();
+      const textVal = (document.getElementById('aiTextQuery')?.value || '').trim();
+
+      if (isPhotoTab && !file && !hintVal) {
+        tgUtil.alert('Пожалуйста, выберите фото или укажите описание товара!');
+        return;
+      }
+      if (!isPhotoTab && !textVal && !file) {
+        tgUtil.alert('Пожалуйста, введите описание или прикрепите фото товара!');
+        return;
+      }
+
+      const origBtnText = btn.innerHTML;
+      btn.innerHTML = '<span class="animate-spin inline-block mr-1">⌛</span> ИИ и парсер ищут товар…';
+      btn.disabled = true;
+
+      resultBox.classList.remove('hidden');
+      resultBox.innerHTML = `
+        <div class="glass-card p-4 rounded-2xl border border-cyan-500/30 text-center space-y-2 bg-cyan-950/20">
+          <div class="text-2xl animate-bounce">🔍</div>
+          <p class="text-cyan-300 font-bold text-xs">ИИ анализирует площадки и опрашивает базы данных...</p>
+          <p class="text-white/40 text-[10px]">Пожалуйста, подождите несколько секунд</p>
+        </div>
+      `;
+
+      try {
+        let searchData = null;
+        let screenshotPath = null;
+
+        if (file) {
+          let sessionId = localStorage.getItem('icelogix_session_id');
+          if (!sessionId) {
+            sessionId = crypto.randomUUID();
+            localStorage.setItem('icelogix_session_id', sessionId);
+          }
+          const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 50);
+          screenshotPath = `${sessionId}/${Date.now()}_calc_${safeName}`;
+          const { error: upErr } = await supabaseClient.storage
+            .from('product-screenshots')
+            .upload(screenshotPath, file, { contentType: file.type, upsert: false });
+          if (upErr) throw new Error('Ошибка загрузки файла: ' + upErr.message);
+        }
+
+        if (file) {
+          const { data, error } = await supabaseClient.functions.invoke('search-by-image', {
+            body: { screenshotPath, descriptionHint: textVal || hintVal || null }
+          });
+          if (error) throw new Error(error.message);
+          searchData = data;
+        } else {
+          const { data, error } = await supabaseClient.functions.invoke('search-products', {
+            body: { query: textVal, user_id: userId }
+          });
+          if (error) throw new Error(error.message);
+          searchData = data;
+        }
+
+        let foundTitle = textVal || hintVal || 'Товар с площадки';
+        let foundPrice = 0;
+        let foundCurrency = 'CNY';
+        let foundLink = '';
+        let foundImage = null;
+        let foundCountry = 'CN';
+
+        if (searchData && searchData.items && searchData.items.length > 0) {
+          const best = searchData.items[0];
+          if (best.title) foundTitle = best.title;
+          if (best.price) foundPrice = parseFloat(best.price) || 0;
+          if (best.currency) foundCurrency = best.currency;
+          if (best.url || best.link) foundLink = best.url || best.link;
+          if (best.image_url || best.image) foundImage = best.image_url || best.image;
+          if (best.country) foundCountry = best.country;
+        }
+
+        let estWeight = 1.0;
+        try {
+          const base64Img = file ? await toBase64(file) : null;
+          const calcWeightRes = await supabaseClient.functions.invoke('ai-calculator', {
+            body: {
+              action: 'estimate_weight',
+              description: foundTitle,
+              image: base64Img,
+              screenshotPath: screenshotPath
+            }
+          });
+          if (calcWeightRes.data && calcWeightRes.data.ok) {
+            estWeight = parseFloat(calcWeightRes.data.estimated_weight || calcWeightRes.data.weight) || 1.0;
+          }
+        } catch(weErr) {
+          console.warn('Weight estimation fallback:', weErr);
+        }
+
+        window._currentAiFoundItem = {
+          title: foundTitle,
+          price: foundPrice > 0 ? foundPrice : 199,
+          currency: foundCurrency,
+          weight: estWeight,
+          link: foundLink,
+          image: foundImage,
+          country: foundCountry
+        };
+
+        tgUtil.haptic('success');
+        resultBox.innerHTML = `
+          <div class="glass-card p-4 border border-cyan-500/40 rounded-2xl bg-cyan-950/40 space-y-3 shadow-xl">
+            <div class="flex items-center justify-between text-xs font-bold text-cyan-300 border-b border-white/10 pb-2">
+              <span>✨ Товар успешно найден ИИ</span>
+            </div>
+
+            <div class="flex gap-3 items-center">
+              ${foundImage ? `<img src="${foundImage}" class="w-16 h-16 rounded-xl object-cover border border-white/20 flex-shrink-0">` : '<div class="w-16 h-16 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-2xl flex-shrink-0">🛍️</div>'}
+              <div class="flex-1 min-w-0 text-left">
+                <h4 class="text-xs font-bold text-white truncate">${foundTitle}</h4>
+                <div class="flex items-center gap-3 mt-1 text-xs">
+                  <span class="text-cyan-300 font-extrabold">${foundPrice > 0 ? foundPrice : '---'} ${foundCurrency}</span>
+                  <span class="text-white/60">Вес: ~${estWeight.toFixed(2)} кг</span>
+                </div>
+              </div>
+            </div>
+
+            ${foundLink ? `
+              <div class="p-2.5 bg-slate-900/80 rounded-xl border border-white/10 flex items-center justify-between text-xs">
+                <a href="${foundLink}" target="_blank" class="truncate flex-1 mr-2 text-[11px] font-mono text-cyan-400 hover:underline">${foundLink}</a>
+                <button type="button" onclick="navigator.clipboard.writeText('${foundLink}'); glassToast('Ссылка скопирована!', {kind:'success'});" class="text-[10px] font-bold text-cyan-300 bg-cyan-500/20 px-2 py-1 rounded cursor-pointer flex-shrink-0">📋 Копировать</button>
+              </div>
+            ` : ''}
+
+            <div class="space-y-2 pt-2 border-t border-white/10">
+              <button type="button" onclick="window.applyAiSearchResult(true)" class="btn-primary w-full py-3 rounded-xl font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-cyan-500/20 active:scale-95 transition cursor-pointer border-0">
+                ✨ Заполнить данные автоматически (ИИ)
+              </button>
+
+              <button type="button" onclick="window.applyAiSearchResult(false)" class="w-full py-2.5 rounded-xl font-bold text-xs text-cyan-300 bg-white/5 hover:bg-white/10 border border-white/10 active:scale-95 transition cursor-pointer">
+                🔗 Ввести данные самостоятельно
+              </button>
+
+              <button type="button" onclick="window.cancelAiSearchResult()" class="w-full py-2 rounded-xl text-xs font-semibold text-white/50 hover:text-white/80 active:scale-95 transition cursor-pointer bg-transparent border-0">
+                ❌ Отменить
+              </button>
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        tgUtil.haptic('warning');
+        resultBox.innerHTML = `
+          <div class="bg-red-500/20 border border-red-400/30 rounded-xl p-3 text-xs text-white/90">
+            ⚠️ Ошибка поиска: ${err.message || 'Не удалось найти товар'}
+          </div>
+        `;
+      } finally {
+        btn.innerHTML = origBtnText;
+        btn.disabled = false;
+      }
+    };
+
+    window.applyAiSearchResult = (autoFill) => {
+      tgUtil.haptic('light');
+      if (autoFill && window._currentAiFoundItem) {
+        window._pendingAiData = window._currentAiFoundItem;
+      } else if (!autoFill && window._currentAiFoundItem?.link) {
+        navigator.clipboard.writeText(window._currentAiFoundItem.link);
+        glassToast('Ссылка скопирована! Заполните данные вручную', { kind: 'info' });
+      }
+      window._calcMode = 'manual';
+      window.renderCurrentScreen();
+    };
+
+    window.cancelAiSearchResult = () => {
+      tgUtil.haptic('light');
+      window._currentAiFoundItem = null;
+      window._aiSearchFile = null;
+      window._calcMode = 'menu';
+      window.renderCurrentScreen();
+    };
+
+    window.handleAiSearchPhotoSelect = (input) => {
+      const file = input.files?.[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) { tgUtil.alert('Только изображения!'); return; }
+      if (file.size > 10 * 1024 * 1024) { tgUtil.alert('Файл больше 10 МБ!'); return; }
+      window._aiSearchFile = file;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const isPhotoTab = window._aiSubTab === 'photo';
+        const previewBox = document.getElementById(isPhotoTab ? 'aiPhotoPreviewBox' : 'aiDescPhotoPreviewBox');
+        const previewImg = document.getElementById(isPhotoTab ? 'aiPhotoPreviewImg' : 'aiDescPhotoPreviewImg');
+        const statusTxt = document.getElementById(isPhotoTab ? 'aiPhotoStatusText' : 'aiDescPhotoStatusText');
+
+        if (previewBox && previewImg) {
+          previewImg.src = e.target.result;
+          previewBox.classList.remove('hidden');
+        }
+        if (statusTxt) {
+          statusTxt.textContent = `Выбрано: ${file.name.slice(0, 20)}...`;
+        }
+      };
+      reader.readAsDataURL(file);
+    };
+
+    window.clearAiSearchPhoto = () => {
+      window._aiSearchFile = null;
+      const isPhotoTab = window._aiSubTab === 'photo';
+      const previewBox = document.getElementById(isPhotoTab ? 'aiPhotoPreviewBox' : 'aiDescPhotoPreviewBox');
+      const input = document.getElementById(isPhotoTab ? 'aiPhotoInput' : 'aiDescPhotoInput');
+      const statusTxt = document.getElementById(isPhotoTab ? 'aiPhotoStatusText' : 'aiDescPhotoStatusText');
+
+      if (previewBox) previewBox.classList.add('hidden');
+      if (input) input.value = '';
+      if (statusTxt) {
+        statusTxt.textContent = isPhotoTab ? 'Нажмите, чтобы выбрать фото' : 'Прикрепить фото к описанию';
+      }
+    };        // ==================== GLOBAL CALCULATOR HELPERS ====================
     window.selectCalculatorCountry = (c) => {
       if (c === 'CN') {
         window.calcCountry = 'CN';
@@ -6852,7 +7254,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           if (error) throw error;
           if (!data?.ok) throw new Error(data?.error || 'Не удалось оценить вес');
           
-          const estWeight = parseFloat(data.estimated_weight);
+          const estWeight = parseFloat(data.estimated_weight || data.weight);
           if (isNaN(estWeight) || estWeight <= 0) throw new Error('Некорректный вес от ИИ');
           
           const weightInput = document.getElementById('calcWeight');
@@ -6873,6 +7275,73 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           btn.disabled = false;
         }
       };
+
+      window.openCurrencyInfoModal = () => {
+        document.getElementById('currencyInfoModal')?.remove();
+        tgUtil.haptic('light');
+        const modalHtml = `
+          <div id="currencyInfoModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md page-enter">
+            <div class="glass-card w-full max-w-sm p-6 border border-cyan-500/30 rounded-3xl relative shadow-[0_0_30px_rgba(6,182,212,0.25)] text-center space-y-4" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px);">
+              <button type="button" onclick="document.getElementById('currencyInfoModal')?.remove()" class="absolute top-3.5 right-3.5 text-white/50 hover:text-white bg-white/5 hover:bg-white/10 rounded-full w-8 h-8 flex items-center justify-center transition active:scale-95 text-base">✕</button>
+
+              <div class="relative w-16 h-16 mx-auto flex items-center justify-center pt-1">
+                <div class="absolute inset-0 bg-cyan-500/20 rounded-full blur-xl animate-pulse"></div>
+                <img src="./assets/icl_currency_icon.png" alt="ICL" class="w-14 h-14 object-contain relative z-10 drop-shadow-[0_0_12px_rgba(91,191,235,0.8)]">
+              </div>
+
+              <div>
+                <h3 class="text-lg font-black text-white tracking-wide">Внутренняя валюта ICE Coin (ICL)</h3>
+                <p class="text-cyan-300/90 text-xs font-semibold mt-0.5">Универсальный баланс и бонусы ICE LOGIX</p>
+              </div>
+
+              <div class="bg-white/5 border border-white/10 rounded-2xl p-3.5 text-left text-xs text-white/80 space-y-3 leading-relaxed">
+                <div class="flex items-start gap-2.5">
+                  <span class="text-base leading-none">💎</span>
+                  <div>
+                    <strong class="text-white block font-bold mb-0.5">Что такое ICL?</strong>
+                    <span>Это внутренняя цифровая валюта сервиса (1 ICL = 1 BYN). С её помощью вы можете удобно и выгодно оплачивать любые заказы и услуги.</span>
+                  </div>
+                </div>
+                
+                <div class="flex items-start gap-2.5 pt-2.5 border-t border-white/5">
+                  <span class="text-base leading-none">🛍️</span>
+                  <div>
+                    <strong class="text-white block font-bold mb-0.5">Для чего используется?</strong>
+                    <ul class="list-disc list-inside space-y-1 text-white/70">
+                      <li>Полная или частичная оплата доставки заказов;</li>
+                      <li>Получение кэшбека и персональных скидок;</li>
+                      <li>Покупка авторских обучающих курсов и гайдов.</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div class="flex items-start gap-2.5 pt-2.5 border-t border-white/5">
+                  <span class="text-base leading-none">🎁</span>
+                  <div>
+                    <strong class="text-white block font-bold mb-0.5">Как накопить бонусы?</strong>
+                    <span>Получайте автоматический кэшбек за каждый заказ, дарите реферальные ссылки друзьям и активируйте подарочные промокоды!</span>
+                  </div>
+                </div>
+              </div>
+
+              <button type="button" onclick="document.getElementById('currencyInfoModal')?.remove()" class="btn-primary w-full py-3 rounded-xl font-bold text-xs shadow-lg shadow-cyan-500/20 active:scale-95 transition">
+                Понятно!
+              </button>
+            </div>
+          </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+      };
+
+      if (!window._currencyModalListenerAdded) {
+        window._currencyModalListenerAdded = true;
+        document.addEventListener('click', (e) => {
+          const target = e.target.closest('.balance-icon, .brand-flake, [data-currency-info]');
+          if (target && !e.target.closest('.balance-add')) {
+            window.openCurrencyInfoModal();
+          }
+        });
+      }
 
       window.resetCalculatorCalculation = () => {
         tgUtil.haptic('light');
