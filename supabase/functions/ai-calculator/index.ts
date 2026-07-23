@@ -88,10 +88,12 @@ serve(async (req) => {
     const { action } = payload;
 
     if (action === "estimate_weight") {
-      const { description, screenshotPath } = payload;
+      const { description, screenshotPath, image } = payload;
 
       let imageUrl = "";
-      if (screenshotPath) {
+      if (typeof image === "string" && image.trim().length > 0) {
+        imageUrl = image.trim();
+      } else if (screenshotPath) {
         const { data: urlData, error: urlErr } = await supabase.storage
           .from(STORAGE_BUCKET)
           .createSignedUrl(screenshotPath, 600);
@@ -165,9 +167,15 @@ Return ONLY a JSON object:
       const data = await res.json();
       const rawOutput = data?.choices?.[0]?.message?.content || "";
       const parsed = parseAssistantJson(rawOutput);
+      const estWeight = typeof parsed.weight === "number" && !isNaN(parsed.weight) ? parsed.weight : 1.0;
 
       return new Response(
-        JSON.stringify({ ok: true, weight: parsed.weight || 1.0, product_name: parsed.product_name || "" }),
+        JSON.stringify({ 
+          ok: true, 
+          weight: estWeight, 
+          estimated_weight: estWeight, 
+          product_name: parsed.product_name || "" 
+        }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
 
