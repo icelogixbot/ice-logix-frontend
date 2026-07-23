@@ -5779,6 +5779,7 @@ let adminOrdersTotalPages = 1;
     }
 
     function switchTab(tabName, subScreen = null) {
+      if (typeof scrollToPageTop === 'function') scrollToPageTop();
       tgUtil.hideMainButton();
       if (tabName !== 'neworder') {
         window.tempOrder = null;
@@ -5804,12 +5805,12 @@ let adminOrdersTotalPages = 1;
         const _cd = document.getElementById('content');
         if (_cd) {
           _cd.innerHTML = _tabCache[_ck].html;
-          window.scrollTo(0, 0);
+          scrollToPageTop();
           _silentRefreshHandlers(tabName);
           return;
         }
       }
-      window.scrollTo(0, 0);
+      scrollToPageTop();
       renderCurrentScreen();
     }
 
@@ -6286,9 +6287,18 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
   }
 }
 
+    function scrollToPageTop() {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      const contentDiv = document.getElementById('content');
+      if (contentDiv) contentDiv.scrollTop = 0;
+    }
+
     async function renderCalculator() {
       window._calcMode = window._calcMode || 'menu';
       window._aiSubTab = window._aiSubTab || 'photo';
+      scrollToPageTop();
 
       const selectedCountryObj = ALL_COUNTRIES.find(c => c.code === (window.calcCountry || 'CN'));
       const countryText = selectedCountryObj 
@@ -6298,8 +6308,8 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       // ─── MODE 1: CHOICE MENU ─────────────────────────────────────────────
       if (window._calcMode === 'menu') {
         return `
-          <div class="glass-card page-enter relative text-left p-5">
-            <button type="button" class="absolute top-4 right-4 text-white/40 hover:text-cyan-400 text-[10px] font-bold bg-white/5 border border-white/10 px-2 py-1.5 rounded-lg transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.switchTab('history'); window._historySubScreen = 'calculations'; window.renderCurrentScreen();">
+          <div class="glass-card page-enter relative text-left p-5 shadow-2xl border border-white/10">
+            <button type="button" class="absolute top-4 right-4 text-white/50 hover:text-cyan-400 text-[10px] font-bold bg-white/5 hover:bg-white/10 border border-white/10 px-2.5 py-1.5 rounded-xl transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.switchTab('history'); window._historySubScreen = 'calculations'; window.renderCurrentScreen();">
               🕒 История
             </button>
 
@@ -6310,36 +6320,33 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
             <div class="space-y-4">
               <!-- Option A: Manual -->
-              <div onclick="window._calcMode = 'manual'; window.renderCurrentScreen();" class="glass-card p-5 border border-white/15 hover:border-cyan-400/50 rounded-2xl cursor-pointer transition duration-200 active:scale-[0.98] group relative overflow-hidden bg-gradient-to-br from-white/5 via-white/[0.02] to-cyan-500/5 shadow-lg">
-                <div class="flex items-start gap-4">
+              <div onclick="window._calcMode = 'manual'; window.renderCurrentScreen();" class="glass-card p-5 border border-white/15 hover:border-cyan-400/60 rounded-2xl cursor-pointer transition duration-200 active:scale-[0.98] group relative overflow-hidden bg-gradient-to-br from-white/5 via-white/[0.02] to-cyan-500/5 shadow-lg">
+                <div class="flex items-center gap-4">
                   <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition duration-300 shadow-inner">
                     📦
                   </div>
-                  <div class="flex-1">
+                  <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between">
-                      <h3 class="text-sm font-extrabold text-white group-hover:text-cyan-300 transition">Я нашел товар и знаю все нужные данные о нем</h3>
-                      <span class="text-cyan-400 text-xs font-semibold group-hover:translate-x-1 transition duration-200">Перейти →</span>
+                      <h3 class="text-sm font-bold text-white group-hover:text-cyan-300 transition leading-snug">Я нашел товар и знаю все нужные данные о нем</h3>
+                      <span class="text-cyan-400 text-xs font-semibold group-hover:translate-x-1 transition duration-200 flex-shrink-0 ml-2">Перейти →</span>
                     </div>
-                    <p class="text-white/60 text-xs mt-1.5 leading-relaxed">Ввести наименование, цену и вес вручную для моментального расчета стоимости доставки.</p>
+                    <p class="text-white/60 text-xs mt-1 leading-relaxed">Ввести название, цену и вес вручную для моментального расчета.</p>
                   </div>
                 </div>
               </div>
 
               <!-- Option B: AI Search -->
-              <div onclick="window._calcMode = 'ai_search'; window.renderCurrentScreen();" class="glass-card p-5 border border-cyan-500/40 hover:border-cyan-400 rounded-2xl cursor-pointer transition duration-200 active:scale-[0.98] group relative overflow-hidden bg-gradient-to-br from-cyan-500/10 via-blue-600/10 to-indigo-900/20 shadow-[0_0_25px_rgba(6,182,212,0.2)]">
-                <div class="flex items-start gap-4">
+              <div onclick="window._calcMode = 'ai_search'; window.renderCurrentScreen();" class="glass-card p-5 border border-cyan-500/40 hover:border-cyan-400 rounded-2xl cursor-pointer transition duration-200 active:scale-[0.98] group relative overflow-hidden bg-gradient-to-br from-cyan-500/10 via-blue-600/10 to-indigo-900/20 shadow-[0_0_25px_rgba(6,182,212,0.18)]">
+                <div class="flex items-center gap-4">
                   <div class="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition duration-300 shadow-lg shadow-cyan-500/20">
                     ✨
                   </div>
-                  <div class="flex-1">
+                  <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between">
-                      <div class="flex items-center gap-2">
-                        <h3 class="text-sm font-extrabold text-white group-hover:text-cyan-300 transition">Помогите мне найти товар и ввести данные</h3>
-                        <span class="text-[9px] font-bold text-cyan-300 bg-cyan-500/20 px-2 py-0.5 rounded-full border border-cyan-400/30">ИИ & Парсинг</span>
-                      </div>
-                      <span class="text-cyan-400 text-xs font-semibold group-hover:translate-x-1 transition duration-200">Найти →</span>
+                      <h3 class="text-sm font-bold text-white group-hover:text-cyan-300 transition leading-snug">Помогите мне найти товар и ввести все нужные данные о нем</h3>
+                      <span class="text-cyan-400 text-xs font-semibold group-hover:translate-x-1 transition duration-200 flex-shrink-0 ml-2">Найти →</span>
                     </div>
-                    <p class="text-white/60 text-xs mt-1.5 leading-relaxed">Поиск по фото или описанию. ИИ найдет товар, определит цену и ориентировочный вес.</p>
+                    <p class="text-white/60 text-xs mt-1 leading-relaxed">Поиск по фото или описанию. ИИ подберет товар, определит цену и ориентировочный вес.</p>
                   </div>
                 </div>
               </div>
@@ -6352,12 +6359,9 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       // ─── MODE 2: AI SEARCH ───────────────────────────────────────────────
       if (window._calcMode === 'ai_search') {
         return `
-          <div class="glass-card page-enter relative text-left p-5 space-y-4">
-            <button type="button" class="absolute top-4 left-4 text-cyan-400 hover:text-cyan-300 text-[10px] font-bold bg-cyan-500/10 border border-cyan-500/20 px-2 py-1.5 rounded-lg transition active:scale-95 flex items-center gap-1 cursor-pointer z-10 border-0" onclick="window._calcMode = 'menu'; window.renderCurrentScreen();">
+          <div class="glass-card page-enter relative text-left p-5 space-y-4 shadow-2xl border border-white/10">
+            <button type="button" class="absolute top-4 left-4 text-cyan-400 hover:text-cyan-300 text-[10px] font-bold bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-1.5 rounded-xl transition active:scale-95 flex items-center gap-1 cursor-pointer z-10 border-0" onclick="window._calcMode = 'menu'; window.renderCurrentScreen();">
               ← Назад к выбору
-            </button>
-            <button type="button" class="absolute top-4 right-4 text-white/40 hover:text-cyan-400 text-[10px] font-bold bg-white/5 border border-white/10 px-2 py-1.5 rounded-lg transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.switchTab('history'); window._historySubScreen = 'calculations'; window.renderCurrentScreen();">
-              🕒 История
             </button>
 
             <div class="text-center mb-4 mt-8">
@@ -7132,8 +7136,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           const reader = new FileReader();
           reader.readAsDataURL(file);
           reader.onload = () => {
-            const base64String = reader.result.split(',')[1];
-            resolve(base64String);
+            resolve(reader.result);
           };
           reader.onerror = error => reject(error);
         });
@@ -7276,61 +7279,59 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         }
       };
 
-      window.openCurrencyInfoModal = () => {
-        document.getElementById('currencyInfoModal')?.remove();
+      window.openCurrencyInfoModal = (targetEl) => {
+        document.getElementById('currencyInfoPopover')?.remove();
         tgUtil.haptic('light');
-        const modalHtml = `
-          <div id="currencyInfoModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md page-enter">
-            <div class="glass-card w-full max-w-sm p-6 border border-cyan-500/30 rounded-3xl relative shadow-[0_0_30px_rgba(6,182,212,0.25)] text-center space-y-4" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px);">
-              <button type="button" onclick="document.getElementById('currencyInfoModal')?.remove()" class="absolute top-3.5 right-3.5 text-white/50 hover:text-white bg-white/5 hover:bg-white/10 rounded-full w-8 h-8 flex items-center justify-center transition active:scale-95 text-base">✕</button>
 
-              <div class="relative w-16 h-16 mx-auto flex items-center justify-center pt-1">
-                <div class="absolute inset-0 bg-cyan-500/20 rounded-full blur-xl animate-pulse"></div>
-                <img src="./assets/icl_currency_icon.png" alt="ICL" class="w-14 h-14 object-contain relative z-10 drop-shadow-[0_0_12px_rgba(91,191,235,0.8)]">
+        const rect = targetEl ? targetEl.getBoundingClientRect() : { top: 60, left: window.innerWidth / 2, width: 24, height: 24 };
+        const popWidth = Math.min(290, window.innerWidth - 32);
+        
+        let popLeft = Math.max(16, Math.min(window.innerWidth - popWidth - 16, rect.left + rect.width / 2 - popWidth / 2));
+        let popTop = rect.top + rect.height + 10;
+        let isBottom = true;
+
+        if (popTop + 200 > window.innerHeight) {
+          popTop = Math.max(16, rect.top - 200);
+          isBottom = false;
+        }
+
+        const arrowLeft = Math.max(12, Math.min(popWidth - 24, (rect.left + rect.width / 2) - popLeft - 6));
+        const arrowStyle = isBottom
+          ? `top: -7px; left: ${arrowLeft}px; border-t: 1px solid rgba(6,182,212,0.4); border-left: 1px solid rgba(6,182,212,0.4); background: #020617;`
+          : `bottom: -7px; left: ${arrowLeft}px; border-b: 1px solid rgba(6,182,212,0.4); border-right: 1px solid rgba(6,182,212,0.4); background: #020617;`;
+
+        const popoverHtml = `
+          <div id="currencyInfoPopover" class="fixed z-[9999] page-enter transition-all duration-200 shadow-[0_10px_35px_rgba(0,0,0,0.8),0_0_20px_rgba(6,182,212,0.3)] rounded-2xl p-3.5 text-left border border-cyan-500/40 bg-slate-950/95 backdrop-blur-xl space-y-2 text-white" style="left:${popLeft}px; top:${popTop}px; width:${popWidth}px;" onclick="event.stopPropagation();">
+            <div class="absolute w-3 h-3 rotate-45" style="${arrowStyle}"></div>
+
+            <div class="flex items-center gap-2 border-b border-white/10 pb-2">
+              <img src="./assets/icl_currency_icon.png" alt="ICL" class="w-5 h-5 object-contain flex-shrink-0 drop-shadow-[0_0_6px_rgba(91,191,235,0.8)]">
+              <div class="flex-1 min-w-0">
+                <h4 class="text-xs font-black text-white tracking-wide leading-none">ICE Coin (ICL)</h4>
+                <p class="text-[9px] font-semibold text-cyan-300 mt-0.5">1 ICL = 1 BYN • Внутренняя валюта</p>
               </div>
+              <button type="button" onclick="document.getElementById('currencyInfoPopover')?.remove()" class="text-white/40 hover:text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full bg-white/5 cursor-pointer">✕</button>
+            </div>
 
-              <div>
-                <h3 class="text-lg font-black text-white tracking-wide">Внутренняя валюта ICE Coin (ICL)</h3>
-                <p class="text-cyan-300/90 text-xs font-semibold mt-0.5">Универсальный баланс и бонусы ICE LOGIX</p>
+            <div class="space-y-1.5 text-[11px] text-white/80 leading-snug">
+              <div class="flex items-start gap-1.5">
+                <span class="text-xs">💎</span>
+                <span><strong>Для чего:</strong> выкуп товаров, доставка, скидки и покупка курсов.</span>
               </div>
-
-              <div class="bg-white/5 border border-white/10 rounded-2xl p-3.5 text-left text-xs text-white/80 space-y-3 leading-relaxed">
-                <div class="flex items-start gap-2.5">
-                  <span class="text-base leading-none">💎</span>
-                  <div>
-                    <strong class="text-white block font-bold mb-0.5">Что такое ICL?</strong>
-                    <span>Это внутренняя цифровая валюта сервиса (1 ICL = 1 BYN). С её помощью вы можете удобно и выгодно оплачивать любые заказы и услуги.</span>
-                  </div>
-                </div>
-                
-                <div class="flex items-start gap-2.5 pt-2.5 border-t border-white/5">
-                  <span class="text-base leading-none">🛍️</span>
-                  <div>
-                    <strong class="text-white block font-bold mb-0.5">Для чего используется?</strong>
-                    <ul class="list-disc list-inside space-y-1 text-white/70">
-                      <li>Полная или частичная оплата доставки заказов;</li>
-                      <li>Получение кэшбека и персональных скидок;</li>
-                      <li>Покупка авторских обучающих курсов и гайдов.</li>
-                    </ul>
-                  </div>
-                </div>
-
-                <div class="flex items-start gap-2.5 pt-2.5 border-t border-white/5">
-                  <span class="text-base leading-none">🎁</span>
-                  <div>
-                    <strong class="text-white block font-bold mb-0.5">Как накопить бонусы?</strong>
-                    <span>Получайте автоматический кэшбек за каждый заказ, дарите реферальные ссылки друзьям и активируйте подарочные промокоды!</span>
-                  </div>
-                </div>
+              <div class="flex items-start gap-1.5">
+                <span class="text-xs">🎁</span>
+                <span><strong>Как копить:</strong> кэшбек за заказы, приглашение друзей и промокоды.</span>
               </div>
+            </div>
 
-              <button type="button" onclick="document.getElementById('currencyInfoModal')?.remove()" class="btn-primary w-full py-3 rounded-xl font-bold text-xs shadow-lg shadow-cyan-500/20 active:scale-95 transition">
-                Понятно!
+            <div class="pt-1.5 flex justify-end">
+              <button type="button" onclick="document.getElementById('currencyInfoPopover')?.remove()" class="btn-primary py-1 px-3 rounded-lg text-[10px] font-bold shadow-md shadow-cyan-500/20 active:scale-95 cursor-pointer border-0">
+                Понятно 👍
               </button>
             </div>
           </div>
         `;
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        document.body.insertAdjacentHTML('beforeend', popoverHtml);
       };
 
       if (!window._currencyModalListenerAdded) {
@@ -7338,7 +7339,13 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         document.addEventListener('click', (e) => {
           const target = e.target.closest('.balance-icon, .brand-flake, [data-currency-info]');
           if (target && !e.target.closest('.balance-add')) {
-            window.openCurrencyInfoModal();
+            e.stopPropagation();
+            window.openCurrencyInfoModal(target);
+          } else {
+            const pop = document.getElementById('currencyInfoPopover');
+            if (pop && !e.target.closest('#currencyInfoPopover')) {
+              pop.remove();
+            }
           }
         });
       }
@@ -18644,6 +18651,8 @@ function attachAdminSuppliersHandlers() {
       }
       
       if (isShadowMode) attachShadowModeExit();
+
+      scrollToPageTop();
 
       if (currentTab !== 'home' && currentTab !== 'catalogs' && currentTab !== 'reports' && currentTab !== 'reviews' && currentTab !== 'academy' && currentTab !== 'dropshipper' && currentTab !== 'products' && currentTab !== 'wishlist' && !currentSubScreen) {
         ensureBackButton();

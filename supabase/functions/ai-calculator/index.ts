@@ -92,7 +92,11 @@ serve(async (req) => {
 
       let imageUrl = "";
       if (typeof image === "string" && image.trim().length > 0) {
-        imageUrl = image.trim();
+        let img = image.trim();
+        if (!img.startsWith("data:") && !img.startsWith("http")) {
+          img = `data:image/jpeg;base64,${img}`;
+        }
+        imageUrl = img;
       } else if (screenshotPath) {
         const { data: urlData, error: urlErr } = await supabase.storage
           .from(STORAGE_BUCKET)
