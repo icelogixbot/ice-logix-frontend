@@ -1,2 +1,14 @@
 node_modules/
 .env
+.env.local
+
+# Archive — temporary/one-off scripts and old backups
+_archive/
+
+# Test directories
+puppeteer_test/
+
+# IDE
+.vscode/
+.cursor/
+.history/
