@@ -423,7 +423,7 @@ async function describeProductForSearch(imageUrl: string): Promise<{ query: stri
 async function callSearchProducts(query: string, platforms: string[] | undefined): Promise<unknown> {
   const url = `${SUPABASE_URL}/functions/v1/search-products`;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 20000);
+  const timeoutId = setTimeout(() => controller.abort(), 50000);
   try {
     const res = await fetch(url, {
       method: "POST",
