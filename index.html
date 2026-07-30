@@ -6372,66 +6372,30 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               <p class="text-white/60 text-xs mt-1">ИИ и парсер подберут товар и определят данные для расчета</p>
             </div>
 
-            <!-- Subtabs -->
-            <div class="flex bg-white/5 p-1 rounded-xl border border-white/10">
-              <button type="button" id="aiTabPhotoBtn" class="flex-1 py-2 rounded-lg text-xs font-bold transition duration-200 ${window._aiSubTab === 'photo' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'text-white/60 hover:text-white'}" onclick="window._aiSubTab = 'photo'; window.renderCurrentScreen();">
-                📸 По фото / скриншоту
-              </button>
-              <button type="button" id="aiTabDescBtn" class="flex-1 py-2 rounded-lg text-xs font-bold transition duration-200 ${window._aiSubTab === 'desc' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'text-white/60 hover:text-white'}" onclick="window._aiSubTab = 'desc'; window.renderCurrentScreen();">
-                ✍️ По описанию / названию
-              </button>
+            <!-- Unified search form: photo + description (both required) -->
+            <div class="space-y-3">
+              <div>
+                <label class="text-white/80 text-xs font-bold block mb-1">📸 Фото товара <span class="text-red-400">*</span></label>
+                <div id="aiPhotoDropZone" class="p-5 border-2 border-dashed border-cyan-500/40 hover:border-cyan-400 rounded-2xl text-center cursor-pointer bg-cyan-500/5 hover:bg-cyan-500/10 transition" onclick="document.getElementById('aiPhotoInput').click()">
+                  <div class="text-3xl mb-1">📸</div>
+                  <p id="aiPhotoStatusText" class="text-white/90 text-xs font-bold">${window._aiSearchFile ? '✅ ' + window._aiSearchFile.name : 'Нажмите, чтобы загрузить фото'}</p>
+                  <p class="text-white/40 text-[10px] mt-0.5">JPG, PNG, WEBP до 10 МБ</p>
+                  <input type="file" id="aiPhotoInput" accept="image/*" class="hidden" onchange="window.handleAiSearchPhotoSelect(this)">
+                </div>
+                <div id="aiPhotoPreviewBox" class="${window._aiSearchFile ? '' : 'hidden'} mt-2 text-center">
+                  <div class="relative inline-block">
+                    <img id="aiPhotoPreviewImg" class="rounded-xl max-h-32 object-contain border border-cyan-500/40 shadow-lg">
+                    <button type="button" onclick="window.clearAiSearchPhoto()" class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center shadow-lg cursor-pointer">✕</button>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label class="text-white/80 text-xs font-bold block mb-1">✍️ Описание товара <span class="text-red-400">*</span></label>
+                <textarea id="aiPhotoHint" rows="2" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-xs text-white" placeholder="Например: Кроссовки Nike Dunk Low, сине-белый цвет"></textarea>
+                <p class="text-white/40 text-[10px] mt-1">Чем точнее описание (бренд, модель, цвет), тем лучше результат поиска.</p>
+              </div>
             </div>
-
-            ${window._aiSubTab === 'photo' ? `
-              <!-- Photo Subtab -->
-              <div class="space-y-3">
-                <div>
-                  <label class="text-white/80 text-xs font-bold block mb-1">Загрузите фото или скриншот товара <span class="text-red-400">*</span></label>
-                  <div id="aiPhotoDropZone" class="p-5 border-2 border-dashed border-cyan-500/40 hover:border-cyan-400 rounded-2xl text-center cursor-pointer bg-cyan-500/5 hover:bg-cyan-500/10 transition" onclick="document.getElementById('aiPhotoInput').click()">
-                    <div class="text-3xl mb-1">📸</div>
-                    <p id="aiPhotoStatusText" class="text-white/90 text-xs font-bold">${window._aiSearchFile ? 'Выбран файл: ' + window._aiSearchFile.name : 'Нажмите, чтобы выбрать фото'}</p>
-                    <p class="text-white/40 text-[10px] mt-0.5">JPG, PNG, WEBP до 10 МБ</p>
-                    <input type="file" id="aiPhotoInput" accept="image/*" class="hidden" onchange="window.handleAiSearchPhotoSelect(this)">
-                  </div>
-                  <div id="aiPhotoPreviewBox" class="${window._aiSearchFile ? '' : 'hidden'} mt-2 text-center">
-                    <div class="relative inline-block">
-                      <img id="aiPhotoPreviewImg" class="rounded-xl max-h-32 object-contain border border-cyan-500/40 shadow-lg">
-                      <button type="button" onclick="window.clearAiSearchPhoto()" class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center shadow-lg cursor-pointer">✕</button>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label class="text-white/70 text-xs block mb-1">Дополнительное описание / название <span class="text-white/40 font-normal">(опционально)</span></label>
-                  <textarea id="aiPhotoHint" rows="2" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-xs text-white" placeholder="Например: Кроссовки Nike Dunk Low, сине-белый цвет"></textarea>
-                  <p class="text-white/40 text-[10px] mt-1">Указание обоих параметров позволит ИИ и парсеру сработать максимально точнее и быстрее.</p>
-                </div>
-              </div>
-            ` : `
-              <!-- Desc Subtab -->
-              <div class="space-y-3">
-                <div>
-                  <label class="text-white/80 text-xs font-bold block mb-1">Описание или название товара <span class="text-red-400">*</span></label>
-                  <textarea id="aiTextQuery" rows="3" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-xs text-white" placeholder="Например: Худи Stussy Basic Logo черного цвета"></textarea>
-                </div>
-
-                <div>
-                  <label class="text-white/70 text-xs block mb-1">Добавить фото / скриншот <span class="text-white/40 font-normal">(опционально)</span></label>
-                  <div id="aiDescPhotoZone" class="p-3 border border-dashed border-white/30 hover:border-cyan-400/60 rounded-xl text-center cursor-pointer bg-white/5 transition flex items-center justify-center gap-2" onclick="document.getElementById('aiDescPhotoInput').click()">
-                    <span class="text-lg">🖼️</span>
-                    <span id="aiDescPhotoStatusText" class="text-white/70 text-xs font-semibold">${window._aiSearchFile ? 'Прикреплено фото' : 'Прикрепить фото к описанию'}</span>
-                    <input type="file" id="aiDescPhotoInput" accept="image/*" class="hidden" onchange="window.handleAiSearchPhotoSelect(this)">
-                  </div>
-                  <div id="aiDescPhotoPreviewBox" class="${window._aiSearchFile ? '' : 'hidden'} mt-2 text-center">
-                    <div class="relative inline-block">
-                      <img id="aiDescPhotoPreviewImg" class="rounded-xl max-h-24 object-contain border border-cyan-500/40">
-                      <button type="button" onclick="window.clearAiSearchPhoto()" class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center shadow-lg cursor-pointer">✕</button>
-                    </div>
-                  </div>
-                  <p class="text-white/40 text-[10px] mt-1">Добавление фото ускоряет работу ИИ и помогает найти лучшую цену.</p>
-                </div>
-              </div>
-            `}
 
             <!-- Выбор региона поиска -->
             <div class="mt-3">
@@ -6672,17 +6636,16 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       const resultBox = document.getElementById('calcAiSearchResult');
       if (!btn || !resultBox) return;
 
-      const isPhotoTab = window._aiSubTab === 'photo';
       const file = window._aiSearchFile;
       const hintVal = (document.getElementById('aiPhotoHint')?.value || '').trim();
-      const textVal = (document.getElementById('aiTextQuery')?.value || '').trim();
 
-      if (isPhotoTab && !file && !hintVal) {
-        tgUtil.alert('Пожалуйста, выберите фото или укажите описание товара!');
+      // Оба поля обязательны
+      if (!file) {
+        tgUtil.alert('Пожалуйста, загрузите фото товара!');
         return;
       }
-      if (!isPhotoTab && !textVal && !file) {
-        tgUtil.alert('Пожалуйста, введите описание или прикрепите фото товара!');
+      if (!hintVal) {
+        tgUtil.alert('Пожалуйста, введите описание товара (бренд, модель, цвет)!');
         return;
       }
 
@@ -6698,54 +6661,44 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       resultBox.innerHTML = `
         <div class="glass-card p-4 rounded-2xl border border-cyan-500/30 text-center space-y-2 bg-cyan-950/20">
           <div class="text-2xl animate-bounce">🔍</div>
-          <p class="text-cyan-300 font-bold text-xs">ИИ анализирует площадки и опрашивает базы данных...</p>
-          <p class="text-white/40 text-[10px]">Это может занять до 30 секунд</p>
+          <p class="text-cyan-300 font-bold text-xs">ИИ анализирует фото и ищет товар на площадках...</p>
+          <p class="text-white/40 text-[10px]">Это может занять до 60 секунд</p>
         </div>
       `;
 
       try {
         let searchData = null;
-        let screenshotPath = null;
 
-        if (file) {
-          let sessionId = localStorage.getItem('icelogix_session_id');
-          if (!sessionId) {
-            sessionId = crypto.randomUUID();
-            localStorage.setItem('icelogix_session_id', sessionId);
-          }
-          const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 50);
-          screenshotPath = `${sessionId}/${Date.now()}_calc_${safeName}`;
-          const { error: upErr } = await supabaseClient.storage
-            .from('product-screenshots')
-            .upload(screenshotPath, file, { contentType: file.type, upsert: false });
-          if (upErr) throw new Error('Ошибка загрузки файла: ' + upErr.message);
+        // 1. Upload photo to Storage
+        let sessionId = localStorage.getItem('icelogix_session_id');
+        if (!sessionId) {
+          sessionId = crypto.randomUUID();
+          localStorage.setItem('icelogix_session_id', sessionId);
         }
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 50);
+        const screenshotPath = `${sessionId}/${Date.now()}_calc_${safeName}`;
+        const { error: upErr } = await supabaseClient.storage
+          .from('product-screenshots')
+          .upload(screenshotPath, file, { contentType: file.type, upsert: false });
+        if (upErr) throw new Error('Ошибка загрузки фото: ' + upErr.message);
 
-        if (file) {
-          // search-by-image может работать до 90 сек (cold start Apify) — увеличиваем timeout
-          const abortCtrl = new AbortController();
-          const timeoutId = setTimeout(() => abortCtrl.abort(), 120_000);
-          try {
-            const { data, error } = await supabaseClient.functions.invoke('search-by-image', {
-              body: { screenshotPath, descriptionHint: textVal || hintVal || null, platforms },
-              signal: abortCtrl.signal
-            });
-            clearTimeout(timeoutId);
-            if (error) throw new Error(error.message);
-            searchData = data;
-          } catch (invokeErr) {
-            clearTimeout(timeoutId);
-            if (invokeErr.name === 'AbortError') {
-              throw new Error('Поиск по фото занял слишком много времени. Попробуйте ещё раз или используйте текстовый поиск.');
-            }
-            throw invokeErr;
-          }
-        } else {
-          const { data, error } = await supabaseClient.functions.invoke('search-products', {
-            body: { query: textVal, user_id: userId, platforms }
+        // 2. Всегда вызываем search-by-image (фото + описание)
+        const abortCtrl = new AbortController();
+        const timeoutId = setTimeout(() => abortCtrl.abort(), 120_000);
+        try {
+          const { data, error } = await supabaseClient.functions.invoke('search-by-image', {
+            body: { screenshotPath, descriptionHint: hintVal, platforms },
+            signal: abortCtrl.signal
           });
+          clearTimeout(timeoutId);
           if (error) throw new Error(error.message);
           searchData = data;
+        } catch (invokeErr) {
+          clearTimeout(timeoutId);
+          if (invokeErr.name === 'AbortError') {
+            throw new Error('Поиск занял слишком много времени (>2 мин). Попробуйте ещё раз.');
+          }
+          throw invokeErr;
         }
 
         if (!searchData?.ok) {

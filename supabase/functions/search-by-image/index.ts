@@ -472,18 +472,18 @@ Deno.serve(async (req) => {
     : DEFAULT_PLATFORMS;
   const allowedKeys = new Set(requestedPlatforms);
 
-  // 1. Public URL
-  const { data: publicData } = supabase.storage
+  // 1. Signed URL (10 мин) — getPublicUrl НЕ работает на приватных bucket'ах!
+  const { data: signedData, error: signedErr } = await supabase.storage
     .from(STORAGE_BUCKET)
-    .getPublicUrl(path);
-  const finalImageUrl = publicData.publicUrl;
-
-  if (!finalImageUrl) {
+    .createSignedUrl(path, 600);
+  
+  if (signedErr || !signedData?.signedUrl) {
     return new Response(
-      JSON.stringify({ ok: false, error: "Не удалось получить URL изображения" }),
+      JSON.stringify({ ok: false, error: "Не удалось получить URL изображения: " + (signedErr?.message || "unknown") }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
+  const finalImageUrl = signedData.signedUrl;
 
   // 2. PRIMARY: Apify Google Lens — визуальное распознавание + прямые ссылки на маркетплейсы
   const apifyResp = await searchByImageViaApifyFull(finalImageUrl);
