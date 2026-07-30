@@ -6694,34 +6694,27 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           screenshotPaths.push(spath);
         }
 
-        // 2. Вызываем search-by-image напрямую через fetch (SDK не поддерживает signal)
-        const abortCtrl = new AbortController();
-        const timeoutId = setTimeout(() => abortCtrl.abort(), 120_000);
-        try {
-          const funcUrl = 'https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/search-by-image';
-          const resp = await fetch(funcUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-            },
-            body: JSON.stringify({
-              screenshotPath: screenshotPaths[0],
-              screenshotPaths: screenshotPaths,
-              descriptionHint: hintVal,
-              platforms
-            }),
-            signal: abortCtrl.signal
-          });
-          clearTimeout(timeoutId);
-          if (!resp.ok) {
-            const errText = await resp.text().catch(() => '');
-            throw new Error(`Ошибка сервера (${resp.status}): ${errText.substring(0, 200)}`);
+        // 2. Вызываем search-by-image через SDK (без signal — v2 SDK его не поддерживает)
+        //    Для timeout используем Promise.race
+        const invokePromise = supabaseClient.functions.invoke('search-by-image', {
+          body: {
+            screenshotPath: screenshotPaths[0],
+            screenshotPaths: screenshotPaths,
+            descriptionHint: hintVal,
+            platforms
           }
-          searchData = await resp.json();
+        });
+
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('TIMEOUT')), 120_000)
+        );
+
+        try {
+          const { data, error } = await Promise.race([invokePromise, timeoutPromise]);
+          if (error) throw new Error(typeof error === 'string' ? error : (error.message || 'Ошибка вызова функции'));
+          searchData = data;
         } catch (invokeErr) {
-          clearTimeout(timeoutId);
-          if (invokeErr.name === 'AbortError') {
+          if (invokeErr.message === 'TIMEOUT') {
             throw new Error('Поиск занял слишком много времени (>2 мин). Попробуйте ещё раз.');
           }
           throw invokeErr;
