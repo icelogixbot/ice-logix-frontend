@@ -6375,17 +6375,21 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             <!-- Unified search form: photo + description (both required) -->
             <div class="space-y-3">
               <div>
-                <label class="text-white/80 text-xs font-bold block mb-1">📸 Фото товара <span class="text-red-400">*</span></label>
+                <label class="text-white/80 text-xs font-bold block mb-1">📸 Фото товара <span class="text-red-400">*</span> <span class="text-white/40 font-normal">(до 5 фото)</span></label>
                 <div id="aiPhotoDropZone" class="p-5 border-2 border-dashed border-cyan-500/40 hover:border-cyan-400 rounded-2xl text-center cursor-pointer bg-cyan-500/5 hover:bg-cyan-500/10 transition" onclick="document.getElementById('aiPhotoInput').click()">
                   <div class="text-3xl mb-1">📸</div>
-                  <p id="aiPhotoStatusText" class="text-white/90 text-xs font-bold">${window._aiSearchFile ? '✅ ' + window._aiSearchFile.name : 'Нажмите, чтобы загрузить фото'}</p>
-                  <p class="text-white/40 text-[10px] mt-0.5">JPG, PNG, WEBP до 10 МБ</p>
-                  <input type="file" id="aiPhotoInput" accept="image/*" class="hidden" onchange="window.handleAiSearchPhotoSelect(this)">
+                  <p id="aiPhotoStatusText" class="text-white/90 text-xs font-bold">${(window._aiSearchFiles && window._aiSearchFiles.length) ? '✅ Загружено: ' + window._aiSearchFiles.length + ' фото' : 'Нажмите, чтобы загрузить фото'}</p>
+                  <p class="text-white/40 text-[10px] mt-0.5">JPG, PNG, WEBP до 10 МБ каждый</p>
+                  <input type="file" id="aiPhotoInput" accept="image/*" multiple class="hidden" onchange="window.handleAiSearchPhotoSelect(this)">
                 </div>
-                <div id="aiPhotoPreviewBox" class="${window._aiSearchFile ? '' : 'hidden'} mt-2 text-center">
-                  <div class="relative inline-block">
-                    <img id="aiPhotoPreviewImg" class="rounded-xl max-h-32 object-contain border border-cyan-500/40 shadow-lg">
-                    <button type="button" onclick="window.clearAiSearchPhoto()" class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center shadow-lg cursor-pointer">✕</button>
+                <div id="aiPhotoPreviewBox" class="${(window._aiSearchFiles && window._aiSearchFiles.length) ? '' : 'hidden'} mt-2">
+                  <div id="aiPhotoPreviewGrid" class="flex flex-wrap gap-2 justify-center">
+                    ${(window._aiSearchFiles || []).map((f, i) => `
+                      <div class="relative inline-block">
+                        <img class="rounded-xl h-20 w-20 object-cover border border-cyan-500/40 shadow-lg ai-photo-thumb" data-idx="${i}">
+                        <button type="button" onclick="window.removeAiSearchPhoto(${i})" class="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 text-[10px] font-bold flex items-center justify-center shadow-lg cursor-pointer">✕</button>
+                      </div>
+                    `).join('')}
                   </div>
                 </div>
               </div>
@@ -6636,11 +6640,11 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       const resultBox = document.getElementById('calcAiSearchResult');
       if (!btn || !resultBox) return;
 
-      const file = window._aiSearchFile;
+      const files = window._aiSearchFiles || [];
       const hintVal = (document.getElementById('aiPhotoHint')?.value || '').trim();
 
       // Оба поля обязательны
-      if (!file) {
+      if (files.length === 0) {
         tgUtil.alert('Пожалуйста, загрузите фото товара!');
         return;
       }
@@ -6669,30 +6673,52 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       try {
         let searchData = null;
 
-        // 1. Upload photo to Storage
+        // 1. Upload all photos to Storage
+        const files = window._aiSearchFiles || (window._aiSearchFile ? [window._aiSearchFile] : []);
+        if (files.length === 0) { throw new Error('Нет фото для поиска'); }
+
         let sessionId = localStorage.getItem('icelogix_session_id');
         if (!sessionId) {
           sessionId = crypto.randomUUID();
           localStorage.setItem('icelogix_session_id', sessionId);
         }
-        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 50);
-        const screenshotPath = `${sessionId}/${Date.now()}_calc_${safeName}`;
-        const { error: upErr } = await supabaseClient.storage
-          .from('product-screenshots')
-          .upload(screenshotPath, file, { contentType: file.type, upsert: false });
-        if (upErr) throw new Error('Ошибка загрузки фото: ' + upErr.message);
 
-        // 2. Всегда вызываем search-by-image (фото + описание)
+        const screenshotPaths = [];
+        for (const f of files) {
+          const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 50);
+          const spath = `${sessionId}/${Date.now()}_calc_${safeName}`;
+          const { error: upErr } = await supabaseClient.storage
+            .from('product-screenshots')
+            .upload(spath, f, { contentType: f.type, upsert: false });
+          if (upErr) throw new Error('Ошибка загрузки фото: ' + upErr.message);
+          screenshotPaths.push(spath);
+        }
+
+        // 2. Вызываем search-by-image напрямую через fetch (SDK не поддерживает signal)
         const abortCtrl = new AbortController();
         const timeoutId = setTimeout(() => abortCtrl.abort(), 120_000);
         try {
-          const { data, error } = await supabaseClient.functions.invoke('search-by-image', {
-            body: { screenshotPath, descriptionHint: hintVal, platforms },
+          const funcUrl = 'https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/search-by-image';
+          const resp = await fetch(funcUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            },
+            body: JSON.stringify({
+              screenshotPath: screenshotPaths[0],
+              screenshotPaths: screenshotPaths,
+              descriptionHint: hintVal,
+              platforms
+            }),
             signal: abortCtrl.signal
           });
           clearTimeout(timeoutId);
-          if (error) throw new Error(error.message);
-          searchData = data;
+          if (!resp.ok) {
+            const errText = await resp.text().catch(() => '');
+            throw new Error(`Ошибка сервера (${resp.status}): ${errText.substring(0, 200)}`);
+          }
+          searchData = await resp.json();
         } catch (invokeErr) {
           clearTimeout(timeoutId);
           if (invokeErr.name === 'AbortError') {
@@ -6905,6 +6931,12 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
     window.cancelAiSearchResult = () => {
       tgUtil.haptic('light');
       window._currentAiFoundItem = null;
+      // Revoke all blob URLs
+      if (window._aiSearchBlobUrls) {
+        window._aiSearchBlobUrls.forEach(u => URL.revokeObjectURL(u));
+      }
+      window._aiSearchFiles = [];
+      window._aiSearchBlobUrls = [];
       window._aiSearchFile = null;
       window._aiSearchResults = null;
       window._calcMode = 'menu';
@@ -6912,43 +6944,67 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
     };
 
     window.handleAiSearchPhotoSelect = (input) => {
-      const file = input.files?.[0];
-      if (!file) return;
-      if (!file.type.startsWith('image/')) { tgUtil.alert('Только изображения!'); return; }
-      if (file.size > 10 * 1024 * 1024) { tgUtil.alert('Файл больше 10 МБ!'); return; }
-      window._aiSearchFile = file;
+      const newFiles = Array.from(input.files || []);
+      if (!newFiles.length) return;
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const isPhotoTab = window._aiSubTab === 'photo';
-        const previewBox = document.getElementById(isPhotoTab ? 'aiPhotoPreviewBox' : 'aiDescPhotoPreviewBox');
-        const previewImg = document.getElementById(isPhotoTab ? 'aiPhotoPreviewImg' : 'aiDescPhotoPreviewImg');
-        const statusTxt = document.getElementById(isPhotoTab ? 'aiPhotoStatusText' : 'aiDescPhotoStatusText');
+      if (!window._aiSearchFiles) window._aiSearchFiles = [];
+      if (!window._aiSearchBlobUrls) window._aiSearchBlobUrls = [];
 
-        if (previewBox && previewImg) {
-          previewImg.src = e.target.result;
-          previewBox.classList.remove('hidden');
-        }
-        if (statusTxt) {
-          statusTxt.textContent = `Выбрано: ${file.name.slice(0, 20)}...`;
-        }
-      };
-      reader.readAsDataURL(file);
+      for (const file of newFiles) {
+        if (!file.type.startsWith('image/')) { tgUtil.alert('Только изображения!'); continue; }
+        if (file.size > 10 * 1024 * 1024) { tgUtil.alert('Файл ' + file.name + ' больше 10 МБ!'); continue; }
+        if (window._aiSearchFiles.length >= 5) { tgUtil.alert('Максимум 5 фото!'); break; }
+        window._aiSearchFiles.push(file);
+        window._aiSearchBlobUrls.push(URL.createObjectURL(file));
+      }
+
+      // Re-render to show previews
+      window.renderCurrentScreen();
+
+      // After render, set img srcs from blob URLs
+      requestAnimationFrame(() => {
+        const thumbs = document.querySelectorAll('.ai-photo-thumb');
+        thumbs.forEach((img) => {
+          const idx = parseInt(img.dataset.idx, 10);
+          if (window._aiSearchBlobUrls && window._aiSearchBlobUrls[idx]) {
+            img.src = window._aiSearchBlobUrls[idx];
+          }
+        });
+      });
+    };
+
+    window.removeAiSearchPhoto = (idx) => {
+      if (!window._aiSearchFiles || !window._aiSearchBlobUrls) return;
+      // Revoke the blob URL to free memory
+      if (window._aiSearchBlobUrls[idx]) {
+        URL.revokeObjectURL(window._aiSearchBlobUrls[idx]);
+      }
+      window._aiSearchFiles.splice(idx, 1);
+      window._aiSearchBlobUrls.splice(idx, 1);
+      window.renderCurrentScreen();
+      // Re-set blob URLs after render
+      requestAnimationFrame(() => {
+        const thumbs = document.querySelectorAll('.ai-photo-thumb');
+        thumbs.forEach((img) => {
+          const i = parseInt(img.dataset.idx, 10);
+          if (window._aiSearchBlobUrls && window._aiSearchBlobUrls[i]) {
+            img.src = window._aiSearchBlobUrls[i];
+          }
+        });
+      });
     };
 
     window.clearAiSearchPhoto = () => {
-      window._aiSearchFile = null;
-      const isPhotoTab = window._aiSubTab === 'photo';
-      const previewBox = document.getElementById(isPhotoTab ? 'aiPhotoPreviewBox' : 'aiDescPhotoPreviewBox');
-      const input = document.getElementById(isPhotoTab ? 'aiPhotoInput' : 'aiDescPhotoInput');
-      const statusTxt = document.getElementById(isPhotoTab ? 'aiPhotoStatusText' : 'aiDescPhotoStatusText');
-
-      if (previewBox) previewBox.classList.add('hidden');
-      if (input) input.value = '';
-      if (statusTxt) {
-        statusTxt.textContent = isPhotoTab ? 'Нажмите, чтобы выбрать фото' : 'Прикрепить фото к описанию';
+      // Revoke all blob URLs
+      if (window._aiSearchBlobUrls) {
+        window._aiSearchBlobUrls.forEach(u => URL.revokeObjectURL(u));
       }
-    };        // ==================== GLOBAL CALCULATOR HELPERS ====================
+      window._aiSearchFiles = [];
+      window._aiSearchBlobUrls = [];
+      window._aiSearchFile = null; // backward compat
+      window.renderCurrentScreen();
+    };
+    // ==================== GLOBAL CALCULATOR HELPERS ====================
     window.selectCalculatorCountry = (c) => {
       if (c === 'CN') {
         window.calcCountry = 'CN';

@@ -273,7 +273,7 @@ type ApifyResultItem = {
 
 // Returns all raw hits + exact-match URL set. Caller decides how to filter.
 async function searchByImageViaApifyFull(
-  imageUrl: string,
+  imageUrls: string[],
 ): Promise<{
   ok: boolean;
   allHits: ApifyHit[];
@@ -295,8 +295,9 @@ async function searchByImageViaApifyFull(
   // Cost: $0.01 (start, 1GB) + $0.0015 (visual-match) = $0.0115/call.
   // ("products" mode is unreliable — often returns "no results").
   // ("exact-match" rarely adds value for new photos and doubles cost).
+  // Передаём ВСЕ фото — Apify обработает каждое и объединит результаты
   const input = {
-    imageUrls: [{ url: imageUrl }],
+    imageUrls: imageUrls.map(url => ({ url })),
     searchTypes: ["visual-match"],
     language: "en",
   };
@@ -452,8 +453,21 @@ Deno.serve(async (req) => {
     });
   }
 
-  const path = (body.screenshotPath || "").trim();
-  if (!path) {
+  // Support both single screenshotPath and array screenshotPaths
+  const allPaths: string[] = [];
+  if (Array.isArray(body.screenshotPaths) && body.screenshotPaths.length > 0) {
+    for (const p of body.screenshotPaths) {
+      const trimmed = (p || "").trim();
+      if (trimmed) allPaths.push(trimmed);
+    }
+  }
+  // Fallback to single screenshotPath
+  if (allPaths.length === 0) {
+    const single = (body.screenshotPath || "").trim();
+    if (single) allPaths.push(single);
+  }
+
+  if (allPaths.length === 0) {
     return new Response(JSON.stringify({ ok: false, error: "screenshotPath обязателен" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -472,21 +486,31 @@ Deno.serve(async (req) => {
     : DEFAULT_PLATFORMS;
   const allowedKeys = new Set(requestedPlatforms);
 
-  // 1. Signed URL (10 мин) — getPublicUrl НЕ работает на приватных bucket'ах!
-  const { data: signedData, error: signedErr } = await supabase.storage
-    .from(STORAGE_BUCKET)
-    .createSignedUrl(path, 600);
-  
-  if (signedErr || !signedData?.signedUrl) {
+  // 1. Signed URLs (10 мин) для всех фото
+  const signedImageUrls: string[] = [];
+  for (const p of allPaths) {
+    const { data: signedData, error: signedErr } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .createSignedUrl(p, 600);
+    
+    if (signedErr || !signedData?.signedUrl) {
+      console.error(`Failed to sign ${p}:`, signedErr?.message);
+      continue; // skip broken uploads, don't fail the whole request
+    }
+    signedImageUrls.push(signedData.signedUrl);
+  }
+
+  if (signedImageUrls.length === 0) {
     return new Response(
-      JSON.stringify({ ok: false, error: "Не удалось получить URL изображения: " + (signedErr?.message || "unknown") }),
+      JSON.stringify({ ok: false, error: "Не удалось получить URL ни одного изображения" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
-  const finalImageUrl = signedData.signedUrl;
+  const finalImageUrl = signedImageUrls[0]; // primary photo for fallback/vision
 
   // 2. PRIMARY: Apify Google Lens — визуальное распознавание + прямые ссылки на маркетплейсы
-  const apifyResp = await searchByImageViaApifyFull(finalImageUrl);
+  //    Передаём ВСЕ фото — Apify объединит результаты
+  const apifyResp = await searchByImageViaApifyFull(signedImageUrls);
   const directMatches: ApifyResultItem[] = [];
   let lensTitle: string | null = null;
   if (apifyResp.ok) {
