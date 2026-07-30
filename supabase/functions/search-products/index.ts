@@ -499,6 +499,11 @@ Deno.serve(async (req) => {
     finalPlatforms = platforms.filter(p => !["dhgate", "aliexpress"].includes(p.id));
   }
 
+  // Ограничиваем до 6 площадок за один поиск для предотвращения 429 Rate Limit от Firecrawl и ускорения работы
+  if (finalPlatforms.length > 6) {
+    finalPlatforms = finalPlatforms.slice(0, 6);
+  }
+
   if (finalPlatforms.length === 0) {
     return new Response(
       JSON.stringify({ ok: false, error: "Нет площадок для данного типа товара" }),
