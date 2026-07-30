@@ -155,46 +155,53 @@ type SearchHit = {
 async function firecrawlSearch(query: string, limit: number): Promise<SearchHit[]> {
   if (!FIRECRAWL_KEY) throw new Error("FIRECRAWL_API_KEY not configured");
 
-  const res = await fetch("https://api.firecrawl.dev/v2/search", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${FIRECRAWL_KEY}`,
-    },
-    body: JSON.stringify({
-      query,
-      limit,
-      sources: ["web"],
-      scrapeOptions: { formats: [{ type: "markdown" }, { type: "summary" }] },
-    }),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 12000);
+  try {
+    const res = await fetch("https://api.firecrawl.dev/v2/search", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${FIRECRAWL_KEY}`,
+      },
+      body: JSON.stringify({
+        query,
+        limit,
+        sources: ["web"],
+        scrapeOptions: { formats: [{ type: "markdown" }, { type: "summary" }] },
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
 
-  if (!res.ok) {
-    const errText = await res.text().catch(() => "<no body>");
-    throw new Error(`Firecrawl /search ${res.status}: ${errText.substring(0, 200)}`);
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "<no body>");
+      throw new Error(`Firecrawl /search ${res.status}: ${errText.substring(0, 200)}`);
+    }
+    const json = await res.json();
+    const data = (json && typeof json === "object" ? json.data : null) as
+      | { web?: unknown[]; news?: unknown[]; images?: unknown[] }
+      | unknown[]
+      | null;
+    let list: Record<string, unknown>[] = [];
+    if (Array.isArray(data)) {
+      list = data as Record<string, unknown>[];
+    } else if (data && typeof data === "object") {
+      const web = (data as { web?: unknown[] }).web;
+      if (Array.isArray(web)) list = web as Record<string, unknown>[];
+    } else if (Array.isArray((json as Record<string, unknown>)?.web)) {
+      list = (json as { web: Record<string, unknown>[] }).web;
+    }
+    return list.map((it: Record<string, unknown>) => ({
+      url: String(it.url ?? ""),
+      title: String(it.title ?? "").substring(0, 200),
+      description: typeof it.description === "string" ? it.description : null,
+      markdown: typeof it.markdown === "string" ? it.markdown : null,
+    })).filter((h: SearchHit) => h.url);
+  } catch (e) {
+    clearTimeout(timeoutId);
+    throw e;
   }
-  const json = await res.json();
-  // /v2/search response shape: { success, data: { web?: [], news?: [], images?: [] }, ... }
-  // Older shape kept as fallback: { data: [...] } or { web: [...] }
-  const data = (json && typeof json === "object" ? json.data : null) as
-    | { web?: unknown[]; news?: unknown[]; images?: unknown[] }
-    | unknown[]
-    | null;
-  let list: Record<string, unknown>[] = [];
-  if (Array.isArray(data)) {
-    list = data as Record<string, unknown>[];
-  } else if (data && typeof data === "object") {
-    const web = (data as { web?: unknown[] }).web;
-    if (Array.isArray(web)) list = web as Record<string, unknown>[];
-  } else if (Array.isArray((json as Record<string, unknown>)?.web)) {
-    list = (json as { web: Record<string, unknown>[] }).web;
-  }
-  return list.map((it: Record<string, unknown>) => ({
-    url: String(it.url ?? ""),
-    title: String(it.title ?? "").substring(0, 200),
-    description: typeof it.description === "string" ? it.description : null,
-    markdown: typeof it.markdown === "string" ? it.markdown : null,
-  })).filter((h: SearchHit) => h.url);
 }
 
 // ─── DEEPSEEK EXTRACT (lite) ─────────────────────────────────────────────────
@@ -219,6 +226,8 @@ async function extractFromMarkdown(
 Markdown:
 ${md.substring(0, 6000)}`;
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 6000);
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -231,7 +240,9 @@ ${md.substring(0, 6000)}`;
         messages: [{ role: "user", content: prompt }],
         temperature: 0,
       }),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
     if (!res.ok) throw new Error(`DeepSeek ${res.status}`);
     const data = await res.json();
@@ -248,6 +259,7 @@ ${md.substring(0, 6000)}`;
     const currency = normalizeCurrency(typeof parsed.currency === "string" ? parsed.currency : null);
     return { title, price, currency };
   } catch (_e) {
+    clearTimeout(timeoutId);
     const fb = extractPriceFromMarkdown(md);
     return { title: fallbackTitle || null, price: fb.price, currency: fb.currency };
   }
@@ -294,6 +306,8 @@ async function enhanceQuery(raw: string): Promise<{
 
 Если запрос непонятен или это не товар — верни {"enhanced_en":"${raw}","enhanced_ru":"${raw}","brand":null,"category":null,"authenticity_tier":"original"}.`;
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 7000);
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -307,7 +321,10 @@ async function enhanceQuery(raw: string): Promise<{
         temperature: 0,
         max_tokens: 200,
       }),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
+
     if (!res.ok) return fallback;
     const data = await res.json();
     const parsed = parseAssistantJson(String(data.choices?.[0]?.message?.content ?? ""));
@@ -324,6 +341,7 @@ async function enhanceQuery(raw: string): Promise<{
       ok: true,
     };
   } catch {
+    clearTimeout(timeoutId);
     return fallback;
   }
 }
