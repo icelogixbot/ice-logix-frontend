@@ -6441,10 +6441,10 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                   <span id="calcAiRegionVal">${window._aiSearchRegion === 'CN' ? '🇨🇳 Китай' : window._aiSearchRegion === 'EU' ? '🇪🇺 Европа' : window._aiSearchRegion === 'US' ? '🇺🇸 США' : window._aiSearchRegion === 'JP' ? '🇯🇵 Япония' : '🌍 Все площадки'}</span>
                   <span>▼</span>
                 </button>
-                <div id="calcAiRegionDropdown" class="hidden absolute left-0 right-0 mt-1 bg-slate-900 border border-white/10 rounded-xl shadow-2xl z-30 overflow-hidden">
+                <div id="calcAiRegionDropdown" class="hidden absolute left-0 right-0 bottom-full mb-1 bg-slate-900 border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden max-h-[45vh] overflow-y-auto">
                   <div class="p-3 hover:bg-white/5 cursor-pointer text-xs text-white flex items-center gap-2 border-b border-white/5" onclick="window._aiSearchRegion='all'; document.getElementById('calcAiRegionVal').textContent='🌍 Все площадки'; document.getElementById('calcAiRegionDropdown').classList.add('hidden');">🌍 Все площадки</div>
-                  <div class="p-3 hover:bg-white/5 cursor-pointer text-xs text-white flex items-center gap-2 border-b border-white/5" onclick="window._aiSearchRegion='CN'; document.getElementById('calcAiRegionVal').textContent='🇨🇳 Китай'; document.getElementById('calcAiRegionDropdown').classList.add('hidden');">🇨🇳 Китай (Poizon, Taobao, 1688, JD)</div>
-                  <div class="p-3 hover:bg-white/5 cursor-pointer text-xs text-white flex items-center gap-2 border-b border-white/5" onclick="window._aiSearchRegion='EU'; document.getElementById('calcAiRegionVal').textContent='🇪🇺 Европа'; document.getElementById('calcAiRegionDropdown').classList.add('hidden');">🇪🇺 Европа (Zalando, ASOS, Farfetch, Vinted)</div>
+                  <div class="p-3 hover:bg-white/5 cursor-pointer text-xs text-white flex items-center gap-2 border-b border-white/5" onclick="window._aiSearchRegion='CN'; document.getElementById('calcAiRegionVal').textContent='🇨🇳 Китай'; document.getElementById('calcAiRegionDropdown').classList.add('hidden');">🇨🇳 Китай (Poizon, Taobao, 1688, Pinduoduo, Xianyu...)</div>
+                  <div class="p-3 hover:bg-white/5 cursor-pointer text-xs text-white flex items-center gap-2 border-b border-white/5" onclick="window._aiSearchRegion='EU'; document.getElementById('calcAiRegionVal').textContent='🇪🇺 Европа'; document.getElementById('calcAiRegionDropdown').classList.add('hidden');">🇪🇺 Европа (Zalando, ASOS, Farfetch, Vinted...)</div>
                   <div class="p-3 hover:bg-white/5 cursor-pointer text-xs text-white flex items-center gap-2 border-b border-white/5" onclick="window._aiSearchRegion='US'; document.getElementById('calcAiRegionVal').textContent='🇺🇸 США'; document.getElementById('calcAiRegionDropdown').classList.add('hidden');">🇺🇸 США (GOAT, StockX)</div>
                   <div class="p-3 hover:bg-white/5 cursor-pointer text-xs text-white flex items-center gap-2" onclick="window._aiSearchRegion='JP'; document.getElementById('calcAiRegionVal').textContent='🇯🇵 Япония'; document.getElementById('calcAiRegionDropdown').classList.add('hidden');">🇯🇵 Япония (Mercari)</div>
                 </div>
@@ -6661,7 +6661,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
     // ==================== GLOBAL CALCULATOR AI HELPERS ====================
     // Маппинг регионов → платформы
     const _regionPlatforms = {
-      CN: ['poizon', 'taobao', 'tmall', '1688', 'jd'],
+      CN: ['poizon', 'taobao', 'tmall', '1688', 'jd', 'pinduoduo', 'xianyu', 'xiaohongshu', 'weidian'],
       EU: ['zalando', 'aboutyou', 'asos', 'farfetch', 'endclothing', 'mrporter', 'mytheresa', 'ssense', 'vinted', 'sneakerstudio'],
       US: ['goat', 'stockx'],
       JP: ['mercari'],
@@ -6722,11 +6722,24 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         }
 
         if (file) {
-          const { data, error } = await supabaseClient.functions.invoke('search-by-image', {
-            body: { screenshotPath, descriptionHint: textVal || hintVal || null, platforms }
-          });
-          if (error) throw new Error(error.message);
-          searchData = data;
+          // search-by-image может работать до 90 сек (cold start Apify) — увеличиваем timeout
+          const abortCtrl = new AbortController();
+          const timeoutId = setTimeout(() => abortCtrl.abort(), 120_000);
+          try {
+            const { data, error } = await supabaseClient.functions.invoke('search-by-image', {
+              body: { screenshotPath, descriptionHint: textVal || hintVal || null, platforms },
+              signal: abortCtrl.signal
+            });
+            clearTimeout(timeoutId);
+            if (error) throw new Error(error.message);
+            searchData = data;
+          } catch (invokeErr) {
+            clearTimeout(timeoutId);
+            if (invokeErr.name === 'AbortError') {
+              throw new Error('Поиск по фото занял слишком много времени. Попробуйте ещё раз или используйте текстовый поиск.');
+            }
+            throw invokeErr;
+          }
         } else {
           const { data, error } = await supabaseClient.functions.invoke('search-products', {
             body: { query: textVal, user_id: userId, platforms }
