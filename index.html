@@ -6792,7 +6792,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           `;
         }).join('');
 
-        const queryText = searchData.query || searchData.enhanced_query || searchData.vision_query || textVal || hintVal;
+        const queryText = searchData.query || searchData.enhanced_query || searchData.vision_query || hintVal;
         const platformsCount = Array.isArray(searchData.platforms) ? searchData.platforms.length : 0;
         const replicaBanner = searchData.authenticity_tier === 'replica' 
           ? `<div class="bg-orange-500/20 border border-orange-500/40 text-orange-400 p-2 rounded-lg text-[10px] font-bold mb-2 flex items-center gap-1">⚠️ Найдены реплики</div>` 
