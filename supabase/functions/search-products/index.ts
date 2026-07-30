@@ -55,6 +55,7 @@ type PlatformConfig = {
 const PLATFORMS: PlatformConfig[] = [
   // 🇨🇳 Китай — все основные торговые площадки (недоступны напрямую из Беларуси)
   { id: "poizon", label: "Poizon / Dewu", flag: "🇨🇳", domain: "dewu.com", defaultCurrency: "CNY" },
+  { id: "95fen", label: "95分", flag: "🇨🇳", domain: "95fen.com", defaultCurrency: "CNY" },
   { id: "taobao", label: "Taobao", flag: "🇨🇳", domain: "taobao.com", defaultCurrency: "CNY" },
   { id: "tmall", label: "Tmall", flag: "🇨🇳", domain: "tmall.com", defaultCurrency: "CNY" },
   { id: "1688", label: "1688", flag: "🇨🇳", domain: "1688.com", defaultCurrency: "CNY" },
@@ -88,9 +89,9 @@ const PLATFORMS: PlatformConfig[] = [
 ];
 
 // Дефолт — все площадки недоступные напрямую в Беларуси.
-// Сюда НЕ входят wildberries/lamoda/ozon — клиент закажет сам, посредник не нужен.
+// WB/Lamoda/Ozon исключены — клиент закажет сам, посредник не нужен.
 const DEFAULT_PLATFORMS = [
-  "poizon", "taobao", "tmall", "1688", "jd", "pinduoduo", "xianyu", "xiaohongshu", "weidian",
+  "poizon", "95fen", "taobao", "tmall", "1688", "jd", "pinduoduo", "xianyu", "xiaohongshu", "weidian", "dhgate", "aliexpress",
   "zalando", "aboutyou", "asos", "farfetch", "endclothing",
   "mrporter", "mytheresa", "ssense", "vinted", "sneakerstudio",
   "goat", "stockx", "mercari",
@@ -490,7 +491,8 @@ Deno.serve(async (req) => {
   // 2. Replica Routing
   let finalPlatforms = platforms;
   if (enh.authenticity_tier === "replica") {
-    const replicaIds = ["dhgate", "aliexpress", "1688", "taobao"];
+    // Dewu (Poizon) и 95fen продают только оригиналы — исключаем их при поиске реплик.
+    const replicaIds = ["xianyu", "pinduoduo", "taobao", "1688", "dhgate", "aliexpress", "weidian"];
     finalPlatforms = replicaIds
       .map((id) => getPlatform(id))
       .filter((p): p is PlatformConfig => p !== null);

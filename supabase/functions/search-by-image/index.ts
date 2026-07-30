@@ -50,15 +50,18 @@ type PlatformInfo = {
 
 const PLATFORMS: PlatformInfo[] = [
   // 🇨🇳 Китай
-  { key: "poizon",      label: "Poizon",      flag: "🇨🇳", hosts: ["poizon.com", "dewu.com", "dewuapp.com"], country: "CN" },
-  { key: "taobao",      label: "Taobao",      flag: "🇨🇳", hosts: ["taobao.com", "tmall.com", "world.taobao.com", "intl.taobao.com"], country: "CN" },
-  { key: "tmall",       label: "Tmall",       flag: "🇨🇳", hosts: ["tmall.com", "tmall.hk"], country: "CN" },
-  { key: "1688",        label: "1688",        flag: "🇨🇳", hosts: ["1688.com"], country: "CN" },
-  { key: "jd",          label: "JD.com",      flag: "🇨🇳", hosts: ["jd.com", "global.jd.com"], country: "CN" },
-  { key: "pinduoduo",   label: "Pinduoduo",   flag: "🇨🇳", hosts: ["pinduoduo.com", "yangkeduo.com"], country: "CN" },
-  { key: "xianyu",      label: "Xianyu (闲鱼)", flag: "🇨🇳", hosts: ["goofish.com", "2.taobao.com", "idle.taobao.com"], country: "CN" },
-  { key: "xiaohongshu", label: "Xiaohongshu", flag: "🇨🇳", hosts: ["xiaohongshu.com", "xhslink.com"], country: "CN" },
-  { key: "weidian",     label: "Weidian",     flag: "🇨🇳", hosts: ["weidian.com"], country: "CN" },
+  { key: "poizon",      label: "Poizon / Dewu", flag: "🇨🇳", hosts: ["poizon.com", "dewu.com", "dewuapp.com", "duapp.com", "poizon.app"], country: "CN" },
+  { key: "95fen",       label: "95分",          flag: "🇨🇳", hosts: ["95fen.com", "shizhuang-app.com"], country: "CN" },
+  { key: "taobao",      label: "Taobao",        flag: "🇨🇳", hosts: ["taobao.com", "world.taobao.com", "intl.taobao.com", "m.tb.cn"], country: "CN" },
+  { key: "tmall",       label: "Tmall",         flag: "🇨🇳", hosts: ["tmall.com", "tmall.hk", "detail.tmall.com", "m.tmall.com"], country: "CN" },
+  { key: "1688",        label: "1688",          flag: "🇨🇳", hosts: ["1688.com", "m.1688.com", "detail.1688.com"], country: "CN" },
+  { key: "jd",          label: "JD.com",        flag: "🇨🇳", hosts: ["jd.com", "item.jd.com", "global.jd.com", "m.jd.com", "jd.hk"], country: "CN" },
+  { key: "pinduoduo",   label: "Pinduoduo",     flag: "🇨🇳", hosts: ["pinduoduo.com", "yangkeduo.com", "pdd.com", "mobile.yangkeduo.com"], country: "CN" },
+  { key: "xianyu",      label: "Xianyu (闲鱼)", flag: "🇨🇳", hosts: ["goofish.com", "2.taobao.com", "idle.taobao.com", "xianyu.com", "m.tb.cn"], country: "CN" },
+  { key: "xiaohongshu", label: "Xiaohongshu",   flag: "🇨🇳", hosts: ["xiaohongshu.com", "xhslink.com"], country: "CN" },
+  { key: "weidian",     label: "Weidian",       flag: "🇨🇳", hosts: ["weidian.com", "h5.weidian.com"], country: "CN" },
+  { key: "dhgate",      label: "DHGate",        flag: "🇨🇳", hosts: ["dhgate.com", "m.dhgate.com"], country: "CN" },
+  { key: "aliexpress",  label: "AliExpress",    flag: "🇨🇳", hosts: ["aliexpress.com", "aliexpress.ru"], country: "CN" },
   // 🇪🇺 Европа
   { key: "zalando",     label: "Zalando",     flag: "🇵🇱", hosts: ["zalando.pl", "zalando.de", "zalando.com", "zalando-lounge.pl", "zalando-lounge.de"], country: "PL" },
   { key: "asos",        label: "ASOS",        flag: "🇬🇧", hosts: ["asos.com"], country: "UK" },
@@ -84,7 +87,7 @@ const PLATFORMS: PlatformInfo[] = [
 // Дефолт = все площадки недоступные из Беларуси.
 // WB/Lamoda/Ozon исключены — клиент закажет сам без посредника.
 const DEFAULT_PLATFORMS = [
-  "poizon", "taobao", "tmall", "1688", "jd", "pinduoduo", "xianyu", "xiaohongshu", "weidian",
+  "poizon", "95fen", "taobao", "tmall", "1688", "jd", "pinduoduo", "xianyu", "xiaohongshu", "weidian", "dhgate", "aliexpress",
   "zalando", "asos", "farfetch", "aboutyou", "endclothing",
   "mrporter", "mytheresa", "ssense", "vinted", "sneakerstudio",
   "goat", "stockx", "mercari",
@@ -330,29 +333,27 @@ async function searchByImageViaApifyFull(
   return { ok: true, allHits, exactUrls, raw_count: allHits.length };
 }
 
-// ─── Vision: получаем поисковый запрос (FALLBACK) ───────────────────────────
-async function describeProductForSearch(imageUrl: string): Promise<{ query: string; brand: string | null; product_type: string | null; category: string | null; color: string | null }> {
+// ─── Vision: получаем поисковый запрос по нескольким снимкам ─────────────────
+async function describeProductForSearch(imageUrls: string[]): Promise<{ query: string; brand: string | null; product_type: string | null; category: string | null; color: string | null }> {
   if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY not configured");
 
   const prompt = `Ты эксперт по идентификации товаров (одежда / обувь / аксессуары / электроника).
-На фото — товар. Дай МАКСИМАЛЬНО ТОЧНЫЙ поисковый запрос (англ. + рус. для лучшего матчинга) для нахождения ИМЕННО ЭТОЙ модели на Poizon, Zalando, Farfetch, ASOS.
+На предоставленных снимках (от 1 до 5 фото: лицевая сторона, деталь/логотип, бирка/ярлык, обратная сторона) — один и тот же товар.
 
-Стратегия:
-1. Найди ВИДИМЫЙ логотип/бренд и название модели (Nike Dunk Low, Adidas Samba, Stussy, Carhartt WIP, Stone Island, Travis Scott, Yeezy, и т.д.)
-2. Если видишь конкретную ЦВЕТОВУЮ ВЕРСИЮ (Panda, Triple White, Black, "белые на чёрной подошве") — ОБЯЗАТЕЛЬНО включи
-3. Категория-наименование: кроссовки / кеды / худи / футболка / джинсы / куртка / пуховик / рюкзак / часы и т.п.
-4. Если бренд НЕ виден — описывай по силуэту, материалу, цвету, типу (например: «черная пуховая куртка с капюшоном»)
+Твоя задача — внимательно изучить ВСЕ фото и дать МАКСИМАЛЬНО ТОЧНЫЕ параметры товара:
+1. Найди ВИДИМЫЙ бренд (Polo Ralph Lauren, Nike, Adidas, Stussy, Carhartt, Stone Island, etc.)
+2. Определи ТОЧНЫЙ тип изделия (Zip Hoodie / Худи на молнии, Худи с капюшоном, Свитшот, Кроссовки, Джинсы, Куртка, etc.)
+3. Определи цвет и характерные визуальные детали (вышитый логотип игрока в поло на груди, патч, вышивка, особый принт).
 
-Запрос: 5-12 слов, без размеров/цен/локаций.
+Дай точный поисковый запрос (5-10 слов на английском/русском), бренд, тип изделия и цвет.
 
-ТАКЖЕ верни:
-- brand: точное название бренда (Nike, Adidas, etc.) или null
-- product_type: конкретное наименование (кроссовки, худи, джинсы, рюкзак, часы) или null
-- category: одно из ["Обувь","Одежда","Аксессуары","Электроника","Другое"] или null
-- color: основной цвет на русском или null
+Верни ТОЛЬКО валидный JSON:
+{"query":"Polo Ralph Lauren zip hoodie grey logo","brand":"Polo Ralph Lauren","product_type":"Худи","category":"Одежда","color":"серый"}`;
 
-Только JSON:
-{"query":"Nike Dunk Low Panda black white","brand":"Nike","product_type":"Кроссовки","category":"Обувь","color":"чёрно-белые"}`;
+  const imageParts = (imageUrls.length > 0 ? imageUrls : [""]).slice(0, 5).map((url) => ({
+    type: "image_url",
+    image_url: { url },
+  }));
 
   const body = {
     model: VISION_MODEL,
@@ -360,11 +361,11 @@ async function describeProductForSearch(imageUrl: string): Promise<{ query: stri
       role: "user",
       content: [
         { type: "text", text: prompt },
-        { type: "image_url", image_url: { url: imageUrl } },
+        ...imageParts,
       ],
     }],
     temperature: 0,
-    max_tokens: 200,
+    max_tokens: 250,
   };
 
   const controller = new AbortController();
@@ -418,6 +419,74 @@ async function describeProductForSearch(imageUrl: string): Promise<{ query: stri
     clearTimeout(timeoutId);
     throw e;
   }
+}
+
+// ─── Фильтрация и отображение только Топ-4 самых точных совпадений ───────────
+function filterAndRankTopResults(
+  items: ApifyResultItem[],
+  visualDetails?: { brand: string | null; product_type: string | null; color: string | null },
+  userHint = "",
+  maxResults = 4,
+): ApifyResultItem[] {
+  if (!items || items.length === 0) return [];
+
+  const descLower = (userHint || "").toLowerCase();
+  const brandLower = (visualDetails?.brand || "").toLowerCase();
+  const typeLower = (visualDetails?.product_type || "").toLowerCase();
+
+  const isHoodie = descLower.includes("худи") || descLower.includes("hoodie") || typeLower.includes("худи") || typeLower.includes("hoodie");
+  const isSneaker = descLower.includes("кроссовки") || descLower.includes("кеды") || descLower.includes("sneaker") || typeLower.includes("кроссовки") || typeLower.includes("обувь");
+  const isJacket = descLower.includes("куртка") || descLower.includes("пуховик") || descLower.includes("jacket") || typeLower.includes("куртка");
+
+  const scored = items.map((item) => {
+    const titleLower = (item.title || "").toLowerCase();
+    let score = item.score || 1;
+
+    // Бонус за точный бренд
+    if (brandLower && titleLower.includes(brandLower)) {
+      score += 3;
+    }
+
+    // Проверка соответствия категории
+    if (isHoodie) {
+      if (titleLower.includes("hoodie") || titleLower.includes("худи") || titleLower.includes("zip")) score += 3;
+      if (titleLower.includes("t-shirt") || titleLower.includes("tee") || titleLower.includes("футболка") || titleLower.includes("pants") || titleLower.includes("shorts")) {
+        score -= 10;
+      }
+    } else if (isSneaker) {
+      if (titleLower.includes("sneaker") || titleLower.includes("shoe") || titleLower.includes("кроссовки") || titleLower.includes("dunk") || titleLower.includes("force") || titleLower.includes("samba")) score += 3;
+      if (titleLower.includes("shirt") || titleLower.includes("hoodie") || titleLower.includes("jacket") || titleLower.includes("pants")) {
+        score -= 10;
+      }
+    } else if (isJacket) {
+      if (titleLower.includes("jacket") || titleLower.includes("coat") || titleLower.includes("куртка") || titleLower.includes("пуховик")) score += 3;
+      if (titleLower.includes("t-shirt") || titleLower.includes("shorts")) score -= 10;
+    }
+
+    return { item, finalScore: score };
+  });
+
+  const valid = scored
+    .filter((s) => s.finalScore > 0)
+    .sort((a, b) => b.finalScore - a.finalScore);
+
+  const uniqueItems: ApifyResultItem[] = [];
+  const seenUrls = new Set<string>();
+  const seenTitles = new Set<string>();
+
+  for (const s of valid) {
+    const u = s.item.url;
+    const t = (s.item.title || "").toLowerCase().trim();
+    if (seenUrls.has(u)) continue;
+    if (t && seenTitles.has(t)) continue;
+    seenUrls.add(u);
+    if (t) seenTitles.add(t);
+
+    uniqueItems.push(s.item);
+    if (uniqueItems.length >= maxResults) break;
+  }
+
+  return uniqueItems;
 }
 
 async function callSearchProducts(query: string, platforms: string[] | undefined): Promise<unknown> {
@@ -522,7 +591,16 @@ Deno.serve(async (req) => {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
-  const finalImageUrl = signedImageUrls[0]; // primary photo for fallback/vision
+
+  // Параллельно запускаем мульти-фото Vision анализ по всем загруженным снимкам
+  let visionDetails: { brand: string | null; product_type: string | null; color: string | null; query: string } = {
+    brand: null, product_type: null, color: null, query: ""
+  };
+  try {
+    visionDetails = await describeProductForSearch(signedImageUrls);
+  } catch (ve) {
+    console.warn("Vision multi-photo analysis error:", ve);
+  }
 
   // 2. PRIMARY: Apify Google Lens — визуальное распознавание + прямые ссылки на маркетплейсы
   //    Передаём ВСЕ фото — Apify объединит результаты
@@ -536,6 +614,12 @@ Deno.serve(async (req) => {
       if (!link || !/^https?:\/\//i.test(link)) continue;
       const platform = platformForUrl(link);
       if (!platform) continue;
+
+      // Если реплика — исключаем Poizon (Dewu) и 95fen, так как там продаётся только оригинал
+      if (authenticity_tier === 'replica' && (platform.key === 'poizon' || platform.key === '95fen')) {
+        continue;
+      }
+
       if (allowedKeys.size > 0 && !allowedKeys.has(platform.key)) continue;
       const { price, currency } = priceFromText(h.price);
       directMatches.push({
@@ -550,11 +634,10 @@ Deno.serve(async (req) => {
         score: apifyResp.exactUrls.has(link) ? 3 : 2,
       });
     }
-    // Lens title — название товара которое распознал Google Lens (для поиска на наших платформах)
+    // Lens title — название товара которое распознал Google Lens
     for (const h of apifyResp.allHits) {
       const t = hitTitle(h);
       if (t && t.length >= 8 && t.length <= 120) {
-        // Skip useless titles like "FlatLayersLong Sleeve Tee – RetalSee exact matches"
         if (/See exact matches|See similar|See more|Search the web/i.test(t)) continue;
         lensTitle = t;
         break;
@@ -562,10 +645,9 @@ Deno.serve(async (req) => {
     }
   }
 
-  // 3. SECONDARY: search-products с распознанным Lens-названием (+ descriptionHint от пользователя)
+  // 3. SECONDARY: search-products с распознанным Lens/Vision названием (+ descriptionHint)
   let searchProductsResults: ApifyResultItem[] = [];
-  // Объединяем lensTitle с пользовательским описанием — даёт более точный запрос для search-products
-  const fusedQuery = [lensTitle, descriptionHint].filter(Boolean).join(" ").trim();
+  const fusedQuery = [lensTitle || visionDetails.query, descriptionHint].filter(Boolean).join(" ").trim();
   if (fusedQuery) {
     try {
       const sp = await callSearchProducts(fusedQuery, requestedPlatforms);
@@ -579,6 +661,7 @@ Deno.serve(async (req) => {
           if (!url) continue;
           const platform = platformForUrl(url);
           if (!platform) continue;
+          if (authenticity_tier === 'replica' && (platform.key === 'poizon' || platform.key === '95fen')) continue;
           if (directMatches.some((d) => d.url === url)) continue; // dedup
           searchProductsResults.push({
             platform: platform.key,
@@ -594,23 +677,22 @@ Deno.serve(async (req) => {
         }
       }
     } catch (_e) {
-      // ignore — fallback ниже всё равно отработает
+      // ignore
     }
   }
 
-  const combined = [...directMatches, ...searchProductsResults]
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 12);
+  const combined = [...directMatches, ...searchProductsResults];
+  const top4Results = filterAndRankTopResults(combined, visionDetails, descriptionHint, 4);
 
-  if (combined.length >= 2) {
+  if (top4Results.length >= 1) {
     return new Response(
       JSON.stringify({
         ok: true,
         source: lensTitle ? "apify+search-products" : "apify",
-        query: lensTitle,
+        query: lensTitle || visionDetails.query,
         platforms: requestedPlatforms,
-        total: combined.length,
-        results: combined,
+        total: top4Results.length,
+        results: top4Results,
         authenticity_tier,
         apify_raw_count: apifyResp.raw_count,
         apify_direct: directMatches.length,
@@ -620,29 +702,14 @@ Deno.serve(async (req) => {
     );
   }
 
-  // 4. FALLBACK: Vision API + search-products (когда Apify упал/0 результатов)
-  let visionResult;
-  try {
-    visionResult = await describeProductForSearch(finalImageUrl);
-  } catch (e) {
-    return new Response(
-      JSON.stringify({
-        ok: false,
-        source: "vision-fallback",
-        error: `Vision API: ${(e as Error).message}`,
-        apify_error: apifyResp.error || null,
-      }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
-  }
-
-  if (!visionResult.query || visionResult.query.length < 3) {
+  // 4. FALLBACK: Vision API + search-products
+  if (!visionDetails.query || visionDetails.query.length < 3) {
     return new Response(
       JSON.stringify({
         ok: false,
         source: "vision-fallback",
         error: "Не удалось распознать товар на фото. Попробуйте более чёткое изображение или используйте поиск по описанию.",
-        vision_query: visionResult.query,
+        vision_query: visionDetails.query,
         authenticity_tier: authenticity_tier,
         apify_error: apifyResp.error || null,
       }),
@@ -650,8 +717,7 @@ Deno.serve(async (req) => {
     );
   }
 
-  // Объединяем Vision-распознанный запрос с пользовательским описанием (если есть)
-  const visionFusedQuery = [visionResult.query, descriptionHint].filter(Boolean).join(" ").trim();
+  const visionFusedQuery = [visionDetails.query, descriptionHint].filter(Boolean).join(" ").trim();
   let searchResp;
   try {
     searchResp = await callSearchProducts(visionFusedQuery, requestedPlatforms);
@@ -661,22 +727,27 @@ Deno.serve(async (req) => {
         ok: false,
         source: "vision-fallback",
         error: `search-products: ${(e as Error).message}`,
-        vision_query: visionResult.query,
+        vision_query: visionDetails.query,
         apify_error: apifyResp.error || null,
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 
+  const rawFallbackList = ((searchResp as Record<string, unknown>)?.results || []) as ApifyResultItem[];
+  const finalFallbackTop4 = filterAndRankTopResults(rawFallbackList, visionDetails, descriptionHint, 4);
+
   return new Response(
     JSON.stringify({
       ...(searchResp as Record<string, unknown>),
       source: "vision-fallback",
-      vision_query: visionResult.query,
-      vision_brand: visionResult.brand,
-      vision_product_type: visionResult.product_type,
-      vision_category: visionResult.category,
-      vision_color: visionResult.color,
+      vision_query: visionDetails.query,
+      vision_brand: visionDetails.brand,
+      vision_product_type: visionDetails.product_type,
+      vision_category: visionDetails.category,
+      vision_color: visionDetails.color,
+      total: finalFallbackTop4.length,
+      results: finalFallbackTop4,
       authenticity_tier: authenticity_tier || (searchResp as any)?.authenticity_tier || null,
       apify_error: apifyResp.error || null,
       apify_raw_count: apifyResp.raw_count,
