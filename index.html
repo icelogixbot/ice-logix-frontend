@@ -6755,7 +6755,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
         // Сохраняем для использования в кнопках
         window._aiSearchResults = filtered;
-        window._aiSearchScreenshotPath = screenshotPath;
+        window._aiSearchScreenshotPath = screenshotPaths[0] || null;
 
         tgUtil.haptic('success');
 
