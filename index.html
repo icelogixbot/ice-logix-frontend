@@ -6386,7 +6386,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
                   <div id="aiPhotoPreviewGrid" class="flex flex-wrap gap-2 justify-center">
                     ${(window._aiSearchFiles || []).map((f, i) => `
                       <div class="relative inline-block">
-                        <img class="rounded-xl h-20 w-20 object-cover border border-cyan-500/40 shadow-lg ai-photo-thumb" data-idx="${i}">
+                        <img src="${(window._aiSearchBlobUrls && window._aiSearchBlobUrls[i]) || ''}" class="rounded-xl h-20 w-20 object-cover border border-cyan-500/40 shadow-lg ai-photo-thumb" data-idx="${i}">
                         <button type="button" onclick="window.removeAiSearchPhoto(${i})" class="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 text-[10px] font-bold flex items-center justify-center shadow-lg cursor-pointer">✕</button>
                       </div>
                     `).join('')}

@@ -286,16 +286,10 @@ async function searchByImageViaApifyFull(
   }
 
   const actorId = "borderline~google-lens";
-  // Apify Lens actor: warm runs complete in 45-75s; cold-start adds 30-60s overhead.
-  // Edge Function wall-clock is 150s. Set actor timeout=140 + memory=1024 (1GB; faster cold-start)
-  // — leaves ~10s for marshalling. Cold-start runs may still time out → fallback handles it.
-  const runUrl = `https://api.apify.com/v2/acts/${actorId}/run-sync-get-dataset-items?token=${encodeURIComponent(APIFY_API_TOKEN)}&timeout=140&memory=1024`;
+  // Set actor timeout=35 so Edge Function finishes within ~40s (avoiding client-side timeouts).
+  const runUrl = `https://api.apify.com/v2/acts/${actorId}/run-sync-get-dataset-items?token=${encodeURIComponent(APIFY_API_TOKEN)}&timeout=35&memory=1024`;
 
   // Use only "visual-match" — most reliable for shopping (returns real product pages).
-  // Cost: $0.01 (start, 1GB) + $0.0015 (visual-match) = $0.0115/call.
-  // ("products" mode is unreliable — often returns "no results").
-  // ("exact-match" rarely adds value for new photos and doubles cost).
-  // Передаём ВСЕ фото — Apify обработает каждое и объединит результаты
   const input = {
     imageUrls: imageUrls.map(url => ({ url })),
     searchTypes: ["visual-match"],
@@ -304,11 +298,15 @@ async function searchByImageViaApifyFull(
 
   let items: ApifyDatasetItem[] = [];
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 35000);
     const res = await fetch(runUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
     if (!res.ok) {
       const txt = await res.text().catch(() => "");
       return { ok: false, allHits: [], exactUrls: new Set(), raw_count: 0, error: `Apify HTTP ${res.status}: ${txt.substring(0, 200)}` };
@@ -369,62 +367,80 @@ async function describeProductForSearch(imageUrl: string): Promise<{ query: stri
     max_tokens: 200,
   };
 
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-      "HTTP-Referer": "https://icelogix.by",
-      "X-Title": "ICE LOGIX search-by-image",
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const errText = await res.text().catch(() => "<no body>");
-    throw new Error(`OpenRouter ${res.status}: ${errText.substring(0, 200)}`);
-  }
-
-  const data = await res.json();
-  const raw = String(data?.choices?.[0]?.message?.content ?? "").trim();
-  const cleaned = raw.startsWith("```")
-    ? raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/s, "").trim()
-    : raw;
-
-  let parsed: Record<string, unknown> = {};
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
   try {
-    parsed = JSON.parse(cleaned);
-  } catch {
-    return {
-      query: cleaned.split("\n")[0].slice(0, 100),
-      brand: null,
-      product_type: null,
-      category: null,
-      color: null,
-    };
-  }
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+        "HTTP-Referer": "https://icelogix.by",
+        "X-Title": "ICE LOGIX search-by-image",
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
 
-  return {
-    query: typeof parsed.query === "string" ? parsed.query.trim() : "",
-    brand: typeof parsed.brand === "string" ? parsed.brand.trim() : null,
-    product_type: typeof parsed.product_type === "string" ? parsed.product_type.trim() : null,
-    category: typeof parsed.category === "string" ? parsed.category.trim() : null,
-    color: typeof parsed.color === "string" ? parsed.color.trim() : null,
-  };
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "<no body>");
+      throw new Error(`OpenRouter ${res.status}: ${errText.substring(0, 200)}`);
+    }
+
+    const data = await res.json();
+    const raw = String(data?.choices?.[0]?.message?.content ?? "").trim();
+    const cleaned = raw.startsWith("```")
+      ? raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/s, "").trim()
+      : raw;
+
+    let parsed: Record<string, unknown> = {};
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch {
+      return {
+        query: cleaned.split("\n")[0].slice(0, 100),
+        brand: null,
+        product_type: null,
+        category: null,
+        color: null,
+      };
+    }
+
+    return {
+      query: typeof parsed.query === "string" ? parsed.query.trim() : "",
+      brand: typeof parsed.brand === "string" ? parsed.brand.trim() : null,
+      product_type: typeof parsed.product_type === "string" ? parsed.product_type.trim() : null,
+      category: typeof parsed.category === "string" ? parsed.category.trim() : null,
+      color: typeof parsed.color === "string" ? parsed.color.trim() : null,
+    };
+  } catch (e) {
+    clearTimeout(timeoutId);
+    throw e;
+  }
 }
 
 async function callSearchProducts(query: string, platforms: string[] | undefined): Promise<unknown> {
   const url = `${SUPABASE_URL}/functions/v1/search-products`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${SUPABASE_KEY}`,
-    },
-    body: JSON.stringify({ query, platforms }),
-  });
-  if (!res.ok) throw new Error(`search-products ${res.status}`);
-  return await res.json();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 20000);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${SUPABASE_KEY}`,
+      },
+      body: JSON.stringify({ query, platforms }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    if (!res.ok) throw new Error(`search-products ${res.status}`);
+    return await res.json();
+  } catch (e) {
+    clearTimeout(timeoutId);
+    throw e;
+  }
 }
 
 // ─── MAIN ────────────────────────────────────────────────────────────────────
