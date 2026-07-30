@@ -59,6 +59,10 @@ const PLATFORMS: PlatformConfig[] = [
   { id: "tmall", label: "Tmall", flag: "🇨🇳", domain: "tmall.com", defaultCurrency: "CNY" },
   { id: "1688", label: "1688", flag: "🇨🇳", domain: "1688.com", defaultCurrency: "CNY" },
   { id: "jd", label: "JD.com", flag: "🇨🇳", domain: "jd.com", defaultCurrency: "CNY" },
+  { id: "pinduoduo", label: "Pinduoduo", flag: "🇨🇳", domain: "pinduoduo.com", defaultCurrency: "CNY" },
+  { id: "xianyu", label: "Xianyu (闲鱼)", flag: "🇨🇳", domain: "goofish.com", defaultCurrency: "CNY" },
+  { id: "xiaohongshu", label: "Xiaohongshu (小红书)", flag: "🇨🇳", domain: "xiaohongshu.com", defaultCurrency: "CNY" },
+  { id: "weidian", label: "Weidian (微店)", flag: "🇨🇳", domain: "weidian.com", defaultCurrency: "CNY" },
   { id: "dhgate", label: "DHGate", flag: "🇨🇳", domain: "dhgate.com", defaultCurrency: "USD" },
   { id: "aliexpress", label: "AliExpress", flag: "🇨🇳", domain: "aliexpress.com", defaultCurrency: "USD" },
   // 🇪🇺 Европа / ЕС
@@ -86,7 +90,7 @@ const PLATFORMS: PlatformConfig[] = [
 // Дефолт — все площадки недоступные напрямую в Беларуси.
 // Сюда НЕ входят wildberries/lamoda/ozon — клиент закажет сам, посредник не нужен.
 const DEFAULT_PLATFORMS = [
-  "poizon", "taobao", "tmall", "1688", "jd",
+  "poizon", "taobao", "tmall", "1688", "jd", "pinduoduo", "xianyu", "xiaohongshu", "weidian",
   "zalando", "aboutyou", "asos", "farfetch", "endclothing",
   "mrporter", "mytheresa", "ssense", "vinted", "sneakerstudio",
   "goat", "stockx", "mercari",
@@ -501,7 +505,21 @@ Deno.serve(async (req) => {
   );
 
   const results = allResults.flat();
-  const successful = results.filter((r) => r.url && r.title);
+  // Фильтруем homepage/category ссылки — только product page URLs
+  const successful = results.filter((r) => {
+    if (!r.url || !r.title) return false;
+    try {
+      const u = new URL(r.url);
+      const path = u.pathname.replace(/\/+$/, "");
+      // Убираем главные страницы и слишком короткие пути (обычно категории)
+      if (!path || path === "" || path === "/" || path.split("/").filter(Boolean).length < 2) return false;
+      // Убираем login/auth/about/help/faq страницы
+      if (/\/(login|auth|register|about|help|faq|contact|privacy|terms)/i.test(path)) return false;
+      return true;
+    } catch {
+      return false;
+    }
+  });
 
   return new Response(
     JSON.stringify({

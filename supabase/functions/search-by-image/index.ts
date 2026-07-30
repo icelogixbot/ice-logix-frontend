@@ -27,7 +27,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY") || "";
 const APIFY_API_TOKEN = Deno.env.get("APIFY_API_TOKEN") || "";
-const VISION_MODEL = Deno.env.get("OPENROUTER_VISION_MODEL") || "google/gemini-2.0-flash-001";
+const VISION_MODEL = Deno.env.get("OPENROUTER_VISION_MODEL") || "google/gemini-2.5-flash";
 const STORAGE_BUCKET = "product-screenshots";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -55,6 +55,10 @@ const PLATFORMS: PlatformInfo[] = [
   { key: "tmall",       label: "Tmall",       flag: "🇨🇳", hosts: ["tmall.com", "tmall.hk"], country: "CN" },
   { key: "1688",        label: "1688",        flag: "🇨🇳", hosts: ["1688.com"], country: "CN" },
   { key: "jd",          label: "JD.com",      flag: "🇨🇳", hosts: ["jd.com", "global.jd.com"], country: "CN" },
+  { key: "pinduoduo",   label: "Pinduoduo",   flag: "🇨🇳", hosts: ["pinduoduo.com", "yangkeduo.com"], country: "CN" },
+  { key: "xianyu",      label: "Xianyu (闲鱼)", flag: "🇨🇳", hosts: ["goofish.com", "2.taobao.com", "idle.taobao.com"], country: "CN" },
+  { key: "xiaohongshu", label: "Xiaohongshu", flag: "🇨🇳", hosts: ["xiaohongshu.com", "xhslink.com"], country: "CN" },
+  { key: "weidian",     label: "Weidian",     flag: "🇨🇳", hosts: ["weidian.com"], country: "CN" },
   // 🇪🇺 Европа
   { key: "zalando",     label: "Zalando",     flag: "🇵🇱", hosts: ["zalando.pl", "zalando.de", "zalando.com", "zalando-lounge.pl", "zalando-lounge.de"], country: "PL" },
   { key: "asos",        label: "ASOS",        flag: "🇬🇧", hosts: ["asos.com"], country: "UK" },
@@ -80,7 +84,7 @@ const PLATFORMS: PlatformInfo[] = [
 // Дефолт = все площадки недоступные из Беларуси.
 // WB/Lamoda/Ozon исключены — клиент закажет сам без посредника.
 const DEFAULT_PLATFORMS = [
-  "poizon", "taobao", "tmall", "1688", "jd",
+  "poizon", "taobao", "tmall", "1688", "jd", "pinduoduo", "xianyu", "xiaohongshu", "weidian",
   "zalando", "asos", "farfetch", "aboutyou", "endclothing",
   "mrporter", "mytheresa", "ssense", "vinted", "sneakerstudio",
   "goat", "stockx", "mercari",
