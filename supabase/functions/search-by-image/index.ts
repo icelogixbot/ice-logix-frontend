@@ -197,32 +197,31 @@ function hitTitle(h: ApifyHit): string {
 }
 
 function hitImage(h: ApifyHit): string | null {
-  return h.thumbnail || h.thumbnailUrl || h.imageUrl || null;
+  const raw = h.thumbnail || h.thumbnailUrl || h.imageUrl || null;
+  if (!raw) return null;
+  if (raw.startsWith("data:")) return raw;
+  // Проксирование через weserv.nl предотвращает 403 ошибки анти-хотлинкинга китайских CDN (alicdn, dewu, pdd)
+  const cleanUrl = raw.startsWith("//") ? `https:${raw}` : raw;
+  return `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}`;
 }
 
 function priceFromText(text: string | undefined): { price: number | null; currency: string | null } {
   if (!text) return { price: null, currency: null };
   const cleaned = text.replace(/\s+/g, " ").trim();
-  // Try to find currency symbol/code
   const currencyMatch = cleaned.match(/(USD|EUR|GBP|CNY|RUB|BYN|PLN|JPY|KRW|\$|€|£|¥|₽|zł|Br)/i);
   const currencyMap: Record<string, string> = {
     "$": "USD", "€": "EUR", "£": "GBP", "¥": "CNY", "₽": "RUB", "zł": "PLN", "br": "BYN",
   };
-  let currency: string | null = null;
-  if (currencyMatch) {
-    const m = currencyMatch[0].toLowerCase();
-    currency = currencyMap[m] || currencyMatch[0].toUpperCase();
-  }
+  let currency = currencyMatch ? (currencyMap[currencyMatch[0].toLowerCase()] || currencyMatch[0].toUpperCase()) : "CNY";
+
   const numMatch = cleaned.match(/(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?|\d+(?:[.,]\d+)?)/);
   let price: number | null = null;
   if (numMatch) {
     const raw = numMatch[1];
-    // Handle "1,234.56" vs "1.234,56"
     const lastComma = raw.lastIndexOf(",");
     const lastDot = raw.lastIndexOf(".");
     let normalized = raw;
     if (lastComma > lastDot) {
-      // EU style: 1.234,56
       normalized = raw.replace(/\./g, "").replace(",", ".");
     } else {
       normalized = raw.replace(/,/g, "");
