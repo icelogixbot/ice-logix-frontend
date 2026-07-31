@@ -32,7 +32,14 @@ const FIRECRAWL_KEY = Deno.env.get("FIRECRAWL_API_KEY") || "";
 const OPENROUTER_KEY = Deno.env.get("OPENROUTER_API_KEY") || "";
 const TEXT_MODEL = Deno.env.get("OPENROUTER_TEXT_MODEL") || "anthropic/claude-sonnet-4.6";
 
+// ICE LOGIX Scraper — наш собственный парсер для китайских площадок
+const SCRAPER_URL = Deno.env.get("SCRAPER_URL") || "https://ice-logix-scraper.onrender.com";
+const SCRAPER_API_KEY = Deno.env.get("SCRAPER_API_KEY") || "";
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Китайские площадки, которые обслуживает наш собственный парсер
+const CHINESE_SCRAPER_IDS = ["poizon", "95fen", "taobao", "tmall", "pinduoduo", "xianyu", "jd"];
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -342,6 +349,84 @@ type SearchResult = {
   error?: string;
 };
 
+// ─── ICE LOGIX SCRAPER (наш парсер для китайских площадок) ──────────────────
+// Вызываем наш собственный парсер для китайских площадок.
+// Он использует Serper.dev (Google Search API) с оператором site:
+// и возвращает структурированные результаты за ~1-2 сек.
+async function scraperSearchChinese(
+  platforms: PlatformConfig[],
+  queryZh: string,
+  topN: number,
+): Promise<SearchResult[]> {
+  const scraperIds = platforms
+    .filter(p => CHINESE_SCRAPER_IDS.includes(p.id))
+    .map(p => p.id);
+
+  if (scraperIds.length === 0) return [];
+
+  try {
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 15000);
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (SCRAPER_API_KEY) {
+      headers["X-API-Key"] = SCRAPER_API_KEY;
+    }
+
+    const res = await fetch(`${SCRAPER_URL}/api/search`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        query_zh: queryZh,
+        platforms: scraperIds,
+        max_per_platform: topN,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "<no body>");
+      console.error(`[scraper] HTTP ${res.status}: ${errText.substring(0, 200)}`);
+      return [];
+    }
+
+    const data = await res.json();
+    if (!data.ok || !data.results) return [];
+
+    // Конвертируем scraper результаты в SearchResult формат
+    return (data.results as Array<{
+      platform: string;
+      platform_label: string;
+      flag: string;
+      title: string;
+      url: string;
+      price: number | null;
+      currency: string;
+      image_url: string | null;
+      sales_count: number | null;
+      shop_name: string | null;
+    }>).map((r, idx) => {
+      const pc = getPlatform(r.platform);
+      return {
+        platform: r.platform,
+        platform_label: pc?.label || r.platform_label || r.platform,
+        flag: pc?.flag || r.flag || "🇨🇳",
+        url: r.url,
+        title: r.title || null,
+        price: r.price,
+        currency: r.currency || pc?.defaultCurrency || "CNY",
+        image_url: r.image_url,
+        score: Math.max(0.3, 1 - idx * 0.1),
+      };
+    });
+  } catch (e) {
+    console.error(`[scraper] Error:`, (e as Error).message);
+    return [];
+  }
+}
+
 async function searchOnePlatform(
   platform: PlatformConfig,
   queries: { en: string; ru: string; zh: string },
@@ -485,9 +570,24 @@ Deno.serve(async (req) => {
     );
   }
 
-  // 3. Параллельно по всем площадкам — каждая использует свой язык запроса
-  const allResults: SearchResult[][] = await Promise.all(
-    finalPlatforms.map((p) => searchOnePlatform(p, queries, topN).catch((e) => ([{
+  // 3. Разделяем площадки: китайские → наш scraper, остальные → Firecrawl
+  const chinesePlatforms = finalPlatforms.filter(p => CHINESE_SCRAPER_IDS.includes(p.id));
+  const otherPlatforms = finalPlatforms.filter(p => !CHINESE_SCRAPER_IDS.includes(p.id));
+
+  // 3a. Китайские площадки — через наш ICE LOGIX Scraper (1 запрос на все)
+  const scraperPromise = chinesePlatforms.length > 0
+    ? scraperSearchChinese(chinesePlatforms, queries.zh, topN).catch(e => {
+        console.error("[scraper] Failed, falling back to Firecrawl:", (e as Error).message);
+        // Fallback: если scraper недоступен, ищем через Firecrawl
+        return Promise.all(
+          chinesePlatforms.map(p => searchOnePlatform(p, queries, topN).catch(() => []))
+        ).then(r => r.flat());
+      })
+    : Promise.resolve([] as SearchResult[]);
+
+  // 3b. Остальные площадки — через Firecrawl (параллельно)
+  const firecrawlPromise = Promise.all(
+    otherPlatforms.map((p) => searchOnePlatform(p, queries, topN).catch((e) => ([{
       platform: p.id,
       platform_label: p.label,
       flag: p.flag,
@@ -499,9 +599,11 @@ Deno.serve(async (req) => {
       score: 0,
       error: (e as Error).message,
     } as SearchResult]))),
-  );
+  ).then(r => r.flat());
 
-  const results = allResults.flat();
+  // Ждём оба источника параллельно
+  const [scraperResults, firecrawlResults] = await Promise.all([scraperPromise, firecrawlPromise]);
+  const results = [...scraperResults, ...firecrawlResults];
   // Фильтруем homepage/category ссылки — только product page URLs
   const successful = results.filter((r) => {
     if (!r.url || !r.title) return false;
