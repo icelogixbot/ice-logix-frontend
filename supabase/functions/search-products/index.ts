@@ -273,39 +273,37 @@ ${md.substring(0, 6000)}`;
 async function enhanceQuery(raw: string): Promise<{
   enhanced_en: string;
   enhanced_ru: string;
+  enhanced_zh: string;
   brand: string | null;
   category: string | null;
   authenticity_tier: "original" | "replica";
   ok: boolean;
 }> {
-  const fallback = { enhanced_en: raw, enhanced_ru: raw, brand: null, category: null, authenticity_tier: "original" as const, ok: false };
+  const fallback = { enhanced_en: raw, enhanced_ru: raw, enhanced_zh: raw, brand: null, category: null, authenticity_tier: "original" as const, ok: false };
   if (!OPENROUTER_KEY) return fallback;
 
-  const prompt = `Ты помогаешь искать товары в международных интернет-магазинах.
+  const prompt = `Ты помогаешь искать товары в международных и китайских интернет-магазинах.
 
 Пользователь ввёл запрос на любом языке (часто кратко, с опечатками, разговорно).
-Твоя задача — нормализовать запрос для поиска в Google по сайтам типа zalando.com, asos.com, poizon.com, goat.com и т.д.
+Твоя задача — нормализовать запрос для поиска по сайтам типа zalando.com, asos.com, poizon.com (Dewu), taobao.com, 1688.com, pinduoduo.com и т.д.
 
 Правила:
 - Определи authenticity_tier:
   * "replica" если в запросе есть "копия", "реплика", "1:1", "fake", "replica", "копия 1:1", "ААА", "AAA"
   * "original" во всех остальных случаях (по умолчанию)
-- Если authenticity_tier="replica": ОСТАВЬ в enhanced_en слово "replica" — оно нужно для поиска по DHGate/AliExpress/1688
-- Если authenticity_tier="original": НЕ добавляй слово "replica" / "копия" в результат
-- сокращения брендов раскрыть: "кляйн"→"Calvin Klein", "тнф"→"The North Face", "стасси"→"Stussy"
-- категории по-английски: "худи"→"hoodie", "кроссовки"→"sneakers", "джинсы"→"jeans", "ремень"→"belt"
-- gender: "мужской"→"men", "женский"→"women"
-- цвет: "серый"→"gray", "чёрный"→"black"
-- НЕ добавлять цены, размеры, артикулы — этого нет в исходном запросе
+- Сформируй:
+  * enhanced_en: английский поисковый запрос (например "Polo Ralph Lauren zip hoodie men gray")
+  * enhanced_ru: русский поисковый запрос (например "Polo Ralph Lauren худи на молнии серое")
+  * enhanced_zh: запрос на УПРОЩЁННОМ КИТАЙСКОМ (简体中文) для поиска по китайским сайтам (Taobao, 1688, Dewu, Pinduoduo, Xianyu). Переводи бренды и типы одежды на китайский (например: Polo Ralph Lauren → 拉夫劳伦, Nike Air Force 1 → 耐克空军一号, худи → 连帽卫衣, кроссовки → 运动鞋)
+- Если authenticity_tier="replica": ОСТАВЬ в enhanced_en слово "replica", а в enhanced_zh добавь "复刻" / "1:1"
+- Если authenticity_tier="original": НЕ добавляй слово "replica" / "копия" / "复刻" в результат
 
 Запрос пользователя: """${raw}"""
 
 Верни ТОЛЬКО валидный JSON (никаких markdown-оборок), пример формата:
-{"enhanced_en":"Calvin Klein zip hoodie men gray","enhanced_ru":"Calvin Klein худи на молнии мужское серое","brand":"Calvin Klein","category":"hoodie","authenticity_tier":"original"}
+{"enhanced_en":"Calvin Klein zip hoodie men gray","enhanced_ru":"Calvin Klein худи на молнии мужское серое","enhanced_zh":"CK 卡尔文克莱恩 灰色 连帽拉链卫衣","brand":"Calvin Klein","category":"hoodie","authenticity_tier":"original"}
 
-Пример с репликой: {"enhanced_en":"Nike Air Max replica men","enhanced_ru":"Nike Air Max реплика мужские","brand":"Nike","category":"sneakers","authenticity_tier":"replica"}
-
-Если запрос непонятен или это не товар — верни {"enhanced_en":"${raw}","enhanced_ru":"${raw}","brand":null,"category":null,"authenticity_tier":"original"}.`;
+Если запрос непонятен — верни {"enhanced_en":"${raw}","enhanced_ru":"${raw}","enhanced_zh":"${raw}","brand":null,"category":null,"authenticity_tier":"original"}.`;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 7000);
@@ -320,7 +318,7 @@ async function enhanceQuery(raw: string): Promise<{
         model: TEXT_MODEL,
         messages: [{ role: "user", content: prompt }],
         temperature: 0,
-        max_tokens: 200,
+        max_tokens: 250,
       }),
       signal: controller.signal,
     });
@@ -331,11 +329,13 @@ async function enhanceQuery(raw: string): Promise<{
     const parsed = parseAssistantJson(String(data.choices?.[0]?.message?.content ?? ""));
     const en = typeof parsed.enhanced_en === "string" && parsed.enhanced_en.trim() ? parsed.enhanced_en.trim() : raw;
     const ru = typeof parsed.enhanced_ru === "string" && parsed.enhanced_ru.trim() ? parsed.enhanced_ru.trim() : raw;
+    const zh = typeof parsed.enhanced_zh === "string" && parsed.enhanced_zh.trim() ? parsed.enhanced_zh.trim() : raw;
     const tier: "original" | "replica" =
       parsed.authenticity_tier === "replica" ? "replica" : "original";
     return {
       enhanced_en: en,
       enhanced_ru: ru,
+      enhanced_zh: zh,
       brand: typeof parsed.brand === "string" && parsed.brand.trim() ? parsed.brand.trim() : null,
       category: typeof parsed.category === "string" && parsed.category.trim() ? parsed.category.trim() : null,
       authenticity_tier: tier,
@@ -348,9 +348,11 @@ async function enhanceQuery(raw: string): Promise<{
 }
 
 // Какой язык запроса использовать для какой платформы
-function queryLangForPlatform(platformId: string): "en" | "ru" {
-  // RU площадки и Mercari (часто JP/EN) → используем русский / оригинал
+function queryLangForPlatform(platformId: string): "en" | "ru" | "zh" {
+  // RU площадки → русский
   if (["wildberries", "lamoda", "ozon"].includes(platformId)) return "ru";
+  // Китайские площадки → упрощённый китайский (简体中文) для точного поиска товарных карточек
+  if (["poizon", "95fen", "taobao", "tmall", "1688", "jd", "pinduoduo", "xianyu", "weidian", "xiaohongshu"].includes(platformId)) return "zh";
   // Все остальные международные → английский
   return "en";
 }
@@ -371,12 +373,12 @@ type SearchResult = {
 
 async function searchOnePlatform(
   platform: PlatformConfig,
-  queries: { en: string; ru: string },
+  queries: { en: string; ru: string; zh: string },
   topN: number,
 ): Promise<SearchResult[]> {
-  // Выбираем язык запроса под язык площадки (en для int'l, ru для WB/Lamoda/Ozon)
+  // Выбираем язык запроса под язык площадки (zh для китайских, en для int'l, ru для WB/Lamoda/Ozon)
   const lang = queryLangForPlatform(platform.id);
-  const baseQuery = (lang === "en" ? queries.en : queries.ru).replace(/"/g, " ").trim();
+  const baseQuery = (lang === "zh" ? queries.zh : lang === "en" ? queries.en : queries.ru).replace(/"/g, " ").trim();
   // БЕЗ кавычек — для fuzzy-матча по описанию (товарных PDP-страниц всё равно мало в каталоге).
   // qualifiers (например "купить" для рус.) добавляют контекст
   const fullQuery = `${baseQuery} ${platform.qualifiers || ""} site:${platform.domain}`.trim();
@@ -486,7 +488,7 @@ Deno.serve(async (req) => {
   // 1. LLM-улучшение запроса (Claude Sonnet 4.6)
   // "зип худи кляйн копия серый мужской" → "Calvin Klein zip hoodie men gray"
   const enh = await enhanceQuery(query);
-  const queries = { en: enh.enhanced_en, ru: enh.enhanced_ru };
+  const queries = { en: enh.enhanced_en, ru: enh.enhanced_ru, zh: enh.enhanced_zh };
 
   // 2. Replica Routing
   let finalPlatforms = platforms;
