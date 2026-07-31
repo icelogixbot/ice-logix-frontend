@@ -494,7 +494,8 @@ Deno.serve(async (req) => {
   let finalPlatforms = platforms;
   if (enh.authenticity_tier === "replica") {
     // Dewu (Poizon) и 95fen продают только оригиналы — исключаем их при поиске реплик.
-    const replicaIds = ["xianyu", "pinduoduo", "taobao", "1688", "dhgate", "aliexpress", "weidian"];
+    // 1688 — оптовый сайт, используем розничные потребительские площадки (Xianyu, Pinduoduo, Taobao, Weidian, DHGate, AliExpress)
+    const replicaIds = ["xianyu", "pinduoduo", "taobao", "weidian", "dhgate", "aliexpress"];
     finalPlatforms = replicaIds
       .map((id) => getPlatform(id))
       .filter((p): p is PlatformConfig => p !== null);

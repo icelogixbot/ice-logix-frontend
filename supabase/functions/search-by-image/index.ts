@@ -463,6 +463,13 @@ function filterAndRankTopResults(
       if (titleLower.includes("t-shirt") || titleLower.includes("shorts")) score -= 10;
     }
 
+    // Приоритет розничным потребительским маркетплейсам над оптовым 1688
+    if (["poizon", "95fen", "taobao", "tmall", "pinduoduo", "xianyu", "jd", "weidian"].includes(item.platform)) {
+      score += 2;
+    } else if (item.platform === "1688") {
+      score -= 5; // Оптовая площадка — понижаем приоритет для розничных заказов
+    }
+
     return { item, finalScore: score };
   });
 
