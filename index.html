@@ -6419,7 +6419,32 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               </div>
             </div>
 
-            <button type="button" id="calcAiSearchRunBtn" onclick="window.runAiProductSearch()" class="btn-primary w-full py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 active:scale-95 transition cursor-pointer border-0 mt-2">
+            <!-- Дополнительные фильтры: Подлинность, Состояние, Макс. цена -->
+            <div class="mt-3 grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-white/70 text-[11px] block mb-1">🏷️ Подлинность</label>
+                <select id="aiAuthTier" class="btn-secondary w-full p-2.5 rounded-xl border border-white/20 text-xs">
+                  <option value="all" selected>Любая</option>
+                  <option value="original">✨ Только оригинал</option>
+                  <option value="replica">⚠️ Реплика / Копия</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-white/70 text-[11px] block mb-1">📦 Состояние</label>
+                <select id="aiItemCondition" class="btn-secondary w-full p-2.5 rounded-xl border border-white/20 text-xs">
+                  <option value="all" selected>Любое</option>
+                  <option value="new">✨ Только новый</option>
+                  <option value="used">🔄 Б/У (95分 / Xianyu)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="mt-2">
+              <label class="text-white/70 text-[11px] block mb-1">💰 Максимальная цена (¥ / CNY)</label>
+              <input type="number" id="aiMaxPrice" step="1" min="1" class="btn-secondary w-full p-2.5 rounded-xl border border-white/20 text-xs" placeholder="Любая цена (или введите лимит)">
+            </div>
+
+            <button type="button" id="calcAiSearchRunBtn" onclick="window.runAiProductSearch()" class="btn-primary w-full py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 active:scale-95 transition cursor-pointer border-0 mt-3">
               <span>🔍 Найти товар и рассчитать</span>
             </button>
 
@@ -6694,11 +6719,18 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           screenshotPaths.push(spath);
         }
 
+        const authVal = (document.getElementById('aiAuthTier')?.value || 'all');
+        const condVal = (document.getElementById('aiItemCondition')?.value || 'all');
+        const maxPriceVal = parseFloat(document.getElementById('aiMaxPrice')?.value) || null;
+
         // 2. Вызываем search-by-image через XHR (SDK invoke ломается на iOS Safari)
         const payload = JSON.stringify({
           screenshotPath: screenshotPaths[0],
           screenshotPaths: screenshotPaths,
           descriptionHint: hintVal,
+          authenticity: authVal,
+          condition: condVal,
+          maxPrice: maxPriceVal,
           platforms
         });
 
@@ -6745,9 +6777,9 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           tgUtil.haptic('warning');
           resultBox.innerHTML = `
             <div class="bg-orange-500/20 border border-orange-400/30 rounded-xl p-4 text-center space-y-2">
-              <div class="text-2xl">😕</div>
-              <p class="text-white/90 text-xs font-bold">Товар не найден на выбранных площадках</p>
-              <p class="text-white/50 text-[10px]">Попробуйте другое описание, фото или расширьте регион поиска</p>
+              <div class="text-2xl">📸</div>
+              <p class="text-white/90 text-xs font-bold">Не удалось найти точное совпадение</p>
+              <p class="text-white/50 text-[10px]">Пожалуйста, загрузите более чёткое фото товара при хорошем освещении или измените описание и фильтры.</p>
             </div>
           `;
           return;

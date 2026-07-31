@@ -53,48 +53,19 @@ type PlatformConfig = {
 };
 
 const PLATFORMS: PlatformConfig[] = [
-  // 🇨🇳 Китай — все основные торговые площадки (недоступны напрямую из Беларуси)
+  // 🇨🇳 7 Основных розничных китайских площадок
   { id: "poizon", label: "Poizon / Dewu", flag: "🇨🇳", domain: "dewu.com", defaultCurrency: "CNY" },
   { id: "95fen", label: "95分", flag: "🇨🇳", domain: "95fen.com", defaultCurrency: "CNY" },
   { id: "taobao", label: "Taobao", flag: "🇨🇳", domain: "taobao.com", defaultCurrency: "CNY" },
   { id: "tmall", label: "Tmall", flag: "🇨🇳", domain: "tmall.com", defaultCurrency: "CNY" },
-  { id: "1688", label: "1688", flag: "🇨🇳", domain: "1688.com", defaultCurrency: "CNY" },
-  { id: "jd", label: "JD.com", flag: "🇨🇳", domain: "jd.com", defaultCurrency: "CNY" },
   { id: "pinduoduo", label: "Pinduoduo", flag: "🇨🇳", domain: "pinduoduo.com", defaultCurrency: "CNY" },
   { id: "xianyu", label: "Xianyu (闲鱼)", flag: "🇨🇳", domain: "goofish.com", defaultCurrency: "CNY" },
-  { id: "xiaohongshu", label: "Xiaohongshu (小红书)", flag: "🇨🇳", domain: "xiaohongshu.com", defaultCurrency: "CNY" },
-  { id: "weidian", label: "Weidian (微店)", flag: "🇨🇳", domain: "weidian.com", defaultCurrency: "CNY" },
-  { id: "dhgate", label: "DHGate", flag: "🇨🇳", domain: "dhgate.com", defaultCurrency: "USD" },
-  { id: "aliexpress", label: "AliExpress", flag: "🇨🇳", domain: "aliexpress.com", defaultCurrency: "USD" },
-  // 🇪🇺 Европа / ЕС
-  { id: "zalando", label: "Zalando", flag: "🇵🇱", domain: "zalando.pl", defaultCurrency: "EUR" },
-  { id: "aboutyou", label: "About You", flag: "🇩🇪", domain: "aboutyou.com", defaultCurrency: "EUR" },
-  { id: "asos", label: "ASOS", flag: "🇬🇧", domain: "asos.com", defaultCurrency: "EUR" },
-  { id: "farfetch", label: "Farfetch", flag: "🇪🇺", domain: "farfetch.com", defaultCurrency: "EUR" },
-  { id: "endclothing", label: "END.", flag: "🇬🇧", domain: "endclothing.com", defaultCurrency: "GBP" },
-  { id: "mrporter", label: "Mr Porter", flag: "🇬🇧", domain: "mrporter.com", defaultCurrency: "GBP" },
-  { id: "mytheresa", label: "Mytheresa", flag: "🇩🇪", domain: "mytheresa.com", defaultCurrency: "EUR" },
-  { id: "ssense", label: "SSENSE", flag: "🇨🇦", domain: "ssense.com", defaultCurrency: "EUR" },
-  { id: "vinted", label: "Vinted", flag: "🇪🇺", domain: "vinted.com", defaultCurrency: "EUR" },
-  { id: "sneakerstudio", label: "SneakerStudio", flag: "🇵🇱", domain: "sneakerstudio.com", defaultCurrency: "EUR" },
-  // 🇺🇸 США (sneaker / streetwear)
-  { id: "goat", label: "GOAT", flag: "🇺🇸", domain: "goat.com", defaultCurrency: "USD" },
-  { id: "stockx", label: "StockX", flag: "🇺🇸", domain: "stockx.com", defaultCurrency: "USD" },
-  // 🇯🇵 Япония / Азия
-  { id: "mercari", label: "Mercari", flag: "🇯🇵", domain: "mercari.com", defaultCurrency: "USD" },
-  // 🇷🇺 Россия — оставлены, но НЕ в дефолте (работают в Беларуси, клиент закажет сам)
-  { id: "wildberries", label: "Wildberries", flag: "🇷🇺", domain: "wildberries.ru", qualifiers: "купить", defaultCurrency: "RUB" },
-  { id: "lamoda", label: "Lamoda", flag: "🇷🇺", domain: "lamoda.ru", qualifiers: "купить", defaultCurrency: "RUB" },
-  { id: "ozon", label: "Ozon", flag: "🇷🇺", domain: "ozon.ru", qualifiers: "купить", defaultCurrency: "RUB" },
+  { id: "jd", label: "JD.com", flag: "🇨🇳", domain: "jd.com", defaultCurrency: "CNY" },
 ];
 
-// Дефолт — все площадки недоступные напрямую в Беларуси.
-// WB/Lamoda/Ozon исключены — клиент закажет сам, посредник не нужен.
+// Дефолт — 7 розничных китайских платформ
 const DEFAULT_PLATFORMS = [
-  "poizon", "95fen", "taobao", "tmall", "1688", "jd", "pinduoduo", "xianyu", "xiaohongshu", "weidian", "dhgate", "aliexpress",
-  "zalando", "aboutyou", "asos", "farfetch", "endclothing",
-  "mrporter", "mytheresa", "ssense", "vinted", "sneakerstudio",
-  "goat", "stockx", "mercari",
+  "poizon", "95fen", "taobao", "tmall", "pinduoduo", "xianyu", "jd"
 ];
 
 function getPlatform(id: string): PlatformConfig | null {
@@ -494,14 +465,12 @@ Deno.serve(async (req) => {
   let finalPlatforms = platforms;
   if (enh.authenticity_tier === "replica") {
     // Dewu (Poizon) и 95fen продают только оригиналы — исключаем их при поиске реплик.
-    // 1688 — оптовый сайт, используем розничные потребительские площадки (Xianyu, Pinduoduo, Taobao, Weidian, DHGate, AliExpress)
-    const replicaIds = ["xianyu", "pinduoduo", "taobao", "weidian", "dhgate", "aliexpress"];
+    const replicaIds = ["xianyu", "pinduoduo", "taobao", "tmall", "jd"];
     finalPlatforms = replicaIds
       .map((id) => getPlatform(id))
       .filter((p): p is PlatformConfig => p !== null);
   } else {
-    // Exclude replica-only platforms if not searching for a replica
-    finalPlatforms = platforms.filter(p => !["dhgate", "aliexpress"].includes(p.id));
+    finalPlatforms = platforms;
   }
 
   // Ограничиваем до 6 площадок за один поиск для предотвращения 429 Rate Limit от Firecrawl и ускорения работы
