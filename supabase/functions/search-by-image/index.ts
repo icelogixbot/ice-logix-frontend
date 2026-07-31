@@ -49,48 +49,19 @@ type PlatformInfo = {
 };
 
 const PLATFORMS: PlatformInfo[] = [
-  // 🇨🇳 Китай
+  // 🇨🇳 7 Основных розничных китайских площадок
   { key: "poizon",      label: "Poizon / Dewu", flag: "🇨🇳", hosts: ["poizon.com", "dewu.com", "dewuapp.com", "duapp.com", "poizon.app"], country: "CN" },
   { key: "95fen",       label: "95分",          flag: "🇨🇳", hosts: ["95fen.com", "shizhuang-app.com"], country: "CN" },
   { key: "taobao",      label: "Taobao",        flag: "🇨🇳", hosts: ["taobao.com", "world.taobao.com", "intl.taobao.com", "m.tb.cn"], country: "CN" },
   { key: "tmall",       label: "Tmall",         flag: "🇨🇳", hosts: ["tmall.com", "tmall.hk", "detail.tmall.com", "m.tmall.com"], country: "CN" },
-  { key: "1688",        label: "1688",          flag: "🇨🇳", hosts: ["1688.com", "m.1688.com", "detail.1688.com"], country: "CN" },
-  { key: "jd",          label: "JD.com",        flag: "🇨🇳", hosts: ["jd.com", "item.jd.com", "global.jd.com", "m.jd.com", "jd.hk"], country: "CN" },
   { key: "pinduoduo",   label: "Pinduoduo",     flag: "🇨🇳", hosts: ["pinduoduo.com", "yangkeduo.com", "pdd.com", "mobile.yangkeduo.com"], country: "CN" },
   { key: "xianyu",      label: "Xianyu (闲鱼)", flag: "🇨🇳", hosts: ["goofish.com", "2.taobao.com", "idle.taobao.com", "xianyu.com", "m.tb.cn"], country: "CN" },
-  { key: "xiaohongshu", label: "Xiaohongshu",   flag: "🇨🇳", hosts: ["xiaohongshu.com", "xhslink.com"], country: "CN" },
-  { key: "weidian",     label: "Weidian",       flag: "🇨🇳", hosts: ["weidian.com", "h5.weidian.com"], country: "CN" },
-  { key: "dhgate",      label: "DHGate",        flag: "🇨🇳", hosts: ["dhgate.com", "m.dhgate.com"], country: "CN" },
-  { key: "aliexpress",  label: "AliExpress",    flag: "🇨🇳", hosts: ["aliexpress.com", "aliexpress.ru"], country: "CN" },
-  // 🇪🇺 Европа
-  { key: "zalando",     label: "Zalando",     flag: "🇵🇱", hosts: ["zalando.pl", "zalando.de", "zalando.com", "zalando-lounge.pl", "zalando-lounge.de"], country: "PL" },
-  { key: "asos",        label: "ASOS",        flag: "🇬🇧", hosts: ["asos.com"], country: "UK" },
-  { key: "farfetch",    label: "Farfetch",    flag: "🇪🇺", hosts: ["farfetch.com"], country: "EU" },
-  { key: "aboutyou",    label: "About You",   flag: "🇩🇪", hosts: ["aboutyou.com", "aboutyou.de"], country: "DE" },
-  { key: "endclothing", label: "End Clothing",flag: "🇬🇧", hosts: ["endclothing.com"], country: "UK" },
-  { key: "mrporter",    label: "Mr Porter",   flag: "🇬🇧", hosts: ["mrporter.com", "net-a-porter.com"], country: "UK" },
-  { key: "mytheresa",   label: "Mytheresa",   flag: "🇩🇪", hosts: ["mytheresa.com"], country: "DE" },
-  { key: "ssense",      label: "SSENSE",      flag: "🇨🇦", hosts: ["ssense.com"], country: "EU" },
-  { key: "vinted",      label: "Vinted",      flag: "🇪🇺", hosts: ["vinted.com", "vinted.de", "vinted.fr", "vinted.pl", "vinted.it", "vinted.es", "vinted.nl", "vinted.lt"], country: "EU" },
-  { key: "sneakerstudio", label: "SneakerStudio", flag: "🇵🇱", hosts: ["sneakerstudio.com"], country: "PL" },
-  // 🇺🇸 США
-  { key: "goat",        label: "GOAT",        flag: "🇺🇸", hosts: ["goat.com"], country: "US" },
-  { key: "stockx",      label: "StockX",      flag: "🇺🇸", hosts: ["stockx.com"], country: "US" },
-  // 🇯🇵 Япония / Азия
-  { key: "mercari",     label: "Mercari",     flag: "🇯🇵", hosts: ["mercari.com", "jp.mercari.com"], country: "JP" },
-  // 🇷🇺 Россия (НЕ в дефолте — клиент закажет сам)
-  { key: "wildberries", label: "Wildberries", flag: "🇷🇺", hosts: ["wildberries.ru", "wildberries.by"], country: "RU" },
-  { key: "ozon",        label: "Ozon",        flag: "🇷🇺", hosts: ["ozon.ru"], country: "RU" },
-  { key: "lamoda",      label: "Lamoda",      flag: "🇷🇺", hosts: ["lamoda.ru", "lamoda.by"], country: "RU" },
+  { key: "jd",          label: "JD.com",        flag: "🇨🇳", hosts: ["jd.com", "item.jd.com", "global.jd.com", "m.jd.com", "jd.hk"], country: "CN" },
 ];
 
-// Дефолт = все площадки недоступные из Беларуси.
-// WB/Lamoda/Ozon исключены — клиент закажет сам без посредника.
+// Дефолт = 7 розничных платформ
 const DEFAULT_PLATFORMS = [
-  "poizon", "95fen", "taobao", "tmall", "1688", "jd", "pinduoduo", "xianyu", "xiaohongshu", "weidian", "dhgate", "aliexpress",
-  "zalando", "asos", "farfetch", "aboutyou", "endclothing",
-  "mrporter", "mytheresa", "ssense", "vinted", "sneakerstudio",
-  "goat", "stockx", "mercari",
+  "poizon", "95fen", "taobao", "tmall", "pinduoduo", "xianyu", "jd"
 ];
 
 function platformForUrl(rawUrl: string): PlatformInfo | null {
@@ -427,8 +398,16 @@ function filterAndRankTopResults(
   visualDetails?: { brand: string | null; product_type: string | null; color: string | null },
   userHint = "",
   maxResults = 4,
+  maxPrice: number | null = null,
 ): ApifyResultItem[] {
   if (!items || items.length === 0) return [];
+
+  // Фильтр по максимальной цене
+  const candidateItems = (maxPrice && maxPrice > 0)
+    ? items.filter((it) => !it.price || it.price <= maxPrice)
+    : items;
+
+  if (candidateItems.length === 0) return [];
 
   const descLower = (userHint || "").toLowerCase();
   const brandLower = (visualDetails?.brand || "").toLowerCase();
@@ -438,7 +417,7 @@ function filterAndRankTopResults(
   const isSneaker = descLower.includes("кроссовки") || descLower.includes("кеды") || descLower.includes("sneaker") || typeLower.includes("кроссовки") || typeLower.includes("обувь");
   const isJacket = descLower.includes("куртка") || descLower.includes("пуховик") || descLower.includes("jacket") || typeLower.includes("куртка");
 
-  const scored = items.map((item) => {
+  const scored = candidateItems.map((item) => {
     const titleLower = (item.title || "").toLowerCase();
     let score = item.score || 1;
 
@@ -566,16 +545,30 @@ Deno.serve(async (req) => {
     });
   }
   const descriptionHint = (body.descriptionHint || '').trim();
+  const authenticity = (body.authenticity || 'all').toString();
+  const condition = (body.condition || 'all').toString();
+  const maxPrice = typeof body.maxPrice === 'number' && body.maxPrice > 0 ? body.maxPrice : null;
 
   let authenticity_tier: string | null = null;
-  const descLower = descriptionHint.toLowerCase();
-  if (descLower.includes('копия') || descLower.includes('реплика') || descLower.includes('1:1') || descLower.includes('aaa') || descLower.includes('fake')) {
+  if (authenticity === 'replica') {
     authenticity_tier = 'replica';
+  } else if (authenticity === 'original') {
+    authenticity_tier = 'original';
+  } else {
+    const descLower = descriptionHint.toLowerCase();
+    if (descLower.includes('копия') || descLower.includes('реплика') || descLower.includes('1:1') || descLower.includes('aaa') || descLower.includes('fake')) {
+      authenticity_tier = 'replica';
+    }
   }
 
-  const requestedPlatforms = (Array.isArray(body.platforms) && body.platforms.length > 0)
-    ? body.platforms
-    : DEFAULT_PLATFORMS;
+  let requestedPlatforms = DEFAULT_PLATFORMS;
+  if (condition === 'used') {
+    // Для Б/У поиска — строго 95分 и Xianyu (Goofish)
+    requestedPlatforms = ["95fen", "xianyu"];
+  } else if (Array.isArray(body.platforms) && body.platforms.length > 0) {
+    requestedPlatforms = body.platforms;
+  }
+
   const allowedKeys = new Set(requestedPlatforms);
 
   // 1. Signed URLs (10 мин) для всех фото
@@ -689,7 +682,7 @@ Deno.serve(async (req) => {
   }
 
   const combined = [...directMatches, ...searchProductsResults];
-  const top4Results = filterAndRankTopResults(combined, visionDetails, descriptionHint, 4);
+  const top4Results = filterAndRankTopResults(combined, visionDetails, descriptionHint, 4, maxPrice);
 
   if (top4Results.length >= 1) {
     return new Response(
@@ -742,7 +735,7 @@ Deno.serve(async (req) => {
   }
 
   const rawFallbackList = ((searchResp as Record<string, unknown>)?.results || []) as ApifyResultItem[];
-  const finalFallbackTop4 = filterAndRankTopResults(rawFallbackList, visionDetails, descriptionHint, 4);
+  const finalFallbackTop4 = filterAndRankTopResults(rawFallbackList, visionDetails, descriptionHint, 4, maxPrice);
 
   return new Response(
     JSON.stringify({
