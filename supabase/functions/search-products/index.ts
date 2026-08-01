@@ -358,6 +358,8 @@ async function scraperSearchChinese(
   platforms: PlatformConfig[],
   queryZh: string,
   topN: number,
+  imageUrl?: string,
+  authenticityTier?: "original" | "replica",
 ): Promise<SearchResult[]> {
   const scraperIds = platforms
     .filter(p => CHINESE_SCRAPER_IDS.includes(p.id))
@@ -381,6 +383,8 @@ async function scraperSearchChinese(
       headers,
       body: JSON.stringify({
         query_zh: queryZh,
+        image_url: imageUrl || undefined,
+        authenticity_tier: authenticityTier || "original",
         platforms: scraperIds,
         max_per_platform: topN,
       }),
@@ -495,7 +499,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  let body: { query?: string; platforms?: string[]; topN?: number; user_id?: number | string } = {};
+  let body: { query?: string; platforms?: string[]; topN?: number; user_id?: number | string; image_url?: string } = {};
   try {
     body = await req.json();
   } catch {
@@ -579,7 +583,7 @@ Deno.serve(async (req) => {
 
   // 3a. Китайские площадки — через наш ICE LOGIX Scraper (1 запрос на все)
   const scraperPromise = chinesePlatforms.length > 0
-    ? scraperSearchChinese(chinesePlatforms, queries.zh, topN).catch(e => {
+    ? scraperSearchChinese(chinesePlatforms, queries.zh, topN, body.image_url || undefined, enh.authenticity_tier).catch(e => {
         console.error("[scraper] Failed, falling back to Firecrawl:", (e as Error).message);
         // Fallback: если scraper недоступен, ищем через Firecrawl
         return Promise.all(
@@ -617,8 +621,10 @@ Deno.serve(async (req) => {
       // например: /goods.html?goods_id=123 или /search_result.html?search_key=...
       const isPddUrl = u.hostname.includes("yangkeduo.com") || u.hostname.includes("pinduoduo.com");
       if (isPddUrl) {
-        // Принимаем любой PDD URL с непустым путём
-        return !!path && path !== "/";
+        // Пропускаем каталоги PDD (search_result.html)
+        if (u.pathname.includes('search_result')) return false;
+        // Принимаем любой PDD URL с goods_id
+        return !!u.searchParams.get('goods_id');
       }
       // Убираем главные страницы и слишком короткие пути (обычно категории)
       if (!path || path === "" || path === "/" || path.split("/").filter(Boolean).length < 2) return false;
