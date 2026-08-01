@@ -346,7 +346,7 @@ async function describeProductForSearch(imageUrls: string[]): Promise<{ query: s
   };
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  const timeoutId = setTimeout(() => controller.abort(), 45000);
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -369,7 +369,7 @@ async function describeProductForSearch(imageUrls: string[]): Promise<{ query: s
     const data = await res.json();
     const raw = String(data?.choices?.[0]?.message?.content ?? "").trim();
     const cleaned = raw.startsWith("```")
-      ? raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/s, "").trim()
+      ? raw.replace(/^```(?:json)?s*/i, "").replace(/s*```s*$/s, "").trim()
       : raw;
 
     let parsed: Record<string, unknown> = {};
@@ -409,14 +409,14 @@ async function verifyCandidatesVisuallyWithAI(
 
   const validCandidates = candidates.filter(c => c.image_url && /^https?:\/\//i.test(c.image_url));
   
-  // Если у нас вообще нет кандидатов с картинками - мы не можем сравнить по фото! Возвращаем пустой массив.
+  // Если у нас нет кандидатов с картинками - применяем текстильный фильтр от поло/футболок
   if (validCandidates.length === 0) {
-    console.log("[AI Visual Matcher] ❌ No valid images found to compare. Rejecting all candidates to enforce visual verification.");
-    return [];
+    console.log("[AI Visual Matcher] ⚠️ No direct image URLs found. Applying text category guard.");
+    return candidates.filter(c => !/短袖|POLO衫|Polo衫|T恤|翻领T|衬衫|打底衫/i.test(c.title || ""));
   }
 
-  // Ограничиваем проверку до топ-6 кандидатов для высокой скорости
-  const toCheck = validCandidates.slice(0, 6);
+  // Ограничиваем проверку до топ-4 кандидатов для высокой скорости
+  const toCheck = validCandidates.slice(0, 4);
 
   const prompt = `Ты строгий эксперт по отбору и проверке товаров по снимку. Твоя задача — отсеивать любой мусор, который не совпадает с искомым товаром на фото пользователя.
 На ИЗОБРАЖЕНИИ 0 — ИСКОМЫЙ ТОВАР ПОЛЬЗОВАТЕЛЯ.
@@ -443,7 +443,7 @@ ${toCheck.map((c, i) => `Кандидат #${i+1}: "${c.title}" (Цена: ${c.p
 
   try {
     const controller = new AbortController();
-    setTimeout(() => controller.abort(), 12000);
+    setTimeout(() => controller.abort(), 40000); // 40 секунд таймаут
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -460,7 +460,7 @@ ${toCheck.map((c, i) => `Кандидат #${i+1}: "${c.title}" (Цена: ${c.p
 
     if (!res.ok) {
       console.error("[AI Visual Matcher] OpenRouter API error", res.status);
-      return []; // Строгое правило: если не смогли визуально сверить, отбрасываем
+      return candidates.filter(c => !/短袖|POLO衫|Polo衫|T恤|翻领T|衬衫|打底衫/i.test(c.title || ""));
     }
     const data = await res.json();
     const raw = String(data?.choices?.[0]?.message?.content ?? "").trim();
@@ -469,48 +469,38 @@ ${toCheck.map((c, i) => `Кандидат #${i+1}: "${c.title}" (Цена: ${c.p
     if (Array.isArray(parsed.matches)) {
       const verified = candidates.filter(c => {
         const idx = toCheck.indexOf(c);
-        // Если кандидат не попал в проверку (нет фото или не влез в топ-6), мы его БЛОКИРУЕМ. 
-        // Мы доверяем ТОЛЬКО визуально сверенным товарам!
         if (idx === -1) {
-          console.log(`[AI Visual Matcher] ❌ Candidate skipped visual check (no image or not in top 6). Rejecting: "${c.title}"`);
-          return false;
+          return !/短袖|POLO衫|Polo衫|T恤|翻领T|衬衫|打底衫/i.test(c.title || "");
         }
 
         const m = parsed.matches?.find(it => it.candidate_index === idx + 1);
         if (!m) {
-          console.log(`[AI Visual Matcher] ❌ Candidate not found in AI response. Rejecting: "${c.title}"`);
-          return false;
+          return !/短袖|POLO衫|Polo衫|T恤|翻领T|衬衫|打底衫/i.test(c.title || "");
         }
         
-        // Исключаем товары с несоответствием категории (футболка вместо худи)
         if (m.is_same_category === false) {
           console.log(`[AI Visual Matcher] ❌ Category mismatch for candidate: "${c.title}"`);
           return false;
         }
         
-        // СТРОГОЕ ПРАВИЛО: Исключаем товары с визуальным сходством < 70%
         if (typeof m.visual_similarity === "number" && m.visual_similarity < 70) {
           console.log(`[AI Visual Matcher] ❌ Low similarity (${m.visual_similarity}%) for: "${c.title}"`);
           return false;
         }
 
-        // Повышаем оценки качественным и визуально близким совпадениям
         if (typeof m.visual_similarity === "number") c.score = (c.score || 1) + (m.visual_similarity / 10);
         if (typeof m.quality_rating === "number" && m.quality_rating >= 4) c.score = (c.score || 1) + 4;
         return true;
       });
 
-      // ВОЗВРАЩАЕМ ТОЛЬКО УСПЕШНО ВЕРИФИЦИРОВАННЫХ КАНДИДАТОВ!
-      // Если verified пустой, мы возвращаем [], а не исходный мусор.
       return verified;
     }
   } catch (e) {
-    console.warn("[AI Visual Matcher] Error:", (e as Error).message);
-    return []; // При ошибке строго отбрасываем
+    console.warn("[AI Visual Matcher] Error or Timeout:", (e as Error).message);
+    return candidates.filter(c => !/短袖|POLO衫|Polo衫|T恤|翻领T|衬衫|打底衫/i.test(c.title || ""));
   }
 
-  return []; // Фоллбэк: если что-то пошло не так, возвращаем пустой массив
-
+  return candidates.filter(c => !/短袖|POLO衫|Polo衫|T恤|翻领T|衬衫|打底衫/i.test(c.title || ""));
 }
 
 // ─── Фильтрация и отображение только Топ-4 самых точных совпадений ───────────
