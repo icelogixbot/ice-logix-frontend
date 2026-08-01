@@ -272,14 +272,25 @@ async function enhanceQuery(raw: string): Promise<{
 - Сформируй:
   * enhanced_en: английский поисковый запрос (например "Polo Ralph Lauren zip hoodie men gray")
   * enhanced_ru: русский поисковый запрос (например "Polo Ralph Lauren худи на молнии серое")
-  * enhanced_zh: запрос на УПРОЩЁННОМ КИТАЙСКОМ (简体中文) для поиска по китайским сайтам (Taobao, 1688, Dewu, Pinduoduo, Xianyu). Переводи бренды и типы одежды на китайский (например: Polo Ralph Lauren → 拉夫劳伦, Nike Air Force 1 → 耐克空军一号, худи → 连帽卫衣, кроссовки → 运动鞋)
+  * enhanced_zh: запрос на УПРОЩЁННОМ КИТАЙСКОМ (简体中文) для поиска по китайским сайтам (Pinduoduo, Taobao, 1688, Dewu). 
+    КРИТИЧЕСКИ ВАЖНО: используй сленг и ключевые слова продавцов Pinduoduo, так как латинские бренды там не пишут:
+    - Polo Ralph Lauren → 保罗 小马标
+    - Nike → 耐克 空军 钩子
+    - Adidas → 阿迪达斯 三叶草
+    - Stone Island → 石头岛 罗盘
+    - Arc'teryx → 始祖鸟 骨头
+    - The North Face → 北面 1996
+    - Fear of God / Essentials → FOG 复线
+    - Stussy → 斯图西 巡游
+    - Carhartt → 卡哈特 工装
+    - Chrome Hearts → 克罗心 十字架
 - Если authenticity_tier="replica": ОСТАВЬ в enhanced_en слово "replica", а в enhanced_zh добавь "复刻" / "1:1"
 - Если authenticity_tier="original": НЕ добавляй слово "replica" / "копия" / "复刻" в результат
 
 Запрос пользователя: """${raw}"""
 
 Верни ТОЛЬКО валидный JSON (никаких markdown-оборок), пример формата:
-{"enhanced_en":"Calvin Klein zip hoodie men gray","enhanced_ru":"Calvin Klein худи на молнии мужское серое","enhanced_zh":"CK 卡尔文克莱恩 灰色 连帽拉链卫衣","brand":"Calvin Klein","category":"hoodie","authenticity_tier":"original"}
+{"enhanced_en":"Polo Ralph Lauren zip hoodie men gray","enhanced_ru":"Polo Ralph Lauren худи на молнии серое","enhanced_zh":"保罗 小马标 连帽卫衣 灰色","brand":"Polo Ralph Lauren","category":"hoodie","authenticity_tier":"original"}
 
 Если запрос непонятен — верни {"enhanced_en":"${raw}","enhanced_ru":"${raw}","enhanced_zh":"${raw}","brand":null,"category":null,"authenticity_tier":"original"}.`;
 
