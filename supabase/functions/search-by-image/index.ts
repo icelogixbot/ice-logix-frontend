@@ -304,21 +304,28 @@ async function searchByImageViaApifyFull(
 }
 
 // ─── Vision: получаем поисковый запрос по нескольким снимкам ─────────────────
-async function describeProductForSearch(imageUrls: string[]): Promise<{ query: string; brand: string | null; product_type: string | null; category: string | null; color: string | null }> {
+async function describeProductForSearch(imageUrls: string[]): Promise<{ query: string; pdd_query: string; brand: string | null; product_type: string | null; category: string | null; color: string | null }> {
   if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY not configured");
 
-  const prompt = `Ты эксперт по идентификации товаров (одежда / обувь / аксессуары / электроника).
-На предоставленных снимках (от 1 до 5 фото: лицевая сторона, деталь/логотип, бирка/ярлык, обратная сторона) — один и тот же товар.
+  const prompt = `Ты эксперт по распознаванию товаров по фото для китайских маркетплейсов (Pinduoduo, Taobao, 1688).
+Твоя задача — изучить фото и составить по нему ДВА вида запросов:
+1. "query": английское название товара (например "Polo Ralph Lauren zip hoodie grey")
+2. "pdd_query": КИТАЙСКИЙ ПОИСКОВЫЙ ЗАПРОС С УЧЁТОМ СЛЕНГА ПРОДАВЦОВ PINDUODUO (简体中文).
 
-Твоя задача — внимательно изучить ВСЕ фото и дать МАКСИМАЛЬНО ТОЧНЫЕ параметры товара:
-1. Найди ВИДИМЫЙ бренд (Polo Ralph Lauren, Nike, Adidas, Stussy, Carhartt, Stone Island, etc.)
-2. Определи ТОЧНЫЙ тип изделия (Zip Hoodie / Худи на молнии, Худи с капюшоном, Свитшот, Кроссовки, Джинсы, Куртка, etc.)
-3. Определи цвет и характерные визуальные детали (вышитый логотип игрока в поло на груди, патч, вышивка, особый принт).
-
-Дай точный поисковый запрос (5-10 слов на английском/русском), бренд, тип изделия и цвет.
+ВАЖНЫЕ ПРАВИЛА ДЛЯ pdd_query:
+- Продавцы на Pinduoduo НЕ пишут официальные латинские бренды!
+- Для Polo Ralph Lauren обязательно используй PDD-сленг: 保罗 小马标 (например: "保罗 小马标 连帽卫衣 灰色")
+- Для Nike: 空军 / 钩子
+- Для Adidas: 三叶草 / 贝壳头
+- Для Stone Island: 石头岛 / 罗盘
+- Для Arc'teryx: 始祖鸟 / 骨头
+- Для The North Face: 北面 1996
+- Для Fear of God / Essentials: FOG 复线
+- Укажи предмет одежды/обуви на китайском (连帽卫衣 = худи, 运动鞋 = кроссовки, 夹克 = куртка, T恤 = футболка).
+- Укажи цвет на китайском (灰色, 黑色, 白色, 蓝色 и т.д.).
 
 Верни ТОЛЬКО валидный JSON:
-{"query":"Polo Ralph Lauren zip hoodie grey logo","brand":"Polo Ralph Lauren","product_type":"Худи","category":"Одежда","color":"серый"}`;
+{"query":"Polo Ralph Lauren zip hoodie grey logo","pdd_query":"保罗 小马标 连帽卫衣 灰色","brand":"Polo Ralph Lauren","product_type":"Худи","category":"Одежда","color":"серый"}`;
 
   const imageParts = (imageUrls.length > 0 ? imageUrls : [""]).slice(0, 5).map((url) => ({
     type: "image_url",
@@ -371,6 +378,7 @@ async function describeProductForSearch(imageUrls: string[]): Promise<{ query: s
     } catch {
       return {
         query: cleaned.split("\n")[0].slice(0, 100),
+        pdd_query: "",
         brand: null,
         product_type: null,
         category: null,
@@ -380,6 +388,7 @@ async function describeProductForSearch(imageUrls: string[]): Promise<{ query: s
 
     return {
       query: typeof parsed.query === "string" ? parsed.query.trim() : "",
+      pdd_query: typeof parsed.pdd_query === "string" ? parsed.pdd_query.trim() : "",
       brand: typeof parsed.brand === "string" ? parsed.brand.trim() : null,
       product_type: typeof parsed.product_type === "string" ? parsed.product_type.trim() : null,
       category: typeof parsed.category === "string" ? parsed.category.trim() : null,
@@ -644,9 +653,9 @@ Deno.serve(async (req) => {
     }
   }
 
-  // 3. SECONDARY: search-products с распознанным Lens/Vision названием (+ descriptionHint)
+  // 3. SECONDARY: search-products с распознанным PDD-сленгом / Lens / Vision названием (+ descriptionHint)
   let searchProductsResults: ApifyResultItem[] = [];
-  const fusedQuery = [lensTitle || visionDetails.query, descriptionHint].filter(Boolean).join(" ").trim();
+  const fusedQuery = [visionDetails.pdd_query || lensTitle || visionDetails.query, descriptionHint].filter(Boolean).join(" ").trim();
   if (fusedQuery) {
     try {
       const sp = await callSearchProducts(fusedQuery, requestedPlatforms);
