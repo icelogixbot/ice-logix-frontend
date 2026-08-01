@@ -347,6 +347,7 @@ type SearchResult = {
   image_url: string | null;
   score: number; // эвристика релевантности (1.0 — топ совпадение)
   error?: string;
+  is_product_page?: boolean;
 };
 
 // ─── ICE LOGIX SCRAPER (наш парсер для китайских площадок) ──────────────────
@@ -407,6 +408,7 @@ async function scraperSearchChinese(
       image_url: string | null;
       sales_count: number | null;
       shop_name: string | null;
+      is_product_page?: boolean;
     }>).map((r, idx) => {
       const pc = getPlatform(r.platform);
       return {
@@ -419,6 +421,7 @@ async function scraperSearchChinese(
         currency: r.currency || pc?.defaultCurrency || "CNY",
         image_url: r.image_url,
         score: Math.max(0.3, 1 - idx * 0.1),
+        is_product_page: r.is_product_page,
       };
     });
   } catch (e) {
