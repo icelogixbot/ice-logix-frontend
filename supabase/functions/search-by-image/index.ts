@@ -310,43 +310,8 @@ async function describeProductForSearch(imageUrls: string[]): Promise<{ query: s
   const prompt = `Ты эксперт по распознаванию товаров по фото для китайских маркетплейсов (Pinduoduo, Taobao, 1688).
 Твоя задача — изучить фото и составить по нему ДВА вида запросов:
 1. "query": английское название товара (например "Polo Ralph Lauren zip hoodie grey")
-2. "pdd_query": КИТАЙСКИЙ ПОИСКОВЫЙ ЗАПРОС С УЧЁТОМ СЛЕНГА ПРОДАВЦОВ PINDUODUO (简体中文).
-
-ВАЖНЫЕ ПРАВИЛА ДЛЯ pdd_query:
-- Продавцы на Pinduoduo НЕ пишут официальные латинские бренды!
-- Для Polo Ralph Lauren обязательно используй PDD-сленг: 保罗 小马标 (например: "保罗 小马标 连帽卫衣 灰色")
-- Для Nike: 空军 / 钩子
-- Для Adidas: 三叶草 / 贝壳头
-- Для Stone Island: 石头岛 / 罗盘
-- Для Arc'teryx: 始祖鸟 / 骨头
-- Для The North Face: 北面 1996
-- Для Fear of God / Essentials: FOG 复线
-- Укажи предмет одежды/обуви на китайском (连帽卫衣 = худи, 运动鞋 = кроссовки, 夹克 = куртка, T恤 = футболка).
-- Укажи цвет на китайском (灰色, 黑色, 白色, 蓝色 и т.д.).
-
-Верни ТОЛЬКО валидный JSON:
-{"query":"Polo Ralph Lauren zip hoodie grey logo","pdd_query":"保罗 小马标 连帽卫衣 灰色","brand":"Polo Ralph Lauren","product_type":"Худи","category":"Одежда","color":"серый"}`;
-
-  const imageParts = (imageUrls.length > 0 ? imageUrls : [""]).slice(0, 5).map((url) => ({
-    type: "image_url",
-    image_url: { url },
-  }));
-
-  const body = {
-    model: VISION_MODEL,
-    messages: [{
-      role: "user",
-      content: [
-        { type: "text", text: prompt },
-        ...imageParts,
-      ],
-    }],
-    temperature: 0,
-    max_tokens: 250,
-  };
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
+2. "pdd_query": КИТАЙСКИЙ П�  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 45000);
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -409,14 +374,14 @@ async function verifyCandidatesVisuallyWithAI(
 
   const validCandidates = candidates.filter(c => c.image_url && /^https?:\/\//i.test(c.image_url));
   
-  // Если у нас вообще нет кандидатов с картинками - мы не можем сравнить по фото! Возвращаем пустой массив.
+  // Если у нас нет кандидатов с прямыми картинками — фильтруем по текстовым категориям (отсеиваем поло/футболки)
   if (validCandidates.length === 0) {
-    console.log("[AI Visual Matcher] ❌ No valid images found to compare. Rejecting all candidates to enforce visual verification.");
-    return [];
+    console.log("[AI Visual Matcher] ⚠️ No direct image URLs found. Applying text category guard.");
+    return candidates.filter(c => !/短袖|POLO衫|Polo衫|T恤|翻领T|衬衫|打底衫/i.test(c.title || ""));
   }
 
-  // Ограничиваем проверку до топ-6 кандидатов для высокой скорости
-  const toCheck = validCandidates.slice(0, 6);
+  // Ограничиваем проверку до топ-4 кандидатов для высокой скорости и гарантированного укладывания в таймаут
+  const toCheck = validCandidates.slice(0, 4);
 
   const prompt = `Ты строгий эксперт по отбору и проверке товаров по снимку. Твоя задача — отсеивать любой мусор, который не совпадает с искомым товаром на фото пользователя.
 На ИЗОБРАЖЕНИИ 0 — ИСКОМЫЙ ТОВАР ПОЛЬЗОВАТЕЛЯ.
@@ -443,7 +408,7 @@ ${toCheck.map((c, i) => `Кандидат #${i+1}: "${c.title}" (Цена: ${c.p
 
   try {
     const controller = new AbortController();
-    setTimeout(() => controller.abort(), 12000);
+    setTimeout(() => controller.abort(), 40000); // 40 секунд на обработку 4 тяжелых картинок
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -460,7 +425,53 @@ ${toCheck.map((c, i) => `Кандидат #${i+1}: "${c.title}" (Цена: ${c.p
 
     if (!res.ok) {
       console.error("[AI Visual Matcher] OpenRouter API error", res.status);
-      return []; // Строгое правило: если не смогли визуально сверить, отбрасываем
+      return candidates.filter(c => !/短袖|POLO衫|Polo衫|T恤|翻领T|衬衫|打底衫/i.test(c.title || ""));
+    }
+    const data = await res.json();
+    const raw = String(data?.choices?.[0]?.message?.content ?? "").trim();
+    const parsed = parseAssistantJson(raw) as { matches?: Array<{ candidate_index: number; is_same_category?: boolean; visual_similarity?: number; quality_rating?: number }> };
+
+    if (Array.isArray(parsed.matches)) {
+      const verified = candidates.filter(c => {
+        const idx = toCheck.indexOf(c);
+        // Если кандидат не попал в топ-4 проверки, но имеет валидный заголовок без поло/футболок — оставляем его в фоновом режиме
+        if (idx === -1) {
+          return !/短袖|POLO衫|Polo衫|T恤|翻领T|衬衫|打底衫/i.test(c.title || "");
+        }
+
+        const m = parsed.matches?.find(it => it.candidate_index === idx + 1);
+        if (!m) {
+          return !/短袖|POLO衫|Polo衫|T恤|翻领T|衬衫|打底衫/i.test(c.title || "");
+        }
+        
+        // Исключаем товары с несоответствием категории (футболка вместо худи)
+        if (m.is_same_category === false) {
+          console.log(`[AI Visual Matcher] ❌ Category mismatch for candidate: "${c.title}"`);
+          return false;
+        }
+        
+        // СТРОГОЕ ПРАВИЛО: Исключаем товары с визуальным сходством < 70%
+        if (typeof m.visual_similarity === "number" && m.visual_similarity < 70) {
+          console.log(`[AI Visual Matcher] ❌ Low similarity (${m.visual_similarity}%) for: "${c.title}"`);
+          return false;
+        }
+
+        // Повышаем оценки качественным и визуально близким совпадениям
+        if (typeof m.visual_similarity === "number") c.score = (c.score || 1) + (m.visual_similarity / 10);
+        if (typeof m.quality_rating === "number" && m.quality_rating >= 4) c.score = (c.score || 1) + 4;
+        return true;
+      });
+
+      return verified;
+    }
+  } catch (e) {
+    console.warn("[AI Visual Matcher] Error or Timeout:", (e as Error).message);
+    // При таймауте не ломаем выдачу, а применяем защитный фильтр от поло/футболок по текстам
+    return candidates.filter(c => !/短袖|POLO衫|Polo衫|T恤|翻领T|衬衫|打底衫/i.test(c.title || ""));
+  }
+
+  return candidates.filter(c => !/短袖|POLO衫|Polo衫|T恤|翻领T|衬衫|打底衫/i.test(c.title || ""));
+}�ь, отбрасываем
     }
     const data = await res.json();
     const raw = String(data?.choices?.[0]?.message?.content ?? "").trim();
