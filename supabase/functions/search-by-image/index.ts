@@ -408,22 +408,27 @@ async function verifyCandidatesVisuallyWithAI(
   if (!OPENROUTER_API_KEY || !clientPhotoUrl || candidates.length === 0) return candidates;
 
   const validCandidates = candidates.filter(c => c.image_url && /^https?:\/\//i.test(c.image_url));
-  if (validCandidates.length === 0) return candidates;
+  
+  // Если у нас вообще нет кандидатов с картинками - мы не можем сравнить по фото! Возвращаем пустой массив.
+  if (validCandidates.length === 0) {
+    console.log("[AI Visual Matcher] ❌ No valid images found to compare. Rejecting all candidates to enforce visual verification.");
+    return [];
+  }
 
   // Ограничиваем проверку до топ-6 кандидатов для высокой скорости
   const toCheck = validCandidates.slice(0, 6);
 
-  const prompt = `Ты эксперт по отбору и проверке товаров по снимку.
+  const prompt = `Ты строгий эксперт по отбору и проверке товаров по снимку. Твоя задача — отсеивать любой мусор, который не совпадает с искомым товаром на фото пользователя.
 На ИЗОБРАЖЕНИИ 0 — ИСКОМЫЙ ТОВАР ПОЛЬЗОВАТЕЛЯ.
 Ниже фото кандидатов с маркетплейса:
 ${toCheck.map((c, i) => `Кандидат #${i+1}: "${c.title}" (Цена: ${c.price || '?'} ${c.currency || 'CNY'})`).join("\n")}
 
-Сравни визуально ИЗОБРАЖЕНИЕ 0 с каждым Кандидатом:
-1. is_same_category (boolean): Совпадает ли тип изделия? (Пример: если на фото 0 — худи с капюшоном, а на фото кандидата футболка/поло — is_same_category: false!).
-2. visual_similarity (0-100): Процент визуального сходства кроя, капюшона, фасона, вышивки.
-3. quality_rating (1-5): Оценка визуального качества (1 - дешёвая подделка/мусор, 5 - отличная копия/оригинал).
+Сравни визуально ИЗОБРАЖЕНИЕ 0 с каждым Кандидатом ОЧЕНЬ ВНИМАТЕЛЬНО:
+1. is_same_category (boolean): Совпадает ли тип изделия? Если на фото пользователя худи, а кандидат — футболка, поло, с коротким рукавом, или другой тип одежды — СРАЗУ СТАВЬ is_same_category: false!
+2. visual_similarity (0-100): Процент визуального сходства кроя, фасона, наличия/отсутствия капюшона, деталей, вышивки.
+3. quality_rating (1-5): Оценка визуального качества.
 
-Верни ТОЛЬКО JSON:
+Верни ТОЛЬКО JSON без маркдауна и текста:
 {"matches": [{"candidate_index": 1, "is_same_category": true, "visual_similarity": 95, "quality_rating": 5}]}
 `;
 
@@ -453,7 +458,10 @@ ${toCheck.map((c, i) => `Кандидат #${i+1}: "${c.title}" (Цена: ${c.p
       signal: controller.signal,
     });
 
-    if (!res.ok) return candidates;
+    if (!res.ok) {
+      console.error("[AI Visual Matcher] OpenRouter API error", res.status);
+      return []; // Строгое правило: если не смогли визуально сверить, отбрасываем
+    }
     const data = await res.json();
     const raw = String(data?.choices?.[0]?.message?.content ?? "").trim();
     const parsed = parseAssistantJson(raw) as { matches?: Array<{ candidate_index: number; is_same_category?: boolean; visual_similarity?: number; quality_rating?: number }> };
@@ -461,32 +469,48 @@ ${toCheck.map((c, i) => `Кандидат #${i+1}: "${c.title}" (Цена: ${c.p
     if (Array.isArray(parsed.matches)) {
       const verified = candidates.filter(c => {
         const idx = toCheck.indexOf(c);
-        if (idx === -1) return true;
+        // Если кандидат не попал в проверку (нет фото или не влез в топ-6), мы его БЛОКИРУЕМ. 
+        // Мы доверяем ТОЛЬКО визуально сверенным товарам!
+        if (idx === -1) {
+          console.log(`[AI Visual Matcher] ❌ Candidate skipped visual check (no image or not in top 6). Rejecting: "${c.title}"`);
+          return false;
+        }
+
         const m = parsed.matches?.find(it => it.candidate_index === idx + 1);
-        if (!m) return true;
+        if (!m) {
+          console.log(`[AI Visual Matcher] ❌ Candidate not found in AI response. Rejecting: "${c.title}"`);
+          return false;
+        }
+        
         // Исключаем товары с несоответствием категории (футболка вместо худи)
         if (m.is_same_category === false) {
           console.log(`[AI Visual Matcher] ❌ Category mismatch for candidate: "${c.title}"`);
           return false;
         }
-        // Исключаем товары с визуальным сходством < 45%
-        if (typeof m.visual_similarity === "number" && m.visual_similarity < 45) {
+        
+        // СТРОГОЕ ПРАВИЛО: Исключаем товары с визуальным сходством < 70%
+        if (typeof m.visual_similarity === "number" && m.visual_similarity < 70) {
           console.log(`[AI Visual Matcher] ❌ Low similarity (${m.visual_similarity}%) for: "${c.title}"`);
           return false;
         }
+
         // Повышаем оценки качественным и визуально близким совпадениям
-        if (typeof m.visual_similarity === "number" && m.visual_similarity >= 80) c.score = (c.score || 1) + 6;
+        if (typeof m.visual_similarity === "number") c.score = (c.score || 1) + (m.visual_similarity / 10);
         if (typeof m.quality_rating === "number" && m.quality_rating >= 4) c.score = (c.score || 1) + 4;
         return true;
       });
 
-      return verified.length > 0 ? verified : candidates;
+      // ВОЗВРАЩАЕМ ТОЛЬКО УСПЕШНО ВЕРИФИЦИРОВАННЫХ КАНДИДАТОВ!
+      // Если verified пустой, мы возвращаем [], а не исходный мусор.
+      return verified;
     }
   } catch (e) {
     console.warn("[AI Visual Matcher] Error:", (e as Error).message);
+    return []; // При ошибке строго отбрасываем
   }
 
-  return candidates;
+  return []; // Фоллбэк: если что-то пошло не так, возвращаем пустой массив
+
 }
 
 // ─── Фильтрация и отображение только Топ-4 самых точных совпадений ───────────
