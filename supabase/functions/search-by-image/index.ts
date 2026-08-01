@@ -506,7 +506,7 @@ ${toCheck.map((c, i) => `Кандидат #${i+1}: "${c.title}" (Цена: ${c.p
   }
 
   return candidates.filter(c => !/短袖|POLO衫|Polo衫|T恤|翻领T|衬衫|打底衫/i.test(c.title || ""));
-}�ь, отбрасываем
+}ь, отбрасываем
     }
     const data = await res.json();
     const raw = String(data?.choices?.[0]?.message?.content ?? "").trim();
