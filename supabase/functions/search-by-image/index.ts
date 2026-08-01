@@ -407,7 +407,7 @@ async function verifyCandidatesVisuallyWithAI(
 ): Promise<ApifyResultItem[]> {
   if (!OPENROUTER_API_KEY || !clientPhotoUrl || candidates.length === 0) return candidates;
 
-  const validCandidates = candidates.filter(c => c.image_url && /^https?:///i.test(c.image_url));
+  const validCandidates = candidates.filter(c => c.image_url && /^https?:\/\//i.test(c.image_url));
   
   // Если у нас нет кандидатов с картинками - применяем текстильный фильтр от поло/футболок
   if (validCandidates.length === 0) {
