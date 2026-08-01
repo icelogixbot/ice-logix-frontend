@@ -310,7 +310,42 @@ async function describeProductForSearch(imageUrls: string[]): Promise<{ query: s
   const prompt = `Ты эксперт по распознаванию товаров по фото для китайских маркетплейсов (Pinduoduo, Taobao, 1688).
 Твоя задача — изучить фото и составить по нему ДВА вида запросов:
 1. "query": английское название товара (например "Polo Ralph Lauren zip hoodie grey")
-2. "pdd_query": КИТАЙСКИЙ П�  const controller = new AbortController();
+2. "pdd_query": КИТАЙСКИЙ ПОИСКОВЫЙ ЗАПРОС С УЧЁТОМ СЛЕНГА ПРОДАВЦОВ PINDUODUO (简体中文).
+
+ВАЖНЫЕ ПРАВИЛА ДЛЯ pdd_query:
+- Продавцы на Pinduoduo НЕ пишут официальные латинские бренды!
+- Для Polo Ralph Lauren обязательно используй PDD-сленг: 保罗 小马标 (например: "保罗 小马标 连帽卫衣 灰色")
+- Для Nike: 空军 / 钩子
+- Для Adidas: 三叶草 / 贝壳头
+- Для Stone Island: 石头岛 / 罗盘
+- Для Arc'teryx: 始祖鸟 / 骨头
+- Для The North Face: 北面 1996
+- Для Fear of God / Essentials: FOG 复线
+- Укажи предмет одежды/обуви на китайском (连帽卫衣 = худи, 运动鞋 = кроссовки, 夹克 = куртка, T恤 = футболка).
+- Укажи цвет на китайском (灰色, 黑色, 白色, 蓝色 и т.д.).
+
+Верни ТОЛЬКО валидный JSON:
+{"query":"Polo Ralph Lauren zip hoodie grey logo","pdd_query":"保罗 小马标 连帽卫衣 灰色","brand":"Polo Ralph Lauren","product_type":"Худи","category":"Одежда","color":"серый"}`;
+
+  const imageParts = (imageUrls.length > 0 ? imageUrls : [""]).slice(0, 5).map((url) => ({
+    type: "image_url",
+    image_url: { url },
+  }));
+
+  const body = {
+    model: VISION_MODEL,
+    messages: [{
+      role: "user",
+      content: [
+        { type: "text", text: prompt },
+        ...imageParts,
+      ],
+    }],
+    temperature: 0,
+    max_tokens: 250,
+  };
+
+  const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 45000);
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -334,7 +369,7 @@ async function describeProductForSearch(imageUrls: string[]): Promise<{ query: s
     const data = await res.json();
     const raw = String(data?.choices?.[0]?.message?.content ?? "").trim();
     const cleaned = raw.startsWith("```")
-      ? raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/s, "").trim()
+      ? raw.replace(/^```(?:json)?s*/i, "").replace(/s*```s*$/s, "").trim()
       : raw;
 
     let parsed: Record<string, unknown> = {};
@@ -471,7 +506,7 @@ ${toCheck.map((c, i) => `Кандидат #${i+1}: "${c.title}" (Цена: ${c.p
   }
 
   return candidates.filter(c => !/短袖|POLO衫|Polo衫|T恤|翻领T|衬衫|打底衫/i.test(c.title || ""));
-}�ь, отбрасываем
+}�ь, отбрасываем
     }
     const data = await res.json();
     const raw = String(data?.choices?.[0]?.message?.content ?? "").trim();
