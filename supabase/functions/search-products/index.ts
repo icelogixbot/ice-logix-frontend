@@ -613,6 +613,13 @@ Deno.serve(async (req) => {
     try {
       const u = new URL(r.url);
       const path = u.pathname.replace(/\/+$/, "");
+      // Исключение: PDD URLs имеют короткий путь но содержат goods_id или search_key
+      // например: /goods.html?goods_id=123 или /search_result.html?search_key=...
+      const isPddUrl = u.hostname.includes("yangkeduo.com") || u.hostname.includes("pinduoduo.com");
+      if (isPddUrl) {
+        // Принимаем любой PDD URL с непустым путём
+        return !!path && path !== "/";
+      }
       // Убираем главные страницы и слишком короткие пути (обычно категории)
       if (!path || path === "" || path === "/" || path.split("/").filter(Boolean).length < 2) return false;
       // Убираем login/auth/about/help/faq страницы
