@@ -400,6 +400,95 @@ async function describeProductForSearch(imageUrls: string[]): Promise<{ query: s
   }
 }
 
+// ─── AI Visual Verification: Сравнивает фото клиента с фото товаров ──────────
+async function verifyCandidatesVisuallyWithAI(
+  clientPhotoUrl: string,
+  candidates: ApifyResultItem[],
+): Promise<ApifyResultItem[]> {
+  if (!OPENROUTER_API_KEY || !clientPhotoUrl || candidates.length === 0) return candidates;
+
+  const validCandidates = candidates.filter(c => c.image_url && /^https?:\/\//i.test(c.image_url));
+  if (validCandidates.length === 0) return candidates;
+
+  // Ограничиваем проверку до топ-6 кандидатов для высокой скорости
+  const toCheck = validCandidates.slice(0, 6);
+
+  const prompt = `Ты эксперт по отбору и проверке товаров по снимку.
+На ИЗОБРАЖЕНИИ 0 — ИСКОМЫЙ ТОВАР ПОЛЬЗОВАТЕЛЯ.
+Ниже фото кандидатов с маркетплейса:
+${toCheck.map((c, i) => `Кандидат #${i+1}: "${c.title}" (Цена: ${c.price || '?'} ${c.currency || 'CNY'})`).join("\n")}
+
+Сравни визуально ИЗОБРАЖЕНИЕ 0 с каждым Кандидатом:
+1. is_same_category (boolean): Совпадает ли тип изделия? (Пример: если на фото 0 — худи с капюшоном, а на фото кандидата футболка/поло — is_same_category: false!).
+2. visual_similarity (0-100): Процент визуального сходства кроя, капюшона, фасона, вышивки.
+3. quality_rating (1-5): Оценка визуального качества (1 - дешёвая подделка/мусор, 5 - отличная копия/оригинал).
+
+Верни ТОЛЬКО JSON:
+{"matches": [{"candidate_index": 1, "is_same_category": true, "visual_similarity": 95, "quality_rating": 5}]}
+`;
+
+  const imageParts = [
+    { type: "text", text: prompt },
+    { type: "image_url", image_url: { url: clientPhotoUrl } },
+    ...toCheck.map(c => ({
+      type: "image_url",
+      image_url: { url: c.image_url! }
+    }))
+  ];
+
+  try {
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 12000);
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: VISION_MODEL,
+        messages: [{ role: "user", content: imageParts }],
+        temperature: 0,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) return candidates;
+    const data = await res.json();
+    const raw = String(data?.choices?.[0]?.message?.content ?? "").trim();
+    const parsed = parseAssistantJson(raw) as { matches?: Array<{ candidate_index: number; is_same_category?: boolean; visual_similarity?: number; quality_rating?: number }> };
+
+    if (Array.isArray(parsed.matches)) {
+      const verified = candidates.filter(c => {
+        const idx = toCheck.indexOf(c);
+        if (idx === -1) return true;
+        const m = parsed.matches?.find(it => it.candidate_index === idx + 1);
+        if (!m) return true;
+        // Исключаем товары с несоответствием категории (футболка вместо худи)
+        if (m.is_same_category === false) {
+          console.log(`[AI Visual Matcher] ❌ Category mismatch for candidate: "${c.title}"`);
+          return false;
+        }
+        // Исключаем товары с визуальным сходством < 45%
+        if (typeof m.visual_similarity === "number" && m.visual_similarity < 45) {
+          console.log(`[AI Visual Matcher] ❌ Low similarity (${m.visual_similarity}%) for: "${c.title}"`);
+          return false;
+        }
+        // Повышаем оценки качественным и визуально близким совпадениям
+        if (typeof m.visual_similarity === "number" && m.visual_similarity >= 80) c.score = (c.score || 1) + 6;
+        if (typeof m.quality_rating === "number" && m.quality_rating >= 4) c.score = (c.score || 1) + 4;
+        return true;
+      });
+
+      return verified.length > 0 ? verified : candidates;
+    }
+  } catch (e) {
+    console.warn("[AI Visual Matcher] Error:", (e as Error).message);
+  }
+
+  return candidates;
+}
+
 // ─── Фильтрация и отображение только Топ-4 самых точных совпадений ───────────
 function filterAndRankTopResults(
   items: ApifyResultItem[],
@@ -434,20 +523,34 @@ function filterAndRankTopResults(
       score += 3;
     }
 
-    // Проверка соответствия категории
+    // Проверка соответствия категории (включая китайские термины!)
     if (isHoodie) {
-      if (titleLower.includes("hoodie") || titleLower.includes("худи") || titleLower.includes("zip")) score += 3;
-      if (titleLower.includes("t-shirt") || titleLower.includes("tee") || titleLower.includes("футболка") || titleLower.includes("pants") || titleLower.includes("shorts")) {
-        score -= 10;
+      if (titleLower.includes("hoodie") || titleLower.includes("худи") || titleLower.includes("zip") || titleLower.includes("连帽") || titleLower.includes("卫衣") || titleLower.includes("开衫")) {
+        score += 5;
+      }
+      // СТРОГИЙ ШТРАФ ЗА ФУТБОЛКИ/ПОЛО/МАЙКИ (T恤, 打底衫, 短袖, polo衫, 衬衫) ПРИ ПОИСКЕ ХУДИ
+      if (
+        titleLower.includes("t-shirt") || titleLower.includes("tee") || titleLower.includes("футболка") ||
+        titleLower.includes("t恤") || titleLower.includes("打底衫") || titleLower.includes("短袖") ||
+        titleLower.includes("polo衫") || titleLower.includes("衬衫") || titleLower.includes("圆领t") ||
+        titleLower.includes("pants") || titleLower.includes("shorts")
+      ) {
+        score -= 25; // Гарантированный отсев футболок при поиске худи
       }
     } else if (isSneaker) {
-      if (titleLower.includes("sneaker") || titleLower.includes("shoe") || titleLower.includes("кроссовки") || titleLower.includes("dunk") || titleLower.includes("force") || titleLower.includes("samba")) score += 3;
-      if (titleLower.includes("shirt") || titleLower.includes("hoodie") || titleLower.includes("jacket") || titleLower.includes("pants")) {
-        score -= 10;
+      if (titleLower.includes("sneaker") || titleLower.includes("shoe") || titleLower.includes("кроссовки") || titleLower.includes("dunk") || titleLower.includes("force") || titleLower.includes("samba") || titleLower.includes("运动鞋") || titleLower.includes("板鞋") || titleLower.includes("跑鞋")) {
+        score += 5;
+      }
+      if (titleLower.includes("shirt") || titleLower.includes("hoodie") || titleLower.includes("jacket") || titleLower.includes("pants") || titleLower.includes("卫衣") || titleLower.includes("t恤")) {
+        score -= 25;
       }
     } else if (isJacket) {
-      if (titleLower.includes("jacket") || titleLower.includes("coat") || titleLower.includes("куртка") || titleLower.includes("пуховик")) score += 3;
-      if (titleLower.includes("t-shirt") || titleLower.includes("shorts")) score -= 10;
+      if (titleLower.includes("jacket") || titleLower.includes("coat") || titleLower.includes("куртка") || titleLower.includes("пуховик") || titleLower.includes("外套") || titleLower.includes("夹克") || titleLower.includes("羽绒服")) {
+        score += 5;
+      }
+      if (titleLower.includes("t-shirt") || titleLower.includes("shorts") || titleLower.includes("t恤")) {
+        score -= 25;
+      }
     }
 
     // Приоритет розничным потребительским маркетплейсам над оптовым 1688
@@ -690,7 +793,8 @@ Deno.serve(async (req) => {
   }
 
   const combined = [...directMatches, ...searchProductsResults];
-  const top4Results = filterAndRankTopResults(combined, visionDetails, descriptionHint, 4, maxPrice);
+  const visuallyVerifiedCombined = await verifyCandidatesVisuallyWithAI(signedImageUrls[0], combined);
+  const top4Results = filterAndRankTopResults(visuallyVerifiedCombined, visionDetails, descriptionHint, 4, maxPrice);
 
   if (top4Results.length >= 1) {
     return new Response(
@@ -743,7 +847,8 @@ Deno.serve(async (req) => {
   }
 
   const rawFallbackList = ((searchResp as Record<string, unknown>)?.results || []) as ApifyResultItem[];
-  const finalFallbackTop4 = filterAndRankTopResults(rawFallbackList, visionDetails, descriptionHint, 4, maxPrice);
+  const visuallyVerifiedFallback = await verifyCandidatesVisuallyWithAI(signedImageUrls[0], rawFallbackList);
+  const finalFallbackTop4 = filterAndRankTopResults(visuallyVerifiedFallback, visionDetails, descriptionHint, 4, maxPrice);
 
   return new Response(
     JSON.stringify({
