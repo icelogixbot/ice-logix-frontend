@@ -596,6 +596,46 @@ function filterAndRankTopResults(
   return uniqueItems;
 }
 
+
+const SCRAPER_URL = Deno.env.get("SCRAPER_URL") || "https://ice-logix-scraper.onrender.com";
+
+async function callCustomScraperDirectImageSearch(imageUrl: string, platforms: string[] | undefined): Promise<ApifyResultItem[]> {
+  const url = `${SCRAPER_URL}/api/search-by-image`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 25000);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": Deno.env.get("SCRAPER_API_SECRET") || "",
+      },
+      body: JSON.stringify({ image_url: imageUrl, platforms }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (data.ok && Array.isArray(data.results)) {
+      return data.results.map((r: any) => ({
+        platform: r.platform || "1688",
+        platform_label: r.platform_label || "1688 (Direct Photo)",
+        flag: r.flag || "🇨🇳",
+        title: r.title || "",
+        url: r.url || "",
+        price: r.price || null,
+        currency: r.currency || "CNY",
+        image_url: r.image_url || null,
+        score: 3,
+      }));
+    }
+    return [];
+  } catch (_e) {
+    clearTimeout(timeoutId);
+    return [];
+  }
+}
+
 async function callSearchProducts(query: string, platforms: string[] | undefined): Promise<unknown> {
   const url = `${SUPABASE_URL}/functions/v1/search-products`;
   const controller = new AbortController();
@@ -725,6 +765,7 @@ Deno.serve(async (req) => {
 
   // 2. PRIMARY: Apify Google Lens — визуальное распознавание + прямые ссылки на маркетплейсы
   //    Передаём ВСЕ фото — Apify объединит результаты
+  const customScraperResults = await callCustomScraperDirectImageSearch(signedImageUrls[0], requestedPlatforms);
   const apifyResp = await searchByImageViaApifyFull(signedImageUrls);
   const directMatches: ApifyResultItem[] = [];
   let lensTitle: string | null = null;
@@ -802,7 +843,7 @@ Deno.serve(async (req) => {
     }
   }
 
-  const combined = [...directMatches, ...searchProductsResults];
+  const combined = [...customScraperResults, ...directMatches, ...searchProductsResults];
   const visuallyVerifiedCombined = await verifyCandidatesVisuallyWithAI(signedImageUrls[0], combined);
   const top4Results = filterAndRankTopResults(visuallyVerifiedCombined, visionDetails, descriptionHint, 4, maxPrice);
 
