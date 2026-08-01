@@ -409,26 +409,25 @@ async function verifyCandidatesVisuallyWithAI(
 
   const validCandidates = candidates.filter(c => c.image_url && /^https?:\/\//i.test(c.image_url));
   
-  // Если у нас нет кандидатов с картинками - применяем текстильный фильтр от поло/футболок
   if (validCandidates.length === 0) {
-    console.log("[AI Visual Matcher] ⚠️ No direct image URLs found. Applying text category guard.");
-    return candidates.filter(c => !/短袖|POLO衫|Polo衫|T恤|翻领T|衬衫|打底衫/i.test(c.title || ""));
+    console.log("[AI Visual Matcher] ❌ No images. STRICT MODE: Rejecting all.");
+    return []; // Строго удаляем, если нет фото
   }
 
-  // Ограничиваем проверку до топ-4 кандидатов для высокой скорости
+  // Ограничиваем проверку до топ-4 кандидатов
   const toCheck = validCandidates.slice(0, 4);
 
-  const prompt = `Ты строгий эксперт по отбору и проверке товаров по снимку. Твоя задача — отсеивать любой мусор, который не совпадает с искомым товаром на фото пользователя.
+  const prompt = `Ты строгий аутентификатор (Legit Check) и эксперт по отбору товаров по снимку. Твоя задача — отсеивать любой мусор, неточности и дешевые подделки, которые не совпадают с искомым товаром на фото пользователя.
 На ИЗОБРАЖЕНИИ 0 — ИСКОМЫЙ ТОВАР ПОЛЬЗОВАТЕЛЯ.
 Ниже фото кандидатов с маркетплейса:
 ${toCheck.map((c, i) => `Кандидат #${i+1}: "${c.title}" (Цена: ${c.price || '?'} ${c.currency || 'CNY'})`).join("\n")}
 
-Сравни визуально ИЗОБРАЖЕНИЕ 0 с каждым Кандидатом ОЧЕНЬ ВНИМАТЕЛЬНО:
-1. is_same_category (boolean): Совпадает ли тип изделия? Если на фото пользователя худи, а кандидат — футболка, поло, с коротким рукавом, или другой тип одежды — СРАЗУ СТАВЬ is_same_category: false!
-2. visual_similarity (0-100): Процент визуального сходства кроя, фасона, наличия/отсутствия капюшона, деталей, вышивки.
-3. quality_rating (1-5): Оценка визуального качества.
+Сравни визуально ИЗОБРАЖЕНИЕ 0 с каждым Кандидатом как педантичный ревизор:
+1. is_same_category (boolean): Совпадает ли тип изделия? Если на фото худи на молнии (zip), а кандидат — свитшот без молнии, футболка, юбка или куртка — СРАЗУ СТАВЬ is_same_category: false! Любое несовпадение кроя = false.
+2. visual_similarity (0-100): Процент сходства. Обрати внимание на наличие логотипов (например, всадник Ральф Лорен), форму карманов, шнурков, капюшона. Если это откровенно дешевая паль с искаженным логотипом или другими пропорциями — ставь ниже 50%.
+3. quality_rating (1-5): Оценка качества. Дешевая копия = 1, качественный товар = 4 или 5.
 
-Верни ТОЛЬКО JSON без маркдауна и текста:
+Верни ТОЛЬКО валидный JSON:
 {"matches": [{"candidate_index": 1, "is_same_category": true, "visual_similarity": 95, "quality_rating": 5}]}
 `;
 
@@ -443,7 +442,7 @@ ${toCheck.map((c, i) => `Кандидат #${i+1}: "${c.title}" (Цена: ${c.p
 
   try {
     const controller = new AbortController();
-    setTimeout(() => controller.abort(), 40000); // 40 секунд таймаут
+    setTimeout(() => controller.abort(), 40000);
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -451,7 +450,7 @@ ${toCheck.map((c, i) => `Кандидат #${i+1}: "${c.title}" (Цена: ${c.p
         "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
       },
       body: JSON.stringify({
-        model: VISION_MODEL,
+        model: "google/gemini-2.5-pro", // Используем PRO версию для строгого Legit Check
         messages: [{ role: "user", content: imageParts }],
         temperature: 0,
       }),
@@ -460,7 +459,7 @@ ${toCheck.map((c, i) => `Кандидат #${i+1}: "${c.title}" (Цена: ${c.p
 
     if (!res.ok) {
       console.error("[AI Visual Matcher] OpenRouter API error", res.status);
-      return candidates.filter(c => !/短袖|POLO衫|Polo衫|T恤|翻领T|衬衫|打底衫/i.test(c.title || ""));
+      return []; // СТРОГИЙ РЕЖИМ: при ошибке АПИ возвращаем ПУСТОТУ, чтобы не пропустить мусор
     }
     const data = await res.json();
     const raw = String(data?.choices?.[0]?.message?.content ?? "").trim();
@@ -469,21 +468,18 @@ ${toCheck.map((c, i) => `Кандидат #${i+1}: "${c.title}" (Цена: ${c.p
     if (Array.isArray(parsed.matches)) {
       const verified = candidates.filter(c => {
         const idx = toCheck.indexOf(c);
-        if (idx === -1) {
-          return !/短袖|POLO衫|Polo衫|T恤|翻领T|衬衫|打底衫/i.test(c.title || "");
-        }
+        if (idx === -1) return false; // СТРОГИЙ РЕЖИМ: если не проверен ИИ - отбрасываем
 
         const m = parsed.matches?.find(it => it.candidate_index === idx + 1);
-        if (!m) {
-          return !/短袖|POLO衫|Polo衫|T恤|翻领T|衬衫|打底衫/i.test(c.title || "");
-        }
+        if (!m) return false;
         
         if (m.is_same_category === false) {
           console.log(`[AI Visual Matcher] ❌ Category mismatch for candidate: "${c.title}"`);
           return false;
         }
         
-        if (typeof m.visual_similarity === "number" && m.visual_similarity < 70) {
+        // Порог повышен до 85% для жесткого отсеивания "плохой пали"
+        if (typeof m.visual_similarity === "number" && m.visual_similarity < 85) {
           console.log(`[AI Visual Matcher] ❌ Low similarity (${m.visual_similarity}%) for: "${c.title}"`);
           return false;
         }
@@ -497,10 +493,10 @@ ${toCheck.map((c, i) => `Кандидат #${i+1}: "${c.title}" (Цена: ${c.p
     }
   } catch (e) {
     console.warn("[AI Visual Matcher] Error or Timeout:", (e as Error).message);
-    return candidates.filter(c => !/短袖|POLO衫|Polo衫|T恤|翻领T|衬衫|打底衫/i.test(c.title || ""));
+    return []; // СТРОГИЙ РЕЖИМ: при ошибке возвращаем ПУСТОТУ
   }
 
-  return candidates.filter(c => !/短袖|POLO衫|Polo衫|T恤|翻领T|衬衫|打底衫/i.test(c.title || ""));
+  return []; // СТРОГИЙ РЕЖИМ: фоллбэк - ПУСТОТА
 }
 
 // ─── Фильтрация и отображение только Топ-4 самых точных совпадений ───────────
