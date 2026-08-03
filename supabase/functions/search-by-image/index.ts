@@ -602,7 +602,7 @@ const SCRAPER_URL = Deno.env.get("SCRAPER_URL") || "https://ice-logix-scraper.on
 async function callCustomScraperDirectImageSearch(imageUrl: string, platforms: string[] | undefined): Promise<ApifyResultItem[]> {
   const url = `${SCRAPER_URL}/api/search-by-image`;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 55000);
+  const timeoutId = setTimeout(() => controller.abort(), 20000);
   try {
     const res = await fetch(url, {
       method: "POST",
@@ -879,8 +879,14 @@ Deno.serve(async (req) => {
   }
 
   const combined = [...customScraperResults, ...directMatches, ...searchProductsResults];
-  const visuallyVerifiedCombined = await verifyCandidatesVisuallyWithAI(signedImageUrls[0], combined);
-  const top4Results = filterAndRankTopResults(visuallyVerifiedCombined, visionDetails, descriptionHint, 4, maxPrice);
+  // Применяем AI verification только к Apify результатам (которые могут быть шумными)
+  // Для text-search результатов AI verification избыточна и часто убивает валидные результаты
+  const apifyOnly = directMatches;
+  const visuallyVerifiedApify = apifyOnly.length > 0
+    ? await verifyCandidatesVisuallyWithAI(signedImageUrls[0], apifyOnly)
+    : [];
+  const trustedResults = [...customScraperResults, ...searchProductsResults, ...visuallyVerifiedApify];
+  const top4Results = filterAndRankTopResults(trustedResults, visionDetails, descriptionHint, 4, maxPrice);
 
   if (top4Results.length >= 1) {
     return new Response(
@@ -933,8 +939,10 @@ Deno.serve(async (req) => {
   }
 
   const rawFallbackList = ((searchResp as Record<string, unknown>)?.results || []) as ApifyResultItem[];
-  const visuallyVerifiedFallback = await verifyCandidatesVisuallyWithAI(signedImageUrls[0], rawFallbackList);
-  const finalFallbackTop4 = filterAndRankTopResults(visuallyVerifiedFallback, visionDetails, descriptionHint, 4, maxPrice);
+  // ⚠️ НЕ применяем AI visual verification к vision-fallback результатам:
+  // Текстовый поиск Serper уже таргетирован по ключевым словам Vision.
+  // AI image matching слишком строгий и отфильтровывает валидные результаты без image_url.
+  const finalFallbackTop4 = filterAndRankTopResults(rawFallbackList as any, visionDetails, descriptionHint, 4, maxPrice);
 
   return new Response(
     JSON.stringify({
