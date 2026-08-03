@@ -479,7 +479,7 @@ ${toCheck.map((c, i) => `Кандидат #${i+1}: "${c.title}" (Цена: ${c.p
         }
         
         // Порог повышен до 85% для жесткого отсеивания "плохой пали"
-        if (typeof m.visual_similarity === "number" && m.visual_similarity < 85) {
+        if (typeof m.visual_similarity === "number" && m.visual_similarity < 70) {
           console.log(`[AI Visual Matcher] ❌ Low similarity (${m.visual_similarity}%) for: "${c.title}"`);
           return false;
         }
@@ -602,7 +602,7 @@ const SCRAPER_URL = Deno.env.get("SCRAPER_URL") || "https://ice-logix-scraper.on
 async function callCustomScraperDirectImageSearch(imageUrl: string, platforms: string[] | undefined): Promise<ApifyResultItem[]> {
   const url = `${SCRAPER_URL}/api/search-by-image`;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 25000);
+  const timeoutId = setTimeout(() => controller.abort(), 55000);
   try {
     const res = await fetch(url, {
       method: "POST",
@@ -753,20 +753,55 @@ Deno.serve(async (req) => {
     );
   }
 
-  // Параллельно запускаем мульти-фото Vision анализ по всем загруженным снимкам
-  let visionDetails: { brand: string | null; product_type: string | null; color: string | null; query: string } = {
-    brand: null, product_type: null, color: null, query: ""
+  // ── Параллельный запуск: Vision + Custom Scraper + Apify одновременно ──────
+  // Вместо последовательных 45s+25s+35s = ~105s → все вместе за ~55s
+  let visionDetails: { brand: string | null; product_type: string | null; color: string | null; query: string; pdd_query?: string } = {
+    brand: null, product_type: null, color: null, query: "", pdd_query: ""
   };
-  try {
-    visionDetails = await describeProductForSearch(signedImageUrls);
-  } catch (ve) {
-    console.warn("Vision multi-photo analysis error:", ve);
+
+  const [visionResult, scraperResult, apifyResult] = await Promise.allSettled([
+    describeProductForSearch(signedImageUrls),
+    callCustomScraperDirectImageSearch(signedImageUrls[0], requestedPlatforms),
+    searchByImageViaApifyFull(signedImageUrls),
+  ]);
+
+  if (visionResult.status === "fulfilled") {
+    visionDetails = visionResult.value;
+  } else {
+    console.warn("Vision analysis error:", (visionResult as PromiseRejectedResult).reason);
   }
 
-  // 2. PRIMARY: Apify Google Lens — визуальное распознавание + прямые ссылки на маркетплейсы
-  //    Передаём ВСЕ фото — Apify объединит результаты
-  const customScraperResults = await callCustomScraperDirectImageSearch(signedImageUrls[0], requestedPlatforms);
-  const apifyResp = await searchByImageViaApifyFull(signedImageUrls);
+  const customScraperResults: ApifyResultItem[] =
+    scraperResult.status === "fulfilled" ? scraperResult.value : [];
+
+  const apifyResp = apifyResult.status === "fulfilled"
+    ? apifyResult.value
+    : { ok: false, allHits: [], exactUrls: new Set<string>(), raw_count: 0, error: String((apifyResult as PromiseRejectedResult).reason) };
+
+  // ✅ SHORTCUT: PDD native search вернул результаты → отдаём без AI верификации
+  // Поиск по ключевым словам уже точный — AI только замедлит и отфильтрует нужное
+  if (customScraperResults.length >= 1) {
+    const filtered = maxPrice
+      ? customScraperResults.filter(r => !r.price || r.price <= maxPrice)
+      : customScraperResults;
+    if (filtered.length >= 1) {
+      console.log(`[search-by-image] ✅ PDD native: ${filtered.length} results, returning directly`);
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          source: "pdd-native-search",
+          query: (visionDetails as any).pdd_query || visionDetails.query || "",
+          platforms: requestedPlatforms,
+          total: filtered.length,
+          results: filtered.slice(0, 4),
+          authenticity_tier,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+  }
+
+  // 2. Apify Google Lens — визуальное распознавание + прямые ссылки на маркетплейсы
   const directMatches: ApifyResultItem[] = [];
   let lensTitle: string | null = null;
   if (apifyResp.ok) {
