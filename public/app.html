@@ -213,14 +213,14 @@
       width: auto;
       object-fit: contain;
       cursor: pointer; 
-      padding: 4px;
+      padding: 0;
       margin: 0;
       border: none !important;
       outline: none !important;
       background: transparent !important;
       box-shadow: none !important;
       transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      filter: drop-shadow(0 2px 8px rgba(91, 191, 235, 0.45));
+      filter: none !important;
     }
     @media (hover: hover) {
       .logo-img:hover { transform: scale(1.05) rotate(-2deg); }
@@ -2661,6 +2661,34 @@
         <img id="logoImg" class="logo-img" src="/assets/logo.png" alt="ICE LOGIX">
       </div>
     </div>
+    <script>
+      try {
+        const _cu = localStorage.getItem('ice_cached_user');
+        if (_cu) {
+          const _u = JSON.parse(_cu);
+          if (_u.balance !== undefined) {
+            const _b = document.getElementById('headerBalance');
+            if (_b) _b.innerText = _u.balance;
+          }
+          if (_u.userAvatarUrl) {
+            const _a = document.getElementById('avatar');
+            if (_a) _a.innerHTML = '<img src="' + _u.userAvatarUrl + '" class="w-full h-full object-cover">';
+          } else if (_u.userName) {
+            const _a = document.getElementById('avatar');
+            if (_a) _a.innerText = _u.userName.charAt(0).toUpperCase();
+          }
+          if (_u.userName) {
+            const _un = document.getElementById('userNameHeader');
+            if (_un) _un.innerText = _u.userName;
+          }
+          if (_u.isRegistered) {
+            const _uc = document.getElementById('userCard'); if (_uc) _uc.style.display = '';
+            const _bi = document.getElementById('balanceIsland'); if (_bi) _bi.style.display = '';
+            const _lb = document.getElementById('loginBtn'); if (_lb) _lb.style.display = 'none';
+          }
+        }
+      } catch(e) {}
+    </script>
     
     <!-- Main Content Area -->
     <div id="content" class="main-content"></div>
@@ -4685,21 +4713,10 @@
         });
       },
 
-      // type: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft'
-      //       | 'success' | 'warning' | 'error' (notification)
-      //       | 'selection' (selection change)
+      // Haptic feedback disabled per user request
       haptic(type) {
-        const hf = this._tg?.HapticFeedback;
-        if (!hf) return;
-        try {
-          if (type === 'success' || type === 'warning' || type === 'error') {
-            hf.notificationOccurred(type);
-          } else if (type === 'selection') {
-            hf.selectionChanged();
-          } else {
-            hf.impactOccurred(type || 'light');
-          }
-        } catch {}
+        // Disabled: no device vibrations
+        return;
       },
 
       // Rich popup with up to 3 buttons — uses our glass modal by default.
@@ -5186,6 +5203,34 @@ let adminOrdersTotalPages = 1;
     async function init() {
       console.log("=== ICE LOGIX VERSION: 2026.05.24.02 ===");
       try {
+        // Fast restore cached user balance and avatar IMMEDIATELY for 0ms rendering
+        try {
+          const _cached = localStorage.getItem('ice_cached_user');
+          if (_cached) {
+            const _cu = JSON.parse(_cached);
+            if (_cu) {
+              if (_cu.balance !== undefined) {
+                balance = _cu.balance;
+                const _hb = document.getElementById('headerBalance');
+                if (_hb) _hb.innerText = balance;
+              }
+              if (_cu.userName) {
+                userName = _cu.userName;
+                const _un = document.getElementById('userNameHeader');
+                if (_un) _un.innerText = userName;
+              }
+              if (_cu.userAvatarUrl) {
+                userAvatarUrl = _cu.userAvatarUrl;
+                const _av = document.getElementById('avatar');
+                if (_av) _av.innerHTML = `<img src="${userAvatarUrl}" class="w-full h-full object-cover">`;
+              }
+              if (_cu.userId) userId = _cu.userId;
+              if (_cu.isOwner !== undefined) isOwner = _cu.isOwner;
+              if (_cu.isRegistered) isRegistered = true;
+            }
+          }
+        } catch(e) {}
+
         // Safe Telegram check
         if (window.Telegram && window.Telegram.WebApp) {
           tg = window.Telegram.WebApp;
@@ -5199,9 +5244,12 @@ let adminOrdersTotalPages = 1;
           // Mark <body> so CSS hides duplicate in-page back buttons when native BackButton is available.
           if (tg?.BackButton) document.body.classList.add('tg-native-back');
           const user = tg.initDataUnsafe?.user;
-          userId = null; // Will be set via Supabase Auth
-          userName = user ? (user.first_name || user.username || 'Гость') : 'Гость';
-          userAvatarUrl = user?.photo_url || null;
+          if (user) {
+            if (!userName || userName === 'Гость') userName = user.first_name || user.username || 'Гость';
+            if (!userAvatarUrl && user.photo_url) userAvatarUrl = user.photo_url;
+            const _av = document.getElementById('avatar');
+            if (_av && userAvatarUrl) _av.innerHTML = `<img src="${userAvatarUrl}" class="w-full h-full object-cover">`;
+          }
         } else {
           console.warn('Telegram WebApp is not available. Running in browser preview mode.');
         }
@@ -5281,15 +5329,14 @@ let adminOrdersTotalPages = 1;
           }
         }
         
-        if (!isRegistered) {
-          userName = 'Гость';
-          userAvatarUrl = null;
+        if (!isRegistered && !userId) {
+          if (!userName) userName = 'Гость';
         }
 
         attachEventListeners();
         const avatarDiv = document.querySelector('#avatar');
         if (avatarDiv) {
-          avatarDiv.innerHTML = userAvatarUrl ? `<img src="${userAvatarUrl}">` : (userName || 'Гость').charAt(0).toUpperCase();
+          avatarDiv.innerHTML = userAvatarUrl ? `<img src="${userAvatarUrl}" class="w-full h-full object-cover">` : (userName || 'Гость').charAt(0).toUpperCase();
         }
         const userNameHeader = document.querySelector('#userNameHeader');
         if (userNameHeader) {
@@ -5493,10 +5540,21 @@ let adminOrdersTotalPages = 1;
           userAvatarUrl = data.avatar_url;
         }
 
+        try {
+          localStorage.setItem('ice_cached_user', JSON.stringify({
+            userId,
+            userName,
+            balance,
+            userAvatarUrl,
+            isRegistered: true,
+            isOwner
+          }));
+        } catch(e) {}
+
         // Live update header details if DOM is loaded
         const avatarDiv = document.querySelector('#avatar');
         if (avatarDiv) {
-          avatarDiv.innerHTML = userAvatarUrl ? `<img src="${userAvatarUrl}">` : (userName || 'Гость').charAt(0).toUpperCase();
+          avatarDiv.innerHTML = userAvatarUrl ? `<img src="${userAvatarUrl}" class="w-full h-full object-cover">` : (userName || 'Гость').charAt(0).toUpperCase();
         }
         const userNameHeader = document.querySelector('#userNameHeader');
         if (userNameHeader) {
