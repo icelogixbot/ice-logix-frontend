@@ -5562,6 +5562,10 @@ let adminOrdersTotalPages = 1;
             window._homeRenderedOnce = true;
           } else {
             attachHomeHandlers();
+            if (!_tabCache['home:']) {
+              const _c = document.getElementById('content');
+              if (_c && _c.innerHTML) _tabCache['home:'] = { html: _c.innerHTML, ts: Date.now() };
+            }
           }
           window._appReady = true;
         } catch (tabErr) {
@@ -6020,6 +6024,13 @@ let adminOrdersTotalPages = 1;
       if (tabName !== 'neworder') {
         window.tempOrder = null;
       }
+
+      // If user is already on this exact tab and subscreen, do not reload
+      if (currentTab === tabName && currentSubScreen === subScreen) {
+        scrollToPageTop();
+        return;
+      }
+
       if (currentTab && currentTab !== tabName) previousTab = currentTab;
       currentTab = tabName;
       currentSubScreen = subScreen;
@@ -6037,15 +6048,6 @@ let adminOrdersTotalPages = 1;
         if (targetActive) targetActive.classList.add('active');
       }
       tgUtil.haptic('selection');
-      
-      // If home is already rendered and populated, don't overwrite and cause flicker
-      if (tabName === 'home' && !subScreen && window._homeRenderedOnce) {
-        const _cd = document.getElementById('content');
-        if (_cd && _cd.firstElementChild) {
-          _silentRefreshHandlers('home');
-          return;
-        }
-      }
       
       // Restore from HTML cache for instant screen switch (0ms delay, no flicker)
       const _ck = (tabName || '') + ':' + (subScreen || '');
