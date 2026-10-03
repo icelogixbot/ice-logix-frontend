@@ -5447,22 +5447,55 @@ let adminOrdersTotalPages = 1;
               return data;
             }, 600000).catch(() => {});
             // 3. Pre-warm promotions
-            window.CacheDB.get('promotions', async () => {
-              const { data } = await supabaseClient.from('promotions').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(5);
-              return data;
+            window.CacheDB.get('promotions_page', async () => {
+              const { data } = await supabaseClient.from('promotions').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(10);
+              return data || [];
             }, 600000).catch(() => {});
-            // 4. Pre-warm reviews config
+            // 4. Pre-warm reports & reviews
+            window.CacheDB.get('public_reports_feed', async () => {
+              const [{ data: rep }, countRes] = await Promise.all([
+                supabaseClient.from('public_reports').select('*').eq('is_active', true).order('created_at', { ascending: false }),
+                supabaseClient.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'delivered').catch(() => ({ count: 120 }))
+              ]);
+              return { data: rep || [], count: countRes?.count || 120 };
+            }, 600000).catch(() => {});
+            window.CacheDB.get('reviews_hub_stats', async () => {
+              const { data } = await supabaseClient.from('reviews').select('rating').eq('is_published', true);
+              if (data && data.length > 0) {
+                const count = data.length;
+                const totalStars = data.reduce((sum, r) => sum + (r.rating || 0), 0);
+                return { count, avg: totalStars / count };
+              }
+              return { count: 0, avg: 4.9 };
+            }, 600000).catch(() => {});
+            // 5. Pre-warm academy
+            window.CacheDB.get('academy_catalog', async () => {
+              const { data: courses } = await supabaseClient.from('courses').select('*').eq('is_active', true).order('created_at', { ascending: true });
+              if (!courses || courses.length === 0) return { courses: [], lessons: [] };
+              const courseIds = courses.map(c => c.id);
+              const { data: lessons } = await supabaseClient.from('lessons').select('*').in('course_id', courseIds).order('order_index', { ascending: true });
+              return { courses, lessons: lessons || [] };
+            }, 600000).catch(() => {});
+            // 6. Pre-warm reviews config
             if (typeof loadReviewsConfig === 'function') loadReviewsConfig().catch(() => {});
-            // 5. Notifications
+            // 7. Notifications & Legit-checks
             if (userId) {
-              supabaseClient.from('user_notifications').select('id', { count: 'exact', head: true })
-                .eq('user_id', userId).eq('is_read', false).then(({ count }) => {
-                  const badge = document.getElementById('notifBadge');
-                  if (badge && count > 0) {
-                    badge.textContent = count > 99 ? '99+' : count;
-                    badge.classList.remove('hidden');
+              supabaseClient.from('user_notifications').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(50)
+                .then(({ data }) => {
+                  if (data) {
+                    try { localStorage.setItem('ice_cached_notifs_' + userId, JSON.stringify(data)); } catch(e) {}
+                    const unread = data.filter(n => !n.is_read);
+                    const badge = document.getElementById('notifBadge');
+                    if (badge && unread.length > 0) {
+                      badge.textContent = unread.length > 99 ? '99+' : unread.length;
+                      badge.classList.remove('hidden');
+                    }
                   }
                 }).catch(() => {});
+              window.CacheDB.get('legit_checks_' + userId, async () => {
+                const { data } = await supabaseClient.from('legit_check_requests').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+                return data || [];
+              }, 60000).catch(() => {});
             }
           }
         };
@@ -11804,11 +11837,32 @@ window.showFortuneWheel = () => {
       });
     }
 
-    // ==================== РЕНДЕР АКАДЕМИИ ====================
+// ==================== РЕНДЕР АКАДЕМИИ ====================
 async function renderAcademy() {
   try {
-    const { data: courses, error } = await supabaseClient.from('courses').select('*').eq('is_active', true).order('created_at', { ascending: true });
-    if (error) throw error;
+    // 1. Fetch courses and lessons (cached in CacheDB)
+    let catalog = null;
+    if (window.CacheDB) {
+      catalog = await window.CacheDB.get('academy_catalog', async () => {
+        const { data: courses } = await supabaseClient.from('courses').select('*').eq('is_active', true).order('created_at', { ascending: true });
+        if (!courses || courses.length === 0) return { courses: [], lessons: [] };
+        const courseIds = courses.map(c => c.id);
+        const { data: lessons } = await supabaseClient.from('lessons').select('*').in('course_id', courseIds).order('order_index', { ascending: true });
+        return { courses, lessons: lessons || [] };
+      }, 60000);
+    } else {
+      const { data: courses } = await supabaseClient.from('courses').select('*').eq('is_active', true).order('created_at', { ascending: true });
+      if (!courses || courses.length === 0) catalog = { courses: [], lessons: [] };
+      else {
+        const courseIds = courses.map(c => c.id);
+        const { data: lessons } = await supabaseClient.from('lessons').select('*').in('course_id', courseIds).order('order_index', { ascending: true });
+        catalog = { courses, lessons: lessons || [] };
+      }
+    }
+
+    const courses = catalog?.courses || [];
+    const allLessonsData = catalog?.lessons || [];
+
     if (!courses || courses.length === 0) {
       return `
         <button id="backFromAcademyBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
@@ -11825,19 +11879,15 @@ async function renderAcademy() {
     let userCoursePurchases = {};
     if (userId) {
       try {
-        const { data } = await supabaseClient.from('user_lessons_progress').select('lesson_id, is_completed').eq('user_id', userId);
-        if (data) data.forEach(p => { if (p.is_completed) userProgress[p.lesson_id] = true; });
-      } catch(e) {}
-      try {
-        const { data } = await supabaseClient.from('user_courses').select('course_id, purchased_at').eq('user_id', userId);
-        if (data) data.forEach(uc => { userCourseIds.add(uc.course_id); userCoursePurchases[uc.course_id] = uc.purchased_at; });
+        const [progRes, ucRes] = await Promise.all([
+          supabaseClient.from('user_lessons_progress').select('lesson_id, is_completed').eq('user_id', userId),
+          supabaseClient.from('user_courses').select('course_id, purchased_at').eq('user_id', userId)
+        ]);
+        (progRes?.data || []).forEach(p => { if (p.is_completed) userProgress[p.lesson_id] = true; });
+        (ucRes?.data || []).forEach(uc => { userCourseIds.add(uc.course_id); userCoursePurchases[uc.course_id] = uc.purchased_at; });
       } catch(e) {}
     }
 
-    // Single batch query for all lessons (avoids N+1)
-    const courseIds = courses.map(c => c.id);
-    const { data: allLessonsData } = await supabaseClient
-      .from('lessons').select('*').in('course_id', courseIds).order('order_index', { ascending: true });
     const lessonsByCourse = {};
     (allLessonsData || []).forEach(l => {
       if (!lessonsByCourse[l.course_id]) lessonsByCourse[l.course_id] = [];
@@ -12616,16 +12666,28 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
     // ==================== РЕНДЕР ОТЧЁТОВ ====================
     async function renderReports() {
       try {
-        const { data, error } = await supabaseClient.from('public_reports').select('*').eq('is_active', true).order('created_at', { ascending: false });
-        if (error) throw error;
+        let reportsData = null;
+        if (window.CacheDB) {
+          reportsData = await window.CacheDB.get('public_reports_feed', async () => {
+            const [{ data: rep }, countRes] = await Promise.all([
+              supabaseClient.from('public_reports').select('*').eq('is_active', true).order('created_at', { ascending: false }),
+              supabaseClient.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'delivered').catch(() => ({ count: 120 }))
+            ]);
+            return { data: rep || [], count: countRes?.count || 120 };
+          }, 60000);
+        } else {
+          const [{ data: rep }, countRes] = await Promise.all([
+            supabaseClient.from('public_reports').select('*').eq('is_active', true).order('created_at', { ascending: false }),
+            supabaseClient.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'delivered').catch(() => ({ count: 120 }))
+          ]);
+          reportsData = { data: rep || [], count: countRes?.count || 120 };
+        }
         
-        let statsHtml = '';
-        try {
-          const { count } = await supabaseClient.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'delivered');
-          statsHtml = `<div class="glass-card mb-4 p-3 flex justify-around items-center text-center"><div class="flex-1 border-r border-white/10"><p class="text-white/50 text-[10px] uppercase">Выкуплено</p><p class="text-white font-bold text-lg">${data ? data.length : 0}</p></div><div class="flex-1"><p class="text-white/50 text-[10px] uppercase">Доставлено</p><p class="text-cyan-400 font-bold text-lg">${count || '120+'}</p></div></div>`;
-        } catch(e) {}
+        const data = reportsData?.data || [];
+        const count = reportsData?.count || '120+';
+        const statsHtml = `<div class="glass-card mb-4 p-3 flex justify-around items-center text-center"><div class="flex-1 border-r border-white/10"><p class="text-white/50 text-[10px] uppercase">Выкуплено</p><p class="text-white font-bold text-lg">${data.length}</p></div><div class="flex-1"><p class="text-white/50 text-[10px] uppercase">Доставлено</p><p class="text-cyan-400 font-bold text-lg">${count}</p></div></div>`;
         
-        if (!data || data.length === 0) {
+        if (data.length === 0) {
           return `${statsHtml}<div class="text-center py-10"><p class="text-white/70">Пока нет публичных отчётов</p>${isOwner ? '<button id="addReportBtn" class="btn-primary mt-4"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить первый отчёт</button>' : ''}</div>${renderFooter()}`;
         }
         return `
@@ -12823,12 +12885,14 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
 
         async function renderReviews() {
           try {
-            await loadUserLikes();
-            const config = await loadReviewsConfig();
+            const [, config] = await Promise.all([
+              loadUserLikes(),
+              loadReviewsConfig()
+            ]);
 
             // Run async dropshipper action evaluation in background if user is logged in
             if (userId) {
-              checkAndCreateDropshipperAction();
+              setTimeout(() => checkAndCreateDropshipperAction(), 0);
             }
 
             if (window.reviewsScreen === 'hub') {
@@ -12894,18 +12958,22 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         }
 
         async function renderReviewsHub(config) {
-          let reviewsCount = 0;
-          let avgRating = 4.9;
+          let reviewsStats = { count: 184, avg: 4.9 };
           try {
-            const { data } = await supabaseClient.from('reviews').select('rating').eq('is_published', true);
-            if (data && data.length > 0) {
-              reviewsCount = data.length;
-              const totalStars = data.reduce((sum, r) => sum + (r.rating || 0), 0);
-              avgRating = totalStars / reviewsCount;
+            if (window.CacheDB) {
+              reviewsStats = await window.CacheDB.get('reviews_hub_stats', async () => {
+                const { data } = await supabaseClient.from('reviews').select('rating').eq('is_published', true);
+                if (data && data.length > 0) {
+                  const count = data.length;
+                  const totalStars = data.reduce((sum, r) => sum + (r.rating || 0), 0);
+                  return { count, avg: totalStars / count };
+                }
+                return { count: 0, avg: 4.9 };
+              }, 60000);
             }
-          } catch (e) {
-            console.error('Error fetching review stats:', e);
-          }
+          } catch (e) {}
+          const reviewsCount = reviewsStats.count;
+          const avgRating = reviewsStats.avg;
 
           const categories = [
             { id: 'orders', label: 'Заказы', icon: '🛒', desc: 'Отзывы розничных клиентов о доставленных вещах' },
@@ -12919,7 +12987,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
           ];
 
           return `
-            <div class="space-y-6 page-enter text-left mb-6">
+            <div class="space-y-6 text-left mb-6">
               <!-- Визуальная досочка (Инфо-плашка) -->
               <div class="reviews-board p-5 border border-white/10 text-center relative overflow-hidden">
                 <div class="absolute -right-10 -top-10 w-28 h-28 bg-cyan-500/10 rounded-full blur-2xl"></div>
@@ -22233,7 +22301,16 @@ function showEditNameForm() {
 
 // ==================== АКЦИИ (ПРОМО + КОЛЕСО ФОРТУНЫ) ====================
 async function renderPromoPage() {
-  const { data: promos } = await supabaseClient.from('promotions').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(10);
+  let promos = [];
+  if (window.CacheDB) {
+    promos = await window.CacheDB.get('promotions_page', async () => {
+      const { data } = await supabaseClient.from('promotions').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(10);
+      return data || [];
+    }, 60000);
+  } else {
+    const { data } = await supabaseClient.from('promotions').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(10);
+    promos = data || [];
+  }
   const promosHtml = promos && promos.length
     ? promos.map(p => `
         <div class="glass-card mb-3 overflow-hidden cursor-pointer hover:scale-[1.01] active:scale-[0.99] transition-transform" data-promotion-id="${p.id}">
@@ -22247,7 +22324,7 @@ async function renderPromoPage() {
     : '<p class="text-white/50 text-center py-6">Акций пока нет. Следите за обновлениями!</p>';
 
   return `
-    <div class="page-enter">
+    <div>
       <div class="px-4">
         <div class="flex items-center gap-3 mb-5 mt-2">
           <button id="backFromPromoBtn" class="global-back-btn">
@@ -22740,12 +22817,13 @@ async function showAccountRecovery() {
 async function showNotificationSettings() { return showAppSettings('notifications'); }
 
 async function showAppSettings(initialTab = 'security') {
-  // Fetch auth user to check email and identities
-  const { data: authUserData } = await supabaseClient.auth.getUser();
-  const authUser = authUserData?.user;
-
-  const { data } = await supabaseClient.from('users')
-    .select('notification_settings, app_settings, telegram_id, phone, username').eq('user_id', userId).single();
+  // Parallel fetch auth user and user profile
+  const [authUserDataRes, userProfileRes] = await Promise.all([
+    supabaseClient ? supabaseClient.auth.getUser() : Promise.resolve({ data: {} }),
+    (supabaseClient && userId) ? supabaseClient.from('users').select('notification_settings, app_settings, telegram_id, phone, username').eq('user_id', userId).single() : Promise.resolve({ data: {} })
+  ]);
+  const authUser = authUserDataRes?.data?.user;
+  const data = userProfileRes?.data;
   
   const localNotif = JSON.parse(localStorage.getItem('notification_settings') || '{"status_changes":true,"news":true,"promotions":true}');
   const notif = data?.notification_settings || localNotif;
@@ -23215,13 +23293,27 @@ async function showNotificationsPanel() {
   modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[110] p-4 overflow-y-auto pt-16 pb-20';
 
   let notifications = [];
-  let loadError = null;
-  if (supabaseClient && userId) {
-    const { data, error } = await supabaseClient.from('user_notifications')
-      .select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(50);
-    if (!error && data) notifications = data;
-    else if (error) loadError = error;
-  }
+  try {
+    const cached = localStorage.getItem('ice_cached_notifs_' + (userId || 'guest'));
+    if (cached) notifications = JSON.parse(cached) || [];
+  } catch(e) {}
+
+  const renderNotifsList = (items, error) => {
+    if (error) return '<p class="text-red-400 text-sm text-center py-6">Ошибка загрузки уведомлений</p>';
+    if (!items || items.length === 0) return '<p class="text-white/50 text-center py-8">Уведомлений пока нет</p>';
+    return items.map(n => `
+      <div class="p-3 rounded-xl mb-3 ${n.is_read ? 'bg-white/5' : 'bg-cyan-500/10 border border-cyan-500/20'}">
+        <div class="flex items-start justify-between gap-2">
+          <div class="flex-1">
+            <p class="text-white text-sm font-semibold">${n.title || 'Уведомление'}</p>
+            ${n.body ? `<p class="text-white/60 text-xs mt-1">${n.body}</p>` : ''}
+            <p class="text-white/30 text-xs mt-1">${new Date(n.created_at).toLocaleString('ru-RU')}</p>
+          </div>
+          ${!n.is_read ? '<span class="w-2 h-2 rounded-full mt-1 flex-shrink-0" style="background:#22d3ee;"></span>' : ''}
+        </div>
+      </div>
+    `).join('');
+  };
 
   const unread = notifications.filter(n => !n.is_read);
 
@@ -23231,29 +23323,14 @@ async function showNotificationsPanel() {
         <h3 class="text-white font-bold text-lg flex items-center gap-2">
           <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
           Уведомления
-          ${unread.length > 0 ? `<span class="ml-1 px-2 py-0.5 rounded-full text-xs font-bold" style="background:#ef4444;color:#fff;">${unread.length}</span>` : ''}
+          <span id="notifBadgeCounter" class="${unread.length > 0 ? '' : 'hidden'} ml-1 px-2 py-0.5 rounded-full text-xs font-bold" style="background:#ef4444;color:#fff;">${unread.length}</span>
         </h3>
         <button id="closeNotifPanel" class="text-white/50 hover:text-white transition p-1">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
         </button>
       </div>
-      <div class="p-4 overflow-y-auto flex-1">
-        ${loadError ? `<p class="text-red-400 text-sm text-center py-6">Ошибка загрузки уведомлений</p>` :
-          notifications.length === 0
-            ? `<p class="text-white/50 text-center py-8">Уведомлений пока нет</p>`
-            : notifications.map(n => `
-              <div class="p-3 rounded-xl mb-3 ${n.is_read ? 'bg-white/5' : 'bg-cyan-500/10 border border-cyan-500/20'}">
-                <div class="flex items-start justify-between gap-2">
-                  <div class="flex-1">
-                    <p class="text-white text-sm font-semibold">${n.title || 'Уведомление'}</p>
-                    ${n.body ? `<p class="text-white/60 text-xs mt-1">${n.body}</p>` : ''}
-                    <p class="text-white/30 text-xs mt-1">${new Date(n.created_at).toLocaleString('ru-RU')}</p>
-                  </div>
-                  ${!n.is_read ? '<span class="w-2 h-2 rounded-full mt-1 flex-shrink-0" style="background:#22d3ee;"></span>' : ''}
-                </div>
-              </div>
-            `).join('')
-        }
+      <div class="p-4 overflow-y-auto flex-1" id="notifsContainer">
+        ${renderNotifsList(notifications, null)}
       </div>
     </div>`;
 
@@ -23261,13 +23338,30 @@ async function showNotificationsPanel() {
   modal.querySelector('#closeNotifPanel')?.addEventListener('click', () => modal.remove());
   modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
 
-  if (unread.length > 0 && supabaseClient && userId) {
-    const ids = unread.map(n => n.id);
-    supabaseClient.from('user_notifications').update({ is_read: true }).in('id', ids).then(() => {
-      const badge = document.getElementById('notifBadge');
-      if (badge) { badge.classList.add('hidden'); badge.textContent = '0'; }
-    });
+  // Background fetch fresh notifications
+  if (supabaseClient && userId) {
+    supabaseClient.from('user_notifications')
+      .select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(50)
+      .then(({ data, error }) => {
+        if (!error && data) {
+          try { localStorage.setItem('ice_cached_notifs_' + userId, JSON.stringify(data)); } catch(e) {}
+          const container = modal.querySelector('#notifsContainer');
+          if (container) container.innerHTML = renderNotifsList(data, null);
+          const freshUnread = data.filter(n => !n.is_read);
+          const badge = modal.querySelector('#notifBadgeCounter');
+          if (badge) {
+            badge.innerText = freshUnread.length;
+            badge.className = (freshUnread.length > 0 ? '' : 'hidden') + ' ml-1 px-2 py-0.5 rounded-full text-xs font-bold';
+          }
+          if (freshUnread.length > 0) {
+            const ids = freshUnread.map(n => n.id);
+            supabaseClient.from('user_notifications').update({ is_read: true }).in('id', ids).then(() => {});
+          }
+        }
+      });
   }
+  const badge = document.getElementById('notifBadge');
+  if (badge) { badge.classList.add('hidden'); badge.textContent = '0'; }
 }
 
 window.requireAuth = function(message) {
@@ -23948,7 +24042,7 @@ async function renderLegitCheck() {
         </svg>
         Назад
       </button>
-      <div class="glass-card page-enter font-sans">
+      <div class="glass-card font-sans">
         <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
           <span>🔍 Экспертный Legit-Check</span>
         </h2>
@@ -23974,20 +24068,23 @@ async function renderLegitCheck() {
     `;
   }
 
-  // Load user's submitted legit check requests
+  // Load user's submitted legit check requests with instant CacheDB
   let requestsListHtml = '';
   try {
-    const { data: checks, error } = await supabaseClient
-      .from('legit_check_requests')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
+    let checks = null;
+    if (window.CacheDB && userId) {
+      checks = await window.CacheDB.get('legit_checks_' + userId, async () => {
+        const { data } = await supabaseClient.from('legit_check_requests').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+        return data || [];
+      }, 30000);
+    } else if (supabaseClient && userId) {
+      const { data } = await supabaseClient.from('legit_check_requests').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+      checks = data;
+    }
 
     if (checks && checks.length > 0) {
       requestsListHtml = `
-        <div class="glass-card mb-4 page-enter font-sans">
+        <div class="glass-card mb-4 font-sans">
           <h3 class="text-white font-bold text-sm mb-3 flex items-center gap-1.5">
             <span>📋 Ваши заявки на Legit-Check</span>
           </h3>
@@ -24054,7 +24151,7 @@ async function renderLegitCheck() {
     
     ${requestsListHtml}
 
-    <div class="glass-card page-enter font-sans">
+    <div class="glass-card font-sans">
       <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
         <span>🔍 Заказать новый Legit-Check</span>
       </h2>
