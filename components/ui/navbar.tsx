@@ -5,17 +5,20 @@ import { UserProfile } from '@/lib/api';
 import { triggerHaptic } from '@/lib/telegram';
 import { CurrencyModal } from '@/components/ui/currency-modal';
 import { useCart } from '@/lib/cart-context';
-import { ShoppingBag } from 'lucide-react';
+import { useWishlist } from '@/lib/wishlist-context';
+import { ShoppingBag, Heart } from 'lucide-react';
 
 interface NavbarProps {
   user: UserProfile | null;
   isLoading: boolean;
   onOpenCart?: () => void;
+  onOpenWishlist?: () => void;
 }
 
-export function Navbar({ user, isLoading, onOpenCart }: NavbarProps) {
+export function Navbar({ user, isLoading, onOpenCart, onOpenWishlist }: NavbarProps) {
   const [isCurrencyModalOpen, setIsCurrencyModalOpen] = useState(false);
   const { totalItems } = useCart();
+  const { count: wishlistCount } = useWishlist();
 
   const levelBadge = {
     newbie: { label: 'Newbie', bg: 'bg-white/10 text-white/70 border-white/20' },
@@ -45,6 +48,24 @@ export function Navbar({ user, isLoading, onOpenCart }: NavbarProps) {
           </div>
 
           <div className="flex items-center space-x-2">
+            {/* Кнопка Избранного */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('light');
+                onOpenWishlist?.();
+              }}
+              className="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white transition-colors"
+              title="Избранное"
+            >
+              <Heart className="w-4 h-4 text-pink-400" />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-extrabold text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow-md shadow-pink-500/40">
+                  {wishlistCount}
+                </span>
+              )}
+            </button>
+
             {/* Кнопка Корзины */}
             <button
               type="button"
@@ -62,6 +83,7 @@ export function Navbar({ user, isLoading, onOpenCart }: NavbarProps) {
                 </span>
               )}
             </button>
+
 
             {/* Кнопка баланса ICE и открытия курсов валют */}
             <button

@@ -21,11 +21,17 @@ export function getAuthToken(): string | null {
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = getAuthToken();
+  const initData = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp?.initData || '' : '';
   const headers = new Headers(options.headers);
 
   headers.set('Content-Type', 'application/json');
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
+  } else if (initData) {
+    headers.set('Authorization', `Bearer ${initData}`);
+  }
+  if (initData) {
+    headers.set('X-Telegram-Init-Data', initData);
   }
 
   try {

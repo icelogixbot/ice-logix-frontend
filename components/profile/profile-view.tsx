@@ -24,6 +24,9 @@ interface ProfileViewProps {
   onOpenReviews?: () => void;
   onOpenFaq?: () => void;
   onOpenAdmin?: () => void;
+  onOpenWishlist?: () => void;
+  onOpenLegitCheck?: () => void;
+  onOpenAcademy?: () => void;
 }
 
 export function ProfileView({
@@ -32,6 +35,9 @@ export function ProfileView({
   onOpenReviews,
   onOpenFaq,
   onOpenAdmin,
+  onOpenWishlist,
+  onOpenLegitCheck,
+  onOpenAcademy,
 }: ProfileViewProps) {
   const { lang, setLang, t, languages } = useI18n();
   const [copiedLink, setCopiedLink] = useState(false);
@@ -277,6 +283,54 @@ export function ProfileView({
             <span>О сервисе и Как делать заказы (Сторис)</span>
           </div>
           <span className="text-[10px] text-cyan-400 font-semibold px-2 py-0.5 rounded-md bg-cyan-500/10">Смотреть</span>
+        </button>
+
+        {/* Избранное */}
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic('light');
+            onOpenWishlist?.();
+          }}
+          className="w-full flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-white/80 hover:text-white transition-colors"
+        >
+          <div className="flex items-center space-x-2">
+            <span className="text-sm">💖</span>
+            <span>Мое избранное</span>
+          </div>
+          <span className="text-[10px] text-pink-400 font-semibold px-2 py-0.5 rounded-md bg-pink-500/10">Список</span>
+        </button>
+
+        {/* Legit Check */}
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic('light');
+            onOpenLegitCheck?.();
+          }}
+          className="w-full flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-white/80 hover:text-white transition-colors"
+        >
+          <div className="flex items-center space-x-2">
+            <span className="text-sm">🛡️</span>
+            <span>Проверка на оригинальность (Legit Check)</span>
+          </div>
+          <span className="text-[10px] text-emerald-400 font-semibold px-2 py-0.5 rounded-md bg-emerald-500/10">Экспертиза</span>
+        </button>
+
+        {/* Академия */}
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic('light');
+            onOpenAcademy?.();
+          }}
+          className="w-full flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-white/80 hover:text-white transition-colors"
+        >
+          <div className="flex items-center space-x-2">
+            <span className="text-sm">🎓</span>
+            <span>Академия байера (Обучение)</span>
+          </div>
+          <span className="text-[10px] text-indigo-400 font-semibold px-2 py-0.5 rounded-md bg-indigo-500/10">Гайды</span>
         </button>
 
         {/* Отзывы клиентов */}
