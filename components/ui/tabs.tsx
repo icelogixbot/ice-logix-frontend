@@ -1,67 +1,156 @@
 'use client';
 
 import React from 'react';
-import { Search, Calculator, Package, User } from 'lucide-react';
 import { triggerHaptic } from '@/lib/telegram';
 import { useI18n } from '@/lib/i18n/context';
 
-export type TabType = 'search' | 'calculator' | 'orders' | 'profile';
+export type TabType = 'home' | 'calculator' | 'neworder' | 'catalogs' | 'profile';
 
 interface TabsProps {
   activeTab: TabType;
   onChange: (tab: TabType) => void;
-  ordersCount?: number;
 }
 
-export function BottomTabs({ activeTab, onChange, ordersCount = 0 }: TabsProps) {
+export function BottomTabs({ activeTab, onChange }: TabsProps) {
   const { t } = useI18n();
 
-  const tabs: Array<{
-    id: TabType;
-    label: string;
-    icon: React.ComponentType<{ className?: string }>;
-    badge?: number;
-  }> = [
-    { id: 'search', label: t('nav_search', 'Поиск'), icon: Search },
-    { id: 'calculator', label: t('nav_calculator', 'Калькулятор'), icon: Calculator },
-    { id: 'orders', label: t('nav_orders', 'Заказы'), icon: Package, badge: ordersCount > 0 ? ordersCount : undefined },
-    { id: 'profile', label: t('nav_profile', 'Профиль'), icon: User },
-  ];
+  const handleTabClick = (tab: TabType) => {
+    triggerHaptic('selection');
+    onChange(tab);
+  };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#090d16]/95 backdrop-blur-lg border-t border-white/10 safe-bottom">
-      <div className="flex items-center justify-around max-w-lg mx-auto py-2 px-1">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-
-          return (
-            <button
-              key={tab.id}
-              onClick={() => {
-                triggerHaptic('light');
-                onChange(tab.id);
-              }}
-              className={`relative flex flex-col items-center justify-center flex-1 py-1 px-2 rounded-xl transition-all duration-200 ${
-                isActive ? 'text-cyan-400 font-medium' : 'text-white/40 hover:text-white/70'
-              }`}
-            >
-              <div className="relative">
-                <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
-                {tab.badge !== undefined && (
-                  <span className="absolute -top-1 -right-2 bg-cyan-500 text-black font-bold text-[9px] w-4 h-4 rounded-full flex items-center justify-center">
-                    {tab.badge}
-                  </span>
-                )}
-              </div>
-              <span className="text-[10px] mt-1 tracking-tight">{tab.label}</span>
-              {isActive && (
-                <div className="absolute bottom-0 w-8 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-400 rounded-full" />
-              )}
-            </button>
-          );
-        })}
+    <div className="tab-bar" id="tabBar">
+      {/* 1. Главная */}
+      <div
+        className={`tab-item ${activeTab === 'home' ? 'active' : ''}`}
+        data-tab="home"
+        onClick={() => handleTabClick('home')}
+      >
+        <span className="tab-icon">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9,22 9,12 15,12 15,22" />
+          </svg>
+        </span>
+        <span className="tab-label">{t('tab_home', 'Главная')}</span>
       </div>
-    </nav>
+
+      {/* 2. Калькулятор */}
+      <div
+        className={`tab-item ${activeTab === 'calculator' ? 'active' : ''}`}
+        data-tab="calculator"
+        onClick={() => handleTabClick('calculator')}
+      >
+        <span className="tab-icon">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="4" y="2" width="16" height="20" rx="2" />
+            <line x1="8" x2="16" y1="6" y2="6" />
+            <line x1="8" x2="8" y1="10" y2="10" />
+            <line x1="12" x2="12" y1="10" y2="10" />
+            <line x1="16" x2="16" y1="10" y2="10" />
+            <line x1="8" x2="8" y1="14" y2="14" />
+            <line x1="12" x2="12" y1="14" y2="14" />
+            <line x1="16" x2="16" y1="14" y2="14" />
+            <line x1="8" x2="8" y1="18" y2="18" />
+            <line x1="12" x2="12" y1="18" y2="18" />
+            <line x1="16" x2="16" y1="18" y2="18" />
+          </svg>
+        </span>
+        <span className="tab-label">{t('tab_calc', 'Калькулятор')}</span>
+      </div>
+
+      {/* 3. Заказ (Центральная кнопка CTA) */}
+      <div
+        className={`tab-item new-order ${activeTab === 'neworder' ? 'active' : ''}`}
+        data-tab="neworder"
+        onClick={() => handleTabClick('neworder')}
+      >
+        <span className="tab-icon">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="12" x2="12" y1="5" y2="19" />
+            <line x1="5" x2="19" y1="12" y2="12" />
+          </svg>
+        </span>
+        <span className="tab-label">{t('tab_order', 'Заказ')}</span>
+      </div>
+
+      {/* 4. Каталоги */}
+      <div
+        className={`tab-item ${activeTab === 'catalogs' ? 'active' : ''}`}
+        data-tab="catalogs"
+        onClick={() => handleTabClick('catalogs')}
+      >
+        <span className="tab-icon">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+            <rect x="14" y="14" width="7" height="7" rx="1" />
+          </svg>
+        </span>
+        <span className="tab-label">{t('tab_catalogs', 'Каталоги')}</span>
+      </div>
+
+      {/* 5. Профиль */}
+      <div
+        className={`tab-item ${activeTab === 'profile' ? 'active' : ''}`}
+        data-tab="profile"
+        onClick={() => handleTabClick('profile')}
+      >
+        <span className="tab-icon">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+        </span>
+        <span className="tab-label">{t('tab_profile', 'Профиль')}</span>
+      </div>
+    </div>
   );
 }

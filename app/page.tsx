@@ -6,6 +6,7 @@ import { api, UserProfile } from '@/lib/api';
 import { getTelegram, getTelegramInitData, triggerHaptic, tgUtil } from '@/lib/telegram';
 import { Navbar } from '@/components/ui/navbar';
 import { BottomTabs, TabType } from '@/components/ui/tabs';
+import { HomeView } from '@/components/home/home-view';
 import { SearchView } from '@/components/search/search-view';
 import { CalculatorView } from '@/components/calculator/calculator-view';
 import { OrdersView } from '@/components/orders/orders-view';
@@ -31,23 +32,23 @@ export interface SelectedProductForCalc {
 
 export default function HomePage() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<TabType>('search');
-  const [searchMode, setSearchMode] = useState<'search' | 'catalog'>('search');
+  const [activeTab, setActiveTab] = useState<TabType>('home');
   const [selectedProduct, setSelectedProduct] = useState<SelectedProductForCalc | null>(null);
 
+  // Модальные окна
   const [isStoriesOpen, setIsStoriesOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isFortuneOpen, setIsFortuneOpen] = useState(false);
   const [isReviewsOpen, setIsReviewsOpen] = useState(false);
   const [isFaqOpen, setIsFaqOpen] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
-
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isMarketplacesOpen, setIsMarketplacesOpen] = useState(false);
   const [isLegitCheckOpen, setIsLegitCheckOpen] = useState(false);
   const [isAcademyOpen, setIsAcademyOpen] = useState(false);
+  const [isOrdersModalOpen, setIsOrdersModalOpen] = useState(false);
 
-  // Проверка первого визита для онбординга
+  // Онбординг при первом открытии
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const seen = localStorage.getItem('ice_onboarding_seen');
@@ -80,10 +81,15 @@ export default function HomePage() {
         triggerHaptic('light');
         setIsAdminMode(false);
       });
-    } else if (activeTab !== 'search') {
+    } else if (isOrdersModalOpen) {
       tgUtil.setBackButton(() => {
         triggerHaptic('light');
-        setActiveTab('search');
+        setIsOrdersModalOpen(false);
+      });
+    } else if (activeTab !== 'home') {
+      tgUtil.setBackButton(() => {
+        triggerHaptic('light');
+        setActiveTab('home');
       });
     } else {
       tgUtil.setBackButton(null);
@@ -91,220 +97,195 @@ export default function HomePage() {
     return () => {
       tgUtil.setBackButton(null);
     };
-  }, [isAdminMode, activeTab]);
+  }, [isAdminMode, isOrdersModalOpen, activeTab]);
 
-  // Авторизация пользователя через initData или получение профиля
+  // Загрузка / авторизация профиля
   const { data: userProfile, isLoading: isUserLoading } = useQuery<UserProfile | null>({
     queryKey: ['currentUser'],
     queryFn: async () => {
-      if (typeof window === 'undefined') {
-        return null;
-      }
-
+      if (typeof window === 'undefined') return null;
       const initData = getTelegramInitData();
+
       if (initData) {
         try {
           const authRes = await api.authTelegram(initData);
           if (authRes.ok && authRes.user) {
             return authRes.user;
           }
-        } catch (err) {
-          console.warn('Telegram auth error, fallback to guest:', err);
+        } catch {
+          // fallback to me
         }
       }
 
-      // Если вне Telegram или ошибка авторизации — возвращаем тестового/гостевого пользователя
+      try {
+        const meRes = await api.getMe();
+        if (meRes.ok && meRes.user) {
+          return meRes.user;
+        }
+      } catch {
+        // demo profile
+      }
+
+      const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
       return {
-        user_id: 0,
-        username: 'guest_user',
-        full_name: 'Пользователь ICE LOGIX',
+        user_id: tgUser?.id || 7770001,
+        username: tgUser?.username || 'ice_shopper',
+        full_name: [tgUser?.first_name, tgUser?.last_name].filter(Boolean).join(' ') || 'Покупатель ICE',
         role: 'user',
-        client_level: 'newbie',
-        ices_balance: 0.0,
-        referral_count: 0,
-        referral_bonus: 0,
-        total_spent: 0,
-        orders_count: 0,
+        client_level: 'shopper',
+        ices_balance: 15.5,
+        referral_code: 'ICE' + (tgUser?.id || 777),
+        referral_count: 2,
+        referral_bonus: 20.0,
+        total_spent: 850.0,
+        orders_count: 3,
       };
     },
+    staleTime: 60 * 1000,
   });
 
-  const handleSelectProductForCalc = (product: SelectedProductForCalc) => {
-    setSelectedProduct(product);
-    setActiveTab('calculator');
-    triggerHaptic('medium');
-  };
-
   return (
-    <main className="min-h-screen bg-[#090d16] text-white flex flex-col justify-between">
-      {/* Верхняя навигационная панель */}
+    <div id="app" className="min-h-screen text-white relative">
+      {/* ═══════════════════════════════════════════════════════════════════════
+           HEADER ISLAND - Floating navigation with balance widget
+           ═══════════════════════════════════════════════════════════════════════ */}
       <Navbar
         user={userProfile || null}
         isLoading={isUserLoading}
         onOpenCart={() => setIsCartOpen(true)}
         onOpenWishlist={() => setIsWishlistOpen(true)}
+        onOpenNotifications={() => setIsStoriesOpen(true)}
+        onOpenSettings={() => setIsFaqOpen(true)}
+        onLogoClick={() => setActiveTab('home')}
+        onAvatarClick={() => setActiveTab('profile')}
       />
 
-      {/* Основной контент экранов */}
-      <section className="flex-1 max-w-lg mx-auto w-full px-4 pt-4">
-        {isAdminMode ? (
-          <AdminOrdersView onBackToClient={() => setIsAdminMode(false)} />
-        ) : (
-          <>
-            {activeTab === 'search' && (
-              <div className="space-y-3">
-                {/* Переключатель Поиск / Каталог хитов */}
-                <div className="flex items-center gap-1.5 p-1 bg-white/5 border border-white/10 rounded-2xl">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic('selection');
-                      setSearchMode('search');
-                    }}
-                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition ${
-                      searchMode === 'search'
-                        ? 'bg-cyan-500 text-slate-950 shadow-sm'
-                        : 'text-white/60 hover:text-white'
-                    }`}
-                  >
-                    🔍 Поиск по Китаю
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic('selection');
-                      setSearchMode('catalog');
-                    }}
-                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                      searchMode === 'catalog'
-                        ? 'bg-cyan-500 text-slate-950 shadow-sm'
-                        : 'text-white/60 hover:text-white'
-                    }`}
-                  >
-                    <span>🔥</span> Каталог хитов
-                  </button>
-                </div>
+      {/* ═══════════════════════════════════════════════════════════════════════
+           MAIN CONTENT AREA
+           ═══════════════════════════════════════════════════════════════════════ */}
+      {isAdminMode ? (
+        <div className="main-content">
+          <div className="max-w-2xl mx-auto px-4">
+            <button
+              onClick={() => setIsAdminMode(false)}
+              className="mb-4 text-xs font-bold text-cyan-400 flex items-center gap-1"
+            >
+              ← Назад в профиль
+            </button>
+            <AdminOrdersView onBackToClient={() => setIsAdminMode(false)} />
+          </div>
+        </div>
+      ) : activeTab === 'home' ? (
+        <HomeView
+          onOpenStories={() => setIsStoriesOpen(true)}
+          onOpenLegitCheck={() => setIsLegitCheckOpen(true)}
+          onOpenReviews={() => setIsReviewsOpen(true)}
+          onOpenFortune={() => setIsFortuneOpen(true)}
+          onOpenAcademy={() => setIsAcademyOpen(true)}
+          onOpenMarketplacesGuide={() => setIsMarketplacesOpen(true)}
+          onOpenCatalog={() => setActiveTab('catalogs')}
+          onSelectProductForCalc={(prod) => {
+            setSelectedProduct(prod);
+            setActiveTab('calculator');
+          }}
+        />
+      ) : activeTab === 'calculator' ? (
+        <div className="main-content">
+          <div className="max-w-lg mx-auto px-2">
+            <CalculatorView
+              initialProduct={selectedProduct}
+              userProfile={userProfile || null}
+              onOrderCreated={() => setActiveTab('profile')}
+            />
+          </div>
+        </div>
+      ) : activeTab === 'neworder' ? (
+        <div className="main-content">
+          <div className="max-w-lg mx-auto px-2">
+            <div className="mb-4 text-center">
+              <h2 className="text-xl font-extrabold text-white tracking-tight">Поиск и Заказ</h2>
+              <p className="text-white/60 text-xs mt-1">
+                Вставьте ссылку с Poizon/Taobao/1688, загрузите фото или введите название
+              </p>
+            </div>
+            <SearchView
+              onSelectProductForCalc={(prod) => {
+                setSelectedProduct(prod);
+                setActiveTab('calculator');
+              }}
+            />
+          </div>
+        </div>
+      ) : activeTab === 'catalogs' ? (
+        <div className="main-content">
+          <div className="max-w-lg mx-auto px-2">
+            <ProductsCatalogView
+              onOpenMarketplacesGuide={() => setIsMarketplacesOpen(true)}
+              onSelectProductForCalc={(prod) => {
+                setSelectedProduct(prod);
+                setActiveTab('calculator');
+              }}
+            />
+          </div>
+        </div>
+      ) : activeTab === 'profile' ? (
+        <div className="main-content">
+          <div className="max-w-lg mx-auto px-2">
+            <ProfileView
+              userProfile={userProfile || null}
+              onOpenFortune={() => setIsFortuneOpen(true)}
+              onOpenReviews={() => setIsReviewsOpen(true)}
+              onOpenFaq={() => setIsFaqOpen(true)}
+              onOpenAdmin={() => setIsAdminMode(true)}
+              onOpenWishlist={() => setIsWishlistOpen(true)}
+              onOpenLegitCheck={() => setIsLegitCheckOpen(true)}
+              onOpenAcademy={() => setIsAcademyOpen(true)}
+            />
+          </div>
+        </div>
+      ) : null}
 
-                {searchMode === 'search' ? (
-                  <SearchView onSelectProductForCalc={handleSelectProductForCalc} />
-                ) : (
-                  <ProductsCatalogView
-                    onSelectProductForCalc={handleSelectProductForCalc}
-                    onOpenMarketplacesGuide={() => setIsMarketplacesOpen(true)}
-                  />
-                )}
-              </div>
-            )}
-
-            {activeTab === 'calculator' && (
-              <CalculatorView
-                initialProduct={selectedProduct}
-                userProfile={userProfile || null}
-                onOrderCreated={() => setActiveTab('orders')}
-              />
-            )}
-
-            {activeTab === 'orders' && (
-              <OrdersView
-                userProfile={userProfile || null}
-                onGoToSearch={() => setActiveTab('search')}
-              />
-            )}
-
-            {activeTab === 'profile' && (
-              <ProfileView
-                userProfile={userProfile || null}
-                onOpenFortune={() => setIsFortuneOpen(true)}
-                onOpenReviews={() => setIsReviewsOpen(true)}
-                onOpenFaq={() => setIsFaqOpen(true)}
-                onOpenAdmin={() => setIsAdminMode(true)}
-                onOpenWishlist={() => setIsWishlistOpen(true)}
-                onOpenLegitCheck={() => setIsLegitCheckOpen(true)}
-                onOpenAcademy={() => setIsAcademyOpen(true)}
-              />
-            )}
-          </>
-        )}
-      </section>
-
-      {/* Нижняя панель табов */}
+      {/* ═══════════════════════════════════════════════════════════════════════
+           TAB BAR ISLAND - Floating bottom navigation
+           ═══════════════════════════════════════════════════════════════════════ */}
       {!isAdminMode && (
         <BottomTabs
           activeTab={activeTab}
-          onChange={setActiveTab}
-          ordersCount={userProfile?.orders_count || 0}
+          onChange={(tab) => setActiveTab(tab)}
         />
       )}
 
-      {/* Обучающие сторис */}
-      <StoriesModal
-        isOpen={isStoriesOpen}
-        onClose={handleCloseStories}
-      />
-
-      {/* Шторка корзины */}
+      {/* ═══════════════════════════════════════════════════════════════════════
+           МОДАЛЬНЫЕ ОКНА
+           ═══════════════════════════════════════════════════════════════════════ */}
+      <StoriesModal isOpen={isStoriesOpen} onClose={handleCloseStories} />
       <CartSheet
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
         onCheckout={(summary) => {
-          handleSelectProductForCalc({
+          setSelectedProduct({
             price: summary.totalPrice,
             url: '',
             title: summary.title,
             currency: 'CNY',
           });
+          setActiveTab('calculator');
         }}
       />
-
-      {/* Колесо Фортуны */}
-      <FortuneWheelModal
-        isOpen={isFortuneOpen}
-        onClose={() => setIsFortuneOpen(false)}
-        onRewardWon={(reward) => {
-          if (reward.type === 'ice') {
-            queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-          }
-        }}
-      />
-
-      {/* Отзывы клиентов */}
-      <ReviewsModal
-        isOpen={isReviewsOpen}
-        onClose={() => setIsReviewsOpen(false)}
-      />
-
-      {/* Часто задаваемые вопросы (FAQ) */}
-      <FaqModal
-        isOpen={isFaqOpen}
-        onClose={() => setIsFaqOpen(false)}
-      />
-
-      {/* Модалка Избранного */}
+      <FortuneWheelModal isOpen={isFortuneOpen} onClose={() => setIsFortuneOpen(false)} />
+      <ReviewsModal isOpen={isReviewsOpen} onClose={() => setIsReviewsOpen(false)} />
+      <FaqModal isOpen={isFaqOpen} onClose={() => setIsFaqOpen(false)} />
+      <MarketplacesGuideModal isOpen={isMarketplacesOpen} onClose={() => setIsMarketplacesOpen(false)} />
+      <LegitCheckModal isOpen={isLegitCheckOpen} onClose={() => setIsLegitCheckOpen(false)} />
+      <AcademyModal isOpen={isAcademyOpen} onClose={() => setIsAcademyOpen(false)} />
       <WishlistModal
         isOpen={isWishlistOpen}
         onClose={() => setIsWishlistOpen(false)}
-        onSelectForCalc={handleSelectProductForCalc}
+        onSelectForCalc={(prod) => {
+          setSelectedProduct(prod);
+          setActiveTab('calculator');
+        }}
       />
-
-      {/* Гайд по маркетплейсам */}
-      <MarketplacesGuideModal
-        isOpen={isMarketplacesOpen}
-        onClose={() => setIsMarketplacesOpen(false)}
-      />
-
-      {/* Экспертиза Legit Check */}
-      <LegitCheckModal
-        isOpen={isLegitCheckOpen}
-        onClose={() => setIsLegitCheckOpen(false)}
-      />
-
-      {/* Академия байера */}
-      <AcademyModal
-        isOpen={isAcademyOpen}
-        onClose={() => setIsAcademyOpen(false)}
-      />
-    </main>
+    </div>
   );
 }
-
-

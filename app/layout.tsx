@@ -1,10 +1,18 @@
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
+import { Nunito } from 'next/font/google';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { I18nProvider } from '@/lib/i18n/context';
 import { CartProvider } from '@/lib/cart-context';
 import { WishlistProvider } from '@/lib/wishlist-context';
 import './globals.css';
+
+const nunito = Nunito({
+  subsets: ['latin', 'cyrillic'],
+  weight: ['400', '500', '600', '700', '800', '900'],
+  variable: '--font-nunito',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'ICE LOGIX | Доставка из Китая и Европы',
@@ -17,7 +25,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-  themeColor: '#090d16',
+  themeColor: '#0A1628',
 };
 
 export default function RootLayout({
@@ -26,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru" className="dark">
+    <html lang="ru" className={`dark ${nunito.variable}`}>
       <head>
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
@@ -45,4 +53,3 @@ export default function RootLayout({
     </html>
   );
 }
-
