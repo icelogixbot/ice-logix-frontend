@@ -12,3 +12,8 @@ puppeteer_test/
 .vscode/
 .cursor/
 .history/
+
+# Next.js build & TypeScript
+.next/
+out/
+*.tsbuildinfo
