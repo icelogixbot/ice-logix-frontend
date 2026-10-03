@@ -12,8 +12,8 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
-  <script src="./pricing-engine.js"></script>
-  <script src="./onboarding.js"></script>
+  <script src="/pricing-engine.js"></script>
+  <script src="/onboarding.js"></script>
   <script async src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/vfs_fonts.js"></script>
@@ -2598,7 +2598,7 @@
           <div class="balance-island" id="balanceIsland">
             <div class="balance-amount">
               <span id="headerBalance">0</span>
-              <span class="balance-icon" aria-hidden="true" title="ICE Валюта"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span>
+              <span class="balance-icon" aria-hidden="true" title="ICE Валюта"><img src="/assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span>
             </div>
             <button class="balance-add" id="addBalanceBtn" title="Пополнить баланс">+</button>
           </div>
@@ -2632,7 +2632,7 @@
 
       <!-- RIGHT: Logo -->
       <div class="header-right">
-        <img id="logoImg" class="logo-img" src="./assets/logo.png" alt="ICE LOGIX">
+        <img id="logoImg" class="logo-img" src="/assets/logo.png" alt="ICE LOGIX">
       </div>
     </div>
     
@@ -3628,7 +3628,7 @@
     function brandFlake(opts = {}) {
       const sz = opts.size || '1.35em';
       const cls = ['brand-flake', opts.cls || ''].filter(Boolean).join(' ');
-      return `<span class="${cls}" style="width:${sz};height:${sz}" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" style="width:100%;height:100%;object-fit:contain;"></span>`;
+      return `<span class="${cls}" style="width:${sz};height:${sz}" aria-hidden="true"><img src="/assets/icl_currency_icon.png" alt="ICL" style="width:100%;height:100%;object-fit:contain;"></span>`;
     }
 
     /** Render a marketplace colored dot — replaces 🟢🟠🟡🟤⚫🔵 emoji. */
@@ -5867,7 +5867,7 @@ let adminOrdersTotalPages = 1;
     function renderFooter() {
       return `
         <div class="app-footer">
-          <img src="./assets/logo.png" class="footer-logo" alt="ICE LOGIX">
+          <img src="/assets/logo.png" class="footer-logo" alt="ICE LOGIX">
           <div class="social-icons">
             <div class="social-icon" data-social="tg" title="Telegram">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -5910,7 +5910,7 @@ let adminOrdersTotalPages = 1;
           </div>
           <div class="copyright">
             ИП Иванов И.И., УНП 123456789<br>
-            © 2025 ICE LOGIX. Доставка мечты из любой точки мира <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span>
+            © 2025 ICE LOGIX. Доставка мечты из любой точки мира <span class="brand-flake" aria-hidden="true"><img src="/assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span>
           </div>
         </div>
       `;
@@ -7499,7 +7499,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
             <div class="absolute w-3 h-3 rotate-45" style="${arrowStyle}"></div>
 
             <div class="flex items-center gap-2 border-b border-white/10 pb-2">
-              <img src="./assets/icl_currency_icon.png" alt="ICL" class="w-5 h-5 object-contain flex-shrink-0 drop-shadow-[0_0_6px_rgba(91,191,235,0.8)]">
+              <img src="/assets/icl_currency_icon.png" alt="ICL" class="w-5 h-5 object-contain flex-shrink-0 drop-shadow-[0_0_6px_rgba(91,191,235,0.8)]">
               <div class="flex-1 min-w-0">
                 <h4 class="text-xs font-black text-white tracking-wide leading-none">ICE Coin (ICL)</h4>
                 <p class="text-[9px] font-semibold text-cyan-300 mt-0.5">1 ICL = 1 BYN • Внутренняя валюта</p>
@@ -9219,7 +9219,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
               window.tempOrder.appliedPromo = data;
               recalculateOrderTotals();
               
-              promoMessage.innerHTML = `Промокод применён! Скидка: ${discountAmount.toFixed(2)} <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span>`;
+              promoMessage.innerHTML = `Промокод применён! Скидка: ${discountAmount.toFixed(2)} <span class="brand-flake" aria-hidden="true"><img src="/assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span>`;
               promoMessage.classList.remove('hidden');
               promoMessage.style.color = '#4ade80';
             } catch (err) {
@@ -10907,7 +10907,7 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
     ${isFamilyEnabled ? `
     <div class="flex gap-3 justify-center mb-4 flex-wrap">
       <div class="flex items-center gap-3 px-4 py-3 rounded-2xl" style="background: linear-gradient(135deg, rgba(91,191,235,0.2), rgba(46,158,212,0.1)); border: 1px solid rgba(91,191,235,0.3);">
-        <span class="text-xl animate-float"><span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></span>
+        <span class="text-xl animate-float"><span class="brand-flake" aria-hidden="true"><img src="/assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></span>
         <div class="text-left">
           <p class="text-[10px] uppercase tracking-wider" style="color: var(--text-muted);">Мой баланс</p>
           <p class="text-lg font-bold" style="color: var(--ice-primary);">${balance} ICE</p>
@@ -10925,7 +10925,7 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
     </div>
     ` : `
     <div class="inline-flex items-center gap-3 px-5 py-3 rounded-2xl mb-4" style="background: linear-gradient(135deg, rgba(91,191,235,0.2), rgba(46,158,212,0.1)); border: 1px solid rgba(91,191,235,0.3);">
-      <span class="text-2xl animate-float"><span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></span>
+      <span class="text-2xl animate-float"><span class="brand-flake" aria-hidden="true"><img src="/assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></span>
       <div class="text-left">
         <p class="text-xs" style="color: var(--text-secondary);">Баланс</p>
         <p class="text-xl font-bold" style="color: var(--ice-primary);">${displayedBalance} ICE</p>
@@ -10950,7 +10950,7 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
         </div>
         <div class="p-3 rounded-xl text-center" style="background: var(--glass-bg);">
           <p class="text-2xl font-bold" style="color: var(--status-success);">${referralStats.bonus}</p>
-          <p class="text-[10px] uppercase tracking-wider flex items-center justify-center gap-1" style="color: var(--text-muted);">Бонусы <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></p>
+          <p class="text-[10px] uppercase tracking-wider flex items-center justify-center gap-1" style="color: var(--text-muted);">Бонусы <span class="brand-flake" aria-hidden="true"><img src="/assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></p>
         </div>
       </div>
       ${userReferralCode ? `
@@ -11446,7 +11446,7 @@ window.showFortuneWheel = () => {
         : payoutRequests.map(req => {
             const sc = req.status === 'pending' ? 'text-yellow-400' : req.status === 'approved' ? 'text-green-400' : req.status === 'completed' ? 'text-blue-400' : 'text-red-400';
             const st = req.status === 'pending' ? 'В обработке' : req.status === 'approved' ? 'Одобрен' : req.status === 'completed' ? 'Выплачен' : 'Отклонён';
-            return `<div class="p-2 border-b border-white/10 last:border-0"><div class="flex justify-between items-center"><span class="text-white/80 text-sm font-bold">${req.amount} <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></span><span class="text-xs ${sc}">${st}</span></div><p class="text-white/50 text-xs mt-0.5">${new Date(req.created_at).toLocaleDateString('ru-RU')}</p></div>`;
+            return `<div class="p-2 border-b border-white/10 last:border-0"><div class="flex justify-between items-center"><span class="text-white/80 text-sm font-bold">${req.amount} <span class="brand-flake" aria-hidden="true"><img src="/assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></span><span class="text-xs ${sc}">${st}</span></div><p class="text-white/50 text-xs mt-0.5">${new Date(req.created_at).toLocaleDateString('ru-RU')}</p></div>`;
           }).join('');
 
       return `
@@ -11477,9 +11477,9 @@ window.showFortuneWheel = () => {
               <div class="glass-card">
                 <h3 class="text-white font-bold text-lg mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span> Финансы</h3>
                 <div class="grid grid-cols-2 gap-3">
-                  <div class="bg-[var(--ice-primary)]/10 border border-[var(--ice-primary)]/20 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Заработано</p><p class="text-green-400 text-xl font-bold">${totalEarned} <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></p></div>
-                  <div class="bg-white/5 border border-white/10 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Доступно к выводу</p><p class="text-cyan-400 text-xl font-bold">${availableForPayout} <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></p></div>
-                  <div class="bg-white/5 border border-white/10 rounded-xl p-3 text-center col-span-2"><p class="text-white/70 text-[10px] uppercase tracking-wider">Порог вывода</p><p class="text-white text-lg font-bold">${settings.payout_threshold} <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></p></div>
+                  <div class="bg-[var(--ice-primary)]/10 border border-[var(--ice-primary)]/20 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Заработано</p><p class="text-green-400 text-xl font-bold">${totalEarned} <span class="brand-flake" aria-hidden="true"><img src="/assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></p></div>
+                  <div class="bg-white/5 border border-white/10 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Доступно к выводу</p><p class="text-cyan-400 text-xl font-bold">${availableForPayout} <span class="brand-flake" aria-hidden="true"><img src="/assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></p></div>
+                  <div class="bg-white/5 border border-white/10 rounded-xl p-3 text-center col-span-2"><p class="text-white/70 text-[10px] uppercase tracking-wider">Порог вывода</p><p class="text-white text-lg font-bold">${settings.payout_threshold} <span class="brand-flake" aria-hidden="true"><img src="/assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></p></div>
                 </div>
               </div>
               <div class="glass-card">
@@ -11509,7 +11509,7 @@ window.showFortuneWheel = () => {
                 </div>
                 <button id="saveDropshipperSettings" class="btn-primary w-full">Сохранить настройки</button>
               </div>
-              ${availableForPayout >= settings.payout_threshold ? `<div class="glass-card"><button id="requestPayoutBtn" class="w-full bg-green-600 py-2 rounded-lg"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18M7 6h1v4M16.71 13.88l.7.71-2.82 2.82"/></svg></span> Запросить выплату (${availableForPayout} <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span>)</button></div>` : ''}
+              ${availableForPayout >= settings.payout_threshold ? `<div class="glass-card"><button id="requestPayoutBtn" class="w-full bg-green-600 py-2 rounded-lg"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18M7 6h1v4M16.71 13.88l.7.71-2.82 2.82"/></svg></span> Запросить выплату (${availableForPayout} <span class="brand-flake" aria-hidden="true"><img src="/assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span>)</button></div>` : ''}
               <div class="glass-card">
                 <h3 class="text-white font-bold text-lg mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span> История выплат</h3>
                 ${payoutHistoryHtml}
@@ -11520,7 +11520,7 @@ window.showFortuneWheel = () => {
               </div>
               <div class="glass-card">
                 <h3 class="text-white font-bold text-lg mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Заказы клиентов</h3>
-                ${referralOrders.length === 0 ? '<p class="text-white/70 text-sm">Нет заказов от приведённых клиентов</p>' : referralOrders.map(order => `<div class="flex justify-between items-center p-2 border-b border-white/10"><span class="text-white/80 text-sm">Заказ #${order.id.slice(0,8)}</span><span class="text-green-400 text-sm">+${order.drop_margin || 0} <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></span><span class="text-white/50 text-xs">${new Date(order.created_at).toLocaleDateString()}</span></div>`).join('')}
+                ${referralOrders.length === 0 ? '<p class="text-white/70 text-sm">Нет заказов от приведённых клиентов</p>' : referralOrders.map(order => `<div class="flex justify-between items-center p-2 border-b border-white/10"><span class="text-white/80 text-sm">Заказ #${order.id.slice(0,8)}</span><span class="text-green-400 text-sm">+${order.drop_margin || 0} <span class="brand-flake" aria-hidden="true"><img src="/assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></span><span class="text-white/50 text-xs">${new Date(order.created_at).toLocaleDateString()}</span></div>`).join('')}
               </div>
             </div>
           </div>
@@ -11718,11 +11718,11 @@ async function renderAcademy() {
                 </div>
               </div>
               <div class="ml-3 text-right flex-shrink-0">
-                <span class="text-cyan-400 font-bold text-sm">${course.price_ice > 0 ? course.price_ice + ' <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span>' : 'Бесплатно'}</span>
+                <span class="text-cyan-400 font-bold text-sm">${course.price_ice > 0 ? course.price_ice + ' <span class="brand-flake" aria-hidden="true"><img src="/assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span>' : 'Бесплатно'}</span>
                 ${course.isPurchased && course.price_ice > 0 ? '<p class="text-green-400 text-xs mt-1"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Куплено</p>' : ''}
               </div>
             </div>
-            ${!course.isPurchased && course.price_ice > 0 ? `<button class="buyCourseBtn mt-3 w-full bg-gradient-to-r from-cyan-500 to-blue-500 py-2.5 rounded-xl font-bold text-sm" data-course-id="${course.id}" data-price="${course.price_ice}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span> Купить за ${course.price_ice} <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></button>` : ''}
+            ${!course.isPurchased && course.price_ice > 0 ? `<button class="buyCourseBtn mt-3 w-full bg-gradient-to-r from-cyan-500 to-blue-500 py-2.5 rounded-xl font-bold text-sm" data-course-id="${course.id}" data-price="${course.price_ice}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span> Купить за ${course.price_ice} <span class="brand-flake" aria-hidden="true"><img src="/assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></button>` : ''}
             ${course.allCompleted && course.lessons.length > 0 ? `<button class="getCertBtn mt-2 w-full bg-gradient-to-r from-yellow-400 to-orange-500 py-2.5 rounded-xl font-bold text-sm text-slate-900" data-course-id="${course.id}" data-title="${course.title.replace(/"/g,'&quot;')}"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16M10 14.66V17c0 .55-.47 1-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47 1 .97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></span> Получить сертификат</button>` : ''}
             <div class="lessons-container hidden mt-3 space-y-1.5" data-course="${course.id}" data-loaded="true">
               ${course.lessons.length === 0
@@ -14822,7 +14822,7 @@ async function renderAdmin() {
               <div class="flex items-center gap-2 p-2 bg-white/5 rounded-xl">
                 <div class="flex-1 min-w-0">
                   <p class="text-white text-sm truncate">${c.title}</p>
-                  <p class="text-white/40 text-xs">${c.price_ice > 0 ? c.price_ice + ' <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span>' : 'Бесплатно'} · ${c.role_access} · ${c.is_active ? '<span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Активен' : '<span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span> Скрыт'}</p>
+                  <p class="text-white/40 text-xs">${c.price_ice > 0 ? c.price_ice + ' <span class="brand-flake" aria-hidden="true"><img src="/assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span>' : 'Бесплатно'} · ${c.role_access} · ${c.is_active ? '<span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Активен' : '<span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span> Скрыт'}</p>
                 </div>
                 <button class="btn-secondary adminEditCourseBtn" data-course-id="${c.id}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span></button>
                 <button class="adminManageLessonsBtn bg-blue-600/60 px-2 py-1 rounded text-xs" data-course-id="${c.id}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span></button>
@@ -14849,7 +14849,7 @@ async function renderAdmin() {
         <!-- Заявки на вывод -->
         <div class="glass-card">
           <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18M7 6h1v4M16.71 13.88l.7.71-2.82 2.82"/></svg></span> Заявки на вывод</h3>
-          ${payoutRequests.length === 0 ? '<p class="text-white/70">Нет заявок</p>' : payoutRequests.map(req => `<div class="flex justify-between items-center p-2 bg-white/5 rounded-lg mb-2"><div><span class="text-white">${req.user_id}</span><span class="text-cyan-400 ml-2">${req.amount} <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></span></div><div><button class="approvePayoutBtn bg-green-600 px-3 py-1 rounded text-sm mr-2" data-id="${req.id}">Одобрить</button><button class="rejectPayoutBtn bg-red-600 px-3 py-1 rounded text-sm" data-id="${req.id}">Отклонить</button></div></div>`).join('')}
+          ${payoutRequests.length === 0 ? '<p class="text-white/70">Нет заявок</p>' : payoutRequests.map(req => `<div class="flex justify-between items-center p-2 bg-white/5 rounded-lg mb-2"><div><span class="text-white">${req.user_id}</span><span class="text-cyan-400 ml-2">${req.amount} <span class="brand-flake" aria-hidden="true"><img src="/assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></span></div><div><button class="approvePayoutBtn bg-green-600 px-3 py-1 rounded text-sm mr-2" data-id="${req.id}">Одобрить</button><button class="rejectPayoutBtn bg-red-600 px-3 py-1 rounded text-sm" data-id="${req.id}">Отклонить</button></div></div>`).join('')}
         </div>
         
         <!-- AI Аналитика -->
@@ -16489,8 +16489,8 @@ function attachAnalyticsHandlers() {
       const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString();
       const sum = (type, since) => (txs || []).filter(t => t.type === type && t.created_at >= since).reduce((s, t) => s + Math.abs(t.amount || 0), 0);
       el.innerHTML = `
-        <div class="bg-white/5 rounded-xl p-2 text-center"><p class="text-white/50 text-xs">Общий баланс</p><p class="text-cyan-400 font-bold text-sm">${total.toFixed(0)} <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></p></div>
-        <div class="bg-white/5 rounded-xl p-2 text-center"><p class="text-white/50 text-xs">Баланс дропш.</p><p class="text-yellow-400 font-bold text-sm">${dropTotal.toFixed(0)} <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></p></div>
+        <div class="bg-white/5 rounded-xl p-2 text-center"><p class="text-white/50 text-xs">Общий баланс</p><p class="text-cyan-400 font-bold text-sm">${total.toFixed(0)} <span class="brand-flake" aria-hidden="true"><img src="/assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></p></div>
+        <div class="bg-white/5 rounded-xl p-2 text-center"><p class="text-white/50 text-xs">Баланс дропш.</p><p class="text-yellow-400 font-bold text-sm">${dropTotal.toFixed(0)} <span class="brand-flake" aria-hidden="true"><img src="/assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></p></div>
         <div class="bg-white/5 rounded-xl p-2 text-center"><p class="text-white/50 text-xs">Пополнения (30д)</p><p class="text-green-400 font-bold text-sm">+${sum('topup', monthAgo).toFixed(0)}</p></div>
         <div class="bg-white/5 rounded-xl p-2 text-center"><p class="text-white/50 text-xs">Выплаты (30д)</p><p class="text-red-400 font-bold text-sm">-${sum('withdrawal', monthAgo).toFixed(0)}</p></div>`;
     } catch { el.innerHTML = '<p class="text-white/30 text-xs col-span-2 text-center">Сводка недоступна</p>'; }
@@ -16530,7 +16530,7 @@ function attachAnalyticsHandlers() {
             <p class="text-white/40">${new Date(t.created_at).toLocaleDateString('ru-RU')} · ${t.type || '—'} · ${t.description || ''}</p>
           </div>
           <div class="ml-2 text-right flex-shrink-0">
-            <p class="font-bold ${(t.amount||0) >= 0 ? 'text-green-400' : 'text-red-400'}">${(t.amount||0)>=0?'+':''}${t.amount} <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></p>
+            <p class="font-bold ${(t.amount||0) >= 0 ? 'text-green-400' : 'text-red-400'}">${(t.amount||0)>=0?'+':''}${t.amount} <span class="brand-flake" aria-hidden="true"><img src="/assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></p>
             <p class="text-white/40">${t.status || ''}</p>
           </div>
         </div>`).join('');
@@ -17469,7 +17469,7 @@ async function renderAboutUs() {
   <div class="space-y-4 page-enter pb-10">
     <div class="glass-card text-center relative overflow-hidden">
       <div class="absolute inset-0 bg-gradient-to-b from-cyan-500/20 to-transparent pointer-events-none"></div>
-      <img src="./assets/logo.png" class="h-20 mx-auto mb-4 drop-shadow-2xl relative z-10" alt="ICE LOGIX">
+      <img src="/assets/logo.png" class="h-20 mx-auto mb-4 drop-shadow-2xl relative z-10" alt="ICE LOGIX">
       <h2 class="text-2xl font-black text-white mb-2 relative z-10">ICE LOGIX</h2>
       <p class="text-cyan-300 font-bold mb-4 relative z-10">Твой проводник в мир глобального шоппинга</p>
       
@@ -21991,7 +21991,7 @@ async function loadProfileExtras() {
     container.innerHTML = txs.map(tx => `
       <div class="flex justify-between text-xs py-1">
         <span class="text-white/70">${getTransactionTypeText(tx.type)}</span>
-        <span class="${tx.amount >= 0 ? 'text-green-400' : 'text-red-400'}">${tx.amount >= 0 ? '+' : ''}${tx.amount} <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></span>
+        <span class="${tx.amount >= 0 ? 'text-green-400' : 'text-red-400'}">${tx.amount >= 0 ? '+' : ''}${tx.amount} <span class="brand-flake" aria-hidden="true"><img src="/assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></span>
       </div>
     `).join('');
   }
@@ -22421,7 +22421,7 @@ async function showAllTransactions() {
               <p class="text-white/50 text-xs">${new Date(tx.created_at).toLocaleString('ru-RU')}</p>
               ${tx.description ? `<p class="text-white/70 text-sm">${tx.description}</p>` : ''}
             </div>
-            <p class="${tx.amount >= 0 ? 'text-green-400' : 'text-red-400'} font-bold">${tx.amount >= 0 ? '+' : ''}${tx.amount} <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></p>
+            <p class="${tx.amount >= 0 ? 'text-green-400' : 'text-red-400'} font-bold">${tx.amount >= 0 ? '+' : ''}${tx.amount} <span class="brand-flake" aria-hidden="true"><img src="/assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></p>
           </div>
         `).join('') : '<p class="text-white/70 text-center py-4">Нет транзакций</p>'}
       </div>
