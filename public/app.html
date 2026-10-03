@@ -227,15 +227,14 @@
     }
     .logo-img:active { transform: scale(0.95); }
 
-    /* Сочная анимация клика */
+    /* Нативная, плавная анимация клика */
     @keyframes clickPulse {
       0% { transform: scale(1); }
-      20% { transform: scale(0.85) rotate(-5deg); }
-      50% { transform: scale(1.15) rotate(5deg); }
-      100% { transform: scale(1) rotate(0deg); }
+      50% { transform: scale(0.96); }
+      100% { transform: scale(1); }
     }
     .click-animate {
-      animation: clickPulse 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+      animation: clickPulse 0.15s ease-out !important;
     }
 
     /* Анимация успеха при добавлении в корзину */
@@ -257,12 +256,12 @@
       background: linear-gradient(135deg, rgba(91,191,235,0.25) 0%, rgba(46,158,212,0.15) 100%);
       border: 1px solid rgba(91,191,235,0.4);
       border-radius: 20px;
-      box-shadow: 0 0 20px rgba(91,191,235,0.2), inset 0 1px 0 rgba(255,255,255,0.2);
-      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255,255,255,0.15);
+      transition: all 0.2s ease;
     }
     .balance-island:hover {
       transform: scale(1.02);
-      box-shadow: 0 0 30px rgba(91,191,235,0.35), inset 0 1px 0 rgba(255,255,255,0.3);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255,255,255,0.2);
     }
     
     .balance-amount {
@@ -282,20 +281,18 @@
       width: 26px; height: 26px;
       flex-shrink: 0;
       vertical-align: middle;
-      filter: drop-shadow(0 0 6px rgba(91, 191, 235, 0.7));
+      filter: none !important;
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
       transition: transform 0.2s ease;
       cursor: pointer;
     }
     .balance-icon:hover {
-      transform: scale(1.12);
+      transform: scale(1.08);
     }
-    .balance-icon img { width: 100%; height: 100%; object-fit: contain; display: block; }
-    .balance-icon svg { width: 14px; height: 14px; display: block; filter: drop-shadow(0 1px 1px rgba(255,255,255,0.8)); }
-    
-    @keyframes crystal-spin {
-      0% { transform: perspective(200px) rotateY(-20deg) scale(1); filter: brightness(1) contrast(1.1); }
-      100% { transform: perspective(200px) rotateY(20deg) scale(1.1); filter: brightness(1.3) contrast(1.2); }
-    }
+    .balance-icon img { width: 100%; height: 100%; object-fit: contain; display: block; border: none !important; background: transparent !important; box-shadow: none !important; }
+    .balance-icon svg { width: 14px; height: 14px; display: block; }
     
     .balance-add {
       width: 22px;
@@ -310,11 +307,10 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      box-shadow: 0 2px 8px rgba(91,191,235,0.4);
+      transition: transform 0.15s ease;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
     }
-    .balance-add:hover { transform: scale(1.15) rotate(90deg); }
-    .balance-add:active { transform: scale(0.9); }
+    .balance-add:active { transform: scale(0.92); }
     
     /* Header Icon Buttons */
     .icon-btn {
@@ -378,18 +374,18 @@
       font-size: 14px;
       font-weight: 700;
       color: white;
-      box-shadow: 0 2px 8px rgba(91,191,235,0.3);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
       cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: transform 0.15s ease;
     }
     @media (hover: hover) {
       .user-avatar:hover {
-        transform: scale(1.1);
-        box-shadow: 0 4px 12px rgba(91,191,235,0.5);
+        transform: scale(1.05);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
       }
     }
     .user-avatar:active {
-      transform: scale(0.9);
+      transform: scale(0.95);
     }
     .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
     
@@ -462,18 +458,18 @@
       height: 4px;
       background: var(--ice-primary);
       border-radius: 50%;
-      box-shadow: 0 0 8px var(--ice-primary);
+      box-shadow: none;
     }
     
     .tab-icon {
       font-size: 22px;
       line-height: 1;
-      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: transform 0.2s ease;
     }
     
     .tab-item:hover .tab-icon,
     .tab-item.active .tab-icon {
-      transform: scale(1.15) translateY(-2px);
+      transform: scale(1.1) translateY(-1px);
     }
     
     .tab-label {
@@ -492,22 +488,16 @@
       padding: 10px 8px;
       border-radius: 22px;
       margin: -20px 4px 0;
-      box-shadow: 0 4px 20px rgba(91, 191, 235, 0.5), 0 0 40px rgba(91, 191, 235, 0.2);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
       border: 2px solid rgba(255,255,255,0.3);
-      animation: pulse-glow 3s ease-in-out infinite;
-    }
-    
-    @keyframes pulse-glow {
-      0%, 100% { box-shadow: 0 4px 20px rgba(91, 191, 235, 0.5), 0 0 40px rgba(91, 191, 235, 0.2); }
-      50% { box-shadow: 0 4px 30px rgba(91, 191, 235, 0.7), 0 0 60px rgba(91, 191, 235, 0.4); }
     }
     
     @media (hover: hover) {
-    .tab-item.new-order:hover {
-      transform: scale(1.05) translateY(-2px);
-      box-shadow: 0 8px 30px rgba(91, 191, 235, 0.6), 0 0 50px rgba(91, 191, 235, 0.3);
+      .tab-item.new-order:hover {
+        transform: scale(1.03) translateY(-2px);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+      }
     }
-  }
     
     .tab-item.new-order::after { display: none; }
     
@@ -637,7 +627,7 @@
     .glass-card:hover {
       border-color: rgba(91, 191, 235, 0.3);
       transform: translateY(-2px);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35), 0 0 20px rgba(91, 191, 235, 0.1);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
     
     /* Product Cards */
@@ -648,15 +638,16 @@
       border-radius: 20px;
       overflow: hidden;
       border: 1px solid var(--glass-border);
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
       cursor: pointer;
+      transform: none !important;
     }
     .product-card:hover {
-      transform: translateY(-6px) scale(1.02);
-      border-color: rgba(91, 191, 235, 0.4);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(91, 191, 235, 0.15);
+      transform: none !important;
+      border-color: rgba(255, 255, 255, 0.25);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
     }
-    .product-card:active { transform: translateY(-2px) scale(0.98); }
+    .product-card:active { transform: none !important; }
     
     /* ═══════════════════════════════════════════════════════════════════════════
        STORY CARDS (3D-inspired icons)
@@ -668,11 +659,10 @@
       align-items: center;
       gap: 8px;
       cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: transform 0.12s ease;
       min-width: 76px;
     }
-    .story-card:hover { transform: translateY(-4px); }
-    .story-card:active { transform: scale(0.95); }
+    .story-card:active { transform: scale(0.96); }
     
     .story-icon {
       width: 68px;
@@ -687,30 +677,12 @@
       font-size: 32px;
       border: 1px solid var(--glass-border-strong);
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255,255,255,0.2);
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: transform 0.12s ease;
       position: relative;
       overflow: hidden;
     }
-    
-    .story-icon::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-      transition: left 0.5s ease;
-    }
-    
-    .story-card:hover .story-icon::before {
-      left: 100%;
-    }
-    
-    .story-card:hover .story-icon {
-      transform: scale(1.08);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25), 0 0 20px rgba(91, 191, 235, 0.2), inset 0 1px 0 rgba(255,255,255,0.3);
-      border-color: rgba(91, 191, 235, 0.4);
+    .story-card:active .story-icon {
+      transform: scale(0.96);
     }
     
     .story-label {
@@ -753,7 +725,7 @@
     
     .banner-slide:hover {
       transform: scale(1.02);
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3), 0 0 30px rgba(91, 191, 235, 0.15);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
     }
     
     /* ═══════════════════════════════════════════════════════════════════════════
@@ -781,7 +753,7 @@
       margin: 0 auto 12px;
       opacity: 0.8;
       padding: 4px;
-      filter: drop-shadow(0 2px 8px rgba(91, 191, 235, 0.35));
+      filter: none;
     }
     
     .footer-links {
@@ -828,10 +800,10 @@
       transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     .social-icon:hover {
-      transform: scale(1.1) translateY(-2px);
+      transform: scale(1.05) translateY(-1px);
       background: var(--glass-bg-strong);
-      border-color: var(--ice-primary);
-      box-shadow: 0 4px 16px rgba(91, 191, 235, 0.3);
+      border-color: rgba(255, 255, 255, 0.3);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
     }
     
     .copyright {
@@ -906,7 +878,7 @@
       background: linear-gradient(135deg, var(--ice-primary), var(--ice-deep));
       border-color: var(--ice-primary);
       color: white;
-      box-shadow: 0 2px 12px rgba(91, 191, 235, 0.4);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
     
     /* Input Fields */
@@ -925,7 +897,7 @@
     input:focus, textarea:focus, select:focus {
       outline: none !important;
       border-color: var(--ice-primary) !important;
-      box-shadow: 0 0 0 3px rgba(91, 191, 235, 0.2), 0 0 20px rgba(91, 191, 235, 0.15) !important;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25) !important;
     }
     
     input::placeholder, textarea::placeholder {
@@ -936,7 +908,7 @@
     button {
       font-family: 'Nunito', sans-serif;
       font-weight: 600;
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: transform 0.15s ease;
     }
     
     /* Primary Button */
@@ -949,13 +921,13 @@
       font-size: 15px;
       font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 4px 16px rgba(91, 191, 235, 0.4);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
     }
     .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 24px rgba(91, 191, 235, 0.5);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
     }
-    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:active { transform: scale(0.97); }
     
     /* Secondary Button */
     .btn-secondary {
@@ -1082,16 +1054,16 @@
     .stars { color: #FBBF24; margin-bottom: 8px; letter-spacing: 2px; }
     .wishlist-heart {
       cursor: pointer;
-      transition: transform 0.3s ease;
+      transition: transform 0.1s ease;
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
-      padding: 12px;
+      padding: 10px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       font-size: 1.45rem;
     }
-    .wishlist-heart:hover { transform: scale(1.15); }
+    .wishlist-heart:active { transform: scale(0.85); }
     .wishlist-heart .ix, .wishlist-heart svg, .wishlist-heart path { pointer-events: none; }
     
     /* Screenshot Widget */
@@ -1164,7 +1136,7 @@
       padding: 28px;
       max-width: 340px;
       width: 100%;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 60px rgba(91, 191, 235, 0.15);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
       animation: alertBounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
       text-align: center;
     }
@@ -1203,12 +1175,12 @@
       font-size: 15px;
       font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 4px 16px rgba(91, 191, 235, 0.4);
-      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      transition: all 0.2s ease;
     }
     .ice-alert-btn:hover {
-      transform: scale(1.05);
-      box-shadow: 0 6px 24px rgba(91, 191, 235, 0.5);
+      transform: scale(1.02);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
     }
     
     /* ═══════════════════════════════════════════════════════════════════════════
@@ -2175,7 +2147,7 @@
       background: linear-gradient(135deg, var(--ice-primary) 0%, var(--ice-deep) 100%);
       color: white;
       border-color: rgba(255,255,255,0.25);
-      box-shadow: 0 4px 12px rgba(91, 191, 235, 0.4);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
 
     .filter-chip.disabled-future {
@@ -2563,20 +2535,19 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      box-shadow: 0 8px 24px rgba(91, 191, 235, 0.5), 0 0 40px rgba(91, 191, 235, 0.2);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
       border: 1.5px solid rgba(255,255,255,0.3);
       cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      animation: bounceBtn 3s ease-in-out infinite;
+      transition: transform 0.15s ease;
     }
     
     .reviews-write-floating-btn:hover {
-      transform: translateY(-2px) scale(1.02);
-      box-shadow: 0 12px 30px rgba(91, 191, 235, 0.6), 0 0 50px rgba(91, 191, 235, 0.3);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     }
     
     .reviews-write-floating-btn:active {
-      transform: scale(0.95);
+      transform: scale(0.97);
     }
     
     @keyframes bounceBtn {
@@ -5952,7 +5923,7 @@ let adminOrdersTotalPages = 1;
     function animateClick(el) {
       if (!el) return;
       el.classList.add('click-animate');
-      setTimeout(() => el.classList.remove('click-animate'), 1200);
+      setTimeout(() => el.classList.remove('click-animate'), 180);
     }
     window.animateClick = animateClick;
 
@@ -11177,12 +11148,12 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
   <!-- Profile Header Card -->
   <div class="glass-card text-center mb-5">
     <div class="relative mx-auto w-28 h-28 mb-4">
-      <div class="w-28 h-28 rounded-full overflow-hidden" style="background: linear-gradient(135deg, var(--ice-primary), var(--ice-arctic)); padding: 3px;">
+      <div class="w-28 h-28 rounded-full overflow-hidden" style="background: var(--glass-border-strong); padding: 2px;">
         <div class="w-full h-full rounded-full overflow-hidden flex items-center justify-center text-4xl font-bold" style="background: var(--bg-gradient-mid);" id="profileAvatar">
           ${userAvatarUrl ? '<img src="' + userAvatarUrl + '" class="w-full h-full object-cover">' : (userName || 'Гость').charAt(0).toUpperCase()}
         </div>
       </div>
-      <button id="changeAvatarBtn" class="absolute bottom-0 right-0 w-10 h-10 rounded-full flex items-center justify-center text-lg border-2" style="background: linear-gradient(135deg, var(--ice-primary), var(--ice-deep)); border-color: var(--bg-gradient-mid); box-shadow: 0 2px 10px rgba(91,191,235,0.4);">
+      <button id="changeAvatarBtn" class="absolute bottom-0 right-0 w-10 h-10 rounded-full flex items-center justify-center text-lg border-2" style="background: linear-gradient(135deg, var(--ice-primary), var(--ice-deep)); border-color: var(--bg-gradient-mid); box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
         <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>
       </button>
     </div>
@@ -12701,13 +12672,29 @@ function attachWishlistHandlers() {
   if (backBtn) backBtn.addEventListener('click', () => switchTab('profile'));
 
   document.querySelectorAll('.wishlist-heart').forEach(heart => {
-    heart.addEventListener('click', async (e) => {
+    heart.addEventListener('click', (e) => {
       e.stopPropagation();
+      tgUtil.haptic('light');
       const productId = heart.dataset.productId;
-      await supabaseClient.from('wishlist').delete().eq('user_id', userId).eq('product_id', productId);
+      const card = heart.closest('.product-card');
+      if (card) {
+        card.style.transition = 'opacity 0.12s ease, transform 0.12s ease';
+        card.style.opacity = '0';
+        card.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+          card.remove();
+          const grid = document.querySelector('.grid.grid-cols-2');
+          if (grid && grid.children.length === 0) {
+            renderCurrentScreen();
+          }
+        }, 120);
+      }
       wishlist.delete(productId);
+      delete _tabCache['wishlist:'];
+      delete _tabCache['home:'];
+      delete _tabCache['catalogs:'];
       updateCartBadge();
-      renderCurrentScreen();
+      supabaseClient.from('wishlist').delete().eq('user_id', userId).eq('product_id', productId).catch(console.error);
     });
   });
 
@@ -17627,22 +17614,12 @@ function attachProductsCatalogHandlers() {
 
   // Сердечки (избранное)
   document.querySelectorAll('.wishlist-heart').forEach(heart => {
-    heart.onclick = async (e) => {
-          if (!window.userId) { window.requireAuth('Пожалуйста, авторизуйтесь для добавления в избранное.'); return; }
+    heart.onclick = (e) => {
       e.stopPropagation();
       const productId = heart.dataset.productId;
-      if (wishlist.has(productId)) {
-        await supabaseClient.from('wishlist').delete().eq('user_id', userId).eq('product_id', productId);
-        wishlist.delete(productId);
-        heart.innerHTML = getHeartIcon(false);
-        heart.classList.remove('text-red-500');
-      } else {
-        await supabaseClient.from('wishlist').insert({ user_id: userId, product_id: productId });
-        wishlist.add(productId);
-        heart.innerHTML = getHeartIcon(true);
-        heart.classList.add('text-red-500');
+      if (window.toggleProductWishlist) {
+        window.toggleProductWishlist(productId, heart);
       }
-      updateCartBadge();
     };
   });
 
@@ -17732,17 +17709,12 @@ async function loadMoreProducts() {
           e.stopPropagation();
           if (p.url) { window.tempOrder = { url: p.url, price: p.price, weight: 1, total: window.iceLogixPricing.quickEstimate(p.price, 1), discountAmount: 0, appliedPromo: null }; currentTab = 'neworder'; currentSubScreen = null; appliedPromo = null; renderCurrentScreen(); }
         };
-        div.querySelector('.wishlist-heart').onclick = async (e) => {
+        div.querySelector('.wishlist-heart').onclick = (e) => {
           e.stopPropagation();
           const heart = e.currentTarget;
-          if (wishlist.has(p.id)) {
-            await supabaseClient.from('wishlist').delete().eq('user_id', userId).eq('product_id', p.id);
-            wishlist.delete(p.id); heart.innerHTML = getHeartIcon(false); heart.classList.remove('text-red-500');
-          } else {
-            await supabaseClient.from('wishlist').insert({ user_id: userId, product_id: p.id });
-            wishlist.add(p.id); heart.innerHTML = getHeartIcon(true); heart.classList.add('text-red-500');
+          if (window.toggleProductWishlist) {
+            window.toggleProductWishlist(p.id, heart);
           }
-          updateCartBadge();
         };
         div.onclick = (e) => {
           if (e.target.closest('.wishlist-heart') || e.target.closest('.addToCartBtn') || e.target.closest('.cart-stepper') || e.target.closest('.buyNowBtn') || e.target.closest('.card-photo-container')) return;
