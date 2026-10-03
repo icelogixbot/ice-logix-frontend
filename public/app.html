@@ -2692,13 +2692,13 @@
     
     <!-- Main Content Area -->
     <div id="content" class="main-content"></div>
-    <script>try{const _h=localStorage.getItem('ice_tab_home');if(_h){document.getElementById('content').innerHTML=_h;}}catch(e){}</script>
+    <script>try{const _h=localStorage.getItem('ice_tab_home');if(_h){document.getElementById('content').innerHTML=_h;window._homeRenderedOnce=true;}}catch(e){}</script>
     
     <!-- ═══════════════════════════════════════════════════════════════════════
          TAB BAR ISLAND - Floating bottom navigation
          ═══════════════════════════════════════════════════════════════════════ -->
     <div class="tab-bar" id="tabBar">
-      <div class="tab-item" data-tab="home">
+      <div class="tab-item active" data-tab="home">
         <span class="tab-icon">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -3486,6 +3486,13 @@
     // Tab HTML cache: store rendered innerHTML per tab for instant restore on re-visit
     const _tabCache = {};
     try {
+      const _savedScreens = localStorage.getItem('ice_tab_screens_v2');
+      if (_savedScreens) {
+        const _parsed = JSON.parse(_savedScreens);
+        if (_parsed && typeof _parsed === 'object') {
+          Object.assign(_tabCache, _parsed);
+        }
+      }
       const _savedHome = localStorage.getItem('ice_tab_home');
       if (_savedHome) _tabCache['home:'] = { html: _savedHome, ts: Date.now() };
     } catch(e) {}
@@ -4655,11 +4662,28 @@
     };
 
     let tg = null, userId = null, userName = 'Гость', userAvatarUrl = null, isOwner = false, supabaseClient = null;
+    let isRegistered = false;
+    let balance = 0;
+    try {
+      const _cu = localStorage.getItem('ice_cached_user');
+      if (_cu) {
+        const _parsed = JSON.parse(_cu);
+        if (_parsed) {
+          if (_parsed.isRegistered) isRegistered = true;
+          if (_parsed.userId) userId = _parsed.userId;
+          if (_parsed.userName) userName = _parsed.userName;
+          if (_parsed.balance !== undefined) balance = _parsed.balance;
+          if (_parsed.userAvatarUrl) userAvatarUrl = _parsed.userAvatarUrl;
+          if (_parsed.isOwner !== undefined) isOwner = _parsed.isOwner;
+        }
+      }
+    } catch(e) {}
+    window._currentAppliedTheme = 'dark';
+
     Object.defineProperty(window, 'userId', {
       get() { return userId; },
       set(val) { userId = val; }
     });
-    let isRegistered = false;
     let originalAdminId = null;
     let isShadowMode = false;
     let adminAuthenticated = false;
@@ -5336,10 +5360,18 @@ let adminOrdersTotalPages = 1;
         attachEventListeners();
         const avatarDiv = document.querySelector('#avatar');
         if (avatarDiv) {
-          avatarDiv.innerHTML = userAvatarUrl ? `<img src="${userAvatarUrl}" class="w-full h-full object-cover">` : (userName || 'Гость').charAt(0).toUpperCase();
+          if (userAvatarUrl) {
+            const currentImg = avatarDiv.querySelector('img');
+            if (!currentImg || currentImg.getAttribute('src') !== userAvatarUrl) {
+              avatarDiv.innerHTML = `<img src="${userAvatarUrl}" class="w-full h-full object-cover">`;
+            }
+          } else {
+            const initial = (userName || 'Гость').charAt(0).toUpperCase();
+            if (avatarDiv.innerText !== initial) avatarDiv.innerText = initial;
+          }
         }
         const userNameHeader = document.querySelector('#userNameHeader');
-        if (userNameHeader) {
+        if (userNameHeader && userName && userNameHeader.innerText !== userName) {
           userNameHeader.innerText = userName;
         }
         const logoImg = document.getElementById('logoImg');
@@ -5348,7 +5380,8 @@ let adminOrdersTotalPages = 1;
         }
         const userCard = document.getElementById('userCard');
         if (userCard) {
-          if (!isRegistered) userCard.style.display = 'none';
+          const targetDisp = isRegistered ? '' : 'none';
+          if (userCard.style.display !== targetDisp) userCard.style.display = targetDisp;
         }
         const avatar = document.getElementById('avatar');
         if (avatar) {
@@ -5356,16 +5389,21 @@ let adminOrdersTotalPages = 1;
         }
         // Скрыть баланс, уведомления, настройки для неавторизованных
         const balanceIsland = document.getElementById('balanceIsland');
-        if (balanceIsland) balanceIsland.style.display = isRegistered ? '' : 'none';
+        if (balanceIsland) {
+          const targetDisp = isRegistered ? '' : 'none';
+          if (balanceIsland.style.display !== targetDisp) balanceIsland.style.display = targetDisp;
+        }
         const settingsBtn = document.getElementById('settingsBtn');
         if (settingsBtn) {
           settingsBtn.onclick = () => showAppSettings('security');
-          if (!isRegistered) settingsBtn.style.display = 'none';
+          const targetDisp = isRegistered ? '' : 'none';
+          if (settingsBtn.style.display !== targetDisp) settingsBtn.style.display = targetDisp;
         }
         const notificationsBtn = document.getElementById('notificationsBtn');
         if (notificationsBtn) {
           notificationsBtn.onclick = () => showNotificationsPanel();
-          if (!isRegistered) notificationsBtn.style.display = 'none';
+          const targetDisp = isRegistered ? '' : 'none';
+          if (notificationsBtn.style.display !== targetDisp) notificationsBtn.style.display = targetDisp;
         }
         const loginBtn = document.getElementById('loginBtn');
         const headerRight = document.querySelector('.header-right');
@@ -5497,6 +5535,17 @@ let adminOrdersTotalPages = 1;
                 return data || [];
               }, 60000).catch(() => {});
             }
+
+            // 8. Pre-render quick lineup screens into memory cache so 1st click is 0ms
+            setTimeout(() => {
+              try {
+                if (!_tabCache['reports:']) renderReports().then(h => { if (h) _tabCache['reports:'] = { html: h, ts: Date.now() }; }).catch(() => {});
+                if (!_tabCache['reviews:']) renderReviews().then(h => { if (h) _tabCache['reviews:'] = { html: h, ts: Date.now() }; }).catch(() => {});
+                if (!_tabCache['promo:']) renderPromoPage().then(h => { if (h) _tabCache['promo:'] = { html: h, ts: Date.now() }; }).catch(() => {});
+                if (!_tabCache['academy:']) renderAcademy().then(h => { if (h) _tabCache['academy:'] = { html: h, ts: Date.now() }; }).catch(() => {});
+                if (userId && !_tabCache['legitcheck:']) renderLegitCheck().then(h => { if (h) _tabCache['legitcheck:'] = { html: h, ts: Date.now() }; }).catch(() => {});
+              } catch(e) {}
+            }, 400);
           }
         };
         if ('requestIdleCallback' in window) {
@@ -5507,9 +5556,14 @@ let adminOrdersTotalPages = 1;
       } catch (globalInitErr) {
         console.error('CRITICAL ERROR during init():', globalInitErr);
       } finally {
-        // ALWAYS call switchTab('home') to force the UI to boot and replace the loading skeletons!
+        // Safe boot without double-rendering or flickering navigation bars
         try {
-          switchTab('home');
+          if (!window._homeRenderedOnce) {
+            switchTab('home');
+            window._homeRenderedOnce = true;
+          } else {
+            attachHomeHandlers();
+          }
           window._appReady = true;
         } catch (tabErr) {
           console.error('Failed to switch tab to home:', tabErr);
@@ -5584,18 +5638,31 @@ let adminOrdersTotalPages = 1;
           }));
         } catch(e) {}
 
-        // Live update header details if DOM is loaded
+        // Live update header details if DOM is loaded without unnecessary re-rendering
         const avatarDiv = document.querySelector('#avatar');
         if (avatarDiv) {
-          avatarDiv.innerHTML = userAvatarUrl ? `<img src="${userAvatarUrl}" class="w-full h-full object-cover">` : (userName || 'Гость').charAt(0).toUpperCase();
+          if (userAvatarUrl) {
+            const currentImg = avatarDiv.querySelector('img');
+            if (!currentImg || currentImg.getAttribute('src') !== userAvatarUrl) {
+              avatarDiv.innerHTML = `<img src="${userAvatarUrl}" class="w-full h-full object-cover">`;
+            }
+          } else {
+            const initial = (userName || 'Гость').charAt(0).toUpperCase();
+            if (avatarDiv.innerText !== initial) avatarDiv.innerText = initial;
+          }
         }
         const userNameHeader = document.querySelector('#userNameHeader');
-        if (userNameHeader) {
+        if (userNameHeader && userNameHeader.innerText !== userName) {
           userNameHeader.innerText = userName;
         }
 
-        document.getElementById('headerBalance').innerText = balance;
-        applyTheme(data.settings?.theme || 'dark');
+        const _hb = document.getElementById('headerBalance');
+        if (_hb && _hb.innerText != balance) {
+          _hb.innerText = balance;
+        }
+        if (data.settings?.theme && data.settings.theme !== window._currentAppliedTheme) {
+          applyTheme(data.settings.theme);
+        }
         // Update family balance in header — fire-and-forget, must not block init
         setTimeout(() => updateHeaderFamilyBalance().catch(() => {}), 0);
 
@@ -5964,10 +6031,22 @@ let adminOrdersTotalPages = 1;
         window.legitPhotos = [];
         window.legitResult = null;
       }
-      document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
-      const activeTab = document.querySelector(`.tab-item[data-tab="${tabName}"]`);
-      if (activeTab) activeTab.classList.add('active');
+      const currentActive = document.querySelector('.tab-item.active');
+      const targetActive = document.querySelector(`.tab-item[data-tab="${tabName}"]`);
+      if (currentActive !== targetActive) {
+        document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+        if (targetActive) targetActive.classList.add('active');
+      }
       tgUtil.haptic('selection');
+      
+      // If home is already rendered and populated, don't overwrite and cause flicker
+      if (tabName === 'home' && !subScreen && window._homeRenderedOnce) {
+        const _cd = document.getElementById('content');
+        if (_cd && _cd.firstElementChild) {
+          _silentRefreshHandlers('home');
+          return;
+        }
+      }
       
       // Restore from HTML cache for instant screen switch (0ms delay, no flicker)
       const _ck = (tabName || '') + ':' + (subScreen || '');
@@ -19085,6 +19164,17 @@ function attachAdminSuppliersHandlers() {
       const _ck = (currentTab || '') + ':' + (currentSubScreen || '');
       if (contentDiv && contentDiv.innerHTML) {
         _tabCache[_ck] = { html: contentDiv.innerHTML, ts: Date.now() };
+        try {
+          if (currentTab === 'home' && !currentSubScreen) {
+            localStorage.setItem('ice_tab_home', contentDiv.innerHTML);
+          }
+          const _persistKeys = ['reports:', 'reviews:', 'promo:', 'academy:', 'legitcheck:', 'calculator:', 'catalogs:'];
+          if (_persistKeys.includes(_ck)) {
+            const _toSave = {};
+            _persistKeys.forEach(k => { if (_tabCache[k]?.html) _toSave[k] = _tabCache[k]; });
+            localStorage.setItem('ice_tab_screens_v2', JSON.stringify(_toSave));
+          }
+        } catch(e) {}
       }
     }
 
@@ -19583,13 +19673,15 @@ function maskCard(cardNumber) {
   return '**** **** **** ' + n.slice(-4);
 }
 function applyTheme(theme) {
+  if (theme === window._currentAppliedTheme) return;
+  window._currentAppliedTheme = theme;
   document.documentElement.classList.add('no-transitions');
   if (theme === 'light') {
     document.documentElement.classList.add('light-theme');
   } else {
     document.documentElement.classList.remove('light-theme');
   }
-  // Force layout reflow
+  // Force layout reflow only when theme actually changed
   void document.documentElement.offsetHeight;
   setTimeout(() => {
     document.documentElement.classList.remove('no-transitions');
