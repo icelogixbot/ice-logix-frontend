@@ -2663,12 +2663,7 @@
     </div>
     
     <!-- Main Content Area -->
-    <div id="content" class="main-content page-enter">
-      <div class="text-center py-10" style="color: var(--text-secondary);">
-        <div class="skeleton" style="width: 60px; height: 60px; border-radius: 16px; margin: 0 auto 12px;"></div>
-        <div class="skeleton" style="width: 120px; height: 16px; margin: 0 auto;"></div>
-      </div>
-    </div>
+    <div id="content" class="main-content page-enter"></div>
     
     <!-- ═══════════════════════════════════════════════════════════════════════
          TAB BAR ISLAND - Floating bottom navigation
@@ -5827,7 +5822,7 @@ let adminOrdersTotalPages = 1;
       
       // Restore from HTML cache for instant tab switch (no spinner flicker)
       const _ck = tabName + ':';
-      if (!subScreen && _tabCache[_ck] && Date.now() - _tabCache[_ck].ts < 45000) {
+      if (!subScreen && _tabCache[_ck] && Date.now() - _tabCache[_ck].ts < 600000) {
         const _cd = document.getElementById('content');
         if (_cd) {
           _cd.innerHTML = _tabCache[_ck].html;
@@ -18716,16 +18711,7 @@ function attachAdminSuppliersHandlers() {
         `;
       }
 
-      // SHOW SPINNER IMMEDIATELY — skipped on silent background refresh (restoring from tab cache)
-      if (!_suppressSpinner) {
-        contentDiv.innerHTML = shadowBannerHtml + `
-          <div class="flex flex-col items-center justify-center min-h-[60vh] gap-3 page-enter">
-            <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-r-2 border-cyan-400"></div>
-            <div class="text-cyan-400/50 text-[10px] font-bold uppercase tracking-widest animate-pulse">Загрузка ICE LOGIX...</div>
-          </div>
-        `;
-        await new Promise(r => setTimeout(r, 10));
-      }
+      // Seamless instant render — previous content remains visible until new screen is ready
 
       if (currentSubScreen === 'about') {
         contentDiv.innerHTML = shadowBannerHtml + await renderAboutUs();
