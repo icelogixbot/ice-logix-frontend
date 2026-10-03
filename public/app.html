@@ -3410,20 +3410,48 @@
       }
     }, true);
 
-    // --- APP CACHE FOR BLAZING FAST NAVIGATION ---
+    // --- APP CACHE FOR BLAZING FAST NAVIGATION (Stale-While-Revalidate + LocalStorage) ---
     window.CacheDB = {
-      data: {},
-      async get(key, fetcher, ttl = 120000) { // Default 2 mins cache
-        const now = Date.now();
-        if (this.data[key] && (now - this.data[key].timestamp < ttl)) {
-          return this.data[key].value;
-        }
-        const val = await fetcher();
-        this.data[key] = { value: val, timestamp: now };
-        return val;
+      data: (() => {
+        try {
+          const s = localStorage.getItem('ice_cache_db');
+          return s ? JSON.parse(s) : {};
+        } catch(e) { return {}; }
+      })(),
+      save() {
+        try {
+          localStorage.setItem('ice_cache_db', JSON.stringify(this.data));
+        } catch(e) {}
       },
-      clear(key) { delete this.data[key]; },
-      clearAll() { this.data = {}; }
+      async get(key, fetcher, ttl = 600000) { // 10 mins cache
+        const now = Date.now();
+        const cached = this.data[key];
+        if (cached && (now - cached.timestamp < ttl)) {
+          return cached.value;
+        }
+        // Instant Return: if we have cached data, return it immediately and revalidate in background
+        if (cached && cached.value) {
+          fetcher().then(fresh => {
+            if (fresh) {
+              this.data[key] = { value: fresh, timestamp: Date.now() };
+              this.save();
+            }
+          }).catch(() => {});
+          return cached.value;
+        }
+        try {
+          const val = await fetcher();
+          if (val) {
+            this.data[key] = { value: val, timestamp: now };
+            this.save();
+          }
+          return val;
+        } catch(e) {
+          return cached?.value || null;
+        }
+      },
+      clear(key) { delete this.data[key]; this.save(); },
+      clearAll() { this.data = {}; this.save(); }
     };
 
     // Tab HTML cache: store rendered innerHTML per tab for instant restore on re-visit
@@ -5351,10 +5379,30 @@ let adminOrdersTotalPages = 1;
           });
         } catch(e) {}
 
-        // Performance: use requestIdleCallback for non-critical post-init tasks
-        if ('requestIdleCallback' in window) {
-          requestIdleCallback(() => {
-            if (supabaseClient && userId) {
+        // Performance: pre-warm caches on idle so every section opens instantly with 0ms delay
+        const _prewarm = () => {
+          if (window.CacheDB && window.supabaseClient) {
+            // 1. Pre-warm marketplaces
+            if (!window.marketplacesCache) {
+              supabaseClient.from('marketplaces').select('*').eq('is_active', true).order('sort_order', { ascending: true })
+                .then(({ data }) => { if (data) window.marketplacesCache = preprocessMarketplaces(data); }).catch(() => {});
+            }
+            // 2. Pre-warm popular products
+            window.CacheDB.get('popularProducts', async () => {
+              const { data: homeProds } = await supabaseClient.from('products').select('*').eq('is_active', true).eq('show_on_home', true).limit(10);
+              if (homeProds && homeProds.length > 0) return homeProds;
+              const { data } = await supabaseClient.from('products').select('*').eq('is_active', true).limit(10);
+              return data;
+            }, 600000).catch(() => {});
+            // 3. Pre-warm promotions
+            window.CacheDB.get('promotions', async () => {
+              const { data } = await supabaseClient.from('promotions').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(5);
+              return data;
+            }, 600000).catch(() => {});
+            // 4. Pre-warm reviews config
+            if (typeof loadReviewsConfig === 'function') loadReviewsConfig().catch(() => {});
+            // 5. Notifications
+            if (userId) {
               supabaseClient.from('user_notifications').select('id', { count: 'exact', head: true })
                 .eq('user_id', userId).eq('is_read', false).then(({ count }) => {
                   const badge = document.getElementById('notifBadge');
@@ -5364,7 +5412,12 @@ let adminOrdersTotalPages = 1;
                   }
                 }).catch(() => {});
             }
-          }, { timeout: 3000 });
+          }
+        };
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(_prewarm, { timeout: 2000 });
+        } else {
+          setTimeout(_prewarm, 1500);
         }
       } catch (globalInitErr) {
         console.error('CRITICAL ERROR during init():', globalInitErr);
@@ -5820,9 +5873,9 @@ let adminOrdersTotalPages = 1;
       if (activeTab) activeTab.classList.add('active');
       tgUtil.haptic('selection');
       
-      // Restore from HTML cache for instant tab switch (no spinner flicker)
-      const _ck = tabName + ':';
-      if (!subScreen && _tabCache[_ck] && Date.now() - _tabCache[_ck].ts < 600000) {
+      // Restore from HTML cache for instant screen switch (0ms delay, no flicker)
+      const _ck = (tabName || '') + ':' + (subScreen || '');
+      if (_tabCache[_ck] && Date.now() - _tabCache[_ck].ts < 600000) {
         const _cd = document.getElementById('content');
         if (_cd) {
           _cd.innerHTML = _tabCache[_ck].html;
@@ -6117,8 +6170,31 @@ let adminOrdersTotalPages = 1;
         <button id="tabForYou" class="filter-chip"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 18 3 22 9 12 22 2 9 6 3"/><line x1="11" y1="3" x2="8" y2="9"/><line x1="13" y1="3" x2="16" y2="9"/><line x1="2" y1="9" x2="22" y2="9"/></svg></span> Для вас</button>
       </div>
       <div class="grid grid-cols-2 gap-3" id="homeProductsGrid">
-        <div class="skeleton" style="height: 200px; border-radius: 20px;"></div>
-        <div class="skeleton" style="height: 200px; border-radius: 20px;"></div>
+        ${(() => {
+          const cached = window.CacheDB?.data?.['popularProducts']?.value;
+          if (cached && cached.length > 0) {
+            return preprocessProducts(cached).map(p => `
+              <div class="product-card" data-product-id="${p.id}">
+                <div class="relative">
+                  ${renderCardMedia(p.image_url, p.title)}
+                  <span class="absolute top-0 right-0 wishlist-heart text-xl ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/50'} z-20" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
+                </div>
+                <div class="p-2">
+                  <p class="text-white font-bold text-sm truncate">${p.title}</p>
+                  <p class="text-cyan-400 text-xs">${p.price} ${p.currency}</p>
+                  <div class="flex gap-1 mt-2">
+                    <button class="btn-primary addToCartBtn flex-1" data-product-id="${p.id}">Корзина</button>
+                    <button class="buyNowBtn flex-1" data-url="${p.url}" data-price="${p.price}">Заказать</button>
+                  </div>
+                </div>
+              </div>
+            `).join('');
+          }
+          return `
+            <div class="skeleton" style="height: 200px; border-radius: 20px;"></div>
+            <div class="skeleton" style="height: 200px; border-radius: 20px;"></div>
+          `;
+        })()}
       </div>
     </div>
     
@@ -18864,9 +18940,10 @@ function attachAdminSuppliersHandlers() {
         ensureBackButton();
       }
       initCardSliders();
-      // Save rendered HTML to cache for instant restore on next tab switch
-      if (!currentSubScreen && currentTab && contentDiv && contentDiv.innerHTML) {
-        _tabCache[currentTab + ':'] = { html: contentDiv.innerHTML, ts: Date.now() };
+      // Save rendered HTML to cache for instant restore on next tab/screen switch
+      const _ck = (currentTab || '') + ':' + (currentSubScreen || '');
+      if (contentDiv && contentDiv.innerHTML) {
+        _tabCache[_ck] = { html: contentDiv.innerHTML, ts: Date.now() };
       }
     }
 
@@ -18993,7 +19070,34 @@ async function renderMarketplaces() {
         </button>
       </div>
       
-      <div class="flex flex-col gap-3" id="marketplacesGrid"></div>
+      <div class="flex flex-col gap-3" id="marketplacesGrid">
+        ${data.map(mp => {
+          let tagsHtml = '';
+          const name = (mp.name || '').toLowerCase();
+          if (mp.requires_vpn || name.includes('poizon')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">Нужен VPN</span>';
+          if (name.includes('1688')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">Только опт</span>';
+          if (name.includes('taobao') || name.includes('wechat')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">Сложная рег.</span>';
+          return `
+          <div class="glass-card flex gap-3 p-3 items-center page-enter">
+            <div style="width: 68px; height: 68px; flex-shrink: 0; border-radius: 16px; overflow:hidden; background: var(--glass-bg-strong); display:flex; align-items:center; justify-content:center; border: 1px solid var(--glass-border-strong);" class="relative">
+              ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-cover cursor-pointer" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" onclick="event.stopPropagation(); tgUtil.openLink('${mp.website_url || mp.url}')">` : ''}
+              <span style="${mp.logo_url ? 'display:none;' : ''}" class="text-4xl flex items-center justify-center"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span></span>
+              ${mp.country === 'США' || mp.country === 'Япония' || mp.country === 'ОАЭ' ? '<span class="absolute bottom-0 right-0 bg-yellow-500 text-black text-[8px] font-bold px-1 rounded-tl">Скоро</span>' : ''}
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <h3 class="font-bold text-white text-sm truncate">${mp.name}</h3>
+                <span class="text-[9px] text-white/50 bg-white/5 px-1.5 py-0.2 rounded-full border border-white/5">${mp.country}</span>
+              </div>
+              <p class="text-white/60 text-[11px] mt-1 line-clamp-1 leading-tight">${mp.description || ''}</p>
+              <div class="flex flex-wrap gap-1 mt-1.5 items-center">
+                ${tagsHtml}
+                ${mp.categories?.slice(0, 2).map(cat => `<span class="text-white/40 text-[9px] bg-white/5 px-1.5 py-0.5 rounded border border-white/5">${cat}</span>`).join('') || ''}
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
       
       ${renderFooter()}
     `;
