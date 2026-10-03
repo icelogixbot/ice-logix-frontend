@@ -3,6 +3,7 @@ import Script from 'next/script';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { I18nProvider } from '@/lib/i18n/context';
 import { CartProvider } from '@/lib/cart-context';
+import { WishlistProvider } from '@/lib/wishlist-context';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -35,10 +36,13 @@ export default function RootLayout({
       <body className="antialiased selection:bg-cyan-500/30 selection:text-cyan-200">
         <QueryProvider>
           <I18nProvider>
-            <CartProvider>{children}</CartProvider>
+            <CartProvider>
+              <WishlistProvider>{children}</WishlistProvider>
+            </CartProvider>
           </I18nProvider>
         </QueryProvider>
       </body>
     </html>
   );
 }
+

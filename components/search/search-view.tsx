@@ -15,8 +15,10 @@ import {
   X,
   SlidersHorizontal,
   Check,
-  Sparkles
+  Sparkles,
+  Heart,
 } from 'lucide-react';
+import { useWishlist } from '@/lib/wishlist-context';
 
 interface SearchViewProps {
   onSelectProductForCalc: (product: { price: number; url: string; title: string; currency: string }) => void;
@@ -428,20 +430,46 @@ export function SearchView({ onSelectProductForCalc }: SearchViewProps) {
 }
 
 function ProductCardItem({ card, onSelect }: { card: ProductCard; onSelect: () => void }) {
+  const { toggleWishlist, isWishlisted } = useWishlist();
+  const wishlisted = isWishlisted(card.url || card.title);
+
   return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl p-2.5 flex flex-col justify-between hover:border-cyan-500/40 transition-colors">
+    <div className="bg-white/5 border border-white/10 rounded-2xl p-2.5 flex flex-col justify-between hover:border-cyan-500/40 transition-colors group">
       <div>
         <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-white/5 mb-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={card.image_url || '/placeholder.png'}
             alt={card.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             loading="lazy"
           />
           <span className="absolute top-1.5 left-1.5 bg-black/60 backdrop-blur-md text-[9px] px-1.5 py-0.5 rounded text-white/90">
             {card.flag} {card.platform_label}
           </span>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleWishlist({
+                id: card.url || card.title,
+                title: card.title,
+                price: card.price,
+                currency: card.currency,
+                platform: card.platform,
+                imageUrl: card.image_url || '',
+                url: card.url,
+              });
+            }}
+            className={`absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+              wishlisted
+                ? 'bg-pink-500 text-white shadow-md'
+                : 'bg-black/60 text-white/70 hover:text-white backdrop-blur-sm'
+            }`}
+          >
+            <Heart className={`w-3.5 h-3.5 ${wishlisted ? 'fill-white' : ''}`} />
+          </button>
         </div>
         <p className="text-xs text-white font-medium line-clamp-2 mb-1">{card.title}</p>
       </div>
@@ -460,3 +488,4 @@ function ProductCardItem({ card, onSelect }: { card: ProductCard; onSelect: () =
     </div>
   );
 }
+

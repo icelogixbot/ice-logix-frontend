@@ -16,6 +16,11 @@ import { FortuneWheelModal } from '@/components/gamification/fortune-wheel-modal
 import { ReviewsModal } from '@/components/reviews/reviews-modal';
 import { FaqModal } from '@/components/ui/faq-modal';
 import { AdminOrdersView } from '@/components/admin/admin-orders-view';
+import { WishlistModal } from '@/components/wishlist/wishlist-modal';
+import { ProductsCatalogView } from '@/components/catalog/products-catalog-view';
+import { MarketplacesGuideModal } from '@/components/catalog/marketplaces-guide-modal';
+import { LegitCheckModal } from '@/components/legitcheck/legit-check-modal';
+import { AcademyModal } from '@/components/academy/academy-modal';
 
 export interface SelectedProductForCalc {
   price: number;
@@ -27,13 +32,20 @@ export interface SelectedProductForCalc {
 export default function HomePage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabType>('search');
+  const [searchMode, setSearchMode] = useState<'search' | 'catalog'>('search');
   const [selectedProduct, setSelectedProduct] = useState<SelectedProductForCalc | null>(null);
+
   const [isStoriesOpen, setIsStoriesOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isFortuneOpen, setIsFortuneOpen] = useState(false);
   const [isReviewsOpen, setIsReviewsOpen] = useState(false);
   const [isFaqOpen, setIsFaqOpen] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
+
+  const [isWishlistOpen, setIsWishlistOpen] = useState(false);
+  const [isMarketplacesOpen, setIsMarketplacesOpen] = useState(false);
+  const [isLegitCheckOpen, setIsLegitCheckOpen] = useState(false);
+  const [isAcademyOpen, setIsAcademyOpen] = useState(false);
 
   // Проверка первого визита для онбординга
   useEffect(() => {
@@ -130,6 +142,7 @@ export default function HomePage() {
         user={userProfile || null}
         isLoading={isUserLoading}
         onOpenCart={() => setIsCartOpen(true)}
+        onOpenWishlist={() => setIsWishlistOpen(true)}
       />
 
       {/* Основной контент экранов */}
@@ -139,7 +152,48 @@ export default function HomePage() {
         ) : (
           <>
             {activeTab === 'search' && (
-              <SearchView onSelectProductForCalc={handleSelectProductForCalc} />
+              <div className="space-y-3">
+                {/* Переключатель Поиск / Каталог хитов */}
+                <div className="flex items-center gap-1.5 p-1 bg-white/5 border border-white/10 rounded-2xl">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('selection');
+                      setSearchMode('search');
+                    }}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition ${
+                      searchMode === 'search'
+                        ? 'bg-cyan-500 text-slate-950 shadow-sm'
+                        : 'text-white/60 hover:text-white'
+                    }`}
+                  >
+                    🔍 Поиск по Китаю
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('selection');
+                      setSearchMode('catalog');
+                    }}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                      searchMode === 'catalog'
+                        ? 'bg-cyan-500 text-slate-950 shadow-sm'
+                        : 'text-white/60 hover:text-white'
+                    }`}
+                  >
+                    <span>🔥</span> Каталог хитов
+                  </button>
+                </div>
+
+                {searchMode === 'search' ? (
+                  <SearchView onSelectProductForCalc={handleSelectProductForCalc} />
+                ) : (
+                  <ProductsCatalogView
+                    onSelectProductForCalc={handleSelectProductForCalc}
+                    onOpenMarketplacesGuide={() => setIsMarketplacesOpen(true)}
+                  />
+                )}
+              </div>
             )}
 
             {activeTab === 'calculator' && (
@@ -164,6 +218,9 @@ export default function HomePage() {
                 onOpenReviews={() => setIsReviewsOpen(true)}
                 onOpenFaq={() => setIsFaqOpen(true)}
                 onOpenAdmin={() => setIsAdminMode(true)}
+                onOpenWishlist={() => setIsWishlistOpen(true)}
+                onOpenLegitCheck={() => setIsLegitCheckOpen(true)}
+                onOpenAcademy={() => setIsAcademyOpen(true)}
               />
             )}
           </>
@@ -221,7 +278,33 @@ export default function HomePage() {
         isOpen={isFaqOpen}
         onClose={() => setIsFaqOpen(false)}
       />
+
+      {/* Модалка Избранного */}
+      <WishlistModal
+        isOpen={isWishlistOpen}
+        onClose={() => setIsWishlistOpen(false)}
+        onSelectForCalc={handleSelectProductForCalc}
+      />
+
+      {/* Гайд по маркетплейсам */}
+      <MarketplacesGuideModal
+        isOpen={isMarketplacesOpen}
+        onClose={() => setIsMarketplacesOpen(false)}
+      />
+
+      {/* Экспертиза Legit Check */}
+      <LegitCheckModal
+        isOpen={isLegitCheckOpen}
+        onClose={() => setIsLegitCheckOpen(false)}
+      />
+
+      {/* Академия байера */}
+      <AcademyModal
+        isOpen={isAcademyOpen}
+        onClose={() => setIsAcademyOpen(false)}
+      />
     </main>
   );
 }
+
 
