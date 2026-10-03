@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/assets/:path*",
+        source: "/(assets|vendor)/:path*",
         headers: [
           {
             key: "Cache-Control",
@@ -31,6 +31,14 @@ const nextConfig: NextConfig = {
             value: "public, max-age=86400, stale-while-revalidate=604800",
           },
         ],
+      },
+    ];
+  },
+  async rewrites() {
+    return [
+      {
+        source: "/api/go/:path*",
+        destination: `${process.env.GO_BACKEND_URL || "http://localhost:8080"}/api/:path*`,
       },
     ];
   },
