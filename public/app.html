@@ -2663,7 +2663,8 @@
     </div>
     
     <!-- Main Content Area -->
-    <div id="content" class="main-content page-enter"></div>
+    <div id="content" class="main-content"></div>
+    <script>try{const _h=localStorage.getItem('ice_tab_home');if(_h){document.getElementById('content').innerHTML=_h;}}catch(e){}</script>
     
     <!-- ═══════════════════════════════════════════════════════════════════════
          TAB BAR ISLAND - Floating bottom navigation
@@ -3456,6 +3457,10 @@
 
     // Tab HTML cache: store rendered innerHTML per tab for instant restore on re-visit
     const _tabCache = {};
+    try {
+      const _savedHome = localStorage.getItem('ice_tab_home');
+      if (_savedHome) _tabCache['home:'] = { html: _savedHome, ts: Date.now() };
+    } catch(e) {}
     let _suppressSpinner = false;
 
     // ─── BLOB URL TRACKING (prevent memory leaks from photo previews) ───
@@ -6040,10 +6045,26 @@ let adminOrdersTotalPages = 1;
 
           // If admin has configured show_on_home venues — use them; otherwise fall back to the legacy static list
           const marketplaces = homeDbMarketplaces.length > 0 ? homeDbMarketplaces : staticMarketplaces;
+
+          // Fetch or get from cache popular products for instant 0ms rendering
+          let homeProductsList = [];
+          try {
+            const rawPopular = await window.CacheDB.get('popularProducts', async () => {
+              const { data: homeProds } = await supabaseClient.from('products').select('*').eq('is_active', true).eq('show_on_home', true).limit(10);
+              if (homeProds && homeProds.length > 0) return homeProds;
+              const { data } = await supabaseClient.from('products').select('*').eq('is_active', true).limit(10);
+              return data;
+            }, 300000);
+            if (rawPopular && rawPopular.length > 0) {
+              homeProductsList = preprocessProducts(rawPopular);
+            }
+          } catch(e) {
+            console.error(e);
+          }
   
   return `
     <!-- Currency Tracker -->
-    <div class="glass-card mb-5 page-enter" style="animation-delay: 0.12s; padding: 12px 16px;">
+    <div class="glass-card mb-5" style="padding: 12px 16px;">
       <div class="flex justify-between items-center mb-2">
         <h3 class="text-white font-bold text-sm flex items-center gap-1"><span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span> Биржевой курс ICE LOGIX</h3>
         <span class="text-green-400 text-[10px] bg-green-400/20 px-2 py-0.5 rounded-full animate-pulse">Live</span>
@@ -6073,7 +6094,7 @@ let adminOrdersTotalPages = 1;
     </div>
 
     <!-- Quick Actions - Story Cards with 3D-style icons -->
-    <div class="scroll-hint-container mb-6 page-enter" style="animation-delay: 0.15s;">
+    <div class="scroll-hint-container mb-6">
     <div class="scroll-x" style="padding: 4px 0;">
       <div class="story-card" data-story="onboarding">
         <div class="story-icon" style="background: linear-gradient(145deg, rgba(99,202,253,0.2), rgba(59,130,246,0.1));">
@@ -6115,7 +6136,7 @@ let adminOrdersTotalPages = 1;
     </div>
 
     <!-- Promo Banners -->
-    <div class="scroll-hint-container mb-6 page-enter" style="animation-delay: 0.2s;">
+    <div class="scroll-hint-container mb-6">
     <div class="scroll-x" id="promoBannersContainer">
       ${await renderPromoBanners()}
     </div>
@@ -6123,7 +6144,7 @@ let adminOrdersTotalPages = 1;
     
     
     <!-- Popular Marketplaces Section -->
-    <div class="mb-6 page-enter" style="animation-delay: 0.25s;">
+    <div class="mb-6">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-white font-bold text-base flex items-center gap-2">
           <span style="font-size: 20px;"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span></span>
@@ -6152,7 +6173,7 @@ let adminOrdersTotalPages = 1;
     </div>
     
     <!-- Recommended Products Section -->
-    <div class="mb-6 page-enter" style="animation-delay: 0.3s;">
+    <div class="mb-6">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-white font-bold text-base flex items-center gap-2">
           <span style="font-size: 20px;"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="2"/></svg></span></span>
@@ -6170,31 +6191,22 @@ let adminOrdersTotalPages = 1;
         <button id="tabForYou" class="filter-chip"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 18 3 22 9 12 22 2 9 6 3"/><line x1="11" y1="3" x2="8" y2="9"/><line x1="13" y1="3" x2="16" y2="9"/><line x1="2" y1="9" x2="22" y2="9"/></svg></span> Для вас</button>
       </div>
       <div class="grid grid-cols-2 gap-3" id="homeProductsGrid">
-        ${(() => {
-          const cached = window.CacheDB?.data?.['popularProducts']?.value;
-          if (cached && cached.length > 0) {
-            return preprocessProducts(cached).map(p => `
-              <div class="product-card" data-product-id="${p.id}">
-                <div class="relative">
-                  ${renderCardMedia(p.image_url, p.title)}
-                  <span class="absolute top-0 right-0 wishlist-heart text-xl ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/50'} z-20" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
-                </div>
-                <div class="p-2">
-                  <p class="text-white font-bold text-sm truncate">${p.title}</p>
-                  <p class="text-cyan-400 text-xs">${p.price} ${p.currency}</p>
-                  <div class="flex gap-1 mt-2">
-                    <button class="btn-primary addToCartBtn flex-1" data-product-id="${p.id}">Корзина</button>
-                    <button class="buyNowBtn flex-1" data-url="${p.url}" data-price="${p.price}">Заказать</button>
-                  </div>
-                </div>
+        ${homeProductsList.map(p => `
+          <div class="product-card" data-product-id="${p.id}">
+            <div class="relative">
+              ${renderCardMedia(p.image_url, p.title)}
+              <span class="absolute top-0 right-0 wishlist-heart text-xl ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/50'} z-20" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
+            </div>
+            <div class="p-2">
+              <p class="text-white font-bold text-sm truncate">${p.title}</p>
+              <p class="text-cyan-400 text-xs">${p.price} ${p.currency}</p>
+              <div class="flex gap-1 mt-2">
+                <button class="btn-primary addToCartBtn flex-1" data-product-id="${p.id}">Корзина</button>
+                <button class="buyNowBtn flex-1" data-url="${p.url}" data-price="${p.price}">Заказать</button>
               </div>
-            `).join('');
-          }
-          return `
-            <div class="skeleton" style="height: 200px; border-radius: 20px;"></div>
-            <div class="skeleton" style="height: 200px; border-radius: 20px;"></div>
-          `;
-        })()}
+            </div>
+          </div>
+        `).join('')}
       </div>
     </div>
     
@@ -6321,23 +6333,35 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
       if (popular) data = preprocessProducts(popular);
     }
 
-    grid.innerHTML = data.map(p => `
-      <div class="product-card" data-product-id="${p.id}">
-        <div class="relative">
-          ${renderCardMedia(p.image_url, p.title)}
-          <span class="absolute top-0 right-0 wishlist-heart text-xl ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/50'} z-20" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
-        </div>
-        <div class="p-2">
-          <p class="text-white font-bold text-sm truncate">${p.title}</p>
-          <p class="text-cyan-400 text-xs">${p.price} ${p.currency}</p>
-          <div class="flex gap-1 mt-2">
-            <button class="btn-primary addToCartBtn flex-1" data-product-id="${p.id}">Корзина</button>
-            <button class="buyNowBtn flex-1" data-url="${p.url}" data-price="${p.price}">Заказать</button>
+    const existingCards = Array.from(grid.querySelectorAll('.product-card'));
+    const existingIds = existingCards.map(c => c.dataset.productId).join(',');
+    const newIds = data.map(p => p.id).join(',');
+
+    if (existingCards.length === 0 || existingIds !== newIds) {
+      grid.innerHTML = data.map(p => `
+        <div class="product-card" data-product-id="${p.id}">
+          <div class="relative">
+            ${renderCardMedia(p.image_url, p.title)}
+            <span class="absolute top-0 right-0 wishlist-heart text-xl ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/50'} z-20" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
+          </div>
+          <div class="p-2">
+            <p class="text-white font-bold text-sm truncate">${p.title}</p>
+            <p class="text-cyan-400 text-xs">${p.price} ${p.currency}</p>
+            <div class="flex gap-1 mt-2">
+              <button class="btn-primary addToCartBtn flex-1" data-product-id="${p.id}">Корзина</button>
+              <button class="buyNowBtn flex-1" data-url="${p.url}" data-price="${p.price}">Заказать</button>
+            </div>
           </div>
         </div>
-      </div>
-    `).join('');
-    initCardSliders();
+      `).join('');
+      initCardSliders();
+    }
+
+    const _cd = document.getElementById('content');
+    if (_cd && currentTab === 'home' && !currentSubScreen) {
+      _tabCache['home:'] = { html: _cd.innerHTML, ts: Date.now() };
+      try { localStorage.setItem('ice_tab_home', _cd.innerHTML); } catch(e){}
+    }
 
     grid.querySelectorAll('.addToCartBtn').forEach(btn => {
       btn.onclick = (e) => {
@@ -10284,20 +10308,20 @@ function getDeliveryCountdownText(order) {
 async function renderMyOrders() {
   if (!userId) return '<p class="text-center mt-10 text-white/70">Авторизуйтесь</p>';
   try {
-    const { data, error } = await supabaseClient
-      .from('orders')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+    const [ordersRes, claimsRes] = await Promise.all([
+      supabaseClient.from('orders').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+      supabaseClient.from('insurance_claims').select('*').eq('user_id', userId)
+    ]);
       
-    if (error) throw error;
+    if (ordersRes.error) throw ordersRes.error;
+    const data = ordersRes.data || [];
     if (!data || data.length === 0) {
       return '<p class="text-center mt-10 text-white/70">У вас пока нет заказов</p>';
     }
 
-    const { data: claims } = await supabaseClient.from('insurance_claims').select('*').eq('user_id', userId);
+    const claims = claimsRes.data || [];
     const claimsMap = {};
-    (claims || []).forEach(c => {
+    claims.forEach(c => {
       claimsMap[c.order_id] = c;
     });
     
@@ -10928,29 +10952,30 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
 
         // ==================== РЕНДЕР ПРОФИЛЯ (С РЕФЕРАЛКАМИ) ====================
         async function renderProfile() {
-      let referralStats = await window.CacheDB.get('ref_' + userId, async () => {
-        let stats = { count: 0, bonus: 0 };
-        if (userId) {
-          try {
-            const { data, error } = await supabaseClient.from('users').select('referral_count, referral_bonus').eq('user_id', userId).single();
-            if (!error && data) {
-              stats.count = data.referral_count || 0;
-              stats.bonus = data.referral_bonus || 0;
-            }
-          } catch(e) {}
-        }
-        return stats;
-      }, 60000);
-      
-      let isDropshipper = await window.CacheDB.get('dropship_' + userId, async () => {
-        if (userId) {
-          try {
-            const { data, error } = await supabaseClient.from('dropshipper_settings').select('user_id').eq('user_id', userId).single();
-            if (!error && data) return true;
-          } catch(e) {}
-        }
-        return false;
-      }, 300000);
+      const [referralStats, isDropshipper] = await Promise.all([
+        window.CacheDB.get('ref_' + userId, async () => {
+          let stats = { count: 0, bonus: 0 };
+          if (userId) {
+            try {
+              const { data, error } = await supabaseClient.from('users').select('referral_count, referral_bonus').eq('user_id', userId).single();
+              if (!error && data) {
+                stats.count = data.referral_count || 0;
+                stats.bonus = data.referral_bonus || 0;
+              }
+            } catch(e) {}
+          }
+          return stats;
+        }, 60000),
+        window.CacheDB.get('dropship_' + userId, async () => {
+          if (userId) {
+            try {
+              const { data, error } = await supabaseClient.from('dropshipper_settings').select('user_id').eq('user_id', userId).single();
+              if (!error && data) return true;
+            } catch(e) {}
+          }
+          return false;
+        }, 300000)
+      ]);
       
       const shareLink = userReferralCode ? `https://t.me/${tg.initDataUnsafe?.user?.username ? tg.initDataUnsafe.user.username : 'icelogix_bot'}?startapp=ref_${userReferralCode}` : '';
       
@@ -10979,7 +11004,7 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
 
       return `
   <!-- Profile Header Card -->
-  <div class="glass-card text-center mb-5 page-enter">
+  <div class="glass-card text-center mb-5">
     <div class="relative mx-auto w-28 h-28 mb-4">
       <div class="w-28 h-28 rounded-full overflow-hidden" style="background: linear-gradient(135deg, var(--ice-primary), var(--ice-arctic)); padding: 3px;">
         <div class="w-full h-full rounded-full overflow-hidden flex items-center justify-center text-4xl font-bold" style="background: var(--bg-gradient-mid);" id="profileAvatar">
@@ -11069,7 +11094,7 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
   <!-- Колесо Фортуны перенесено в раздел "Акции" главного меню -->
   
   <!-- Quick Actions Grid -->
-  <div class="mb-5 page-enter" style="animation-delay: 0.1s;">
+  <div class="mb-5">
     <h3 class="text-white font-bold mb-4 flex items-center gap-2">
       <span><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span></span> ${t('quick_actions', 'Быстрые действия')}
     </h3>
@@ -11110,7 +11135,7 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
 
   
   <!-- Другое Grid -->
-  <div class="mb-5 page-enter" style="animation-delay: 0.15s;">
+  <div class="mb-5">
     <h3 class="text-white font-bold mb-4 flex items-center gap-2">
       <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></span> ${t('other', 'Другое')}
     </h3>
@@ -11145,7 +11170,7 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
   </div>
   
   <!-- Logout & Delete Account Buttons -->
-  <div class="flex gap-3 w-full justify-center page-enter" style="animation-delay: 0.2s; max-width: 320px; margin: 0 auto;">
+  <div class="flex gap-3 w-full justify-center" style="max-width: 320px; margin: 0 auto;">
     <button id="logoutBtn" class="w-1/2 py-3 px-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -17176,33 +17201,23 @@ async function renderProductsCatalog() {
 
     const from = (productsPage - 1) * 20;
     const to = from + 19;
-    const { data: rawData, count, error } = await query.range(from, to);
-    if (error) throw error;
+
+    const [productsRes, userOrdersRes, userTxRes] = await Promise.all([
+      query.range(from, to),
+      userId ? supabaseClient.from('orders').select('id').eq('user_id', userId).in('status', ['paid', 'bought', 'on_sklad_cn', 'in_transit', 'in_belarus', 'delivered']).limit(1) : Promise.resolve({ data: [] }),
+      userId ? supabaseClient.from('transactions').select('id').eq('user_id', userId).limit(1) : Promise.resolve({ data: [] })
+    ]);
+
+    if (productsRes.error) throw productsRes.error;
+    const rawData = productsRes.data || [];
+    const count = productsRes.count || 0;
     const data = preprocessProducts(rawData);
 
     productsTotalPages = Math.ceil((count || 0) / 20);
 
-    let isVipUnlocked = false;
-    if (userId) {
-      try {
-        const { data: userOrders } = await supabaseClient.from('orders')
-          .select('id')
-          .eq('user_id', userId)
-          .in('status', ['paid', 'bought', 'on_sklad_cn', 'in_transit', 'in_belarus', 'delivered'])
-          .limit(1);
-        
-        const { data: userTx } = await supabaseClient.from('transactions')
-          .select('id')
-          .eq('user_id', userId)
-          .limit(1);
-
-        if ((userOrders && userOrders.length > 0) || (userTx && userTx.length > 0)) {
-          isVipUnlocked = true;
-        }
-      } catch (e) {
-        console.error('Error checking VIP lock status:', e);
-      }
-    }
+    const userOrders = userOrdersRes?.data || [];
+    const userTx = userTxRes?.data || [];
+    const isVipUnlocked = (userOrders.length > 0) || (userTx.length > 0);
 
     const categories = [...new Set(data.map(p => p.category).filter(Boolean))];
     const brands = [...new Set(data.map(p => p.brand).filter(Boolean))];
@@ -17219,7 +17234,7 @@ async function renderProductsCatalog() {
       <!-- VIP Section Banner -->
       ${isVipUnlocked ? `
         <!-- Unlocked VIP Section Card -->
-        <div class="glass-card mb-5 overflow-hidden relative border border-green-500/20 bg-gradient-to-br from-slate-900 via-emerald-950/10 to-slate-900 p-4 page-enter cursor-pointer hover:scale-[1.01] transition-all" onclick="window.showVipSectionModal()">
+        <div class="glass-card mb-5 overflow-hidden relative border border-green-500/20 bg-gradient-to-br from-slate-900 via-emerald-950/10 to-slate-900 p-4 cursor-pointer hover:scale-[1.01] transition-all" onclick="window.showVipSectionModal()">
           <div class="absolute -right-8 -top-8 w-24 h-24 rounded-full blur-2xl" style="background: rgba(16,185,129,0.2);"></div>
           <div class="flex items-center justify-between gap-4 relative z-10">
             <div class="flex items-center gap-3 min-w-0">
@@ -17238,7 +17253,7 @@ async function renderProductsCatalog() {
         </div>
       ` : `
         <!-- Locked VIP Section Card -->
-        <div class="glass-card mb-5 overflow-hidden relative border border-yellow-500/20 bg-gradient-to-br from-slate-900 via-amber-950/10 to-slate-900 p-4 page-enter cursor-pointer hover:scale-[1.01] transition-all" onclick="tgUtil.alert('Секретный VIP-раздел заблокирован! Оформите и оплатите хотя бы один заказ, чтобы разблокировать доступ к уникальным скидкам до 70%!')">
+        <div class="glass-card mb-5 overflow-hidden relative border border-yellow-500/20 bg-gradient-to-br from-slate-900 via-amber-950/10 to-slate-900 p-4 cursor-pointer hover:scale-[1.01] transition-all" onclick="tgUtil.alert('Секретный VIP-раздел заблокирован! Оформите и оплатите хотя бы один заказ, чтобы разблокировать доступ к уникальным скидкам до 70%!')">
           <div class="absolute -right-8 -top-8 w-24 h-24 rounded-full blur-2xl" style="background: rgba(251,191,36,0.15);"></div>
           <div class="flex items-center gap-4 relative z-10">
             <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0 animate-pulse" style="background: linear-gradient(135deg, rgba(251,191,36,0.25), rgba(245,158,11,0.15));">
@@ -22085,8 +22100,10 @@ async function downloadAgreement() {
 // Загрузка дополнительных данных профиля (аватар, транзакции)
 async function loadProfileExtras() {
   if (!userId) return;
-  // Обновляем аватар
-  const { data } = await supabaseClient.from('users').select('avatar_url, full_name').eq('user_id', userId).single();
+  const [{ data }, { data: txs }] = await Promise.all([
+    supabaseClient.from('users').select('avatar_url, full_name').eq('user_id', userId).single(),
+    supabaseClient.from('transaction_history').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(3)
+  ]);
   if (data) {
     if (data.avatar_url) {
       document.getElementById('profileAvatar').innerHTML = `<img src="${data.avatar_url}" class="w-full h-full object-cover">`;
@@ -22099,9 +22116,6 @@ async function loadProfileExtras() {
       userName = data.full_name || userName || 'Гость';
     }
   }
-  // Загружаем последние транзакции
-  const { data: txs } = await supabaseClient.from('transaction_history')
-    .select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(3);
   const container = document.getElementById('recentTransactions');
   if (container && txs) {
     container.innerHTML = txs.map(tx => `
