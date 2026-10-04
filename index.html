@@ -630,102 +630,237 @@
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
     
-    /* Product Cards */
+    /* Product Cards - WB Inspired (2 columns edge-to-edge, NO border) */
     .product-card {
-      background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 14px;
       overflow: hidden;
-      border: 1px solid var(--glass-border);
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      border: none !important;
+      outline: none !important;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
       cursor: pointer;
-      transform: none !important;
+      display: flex;
+      flex-direction: column;
     }
     .product-card:hover {
-      transform: none !important;
-      border-color: rgba(255, 255, 255, 0.25);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+      transform: translateY(-2px) !important;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
     }
-    .product-card:active { transform: none !important; }
+    .product-card:active { transform: scale(0.98) !important; }
     
     /* ═══════════════════════════════════════════════════════════════════════════
-       STORY CARDS (3D-inspired icons)
+       STORY / CATEGORY SQUIRCLES (WB Inspired)
        ═══════════════════════════════════════════════════════════════════════════ */
     
     .story-card {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 8px;
+      gap: 5px;
       cursor: pointer;
-      transition: transform 0.12s ease;
-      min-width: 76px;
+      transition: transform 0.15s ease;
+      min-width: 58px;
+      max-width: 64px;
+      flex-shrink: 0;
     }
-    .story-card:active { transform: scale(0.96); }
+    .story-card:active { transform: scale(0.93) !important; }
     
     .story-icon {
-      width: 68px;
-      height: 68px;
-      background: linear-gradient(145deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-radius: 22px;
+      width: 54px;
+      height: 54px;
+      background: rgba(255, 255, 255, 0.07);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-radius: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 32px;
-      border: 1px solid var(--glass-border-strong);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255,255,255,0.2);
-      transition: transform 0.12s ease;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
       position: relative;
       overflow: hidden;
     }
+    .story-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+    .story-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 16px;
+    }
     .story-card:active .story-icon {
-      transform: scale(0.96);
+      transform: scale(0.93);
     }
     
     .story-label {
       font-size: 11px;
-      font-weight: 600;
-      color: var(--text-secondary);
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.88);
       text-align: center;
-      max-width: 72px;
+      max-width: 62px;
       line-height: 1.2;
+      letter-spacing: -0.2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    html.light-theme .story-icon {
+      background: #f1f5f9;
+      border-color: rgba(0, 0, 0, 0.06);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+    html.light-theme .story-label {
+      color: #1e293b;
     }
     
     /* ═══════════════════════════════════════════════════════════════════════════
-       BANNER SLIDES
+       BANNER CAROUSEL (WB Inspired Auto-scroll Slider)
        ═══════════════════════════════════════════════════════════════════════════ */
     
+    .banner-carousel-wrapper {
+      position: relative;
+      width: 100%;
+      margin-bottom: 18px;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
+    }
+    
+    .banner-carousel {
+      display: flex;
+      width: 100%;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 18px;
+    }
+    .banner-carousel::-webkit-scrollbar {
+      display: none;
+    }
+    
     .banner-slide {
-      background: linear-gradient(135deg, var(--ice-deep), var(--ice-arctic));
-      border-radius: 24px;
-      padding: 0;
-      min-width: 280px;
-      height: 130px;
+      flex: 0 0 100%;
+      width: 100%;
+      min-width: 100%;
+      max-width: 100%;
+      height: 175px;
       scroll-snap-align: start;
+      scroll-snap-stop: always;
       cursor: pointer;
       overflow: hidden;
       background-size: cover;
       background-position: center;
-      border: 1px solid var(--glass-border-strong);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
       position: relative;
+      border-radius: 18px;
+      display: flex;
+      align-items: flex-end;
+      padding: 16px;
+      box-sizing: border-box;
+      user-select: none;
     }
     
-    .banner-slide::after {
+    .banner-slide::before {
       content: '';
       position: absolute;
       inset: 0;
-      background: linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 50%);
+      background: linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.58) 100%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .banner-content {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      color: #ffffff;
+    }
+
+    .banner-badge {
+      display: inline-block;
+      background: #facc15;
+      color: #0f172a;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      letter-spacing: 0.4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+
+    .banner-title {
+      font-size: 19px;
+      font-weight: 900;
+      line-height: 1.15;
+      margin: 0 0 4px 0;
+      text-transform: uppercase;
+      letter-spacing: -0.3px;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.45);
+    }
+
+    .banner-subtitle {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.92);
+      margin: 0 0 8px 0;
+      font-weight: 500;
+      line-height: 1.3;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+      max-width: 85%;
+    }
+
+    .banner-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255, 255, 255, 0.22);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      transition: background 0.15s ease;
+    }
+    
+    .banner-dots {
+      position: absolute;
+      bottom: 8px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      z-index: 5;
       pointer-events: none;
     }
     
-    .banner-slide:hover {
-      transform: scale(1.02);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    .banner-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.45);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: auto;
+      cursor: pointer;
+    }
+    
+    .banner-dot.active {
+      width: 20px;
+      background: #ffffff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
     }
     
     /* ═══════════════════════════════════════════════════════════════════════════
@@ -1352,9 +1487,10 @@
       box-shadow: 0 8px 32px rgba(91, 191, 235, 0.08) !important;
     }
     html.light-theme .product-card {
-      background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.8) 100%) !important;
-      border-color: rgba(200, 220, 240, 0.6) !important;
-      box-shadow: 0 6px 20px rgba(91, 191, 235, 0.06) !important;
+      background: #ffffff !important;
+      border: none !important;
+      outline: none !important;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06) !important;
     }
     
     /* Modals & Slate elements */
@@ -1877,6 +2013,7 @@
       aspect-ratio: 1 / 1;
       overflow: hidden;
       background: rgba(255, 255, 255, 0.05);
+      border-radius: 14px 14px 0 0;
     }
     .card-slider {
       display: flex;
@@ -2663,7 +2800,7 @@
     
     <!-- Main Content Area -->
     <div id="content" class="main-content"></div>
-    <script>try{const _h=localStorage.getItem('ice_tab_home');if(_h){document.getElementById('content').innerHTML=_h;window._homeRenderedOnce=true;}}catch(e){}</script>
+    <script>try{const _h=localStorage.getItem('ice_tab_home_v2');if(_h){document.getElementById('content').innerHTML=_h;window._homeRenderedOnce=true;}}catch(e){}</script>
     
     <!-- ═══════════════════════════════════════════════════════════════════════
          TAB BAR ISLAND - Floating bottom navigation
@@ -3464,7 +3601,7 @@
           Object.assign(_tabCache, _parsed);
         }
       }
-      const _savedHome = localStorage.getItem('ice_tab_home');
+      const _savedHome = localStorage.getItem('ice_tab_home_v2');
       if (_savedHome) _tabCache['home:'] = { html: _savedHome, ts: Date.now() };
     } catch(e) {}
     let _suppressSpinner = false;
@@ -6138,28 +6275,210 @@ let adminOrdersTotalPages = 1;
     }
 
     async function renderPromoBanners() {
-  try {
-    const data = await window.CacheDB.get('promotions', async () => {
-      const { data, error } = await supabaseClient
-        .from('promotions')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .limit(5);
-      if (error) throw error;
-      return data;
-    }, 300000); // 5 mins cache
-    if (!data || data.length === 0) return '';
-    
-    return data.map(p => `
-      <div class="banner-slide" data-promotion-id="${p.id}" style="background-image: url('${p.banner_url}'); background-size: cover; background-position: center; min-width: 280px; height: 120px;">
-      </div>
-    `).join('');
-  } catch (err) {
-    console.error('Ошибка загрузки баннеров:', err);
-    return '';
-  }
-}
+      try {
+        let dbPromos = [];
+        try {
+          const data = await window.CacheDB.get('promotions', async () => {
+            const { data, error } = await supabaseClient
+              .from('promotions')
+              .select('*')
+              .eq('is_active', true)
+              .order('created_at', { ascending: false })
+              .limit(5);
+            if (error) throw error;
+            return data;
+          }, 300000);
+          if (data && data.length > 0) dbPromos = data;
+        } catch (e) {
+          console.error('Ошибка загрузки баннеров:', e);
+        }
+
+        const fallbackSlides = [
+          {
+            id: 'promo-sale',
+            bg: 'linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #f43f5e 100%)',
+            badge: 'ДО 70% ВЫГОДЫ',
+            title: 'БОЛЬШАЯ РАСПРОДАЖА',
+            subtitle: 'Оригинальные кроссовки и одежда из Poizon, Taobao & 1688',
+            btnText: 'В каталог',
+            action: 'catalog'
+          },
+          {
+            id: 'promo-legit',
+            bg: 'linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #4f46e5 100%)',
+            badge: '100% ОРИГИНАЛ',
+            title: 'ЛЕГИТ-ЧЕК В ПОДАРОК',
+            subtitle: 'Двойная проверка подлинности и бирки перед отправкой',
+            btnText: 'Проверить вещь',
+            action: 'legit'
+          },
+          {
+            id: 'promo-delivery',
+            bg: 'linear-gradient(135deg, #059669 0%, #0d9488 50%, #0891b2 100%)',
+            badge: 'БЫСТРАЯ ДОСТАВКА',
+            title: 'ЛУЧШИЙ КУРС ВАЛЮТ',
+            subtitle: 'Экспресс-доставка из Китая и Европы от 7 рабочих дней',
+            btnText: 'В калькулятор',
+            action: 'calculator'
+          }
+        ];
+
+        let slides = [];
+        if (dbPromos.length > 0) {
+          dbPromos.forEach(p => {
+            slides.push({
+              id: p.id,
+              isDb: true,
+              bannerUrl: p.banner_url,
+              title: p.title || 'Специальное предложение',
+              subtitle: p.description || 'Активируйте акцию для расчета в калькуляторе'
+            });
+          });
+        }
+
+        if (slides.length < 3) {
+          fallbackSlides.forEach(fb => {
+            if (slides.length < 3) slides.push(fb);
+          });
+        }
+
+        return slides.map(s => {
+          if (s.isDb && s.bannerUrl) {
+            return `
+              <div class="banner-slide" data-promotion-id="${s.id}" style="background-image: url('${s.bannerUrl}');">
+                <div class="banner-content">
+                  <span class="banner-badge">АКЦИЯ ICE LOGIX</span>
+                  <h3 class="banner-title">${s.title}</h3>
+                  <p class="banner-subtitle">${s.subtitle}</p>
+                  <span class="banner-btn">Применить скидку →</span>
+                </div>
+              </div>
+            `;
+          } else {
+            return `
+              <div class="banner-slide" data-promo-action="${s.action || 'catalog'}" style="background: ${s.bg};">
+                <div class="banner-content">
+                  <span class="banner-badge">${s.badge}</span>
+                  <h3 class="banner-title">${s.title}</h3>
+                  <p class="banner-subtitle">${s.subtitle}</p>
+                  <span class="banner-btn">${s.btnText} →</span>
+                </div>
+              </div>
+            `;
+          }
+        }).join('');
+      } catch (err) {
+        console.error('Ошибка рендера баннеров:', err);
+        return '';
+      }
+    }
+
+    function initBannerAutoScroll() {
+      const container = document.getElementById('promoBannersContainer');
+      const dotsContainer = document.getElementById('bannerDots');
+      if (!container) return;
+
+      if (window._bannerScrollInterval) {
+        clearInterval(window._bannerScrollInterval);
+        window._bannerScrollInterval = null;
+      }
+
+      const slides = container.querySelectorAll('.banner-slide');
+      const count = slides.length;
+      if (count <= 1) {
+        if (dotsContainer) dotsContainer.innerHTML = '';
+        return;
+      }
+
+      if (dotsContainer) {
+        dotsContainer.innerHTML = Array.from({ length: count })
+          .map((_, i) => `<span class="banner-dot ${i === 0 ? 'active' : ''}" data-index="${i}"></span>`)
+          .join('');
+
+        dotsContainer.querySelectorAll('.banner-dot').forEach(dot => {
+          dot.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const idx = parseInt(dot.dataset.index, 10);
+            scrollToSlide(idx);
+          });
+        });
+      }
+
+      let currentIndex = 0;
+      let isInteracting = false;
+      let resumeTimer = null;
+
+      function updateDots(idx) {
+        if (!dotsContainer) return;
+        const dots = dotsContainer.querySelectorAll('.banner-dot');
+        dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+      }
+
+      function scrollToSlide(idx) {
+        if (!container || slides.length === 0) return;
+        currentIndex = (idx + count) % count;
+        const targetSlide = slides[currentIndex];
+        if (targetSlide) {
+          container.scrollTo({
+            left: targetSlide.offsetLeft,
+            behavior: 'smooth'
+          });
+          updateDots(currentIndex);
+        }
+      }
+
+      function nextSlide() {
+        if (isInteracting) return;
+        const next = (currentIndex + 1) % count;
+        scrollToSlide(next);
+      }
+
+      function startTimer() {
+        stopTimer();
+        window._bannerScrollInterval = setInterval(nextSlide, 4200);
+      }
+
+      function stopTimer() {
+        if (window._bannerScrollInterval) {
+          clearInterval(window._bannerScrollInterval);
+          window._bannerScrollInterval = null;
+        }
+      }
+
+      let scrollTimeout;
+      container.addEventListener('scroll', () => {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+          const scrollPos = container.scrollLeft;
+          const w = container.clientWidth || 1;
+          const newIdx = Math.round(scrollPos / w);
+          if (newIdx >= 0 && newIdx < count && newIdx !== currentIndex) {
+            currentIndex = newIdx;
+            updateDots(currentIndex);
+          }
+        }, 50);
+      }, { passive: true });
+
+      const onStart = () => {
+        isInteracting = true;
+        clearTimeout(resumeTimer);
+        stopTimer();
+      };
+      const onEnd = () => {
+        clearTimeout(resumeTimer);
+        resumeTimer = setTimeout(() => {
+          isInteracting = false;
+          startTimer();
+        }, 2500);
+      };
+
+      container.addEventListener('touchstart', onStart, { passive: true });
+      container.addEventListener('touchend', onEnd, { passive: true });
+      container.addEventListener('mouseenter', onStart);
+      container.addEventListener('mouseleave', onEnd);
+
+      startTimer();
+    }
 
         // ==================== РЕНДЕР ГЛАВНОЙ СТРАНИЦЫ ====================
         async function renderHome() {
@@ -6235,77 +6554,77 @@ let adminOrdersTotalPages = 1;
       </div>
     </div>
 
-    <!-- Quick Actions - Story Cards with 3D-style icons -->
-    <div class="scroll-hint-container mb-6">
-    <div class="scroll-x" style="padding: 4px 0;">
+    <!-- Promo Banners (WB Style Full Width with Slow Auto-scroll) -->
+    <div class="banner-carousel-wrapper mb-4" id="bannerCarouselWrapper">
+      <div class="banner-carousel" id="promoBannersContainer">
+        ${await renderPromoBanners()}
+      </div>
+      <div class="banner-dots" id="bannerDots"></div>
+    </div>
+
+    <!-- Quick Actions - Story Cards (WB Squircle Style Line 1) -->
+    <div class="scroll-hint-container mb-4">
+    <div class="scroll-x" style="padding: 2px 0 6px;">
       <div class="story-card" data-story="onboarding">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(99,202,253,0.2), rgba(59,130,246,0.1));">
-          <span style="font-size: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span></span>
+        <div class="story-icon" style="background: linear-gradient(145deg, rgba(99,202,253,0.25), rgba(59,130,246,0.12));">
+          <span style="font-size: 24px;"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span></span>
         </div>
         <span class="story-label">Гайд</span>
       </div>
       <div class="story-card" data-story="legitcheck">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(16,185,129,0.2), rgba(5,150,105,0.1));">
-          <span style="font-size: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span></span>
+        <div class="story-icon" style="background: linear-gradient(145deg, rgba(16,185,129,0.25), rgba(5,150,105,0.12));">
+          <span style="font-size: 24px;"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span></span>
         </div>
         <span class="story-label">Легит-чек</span>
       </div>
       <div class="story-card" data-story="reports">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(251,191,36,0.2), rgba(245,158,11,0.1));">
-          <span style="font-size: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span></span>
+        <div class="story-icon" style="background: linear-gradient(145deg, rgba(251,191,36,0.25), rgba(245,158,11,0.12));">
+          <span style="font-size: 24px;"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span></span>
         </div>
         <span class="story-label">Отчёты</span>
       </div>
       <div class="story-card" data-story="reviews">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(251,191,36,0.25), rgba(234,179,8,0.15));">
-          <span style="font-size: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span></span>
+        <div class="story-icon" style="background: linear-gradient(145deg, rgba(251,191,36,0.3), rgba(234,179,8,0.18));">
+          <span style="font-size: 24px;"><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span></span>
         </div>
         <span class="story-label">Отзывы</span>
       </div>
       <div class="story-card" data-story="promo">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(248,113,113,0.2), rgba(239,68,68,0.1));">
-          <span style="font-size: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></span></span>
+        <div class="story-icon" style="background: linear-gradient(145deg, rgba(248,113,113,0.25), rgba(239,68,68,0.12));">
+          <span style="font-size: 24px;"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></span></span>
         </div>
         <span class="story-label">Акции</span>
       </div>
       <div class="story-card" data-story="academy">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(139,92,246,0.2), rgba(109,40,217,0.15));">
-          <span style="font-size: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></span></span>
+        <div class="story-icon" style="background: linear-gradient(145deg, rgba(139,92,246,0.25), rgba(109,40,217,0.18));">
+          <span style="font-size: 24px;"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></span></span>
         </div>
         <span class="story-label">Академия</span>
       </div>
     </div>
     </div>
-
-    <!-- Promo Banners -->
-    <div class="scroll-hint-container mb-6">
-    <div class="scroll-x" id="promoBannersContainer">
-      ${await renderPromoBanners()}
-    </div>
-    </div>
     
-    
-    <!-- Popular Marketplaces Section -->
-    <div class="mb-6">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-white font-bold text-base flex items-center gap-2">
-          <span style="font-size: 20px;"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span></span>
+    <!-- Popular Marketplaces Section (WB Squircle Style Line 2) -->
+    <div class="mb-5">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="text-white font-bold text-sm flex items-center gap-1.5">
+          <span style="font-size: 18px;"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span></span>
           Площадки
         </h3>
-        <button id="moreMarketplacesBtn" class="text-sm font-semibold flex items-center gap-1" style="color: var(--ice-primary);">
+        <button id="moreMarketplacesBtn" class="text-xs font-semibold flex items-center gap-1" style="color: var(--ice-primary);">
           Все
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="9 18 15 12 9 6"/>
           </svg>
         </button>
       </div>
       <div class="scroll-hint-container">
-      <div class="scroll-x" style="padding: 4px 0;">
+      <div class="scroll-x" style="padding: 2px 0 6px;">
         ${marketplaces.map(mp => `
           <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}">
-            <div class="story-icon" style="overflow:hidden; display:flex; align-items:center; justify-content:center; background: var(--glass-bg); cursor: pointer;">
+            <div class="story-icon">
               ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-cover" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
-              <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
+              <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 22px;">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
             </div>
             <span class="story-label">${mp.name}</span>
           </div>
@@ -6314,37 +6633,37 @@ let adminOrdersTotalPages = 1;
       </div>
     </div>
     
-    <!-- Recommended Products Section -->
+    <!-- Recommended Products Section (WB Inspired 2-column borderless cards) -->
     <div class="mb-6">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-white font-bold text-base flex items-center gap-2">
-          <span style="font-size: 20px;"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="2"/></svg></span></span>
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="text-white font-bold text-sm flex items-center gap-1.5">
+          <span style="font-size: 18px;"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="2"/></svg></span></span>
           Рекомендуем
         </h3>
-        <button id="moreProductsBtn" class="text-sm font-semibold flex items-center gap-1" style="color: var(--ice-primary);">
+        <button id="moreProductsBtn" class="text-xs font-semibold flex items-center gap-1" style="color: var(--ice-primary);">
           Каталог
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="9 18 15 12 9 6"/>
           </svg>
         </button>
       </div>
-      <div class="flex gap-2 mb-4 overflow-x-auto pb-1">
+      <div class="flex gap-2 mb-3 overflow-x-auto pb-1">
         <button id="tabPopular" class="filter-chip active"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></span> Популярные</button>
         <button id="tabForYou" class="filter-chip"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 18 3 22 9 12 22 2 9 6 3"/><line x1="11" y1="3" x2="8" y2="9"/><line x1="13" y1="3" x2="16" y2="9"/><line x1="2" y1="9" x2="22" y2="9"/></svg></span> Для вас</button>
       </div>
-      <div class="grid grid-cols-2 gap-3" id="homeProductsGrid">
+      <div class="grid grid-cols-2 gap-2" id="homeProductsGrid" style="margin-left: -6px; margin-right: -6px;">
         ${homeProductsList.map(p => `
           <div class="product-card" data-product-id="${p.id}">
             <div class="relative">
               ${renderCardMedia(p.image_url, p.title)}
-              <span class="absolute top-0 right-0 wishlist-heart text-xl ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/50'} z-20" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
+              <span class="absolute top-2 right-2 wishlist-heart text-lg ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/60'} z-20" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
             </div>
-            <div class="p-2">
-              <p class="text-white font-bold text-sm truncate">${p.title}</p>
-              <p class="text-cyan-400 text-xs">${p.price} ${p.currency}</p>
-              <div class="flex gap-1 mt-2">
-                <button class="btn-primary addToCartBtn flex-1" data-product-id="${p.id}">Корзина</button>
-                <button class="buyNowBtn flex-1" data-url="${p.url}" data-price="${p.price}">Заказать</button>
+            <div style="padding: 8px 8px 10px 8px; display: flex; flex-direction: column; flex: 1;">
+              <p class="text-white font-bold text-sm truncate" style="font-size: 14px; font-weight: 700; line-height: 1.2;">${p.title}</p>
+              <p class="text-cyan-400 font-bold text-xs mt-1" style="font-size: 13px;">${p.price} ${p.currency}</p>
+              <div class="flex gap-1.5 mt-2">
+                <button class="btn-primary addToCartBtn flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg" data-product-id="${p.id}">Корзина</button>
+                <button class="buyNowBtn flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg" data-url="${p.url}" data-price="${p.price}">Заказать</button>
               </div>
             </div>
           </div>
@@ -6385,11 +6704,28 @@ function attachHomeHandlers() {
           else tgUtil.alert('Ссылка на площадку будет добавлена позже');
         });
       });
-      document.querySelectorAll('.banner-slide').forEach(el => {
-        el.addEventListener('click', () => tgUtil.alert('Подробнее о акции будет позже'));
-      });
       document.querySelectorAll('.social-icon').forEach(el => {
         el.addEventListener('click', () => tgUtil.alert('Соцсети будут подключены позже'));
+      });
+
+      // Initialize auto-scroll for banners (WB style)
+      initBannerAutoScroll();
+
+      document.querySelectorAll('.banner-slide').forEach(el => {
+        el.addEventListener('click', () => {
+          const promoId = el.dataset.promotionId;
+          const action = el.dataset.promoAction;
+          if (promoId) {
+            window.activePromotionId = promoId;
+            tgUtil.alert('Акция применена! Перейдите в калькулятор.');
+          } else if (action === 'catalog') {
+            switchTab('catalogs');
+          } else if (action === 'legit') {
+            switchTab('legitcheck');
+          } else if (action === 'calculator') {
+            switchTab('calculator');
+          }
+        });
       });
 
       loadHomeProducts('popular');
@@ -6403,45 +6739,35 @@ function attachHomeHandlers() {
         document.getElementById('tabPopular').classList.remove('active');
         loadHomeProducts('for_you');
       });
-      document.querySelectorAll('.banner-slide').forEach(el => {
-  el.addEventListener('click', () => {
-    const promoId = el.dataset.promotionId;
-    if (promoId) {
-      // При клике на баннер активируем акцию в калькуляторе
-      window.activePromotionId = promoId;
-      tgUtil.alert('Акция применена! Перейдите в калькулятор.');
-    }
-  });
-});
 
-document.querySelectorAll('.addToCartBtn').forEach(btn => {
-  btn.onclick = (e) => {
-    e.stopPropagation();
-    if (!window.userId) { window.requireAuth('Для добавления в корзину необходимо войти или зарегистрироваться.'); return; }
-    const productId = btn.dataset.productId;
-    if (productId) addToCart(productId);
-  };
-});
+      document.querySelectorAll('.addToCartBtn').forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          if (!window.userId) { window.requireAuth('Для добавления в корзину необходимо войти или зарегистрироваться.'); return; }
+          const productId = btn.dataset.productId;
+          if (productId) addToCart(productId);
+        };
+      });
 
-document.querySelectorAll('.buyNowBtn').forEach(btn => {
-  btn.onclick = (e) => {
-    e.stopPropagation();
-    if (!window.userId) { window.requireAuth('Для оформления заказа необходимо войти или зарегистрироваться.'); return; }
-    const url = btn.dataset.url;
-    const price = parseFloat(btn.dataset.price);
-    if (url && !isNaN(price)) {
-      window.tempOrder = {
-        url: url,
-        price: price,
-        weight: 1,
-        total: window.iceLogixPricing.quickEstimate(price, 1),
-        discountAmount: 0,
-        appliedPromo: null
-      };
-      switchTab('neworder');
-    }
-  };
-});
+      document.querySelectorAll('.buyNowBtn').forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          if (!window.userId) { window.requireAuth('Для оформления заказа необходимо войти или зарегистрироваться.'); return; }
+          const url = btn.dataset.url;
+          const price = parseFloat(btn.dataset.price);
+          if (url && !isNaN(price)) {
+            window.tempOrder = {
+              url: url,
+              price: price,
+              weight: 1,
+              total: window.iceLogixPricing.quickEstimate(price, 1),
+              discountAmount: 0,
+              appliedPromo: null
+            };
+            switchTab('neworder');
+          }
+        };
+      });
     }
 
     async function loadHomeProducts(tab = 'popular') {
@@ -6484,14 +6810,14 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
         <div class="product-card" data-product-id="${p.id}">
           <div class="relative">
             ${renderCardMedia(p.image_url, p.title)}
-            <span class="absolute top-0 right-0 wishlist-heart text-xl ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/50'} z-20" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
+            <span class="absolute top-2 right-2 wishlist-heart text-lg ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/60'} z-20" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
           </div>
-          <div class="p-2">
-            <p class="text-white font-bold text-sm truncate">${p.title}</p>
-            <p class="text-cyan-400 text-xs">${p.price} ${p.currency}</p>
-            <div class="flex gap-1 mt-2">
-              <button class="btn-primary addToCartBtn flex-1" data-product-id="${p.id}">Корзина</button>
-              <button class="buyNowBtn flex-1" data-url="${p.url}" data-price="${p.price}">Заказать</button>
+          <div style="padding: 8px 8px 10px 8px; display: flex; flex-direction: column; flex: 1;">
+            <p class="text-white font-bold text-sm truncate" style="font-size: 14px; font-weight: 700; line-height: 1.2;">${p.title}</p>
+            <p class="text-cyan-400 font-bold text-xs mt-1" style="font-size: 13px;">${p.price} ${p.currency}</p>
+            <div class="flex gap-1.5 mt-2">
+              <button class="btn-primary addToCartBtn flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg" data-product-id="${p.id}">Корзина</button>
+              <button class="buyNowBtn flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg" data-url="${p.url}" data-price="${p.price}">Заказать</button>
             </div>
           </div>
         </div>
@@ -6502,7 +6828,7 @@ document.querySelectorAll('.buyNowBtn').forEach(btn => {
     const _cd = document.getElementById('content');
     if (_cd && currentTab === 'home' && !currentSubScreen) {
       _tabCache['home:'] = { html: _cd.innerHTML, ts: Date.now() };
-      try { localStorage.setItem('ice_tab_home', _cd.innerHTML); } catch(e){}
+      try { localStorage.setItem('ice_tab_home_v2', _cd.innerHTML); } catch(e){}
     }
 
     grid.querySelectorAll('.addToCartBtn').forEach(btn => {
@@ -17466,20 +17792,20 @@ async function renderProductsCatalog() {
         </button>
         ${activeFilters ? `<p class="text-white/50 text-xs truncate flex-1">Активно: ${activeFilters}</p><button id="resetFiltersBtn" class="text-cyan-400 text-xs flex-shrink-0">Сбросить</button>` : '<p class="text-white/50 text-xs">Все товары</p>'}
       </div>
-      <div class="grid grid-cols-2 gap-4" id="productsGrid">
+      <div class="grid grid-cols-2 gap-2" id="productsGrid" style="margin-left: -6px; margin-right: -6px;">
         ${data.map(p => `
           <div class="product-card" data-product-id="${p.id}">
             <div class="relative">
               ${renderCardMedia(p.image_url, p.title)}
-              <span class="absolute top-0 right-0 wishlist-heart text-xl ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/50'} z-20" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
+              <span class="absolute top-2 right-2 wishlist-heart text-lg ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/60'} z-20" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
             </div>
-            <div class="p-2">
-              <p class="text-white font-bold text-sm truncate">${p.title}</p>
-              <p class="text-cyan-400 text-xs">${p.price} ${p.currency}</p>
-              <p class="text-white/50 text-xs">${p.brand || ''} ${p.category || ''}</p>
-              <div class="flex gap-1 mt-2">
-                <button class="btn-primary addToCartBtn flex-1" data-product-id="${p.id}">Корзина</button>
-                <button class="buyNowBtn flex-1" data-url="${p.url}" data-price="${p.price}">Заказать</button>
+            <div style="padding: 8px 8px 10px 8px; display: flex; flex-direction: column; flex: 1;">
+              <p class="text-white font-bold text-sm truncate" style="font-size: 14px; font-weight: 700; line-height: 1.2;">${p.title}</p>
+              <p class="text-cyan-400 font-bold text-xs mt-1" style="font-size: 13px;">${p.price} ${p.currency}</p>
+              <p class="text-white/50 text-[11px] truncate mt-0.5">${p.brand || ''} ${p.category || ''}</p>
+              <div class="flex gap-1.5 mt-2">
+                <button class="btn-primary addToCartBtn flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg" data-product-id="${p.id}">Корзина</button>
+                <button class="buyNowBtn flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg" data-url="${p.url}" data-price="${p.price}">Заказать</button>
               </div>
             </div>
           </div>
@@ -19139,7 +19465,7 @@ function attachAdminSuppliersHandlers() {
         _tabCache[_ck] = { html: contentDiv.innerHTML, ts: Date.now() };
         try {
           if (currentTab === 'home' && !currentSubScreen) {
-            localStorage.setItem('ice_tab_home', contentDiv.innerHTML);
+            localStorage.setItem('ice_tab_home_v2', contentDiv.innerHTML);
           }
           const _persistKeys = ['reports:', 'reviews:', 'promo:', 'academy:', 'legitcheck:', 'calculator:', 'catalogs:'];
           if (_persistKeys.includes(_ck)) {
