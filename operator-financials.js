@@ -654,5 +654,78 @@
     }
   };
 
+  // --- 5. Клиентское согласование / отмена при подорожании > 3% (Раздел 25 ТЗ) ---
+  window.confirmOrderPriceIncrease = async function(orderId) {
+    if (!confirm('Вы подтверждаете увеличение стоимости товара? Заказ будет передан в работу на выкуп.')) return;
+    try {
+      const { error } = await window.supabaseClient
+        .from('orders')
+        .update({ status: 'paid', updated_at: new Date().toISOString() })
+        .eq('id', orderId);
+      if (error) throw error;
+      if (window.tgUtil) {
+        window.tgUtil.haptic('success');
+        window.tgUtil.showPopup('Успешно', 'Вы подтвердили заказ. Оператор завершит выкуп.');
+      } else {
+        alert('Заказ подтвержден!');
+      }
+      if (typeof window.switchTab === 'function') window.switchTab('my_orders');
+    } catch (e) {
+      alert('Ошибка подтверждения: ' + e.message);
+    }
+  };
+
+  window.cancelOrderDueToPrice = async function(orderId) {
+    if (!confirm('Вы уверены, что хотите отменить заказ? Вся внесенная предоплата будет зачислена на ваш баланс без комиссий.')) return;
+    try {
+      const { data: order, error: ordErr } = await window.supabaseClient
+        .from('orders')
+        .select('*')
+        .eq('id', orderId)
+        .single();
+      if (ordErr) throw ordErr;
+
+      const refundAmount = Number(order.prepayment_amount || 0);
+
+      if (refundAmount > 0) {
+        const { data: user } = await window.supabaseClient
+          .from('users')
+          .select('ices_balance')
+          .eq('user_id', order.user_id)
+          .single();
+        const currentBal = Number(user?.ices_balance || 0);
+        await window.supabaseClient
+          .from('users')
+          .update({ ices_balance: currentBal + refundAmount })
+          .eq('user_id', order.user_id);
+
+        await window.supabaseClient.from('balance_ledger').insert({
+          user_id: order.user_id,
+          order_id: orderId,
+          direction: 'CREDIT',
+          type: 'REFUND_SCENARIO_C',
+          amount: refundAmount,
+          currency: 'BYN',
+          comment: 'Полный возврат предоплаты при отмене из-за подорожания товара'
+        });
+      }
+
+      await window.supabaseClient
+        .from('orders')
+        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+        .eq('id', orderId);
+
+      if (window.tgUtil) {
+        window.tgUtil.haptic('success');
+        window.tgUtil.showPopup('Заказ отменен', `Заказ отменен. ${refundAmount.toFixed(2)} BYN возвращено на ваш баланс.`);
+      } else {
+        alert(`Заказ отменен. ${refundAmount.toFixed(2)} BYN зачислено на баланс.`);
+      }
+      if (typeof window.switchTab === 'function') window.switchTab('my_orders');
+    } catch (e) {
+      alert('Ошибка отмены: ' + e.message);
+    }
+  };
+
   console.log('✅ Operator Financials & Reconciliation module loaded (v2026.06.01.01)');
 })();
