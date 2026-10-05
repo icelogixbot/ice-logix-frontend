@@ -173,6 +173,33 @@ export interface OrderListItem {
   created_at: string;
 }
 
+export interface UserCard {
+  id: string;
+  user_id: number;
+  payment_provider: string;
+  card_first6: string;
+  card_last4: string;
+  card_type: string;
+  exp_month: number;
+  exp_year: number;
+  holder_name?: string;
+  is_default: boolean;
+  status: string;
+  created_at: string;
+}
+
+export interface PaymentIntent {
+  id: string;
+  order_id: string;
+  user_id: number;
+  stage: 'FIRST_PAYMENT' | 'SECOND_PAYMENT' | 'PRICE_DROP_REFUND' | 'PRICE_SURCHARGE' | 'BALANCE_TOPUP';
+  amount_byn: number;
+  card_id?: string;
+  idempotency_key: string;
+  status: string;
+  created_at: string;
+}
+
 // ---------------------------------------------------------------------------
 // Методы API
 // ---------------------------------------------------------------------------
@@ -261,5 +288,48 @@ export const api = {
   // Получить список всех заказов (для администраторов/менеджеров)
   getAdminOrders: () =>
     request<{ ok: boolean; orders: (OrderListItem & { user_name?: string })[] }>('/api/v1/admin/orders'),
+
+  // === Платежные карты (bePaid Mock) ===
+  getCards: () =>
+    request<{ ok: boolean; cards: UserCard[] }>('/api/v1/cards'),
+
+  addCard: (card: { number: string; exp_month: number; exp_year: number; cvc: string; holder_name: string; is_default?: boolean }) =>
+    request<{ ok: boolean; card: UserCard }>('/api/v1/cards', {
+      method: 'POST',
+      body: JSON.stringify(card),
+    }),
+
+  deleteCard: (cardId: string) =>
+    request<{ ok: boolean }>(`/api/v1/cards/${cardId}`, {
+      method: 'DELETE',
+    }),
+
+  setDefaultCard: (cardId: string) =>
+    request<{ ok: boolean }>(`/api/v1/cards/${cardId}/set-default`, {
+      method: 'POST',
+    }),
+
+  // === Внутренний баланс и платежи ===
+  getBalance: () =>
+    request<{ ok: boolean; balance: number; currency: string }>('/api/v1/payments/balance'),
+
+  createPaymentIntent: (data: { order_id: string; stage: string; amount_byn: number; card_id?: string; idempotency_key: string }) =>
+    request<{ ok: boolean; intent: PaymentIntent }>('/api/v1/payments/create-intent', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  executePayment: (data: { intent_id: string; card_id?: string; idempotency_key: string; apply_balance_byn?: number }) =>
+    request<{ ok: boolean; payment: any; message: string }>('/api/v1/payments/execute', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // === Финансовые снимки и аудит заказа ===
+  getOrderFinancials: (orderId: string) =>
+    request<{ ok: boolean; first_payment_snapshot?: any; second_payment_snapshot?: any }>(`/api/v1/orders/${orderId}/financials`),
+
+  getOrderEvents: (orderId: string) =>
+    request<{ ok: boolean; events: any[] }>(`/api/v1/orders/${orderId}/events`),
 };
 
