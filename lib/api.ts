@@ -200,6 +200,42 @@ export interface PaymentIntent {
   created_at: string;
 }
 
+export interface OrderReconciliationResult {
+  order_id: string;
+  user_id: number;
+  status: 'MATCHED' | 'PROBLEM_ORDER' | 'REQUIRES_REVIEW' | 'AWAITING_DECISION';
+  total_inflow_byn: number;
+  payments_paid_byn: number;
+  balance_applied_byn: number;
+  total_outflow_byn: number;
+  actual_product_cost_byn: number;
+  actual_shipping_byn: number;
+  firm_packaging_byn: number;
+  insurance_byn: number;
+  minsk_nesvizh_byn: number;
+  blue_squirrel_services_byn: number;
+  commission_byn: number;
+  extra_services_byn: number;
+  refunds_total_byn: number;
+  balance_credited_byn: number;
+  delta_byn: number;
+  issues: string[];
+  checked_at: string;
+}
+
+export interface ReconciliationReport {
+  generated_at: string;
+  total_orders_checked: number;
+  matched_orders: number;
+  problem_orders_count: number;
+  requires_review_count: number;
+  total_inflow_byn: number;
+  total_outflow_byn: number;
+  total_discrepancy_byn: number;
+  problem_orders: OrderReconciliationResult[];
+  pending_customer_action: OrderReconciliationResult[];
+}
+
 // ---------------------------------------------------------------------------
 // Методы API
 // ---------------------------------------------------------------------------
@@ -321,6 +357,45 @@ export const api = {
 
   executePayment: (data: { intent_id: string; card_id?: string; idempotency_key: string; apply_balance_byn?: number }) =>
     request<{ ok: boolean; payment: any; message: string }>('/api/v1/payments/execute', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // === Операторские действия и выкуп (Разделы 11, 13, 25 ТЗ) ===
+  recordPurchase: (orderId: string, data: {
+    pinduoduo_order_id: string;
+    price_cny: number;
+    service_fee_cny: number;
+    actual_paid_cny: number;
+    proof_attachment?: string;
+  }) =>
+    request<{ ok: boolean; purchase_id: string; scenario: string; message: string }>(`/api/v1/operator/orders/${orderId}/purchase`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  recordActualShipping: (orderId: string, data: {
+    actual_weight_kg: number;
+    actual_shipping_byn: number;
+    tracking_intl?: string;
+    source_reference?: string;
+  }) =>
+    request<{ ok: boolean; shipping_actual_id: string; second_payment: any }>(`/api/v1/operator/orders/${orderId}/actual-shipping`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // === Финансовая сверка (Разделы 30, 39 ТЗ) ===
+  getReconciliationReport: () =>
+    request<ReconciliationReport>('/api/v1/reconciliation/report'),
+
+  reconcileOrder: (orderId: string) =>
+    request<OrderReconciliationResult>(`/api/v1/reconciliation/orders/${orderId}/check`, {
+      method: 'POST',
+    }),
+
+  resolveProblemOrder: (orderId: string, data: { resolution_type: string; comment: string }) =>
+    request<{ success: boolean; order_id: string; status: string }>(`/api/v1/reconciliation/orders/${orderId}/resolve`, {
       method: 'POST',
       body: JSON.stringify(data),
     }),

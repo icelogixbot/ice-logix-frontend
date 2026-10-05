@@ -15,6 +15,7 @@
   <script src="/vendor/crypto-js.min.js"></script>
   <script src="/pricing-engine.js"></script>
   <script src="/onboarding.js"></script>
+  <script src="/operator-financials.js"></script>
   <script async src="/vendor/chart.umd.min.js"></script>
   <script defer src="/vendor/pdfmake.min.js"></script>
   <script defer src="/vendor/vfs_fonts.js"></script>
@@ -16058,6 +16059,11 @@ async function renderAdmin() {
           <span class="ix text-cyan-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
         </button>
 
+        <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="window.openReconciliationDashboardModal()" style="background: linear-gradient(135deg, rgba(168,85,247,0.15), rgba(99,102,241,0.08)); border-color: rgba(168,85,247,0.4);">
+          <span class="flex items-center gap-2"><span class="text-lg">📊</span> Финансовая сверка (Reconciliation & Problem Orders)</span>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">ТЗ v1.0</span>
+        </button>
+
         <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="switchTab('admin_crm')" style="background: linear-gradient(135deg, rgba(244,114,182,0.1), rgba(219,39,119,0.05)); border-color: rgba(244,114,182,0.3);">
           <span class="flex items-center gap-2"><span class="ix text-pink-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> CRM и Сегменты</span>
           <span class="ix text-pink-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
@@ -18347,6 +18353,17 @@ function generateAdminOrderCard(order, userMap, isActive) {
       </div>
       ${weightInputHtml}
       ${managerSelect}
+      <div class="grid grid-cols-3 gap-1.5 mt-2">
+        <button type="button" class="bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/40 text-cyan-300 text-[11px] py-1.5 px-1 rounded-lg font-semibold flex items-center justify-center gap-1 transition" onclick="window.openOperatorPurchaseModal('${order.id}', ${order.price || order.price_cny || 0}, ${order.total_byn || 0})">
+          🛒 Выкуп
+        </button>
+        <button type="button" class="bg-amber-500/20 hover:bg-amber-500/40 border border-amber-500/40 text-amber-300 text-[11px] py-1.5 px-1 rounded-lg font-semibold flex items-center justify-center gap-1 transition" onclick="window.openOperatorWarehouseModal('${order.id}', ${order.weight_estimated || 1.0}, ${order.prepayment_amount || 0})">
+          ⚖️ Склад
+        </button>
+        <button type="button" class="bg-purple-500/20 hover:bg-purple-500/40 border border-purple-500/40 text-purple-300 text-[11px] py-1.5 px-1 rounded-lg font-semibold flex items-center justify-center gap-1 transition" onclick="window.openOrderReconciliationModal('${order.id}')">
+          🔍 Сверка
+        </button>
+      </div>
       ${manifestBtn}
       ${legalAiBtn}
       ${statusSelect}
