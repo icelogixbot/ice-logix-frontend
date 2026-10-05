@@ -11,10 +11,12 @@
   // 1. КОНФИГ
   // =====================================================================
   const CONFIG = {
-    base_commission_pct: 20,      // % от стоимости товара
+    base_commission_pct: 20,      // % от стоимости товара (Раздел 4 ТЗ)
     min_commission_byn: 9,        // минимум для маленьких заказов
     min_commission_threshold_byn: 60, // если итог ≤ 60 BYN → берём minimum
-    insurance_pct: 2.0,             // 2% если включено
+    delivery_reserve_rate: 0.70,  // 70% резерв международной логистики (Раздел 7 ТЗ, старое 65% отменено)
+    firm_packaging_byn: 18.0,     // 18 BYN фирменная упаковка ICE LOGIX (Раздел 8 ТЗ)
+    insurance_pct: 2.0,           // 2% ставка страховки "Голубой белки" (Раздел 14 ТЗ)
     legit_check_byn: 15,          // фикс
     currency_buffer_pct: 3,       // буфер на колебания курса
     customs_limit_eur: 200,       // беспошлинный лимит РБ (200€)
@@ -276,29 +278,36 @@
       deliveryDays = deliveryDays.map(d => d + extra);
     }
 
-    // 6. Комиссия ICE LOGIX
+    // 6. Фирменная упаковка ICE LOGIX (Раздел 8 ТЗ: 18 BYN)
+    const packagingBYN = round2(CONFIG.firm_packaging_byn);
+
+    // 7. Комиссия ICE LOGIX (Раздел 4 ТЗ: 20%, минимум 9 BYN, множитель по уровню)
     const commissionBYN = round2(
       calculateCommission(productCostBYN + currencyBufferBYN, input.client_level ?? 'newbie')
     );
 
-    // 7. Страховка
-    const insuranceBYN = input.insurance ? round2(productCostBYN * (CONFIG.insurance_pct / 100)) : 0;
+    // 8. Резерв доставки (Раздел 7 ТЗ: ровно 70% от оценки)
+    const deliveryReserveBYN = round2(deliveryBYN * CONFIG.delivery_reserve_rate);
+    const deliveryRemainderEstBYN = round2(deliveryBYN - deliveryReserveBYN);
 
-    // 8. Legit Check
+    // 9. Страховка "Голубой белки" (Раздел 14 ТЗ: 2% от доставки)
+    const insuranceBYN = input.insurance ? round2(deliveryBYN * (CONFIG.insurance_pct / 100)) : 0;
+
+    // 10. Legit Check
     const legitCheckBYN = input.legit_check ? CONFIG.legit_check_byn : 0;
 
-    // 9. Таможня
+    // 11. Таможня
     const customs = calculateCustomsDuty(productCostBYN, weightKg, rates);
     const customsDutyBYN = round2(customs.duty);
     if (customs.warning) warnings.push(customs.warning);
 
-    // 10. Доставка по РБ
+    // 12. Доставка по РБ (Разделы 14-15 ТЗ: самовывоз Несвиж 0 BYN, почта - оплата при получении)
     let localDeliveryBYN = 0;
     if (input.local_delivery_method && LOCAL_DELIVERY_RATES[input.local_delivery_method]) {
       localDeliveryBYN = round2(LOCAL_DELIVERY_RATES[input.local_delivery_method].calc(weightKg));
     }
 
-    // 11. Скидки
+    // 13. Скидки
     let discountBYN = 0;
     if (input.is_first_order && input.referral_used) {
       discountBYN += CONFIG.first_order_discount_byn;
@@ -308,25 +317,46 @@
       discountBYN += input.extra_discount_byn;
     }
 
-    // 12. Итого (защищаем от ухода в минус, если скидки больше суммы)
-    const totalBYN = Math.max(0, round2(
-      productCostBYN + currencyBufferBYN + deliveryBYN + localDeliveryBYN + commissionBYN +
-      insuranceBYN + legitCheckBYN + customsDutyBYN - discountBYN
-    ));
+    // 14. Расчет 1-го платежа (Разделы 4, 7, 8 ТЗ)
+    // Товар + Буфер + Комиссия + Упаковка 18 BYN + Резерв доставки 70% + Допуслуги/Таможня - Скидка
+    const firstPaymentSubtotalBYN = round2(
+      productCostBYN + currencyBufferBYN + commissionBYN + packagingBYN + deliveryReserveBYN +
+      legitCheckBYN + customsDutyBYN - discountBYN
+    );
+    const balanceToApplyBYN = Math.max(0, input.balance_to_apply_byn || 0);
+    const balanceUsedFirstBYN = Math.min(balanceToApplyBYN, Math.max(0, firstPaymentSubtotalBYN));
+    const firstPaymentFinalBYN = Math.max(0, round2(firstPaymentSubtotalBYN - balanceUsedFirstBYN));
+
+    // 15. Ориентировочный 2-й платёж (Разделы 13, 14, 15 ТЗ)
+    // Остаток доставки (~30%) + Страховка 2% + Доставка по РБ (если указана)
+    const secondPaymentEstBYN = round2(deliveryRemainderEstBYN + insuranceBYN + localDeliveryBYN);
+
+    // 16. Общий итог заказа (полная стоимость)
+    const totalBYN = Math.max(0, round2(firstPaymentSubtotalBYN + secondPaymentEstBYN));
 
     return {
       available: true,
       breakdown: {
         product_cost_byn: productCostBYN,
         currency_buffer_byn: currencyBufferBYN,
+        packaging_cost_byn: packagingBYN,
         delivery_cost_byn: deliveryBYN,
+        delivery_reserve_rate: CONFIG.delivery_reserve_rate,
+        delivery_reserve_byn: deliveryReserveBYN,
+        delivery_remainder_est_byn: deliveryRemainderEstBYN,
         local_delivery_byn: localDeliveryBYN,
         commission_byn: commissionBYN,
         insurance_byn: insuranceBYN,
         legit_check_byn: legitCheckBYN,
         customs_duty_byn: customsDutyBYN,
         discount_byn: discountBYN,
+        first_payment_subtotal_byn: firstPaymentSubtotalBYN,
+        balance_used_first_byn: balanceUsedFirstBYN,
+        first_payment_byn: firstPaymentFinalBYN,
+        second_payment_est_byn: secondPaymentEstBYN,
       },
+      first_payment_byn: firstPaymentFinalBYN,
+      second_payment_est_byn: secondPaymentEstBYN,
       total_byn: totalBYN,
       total_ice: round2(totalBYN), // 1 BYN = 1 ICE
       delivery_days: deliveryDays,
@@ -342,6 +372,85 @@
   }
 
   // =====================================================================
+  // 5.5. ДВУХЭТАПНЫЕ РАСЧЕТЫ (ПЕРВЫЙ И ВТОРОЙ ПЛАТЕЖ)
+  // =====================================================================
+  /**
+   * Калькуляция первого платежа с поддержкой списания баланса (Разделы 4, 7, 8, 9 ТЗ)
+   */
+  function calculateFirstPayment(input) {
+    const pCost = round2(input.product_cost_byn || 0);
+    const comm = round2(input.commission_byn ?? calculateCommission(pCost, input.client_level));
+    const pack = round2(input.packaging_byn ?? CONFIG.firm_packaging_byn);
+    const srv = round2(input.services_byn || 0);
+    const delivEst = round2(input.delivery_estimate_byn || 0);
+    const reserveRate = CONFIG.delivery_reserve_rate;
+    const reserve = round2(delivEst * reserveRate);
+    const subtotal = round2(pCost + comm + pack + srv + reserve);
+    const balApply = Math.max(0, round2(input.balance_to_apply_byn || 0));
+    const balUsed = Math.min(balApply, subtotal);
+    const total = Math.max(0, round2(subtotal - balUsed));
+
+    return {
+      product_cost_byn: pCost,
+      commission_byn: comm,
+      packaging_byn: pack,
+      services_byn: srv,
+      delivery_estimate_byn: delivEst,
+      delivery_reserve_rate: reserveRate,
+      delivery_reserve_byn: reserve,
+      subtotal_byn: subtotal,
+      balance_used_byn: balUsed,
+      total_first_payment_byn: total,
+    };
+  }
+
+  /**
+   * Калькуляция второго платежа при поступлении на склад (Разделы 13, 14, 15 ТЗ)
+   */
+  function calculateSecondPayment(input) {
+    const actual = round2(input.actual_shipping_byn || 0);
+    const reservePaid = round2(input.delivery_reserve_paid || 0);
+    let shippingRemainder = 0;
+    let surplusToBalance = 0;
+
+    if (actual >= reservePaid) {
+      // Доставка дороже или равна резерву
+      shippingRemainder = round2(actual - reservePaid);
+    } else {
+      // Фактическая доставка дешевле 70% резерва (Пример F ТЗ)
+      // Остаток = 0 BYN, излишек возвращается на баланс
+      shippingRemainder = 0;
+      surplusToBalance = round2(reservePaid - actual);
+    }
+
+    const insurance = input.insurance_byn != null
+      ? round2(input.insurance_byn)
+      : round2(actual * (CONFIG.insurance_pct / 100));
+    const minskNesvizh = round2(input.minsk_nesvizh_share_byn || 0);
+    const warehouseSrv = round2(input.warehouse_services_byn || 0);
+    const adjustments = round2(input.price_adjustments_byn || 0);
+
+    const subtotal = round2(shippingRemainder + insurance + minskNesvizh + warehouseSrv + adjustments);
+    const balApply = Math.max(0, round2(input.balance_to_apply_byn || 0));
+    const balUsed = Math.min(balApply, subtotal);
+    const total = Math.max(0, round2(subtotal - balUsed));
+
+    return {
+      actual_shipping_byn: actual,
+      delivery_reserve_paid_byn: reservePaid,
+      shipping_remainder_byn: shippingRemainder,
+      surplus_to_balance_byn: surplusToBalance,
+      insurance_byn: insurance,
+      minsk_nesvizh_share_byn: minskNesvizh,
+      warehouse_services_byn: warehouseSrv,
+      price_adjustments_byn: adjustments,
+      subtotal_byn: subtotal,
+      balance_used_byn: balUsed,
+      total_second_payment_byn: total,
+    };
+  }
+
+  // =====================================================================
   // 6. ФОРМАТТЕРЫ
   // =====================================================================
   function formatBreakdownHTML(result) {
@@ -351,22 +460,34 @@
       </div>`;
     }
     const b = result.breakdown;
-    const rows = [];
-    rows.push(['📦 Цена товара', b.product_cost_byn]);
-    if (b.currency_buffer_byn > 0) rows.push(['💱 Курсовая надбавка', b.currency_buffer_byn]);
-    rows.push(['✈️ Доставка до РБ', b.delivery_cost_byn]);
-    if (b.local_delivery_byn > 0) rows.push(['🚚 Доставка по РБ', b.local_delivery_byn]);
-    rows.push(['🤝 Комиссия ICE LOGIX', b.commission_byn]);
-    if (b.insurance_byn > 0) rows.push(['🛡️ Страховка', b.insurance_byn]);
-    if (b.legit_check_byn > 0) rows.push(['✅ Legit Check', b.legit_check_byn]);
-    if (b.customs_duty_byn > 0) rows.push(['🛃 Таможенная пошлина РБ', b.customs_duty_byn]);
-    if (b.discount_byn > 0) rows.push(['🎁 Скидка', -b.discount_byn]);
 
-    const rowsHtml = rows.map(([label, val]) => `
-      <div class="flex justify-between text-sm py-1 ${val < 0 ? 'text-green-400' : 'text-white/80'}">
+    const firstRows = [];
+    firstRows.push(['📦 Стоимость товара', b.product_cost_byn]);
+    if (b.currency_buffer_byn > 0) firstRows.push(['💱 Курсовая надбавка (3%)', b.currency_buffer_byn]);
+    firstRows.push(['🤝 Комиссия ICE LOGIX', b.commission_byn]);
+    if (b.packaging_cost_byn > 0) firstRows.push(['🎁 Фирменная упаковка ICE LOGIX', b.packaging_cost_byn]);
+    if (b.delivery_reserve_byn > 0) firstRows.push([`✈️ Резерв доставки (70% от ${b.delivery_cost_byn.toFixed(2)})`, b.delivery_reserve_byn]);
+    if (b.legit_check_byn > 0) firstRows.push(['✅ Legit Check', b.legit_check_byn]);
+    if (b.customs_duty_byn > 0) firstRows.push(['🛃 Таможенная пошлина РБ', b.customs_duty_byn]);
+    if (b.discount_byn > 0) firstRows.push(['🎁 Скидка', -b.discount_byn]);
+    if (b.balance_used_first_byn > 0) firstRows.push(['💳 Списано с баланса', -b.balance_used_first_byn]);
+
+    const firstRowsHtml = firstRows.map(([label, val]) => `
+      <div class="flex justify-between text-xs py-1 ${val < 0 ? 'text-green-400 font-semibold' : 'text-white/80'}">
         <span>${label}</span>
         <span class="font-mono">${val >= 0 ? '' : '-'}${Math.abs(val).toFixed(2)} BYN</span>
       </div>`).join('');
+
+    const secondRows = [];
+    if (b.delivery_remainder_est_byn > 0) secondRows.push(['✈️ Остаток доставки (~30% факт)', b.delivery_remainder_est_byn]);
+    if (b.insurance_byn > 0) secondRows.push(['🛡️ Страховка Голубой белки (2%)', b.insurance_byn]);
+    if (b.local_delivery_byn > 0) secondRows.push(['🚚 Доставка по Беларуси', b.local_delivery_byn]);
+
+    const secondRowsHtml = secondRows.length > 0 ? secondRows.map(([label, val]) => `
+      <div class="flex justify-between text-xs py-1 text-white/70">
+        <span>${label}</span>
+        <span class="font-mono">${Math.abs(val).toFixed(2)} BYN</span>
+      </div>`).join('') : '';
 
     const warnsHtml = result.warnings.length > 0
       ? `<div class="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded text-yellow-300 text-xs">
@@ -374,17 +495,38 @@
         </div>`
       : '';
 
+    const firstPay = b.first_payment_byn != null ? b.first_payment_byn : (result.total_byn * 0.70);
+    const secondPay = b.second_payment_est_byn != null ? b.second_payment_est_byn : (result.total_byn * 0.30);
+
     return `
-      <div class="bg-white/5 rounded-xl p-3">
-        ${rowsHtml}
-        <div class="border-t border-white/20 mt-2 pt-2 flex justify-between items-baseline">
-          <span class="text-white font-bold">ИТОГО</span>
-          <span class="text-cyan-400 font-bold text-xl">${result.total_byn.toFixed(2)} <span class="text-sm">BYN</span></span>
+      <div class="bg-white/5 rounded-xl p-3 space-y-3">
+        <!-- 1-й платеж -->
+        <div class="p-2.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30">
+          <div class="flex justify-between items-center mb-2 pb-1 border-b border-cyan-500/20">
+            <span class="text-cyan-300 text-xs font-bold uppercase tracking-wider">1-й этап: Оплата при заказе</span>
+            <span class="text-cyan-400 font-bold text-sm">${firstPay.toFixed(2)} BYN</span>
+          </div>
+          ${firstRowsHtml}
         </div>
-        <div class="text-right text-white/50 text-xs mt-0.5">
+
+        <!-- 2-й платеж -->
+        <div class="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
+          <div class="flex justify-between items-center mb-2 pb-1 border-b border-amber-500/20">
+            <span class="text-amber-300 text-xs font-bold uppercase tracking-wider">2-й этап: Оплата на складе</span>
+            <span class="text-amber-400 font-bold text-sm">~${secondPay.toFixed(2)} BYN</span>
+          </div>
+          ${secondRowsHtml || '<p class="text-[11px] text-white/50">Точный расчет по факту взвешивания</p>'}
+        </div>
+
+        <!-- Полный итог -->
+        <div class="border-t border-white/20 pt-2 flex justify-between items-baseline">
+          <span class="text-white font-bold text-sm">ИТОГО ЗАКАЗ</span>
+          <span class="text-white font-bold text-lg">${result.total_byn.toFixed(2)} <span class="text-xs text-white/60">BYN</span></span>
+        </div>
+        <div class="text-right text-white/50 text-[11px]">
           ${result.total_ice.toFixed(2)} ICE · 1 BYN = 1 ICE
         </div>
-        <div class="text-white/60 text-xs mt-2">
+        <div class="text-white/60 text-xs">
           ⏱️ Срок доставки: ${result.delivery_days[0]}-${result.delivery_days[1]} рабочих дней
         </div>
         ${warnsHtml}
@@ -394,21 +536,31 @@
   function formatPlain(result) {
     if (!result.available) return result.message;
     const b = result.breakdown;
+    const firstPay = b.first_payment_byn != null ? b.first_payment_byn : (result.total_byn * 0.70);
+    const secondPay = b.second_payment_est_byn != null ? b.second_payment_est_byn : (result.total_byn * 0.30);
+
     const lines = [];
-    lines.push('💰 Расчёт стоимости заказа:', '');
+    lines.push('💰 Расчёт стоимости заказа ICE LOGIX:', '');
+    lines.push('=== 1-Й ЭТАП (К ОПЛАТЕ СЕЙЧАС) ===');
     lines.push(`📦 Цена товара:           ${b.product_cost_byn.toFixed(2)} BYN`);
     if (b.currency_buffer_byn > 0) lines.push(`💱 Курсовая надбавка:      ${b.currency_buffer_byn.toFixed(2)} BYN`);
-    lines.push(`✈️ Доставка до РБ:         ${b.delivery_cost_byn.toFixed(2)} BYN`);
-    if (b.local_delivery_byn > 0) lines.push(`🚚 Доставка по РБ:         ${b.local_delivery_byn.toFixed(2)} BYN`);
     lines.push(`🤝 Комиссия ICE LOGIX:     ${b.commission_byn.toFixed(2)} BYN`);
-    if (b.insurance_byn > 0) lines.push(`🛡️ Страховка:              ${b.insurance_byn.toFixed(2)} BYN`);
+    if (b.packaging_cost_byn > 0) lines.push(`🎁 Фирменная упаковка:     ${b.packaging_cost_byn.toFixed(2)} BYN`);
+    if (b.delivery_reserve_byn > 0) lines.push(`✈️ Резерв доставки (70%):  ${b.delivery_reserve_byn.toFixed(2)} BYN`);
     if (b.legit_check_byn > 0) lines.push(`✅ Legit Check:            ${b.legit_check_byn.toFixed(2)} BYN`);
     if (b.customs_duty_byn > 0) lines.push(`🛃 Таможенная пошлина:     ${b.customs_duty_byn.toFixed(2)} BYN`);
     if (b.discount_byn > 0) lines.push(`🎁 Скидка:                -${b.discount_byn.toFixed(2)} BYN`);
+    if (b.balance_used_first_byn > 0) lines.push(`💳 Баланс клиента:        -${b.balance_used_first_byn.toFixed(2)} BYN`);
+    lines.push(`👉 К ОПЛАТЕ СЕЙЧАС:        ${firstPay.toFixed(2)} BYN`);
+    lines.push('');
+    lines.push('=== 2-Й ЭТАП (ПРИ ПОЛУЧЕНИИ НА СКЛАДЕ) ===');
+    if (b.delivery_remainder_est_byn > 0) lines.push(`✈️ Остаток доставки (~30%): ${b.delivery_remainder_est_byn.toFixed(2)} BYN`);
+    if (b.insurance_byn > 0) lines.push(`🛡️ Страховка (2%):          ${b.insurance_byn.toFixed(2)} BYN`);
+    if (b.local_delivery_byn > 0) lines.push(`🚚 Доставка по РБ:         ${b.local_delivery_byn.toFixed(2)} BYN`);
+    lines.push(`👉 ОРИЕНТИРОВОЧНО 2-Й ЭТАП: ~${secondPay.toFixed(2)} BYN`);
     lines.push('—'.repeat(40));
-    lines.push(`💵 ИТОГО:                  ${result.total_byn.toFixed(2)} BYN`);
-    lines.push(`🧊 (${result.total_ice.toFixed(2)} ICE)`);
-    lines.push('', `⏱️ Срок: ${result.delivery_days[0]}-${result.delivery_days[1]} дней`);
+    lines.push(`💵 ПОЛНЫЙ ИТОГ:            ${result.total_byn.toFixed(2)} BYN`);
+    lines.push(`⏱️ Срок: ${result.delivery_days[0]}-${result.delivery_days[1]} дней`);
     if (result.warnings.length > 0) {
       lines.push('', '⚠️ Внимание:');
       result.warnings.forEach(w => lines.push('  • ' + w));
@@ -488,6 +640,8 @@
   global.iceLogixPricing = {
     calculatePrice,
     calculatePriceSync,
+    calculateFirstPayment,
+    calculateSecondPayment,
     getExchangeRates,
     convertToBYN,
     formatBreakdownHTML,
@@ -500,7 +654,7 @@
     COUNTRY_AVAILABILITY,
     ESTIMATED_WEIGHT_KG,
     FALLBACK_RATES,
-    version: '2026.05.26.04',
+    version: '2026.06.01.01',
   };
 
 })(typeof window !== 'undefined' ? window : globalThis);
