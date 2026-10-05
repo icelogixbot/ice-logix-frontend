@@ -2681,8 +2681,8 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background-color: #0b101b;
-      background-image: radial-gradient(circle at 50% 45%, rgba(30, 41, 59, 0.65) 0%, #0b101b 80%);
+      background-color: #000000;
+      background-image: radial-gradient(circle at 50% 45%, #121214 0%, #000000 80%);
       opacity: 1;
       visibility: visible;
       transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.4s ease;
@@ -2690,8 +2690,8 @@
     }
 
     .light-theme .ice-splash-screen {
-      background-color: #ffffff;
-      background-image: radial-gradient(circle at 50% 45%, #f1f5f9 0%, #ffffff 80%);
+      background-color: #000000;
+      background-image: radial-gradient(circle at 50% 45%, #121214 0%, #000000 80%);
     }
 
     .ice-splash-content {
@@ -2705,8 +2705,8 @@
 
     .ice-splash-logo-wrapper {
       position: relative;
-      width: 140px;
-      height: 140px;
+      width: 160px;
+      height: 160px;
       display: flex;
       align-items: center;
       justify-content: center;
