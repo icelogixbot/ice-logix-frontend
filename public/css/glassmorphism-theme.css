@@ -2669,4 +2669,112 @@
     @keyframes bounceBtn {
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(-4px); }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       ICE LOGIX — Minimalist Splash Screen Loader
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .ice-splash-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 99998;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #0b101b;
+      background-image: radial-gradient(circle at 50% 45%, rgba(30, 41, 59, 0.65) 0%, #0b101b 80%);
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.4s ease;
+      pointer-events: auto;
+    }
+
+    .light-theme .ice-splash-screen {
+      background-color: #ffffff;
+      background-image: radial-gradient(circle at 50% 45%, #f1f5f9 0%, #ffffff 80%);
+    }
+
+    .ice-splash-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 26px;
+      transform: translateY(-12px);
+    }
+
+    .ice-splash-logo-wrapper {
+      position: relative;
+      width: 140px;
+      height: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ice-splash-logo {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.45));
+      animation: iceSplashPulse 2.4s ease-in-out infinite;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .light-theme .ice-splash-logo {
+      filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.12));
+    }
+
+    .ice-splash-loader-bar {
+      width: 110px;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 9999px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .light-theme .ice-splash-loader-bar {
+      background: rgba(0, 0, 0, 0.08);
+    }
+
+    .ice-splash-loader-progress {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 45%;
+      background: linear-gradient(90deg, transparent 0%, #cbd5e1 50%, #ffffff 75%, transparent 100%);
+      border-radius: 9999px;
+      animation: iceSplashProgress 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    .light-theme .ice-splash-loader-progress {
+      background: linear-gradient(90deg, transparent 0%, #64748b 50%, #334155 75%, transparent 100%);
+    }
+
+    .ice-splash-screen.ice-splash-hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    @keyframes iceSplashPulse {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.95;
+      }
+      50% {
+        transform: scale(1.03);
+        opacity: 1;
+      }
+    }
+
+    @keyframes iceSplashProgress {
+      0% {
+        left: -50%;
+      }
+      100% {
+        left: 110%;
+      }
     }

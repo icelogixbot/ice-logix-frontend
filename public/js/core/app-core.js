@@ -2162,6 +2162,18 @@ let adminOrdersTotalPages = 1;
       });
     }
 
+    function dismissSplashScreen() {
+      const splash = document.getElementById('iceSplashScreen');
+      if (splash && !splash.classList.contains('ice-splash-hidden')) {
+        splash.classList.add('ice-splash-hidden');
+        setTimeout(() => {
+          try { splash.remove(); } catch (e) {}
+        }, 450);
+      }
+    }
+    window.dismissSplashScreen = dismissSplashScreen;
+    setTimeout(dismissSplashScreen, 2800);
+
     async function init() {
       console.log("=== ICE LOGIX VERSION: 2026.05.24.02 ===");
       try {
@@ -2507,6 +2519,7 @@ let adminOrdersTotalPages = 1;
             }
           }
           window._appReady = true;
+          dismissSplashScreen();
         } catch (tabErr) {
           console.error('Failed to switch tab to home:', tabErr);
         }
@@ -3310,4 +3323,4 @@ let adminOrdersTotalPages = 1;
 
       startTimer();
     }
-
+

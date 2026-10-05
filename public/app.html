@@ -5,6 +5,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>ICE LOGIX</title>
+  <meta name="theme-color" content="#0b101b">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" sizes="512x512" href="/assets/splash-logo-512.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="/assets/splash-logo-512.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap">
@@ -36,6 +40,18 @@
   <script src="/js/modules/profile-modals.js?v=20261005"></script>
   <script src="/js/modules/resale.js?v=20261005"></script>
 <body>
+  <!-- ICE LOGIX Minimalist Splash Screen Loader -->
+  <div id="iceSplashScreen" class="ice-splash-screen" aria-hidden="true">
+    <div class="ice-splash-content">
+      <div class="ice-splash-logo-wrapper">
+        <img src="/assets/splash-logo-512.png" alt="ICE LOGIX" class="ice-splash-logo" width="140" height="140">
+      </div>
+      <div class="ice-splash-loader-bar">
+        <div class="ice-splash-loader-progress"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Network Connection Status Banner -->
   <div id="netStatusBanner" style="position:fixed;top:12px;left:50%;transform:translateX(-50%) translateY(-60px);z-index:99999;padding:8px 18px;border-radius:9999px;background:rgba(239,68,68,0.95);color:#fff;font-size:12px;font-weight:700;letter-spacing:0.3px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 32px rgba(0,0,0,0.3);transition:all 0.35s cubic-bezier(0.16,1,0.3,1);pointer-events:none;opacity:0;">
     ⚡ Нет связи с сетью. Переподключение...
