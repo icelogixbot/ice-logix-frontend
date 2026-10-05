@@ -6,10 +6,7 @@ import { join } from 'path';
 let cachedHtml: string | null = null;
 
 function getHtml(): string {
-  if (process.env.NODE_ENV !== 'production' || !cachedHtml) {
-    cachedHtml = readFileSync(join(process.cwd(), 'public', 'app.html'), 'utf-8');
-  }
-  return cachedHtml;
+  return readFileSync(join(process.cwd(), 'public', 'app.html'), 'utf-8');
 }
 
 export async function GET() {
@@ -18,7 +15,9 @@ export async function GET() {
     return new NextResponse(html, {
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
-        'Cache-Control': 'public, max-age=0, s-maxage=60, stale-while-revalidate=86400',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
         'X-Content-Type-Options': 'nosniff',
       },
     });

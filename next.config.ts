@@ -24,11 +24,11 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: "/:file(pricing-engine\\.js|onboarding\\.js)",
+        source: "/:file(pricing-engine\\.js|onboarding\\.js|operator-financials\\.js)",
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=86400, stale-while-revalidate=604800",
+            value: "no-cache, no-store, must-revalidate",
           },
         ],
       },
