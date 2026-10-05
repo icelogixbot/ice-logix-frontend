@@ -16,7 +16,7 @@
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   display: flex; align-items: center; justify-content: center;
-  animation: iceFadeIn 0.12s ease-out;
+  animation: iceFadeIn 0.3s ease-out;
 }
 @keyframes iceFadeIn { from { opacity: 0; } to { opacity: 1; } }
 .ice-story-frame {
@@ -61,7 +61,7 @@
   color: white;
   font-size: 18px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 .ice-close-btn:hover {
   background: rgba(255,255,255,0.2);
@@ -78,8 +78,8 @@
   padding: 70px 28px 110px;
   text-align: center;
   opacity: 0; pointer-events: none;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  transform: scale(0.98);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  transform: scale(0.95);
 }
 .ice-slide.active { 
   opacity: 1; 

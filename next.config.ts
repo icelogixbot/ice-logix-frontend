@@ -32,6 +32,15 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        source: "/(css|js)/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-cache, no-store, must-revalidate",
+          },
+        ],
+      },
     ];
   },
   async rewrites() {
