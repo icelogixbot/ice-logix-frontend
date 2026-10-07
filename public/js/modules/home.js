@@ -31,15 +31,17 @@
           // Загрузка сегодняшних подборок из канала (@icelogix_selection)
           let homeProductsList = [];
           try {
-            const fetchDrops = async () => {
-              const { data: drops } = await supabaseClient
-                .from('products')
-                .select('*')
-                .eq('is_active', true)
-                .eq('show_on_home', true)
-                .order('created_at', { ascending: false })
-                .limit(9);
-              if (drops && drops.length > 0) return drops;
+            if (window.CacheDB) window.CacheDB.clear('todaySelectionDrops');
+            const { data: drops } = await supabaseClient
+              .from('products')
+              .select('*')
+              .eq('is_active', true)
+              .eq('show_on_home', true)
+              .order('created_at', { ascending: false })
+              .limit(9);
+            if (drops && drops.length > 0) {
+              homeProductsList = preprocessProducts(drops);
+            } else {
               const { data: fallback } = await supabaseClient
                 .from('products')
                 .select('*')
@@ -47,20 +49,12 @@
                 .eq('is_drop', true)
                 .order('created_at', { ascending: false })
                 .limit(9);
-              return fallback || [];
-            };
-
-            let rawDrops = window.CacheDB ? await window.CacheDB.get('todaySelectionDrops', fetchDrops, 30000) : await fetchDrops();
-            // Если в кэше пусто, делаем прямой запрос чтобы сразу подтянуть новый пост
-            if (!rawDrops || rawDrops.length === 0) {
-              if (window.CacheDB) window.CacheDB.clear('todaySelectionDrops');
-              rawDrops = await fetchDrops();
-            }
-            if (rawDrops && rawDrops.length > 0) {
-              homeProductsList = preprocessProducts(rawDrops);
+              if (fallback && fallback.length > 0) {
+                homeProductsList = preprocessProducts(fallback);
+              }
             }
           } catch(e) {
-            console.error(e);
+            console.error('Failed to load drops for home:', e);
           }
   
   return `
@@ -300,15 +294,17 @@ function attachHomeHandlers() {
       if (!grid) return;
       try {
         let data = [];
-        const fetchDrops = async () => {
-          const { data: drops } = await supabaseClient
-            .from('products')
-            .select('*')
-            .eq('is_active', true)
-            .eq('show_on_home', true)
-            .order('created_at', { ascending: false })
-            .limit(9);
-          if (drops && drops.length > 0) return drops;
+        if (window.CacheDB) window.CacheDB.clear('todaySelectionDrops');
+        const { data: drops } = await supabaseClient
+          .from('products')
+          .select('*')
+          .eq('is_active', true)
+          .eq('show_on_home', true)
+          .order('created_at', { ascending: false })
+          .limit(9);
+        if (drops && drops.length > 0) {
+          data = preprocessProducts(drops);
+        } else {
           const { data: fallback } = await supabaseClient
             .from('products')
             .select('*')
@@ -316,15 +312,10 @@ function attachHomeHandlers() {
             .eq('is_drop', true)
             .order('created_at', { ascending: false })
             .limit(9);
-          return fallback || [];
-        };
-
-        let rawDrops = window.CacheDB ? await window.CacheDB.get('todaySelectionDrops', fetchDrops, 30000) : await fetchDrops();
-        if (!rawDrops || rawDrops.length === 0) {
-          if (window.CacheDB) window.CacheDB.clear('todaySelectionDrops');
-          rawDrops = await fetchDrops();
+          if (fallback && fallback.length > 0) {
+            data = preprocessProducts(fallback);
+          }
         }
-        if (rawDrops) data = preprocessProducts(rawDrops);
 
         const existingCards = Array.from(grid.querySelectorAll('.product-card'));
         const existingIds = existingCards.map(c => c.dataset.productId).join(',');
