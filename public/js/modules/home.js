@@ -28,17 +28,29 @@
           // If admin has configured show_on_home venues — use them; otherwise fall back to the legacy static list
           const marketplaces = homeDbMarketplaces.length > 0 ? homeDbMarketplaces : staticMarketplaces;
 
-          // Fetch or get from cache popular products for instant 0ms rendering
+          // Загрузка сегодняшних подборок из канала (@icelogix_selection)
           let homeProductsList = [];
           try {
-            const rawPopular = await window.CacheDB.get('popularProducts', async () => {
-              const { data: homeProds } = await supabaseClient.from('products').select('*').eq('is_active', true).eq('show_on_home', true).limit(10);
-              if (homeProds && homeProds.length > 0) return homeProds;
-              const { data } = await supabaseClient.from('products').select('*').eq('is_active', true).limit(10);
-              return data;
-            }, 300000);
-            if (rawPopular && rawPopular.length > 0) {
-              homeProductsList = preprocessProducts(rawPopular);
+            const rawDrops = await window.CacheDB.get('todaySelectionDrops', async () => {
+              const { data: drops } = await supabaseClient
+                .from('products')
+                .select('*')
+                .eq('is_active', true)
+                .eq('show_on_home', true)
+                .order('created_at', { ascending: false })
+                .limit(9);
+              if (drops && drops.length > 0) return drops;
+              const { data: fallback } = await supabaseClient
+                .from('products')
+                .select('*')
+                .eq('is_active', true)
+                .eq('is_drop', true)
+                .order('created_at', { ascending: false })
+                .limit(9);
+              return fallback || [];
+            }, 60000);
+            if (rawDrops && rawDrops.length > 0) {
+              homeProductsList = preprocessProducts(rawDrops);
             }
           } catch(e) {
             console.error(e);
@@ -154,23 +166,17 @@
       </div>
     </div>
     
-    <!-- Recommended Products Section (WB Inspired 2-column borderless cards) -->
+    <!-- Сегодняшние подборки товаров (автопарсинг из @icelogix_selection) -->
     <div class="mb-6">
       <div class="flex justify-between items-center mb-3">
         <h3 class="text-white font-bold text-sm flex items-center gap-1.5">
-          <span style="font-size: 18px;"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="2"/></svg></span></span>
-          Рекомендуем
+          <span style="font-size: 18px;"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></span></span>
+          Сегодняшние подборки товаров
         </h3>
-        <button id="moreProductsBtn" class="text-xs font-semibold flex items-center gap-1" style="color: var(--ice-primary);">
-          Каталог
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-        </button>
-      </div>
-      <div class="flex gap-2 mb-3 overflow-x-auto pb-1">
-        <button id="tabPopular" class="filter-chip active"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></span> Популярные</button>
-        <button id="tabForYou" class="filter-chip"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 18 3 22 9 12 22 2 9 6 3"/><line x1="11" y1="3" x2="8" y2="9"/><line x1="13" y1="3" x2="16" y2="9"/><line x1="2" y1="9" x2="22" y2="9"/></svg></span> Для вас</button>
+        <span class="text-[11px] font-bold text-cyan-400 bg-cyan-400/10 border border-cyan-400/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+          9 дропов
+        </span>
       </div>
       <div class="grid grid-cols-2 gap-2" id="homeProductsGrid" style="margin-left: -6px; margin-right: -6px;">
         ${homeProductsList.map(p => `
@@ -178,13 +184,17 @@
             <div class="relative">
               ${renderCardMedia(p.image_url, p.title)}
               <span class="absolute top-2 right-2 wishlist-heart text-lg ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/60'} z-20" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
+              ${p.brand ? `<span class="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-white/90 text-[10px] font-bold px-2 py-0.5 rounded-md border border-white/10 uppercase tracking-wider">${_esc(p.brand)}</span>` : ''}
             </div>
-            <div style="padding: 8px 8px 10px 8px; display: flex; flex-direction: column; flex: 1;">
-              <p class="text-white font-bold text-sm truncate" style="font-size: 14px; font-weight: 700; line-height: 1.2;">${p.title}</p>
-              <p class="text-cyan-400 font-bold text-xs mt-1" style="font-size: 13px;">${p.price} ${p.currency}</p>
-              <div class="flex gap-1.5 mt-2">
+            <div style="padding: 10px 8px 10px 8px; display: flex; flex-direction: column; flex: 1;">
+              <p class="text-white font-bold text-sm truncate" style="font-size: 13px; font-weight: 700; line-height: 1.2;">${_esc(p.title)}</p>
+              <div class="flex items-center justify-between mt-1.5">
+                <p class="text-cyan-400 font-bold text-sm font-mono leading-none">${p.price} ${p.currency || 'BYN'}</p>
+                ${p.category ? `<span class="text-[10px] text-white/40 truncate max-w-[80px]">${_esc(p.category)}</span>` : ''}
+              </div>
+              <div class="flex gap-1.5 mt-2.5">
                 <button class="btn-primary addToCartBtn flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg" data-product-id="${p.id}">Корзина</button>
-                <button class="buyNowBtn flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg" data-url="${p.url}" data-price="${p.price}">Заказать</button>
+                <button class="buyNowBtn flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg" data-url="${p.url || ''}" data-price="${p.price}">Заказать</button>
               </div>
             </div>
           </div>
@@ -214,9 +224,6 @@ function attachHomeHandlers() {
       });
       document.getElementById('moreMarketplacesBtn')?.addEventListener('click', () => {
         switchTab('catalogs', 'marketplaces');
-      });
-      document.getElementById('moreProductsBtn')?.addEventListener('click', () => {
-        switchTab('catalogs', 'productsCatalog');
       });
       document.querySelectorAll('.marketplace-story').forEach(el => {
         el.addEventListener('click', () => {
@@ -249,17 +256,7 @@ function attachHomeHandlers() {
         });
       });
 
-      loadHomeProducts('popular');
-      document.getElementById('tabPopular')?.addEventListener('click', () => {
-        document.getElementById('tabPopular').classList.add('active');
-        document.getElementById('tabForYou').classList.remove('active');
-        loadHomeProducts('popular');
-      });
-      document.getElementById('tabForYou')?.addEventListener('click', () => {
-        document.getElementById('tabForYou').classList.add('active');
-        document.getElementById('tabPopular').classList.remove('active');
-        loadHomeProducts('for_you');
-      });
+      loadHomeProducts();
 
       document.querySelectorAll('.addToCartBtn').forEach(btn => {
         btn.onclick = (e) => {
@@ -291,60 +288,62 @@ function attachHomeHandlers() {
       });
     }
 
-    async function loadHomeProducts(tab = 'popular') {
-  const grid = document.getElementById('homeProductsGrid');
-  if (!grid) return;
-  try {
-    let data = [];
-    if (tab === 'for_you') {
-      if (!userId) {
-        grid.innerHTML = '<p class="text-white/50 text-sm col-span-2 text-center py-4">Войдите, чтобы получить персональные рекомендации</p>';
-        return;
-      }
-      const { data: views } = await supabaseClient.from('user_views').select('product_id').eq('user_id', userId).order('viewed_at', { ascending: false }).limit(20);
-      if (views && views.length > 0) {
-        const ids = views.map(v => v.product_id);
-        const { data: viewed } = await supabaseClient.from('products').select('*').in('id', ids).eq('is_active', true);
-        if (viewed) data = preprocessProducts(viewed);
-      }
-      if (data.length === 0) {
-        grid.innerHTML = '<p class="text-white/50 text-sm col-span-2 text-center py-4">Просматривайте товары, чтобы получить рекомендации</p>';
-        return;
-      }
-    } else {
-      const popular = await window.CacheDB.get('popularProducts', async () => {
-        // Prefer products marked show_on_home; fall back to any active products
-        const { data: homeProds } = await supabaseClient.from('products').select('*').eq('is_active', true).eq('show_on_home', true).limit(10);
-        if (homeProds && homeProds.length > 0) return homeProds;
-        const { data } = await supabaseClient.from('products').select('*').eq('is_active', true).limit(10);
-        return data;
-      }, 300000);
-      if (popular) data = preprocessProducts(popular);
-    }
+    async function loadHomeProducts() {
+      const grid = document.getElementById('homeProductsGrid');
+      if (!grid) return;
+      try {
+        let data = [];
+        const rawDrops = await window.CacheDB.get('todaySelectionDrops', async () => {
+          const { data: drops } = await supabaseClient
+            .from('products')
+            .select('*')
+            .eq('is_active', true)
+            .eq('show_on_home', true)
+            .order('created_at', { ascending: false })
+            .limit(9);
+          if (drops && drops.length > 0) return drops;
+          const { data: fallback } = await supabaseClient
+            .from('products')
+            .select('*')
+            .eq('is_active', true)
+            .eq('is_drop', true)
+            .order('created_at', { ascending: false })
+            .limit(9);
+          return fallback || [];
+        }, 60000);
+        if (rawDrops) data = preprocessProducts(rawDrops);
 
-    const existingCards = Array.from(grid.querySelectorAll('.product-card'));
-    const existingIds = existingCards.map(c => c.dataset.productId).join(',');
-    const newIds = data.map(p => p.id).join(',');
+        const existingCards = Array.from(grid.querySelectorAll('.product-card'));
+        const existingIds = existingCards.map(c => c.dataset.productId).join(',');
+        const newIds = data.map(p => p.id).join(',');
 
-    if (existingCards.length === 0 || existingIds !== newIds) {
-      grid.innerHTML = data.map(p => `
-        <div class="product-card" data-product-id="${p.id}">
-          <div class="relative">
-            ${renderCardMedia(p.image_url, p.title)}
-            <span class="absolute top-2 right-2 wishlist-heart text-lg ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/60'} z-20" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
-          </div>
-          <div style="padding: 8px 8px 10px 8px; display: flex; flex-direction: column; flex: 1;">
-            <p class="text-white font-bold text-sm truncate" style="font-size: 14px; font-weight: 700; line-height: 1.2;">${p.title}</p>
-            <p class="text-cyan-400 font-bold text-xs mt-1" style="font-size: 13px;">${p.price} ${p.currency}</p>
-            <div class="flex gap-1.5 mt-2">
-              <button class="btn-primary addToCartBtn flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg" data-product-id="${p.id}">Корзина</button>
-              <button class="buyNowBtn flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg" data-url="${p.url}" data-price="${p.price}">Заказать</button>
-            </div>
-          </div>
-        </div>
-      `).join('');
-      initCardSliders();
-    }
+        if (existingCards.length === 0 || existingIds !== newIds) {
+          if (data.length === 0) {
+            grid.innerHTML = '<p class="text-white/50 text-xs col-span-2 text-center py-6">Сегодняшние подборки скоро появятся в канале...</p>';
+          } else {
+            grid.innerHTML = data.map(p => `
+              <div class="product-card" data-product-id="${p.id}">
+                <div class="relative">
+                  ${renderCardMedia(p.image_url, p.title)}
+                  <span class="absolute top-2 right-2 wishlist-heart text-lg ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/60'} z-20" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
+                  ${p.brand ? `<span class="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-white/90 text-[10px] font-bold px-2 py-0.5 rounded-md border border-white/10 uppercase tracking-wider">${_esc(p.brand)}</span>` : ''}
+                </div>
+                <div style="padding: 10px 8px 10px 8px; display: flex; flex-direction: column; flex: 1;">
+                  <p class="text-white font-bold text-sm truncate" style="font-size: 13px; font-weight: 700; line-height: 1.2;">${_esc(p.title)}</p>
+                  <div class="flex items-center justify-between mt-1.5">
+                    <p class="text-cyan-400 font-bold text-sm font-mono leading-none">${p.price} ${p.currency || 'BYN'}</p>
+                    ${p.category ? `<span class="text-[10px] text-white/40 truncate max-w-[80px]">${_esc(p.category)}</span>` : ''}
+                  </div>
+                  <div class="flex gap-1.5 mt-2.5">
+                    <button class="btn-primary addToCartBtn flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg" data-product-id="${p.id}">Корзина</button>
+                    <button class="buyNowBtn flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg" data-url="${p.url || ''}" data-price="${p.price}">Заказать</button>
+                  </div>
+                </div>
+              </div>
+            `).join('');
+            initCardSliders();
+          }
+        }
 
     const _cd = document.getElementById('content');
     if (_cd && currentTab === 'home' && !currentSubScreen) {
