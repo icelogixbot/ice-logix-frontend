@@ -31,7 +31,7 @@
           // Загрузка сегодняшних подборок из канала (@icelogix_selection)
           let homeProductsList = [];
           try {
-            const rawDrops = await window.CacheDB.get('todaySelectionDrops', async () => {
+            const fetchDrops = async () => {
               const { data: drops } = await supabaseClient
                 .from('products')
                 .select('*')
@@ -48,7 +48,14 @@
                 .order('created_at', { ascending: false })
                 .limit(9);
               return fallback || [];
-            }, 60000);
+            };
+
+            let rawDrops = window.CacheDB ? await window.CacheDB.get('todaySelectionDrops', fetchDrops, 30000) : await fetchDrops();
+            // Если в кэше пусто, делаем прямой запрос чтобы сразу подтянуть новый пост
+            if (!rawDrops || rawDrops.length === 0) {
+              if (window.CacheDB) window.CacheDB.clear('todaySelectionDrops');
+              rawDrops = await fetchDrops();
+            }
             if (rawDrops && rawDrops.length > 0) {
               homeProductsList = preprocessProducts(rawDrops);
             }
@@ -293,7 +300,7 @@ function attachHomeHandlers() {
       if (!grid) return;
       try {
         let data = [];
-        const rawDrops = await window.CacheDB.get('todaySelectionDrops', async () => {
+        const fetchDrops = async () => {
           const { data: drops } = await supabaseClient
             .from('products')
             .select('*')
@@ -310,7 +317,13 @@ function attachHomeHandlers() {
             .order('created_at', { ascending: false })
             .limit(9);
           return fallback || [];
-        }, 60000);
+        };
+
+        let rawDrops = window.CacheDB ? await window.CacheDB.get('todaySelectionDrops', fetchDrops, 30000) : await fetchDrops();
+        if (!rawDrops || rawDrops.length === 0) {
+          if (window.CacheDB) window.CacheDB.clear('todaySelectionDrops');
+          rawDrops = await fetchDrops();
+        }
         if (rawDrops) data = preprocessProducts(rawDrops);
 
         const existingCards = Array.from(grid.querySelectorAll('.product-card'));
