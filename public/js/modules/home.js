@@ -32,25 +32,35 @@
           let homeProductsList = [];
           try {
             if (window.CacheDB) window.CacheDB.clear('todaySelectionDrops');
-            const { data: drops } = await supabaseClient
-              .from('products')
-              .select('*')
-              .eq('is_active', true)
-              .eq('show_on_home', true)
-              .order('created_at', { ascending: false })
-              .limit(9);
-            if (drops && drops.length > 0) {
-              homeProductsList = preprocessProducts(drops);
-            } else {
-              const { data: fallback } = await supabaseClient
+            // Ждём инициализации supabaseClient (может быть null при быстром старте из кэша)
+            let _sbClient = supabaseClient;
+            if (!_sbClient) {
+              for (let _w = 0; _w < 30; _w++) {
+                await new Promise(r => setTimeout(r, 100));
+                if (supabaseClient) { _sbClient = supabaseClient; break; }
+              }
+            }
+            if (_sbClient) {
+              const { data: drops } = await _sbClient
                 .from('products')
                 .select('*')
                 .eq('is_active', true)
-                .eq('is_drop', true)
+                .eq('show_on_home', true)
                 .order('created_at', { ascending: false })
                 .limit(9);
-              if (fallback && fallback.length > 0) {
-                homeProductsList = preprocessProducts(fallback);
+              if (drops && drops.length > 0) {
+                homeProductsList = preprocessProducts(drops);
+              } else {
+                const { data: fallback } = await _sbClient
+                  .from('products')
+                  .select('*')
+                  .eq('is_active', true)
+                  .eq('is_drop', true)
+                  .order('created_at', { ascending: false })
+                  .limit(9);
+                if (fallback && fallback.length > 0) {
+                  homeProductsList = preprocessProducts(fallback);
+                }
               }
             }
           } catch(e) {
@@ -295,7 +305,16 @@ function attachHomeHandlers() {
       try {
         let data = [];
         if (window.CacheDB) window.CacheDB.clear('todaySelectionDrops');
-        const { data: drops } = await supabaseClient
+        // Ждём инициализации supabaseClient (race condition при старте из localStorage-кэша)
+        let _sbClient = supabaseClient;
+        if (!_sbClient) {
+          for (let _w = 0; _w < 40; _w++) {
+            await new Promise(r => setTimeout(r, 100));
+            if (supabaseClient) { _sbClient = supabaseClient; break; }
+          }
+        }
+        if (!_sbClient) { console.warn('[ICE] loadHomeProducts: supabaseClient unavailable'); return; }
+        const { data: drops } = await _sbClient
           .from('products')
           .select('*')
           .eq('is_active', true)
@@ -305,7 +324,7 @@ function attachHomeHandlers() {
         if (drops && drops.length > 0) {
           data = preprocessProducts(drops);
         } else {
-          const { data: fallback } = await supabaseClient
+          const { data: fallback } = await _sbClient
             .from('products')
             .select('*')
             .eq('is_active', true)

@@ -159,7 +159,7 @@
     
     <!-- Main Content Area -->
     <div id="content" class="main-content"></div>
-    <script>try{const _h=localStorage.getItem('ice_tab_home_v2');if(_h){document.getElementById('content').innerHTML=_h;window._homeRenderedOnce=true;}}catch(e){}</script>
+    <script>try{const _h=localStorage.getItem('ice_tab_home_v2');if(_h&&!_h.includes('\u0441\u043a\u043e\u0440\u043e \u043f\u043e\u044f\u0432\u044f\u0442\u0441\u044f')&&_h.includes('product-card')){document.getElementById('content').innerHTML=_h;window._homeRenderedOnce=true;}else if(_h){localStorage.removeItem('ice_tab_home_v2');}}catch(e){}</script>
     
     <!-- ═══════════════════════════════════════════════════════════════════════
          TAB BAR ISLAND - Floating bottom navigation
@@ -225,7 +225,7 @@
   </div>
   <!-- ICE LOGIX Core Engine & Lifecycle Router -->
   <script src="/js/core/app-core.js?v=20261005"></script>
-  <script src="/js/modules/home.js?v=20261009"></script>
+  <script src="/js/modules/home.js?v=20261008"></script>
   <script src="/js/modules/calculator.js?v=20261005"></script>
   <script src="/js/modules/profile.js?v=20261005"></script>
   <script defer src="/js/core/router.js?v=20261005"></script>
