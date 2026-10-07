@@ -1,18 +1,29 @@
 // ============================================================
 // ICE LOGIX Module: Home Screen
 // ============================================================
-        // ==================== РЕНДЕР ГЛАВНОЙ СТРАНИЦЫ ====================
-        async function renderHome() {
-          let dbMarketplaces = [];
-          try {
-            const dbData = await window.CacheDB.get('marketplaces', async () => {
-              const { data } = await supabaseClient.from('marketplaces').select('*').eq('is_active', true).order('sort_order', { ascending: true });
-              return data;
-            }, 300000);
-            if (dbData) dbMarketplaces = preprocessMarketplaces(dbData);
-          } catch (e) {
-            console.error(e);
-          }
+
+function _esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+if (typeof _esc === 'function') window._esc = _esc;
+
+// ==================== РЕНДЕР ГЛАВНОЙ СТРАНИЦЫ ====================
+async function renderHome() {
+  try {
+    let dbMarketplaces = [];
+    try {
+      const _sb = (typeof supabaseClient !== 'undefined' && supabaseClient) ? supabaseClient : window.supabaseClient;
+      if (window.CacheDB && _sb) {
+        const dbData = await window.CacheDB.get('marketplaces', async () => {
+          const { data } = await _sb.from('marketplaces').select('*').eq('is_active', true).order('sort_order', { ascending: true });
+          return data;
+        }, 300000);
+        if (dbData) dbMarketplaces = preprocessMarketplaces(dbData);
+      }
+    } catch (e) {
+      console.error(e);
+    }
 
           // Use only DB marketplaces with show_on_home=true; fall back to static list only when none configured
           const homeDbMarketplaces = dbMarketplaces.filter(mp => mp.show_on_home);
@@ -190,11 +201,13 @@
         </span>
       </div>
       <div class="grid grid-cols-2 gap-2" id="homeProductsGrid" style="margin-left: -6px; margin-right: -6px;">
-        ${homeProductsList.map(p => `
+        ${homeProductsList.map(p => {
+          const _inWish = ((typeof wishlist !== 'undefined' && wishlist?.has) ? wishlist.has(p.id) : (window.wishlist?.has ? window.wishlist.has(p.id) : false));
+          return `
           <div class="product-card" data-product-id="${p.id}">
             <div class="relative">
               ${renderCardMedia(p.image_url, p.title)}
-              <span class="absolute top-2 right-2 wishlist-heart text-lg ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/60'} z-20" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
+              <span class="absolute top-2 right-2 wishlist-heart text-lg ${_inWish ? 'text-red-500' : 'text-white/60'} z-20" data-product-id="${p.id}">${getHeartIcon(_inWish)}</span>
               ${p.brand ? `<span class="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-white/90 text-[10px] font-bold px-2 py-0.5 rounded-md border border-white/10 uppercase tracking-wider">${_esc(p.brand)}</span>` : ''}
             </div>
             <div style="padding: 10px 8px 10px 8px; display: flex; flex-direction: column; flex: 1;">
@@ -209,12 +222,16 @@
               </div>
             </div>
           </div>
-        `).join('')}
+        `;}).join('')}
       </div>
     </div>
     
     ${renderFooter()}
   `;
+  } catch (err) {
+    console.error('Error rendering home screen:', err);
+    return `<div class="glass-card p-6 text-center text-white my-8"><p class="font-bold text-sm mb-2">Главная страница загружается...</p><button class="btn-primary py-2 px-4 rounded-xl text-xs mt-2" onclick="window.switchTab('home');">Обновить</button></div>`;
+  }
 }
 
 // ==================== ОБРАБОТЧИК ГЛАВНОЙ ====================
@@ -344,11 +361,13 @@ function attachHomeHandlers() {
           if (data.length === 0) {
             grid.innerHTML = '<p class="text-white/50 text-xs col-span-2 text-center py-6">Сегодняшние подборки скоро появятся в канале...</p>';
           } else {
-            grid.innerHTML = data.map(p => `
+            grid.innerHTML = data.map(p => {
+              const _inWish = ((typeof wishlist !== 'undefined' && wishlist?.has) ? wishlist.has(p.id) : (window.wishlist?.has ? window.wishlist.has(p.id) : false));
+              return `
               <div class="product-card" data-product-id="${p.id}">
                 <div class="relative">
                   ${renderCardMedia(p.image_url, p.title)}
-                  <span class="absolute top-2 right-2 wishlist-heart text-lg ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/60'} z-20" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
+                  <span class="absolute top-2 right-2 wishlist-heart text-lg ${_inWish ? 'text-red-500' : 'text-white/60'} z-20" data-product-id="${p.id}">${getHeartIcon(_inWish)}</span>
                   ${p.brand ? `<span class="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-white/90 text-[10px] font-bold px-2 py-0.5 rounded-md border border-white/10 uppercase tracking-wider">${_esc(p.brand)}</span>` : ''}
                 </div>
                 <div style="padding: 10px 8px 10px 8px; display: flex; flex-direction: column; flex: 1;">
@@ -363,7 +382,8 @@ function attachHomeHandlers() {
                   </div>
                 </div>
               </div>
-            `).join('');
+            `;
+            }).join('');
             initCardSliders();
           }
         }

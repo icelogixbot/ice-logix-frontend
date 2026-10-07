@@ -96,8 +96,13 @@
       }
 
       if (currentTab === 'home') {
-        contentDiv.innerHTML = shadowBannerHtml + await renderHome();
-        attachHomeHandlers();
+        try {
+          const homeHtml = await renderHome();
+          contentDiv.innerHTML = shadowBannerHtml + homeHtml;
+          attachHomeHandlers();
+        } catch (e) {
+          console.error('Failed to render home tab:', e);
+        }
       } else if (currentTab === 'calculator') {
         contentDiv.innerHTML = shadowBannerHtml + await renderCalculator();
         attachCalculatorHandlers();

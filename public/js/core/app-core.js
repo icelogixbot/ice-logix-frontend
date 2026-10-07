@@ -311,6 +311,12 @@
       applyLanguage(localStorage.getItem('lang') || 'ru');
     }, 0);
 
+    function _esc(s) {
+      if (s == null) return '';
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    window._esc = _esc;
+
     function preprocessProducts(products) {
       if (!products) return [];
       const fallbacks = {
@@ -1630,7 +1636,7 @@
     window.invalidateAdminCache = function() {
       window.adminCache = null;
     };
-    let currentTab = 'home', previousTab = null, currentSubScreen = null;
+    let currentTab = null, previousTab = null, currentSubScreen = null;
 
     // ==================== Telegram WebApp native helpers ====================
     // Wraps Telegram.WebApp APIs with graceful fallback to browser primitives.
@@ -2025,6 +2031,7 @@ let adminOrdersTotalPages = 1;
     let appliedPromo = null;
     let userReferralCode = null;
     let wishlist = new Set();
+    window.wishlist = wishlist;
     let productsPage = 1;
     let productsFilter = { category: 'all', brand: 'all', sort: 'new' };
     let productsTotalPages = 1;
@@ -2234,6 +2241,7 @@ let adminOrdersTotalPages = 1;
         
         if (window.supabase) {
           supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+          window.supabaseClient = supabaseClient;
         } else {
           console.error('Supabase SDK failed to load. Database calls will be disabled.');
         }
@@ -2508,13 +2516,15 @@ let adminOrdersTotalPages = 1;
       } finally {
         // Safe boot without double-rendering or flickering navigation bars
         try {
-          if (!window._homeRenderedOnce) {
+          const _c = document.getElementById('content');
+          const _hasContent = _c && _c.innerHTML && _c.innerHTML.trim().length > 100;
+          if (!window._homeRenderedOnce || !_hasContent) {
+            currentTab = null;
             switchTab('home');
             window._homeRenderedOnce = true;
           } else {
             attachHomeHandlers();
             if (!_tabCache['home:']) {
-              const _c = document.getElementById('content');
               if (_c && _c.innerHTML) _tabCache['home:'] = { html: _c.innerHTML, ts: Date.now() };
             }
           }
@@ -2977,8 +2987,10 @@ let adminOrdersTotalPages = 1;
         window.tempOrder = null;
       }
 
-      // If user is already on this exact tab and subscreen, do not reload
-      if (currentTab === tabName && currentSubScreen === subScreen) {
+      // If user is already on this exact tab and subscreen, only early-return if content is actually rendered
+      const _contentEl = document.getElementById('content');
+      const _hasRenderedContent = _contentEl && _contentEl.innerHTML && _contentEl.innerHTML.trim().length > 100;
+      if (currentTab === tabName && currentSubScreen === subScreen && _hasRenderedContent) {
         scrollToPageTop();
         return;
       }
