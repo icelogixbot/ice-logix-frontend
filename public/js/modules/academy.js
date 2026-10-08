@@ -752,23 +752,27 @@ async function renderAcademy() {
     }
     return `
       <button id="backFromWishlistBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-2 gap-2" id="wishlistProductsGrid" style="margin-left: -6px; margin-right: -6px;">
         ${wishlistItems.map(item => {
           let p = item.products;
           if (!p) return '';
           p = preprocessProducts([p])[0];
           return `
             <div class="product-card" data-product-id="${p.id}">
-              <div class="aspect-square bg-white/10 flex items-center justify-center relative">
-                <img src="${getProductImages(p.image_url)[0] || 'https://via.placeholder.com/150'}" class="w-full h-full object-cover">
-                <span class="absolute top-0 right-0 wishlist-heart text-red-500 z-20" data-product-id="${p.id}">${getHeartIcon(true)}</span>
+              <div class="relative">
+                ${renderCardMedia(p.image_urls || p.image_url, p.title)}
+                <span class="absolute top-2 right-2 wishlist-heart text-lg text-red-500 z-20" data-product-id="${p.id}">${getHeartIcon(true)}</span>
+                ${p.brand ? `<span class="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-white/90 text-[10px] font-bold px-2 py-0.5 rounded-md border border-white/10 uppercase tracking-wider">${_esc(p.brand)}</span>` : ''}
               </div>
-              <div class="p-2">
-                <p class="text-white font-bold text-sm truncate">${p.title}</p>
-                <p class="text-cyan-400 text-xs">${p.price} ${p.currency}</p>
-                <div class="flex gap-1 mt-2">
-                  <button class="btn-primary addToCartBtn flex-1" data-product-id="${p.id}">Корзина</button>
-                  <button class="buyNowBtn flex-1" data-url="${p.url}" data-price="${p.price}">Заказать</button>
+              <div style="padding: 10px 8px 10px 8px; display: flex; flex-direction: column; flex: 1;">
+                <p class="text-white font-bold text-sm truncate" style="font-size: 13px; font-weight: 700; line-height: 1.2;">${_esc(p.title)}</p>
+                <div class="flex items-center justify-between mt-1.5">
+                  <p class="text-cyan-400 font-bold text-sm font-mono leading-none">${p.price} ${p.currency || 'BYN'}</p>
+                  ${p.category ? `<span class="text-[10px] text-white/40 truncate max-w-[80px]">${_esc(p.category)}</span>` : ''}
+                </div>
+                <div class="flex gap-1.5 mt-2.5">
+                  <button class="btn-primary addToCartBtn flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg" data-product-id="${p.id}">Корзина</button>
+                  <button class="buyNowBtn flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg" data-url="${p.url || ''}" data-price="${p.price}">Заказать</button>
                 </div>
               </div>
             </div>

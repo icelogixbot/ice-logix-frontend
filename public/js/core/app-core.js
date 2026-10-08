@@ -334,8 +334,17 @@
       return products.map((p) => {
         // Clone to avoid mutating cached CacheDB references
         p = { ...p };
+        // Parse image_urls JSON array if present (set by bot for carousel posts)
+        if (p.image_urls && typeof p.image_urls === 'string') {
+          try { p.image_urls = JSON.parse(p.image_urls); } catch(e) { p.image_urls = null; }
+        }
+        if (!p.image_urls || !Array.isArray(p.image_urls) || p.image_urls.length === 0) {
+          p.image_urls = null;
+        }
+        // Fix image_url fallback
         if (!p.image_url || p.image_url.includes('placeholder.com') || p.image_url === '') {
-          p.image_url = fallbacks[p.title] || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&auto=format&fit=crop&q=80';
+          const firstImg = (p.image_urls && p.image_urls[0]) || null;
+          p.image_url = firstImg || fallbacks[p.title] || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&auto=format&fit=crop&q=80';
         }
         return p;
       });
@@ -433,21 +442,23 @@
       
       modal.innerHTML = `
         <div class="image-preview-backdrop"></div>
-        <button class="image-preview-close">&times;</button>
-        <div class="image-preview-slider">
-          ${urls.map((url, idx) => `
-            <div class="image-preview-slide">
-              <img src="${url}" alt="Product image preview">
-            </div>
-          `).join('')}
-        </div>
-        ${urls.length > 1 ? `
-          <div class="image-preview-dots">
-            ${urls.map((_, idx) => `
-              <div class="image-preview-dot ${idx === startIndex ? 'active' : ''}"></div>
+        <div class="image-preview-inner">
+          <button class="image-preview-close">&times;</button>
+          <div class="image-preview-slider">
+            ${urls.map((url, idx) => `
+              <div class="image-preview-slide">
+                <img src="${url}" alt="Product image preview">
+              </div>
             `).join('')}
           </div>
-        ` : ''}
+          ${urls.length > 1 ? `
+            <div class="image-preview-dots">
+              ${urls.map((_, idx) => `
+                <div class="image-preview-dot ${idx === startIndex ? 'active' : ''}"></div>
+              `).join('')}
+            </div>
+          ` : ''}
+        </div>
       `;
 
       document.body.appendChild(modal);

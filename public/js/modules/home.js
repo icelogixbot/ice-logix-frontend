@@ -206,7 +206,7 @@ async function renderHome() {
           return `
           <div class="product-card" data-product-id="${p.id}">
             <div class="relative">
-              ${renderCardMedia(p.image_url, p.title)}
+              ${renderCardMedia(p.image_urls || p.image_url, p.title)}
               <span class="absolute top-2 right-2 wishlist-heart text-lg ${_inWish ? 'text-red-500' : 'text-white/60'} z-20" data-product-id="${p.id}">${getHeartIcon(_inWish)}</span>
               ${p.brand ? `<span class="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-white/90 text-[10px] font-bold px-2 py-0.5 rounded-md border border-white/10 uppercase tracking-wider">${_esc(p.brand)}</span>` : ''}
             </div>
@@ -366,7 +366,7 @@ function attachHomeHandlers() {
               return `
               <div class="product-card" data-product-id="${p.id}">
                 <div class="relative">
-                  ${renderCardMedia(p.image_url, p.title)}
+                  ${renderCardMedia(p.image_urls || p.image_url, p.title)}
                   <span class="absolute top-2 right-2 wishlist-heart text-lg ${_inWish ? 'text-red-500' : 'text-white/60'} z-20" data-product-id="${p.id}">${getHeartIcon(_inWish)}</span>
                   ${p.brand ? `<span class="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-white/90 text-[10px] font-bold px-2 py-0.5 rounded-md border border-white/10 uppercase tracking-wider">${_esc(p.brand)}</span>` : ''}
                 </div>
