@@ -2343,9 +2343,10 @@ let adminOrdersTotalPages = 1;
           try { tg.expand(); } catch {}
           // Enable closing-confirmation so accidental swipes don't kill the WebApp mid-checkout.
           try { tg.enableClosingConfirmation?.(); } catch {}
-          // Match the Telegram chrome (header + background) to our dark gradient so the WebApp blends in seamlessly.
-          try { tg.setHeaderColor?.('#0f172a'); } catch {}
-          try { tg.setBackgroundColor?.('#0f172a'); } catch {}
+          // Match the Telegram chrome (header + background + bottom bar) to pure black (#000000) so the WebApp blends in seamlessly.
+          try { tg.setHeaderColor?.('#000000'); } catch {}
+          try { tg.setBackgroundColor?.('#000000'); } catch {}
+          try { tg.setBottomBarColor?.('#000000'); } catch {}
           // Mark <body> so CSS hides duplicate in-page back buttons when native BackButton is available.
           if (tg?.BackButton) document.body.classList.add('tg-native-back');
           const user = tg.initDataUnsafe?.user;

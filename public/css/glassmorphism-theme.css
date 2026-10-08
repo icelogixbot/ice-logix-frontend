@@ -17,9 +17,9 @@
       --snow-mist: rgba(255, 255, 255, 0.95);
       
       /* Background Gradient */
-      --bg-gradient-start: #0A1628;
-      --bg-gradient-mid: #0F2847;
-      --bg-gradient-end: #1A3A5C;
+      --bg-gradient-start: #000000;
+      --bg-gradient-mid: #000000;
+      --bg-gradient-end: #000000;
       
       /* Glassmorphism */
       --glass-bg: rgba(255, 255, 255, 0.08);
