@@ -62,16 +62,7 @@ async function renderHome() {
               if (drops && drops.length > 0) {
                 homeProductsList = preprocessProducts(drops);
               } else {
-                const { data: fallback } = await _sbClient
-                  .from('products')
-                  .select('*')
-                  .eq('is_active', true)
-                  .eq('is_drop', true)
-                  .order('created_at', { ascending: false })
-                  .limit(9);
-                if (fallback && fallback.length > 0) {
-                  homeProductsList = preprocessProducts(fallback);
-                }
+                homeProductsList = [];
               }
             }
           } catch(e) {
@@ -341,16 +332,7 @@ function attachHomeHandlers() {
         if (drops && drops.length > 0) {
           data = preprocessProducts(drops);
         } else {
-          const { data: fallback } = await _sbClient
-            .from('products')
-            .select('*')
-            .eq('is_active', true)
-            .eq('is_drop', true)
-            .order('created_at', { ascending: false })
-            .limit(9);
-          if (fallback && fallback.length > 0) {
-            data = preprocessProducts(fallback);
-          }
+          data = [];
         }
 
         const existingCards = Array.from(grid.querySelectorAll('.product-card'));
