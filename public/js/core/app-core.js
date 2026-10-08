@@ -391,21 +391,21 @@
         images = ['https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&auto=format&fit=crop&q=80'];
       }
       
+      const escapedImages = encodeURIComponent(JSON.stringify(images));
       if (images.length <= 1) {
         const imgUrl = images[0];
         return `
-          <div class="card-photo-container">
-            <img src="${imgUrl}" class="w-full h-full object-cover cursor-zoom-in" alt="${cardTitle}" onclick="event.stopPropagation(); window.showImagePreview('${imgUrl}')">
+          <div class="card-photo-container cursor-pointer" data-preview-urls="${escapedImages}" data-preview-index="0" onclick="event.stopPropagation(); window.showImagePreview(['${imgUrl}'], 0)">
+            <img src="${imgUrl}" class="w-full h-full object-cover cursor-zoom-in" alt="${cardTitle}">
           </div>
         `;
       }
 
-      const escapedImages = encodeURIComponent(JSON.stringify(images));
       return `
-        <div class="card-photo-container">
+        <div class="card-photo-container cursor-pointer">
           <div class="card-slider">
             ${images.map((url, idx) => `
-              <div class="card-slide" onclick="event.stopPropagation(); window.showImagePreview(JSON.parse(decodeURIComponent('${escapedImages}')), ${idx})">
+              <div class="card-slide cursor-pointer" data-preview-urls="${escapedImages}" data-preview-index="${idx}">
                 <img src="${url}" class="w-full h-full object-cover cursor-zoom-in" alt="${cardTitle}" ${idx > 0 ? 'loading="lazy"' : ''}>
               </div>
             `).join('')}
@@ -420,9 +420,68 @@
     }
 
     function initCardSliders() {
+      // 1. Single photo containers tap
+      document.querySelectorAll('.card-photo-container').forEach(container => {
+        if (container.dataset.tapInitialized) return;
+        container.dataset.tapInitialized = 'true';
+        if (!container.querySelector('.card-slider')) {
+          container.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const rawUrls = container.dataset.previewUrls;
+            if (rawUrls) {
+              try {
+                const urls = JSON.parse(decodeURIComponent(rawUrls));
+                window.showImagePreview(urls, 0);
+              } catch(err) {}
+            }
+          });
+        }
+      });
+
+      // 2. Multi-photo sliders
       document.querySelectorAll('.card-slider').forEach(slider => {
         if (slider.dataset.sliderInitialized) return;
         slider.dataset.sliderInitialized = 'true';
+
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let hasMoved = false;
+
+        slider.addEventListener('touchstart', (e) => {
+          if (e.touches.length === 1) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            hasMoved = false;
+          }
+        }, { passive: true });
+
+        slider.addEventListener('touchmove', (e) => {
+          if (e.touches.length === 1) {
+            const dx = Math.abs(e.touches[0].clientX - touchStartX);
+            const dy = Math.abs(e.touches[0].clientY - touchStartY);
+            if (dx > 7 || dy > 7) {
+              hasMoved = true;
+            }
+          }
+        }, { passive: true });
+
+        slider.querySelectorAll('.card-slide').forEach((slide) => {
+          slide.addEventListener('click', (e) => {
+            if (hasMoved) return;
+            e.stopPropagation();
+            try {
+              const rawUrls = slide.dataset.previewUrls;
+              const idx = parseInt(slide.dataset.previewIndex || '0', 10);
+              const urls = rawUrls ? JSON.parse(decodeURIComponent(rawUrls)) : [];
+              if (urls.length > 0) {
+                window.showImagePreview(urls, idx);
+              }
+            } catch(err) {
+              console.error('Preview error:', err);
+            }
+          });
+        });
+
         slider.addEventListener('scroll', () => {
           const width = slider.clientWidth;
           if (width <= 0) return;
@@ -443,6 +502,7 @@
       modal.innerHTML = `
         <div class="image-preview-backdrop"></div>
         <div class="image-preview-inner">
+          <button class="image-preview-zoom-btn" title="Увеличить">+</button>
           <button class="image-preview-close">&times;</button>
           <div class="image-preview-slider">
             ${urls.map((url, idx) => `
@@ -464,16 +524,69 @@
       document.body.appendChild(modal);
 
       const slider = modal.querySelector('.image-preview-slider');
-      
+      const zoomBtn = modal.querySelector('.image-preview-zoom-btn');
+      let currentIndex = startIndex;
+
       setTimeout(() => {
         if (slider && startIndex > 0) {
           slider.scrollLeft = startIndex * slider.clientWidth;
         }
       }, 50);
 
+      const updateZoomState = (img, zoomIn) => {
+        if (zoomIn) {
+          img.classList.add('is-zoomed');
+          slider.style.overflowX = 'hidden';
+          if (zoomBtn) zoomBtn.textContent = '−';
+        } else {
+          img.classList.remove('is-zoomed');
+          img.style.transform = '';
+          slider.style.overflowX = 'auto';
+          if (zoomBtn) zoomBtn.textContent = '+';
+        }
+      };
+
+      if (zoomBtn) {
+        zoomBtn.onclick = (e) => {
+          e.stopPropagation();
+          const slides = modal.querySelectorAll('.image-preview-slide img');
+          const currentImg = slides[currentIndex];
+          if (currentImg) {
+            const isZoomed = currentImg.classList.contains('is-zoomed');
+            updateZoomState(currentImg, !isZoomed);
+          }
+        };
+      }
+
+      modal.querySelectorAll('.image-preview-slide img').forEach((img) => {
+        img.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isZoomed = img.classList.contains('is-zoomed');
+          updateZoomState(img, !isZoomed);
+        });
+
+        let panStartX = 0, panStartY = 0;
+        let curPanX = 0, curPanY = 0;
+        img.addEventListener('touchstart', (e) => {
+          if (img.classList.contains('is-zoomed') && e.touches.length === 1) {
+            panStartX = e.touches[0].clientX - curPanX;
+            panStartY = e.touches[0].clientY - curPanY;
+          }
+        }, { passive: true });
+
+        img.addEventListener('touchmove', (e) => {
+          if (img.classList.contains('is-zoomed') && e.touches.length === 1) {
+            curPanX = e.touches[0].clientX - panStartX;
+            curPanY = e.touches[0].clientY - panStartY;
+            img.style.transform = `scale(2.2) translate(${curPanX / 2.2}px, ${curPanY / 2.2}px)`;
+          }
+        }, { passive: true });
+      });
+
       if (urls.length > 1) {
         slider.addEventListener('scroll', () => {
           const index = Math.round(slider.scrollLeft / slider.clientWidth);
+          currentIndex = index;
           const dots = modal.querySelectorAll('.image-preview-dot');
           dots.forEach((dot, idx) => {
             if (idx === index) dot.classList.add('active');
