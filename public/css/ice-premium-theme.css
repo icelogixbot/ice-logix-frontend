@@ -1,0 +1,229 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   ICE LOGIX — PREMIUM ARCTIC THEME (overrides on top of glassmorphism-theme.css)
+   Palette derived from the logo: pure black base, glacial blues, snow white.
+   Header island (.app-header) and bottom tab bar (.tab-bar) keep their layout.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Glacial Blue Palette */
+  --ice-glow-1: #B8E0F6;
+  --ice-glow-2: #5BBFEB;
+  --ice-glow-3: #2E9ED4;
+  --ice-glow-4: #1A7BB5;
+
+  /* Neutrals */
+  --ice-deep-navy: #0B1A26;
+  --ice-black: #000000;
+  --ice-white: #FFFFFF;
+
+  /* Surface Lines */
+  --ice-line: rgba(91, 191, 235, 0.14);
+  --ice-line-strong: rgba(91, 191, 235, 0.30);
+  --ice-surface: linear-gradient(160deg, rgba(91,191,235,0.05) 0%, rgba(26,123,181,0.02) 100%);
+  --ice-surface-strong: linear-gradient(160deg, rgba(91,191,235,0.08) 0%, rgba(26,123,181,0.05) 100%);
+
+  /* Accent Gradient */
+  --ice-accent-gradient: linear-gradient(135deg, #5BBFEB 0%, #1A7BB5 100%);
+
+  /* Shadows */
+    --ice-shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(91, 191, 235, 0.06);
+  --ice-shadow-card: 0 8px 32px rgba(0, 0, 0, 0.30);
+}
+
+/* ═══ LIGHT THEME — Pure White + Soft Glacial Blue ═══ */
+html.light-theme {
+  /* Soft glacial blue palette for light theme */
+  --ice-glow-1: #B8E0F6;
+  --ice-glow-2: #5BBFEB;
+  --ice-glow-3: #2E9ED4;
+  --ice-glow-4: #1A7BB5;
+
+  /* Surface Lines */
+  --ice-line: rgba(26, 123, 181, 0.15);
+  --ice-line-strong: rgba(26, 123, 181, 0.30);
+  --ice-surface: rgba(255, 255, 255, 0.60);
+  --ice-surface-strong: rgba(255, 255, 255, 0.85);
+
+  /* Accent Gradient */
+  --ice-accent-gradient: linear-gradient(135deg, #5BBFEB 0%, #1A7BB5 100%);
+
+  /* Shadows */
+  --ice-shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(91, 191, 235, 0.08);
+  --ice-shadow-card: 0 4px 20px rgba(26, 123, 181, 0.08);
+
+    /* Text */
+  --text-primary: #0F2847;
+  --text-secondary: rgba(15, 40, 71, 0.70);
+  --text-muted: rgba(15, 40, 71, 0.45);
+
+  /* Light Theme Specific */
+  --ice-light-bg: #FFFFFF;
+  --ice-light-surface: rgba(255, 255, 255, 0.55);
+  --ice-light-surface-strong: rgba(255, 255, 255, 0.85);
+  --ice-light-line: rgba(26, 123, 181, 0.15);
+  --ice-light-line-strong: rgba(26, 123, 181, 0.30);
+  --ice-light-shadow: 0 8px 24px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(91, 191, 235, 0.08);
+
+  /* Background particles */
+  --particle-color: rgba(91, 191, 235, 0.25);
+}
+
+/* Глобальный фон — чисто чёрный для темной, чисто белый для светлой */
+html {
+  background: var(--ice-black) !important;
+}
+html.light-theme {
+  background: var(--ice-light-bg) !important;
+}
+
+/* Карточки: тёмное ледяное стекло вместо серых слоёв */
+.glass-card,
+.product-card,
+.story-icon,
+.banner-carousel-wrapper {
+  background: var(--ice-surface, var(--ice-light-surface)) !important;
+  border-color: var(--ice-line, var(--ice-light-line)) !important;
+  box-shadow: var(--ice-shadow-soft, var(--ice-light-shadow)) !important;
+}
+
+.glass-card:hover,
+.product-card:hover {
+  border-color: var(--ice-line-strong, var(--ice-light-line-strong)) !important;
+}
+
+/* Светлая тема карточек */
+html.light-theme .glass-card,
+html.light-theme .product-card,
+html.light-theme .story-icon,
+html.light-theme .banner-carousel-wrapper {
+  background: var(--ice-light-surface) !important;
+  border-color: var(--ice-light-line) !important;
+  box-shadow: var(--ice-shadow-card) !important;
+}
+html.light-theme .glass-card:hover,
+html.light-theme .product-card:hover {
+  border-color: var(--ice-light-line-strong) !important;
+}
+
+/* Основные кнопки — ледяной градиент */
+.btn-primary,
+.buyNowBtn,
+.filter-chip.active,
+.balance-add {
+  background: var(--ice-accent-gradient) !important;
+  color: var(--ice-white) !important;
+  border: 1px solid rgba(232, 244, 252, 0.25) !important;
+  box-shadow: 0 6px 18px rgba(26, 123, 181, 0.35) !important;
+}
+
+.btn-secondary,
+.addToCartBtn,
+.cart-stepper,
+.filter-chip {
+  background: var(--ice-surface-strong, var(--ice-light-surface-strong)) !important;
+  border: 1px solid var(--ice-line-strong, var(--ice-light-line-strong)) !important;
+  color: var(--ice-white, var(--text-primary)) !important;
+}
+
+/* Акценты текста и иконок */
+.text-cyan-400,
+.text-cyan-300,
+.text-blue-400 {
+  color: var(--ice-glow-2) !important;
+}
+
+/* Светлая тема акцентов текста */
+html.light-theme .text-cyan-400,
+html.light-theme .text-cyan-300,
+html.light-theme .text-blue-400 {
+  color: var(--ice-glow-3) !important;
+}
+
+/* Ледяные плашки у баланса */
+.balance-island {
+  background: linear-gradient(135deg, rgba(184,224,246,0.18) 0%, rgba(26,123,181,0.12) 100%) !important;
+  border: 1px solid rgba(184, 224, 246, 0.3) !important;
+}
+
+/* Светлая тема баланса */
+html.light-theme .balance-island {
+  background: linear-gradient(135deg, rgba(91,191,235,0.08) 0%, rgba(26,123,181,0.04) 100%) !important;
+  border: 1px solid var(--ice-line-strong) !important;
+}
+
+/* Вкладка активна — подсветка ледяным голубым */
+.tab-item.active {
+  color: var(--ice-glow-1) !important;
+  background: rgba(91, 191, 235, 0.14) !important;
+}
+.tab-item.active::after {
+  background: var(--ice-glow-2) !important;
+}
+
+/* Светлая тема вкладок */
+html.light-theme .tab-item.active {
+  color: var(--ice-glow-4) !important;
+  background: rgba(91, 191, 235, 0.10) !important;
+}
+html.light-theme .tab-item.active::after {
+  background: var(--ice-glow-3) !important;
+}
+
+/* Футер: сохраняем формат, цвета — ледяные */
+.app-footer {
+  background: var(--ice-surface) !important;
+  border-color: var(--ice-line) !important;
+}
+.footer-link:hover {
+  color: var(--ice-glow-1) !important;
+  background: rgba(184, 224, 246, 0.08) !important;
+}
+.social-icon:hover {
+  border-color: var(--ice-line-strong) !important;
+  box-shadow: 0 4px 14px rgba(91, 191, 235, 0.25) !important;
+}
+
+/* Светлая тема футера */
+html.light-theme .app-footer {
+  background: var(--ice-light-surface-strong) !important;
+  border-color: var(--ice-light-line) !important;
+}
+html.light-theme .footer-link:hover {
+  color: var(--ice-glow-4) !important;
+  background: rgba(91, 191, 235, 0.06) !important;
+}
+html.light-theme .social-icon:hover {
+  border-color: var(--ice-light-line-strong) !important;
+  box-shadow: 0 4px 14px rgba(26, 123, 181, 0.15) !important;
+}
+
+/* Сплэш-экран: чёрный с ледяным свечением логотипа */
+.ice-splash-screen {
+  background-color: #000000 !important;
+  background-image: radial-gradient(circle at 50% 45%, rgba(91,191,235,0.12) 0%, #000000 70%) !important;
+}
+.ice-splash-loader-progress {
+  background: linear-gradient(90deg, transparent 0%, #5BBFEB 50%, #E8F4FC 75%, transparent 100%) !important;
+}
+
+/* Светлая тема сплэша */
+html.light-theme .ice-splash-screen {
+  background-color: var(--ice-light-bg) !important;
+  background-image: radial-gradient(circle at 50% 45%, rgba(91,191,235,0.08) 0%, var(--ice-light-bg) 70%) !important;
+}
+
+/* Фокус полей ввода — холодный голубой */
+input:focus, textarea:focus, select:focus {
+  border-color: var(--ice-glow-2) !important;
+  box-shadow: 0 0 0 2px rgba(91, 191, 235, 0.3) !important;
+}
+
+/* Светлая тема фокуса полей */
+html.light-theme input:focus,
+html.light-theme textarea:focus,
+html.light-theme select:focus {
+  border-color: var(--ice-glow-3) !important;
+  box-shadow: 0 0 0 2px rgba(91, 191, 235, 0.25) !important;
+}
+
+/* Скрыть «мерцание» старой тёмно-синей подложки в светлой теме не требуется */
