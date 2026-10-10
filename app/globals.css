@@ -4,6 +4,7 @@
 
 @import './glassmorphism.css';
 @import '../public/css/ice-premium-theme.css';
+@import '../public/css/ice-arctic-components.css';
 
 /* Font and base reset matching original ICE LOGIX theme */
 html, body {

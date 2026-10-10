@@ -1,0 +1,23 @@
+# Зависимости и сборки
+node_modules/
+.next/
+.vercel/
+dist/
+build/
+*.tsbuildinfo
+package-lock.json
+
+# Архивы, тесты и дампы
+puppeteer_test/
+_archive/
+*.log
+
+# Картинки и медиа
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.ico
+*.woff
+*.woff2
+public/vendor/pdfmake.min.js
