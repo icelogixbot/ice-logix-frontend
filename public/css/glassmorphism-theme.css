@@ -50,10 +50,10 @@
       animation: none !important;
     }
     
-    html.light-theme {
-      --bg-gradient-start: #E8F4FC;
-      --bg-gradient-mid: #F5FAFD;
-      --bg-gradient-end: #D9EAF5;
+        html.light-theme {
+      --bg-gradient-start: #FFFFFF;
+      --bg-gradient-mid: #FFFFFF;
+      --bg-gradient-end: #FFFFFF;
       
       --glass-bg: rgba(255, 255, 255, 0.7);
       --glass-bg-strong: rgba(255, 255, 255, 0.9);
