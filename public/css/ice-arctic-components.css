@@ -2,7 +2,7 @@
    A restrained dark commerce system: ink surfaces, steel-blue panels, ice-blue actions. */
 
 :root {
-  --ui-bg: #05070b;
+  --ui-bg: #000000;
   --ui-surface: #0d121a;
   --ui-surface-raised: #131b26;
   --ui-surface-soft: #182333;
@@ -25,12 +25,11 @@ body,
 
 body {
   color: var(--ui-text) !important;
-  background-image:
-    radial-gradient(ellipse 90% 45% at 50% -10%, rgba(42, 121, 178, .16), transparent 68%),
-    radial-gradient(ellipse 55% 35% at 100% 35%, rgba(21, 74, 113, .10), transparent 70%) !important;
+  background: #000000 !important;
+  background-image: none !important;
 }
 
-body::before { opacity: .12 !important; }
+body::before { display: none !important; }
 
 .app-header,
 .tab-bar {
