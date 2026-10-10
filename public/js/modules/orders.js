@@ -669,7 +669,7 @@
             <div>
               <label class="text-white/50 text-[10px] block mb-1">Город</label>
               <select id="pvsCitySelect" class="w-full p-3 rounded-xl border border-white/20 text-sm bg-slate-900 text-white">
-                ${['Минск', 'Гомель', 'Брест', 'Гродно', 'Витебск', 'Могилев', 'Барановичи', 'Бобруйск', 'Борисов', 'Лида', 'Мозырь', 'Новополоцк', 'Орша', 'Пинск', 'Солигорск'].map(c => `
+                ${['Минск', 'Гомель', 'Брест', 'Гродно', 'Витебск', 'Могилев', 'Барановичи', 'Бобру��ск', 'Борисов', 'Лида', 'Мозырь', 'Новополоцк', 'Орша', 'Пинск', 'Солигорск'].map(c => `
                   <option value="${c}" ${(window.tempOrder.pvs?.city === c) ? 'selected' : ''}>${c}</option>
                 `).join('')}
               </select>
@@ -913,7 +913,7 @@
         const PVS_DATA = {
           europoshta: {
             'Минск': ['Отделение №1 (пр-т Независимости, 10)', 'Отделение №5 (ул. Притыцкого, 29)', 'Отделение №12 (ул. Немига, 3)', 'Отделение №30 (пр-т Дзержинского, 104)'],
-            'Гомель': ['Отделение №2 (ул. Советская, 97)', 'Отделение №8 (ул. Хатаевича, 9)', 'Отделение №14 (пр-т Речицкий, 5В)'],
+            'Гомель': ['Отделение №2 (ул. Советская, 97)', 'Отделение №8 (ул. Хатаеви��а, 9)', 'Отделение №14 (пр-т Речицкий, 5В)'],
             'Брест': ['Отделение №3 (ул. Московская, 210)', 'Отделение №7 (ул. Пушкинская, 16)', 'Отделение №11 (пр-т Машерова, 17)'],
             'Гродно': ['Отделение №4 (ул. Советская, 18)', 'Отделение №9 (ул. Горького, 91)', 'Отделение №15 (пр-т Клецкова, 15)'],
             'Витебск': ['Отделение №6 (ул. Ленина, 26)', 'Отделение №10 (пр-т Строителей, 1)', 'Отделение №16 (ул. Чкалова, 35)'],
@@ -1215,7 +1215,7 @@
               const idempotencyKey = 'pay1_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
 
               createBtn.disabled = true;
-              createBtn.innerHTML = '<span class="ix animate-spin">⏳</span> Обработка оплаты 1-го этапа...';
+              createBtn.innerHTML = '<span class="ix animate-spin">⏳</span> Обработка оплаты 1-г�� этапа...';
 
               const { data, error } = await supabaseClient.from('orders').insert({
                 user_id: userId,
@@ -1931,7 +1931,7 @@
             }
 
             const originalText = saveBtn.innerText;
-            saveBtn.innerHTML = '<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l-4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Сохраняем товар…';
+            saveBtn.innerHTML = '<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l-4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Сохраняем т��вар…';
             saveBtn.disabled = true;
 
             try {
@@ -2104,9 +2104,13 @@ async function renderMyOrders() {
     
     return `
       <button id="backToProfileBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
-      <div class="space-y-3">
+      <div class="space-y-3 orders-list">
+        <div class="orders-toolbar">
+          <div><p class="orders-eyebrow">ЛИЧНЫЙ КАБИНЕТ</p><h2 class="orders-title">Мои заказы</h2><p class="orders-subtitle">Отслеживайте путь каждой посылки в одном месте</p></div>
+          <span class="orders-count">${data.length}</span>
+        </div>
         ${data.map(order => `
-          <div class="glass-card">
+          <div class="glass-card order-card">
             <div class="flex justify-between items-start">
               <div>
                 <p class="text-white font-bold">Заказ #${order.id.slice(0,8)}</p>

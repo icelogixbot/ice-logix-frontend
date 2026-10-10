@@ -157,4 +157,41 @@ html.light-theme .app-footer { background: rgba(255,255,255,.88) !important; }
 /* Do not let utility inline colors overpower the product palette. */
 [style*="rgba(255,255,255,0.06)"], [style*="rgba(255, 255, 255, 0.06)"] { background: rgba(130,199,241,.06) !important; border-color: var(--ui-line) !important; }
 [style*="#67e8f9"] { color: var(--ui-blue) !important; }
+/* Profile and orders: structured premium surfaces */
+.profile-shell {
+  position: relative;
+  overflow: hidden;
+  padding: 22px 18px !important;
+  background: linear-gradient(155deg, rgba(20,39,57,.96), rgba(7,12,19,.98)) !important;
+  border-color: rgba(130,199,241,.24) !important;
+}
+.profile-shell::before { content: ''; position: absolute; inset: -35% 35% auto -15%; height: 190px; background: radial-gradient(circle, rgba(82,177,232,.24), transparent 68%); pointer-events: none; }
+.profile-shell > * { position: relative; z-index: 1; }
+.profile-shell h2 { letter-spacing: -.02em; }
+.profile-shell button { transition: transform .2s ease, background .2s ease, border-color .2s ease; }
+.profile-shell button:hover { border-color: rgba(130,199,241,.42) !important; }
+.profile-shell .grid.grid-cols-2 > div { background: rgba(130,199,241,.07) !important; border-color: rgba(130,199,241,.16) !important; }
+.profile-shell .grid.grid-cols-2 button { min-height: 86px; }
+
+.orders-list { display: grid; gap: 14px; }
+.orders-toolbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 4px 4px 6px; }
+.orders-eyebrow { margin: 0 0 5px; color: var(--ui-blue); font-size: 10px; font-weight: 800; letter-spacing: .16em; }
+.orders-title { margin: 0; color: var(--ui-text); font-size: 25px; line-height: 1.05; letter-spacing: -.04em; }
+.orders-subtitle { margin: 7px 0 0; color: var(--ui-text-muted); font-size: 12px; }
+.orders-count { display: grid; place-items: center; min-width: 38px; height: 38px; padding: 0 10px; color: #07131d; background: var(--ui-blue); border-radius: 13px; font-size: 14px; font-weight: 900; box-shadow: 0 6px 18px rgba(66,169,231,.24); }
+.order-card { padding: 18px !important; border-color: rgba(130,199,241,.18) !important; }
+.order-card > div:first-child > div:first-child p:first-child { font-size: 15px; letter-spacing: -.01em; }
+.order-card .status-badge { padding: 6px 9px !important; border-radius: 10px !important; font-size: 10px !important; font-weight: 800 !important; }
+.order-card .btn-secondary { min-height: 40px; font-weight: 700; }
+.order-card .bg-white\\/5 { background: rgba(130,199,241,.055) !important; border-color: rgba(130,199,241,.12) !important; }
+.order-card .text-cyan-400 { color: var(--ui-blue) !important; }
+.global-back-btn { margin-bottom: 12px !important; }
+
+@media (max-width: 420px) {
+  .profile-shell { padding: 18px 14px !important; }
+  .orders-title { font-size: 22px; }
+  .orders-subtitle { max-width: 220px; line-height: 1.4; }
+  .order-card { padding: 14px !important; }
+}
+
 /*! end ICE LOGIX premium redesign */
