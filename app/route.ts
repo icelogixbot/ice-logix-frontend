@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-// Pre-read HTML at startup into memory for 0ms response time
-let cachedHtml: string | null = null;
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 function getHtml(): string {
   return readFileSync(join(process.cwd(), 'public', 'app.html'), 'utf-8');
