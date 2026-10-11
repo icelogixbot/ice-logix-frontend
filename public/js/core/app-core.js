@@ -879,7 +879,11 @@
       '🗃️': 'database', '🧰': 'settings', '📣': 'megaphone', '💬': 'chat', '📞': 'phone',
   '🕒': 'clock', '💵': 'wallet', '🛍️': 'bag', '🌍': 'globe', '🌐': 'globe',
   '🇨🇳': 'globe', '🇵🇱': 'globe', '🇷🇺': 'globe', '🇺🇸': 'globe', '🇯🇵': 'globe',
-  '🇰🇷': 'globe', '🇦🇪': 'globe', '🇪🇺': 'globe'
+  '🇰🇷': 'globe', '🇦🇪': 'globe', '🇪🇺': 'globe', '⭐️': 'star', '⭐': 'star', '☆': 'star',
+  '🟢': 'check', '🔵': 'info', '👍': 'check', '👌': 'check', '🙂': 'user', '😴': 'clock',
+  '💤': 'clock', '🧑‍💼': 'briefcase', '🧑‍🎓': 'academy', '🏅': 'trophy', '🎯': 'trophy',
+  '📝': 'note', '📌': 'pin', '🔧': 'settings', '🔧': 'settings', '🗺️': 'mapPin', '➕': 'plus',
+  '➖': 'minus', '⬆️': 'arrowUp', '⬇️': 'arrowDown', '➡️': 'arrowRight', '⬅️': 'arrowLeft'
     };
 
     function normalizeLegacyIcons(root = document.body) {
@@ -906,7 +910,7 @@
         let match;
         while ((match = pattern.exec(textNode.nodeValue)) !== null) {
           if (match.index > cursor) fragment.append(document.createTextNode(textNode.nodeValue.slice(cursor, match.index)));
-          const iconName = LEGACY_ICON_MAP[match[0]];
+          const iconName = LEGACY_ICON_MAP[match[0]] || 'sparkles';
           const iconTemplate = document.createElement('template');
           iconTemplate.innerHTML = ix(iconName, { cls: 'emoji-icon', size: '1.05em' });
           fragment.append(iconTemplate.content.cloneNode(true));
@@ -1425,7 +1429,7 @@
         try {
           const u = new URL(url);
           if (u.protocol !== 'http:' && u.protocol !== 'https:') {
-            errors.push('Ссылка должна начинаться с http:// или https://');
+            errors.push('Ссылка должн�� начинаться с http:// или https://');
           } else {
             // Проверка домена (warning, не ошибка — мы не хотим блокировать неизвестные площадки)
             const host = u.hostname.toLowerCase().replace(/^www\./, '');
