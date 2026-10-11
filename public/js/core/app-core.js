@@ -858,6 +858,7 @@
       const szAttr = sz ? ` style="width:${sz};height:${sz}"` : '';
       return `<span class="${cls}"${szAttr}${stl}><svg viewBox="${vb}" fill="${fill}" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg></span>`;
     }
+    window.ix = ix;
 
     // Legacy content still contains emoji in a number of dynamically-rendered
     // modules. Normalize it at the DOM boundary so every screen uses one icon
@@ -875,7 +876,10 @@
       '⏳': 'hourglass', '🪙': 'coins', '🧷': 'pin', '🧴': 'cosmetic', '👟': 'sneaker',
       '🧥': 'jacket', '👖': 'pants', '🩱': 'swim', '🚫': 'x', '❌': 'error',
       '❗': 'warn', 'ℹ️': 'info', '🔒': 'lock', '🔓': 'unlock', '📋': 'clipboard',
-      '🗃️': 'database', '🧰': 'settings', '📣': 'megaphone', '💬': 'chat', '📞': 'phone'
+      '🗃️': 'database', '🧰': 'settings', '📣': 'megaphone', '💬': 'chat', '📞': 'phone',
+  '🕒': 'clock', '💵': 'wallet', '🛍️': 'bag', '🌍': 'globe', '🌐': 'globe',
+  '🇨🇳': 'globe', '🇵🇱': 'globe', '🇷🇺': 'globe', '🇺🇸': 'globe', '🇯🇵': 'globe',
+  '🇰🇷': 'globe', '🇦🇪': 'globe', '🇪🇺': 'globe'
     };
 
     function normalizeLegacyIcons(root = document.body) {
@@ -2971,7 +2975,7 @@ let adminOrdersTotalPages = 1;
 
       container.innerHTML = `
         <div class="screenshot-widget">
-          <p style="color:rgba(255,255,255,0.9);font-size:13px;font-weight:600;margin-bottom:4px"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></span> Не удалось автоматически распознать товар</p>
+          <p style="color:rgba(255,255,255,0.9);font-size:13px;font-weight:600;margin-bottom:4px"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></span> Не удалось автоматически распознать тов��р</p>
           <p style="color:rgba(255,255,255,0.55);font-size:12px;margin-bottom:10px">${hint}</p>
           <div class="screenshot-actions">
             <button id="swUploadBtn" style="background:#3b82f6;color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span> Загрузить скриншот</button>

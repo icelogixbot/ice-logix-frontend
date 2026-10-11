@@ -86,13 +86,19 @@
   pointer-events: auto;
   transform: scale(1);
 }
-.ice-slide-emoji { 
-  font-size: 72px; 
-  margin-bottom: 20px; 
-  line-height: 1;
+  .ice-slide-emoji {
+  width: 84px; height: 84px; margin-bottom: 20px;
+  display: grid; place-items: center;
+  color: #9fe8ff;
+  background: linear-gradient(145deg, rgba(91,191,235,.22), rgba(255,255,255,.06));
+  border: 1px solid rgba(159,232,255,.28);
+  border-radius: 26px;
+  box-shadow: 0 18px 45px rgba(0,0,0,.25), inset 0 1px rgba(255,255,255,.14);
   filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
   animation: iceFloat 3s ease-in-out infinite;
 }
+.ice-slide-emoji .ix { width: 42px; height: 42px; }
+.ice-slide-emoji svg { width: 100%; height: 100%; }
 @keyframes iceFloat {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-8px); }
@@ -223,24 +229,24 @@
   // =====================================================================
   const SLIDES = [
     {
-      emoji: '❄️',
+      icon: 'sparkles',
       title: 'Добро пожаловать в ICE LOGIX!',
       subtitle: 'Доставляем мечту из любой точки мира. Poizon, Taobao, Zalando, ASOS и 50+ площадок',
       bg: 'linear-gradient(165deg, #0A1628 0%, #0F2847 50%, #1A3A5C 100%)',
     },
     {
-      emoji: '🛍️',
+      icon: 'bag',
       title: 'Как это работает?',
       subtitle: '',
       bg: 'linear-gradient(165deg, #0A1628 0%, #0F2847 100%)',
       list: [
-        '🔗 Находишь товар и скидываешь нам ссылку',
-        '💰 Мы считаем полную стоимость — без сюрпризов',
-        '📦 Покупаем, проверяем, доставляем до двери',
+        'Находишь товар и скидываешь нам ссылку',
+        'Мы считаем полную стоимость — без сюрпризов',
+        'Покупаем, проверяем, доставляем до двери',
       ],
     },
     {
-      emoji: '🌍',
+      icon: 'globe',
       title: 'Доставляем из 4+ стран',
       subtitle: '',
       bg: 'linear-gradient(165deg, #0A1628 0%, #0F2847 100%)',
@@ -252,42 +258,42 @@
       card: '🕒 США, Япония, Корея, ОАЭ — <b>скоро добавим</b>',
     },
     {
-      emoji: '💎',
+      icon: 'diamond',
       title: 'Честные цены',
       subtitle: 'Всё включено в итоговую стоимость',
       bg: 'linear-gradient(165deg, #0A1628 0%, #0F2847 100%)',
-      pre: `📦 Товар:              281 BYN
-✈️ Доставка:            42 BYN
-🤝 Комиссия:           58 BYN
+      pre: `Товар:              281 BYN
+Доставка:            42 BYN
+Комиссия:           58 BYN
 ═══════════════════════════
-💵 ИТОГО:             381 BYN`,
+ИТОГО:             381 BYN`,
     },
     {
-      emoji: '❄️',
+      icon: 'sparkles',
       title: 'Что такое ICE?',
       subtitle: 'Наша внутренняя валюта = ваша выгода',
       bg: 'linear-gradient(165deg, #0A1628 0%, #1A7BB5 100%)',
       list: [
-        '⚖️ <b>1 BYN = 1 ICE</b> — простой курс',
-        '🎁 Кэшбэк с каждого заказа',
-        '💰 Тратишь на следующие покупки (до 50%)',
-        '👥 Бонусы за приглашённых друзей',
+        '<b>1 BYN = 1 ICE</b> — простой курс',
+        'Кэшбэк с каждого заказа',
+        'Тратишь на следующие покупки (до 50%)',
+        'Бонусы за приглашённых друзей',
       ],
     },
     {
-      emoji: '📈',
+      icon: 'trendingUp',
       title: 'Программа лояльности',
       subtitle: 'Больше заказов = больше выгоды',
       bg: 'linear-gradient(165deg, #0A1628 0%, #0F2847 100%)',
       table: [
         ['Уровень', 'Заказов', 'Бонус'],
-        ['🆕 Новичок', '1-3', 'Стандарт'],
-        ['🛍️ Шопоголик', '4-10', '−10% комиссия'],
-        ['💎 VIP', '11+', '−20% + приоритет'],
+        ['Новичок', '1-3', 'Стандарт'],
+        ['Шопоголик', '4-10', '−10% комиссия'],
+        ['VIP', '11+', '−20% + приоритет'],
       ],
     },
     {
-      emoji: '⏱️',
+      icon: 'clock',
       title: 'Сроки доставки',
       subtitle: '',
       bg: 'linear-gradient(165deg, #0A1628 0%, #0F2847 100%)',
@@ -296,21 +302,21 @@
         '🇵🇱 <b>Польша</b>: 5-10 дней',
         '🇷🇺 <b>Россия</b>: 3-7 дней',
       ],
-      card: '📍 Доставка до любого города Беларуси',
+      card: 'Доставка до любого города Беларуси',
     },
     {
-      emoji: '🚀',
+      icon: 'arrowUpRight',
       title: 'Готовы начать?',
       subtitle: 'Создайте первый заказ прямо сейчас',
       bg: 'linear-gradient(165deg, #0A1628 0%, #1A7BB5 60%, #5BBFEB 100%)',
       list: [
-        '⚡ Регистрация за 30 секунд',
-        '🎁 Приветственный бонус: <b>15 ICE</b>',
-        '🧮 Калькулятор работает без регистрации',
+        'Регистрация за 30 секунд',
+        'Приветственный бонус: <b>15 ICE</b>',
+        'Калькулятор работает без регистрации',
       ],
       cta: [
-        { type: 'primary', text: '✨ Создать заказ', action: 'newOrder' },
-        { type: 'secondary', text: '🧮 Посчитать стоимость', action: 'calculator' },
+        { type: 'primary', text: 'Создать заказ', icon: 'plus', action: 'newOrder' },
+        { type: 'secondary', text: 'Посчитать стоимость', icon: 'calculator', action: 'calculator' },
         { type: 'text', text: 'Закрыть', action: 'close' },
       ],
     },
@@ -343,7 +349,7 @@
             <div class="ice-progress-bar"><div class="ice-progress-fill" data-slide="${i}"></div></div>
           `).join('')}
         </div>
-        <button class="ice-close-btn" id="iceCloseBtn" aria-label="Закрыть">✕</button>
+        <button class="ice-close-btn" id="iceCloseBtn" aria-label="Закрыть">${typeof global.ix === 'function' ? global.ix('x', { size: '18px' }) : ''}</button>
         <div class="ice-tap-zone-left" id="iceZoneLeft"></div>
         <div class="ice-tap-zone-right" id="iceZoneRight"></div>
         ${SLIDES.map((s, i) => renderSlide(s, i)).join('')}
@@ -394,7 +400,8 @@
     const ctaHtml = s.cta
       ? `<div class="ice-slide-cta">${s.cta.map(c => {
           const cls = c.type === 'primary' ? 'ice-btn-primary' : c.type === 'secondary' ? 'ice-btn-secondary' : 'ice-btn-text';
-          return `<button class="${cls}" data-cta="${c.action}">${c.text}</button>`;
+          const icon = c.icon && typeof global.ix === 'function' ? global.ix(c.icon, { size: '17px' }) : '';
+          return `<button class="${cls}" data-cta="${c.action}">${icon}<span>${c.text}</span></button>`;
         }).join('')}</div>`
       : `<div class="ice-next-hint">Тап для следующего →</div>`;
 
@@ -402,7 +409,7 @@
 
     return `
       <div class="ice-slide" data-slide="${idx}" style="background: #000000;">
-        <div class="ice-slide-emoji">${s.emoji}</div>
+        <div class="ice-slide-emoji">${typeof global.ix === 'function' ? global.ix(s.icon, { size: '42px', cls: 'onboarding-icon' }) : ''}</div>
         <h2 class="ice-slide-title">${s.title}</h2>
         ${subtitleHtml}
         ${listHtml}
