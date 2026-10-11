@@ -859,6 +859,61 @@
       return `<span class="${cls}"${szAttr}${stl}><svg viewBox="${vb}" fill="${fill}" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg></span>`;
     }
 
+    // Legacy content still contains emoji in a number of dynamically-rendered
+    // modules. Normalize it at the DOM boundary so every screen uses one icon
+    // language without changing the behavior or copy of those modules.
+    const LEGACY_ICON_MAP = {
+      '❄️': 'sparkles', '🧊': 'sparkles', '🛍️': 'bag', '🌍': 'globe',
+      '💎': 'diamond', '📈': 'trendingUp', '⏱️': 'clock', '🚀': 'arrowUpRight',
+      '✨': 'sparkles', '🧮': 'calculator', '🔍': 'search', '📊': 'chart',
+      '⚠️': 'warn', '✅': 'check', '⚡': 'flash', '🎁': 'gift', '💼': 'briefcase',
+      '👥': 'users', '📢': 'megaphone', '🎓': 'academy', '🛒': 'cart', '✈️': 'airplane',
+      '🛡️': 'shieldCheck', '⚖️': 'scale', '🛠️': 'settings', '🔔': 'bell', '❤️': 'heart',
+      '🔗': 'link', '💰': 'wallet', '📦': 'package'
+    };
+
+    function normalizeLegacyIcons(root = document.body) {
+      if (!root || !window.ICON_PATHS) return;
+      const nodes = [];
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+        acceptNode(node) {
+          const parent = node.parentElement;
+          if (!node.nodeValue || !node.nodeValue.trim() || !parent ||
+              parent.closest('script, style, svg, .emoji-icon') || parent.isContentEditable) {
+            return NodeFilter.FILTER_REJECT;
+          }
+          return /[❄️🧊🛍️🌍💎📈⏱️🚀✨🧮🔍📊⚠️✅⚡🎁💼👥📢🎓🛒✈️🛡️⚖️🛠️🔔❤️🔗💰📦]/u.test(node.nodeValue)
+            ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+        }
+      });
+      let node;
+      while ((node = walker.nextNode())) nodes.push(node);
+      nodes.forEach(textNode => {
+        const fragment = document.createDocumentFragment();
+        let cursor = 0;
+        const pattern = /❄️|🧊|🛍️|🌍|💎|📈|⏱️|🚀|✨|🧮|🔍|📊|⚠️|✅|⚡|🎁|💼|👥|📢|🎓|🛒|✈️|🛡️|⚖️|🛠️|🔔|❤️|🔗|💰|📦/gu;
+        let match;
+        while ((match = pattern.exec(textNode.nodeValue)) !== null) {
+          if (match.index > cursor) fragment.append(document.createTextNode(textNode.nodeValue.slice(cursor, match.index)));
+          const iconName = LEGACY_ICON_MAP[match[0]];
+          const iconTemplate = document.createElement('template');
+          iconTemplate.innerHTML = ix(iconName, { cls: 'emoji-icon', size: '1.05em' });
+          fragment.append(iconTemplate.content.cloneNode(true));
+          cursor = match.index + match[0].length;
+        }
+        if (cursor < textNode.nodeValue.length) fragment.append(document.createTextNode(textNode.nodeValue.slice(cursor)));
+        textNode.replaceWith(fragment);
+      });
+    }
+
+    const legacyIconObserver = new MutationObserver(mutations => {
+      mutations.forEach(({ addedNodes }) => addedNodes.forEach(node => {
+        if (node.nodeType === 1) normalizeLegacyIcons(node);
+      }));
+    });
+    legacyIconObserver.observe(document.body, { childList: true, subtree: true });
+    normalizeLegacyIcons();
+
     /**
      * Render the brand snowflake as a styled SVG (replaces the ❄️ emoji
      * for non-balance places that still want a stylized snowflake).
