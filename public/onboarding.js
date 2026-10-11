@@ -401,7 +401,7 @@
     const subtitleHtml = s.subtitle ? `<p class="ice-slide-subtitle">${s.subtitle}</p>` : '';
 
     return `
-      <div class="ice-slide" data-slide="${idx}" style="background: ${s.bg};">
+      <div class="ice-slide" data-slide="${idx}" style="background: #000000;">
         <div class="ice-slide-emoji">${s.emoji}</div>
         <h2 class="ice-slide-title">${s.title}</h2>
         ${subtitleHtml}

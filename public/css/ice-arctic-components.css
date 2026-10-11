@@ -2,7 +2,7 @@
    A restrained dark commerce system: ink surfaces, steel-blue panels, ice-blue actions. */
 
 :root {
-  --ui-bg: #05070b;
+  --ui-bg: #000000;
   --ui-surface: #0d121a;
   --ui-surface-raised: #131b26;
   --ui-surface-soft: #182333;
@@ -192,6 +192,26 @@ html.light-theme .app-footer { background: rgba(255,255,255,.88) !important; }
   .orders-title { font-size: 22px; }
   .orders-subtitle { max-width: 220px; line-height: 1.4; }
   .order-card { padding: 14px !important; }
+}
+
+/* Solid black app background: no gradients or particle overlay. */
+html,
+body,
+#app {
+  background: #000000 !important;
+  background-image: none !important;
+}
+
+body::before {
+  display: none !important;
+  background-image: none !important;
+}
+
+html.light-theme,
+html.light-theme body,
+html.light-theme #app {
+  background: #000000 !important;
+  background-image: none !important;
 }
 
 /*! end ICE LOGIX premium redesign */
