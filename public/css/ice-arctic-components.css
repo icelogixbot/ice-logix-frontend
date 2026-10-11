@@ -25,9 +25,7 @@ body,
 
 body {
   color: var(--ui-text) !important;
-  background-image:
-    radial-gradient(ellipse 90% 45% at 50% -10%, rgba(42, 121, 178, .16), transparent 68%),
-    radial-gradient(ellipse 55% 35% at 100% 35%, rgba(21, 74, 113, .10), transparent 70%) !important;
+  background-image: none !important;
 }
 
 body::before { opacity: .12 !important; }
@@ -127,7 +125,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--ui-blue) !import
   box-shadow: var(--ui-shadow) !important;
 }
 
-.ice-splash-screen { background: var(--ui-bg) !important; background-image: radial-gradient(circle at 50% 42%, rgba(57,153,214,.16), transparent 62%) !important; }
+.ice-splash-screen { background: #000000 !important; background-image: none !important; }
 
 @media (max-width: 420px) {
   .app-header { top: 8px !important; left: 8px !important; right: 8px !important; }

@@ -22,7 +22,7 @@
 .ice-story-frame {
   position: relative;
   width: 100%; max-width: 420px; height: 100%; max-height: 100vh;
-  background: linear-gradient(165deg, #0A1628 0%, #0F2847 50%, #1A3A5C 100%);
+  background: #000000;
   overflow: hidden;
   display: flex; flex-direction: column;
 }
@@ -226,7 +226,7 @@
       emoji: '❄️',
       title: 'Добро пожаловать в ICE LOGIX!',
       subtitle: 'Доставляем мечту из любой точки мира. Poizon, Taobao, Zalando, ASOS и 50+ площадок',
-      bg: 'linear-gradient(165deg, #0A1628 0%, #0F2847 50%, #1A3A5C 100%)',
+      bg: '#000000',
     },
     {
       emoji: '🛍️',
@@ -317,7 +317,7 @@
   ];
 
   // =====================================================================
-  // 3. СОСТОЯНИЕ + РЕНДЕР
+  // 3. СОСТОЯНИЕ + РЕНД��Р
   // =====================================================================
   const SLIDE_DURATION_MS = 5000;
   let currentIndex = 0;
