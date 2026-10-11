@@ -869,7 +869,13 @@
       '⚠️': 'warn', '✅': 'check', '⚡': 'flash', '🎁': 'gift', '💼': 'briefcase',
       '👥': 'users', '📢': 'megaphone', '🎓': 'academy', '🛒': 'cart', '✈️': 'airplane',
       '🛡️': 'shieldCheck', '⚖️': 'scale', '🛠️': 'settings', '🔔': 'bell', '❤️': 'heart',
-      '🔗': 'link', '💰': 'wallet', '📦': 'package'
+      '🔗': 'link', '💰': 'wallet', '📦': 'package',
+      '🤝': 'users', '🆕': 'newBadge', '🏷️': 'tag', '💳': 'card', '🧾': 'note',
+      '🏆': 'trophy', '🔥': 'fire', '👤': 'user', '🏠': 'home', '📍': 'mapPin',
+      '⏳': 'hourglass', '🪙': 'coins', '🧷': 'pin', '🧴': 'cosmetic', '👟': 'sneaker',
+      '🧥': 'jacket', '👖': 'pants', '🩱': 'swim', '🚫': 'x', '❌': 'error',
+      '❗': 'warn', 'ℹ️': 'info', '🔒': 'lock', '🔓': 'unlock', '📋': 'clipboard',
+      '🗃️': 'database', '🧰': 'settings', '📣': 'megaphone', '💬': 'chat', '📞': 'phone'
     };
 
     function normalizeLegacyIcons(root = document.body) {
@@ -882,8 +888,9 @@
               parent.closest('script, style, svg, .emoji-icon') || parent.isContentEditable) {
             return NodeFilter.FILTER_REJECT;
           }
-          return /[❄️🧊🛍️🌍💎📈⏱️🚀✨🧮🔍📊⚠️✅⚡🎁💼👥📢🎓🛒✈️🛡️⚖️🛠️🔔❤️🔗💰📦]/u.test(node.nodeValue)
-            ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+          const legacyPattern = window._legacyIconPattern || (window._legacyIconPattern = new RegExp([...Object.keys(LEGACY_ICON_MAP).sort((a, b) => b.length - a.length).map(value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), '[\\p{Extended_Pictographic}](?:\\uFE0F|\\u200D[\\p{Extended_Pictographic}])*'].join('|'), 'gu'));
+          return legacyPattern.test(node.nodeValue)
+            ? (legacyPattern.lastIndex = 0, NodeFilter.FILTER_ACCEPT) : NodeFilter.FILTER_REJECT;
         }
       });
       let node;
@@ -891,7 +898,7 @@
       nodes.forEach(textNode => {
         const fragment = document.createDocumentFragment();
         let cursor = 0;
-        const pattern = /❄️|🧊|🛍️|🌍|💎|📈|⏱️|🚀|✨|🧮|🔍|📊|⚠️|✅|⚡|🎁|💼|👥|📢|🎓|🛒|✈️|🛡️|⚖️|🛠️|🔔|❤️|🔗|💰|📦/gu;
+        const pattern = new RegExp([...Object.keys(LEGACY_ICON_MAP).sort((a, b) => b.length - a.length).map(value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), '[\\p{Extended_Pictographic}](?:\\uFE0F|\\u200D[\\p{Extended_Pictographic}])*'].join('|'), 'gu');
         let match;
         while ((match = pattern.exec(textNode.nodeValue)) !== null) {
           if (match.index > cursor) fragment.append(document.createTextNode(textNode.nodeValue.slice(cursor, match.index)));
@@ -1402,7 +1409,7 @@
         errors.push('Вес слишком большой (максимум 30 кг — мы не возим грузовые)');
       }
 
-      // 4. Категория
+      // 4. ��атегория
       if (!order.category) errors.push('Выберите наименование товара');
 
       // 5. Страна
@@ -2004,7 +2011,7 @@ let adminOrdersTotalPages = 1;
     const ALL_COUNTRIES = [
       { code: 'CN', name: 'Китай', platforms: 'Poizon, Taobao, 1688', flag: '🇨🇳', desc: 'Огромный выбор, лучшие цены на оригиналы', active: true },
       { code: 'RU', name: 'Россия', platforms: 'WB, Ozon, Lamoda', flag: '🇷🇺', desc: 'Сверхбыстрая доставка, без пошлин ЕАЭС', active: false },
-      { code: 'EU', name: 'Евросоюз', platforms: 'Zalando, ASOS, Farfetch', flag: '🇪🇺', desc: '100% оригинальные европейские коллекции', active: false },
+      { code: 'EU', name: 'Евросоюз', platforms: 'Zalando, ASOS, Farfetch', flag: '🇪���', desc: '100% оригинальные европейские коллекции', active: false },
       { code: 'US', name: 'США', platforms: 'StockX, eBay, Amazon', flag: '🇺🇸', desc: 'Доставка брендовых вещей из-за океана', active: false },
       { code: 'TR', name: 'Турция', platforms: 'Trendyol, Zara, H&M', flag: '🇹🇷', desc: 'Выгодный шопинг из турецких магазинов', active: false },
       { code: 'JP', name: 'Япония', platforms: 'Mercari, Yahoo, Rakuten', flag: '🇯🇵', desc: 'Уникальные товары и аукционы Японии', active: false },
@@ -3022,7 +3029,7 @@ let adminOrdersTotalPages = 1;
       fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
 
       function handleFile(file) {
-        if (file.size > 10 * 1024 * 1024) { tgUtil.alert('Файл слишком большой. Максимум 10 МБ.'); return; }
+        if (file.size > 10 * 1024 * 1024) { tgUtil.alert('Файл слишк��м большой. Максимум 10 МБ.'); return; }
         selectedFile = file;
         const reader = new FileReader();
         reader.onload = ev => {
