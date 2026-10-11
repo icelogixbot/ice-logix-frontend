@@ -6,7 +6,10 @@ import { join } from 'path';
 let cachedHtml: string | null = null;
 
 function getHtml(): string {
-  return readFileSync(join(process.cwd(), 'public', 'app.html'), 'utf-8');
+  if (!cachedHtml) {
+    cachedHtml = readFileSync(join(process.cwd(), 'public', 'app.html'), 'utf-8');
+  }
+  return cachedHtml;
 }
 
 export async function GET() {

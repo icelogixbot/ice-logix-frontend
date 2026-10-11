@@ -139,6 +139,17 @@ window.ICON_PATHS = {
       box:          '<path d="M3 7l9 5 9-5"/><path d="M3 7v10l9 5 9-5V7l-9-5z"/><line x1="12" y1="12" x2="12" y2="22"/>',
       newBadge:     '<rect x="2" y="6" width="20" height="12" rx="6"/><path d="M7 9v6M7 9l4 6V9M14 9v6h3M14 12h3M19 9v6"/>',
       bot:          '<rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><circle cx="8" cy="16" r="1" fill="currentColor"/><circle cx="16" cy="16" r="1" fill="currentColor"/>',
+            // Aliases for emoji replacements
+      success:      '<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M9 12l2 2 4-4\"/><path d=\"M16.5 12a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0\"/>',
+      party:        '<path d=\"m5.8 11.3 2.9 7.1L21 8M9 16l-3 3-3-3M9 8l3-3 3 3\"/><circle cx=\"12\" cy=\"12\" r=\"1\"/><circle cx=\"6\" cy=\"6\" r=\"1\"/><circle cx=\"18\" cy=\"6\" r=\"1\"/>',
+      close:        '<path d=\"M18 6 6 18M6 6l12 12\"/>',
+      zap:          '<polygon points=\"13 2 3 14 12 14 11 22 21 10 12 10 13 2\"/>',
+      fire:         '<path d=\"M8 2C4.69 2 2 5.07 2 9a6 6 0 0 0 12 0c0-4.93-2.69-8-6-8z\"/><path d=\"M12 2c-1.33 0-2 .67-2 2s.67 2 2 2 2-1 2-2-1-2-2-2z\"/><path d=\"M12 11c-1.33 0-2-.67-2-2s.67-2 2-2 2 1 2 2-1 2-2 2z\"/>',
+      shield:       '<path d=\"M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z\"/>',
+      warning:      '<path d=\"M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z\"/><path d=\"M12 9v4\"/><path d=\"M12 17h.01\"/>',
+      snowflake:    '<line x1=\"12\" y1=\"2\" x2=\"12\" y2=\"22\"/><line x1=\"2\" y1=\"12\" x2=\"22\" y2=\"12\"/><line x1=\"4.93\" y1=\"4.93\" x2=\"19.07\" y2=\"19.07\"/><line x1=\"19.07\" y1=\"4.93\" x2=\"4.93\" y2=\"19.07\"/><line x1=\"2\" y1=\"12\"/><polyline points=\"16.5 7.5 19 5 22 12 19 18 16.5 17\"/>',
+      crystalBall:  '<path d=\"M12 2v4M8 4l2 6-2 4M16 4l-2 6 2 4M12 22c-3.3 0-6-2.7-6-6h12c0 3.3-.7 6-6 6zm-4-6c0 2.2 1.8 4 4 4s4-1.8 4-4H8z\"/>',
+      largeDot:     '<circle cx=\"12\" cy=\"12\" r=\"6\" fill=\"currentColor\"/>',
       // Marketplace dots — accent colors used by mpDot()
       // (no path — handled by mpDot helper)
     };

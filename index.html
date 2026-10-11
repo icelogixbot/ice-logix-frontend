@@ -63,7 +63,7 @@
       var b = document.getElementById('netStatusBanner');
       if (b) {
         b.style.background = 'rgba(239, 68, 68, 0.95)';
-        b.innerHTML = '⚡ Нет связи с сетью. Переподключение...';
+        b.innerHTML = '<span class="inline-flex items-center gap-1.5"><svg class="ix" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Нет связи с сетью. Переподключение...</span>';
         b.style.transform = 'translateX(-50%) translateY(0)';
         b.style.opacity = '1';
       }
@@ -72,7 +72,7 @@
       var b = document.getElementById('netStatusBanner');
       if (b) {
         b.style.background = 'rgba(16, 185, 129, 0.95)';
-        b.innerHTML = '✅ Соединение восстановлено';
+        b.innerHTML = '<span class="inline-flex items-center gap-1.5"><svg class="ix" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>Соединение восстановлено</span>';
         setTimeout(function() {
           b.style.transform = 'translateX(-50%) translateY(-60px)';
           b.style.opacity = '0';
