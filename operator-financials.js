@@ -161,31 +161,60 @@
               await window.supabaseClient.from('balance_entries').insert({
                 user_id: ordData.user_id,
                 order_id: orderId,
-                operation_type: 'PRICE_DROP_REFUND',
+                type: 'ADJUSTMENT',
                 amount: refundAmt,
-                note: `Снижение цены товара по заказу #${orderId.slice(0, 8)}`
+                currency: 'BYN',
+                direction: 'CREDIT',
+                reason: 'PRICE_DROP',
+                created_at: new Date().toISOString()
               }).catch(() => {});
+
+              await window.supabaseClient.from('adjustments').insert({
+                order_id: orderId,
+                type: 'PRICE_DROP',
+                amount: refundAmt,
+                currency: 'BYN',
+                direction: 'CREDIT',
+                reason: `Снижение цены товара на Pinduoduo на ${Math.abs(diffPercent).toFixed(1)}%`,
+                source: 'OPERATOR_MANUAL',
+                created_at: new Date().toISOString()
+              }).catch(() => {});
+
               await window.supabaseClient.rpc('increment_user_balance', { u_id: ordData.user_id, delta: refundAmt }).catch(() => {});
             }
+          } else if (diffPercent > 0.05 && diffPercent <= 3.0) {
+            // Раздел 10.1 ТЗ: небольшое повышение цены покрывается ICE LOGIX и добавляется во 2-й чек
+            await window.supabaseClient.from('adjustments').insert({
+              order_id: orderId,
+              type: 'PRICE_INCREASE_SMALL',
+              amount: diffBYN,
+              currency: 'BYN',
+              direction: 'DEBIT',
+              reason: `Незначительное подорожание товара (+${diffPercent.toFixed(1)}% ≤ 3%)`,
+              source: 'OPERATOR_MANUAL',
+              created_at: new Date().toISOString()
+            }).catch(() => {});
           }
 
           await window.supabaseClient.from('orders').update({
             status: newStatus,
-            tracking_number_cn: pddId
+            tracking_number_cn: pddId,
+            updated_at: new Date().toISOString()
           }).eq('id', orderId);
 
           await window.supabaseClient.from('order_events').insert({
             order_id: orderId,
             actor_type: 'OPERATOR',
             event_type: 'PURCHASE_RECORDED',
-            details: {
+            new_value: {
               pdd_id: pddId,
               price_cny: pCNY,
               rate: rate,
               diff_percent: diffPercent,
               diff_byn: diffBYN,
               new_status: newStatus
-            }
+            },
+            reason: `Выкуп товара на Pinduoduo оператором (статус ${newStatus})`
           }).catch(() => {});
         }
 
@@ -356,30 +385,51 @@
               await window.supabaseClient.from('balance_entries').insert({
                 user_id: ordData.user_id,
                 order_id: orderId,
-                operation_type: 'DELIVERY_SURPLUS',
+                type: 'ADJUSTMENT',
                 amount: surplus,
-                note: `Излишек резерва доставки заказа #${orderId.slice(0, 8)}`
+                currency: 'BYN',
+                direction: 'CREDIT',
+                reason: 'DELIVERY_SURPLUS',
+                created_at: new Date().toISOString()
               }).catch(() => {});
               await window.supabaseClient.rpc('increment_user_balance', { u_id: ordData.user_id, delta: surplus }).catch(() => {});
             }
           }
 
+          const secondStatus = secondPaymentTotal > 0.05 ? 'AWAITING_SECOND_PAYMENT' : 'READY_FOR_SHIPMENT';
+
           await window.supabaseClient.from('orders').update({
             weight_actual: actWeight,
-            status: secondPaymentTotal > 0.05 ? 'awaiting_second_payment' : 'in_belarus'
+            second_payment_amount: secondPaymentTotal,
+            second_payment_snapshot: {
+              actual_weight: actWeight,
+              actual_shipping: actShip,
+              reserve_paid: reserve,
+              shipping_remainder: shippingRemainder,
+              insurance: insurance,
+              minsk_nesvizh: nesvizh,
+              extra_services: extra,
+              surplus_to_balance: surplus,
+              total_second_payment: secondPaymentTotal,
+              calculation_version: 'v1.0'
+            },
+            status: secondStatus,
+            updated_at: new Date().toISOString()
           }).eq('id', orderId);
 
           await window.supabaseClient.from('order_events').insert({
             order_id: orderId,
             actor_type: 'OPERATOR',
             event_type: 'WAREHOUSE_ARRIVED',
-            details: {
+            new_value: {
               weight_kg: actWeight,
               actual_shipping_byn: actShip,
               reserve_paid: reserve,
               surplus_credited: surplus,
-              second_payment_due: secondPaymentTotal
-            }
+              second_payment_due: secondPaymentTotal,
+              status: secondStatus
+            },
+            reason: 'Взвешивание и фиксация складских тарифов «Голубой белки»'
           }).catch(() => {});
         }
 

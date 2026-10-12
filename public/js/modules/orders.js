@@ -1214,21 +1214,41 @@
               const balanceUsed = window.tempOrder.balance_used || 0;
               const idempotencyKey = 'pay1_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
 
+              const selectedRadio = document.querySelector('input[name="selectedCheckoutCard"]:checked');
+              const selectedCardId = selectedRadio ? selectedRadio.value : (window.userCards?.[0]?.id || null);
+              const isDbUuid = (id) => id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
               createBtn.disabled = true;
               createBtn.innerHTML = '<span class="ix animate-spin">⏳</span> Обработка оплаты 1-го этапа...';
 
-              const { data, error } = await supabaseClient.from('orders').insert({
+              const orderInsertPayload = {
                 user_id: userId,
                 source_url: consolidatedOrder.url,
                 items: window.tempOrder.items,
                 cart_items: window.tempOrder.items,
                 weight_estimated: window.tempOrder.weight || 1,
                 price_original: window.tempOrder.price || 0,
+                price_cny: consolidatedOrder.currency === 'CNY' ? (consolidatedOrder.price || 0) : (window.tempOrder.price || 0),
                 price_byn: bk.product_cost_byn ?? (window.tempOrder.price * 0.45),
+                currency: 'BYN',
+                calculated_exchange_rate: bk.rates?.CNY_to_BYN || 0.45,
+                estimated_delivery_amount: bk.delivery_cost_byn ?? (window.tempOrder.weight * 12),
+                delivery_reserve_rate: 0.70,
+                delivery_reserve_amount: bk.delivery_reserve_byn || Math.round((bk.delivery_cost_byn || 0) * 0.70 * 100) / 100,
+                first_payment_amount: firstPaymentToPay,
+                second_payment_amount: bk.second_payment_est_byn || 0,
+                total_paid: firstPaymentToPay + balanceUsed,
+                total_refunded: 0,
+                balance_used: balanceUsed,
+                amount_due: 0,
+                selected_receiving_method: (window.tempOrder?.pvs?.method && window.tempOrder.pvs.method !== 'none') ? 'FORWARD_SHIPPING' : 'SELF_PICKUP',
+                first_payment_snapshot: bk,
+                calculation_version: 'v1.0',
                 delivery_cost_estimated: bk.delivery_cost_byn ?? (window.tempOrder.weight * 12),
                 commission_byn: bk.commission_byn || 0,
                 insurance_byn: bk.insurance_byn || 0,
-                legit_check_byn: 0,
+                insurance_enabled: Boolean(window.tempOrder.insurance),
+                legit_check_requested: Boolean(window.tempOrder.legitCheck),
                 customs_duty_byn: bk.customs_duty_byn || 0,
                 currency_buffer_byn: bk.currency_buffer_byn || 0,
                 extra_services: {
@@ -1238,34 +1258,76 @@
                 },
                 total_byn: window.tempOrder.total_byn,
                 requires_video_check: window.tempOrder.requiresVideoCheck || false,
-                delivery_days_min: null,
-                delivery_days_max: null,
+                delivery_days_min: bk.delivery_days?.[0] || null,
+                delivery_days_max: bk.delivery_days?.[1] || null,
                 source_country: window.orderCountry,
                 product_currency: consolidatedOrder.currency,
                 prepayment_amount: firstPaymentToPay,
                 first_payment_paid: true,
-                status: 'paid',
+                status: 'PAID_FIRST',
                 auto_cancel_reason: isFamilyMember ? 'family_approval_pending' : null,
                 discount_applied: window.tempOrder.discountAmount || 0,
                 promo_code: window.tempOrder.appliedPromo?.code || null,
                 tracking_number_by: pvsAddress || null
-              }).select();
+              };
+
+              const { data, error } = await supabaseClient.from('orders').insert(orderInsertPayload).select();
 
               if (error) throw error;
 
               const createdOrderId = data[0].id;
 
-              // Если был списан баланс, фиксируем в ledger balance_entries
+              // Сохранение отдельных позиций заказа (Раздел 56 ТЗ: order_items)
+              if (Array.isArray(window.tempOrder.items) && window.tempOrder.items.length > 0) {
+                const itemRows = window.tempOrder.items.map(it => ({
+                  order_id: createdOrderId,
+                  product_url: it.url || consolidatedOrder.url || '',
+                  platform: (window.orderCountry === 'CN' ? 'PINDUODUO' : (it.marketplace_name || 'PINDUODUO')).toUpperCase(),
+                  pinduoduo_product_id: it.product_id || '',
+                  title: it.title || it.name || 'Товар',
+                  variant: it.size || it.variant || '',
+                  quantity: it.quantity || 1,
+                  source_price_cny: it.price || 0,
+                  calculated_price_byn: Math.round((it.price || 0) * (bk.rates?.CNY_to_BYN || 0.45) * 100) / 100,
+                  item_status: 'PENDING'
+                }));
+                await supabaseClient.from('order_items').insert(itemRows).catch(() => {});
+              }
+
+              // AI-оценка доставки (Раздел 46 ТЗ: shipping_estimates)
+              await supabaseClient.from('shipping_estimates').insert({
+                order_id: createdOrderId,
+                estimated_weight: consolidatedOrder.weight || 1.0,
+                estimated_delivery_amount: bk.delivery_cost_byn || 0,
+                range_min: Math.round((bk.delivery_cost_byn || 0) * 0.9 * 100) / 100,
+                range_max: Math.round((bk.delivery_cost_byn || 0) * 1.1 * 100) / 100,
+                calculation_version: 'v1.0',
+                model_version_ai: 'shipping-estimator-v1'
+              }).catch(() => {});
+
+              // Фирменная упаковка (Раздел 8, 47 ТЗ: packaging_estimates)
+              await supabaseClient.from('packaging_estimates').insert({
+                order_id: createdOrderId,
+                items_materials: ['box', 'tape', 'protective_wrap'],
+                estimated_amount: bk.packaging_cost_byn || 18.00,
+                tolerance: 2.00,
+                ai_model_version: 'packaging-v1'
+              }).catch(() => {});
+
+              // Если был списан баланс, фиксируем в бухгалтерском ledger (Раздел 17.1 ТЗ: balance_entries)
               if (balanceUsed > 0) {
                 const curBal = Number(typeof balance !== 'undefined' ? (balance || 0) : 0);
                 const nextBal = Math.max(0, curBal - balanceUsed);
                 await supabaseClient.from('balance_entries').insert({
                   user_id: userId,
                   order_id: createdOrderId,
-                  operation_type: 'PAYMENT_DEBIT',
-                  amount: -balanceUsed,
-                  balance_after: nextBal,
-                  note: `Оплата 1-го этапа заказа #${createdOrderId.slice(0, 8)}`
+                  type: 'ADJUSTMENT',
+                  amount: balanceUsed,
+                  currency: 'BYN',
+                  direction: 'DEBIT',
+                  reason: 'USED_FOR_ORDER',
+                  source_transaction_id: idempotencyKey,
+                  created_at: new Date().toISOString()
                 }).catch(() => {});
 
                 await supabaseClient.from('users').update({ ices_balance: nextBal }).eq('user_id', userId).catch(() => {});
@@ -1273,17 +1335,37 @@
                 if (typeof updateUserCard === 'function') updateUserCard();
               }
 
-              // Запись платежа в payments (Mock bePaid)
+              // Запись платежа 1-го этапа (Разделы 12, 20, 22, 32 ТЗ: payments)
               await supabaseClient.from('payments').insert({
                 order_id: createdOrderId,
                 user_id: userId,
+                type: 'FIRST_PAYMENT',
                 amount: firstPaymentToPay,
                 currency: 'BYN',
-                payment_method: balanceUsed >= (window.tempOrder.first_payment_subtotal_byn || firstPaymentToPay) ? 'balance' : 'card',
-                payment_provider: 'bepaid',
-                stage: 'FIRST_PAYMENT',
-                status: 'succeeded',
-                idempotency_key: idempotencyKey
+                status: 'PAID',
+                provider: 'bepaid_mock',
+                payment_intent_id: idempotencyKey,
+                payment_method_id: isDbUuid(selectedCardId) ? selectedCardId : null,
+                metadata: {
+                  balance_used: balanceUsed,
+                  selected_receiving_method: orderInsertPayload.selected_receiving_method
+                },
+                paid_at: new Date().toISOString()
+              }).catch(() => {});
+
+              // Запись в полный аудит заказа (Раздел 21, 31 ТЗ: order_events)
+              await supabaseClient.from('order_events').insert({
+                order_id: createdOrderId,
+                event_type: 'ORDER_CREATED',
+                actor_type: 'CLIENT',
+                actor_id: userId,
+                new_value: {
+                  status: 'PAID_FIRST',
+                  first_payment_amount: firstPaymentToPay,
+                  balance_used: balanceUsed,
+                  receiving_method: orderInsertPayload.selected_receiving_method
+                },
+                reason: 'Создание заказа и успешная оплата 1-го этапа'
               }).catch(() => {});
 
               // Consume free delivery token if checked
@@ -2327,21 +2409,21 @@ window.loadUserCards = async function() {
   if (!userId) return [];
   try {
     const { data, error } = await supabaseClient
-      .from('user_cards')
+      .from('payment_methods')
       .select('*')
       .eq('user_id', userId)
-      .eq('status', 'active')
+      .eq('status', 'ACTIVE')
       .order('is_default', { ascending: false })
       .order('created_at', { ascending: false });
     if (!error && Array.isArray(data) && data.length > 0) {
       window.userCards = data;
-      try { localStorage.setItem('ice_user_cards_' + userId, JSON.stringify(data)); } catch (_e) {}
+      try { localStorage.setItem('ice_payment_methods_' + userId, JSON.stringify(data)); } catch (_e) {}
       return data;
     }
   } catch (_e) {}
 
   try {
-    const cached = localStorage.getItem('ice_user_cards_' + userId);
+    const cached = localStorage.getItem('ice_payment_methods_' + userId);
     if (cached) {
       window.userCards = JSON.parse(cached);
       return window.userCards;
@@ -2367,22 +2449,27 @@ window.renderCheckoutCards = function() {
     return;
   }
 
-  container.innerHTML = cards.map((c, idx) => `
-    <label class="flex items-center justify-between p-3 rounded-xl bg-white/5 border ${c.is_default || idx === 0 ? 'border-cyan-500/50 bg-cyan-500/5' : 'border-white/10'} cursor-pointer hover:bg-white/10 transition">
-      <div class="flex items-center gap-3">
-        <input type="radio" name="selectedCheckoutCard" value="${c.id}" ${c.is_default || idx === 0 ? 'checked' : ''} class="w-4 h-4 accent-cyan-500">
-        <div>
-          <p class="text-xs font-bold text-white flex items-center gap-1.5">
-            <span>${getCardIcon(c.card_type)}</span>
-            <span>•••• ${c.card_last4}</span>
-            ${c.is_default ? '<span class="text-[9px] text-cyan-300 font-semibold bg-cyan-500/20 px-1.5 py-0.5 rounded">Основная</span>' : ''}
-          </p>
-          <p class="text-[10px] text-white/50">${String(c.exp_month).padStart(2, '0')}/${String(c.exp_year).slice(-2)} · ${escapeHtml(c.holder_name || 'CARD HOLDER')}</p>
+  container.innerHTML = cards.map((c, idx) => {
+    const brand = c.card_brand || c.card_type || 'Банковская карта';
+    const last4 = c.last4 || c.card_last4 || '••••';
+    const exp = c.expiry_metadata || (c.exp_month ? `${String(c.exp_month).padStart(2, '0')}/${String(c.exp_year).slice(-2)}` : '12/28');
+    return `
+      <label class="flex items-center justify-between p-3 rounded-xl bg-white/5 border ${c.is_default || idx === 0 ? 'border-cyan-500/50 bg-cyan-500/5' : 'border-white/10'} cursor-pointer hover:bg-white/10 transition">
+        <div class="flex items-center gap-3">
+          <input type="radio" name="selectedCheckoutCard" value="${c.id}" ${c.is_default || idx === 0 ? 'checked' : ''} class="w-4 h-4 accent-cyan-500">
+          <div>
+            <p class="text-xs font-bold text-white flex items-center gap-1.5">
+              <span>${getCardIcon(brand)}</span>
+              <span>•••• ${last4}</span>
+              ${c.is_default ? '<span class="text-[9px] text-cyan-300 font-semibold bg-cyan-500/20 px-1.5 py-0.5 rounded">Основная</span>' : ''}
+            </p>
+            <p class="text-[10px] text-white/50">${exp} · Токенизирована bePaid</p>
+          </div>
         </div>
-      </div>
-      <span class="text-[10px] text-green-400 flex items-center gap-1">🔒 bePaid</span>
-    </label>
-  `).join('');
+        <span class="text-[10px] text-green-400 flex items-center gap-1">🔒 bePaid</span>
+      </label>
+    `;
+  }).join('');
 };
 
 window.openAddCardModal = function(onSuccess) {
@@ -2497,22 +2584,22 @@ window.openAddCardModal = function(onSuccess) {
     submitBtn.innerHTML = '⏳ Проверка карты (1.00 BYN)...';
 
     const cardType = detectCardType(rawNum);
+    const expMeta = `${String(mm).padStart(2, '0')}/${String(yy).slice(-2)}`;
+
+    // Токенизация bePaid без сохранения полного номера и CVV (Раздел 2.2, 12 ТЗ)
     const newCard = {
       user_id: userId,
-      payment_provider: 'bepaid',
-      token: 'tok_bepaid_' + Math.random().toString(36).substring(2, 10),
-      card_first6: rawNum.substring(0, 6),
-      card_last4: rawNum.slice(-4),
-      card_type: cardType,
-      exp_month: parseInt(mm, 10),
-      exp_year: 2000 + parseInt(yy, 10),
-      holder_name: holder,
+      provider: 'bepaid_mock',
+      provider_token_id: 'tok_bepaid_' + Math.random().toString(36).substring(2, 10),
+      card_brand: cardType,
+      last4: rawNum.slice(-4),
+      expiry_metadata: expMeta,
       is_default: window.userCards.length === 0,
-      status: 'active'
+      status: 'ACTIVE'
     };
 
     try {
-      const { data, error } = await supabaseClient.from('user_cards').insert(newCard).select();
+      const { data, error } = await supabaseClient.from('payment_methods').insert(newCard).select();
       if (!error && data && data.length > 0) {
         newCard.id = data[0].id;
       } else {
@@ -2524,11 +2611,11 @@ window.openAddCardModal = function(onSuccess) {
 
     window.userCards.unshift(newCard);
     try {
-      localStorage.setItem('ice_user_cards_' + userId, JSON.stringify(window.userCards));
+      localStorage.setItem('ice_payment_methods_' + userId, JSON.stringify(window.userCards));
     } catch (_e) {}
 
     tgUtil.haptic('success');
-    tgUtil.alert(`✅ Карта ${cardType} •••• ${newCard.card_last4} успешно привязана!\\n1.00 BYN возвращен на ваш счет.`);
+    tgUtil.alert(`✅ Карта ${cardType} •••• ${newCard.last4} успешно привязана!\\n1.00 BYN возвращен на ваш счет.`);
     close();
 
     window.renderCheckoutCards();
@@ -2553,28 +2640,33 @@ window.openCardsManagementModal = async function() {
         </div>
       `;
     }
-    return window.userCards.map(c => `
-      <div class="p-3 rounded-xl bg-white/5 border ${c.is_default ? 'border-cyan-500/50 bg-cyan-500/5' : 'border-white/10'} flex items-center justify-between gap-2">
-        <div>
-          <div class="flex items-center gap-1.5">
-            <span class="text-sm font-bold text-white">${getCardIcon(c.card_type)}</span>
-            <span class="text-sm font-mono text-cyan-300 font-bold">•••• ${c.card_last4}</span>
-            ${c.is_default ? '<span class="text-[9px] text-cyan-300 font-semibold bg-cyan-500/20 px-1.5 py-0.5 rounded">Основная</span>' : ''}
+    return window.userCards.map(c => {
+      const brand = c.card_brand || c.card_type || 'Банковская карта';
+      const last4 = c.last4 || c.card_last4 || '••••';
+      const exp = c.expiry_metadata || (c.exp_month ? `${String(c.exp_month).padStart(2, '0')}/${String(c.exp_year).slice(-2)}` : '12/28');
+      return `
+        <div class="p-3 rounded-xl bg-white/5 border ${c.is_default ? 'border-cyan-500/50 bg-cyan-500/5' : 'border-white/10'} flex items-center justify-between gap-2">
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-sm font-bold text-white">${getCardIcon(brand)}</span>
+              <span class="text-sm font-mono text-cyan-300 font-bold">•••• ${last4}</span>
+              ${c.is_default ? '<span class="text-[9px] text-cyan-300 font-semibold bg-cyan-500/20 px-1.5 py-0.5 rounded">Основная</span>' : ''}
+            </div>
+            <p class="text-[10px] text-white/50 mt-0.5">${exp} · Токенизирована bePaid</p>
           </div>
-          <p class="text-[10px] text-white/50 mt-0.5">${String(c.exp_month).padStart(2, '0')}/${String(c.exp_year).slice(-2)} · ${escapeHtml(c.holder_name || 'CARD HOLDER')}</p>
-        </div>
-        <div class="flex items-center gap-1.5">
-          ${!c.is_default ? `
-            <button class="px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-[10px] text-cyan-400 font-semibold" onclick="window.setDefaultCard('${c.id}')">
-              Сделать осн.
+          <div class="flex items-center gap-1.5">
+            ${!c.is_default ? `
+              <button class="px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-[10px] text-cyan-400 font-semibold" onclick="window.setDefaultCard('${c.id}')">
+                Сделать осн.
+              </button>
+            ` : ''}
+            <button class="p-1.5 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs" onclick="window.deleteCard('${c.id}')" title="Удалить карту">
+              🗑️
             </button>
-          ` : ''}
-          <button class="p-1.5 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs" onclick="window.deleteCard('${c.id}')" title="Удалить карту">
-            🗑️
-          </button>
+          </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   };
 
   modal.innerHTML = `
@@ -2635,9 +2727,9 @@ window.openCardsManagementModal = async function() {
   window.setDefaultCard = async (cardId) => {
     window.userCards.forEach(c => { c.is_default = (c.id === cardId); });
     try {
-      await supabaseClient.from('user_cards').update({ is_default: false }).eq('user_id', userId);
-      await supabaseClient.from('user_cards').update({ is_default: true }).eq('id', cardId);
-      localStorage.setItem('ice_user_cards_' + userId, JSON.stringify(window.userCards));
+      await supabaseClient.from('payment_methods').update({ is_default: false }).eq('user_id', userId);
+      await supabaseClient.from('payment_methods').update({ is_default: true }).eq('id', cardId);
+      localStorage.setItem('ice_payment_methods_' + userId, JSON.stringify(window.userCards));
     } catch (_e) {}
     document.getElementById('modalCardsList').innerHTML = renderCardListHtml();
     tgUtil.haptic('light');
@@ -2650,8 +2742,8 @@ window.openCardsManagementModal = async function() {
       window.userCards[0].is_default = true;
     }
     try {
-      await supabaseClient.from('user_cards').delete().eq('id', cardId);
-      localStorage.setItem('ice_user_cards_' + userId, JSON.stringify(window.userCards));
+      await supabaseClient.from('payment_methods').update({ status: 'DELETED', deleted_at: new Date().toISOString() }).eq('id', cardId);
+      localStorage.setItem('ice_payment_methods_' + userId, JSON.stringify(window.userCards));
     } catch (_e) {}
     document.getElementById('modalCardsList').innerHTML = renderCardListHtml();
     tgUtil.haptic('medium');
@@ -2760,10 +2852,13 @@ window.openSecondPaymentModal = function(orderId, amount) {
         await supabaseClient.from('balance_entries').insert({
           user_id: userId,
           order_id: orderId,
-          operation_type: 'PAYMENT_DEBIT',
-          amount: -balUsed,
-          balance_after: curBal - balUsed,
-          note: `Оплата 2-го этапа заказа #${orderId.slice(0, 8)}`
+          type: 'ADJUSTMENT',
+          amount: balUsed,
+          currency: 'BYN',
+          direction: 'DEBIT',
+          reason: 'USED_FOR_ORDER',
+          source_transaction_id: idempotencyKey,
+          created_at: new Date().toISOString()
         }).catch(() => {});
 
         await supabaseClient.from('users').update({
@@ -2774,25 +2869,49 @@ window.openSecondPaymentModal = function(orderId, amount) {
         if (typeof updateUserCard === 'function') updateUserCard();
       }
 
+      const isDbUuid = (id) => id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      const defCard = (window.userCards && window.userCards.find(c => c.is_default)) || window.userCards?.[0];
+
       await supabaseClient.from('payments').insert({
         order_id: orderId,
         user_id: userId,
+        type: 'SECOND_PAYMENT',
         amount: totalDue,
         currency: 'BYN',
-        payment_method: cardDue > 0 ? 'card' : 'balance',
-        payment_provider: 'bepaid',
-        stage: 'SECOND_PAYMENT',
-        status: 'succeeded',
-        idempotency_key: idempotencyKey
+        status: 'PAID',
+        provider: 'bepaid_mock',
+        payment_intent_id: idempotencyKey,
+        payment_method_id: (cardDue > 0 && defCard && isDbUuid(defCard.id)) ? defCard.id : null,
+        metadata: {
+          balance_used: balUsed,
+          card_paid: cardDue
+        },
+        paid_at: new Date().toISOString()
       }).catch(() => {});
 
       await supabaseClient.from('orders').update({
         second_payment_paid: true,
-        status: 'delivered'
+        second_payment_amount: totalDue,
+        amount_due: 0,
+        status: 'SECOND_PAYMENT_PAID',
+        updated_at: new Date().toISOString()
       }).eq('id', orderId);
 
+      await supabaseClient.from('order_events').insert({
+        order_id: orderId,
+        event_type: 'SECOND_PAYMENT_PAID',
+        actor_type: 'CLIENT',
+        actor_id: userId,
+        new_value: {
+          status: 'SECOND_PAYMENT_PAID',
+          second_payment_amount: totalDue,
+          balance_used: balUsed
+        },
+        reason: 'Клиент подтвердил и оплатил 2-й этап'
+      }).catch(() => {});
+
       tgUtil.haptic('success');
-      tgUtil.alert(`✅ 2-й этап заказа #${orderId.slice(0,8)} успешно оплачен!\\nЗаказ готов к выдаче.`);
+      tgUtil.alert(`✅ 2-й этап заказа #${orderId.slice(0,8)} успешно оплачен!\\nЗаказ разрешён к отправке в Несвиж.`);
       close();
       if (typeof renderCurrentScreen === 'function') renderCurrentScreen();
     } catch (err) {
