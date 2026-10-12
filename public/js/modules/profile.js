@@ -55,7 +55,7 @@
 
       return `
   <!-- Profile Header Card -->
-  <div class="glass-card text-center mb-5">
+  <div class="glass-card text-center mb-5 profile-shell">
     <div class="relative mx-auto w-28 h-28 mb-4">
       <div class="w-28 h-28 rounded-full overflow-hidden" style="background: var(--glass-border-strong); padding: 2px;">
         <div class="w-full h-full rounded-full overflow-hidden flex items-center justify-center text-4xl font-bold" style="background: var(--bg-gradient-mid);" id="profileAvatar">
