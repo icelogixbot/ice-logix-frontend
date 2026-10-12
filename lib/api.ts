@@ -1,4 +1,4 @@
-// API Клиент для взаимодействия с Go Backend
+﻿// API РљР»РёРµРЅС‚ РґР»СЏ РІР·Р°РёРјРѕРґРµР№СЃС‚РІРёСЏ СЃ Go Backend
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -56,12 +56,12 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
     return data as T;
   } catch (err: any) {
-    throw new Error(err.message || 'Сетевая ошибка при обращении к API');
+    throw new Error(err.message || 'РЎРµС‚РµРІР°СЏ РѕС€РёР±РєР° РїСЂРё РѕР±СЂР°С‰РµРЅРёРё Рє API');
   }
 }
 
 // ---------------------------------------------------------------------------
-// Типы данных
+// РўРёРїС‹ РґР°РЅРЅС‹С…
 // ---------------------------------------------------------------------------
 
 export interface UserProfile {
@@ -237,81 +237,44 @@ export interface ReconciliationReport {
 }
 
 // ---------------------------------------------------------------------------
-// Методы API
+// РњРµС‚РѕРґС‹ API
 // ---------------------------------------------------------------------------
 
 export const api = {
-  // Авторизация Telegram initData
+  // РђРІС‚РѕСЂРёР·Р°С†РёСЏ Telegram initData
   authTelegram: (initData: string) =>
     request<{ ok: boolean; token: string; user: UserProfile }>('/api/v1/auth/telegram', {
       method: 'POST',
       body: JSON.stringify({ initData }),
     }),
 
-  // Профиль текущего пользователя
+  // РџСЂРѕС„РёР»СЊ С‚РµРєСѓС‰РµРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ
   getMe: () => request<{ ok: boolean; user: UserProfile }>('/api/v1/auth/me'),
 
-  // Расчет стоимости заказа через Go движок
+  // Р Р°СЃС‡РµС‚ СЃС‚РѕРёРјРѕСЃС‚Рё Р·Р°РєР°Р·Р° С‡РµСЂРµР· Go РґРІРёР¶РѕРє
   calculatePrice: (input: PricingInput) =>
     request<PricingResult>('/api/v1/calculate', {
       method: 'POST',
       body: JSON.stringify(input),
     }),
 
-  // Параллельный поиск товаров по китайским площадкам
-  searchProducts: (query: string, platforms: string[] = ['dewu', 'pdd', '1688', 'taobao']) =>
-    request<SearchResponse>('/api/v1/scraper/search', {
-      method: 'POST',
-      body: JSON.stringify({ query, platforms }),
-    }),
 
-  // Парсинг цены из ссылки
-  parseLink: (url: string) =>
-    request<{ ok: boolean; card: ProductCard }>('/api/v1/scraper/parse-link', {
-      method: 'POST',
-      body: JSON.stringify({ url }),
-    }),
-
-  // Поиск товаров по фотографии (AI Vision / Scraper)
-  searchByImage: async (payload: {
-    imageBase64: string;
-    descriptionHint?: string;
-    authenticity?: 'all' | 'original' | 'replica';
-    condition?: 'all' | 'new' | 'used';
-    maxPrice?: number;
-    platforms?: string[];
-  }) => {
-    return request<SearchResponse>('/api/v1/scraper/search-by-image', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }).catch(async (err) => {
-      console.warn('Scraper image endpoint fallback:', err);
-      return request<SearchResponse>('/api/v1/scraper/search', {
-        method: 'POST',
-        body: JSON.stringify({
-          query: payload.descriptionHint || 'кроссовки',
-          platforms: payload.platforms || ['dewu', 'pdd', 'taobao'],
-        }),
-      });
-    });
-  },
-
-  // Создание заказа
+  // РЎРѕР·РґР°РЅРёРµ Р·Р°РєР°Р·Р°
   createOrder: (order: CreateOrderRequest) =>
     request<{ ok: boolean; order_id: string; total_byn: number; prepayment: number }>('/api/v1/orders', {
       method: 'POST',
       body: JSON.stringify(order),
     }),
 
-  // Список заказов пользователя
+  // РЎРїРёСЃРѕРє Р·Р°РєР°Р·РѕРІ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ
   getUserOrders: () =>
     request<{ ok: boolean; orders: OrderListItem[] }>('/api/v1/orders'),
 
-  // Получить детальную информацию о заказе
+  // РџРѕР»СѓС‡РёС‚СЊ РґРµС‚Р°Р»СЊРЅСѓСЋ РёРЅС„РѕСЂРјР°С†РёСЋ Рѕ Р·Р°РєР°Р·Рµ
   getOrderById: (orderId: string) =>
     request<{ ok: boolean; order: any }>(`/api/v1/orders/${orderId}`),
 
-  // Обновить статус или трек-номер заказа (для администраторов/менеджеров)
+  // РћР±РЅРѕРІРёС‚СЊ СЃС‚Р°С‚СѓСЃ РёР»Рё С‚СЂРµРє-РЅРѕРјРµСЂ Р·Р°РєР°Р·Р° (РґР»СЏ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРІ/РјРµРЅРµРґР¶РµСЂРѕРІ)
   updateOrderStatus: (
     orderId: string,
     payload: { status?: string; tracking_number_by?: string; tracking_number_intl?: string }
@@ -321,11 +284,11 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
-  // Получить список всех заказов (для администраторов/менеджеров)
+  // РџРѕР»СѓС‡РёС‚СЊ СЃРїРёСЃРѕРє РІСЃРµС… Р·Р°РєР°Р·РѕРІ (РґР»СЏ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРІ/РјРµРЅРµРґР¶РµСЂРѕРІ)
   getAdminOrders: () =>
     request<{ ok: boolean; orders: (OrderListItem & { user_name?: string })[] }>('/api/v1/admin/orders'),
 
-  // === Платежные карты (bePaid Mock) ===
+  // === РџР»Р°С‚РµР¶РЅС‹Рµ РєР°СЂС‚С‹ (bePaid Mock) ===
   getCards: () =>
     request<{ ok: boolean; cards: UserCard[] }>('/api/v1/cards'),
 
@@ -345,7 +308,7 @@ export const api = {
       method: 'POST',
     }),
 
-  // === Внутренний баланс и платежи ===
+  // === Р’РЅСѓС‚СЂРµРЅРЅРёР№ Р±Р°Р»Р°РЅСЃ Рё РїР»Р°С‚РµР¶Рё ===
   getBalance: () =>
     request<{ ok: boolean; balance: number; currency: string }>('/api/v1/payments/balance'),
 
@@ -361,7 +324,7 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  // === Операторские действия и выкуп (Разделы 11, 13, 25 ТЗ) ===
+  // === РћРїРµСЂР°С‚РѕСЂСЃРєРёРµ РґРµР№СЃС‚РІРёСЏ Рё РІС‹РєСѓРї (Р Р°Р·РґРµР»С‹ 11, 13, 25 РўР—) ===
   recordPurchase: (orderId: string, data: {
     pinduoduo_order_id: string;
     price_cny: number;
@@ -385,7 +348,7 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  // === Финансовая сверка (Разделы 30, 39 ТЗ) ===
+  // === Р¤РёРЅР°РЅСЃРѕРІР°СЏ СЃРІРµСЂРєР° (Р Р°Р·РґРµР»С‹ 30, 39 РўР—) ===
   getReconciliationReport: () =>
     request<ReconciliationReport>('/api/v1/reconciliation/report'),
 
@@ -400,7 +363,7 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  // === Финансовые снимки и аудит заказа ===
+  // === Р¤РёРЅР°РЅСЃРѕРІС‹Рµ СЃРЅРёРјРєРё Рё Р°СѓРґРёС‚ Р·Р°РєР°Р·Р° ===
   getOrderFinancials: (orderId: string) =>
     request<{ ok: boolean; first_payment_snapshot?: any; second_payment_snapshot?: any }>(`/api/v1/orders/${orderId}/financials`),
 
