@@ -2425,90 +2425,6 @@ function checkLuhn(cardNo) {
   return (nSum % 10 === 0);
 }
 
-function extractCardDataFromText(rawText) {
-  if (!rawText) return { cardNumber: null, expiry: null, holder: null, isLuhnValid: false };
-
-  // 1. Поиск номера карты: прямой поиск чистых последовательностей цифр
-  const cleanMatches = rawText.match(/\b(?:\d[\s\.\-_]*?){13,19}\b/g) || [];
-  let bestCard = null;
-  let isLuhn = false;
-
-  for (const match of cleanMatches) {
-    const num = match.replace(/\D/g, '');
-    if (num.length >= 13 && num.length <= 19) {
-      if (checkLuhn(num)) {
-        bestCard = num;
-        isLuhn = true;
-        break;
-      } else if (!bestCard && (num.length === 16 || num.length === 15)) {
-        bestCard = num;
-      }
-    }
-  }
-
-  // 2. Интеллектуальная нормализация частых OCR-ошибок (буквы вместо цифр в блоках номера)
-  if (!bestCard) {
-    const lines = rawText.split(/[\r\n]+/);
-    for (const line of lines) {
-      const normalizedLine = line
-        .replace(/[OoDQ]/g, '0')
-        .replace(/[Il\|!\]\[]/g, '1')
-        .replace(/[Zz]/g, '2')
-        .replace(/E/g, '3')
-        .replace(/A/g, '4')
-        .replace(/[Ss\$]/g, '5')
-        .replace(/[bG]/g, '6')
-        .replace(/T/g, '7')
-        .replace(/B/g, '8')
-        .replace(/[gq]/g, '9');
-
-      const normMatches = normalizedLine.match(/\b(?:\d[\s\.\-_]*?){13,19}\b/g) || [];
-      for (const m of normMatches) {
-        const clean = m.replace(/\D/g, '');
-        if (clean.length >= 13 && clean.length <= 19) {
-          if (checkLuhn(clean)) {
-            bestCard = clean;
-            isLuhn = true;
-            break;
-          } else if (!bestCard && clean.length === 16) {
-            bestCard = clean;
-          }
-        }
-      }
-      if (isLuhn) break;
-    }
-  }
-
-  // 3. Поиск срока действия (ММ/ГГ)
-  let foundExpiry = null;
-  const expMatch = rawText.match(/\b(0[1-9]|1[0-2])[\/\.\-\s]([2-3]\d)\b/);
-  if (expMatch) {
-    foundExpiry = `${expMatch[1]}/${expMatch[2]}`;
-  } else {
-    const normForExp = rawText.replace(/[Oo]/g, '0').replace(/[Il]/g, '1');
-    const expNorm = normForExp.match(/\b(0[1-9]|1[0-2])[\/\.\-\s]([2-3]\d)\b/);
-    if (expNorm) {
-      foundExpiry = `${expNorm[1]}/${expNorm[2]}`;
-    }
-  }
-
-  // 4. Поиск имени держателя карты (2 латинских слова из букв A-Z)
-  let foundHolder = null;
-  const stopWords = ['VISA', 'MASTERCARD', 'MIR', 'BELKART', 'BANK', 'CARD', 'VALID', 'THRU', 'EXPIRES', 'MONTH', 'YEAR', 'DEBIT', 'CREDIT', 'BUSINESS', 'GOLD', 'PLATINUM', 'ELECTRON'];
-  const nameRegex = /\b([A-Z]{2,16}\s+[A-Z]{2,16})\b/g;
-  let nMatch;
-  while ((nMatch = nameRegex.exec(rawText.toUpperCase())) !== null) {
-    const candidate = nMatch[1].trim();
-    const parts = candidate.split(/\s+/);
-    if (parts.length === 2 && !parts.some(p => stopWords.includes(p))) {
-      foundHolder = candidate;
-      break;
-    }
-  }
-
-  return { cardNumber: bestCard, expiry: foundExpiry, holder: foundHolder, isLuhnValid: isLuhn };
-}
-
 window.userCards = window.userCards || [];
 
 window.loadUserCards = async function() {
@@ -2599,101 +2515,105 @@ window.openAddCardModal = function(onSuccess) {
   modal.id = 'addCardModal';
 
   modal.innerHTML = `
-    <div class="glass-card max-w-sm w-full mx-auto p-5 space-y-4 shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-cyan-500/30 transform transition-all duration-300 scale-95 opacity-0 my-auto" id="addCardModalContent">
-      <div class="flex justify-between items-center border-b border-white/10 pb-3">
-        <div class="flex items-center gap-2">
-          <span class="text-xl">💳</span>
-          <div>
-            <h3 class="text-white font-bold text-sm">Привязка банковской карты</h3>
-            <p class="text-[10px] text-cyan-400">Платежный шлюз bePaid (РБ)</p>
-          </div>
-        </div>
-        <button id="closeAddCardBtn" class="text-white/40 hover:text-white p-1 rounded-lg">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    <div class="glass-card max-w-sm w-full mx-auto p-5 space-y-4 shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-cyan-500/30 transform transition-all duration-300 scale-95 opacity-0 my-auto rounded-3xl" id="addCardModalContent">
+      
+      <!-- Шапка в стиле WB: Кнопка Назад и Заголовок -->
+      <div class="flex items-center justify-between pb-2 border-b border-white/10">
+        <button id="closeAddCardBtn" type="button" class="flex items-center gap-1 text-white/70 hover:text-white text-xs font-semibold px-2 py-1.5 rounded-lg hover:bg-white/10 transition active:scale-95">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          <span>Назад</span>
         </button>
+        <h3 class="text-white font-bold text-sm tracking-wide">Привязать новую карту</h3>
+        <div class="w-10"></div>
       </div>
 
-      <!-- Realistic Interactive Virtual Card -->
-      <div id="interactiveCardPreview" class="relative w-full rounded-2xl p-4 text-white shadow-2xl overflow-hidden border border-cyan-400/30 transition-all duration-300" style="background: linear-gradient(135deg, #091222 0%, #0d2847 45%, #0891b2 100%); min-height: 170px;">
-        <div class="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.18),transparent_50%)] pointer-events-none"></div>
-        <div class="relative z-10 flex flex-col justify-between h-full space-y-3">
-          <div class="flex justify-between items-center">
-            <div class="flex items-center gap-2">
-              <div class="w-10 h-7 rounded-md bg-gradient-to-tr from-amber-400 via-yellow-200 to-amber-500 p-0.5 shadow border border-amber-300/60 flex items-center justify-center">
-                <div class="w-full h-full border border-amber-800/40 rounded flex items-center justify-center">
-                  <div class="w-3 h-3 border-x border-amber-800/40"></div>
-                </div>
-              </div>
-              <svg class="w-5 h-5 text-cyan-200/90" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8.5 16.5a5 5 0 0 1 0-9"/><path d="M12 19a8.5 8.5 0 0 0 0-14"/><path d="M15.5 21.5a12 12 0 0 0 0-19"/></svg>
-            </div>
-            <div id="cardBrandLogo" class="text-xs font-bold px-2 py-0.5 rounded-md bg-black/40 backdrop-blur border border-white/20 text-cyan-200">
-              Банковская карта
-            </div>
+      <!-- Карточка формы ввода реквизитов (WB style) -->
+      <form id="addCardForm" autocomplete="on" onsubmit="event.preventDefault();" class="space-y-3 pt-1">
+        
+        <!-- Поле: Номер карты -->
+        <div class="rounded-2xl bg-slate-900/90 border border-white/15 focus-within:border-cyan-400 p-3 transition shadow-inner">
+          <div class="flex justify-between items-center mb-1">
+            <span class="text-[10px] uppercase font-bold text-white/40 tracking-wider">Номер карты</span>
+            <span id="detectedBrandBadge" class="text-[11px] font-bold text-cyan-300 hidden"></span>
           </div>
-
-          <div class="py-1">
-            <div id="visualCardNumber" class="font-mono text-base tracking-[0.18em] font-black text-white text-center drop-shadow-md select-none">
-              •••• •••• •••• ••••
-            </div>
-          </div>
-
-          <div class="flex justify-between items-end text-[10px] text-white/80">
-            <div>
-              <span class="block text-[8px] uppercase tracking-wider text-white/50">Держатель</span>
-              <span id="visualCardHolder" class="font-semibold text-white tracking-wider uppercase truncate block max-w-[170px]">CARD HOLDER</span>
-            </div>
-            <div class="text-right">
-              <span class="block text-[8px] uppercase tracking-wider text-white/50">Срок</span>
-              <span id="visualCardExp" class="font-mono font-bold text-white text-xs">MM/YY</span>
-            </div>
+          <div class="flex items-center gap-2.5">
+            <span id="cardBrandIcon" class="text-xl select-none">💳</span>
+            <input 
+              type="text" 
+              id="cardNumInput" 
+              name="cardnumber" 
+              autocomplete="cc-number" 
+              inputmode="numeric" 
+              maxlength="19" 
+              placeholder="0000 0000 0000 0000" 
+              class="w-full bg-transparent text-white text-base font-mono font-bold tracking-[0.12em] focus:outline-none placeholder:text-white/20"
+            >
           </div>
         </div>
-      </div>
 
-      <!-- Сканирование карты: Живая камера + fallback -->
-      <div class="space-y-2">
-        <input type="file" id="cardPhotoFallbackInput" accept="image/*" class="hidden">
-        <button type="button" id="scanLiveCameraBtn" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-600/20 border border-cyan-400/40 hover:border-cyan-300 active:scale-[0.98] text-cyan-100 font-semibold text-sm flex items-center justify-center gap-2.5 transition-all duration-150">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          <span id="scanLiveBtnText">Сканировать карту</span>
-        </button>
-        <div class="text-center">
-          <button type="button" id="scanPhotoFallbackBtn" class="text-[11px] text-white/40 hover:text-white/70 underline underline-offset-2 transition-colors">Загрузить фото</button>
-        </div>
-        <div id="scanStatusMsg" class="hidden text-center text-[11px] p-2 rounded-lg bg-cyan-950/60 border border-cyan-500/30 text-cyan-200 leading-snug"></div>
-      </div>
+        <!-- Ряд: Срок действия и CVV / CVC -->
+        <div class="grid grid-cols-2 gap-2.5">
+          <!-- Срок действия -->
+          <div class="rounded-2xl bg-slate-900/90 border border-white/15 focus-within:border-cyan-400 p-3 transition shadow-inner">
+            <span class="block text-[10px] uppercase font-bold text-white/40 tracking-wider mb-1">Срок действия</span>
+            <input 
+              type="text" 
+              id="cardExpInput" 
+              name="cc-exp" 
+              autocomplete="cc-exp" 
+              inputmode="numeric" 
+              maxlength="5" 
+              placeholder="ММ/ГГ" 
+              class="w-full bg-transparent text-white text-sm font-mono font-bold focus:outline-none placeholder:text-white/20"
+            >
+          </div>
 
-      <div class="p-2.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-[11px] text-cyan-200">
-        🛡️ <strong>Безопасная верификация:</strong> для проверки карты будет заблокирован <strong>1.00 BYN</strong> и мгновенно возвращен на счет.
-      </div>
-
-      <form id="addCardForm" autocomplete="on" onsubmit="event.preventDefault();" class="space-y-3">
-        <div>
-          <label class="text-white/70 text-xs block mb-1">Номер карты</label>
-          <input type="text" id="cardNumInput" name="cardnumber" autocomplete="cc-number" inputmode="numeric" maxlength="19" placeholder="0000 0000 0000 0000" class="w-full bg-slate-900/90 border border-white/20 rounded-xl p-3 text-white text-sm font-mono tracking-wider focus:border-cyan-400 focus:outline-none">
-          <span id="cardTypeBadge" class="text-[10px] text-cyan-300 mt-1 block"></span>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
+          <!-- CVV / CVC -->
           <div>
-            <label class="text-white/70 text-xs block mb-1">Срок (ММ/ГГ)</label>
-            <input type="text" id="cardExpInput" name="cc-exp" autocomplete="cc-exp" inputmode="numeric" maxlength="5" placeholder="12/28" class="w-full bg-slate-900/90 border border-white/20 rounded-xl p-3 text-white text-sm font-mono text-center focus:border-cyan-400 focus:outline-none">
-          </div>
-          <div>
-            <label class="text-white/70 text-xs block mb-1">CVC / CVV</label>
-            <input type="password" id="cardCvcInput" name="cvc" autocomplete="cc-csc" inputmode="numeric" maxlength="3" placeholder="•••" class="w-full bg-slate-900/90 border border-white/20 rounded-xl p-3 text-white text-sm font-mono text-center focus:border-cyan-400 focus:outline-none">
+            <div class="rounded-2xl bg-slate-900/90 border border-white/15 focus-within:border-cyan-400 p-3 transition shadow-inner">
+              <span class="block text-[10px] uppercase font-bold text-white/40 tracking-wider mb-1">CVV / CVC</span>
+              <input 
+                type="password" 
+                id="cardCvcInput" 
+                name="cvc" 
+                autocomplete="cc-csc" 
+                inputmode="numeric" 
+                maxlength="3" 
+                placeholder="•••" 
+                class="w-full bg-transparent text-white text-sm font-mono font-bold focus:outline-none placeholder:text-white/20"
+              >
+            </div>
+            <p class="text-[9px] text-white/40 text-right pr-2 mt-1">3 цифры на обороте</p>
           </div>
         </div>
 
-        <div>
-          <label class="text-white/70 text-xs block mb-1">Имя владельца карты</label>
-          <input type="text" id="cardHolderInput" name="ccname" autocomplete="cc-name" placeholder="IVAN IVANOV" class="w-full bg-slate-900/90 border border-white/20 rounded-xl p-3 text-white text-sm uppercase focus:border-cyan-400 focus:outline-none">
-        </div>
-
-        <button type="submit" id="submitAddCardBtn" class="btn-primary w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 text-sm shadow-lg shadow-cyan-500/20">
-          <span>🔒 Привязать карту (1.00 BYN)</span>
+        <!-- Кнопка «Привязать карту» (активируется при валидных данных) -->
+        <button 
+          type="submit" 
+          id="submitAddCardBtn" 
+          disabled 
+          class="w-full py-3.5 mt-2 rounded-2xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 bg-white/10 text-white/30 cursor-not-allowed select-none"
+        >
+          <span>Привязать карту</span>
         </button>
       </form>
+
+      <!-- Линейка поддерживаемых платежных систем (как внизу на Скриншоте 1 WB) -->
+      <div class="pt-1 flex flex-col items-center gap-2">
+        <div class="flex items-center justify-center gap-3.5 py-1 opacity-75">
+          <span class="text-xs font-black tracking-wider text-blue-400">VISA</span>
+          <span class="text-xs font-bold text-orange-400 flex items-center gap-0.5">
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-red-500"></span>
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-400 -ml-1"></span>
+          </span>
+          <span class="text-xs font-black tracking-wider text-emerald-400">БЕЛКАРТ</span>
+          <span class="text-xs font-black tracking-wider text-teal-400">МИР</span>
+        </div>
+        <p class="text-[10px] text-white/40 text-center leading-relaxed px-2">
+          🛡️ Для проверки карты блокируется <strong>1.00 BYN</strong> и сразу возвращается. Платежный шлюз bePaid (РБ), стандарт PCI DSS.
+        </p>
+      </div>
+
     </div>
   `;
 
@@ -2705,7 +2625,6 @@ window.openAddCardModal = function(onSuccess) {
   });
 
   const close = () => {
-    _stopCardScanner();
     const el = document.getElementById('addCardModalContent');
     if (el) { el.classList.remove('scale-100', 'opacity-100'); el.classList.add('scale-95', 'opacity-0'); }
     setTimeout(() => modal.remove(), 250);
@@ -2716,368 +2635,129 @@ window.openAddCardModal = function(onSuccess) {
 
   const numInput = document.getElementById('cardNumInput');
   const expInput = document.getElementById('cardExpInput');
-  const holderInput = document.getElementById('cardHolderInput');
-  const typeBadge = document.getElementById('cardTypeBadge');
-  const visualNum = document.getElementById('visualCardNumber');
-  const visualExp = document.getElementById('visualCardExp');
-  const visualHolder = document.getElementById('visualCardHolder');
-  const visualBrand = document.getElementById('cardBrandLogo');
+  const cvcInput = document.getElementById('cardCvcInput');
+  const brandIcon = document.getElementById('cardBrandIcon');
+  const brandBadge = document.getElementById('detectedBrandBadge');
+  const submitBtn = document.getElementById('submitAddCardBtn');
+  const addCardForm = document.getElementById('addCardForm');
+
+  function updateBrandVisual(rawDigits) {
+    const brand = detectCardType(rawDigits);
+    if (rawDigits.length >= 2) {
+      if (brand === 'Visa') {
+        brandIcon.innerHTML = '<span class="text-xs font-black text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-400/30">VISA</span>';
+        if (brandBadge) { brandBadge.innerText = 'VISA'; brandBadge.classList.remove('hidden'); }
+      } else if (brand === 'Mastercard') {
+        brandIcon.innerHTML = '<span class="inline-flex items-center"><span class="w-3.5 h-3.5 rounded-full bg-red-500"></span><span class="w-3.5 h-3.5 rounded-full bg-amber-400 -ml-1.5"></span></span>';
+        if (brandBadge) { brandBadge.innerText = 'Mastercard'; brandBadge.classList.remove('hidden'); }
+      } else if (brand === 'МИР') {
+        brandIcon.innerHTML = '<span class="text-xs font-black text-teal-400 bg-teal-500/10 px-1.5 py-0.5 rounded border border-teal-400/30">МИР</span>';
+        if (brandBadge) { brandBadge.innerText = 'МИР'; brandBadge.classList.remove('hidden'); }
+      } else if (brand === 'БЕЛКАРТ') {
+        brandIcon.innerHTML = '<span class="text-xs font-black text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-400/30">БЕЛКАРТ</span>';
+        if (brandBadge) { brandBadge.innerText = 'БЕЛКАРТ'; brandBadge.classList.remove('hidden'); }
+      } else {
+        brandIcon.innerText = '💳';
+        if (brandBadge) { brandBadge.innerText = brand; brandBadge.classList.remove('hidden'); }
+      }
+    } else {
+      brandIcon.innerText = '💳';
+      if (brandBadge) { brandBadge.innerText = ''; brandBadge.classList.add('hidden'); }
+    }
+  }
+
+  function validateForm() {
+    const rawNum = (numInput.value || '').replace(/\D/g, '');
+    const expVal = (expInput.value || '').trim();
+    const [mmStr, yyStr] = expVal.split('/');
+    const cvcVal = (cvcInput.value || '').trim();
+
+    const isNumValid = rawNum.length === 16;
+    let isExpValid = false;
+    if (mmStr && yyStr && mmStr.length === 2 && yyStr.length === 2) {
+      const mm = parseInt(mmStr, 10);
+      const yy = parseInt(yyStr, 10);
+      if (mm >= 1 && mm <= 12 && yy >= 24) {
+        isExpValid = true;
+      }
+    }
+    const isCvcValid = cvcVal.length === 3;
+
+    const canSubmit = isNumValid && isExpValid && isCvcValid;
+    submitBtn.disabled = !canSubmit;
+    if (canSubmit) {
+      submitBtn.className = 'w-full py-3.5 mt-2 rounded-2xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/30 cursor-pointer active:scale-95 hover:opacity-95';
+    } else {
+      submitBtn.className = 'w-full py-3.5 mt-2 rounded-2xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 bg-white/10 text-white/30 cursor-not-allowed select-none';
+    }
+    return canSubmit;
+  }
 
   numInput.oninput = (e) => {
-    let val = e.target.value.replace(/\D/g, '').substring(0, 16);
-    let formatted = val.match(/.{1,4}/g)?.join(' ') || val;
+    let digits = e.target.value.replace(/\D/g, '').substring(0, 16);
+    let formatted = digits.match(/.{1,4}/g)?.join(' ') || digits;
     e.target.value = formatted;
-    const bType = detectCardType(val);
-    typeBadge.innerText = val.length >= 4 ? bType : '';
-    visualBrand.innerText = val.length >= 4 ? bType : 'Банковская карта';
-
-    if (val.length === 0) {
-      visualNum.innerText = '•••• •••• •••• ••••';
-    } else {
-      let mask = formatted;
-      while (mask.replace(/\s/g, '').length < 16) {
-        if (mask.length === 4 || mask.length === 9 || mask.length === 14) mask += ' ';
-        mask += '•';
-      }
-      visualNum.innerText = mask;
+    updateBrandVisual(digits);
+    validateForm();
+    if (digits.length === 16) {
+      expInput.focus();
     }
   };
 
   expInput.oninput = (e) => {
-    let val = e.target.value.replace(/\D/g, '').substring(0, 4);
-    if (val.length >= 3) {
-      e.target.value = val.substring(0, 2) + '/' + val.substring(2);
+    let digits = e.target.value.replace(/\D/g, '').substring(0, 4);
+    if (digits.length >= 2) {
+      let mm = parseInt(digits.substring(0, 2), 10);
+      if (mm > 12) digits = '12' + digits.substring(2);
+      if (mm === 0) digits = '01' + digits.substring(2);
+      e.target.value = digits.substring(0, 2) + '/' + digits.substring(2);
     } else {
-      e.target.value = val;
+      e.target.value = digits;
     }
-    visualExp.innerText = e.target.value || 'MM/YY';
-  };
-
-  holderInput.oninput = (e) => {
-    visualHolder.innerText = (e.target.value || 'CARD HOLDER').toUpperCase();
-  };
-
-  // ── Live Card Scanner ────────────────────────────────────────────────
-  const scanStatus    = document.getElementById('scanStatusMsg');
-  const liveScanBtn   = document.getElementById('scanLiveCameraBtn');
-  const liveBtnText   = document.getElementById('scanLiveBtnText');
-  const fallbackBtn   = document.getElementById('scanPhotoFallbackBtn');
-  const fallbackInput = document.getElementById('cardPhotoFallbackInput');
-
-  let _scanStream   = null;
-  let _scanInterval = null;
-
-  function _stopCardScanner() {
-    if (_scanInterval) { clearInterval(_scanInterval); _scanInterval = null; }
-    if (_scanStream)   { _scanStream.getTracks().forEach(t => t.stop()); _scanStream = null; }
-    const ov = document.getElementById('cardScannerOverlay');
-    if (ov) ov.remove();
-  }
-
-  // Adaptive binary threshold — far better than soft contrast for embossed digits
-  function _preprocessForOCR(ctx, w, h) {
-    const imgData = ctx.getImageData(0, 0, w, h);
-    const d = imgData.data;
-    const grays = new Uint8Array(w * h);
-    let sum = 0;
-    for (let i = 0; i < d.length; i += 4) {
-      const g = Math.round(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
-      grays[i >> 2] = g;
-      sum += g;
-    }
-    const thresh = (sum / grays.length) * 0.92;
-    for (let i = 0; i < d.length; i += 4) {
-      const v = grays[i >> 2] > thresh ? 255 : 0;
-      d[i] = v; d[i + 1] = v; d[i + 2] = v;
-    }
-    ctx.putImageData(imgData, 0, 0);
-  }
-
-  async function _runOCR(canvas, hintEl) {
-    let text = '';
-    if ('TextDetector' in window) {
-      try {
-        const det = new window.TextDetector();
-        const res = await det.detect(canvas);
-        if (res && res.length) text = res.map(r => r.rawValue).join('\n');
-      } catch (_) {}
-    }
-    if (!text) {
-      if (!window.Tesseract) {
-        if (hintEl) hintEl.innerText = 'Загрузка OCR...';
-        await new Promise((res, rej) => {
-          const s = document.createElement('script');
-          s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-          s.onload = res;
-          s.onerror = () => rej(new Error('OCR недоступен'));
-          document.head.appendChild(s);
-        });
-      }
-      if (hintEl) hintEl.innerText = 'Распознавание...';
-      const r = await window.Tesseract.recognize(canvas, 'eng');
-      text = r?.data?.text || '';
-    }
-    return text;
-  }
-
-  function _autofillFromParsed(parsed) {
-    if (parsed.cardNumber) {
-      numInput.value = parsed.cardNumber;
-      numInput.dispatchEvent(new Event('input'));
-    }
-    if (parsed.expiry) {
-      expInput.value = parsed.expiry;
-      expInput.dispatchEvent(new Event('input'));
-    }
-  }
-
-  function _openLiveScannerOverlay(stream) {
-    _scanStream = stream;
-
-    const overlay = document.createElement('div');
-    overlay.id = 'cardScannerOverlay';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:200;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;';
-
-    overlay.innerHTML = `
-      <video id="csScanVideo" autoplay playsinline muted
-        style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></video>
-      <canvas id="csScanVignette"
-        style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;"></canvas>
-      <div id="csScanFrame" style="
-        position:relative;z-index:2;
-        width:88vw;max-width:380px;
-        aspect-ratio:1.586/1;
-        border-radius:12px;
-        box-shadow:0 0 0 9999px rgba(0,0,0,0.62);
-        border:2px solid rgba(34,211,238,0.7);
-        overflow:hidden;
-        pointer-events:none;">
-        <span style="position:absolute;top:-1px;left:-1px;width:22px;height:22px;border-top:3px solid #22d3ee;border-left:3px solid #22d3ee;border-radius:10px 0 0 0;"></span>
-        <span style="position:absolute;top:-1px;right:-1px;width:22px;height:22px;border-top:3px solid #22d3ee;border-right:3px solid #22d3ee;border-radius:0 10px 0 0;"></span>
-        <span style="position:absolute;bottom:-1px;left:-1px;width:22px;height:22px;border-bottom:3px solid #22d3ee;border-left:3px solid #22d3ee;border-radius:0 0 0 10px;"></span>
-        <span style="position:absolute;bottom:-1px;right:-1px;width:22px;height:22px;border-bottom:3px solid #22d3ee;border-right:3px solid #22d3ee;border-radius:0 0 10px 0;"></span>
-        <div id="csScanLaser" style="
-          position:absolute;left:0;right:0;height:2px;
-          background:linear-gradient(90deg,transparent,rgba(34,211,238,0.9),transparent);
-          box-shadow:0 0 8px 2px rgba(34,211,238,0.5);
-          animation:iceLogixScanLaser 1.8s ease-in-out infinite;
-          top:0;"></div>
-      </div>
-      <p id="csScanHint" style="position:relative;z-index:2;margin-top:18px;color:rgba(255,255,255,0.75);font-size:13px;text-align:center;padding:0 24px;">
-        Наведите камеру на карту — сканирование автоматическое
-      </p>
-      <button id="csScanCloseBtn" style="
-        position:absolute;top:18px;right:18px;z-index:3;
-        background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);
-        border:1px solid rgba(255,255,255,0.2);border-radius:50%;
-        width:40px;height:40px;display:flex;align-items:center;justify-content:center;
-        color:#fff;cursor:pointer;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-      <style>
-        @keyframes iceLogixScanLaser {
-          0%   { top:4%;  }
-          50%  { top:90%; }
-          100% { top:4%;  }
-        }
-      </style>
-    `;
-
-    const video     = document.getElementById('csScanVideo');
-    const vigCanvas = document.getElementById('csScanVignette');
-    const frame     = document.getElementById('csScanFrame');
-    const hint      = document.getElementById('csScanHint');
-    video.srcObject = stream;
-
-    function drawVignette() {
-      vigCanvas.width  = window.innerWidth;
-      vigCanvas.height = window.innerHeight;
-      const vc = vigCanvas.getContext('2d');
-      const fr = frame.getBoundingClientRect();
-      vc.fillStyle = 'rgba(0,0,0,0.55)';
-      vc.fillRect(0, 0, vigCanvas.width, vigCanvas.height);
-      vc.clearRect(fr.left, fr.top, fr.width, fr.height);
-    }
-    requestAnimationFrame(drawVignette);
-    window.addEventListener('resize', drawVignette);
-
-    const cropCanvas  = document.createElement('canvas');
-    cropCanvas.width  = 600;
-    cropCanvas.height = Math.round(600 / 1.586);
-    const cropCtx     = cropCanvas.getContext('2d');
-
-    let scanning = true;
-    let attempts = 0;
-
-    _scanInterval = setInterval(async () => {
-      if (!scanning || video.readyState < 2) return;
-      const fr    = frame.getBoundingClientRect();
-      const vRect = video.getBoundingClientRect();
-      const scaleX = video.videoWidth  / (vRect.width  || window.innerWidth);
-      const scaleY = video.videoHeight / (vRect.height || window.innerHeight);
-      cropCtx.drawImage(
-        video,
-        fr.left * scaleX, fr.top * scaleY, fr.width * scaleX, fr.height * scaleY,
-        0, 0, cropCanvas.width, cropCanvas.height
-      );
-      _preprocessForOCR(cropCtx, cropCanvas.width, cropCanvas.height);
-
-      try {
-        const text   = await _runOCR(cropCanvas, hint);
-        const parsed = extractCardDataFromText(text);
-
-        if (parsed.cardNumber && parsed.isLuhnValid) {
-          scanning = false;
-          tgUtil.haptic('success');
-          try { navigator.vibrate && navigator.vibrate(80); } catch (_) {}
-          _stopCardScanner();
-          window.removeEventListener('resize', drawVignette);
-          _autofillFromParsed(parsed);
-          scanStatus.classList.remove('hidden');
-          scanStatus.innerHTML = `<strong>Карта распознана.</strong> Проверьте номер и введите CVC/CVV.`;
-          document.getElementById('cardCvcInput')?.focus();
-          return;
-        }
-
-        attempts++;
-        if (attempts > 6 && parsed.cardNumber) {
-          scanning = false;
-          tgUtil.haptic('light');
-          _stopCardScanner();
-          window.removeEventListener('resize', drawVignette);
-          _autofillFromParsed(parsed);
-          scanStatus.classList.remove('hidden');
-          scanStatus.innerHTML = `Номер считан, проверьте цифры и введите CVC/CVV.`;
-          numInput.focus();
-        }
-      } catch (_e) { /* silent — keep looping */ }
-    }, 700);
-
-    document.getElementById('csScanCloseBtn').onclick = () => {
-      _stopCardScanner();
-      window.removeEventListener('resize', drawVignette);
-    };
-  }
-
-  // ── Button handlers ───────────────────────────────────────────────────
-  liveScanBtn.onclick = async () => {
-    tgUtil.haptic('light');
-    liveBtnText.innerText = 'Открытие камеры...';
-    liveScanBtn.disabled = true;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 } }
-      });
-      _openLiveScannerOverlay(stream);
-    } catch (_err) {
-      fallbackInput.click();
-      scanStatus.classList.remove('hidden');
-      scanStatus.innerHTML = `Камера недоступна — выберите фото карты.`;
-    } finally {
-      liveBtnText.innerText = 'Сканировать карту';
-      liveScanBtn.disabled = false;
+    validateForm();
+    if (digits.length === 4) {
+      cvcInput.focus();
     }
   };
 
-  fallbackBtn.onclick = () => {
-    tgUtil.haptic('light');
-    fallbackInput.click();
-  };
-
-  const handleCardImage = async (file) => {
-    if (!file) return;
-
-    liveScanBtn.disabled = true;
-    liveBtnText.innerText = 'Анализ фото...';
-    scanStatus.classList.remove('hidden');
-    scanStatus.innerHTML = '<span class="animate-pulse">Считывание номера и срока действия...</span>';
-
-    try {
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = () => reject(new Error('Не удалось открыть изображение'));
-        img.src = url;
-      });
-
-      const targetW = 600;
-      const scale   = Math.min(1, targetW / img.width);
-      const w       = Math.round(img.width  * scale);
-      const h       = Math.round(img.height * scale);
-
-      const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
-      URL.revokeObjectURL(url);
-
-      _preprocessForOCR(ctx, w, h);
-
-      const text   = await _runOCR(canvas, null);
-      const parsed = extractCardDataFromText(text);
-
-      if (parsed.cardNumber) {
-        _autofillFromParsed(parsed);
-        tgUtil.haptic('success');
-        if (parsed.isLuhnValid) {
-          scanStatus.innerHTML = `<strong>Карта распознана.</strong> Проверьте номер и введите CVC/CVV.`;
-        } else {
-          scanStatus.innerHTML = `Номер считан — сверьте цифры и введите CVC/CVV.`;
-        }
-        document.getElementById('cardCvcInput')?.focus();
-      } else if (parsed.expiry) {
-        expInput.value = parsed.expiry;
-        expInput.dispatchEvent(new Event('input'));
-        tgUtil.haptic('light');
-        scanStatus.innerHTML = `Срок действия считан. Введите номер карты вручную.`;
-        numInput.focus();
-      } else {
-        scanStatus.innerHTML = `Не удалось распознать карту. Сфотографируйте ближе при хорошем освещении.`;
-        numInput.focus();
-      }
-    } catch (err) {
-      console.warn('handleCardImage error:', err);
-      scanStatus.innerHTML = `Ошибка анализа фото. Введите данные вручную.`;
-      numInput.focus();
-    } finally {
-      liveScanBtn.disabled = false;
-      liveBtnText.innerText = 'Сканировать карту';
-      fallbackInput.value = '';
+  expInput.onkeydown = (e) => {
+    if (e.key === 'Backspace' && expInput.value.endsWith('/')) {
+      e.preventDefault();
+      expInput.value = expInput.value.slice(0, -1);
+      validateForm();
     }
   };
 
-  fallbackInput.onchange = (e) => handleCardImage(e.target.files?.[0]);
+  cvcInput.oninput = (e) => {
+    e.target.value = e.target.value.replace(/\D/g, '').substring(0, 3);
+    validateForm();
+  };
 
-  const addCardForm = document.getElementById('addCardForm');
   if (addCardForm) {
     addCardForm.onsubmit = (e) => {
       e.preventDefault();
-      document.getElementById('submitAddCardBtn')?.click();
+      if (!submitBtn.disabled) submitBtn.click();
     };
   }
 
-  document.getElementById('submitAddCardBtn').onclick = async () => {
-    const rawNum = numInput.value.replace(/\s+/g, '');
-    if (rawNum.length < 13) { tgUtil.alert('Введите корректный номер карты'); return; }
+  submitBtn.onclick = async () => {
+    if (!validateForm()) return;
+
+    const rawNum = numInput.value.replace(/\D/g, '');
     const expVal = expInput.value;
     const [mm, yy] = expVal.split('/');
-    if (!mm || !yy || parseInt(mm, 10) < 1 || parseInt(mm, 10) > 12) {
-      tgUtil.alert('Введите корректный срок действия карты (ММ/ГГ)'); return;
-    }
-    const cvc = document.getElementById('cardCvcInput').value.trim();
-    if (cvc.length < 3) { tgUtil.alert('Введите 3-значный CVC/CVV код'); return; }
-    const holder = (holderInput.value.trim() || 'CARD HOLDER').toUpperCase();
 
-    const submitBtn = document.getElementById('submitAddCardBtn');
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '⏳ Проверка карты (1.00 BYN)...';
+    submitBtn.innerHTML = `
+      <svg class="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+      <span>Проверка bePaid (1.00 BYN)...</span>
+    `;
 
     const cardType = detectCardType(rawNum);
     const expMeta = `${String(mm).padStart(2, '0')}/${String(yy).slice(-2)}`;
     const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
 
-    // Токенизация bePaid без сохранения полного номера и CVV (Раздел 2.2, 12 ТЗ)
+    // Токенизация bePaid без сохранения полного номера и CVV (Раздел 2.2, 12, 13, 23 ТЗ)
     const newCard = {
       user_id: curUserId,
       provider: 'bepaid_mock',
@@ -3125,16 +2805,16 @@ window.openCardsManagementModal = async function() {
   window.userCards = Array.isArray(window.userCards) ? window.userCards : [];
 
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/85 flex items-center justify-center z-[120] p-4';
+  modal.className = 'fixed inset-0 bg-black/85 flex items-center justify-center z-[120] p-4 overflow-y-auto';
   modal.id = 'cardsManageModal';
 
   const renderCardListHtml = () => {
     const cards = Array.isArray(window.userCards) ? window.userCards : [];
     if (cards.length === 0) {
       return `
-        <div class="text-center py-6 text-white/50 text-xs">
-          <p class="text-3xl mb-2">💳</p>
-          <p class="font-semibold text-white/70">У вас нет сохраненных банковских карт</p>
+        <div class="text-center py-6 text-white/50 text-xs bg-slate-900/60 rounded-2xl border border-white/5 p-4">
+          <p class="text-3xl mb-2 select-none">💳</p>
+          <p class="font-semibold text-white/80 text-sm">У вас нет сохраненных карт</p>
           <p class="text-[11px] text-white/40 mt-1">Привяжите карту для быстрой оплаты заказов в 1 клик</p>
         </div>
       `;
@@ -3143,23 +2823,32 @@ window.openCardsManagementModal = async function() {
       const brand = c.card_brand || c.card_type || 'Банковская карта';
       const last4 = c.last4 || c.card_last4 || '••••';
       const exp = c.expiry_metadata || (c.exp_month ? `${String(c.exp_month).padStart(2, '0')}/${String(c.exp_year).slice(-2)}` : '12/28');
+      const isDef = Boolean(c.is_default);
+
       return `
-        <div class="p-3 rounded-xl bg-white/5 border ${c.is_default ? 'border-cyan-500/50 bg-cyan-500/10' : 'border-white/10'} flex items-center justify-between gap-2 transition hover:bg-white/10">
-          <div>
-            <div class="flex items-center gap-1.5">
-              <span class="text-sm font-bold text-white">${getCardIcon(brand)}</span>
-              <span class="text-sm font-mono text-cyan-300 font-bold tracking-wider">•••• ${last4}</span>
-              ${c.is_default ? '<span class="text-[9px] text-cyan-300 font-semibold bg-cyan-500/20 px-1.5 py-0.5 rounded border border-cyan-400/30">Основная</span>' : ''}
+        <div class="p-3.5 rounded-2xl ${isDef ? 'bg-gradient-to-r from-cyan-950/40 to-slate-900 border border-cyan-500/50 shadow-md shadow-cyan-500/10' : 'bg-slate-900/80 border border-white/10'} flex items-center justify-between gap-3 transition hover:border-white/20">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-lg select-none flex-shrink-0">
+              ${brand === 'Visa' ? '<span class="text-[10px] font-black text-blue-400">VISA</span>' :
+                brand === 'Mastercard' ? '<span class="inline-flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span><span class="w-2.5 h-2.5 rounded-full bg-amber-400 -ml-1"></span></span>' :
+                brand === 'МИР' ? '<span class="text-[9px] font-black text-teal-400">МИР</span>' :
+                brand === 'БЕЛКАРТ' ? '<span class="text-[8px] font-black text-emerald-400">БК</span>' : '💳'}
             </div>
-            <p class="text-[10px] text-white/50 mt-0.5">${exp} · Токенизирована bePaid</p>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-mono font-bold text-white tracking-wider">•••• ${last4}</span>
+                ${isDef ? '<span class="text-[9px] text-cyan-300 font-bold bg-cyan-500/20 px-2 py-0.5 rounded-full border border-cyan-400/40">Основная</span>' : ''}
+              </div>
+              <p class="text-[10px] text-white/40 mt-0.5">${brand} · ${exp} · bePaid</p>
+            </div>
           </div>
-          <div class="flex items-center gap-1.5">
-            ${!c.is_default ? `
-              <button class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[10px] text-cyan-400 font-semibold transition" onclick="window.setDefaultCard('${c.id}')">
+          <div class="flex items-center gap-1.5 flex-shrink-0">
+            ${!isDef ? `
+              <button type="button" class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-cyan-500/20 text-[10px] text-cyan-300 font-semibold transition active:scale-95" onclick="window.setDefaultCard('${c.id}')">
                 Сделать осн.
               </button>
             ` : ''}
-            <button class="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs transition" onclick="window.deleteCard('${c.id}')" title="Удалить карту">
+            <button type="button" class="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs transition active:scale-95" onclick="window.deleteCard('${c.id}')" title="Удалить карту">
               🗑️
             </button>
           </div>
@@ -3171,37 +2860,68 @@ window.openCardsManagementModal = async function() {
   const cardsCount = (window.userCards || []).length;
 
   modal.innerHTML = `
-    <div class="glass-card max-w-sm w-full mx-auto p-5 space-y-4 shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-white/20 transform transition-all duration-300 scale-95 opacity-0" id="cardsManageModalContent">
-      <div class="flex justify-between items-center border-b border-white/10 pb-3">
-        <div class="flex items-center gap-2">
-          <span class="text-xl">💳</span>
-          <div>
-            <h3 class="text-white font-bold text-sm">Мои банковские карты</h3>
-            <p class="text-[10px] text-white/50">Сохранено ${cardsCount} из 5 (bePaid)</p>
-          </div>
-        </div>
-        <button id="closeCardsManageBtn" class="text-white/40 hover:text-white p-1 rounded-lg">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    <div class="glass-card max-w-sm w-full mx-auto p-5 space-y-4 shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-cyan-500/20 transform transition-all duration-300 scale-95 opacity-0 my-auto rounded-3xl" id="cardsManageModalContent">
+      
+      <!-- Шапка WB: Назад и Заголовок -->
+      <div class="flex items-center justify-between pb-3 border-b border-white/10">
+        <button id="closeCardsManageBtn" type="button" class="flex items-center gap-1 text-white/70 hover:text-white text-xs font-semibold px-2 py-1.5 rounded-lg hover:bg-white/10 transition active:scale-95">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          <span>Назад</span>
         </button>
+        <h3 class="text-white font-bold text-sm tracking-wide">Способы оплаты</h3>
+        <div class="w-10"></div>
       </div>
 
-      <div id="modalCardsList" class="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-        ${renderCardListHtml()}
+      <!-- Виджеты WB: 3 карточки сверху (Скриншот 2) -->
+      <div class="grid grid-cols-3 gap-2">
+        <div class="p-2.5 rounded-2xl bg-slate-900/80 border border-white/10 text-center">
+          <span class="block text-[9px] uppercase font-bold text-white/40 tracking-wider">Карты</span>
+          <span class="block text-xs font-black text-cyan-300 mt-0.5">${cardsCount} / 5</span>
+        </div>
+        <div class="p-2.5 rounded-2xl bg-slate-900/80 border border-white/10 text-center">
+          <span class="block text-[9px] uppercase font-bold text-white/40 tracking-wider">Проверка</span>
+          <span class="block text-xs font-black text-emerald-300 mt-0.5">1.00 BYN</span>
+        </div>
+        <div class="p-2.5 rounded-2xl bg-slate-900/80 border border-white/10 text-center">
+          <span class="block text-[9px] uppercase font-bold text-white/40 tracking-wider">Защита</span>
+          <span class="block text-xs font-black text-blue-300 mt-0.5">PCI DSS</span>
+        </div>
       </div>
 
+      <!-- Список сохраненных карт -->
+      <div class="space-y-1.5">
+        <div class="flex items-center justify-between px-1">
+          <span class="text-xs font-bold text-white/80">Сохраненные карты</span>
+          <span class="text-[10px] text-white/40">bePaid (РБ)</span>
+        </div>
+        <div id="modalCardsList" class="space-y-2 max-h-56 overflow-y-auto pr-0.5">
+          ${renderCardListHtml()}
+        </div>
+      </div>
+
+      <!-- Кнопка добавления карты (стиль WB: тайл или кнопка) -->
       ${cardsCount < 5 ? `
-        <button id="modalAddNewCardBtn" class="btn-primary w-full py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 text-xs shadow-md shadow-cyan-500/20">
-          <span>+ Привязать новую карту (1.00 BYN)</span>
+        <button id="modalAddNewCardBtn" type="button" class="w-full py-3 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 border-2 border-dashed border-cyan-500/40 hover:border-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 transition-all active:scale-95 shadow-sm">
+          <span class="text-base leading-none font-black">+</span>
+          <span>Привязать карту</span>
         </button>
       ` : `
-        <p class="text-[11px] text-amber-400 text-center font-semibold p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
-          Достигнут максимум 5 карт по ТЗ
-        </p>
+        <div class="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center">
+          <p class="text-[11px] text-amber-300 font-semibold">Достигнут максимальный лимит 5 карт</p>
+        </div>
       `}
 
-      <div class="p-2.5 rounded-lg bg-white/5 border border-white/10 text-[10px] text-white/50 text-center">
-        🔒 Данные карт защищены стандартом PCI DSS. Полный номер и CVV никогда не хранятся на наших серверах.
+      <!-- Раздел: Возврат денег (Скриншот 2 WB) -->
+      <div class="p-3 rounded-2xl bg-slate-900/60 border border-white/5 space-y-1">
+        <div class="flex items-center gap-2 text-white/80 font-bold text-[11px]">
+          <span>🛡️</span>
+          <span>Возврат средств</span>
+        </div>
+        <p class="text-[10px] text-white/40 leading-relaxed">
+          При отмене заказа или возврате товара деньги моментально зачисляются на привязанную карту без комиссий.
+        </p>
       </div>
+
     </div>
   `;
 
