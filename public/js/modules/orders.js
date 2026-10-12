@@ -2650,20 +2650,15 @@ window.openAddCardModal = function(onSuccess) {
         </div>
       </div>
 
-      <!-- Сканирование карты: Камера или Фото -->
-      <div class="space-y-1.5">
-        <input type="file" id="cardCameraDirectInput" accept="image/*" capture="environment" class="hidden">
-        <input type="file" id="cardPhotoInput" accept="image/*" class="hidden">
-        
-        <div class="grid grid-cols-2 gap-2">
-          <button type="button" id="scanNativeCameraBtn" class="py-2.5 px-3 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-400/40 hover:border-cyan-300 text-cyan-200 font-semibold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
-            <span class="text-base">📷</span>
-            <span>Камера</span>
-          </button>
-          <button type="button" id="scanCardPhotoBtn" class="py-2.5 px-3 rounded-xl bg-gradient-to-r from-blue-500/20 to-indigo-500/20 border border-blue-400/40 hover:border-blue-300 text-blue-200 font-semibold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
-            <span class="text-base">🖼️</span>
-            <span id="scanBtnText">Из галереи</span>
-          </button>
+      <!-- Сканирование карты: Живая камера + fallback -->
+      <div class="space-y-2">
+        <input type="file" id="cardPhotoFallbackInput" accept="image/*" class="hidden">
+        <button type="button" id="scanLiveCameraBtn" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-600/20 border border-cyan-400/40 hover:border-cyan-300 active:scale-[0.98] text-cyan-100 font-semibold text-sm flex items-center justify-center gap-2.5 transition-all duration-150">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span id="scanLiveBtnText">Сканировать карту</span>
+        </button>
+        <div class="text-center">
+          <button type="button" id="scanPhotoFallbackBtn" class="text-[11px] text-white/40 hover:text-white/70 underline underline-offset-2 transition-colors">Загрузить фото</button>
         </div>
         <div id="scanStatusMsg" class="hidden text-center text-[11px] p-2 rounded-lg bg-cyan-950/60 border border-cyan-500/30 text-cyan-200 leading-snug"></div>
       </div>
@@ -2710,6 +2705,7 @@ window.openAddCardModal = function(onSuccess) {
   });
 
   const close = () => {
+    _stopCardScanner();
     const el = document.getElementById('addCardModalContent');
     if (el) { el.classList.remove('scale-100', 'opacity-100'); el.classList.add('scale-95', 'opacity-0'); }
     setTimeout(() => modal.remove(), 250);
@@ -2761,164 +2757,297 @@ window.openAddCardModal = function(onSuccess) {
     visualHolder.innerText = (e.target.value || 'CARD HOLDER').toUpperCase();
   };
 
-  // AI Photo Scanning feature (Камера и Галерея)
-  const scanCameraBtn = document.getElementById('scanNativeCameraBtn');
-  const scanPhotoBtn = document.getElementById('scanCardPhotoBtn');
-  const cameraInput = document.getElementById('cardCameraDirectInput');
-  const fileInput = document.getElementById('cardPhotoInput');
-  const scanStatus = document.getElementById('scanStatusMsg');
-  const scanBtnText = document.getElementById('scanBtnText');
+  // ── Live Card Scanner ────────────────────────────────────────────────
+  const scanStatus    = document.getElementById('scanStatusMsg');
+  const liveScanBtn   = document.getElementById('scanLiveCameraBtn');
+  const liveBtnText   = document.getElementById('scanLiveBtnText');
+  const fallbackBtn   = document.getElementById('scanPhotoFallbackBtn');
+  const fallbackInput = document.getElementById('cardPhotoFallbackInput');
 
-  scanCameraBtn.onclick = () => {
+  let _scanStream   = null;
+  let _scanInterval = null;
+
+  function _stopCardScanner() {
+    if (_scanInterval) { clearInterval(_scanInterval); _scanInterval = null; }
+    if (_scanStream)   { _scanStream.getTracks().forEach(t => t.stop()); _scanStream = null; }
+    const ov = document.getElementById('cardScannerOverlay');
+    if (ov) ov.remove();
+  }
+
+  // Adaptive binary threshold — far better than soft contrast for embossed digits
+  function _preprocessForOCR(ctx, w, h) {
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const d = imgData.data;
+    const grays = new Uint8Array(w * h);
+    let sum = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      const g = Math.round(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
+      grays[i >> 2] = g;
+      sum += g;
+    }
+    const thresh = (sum / grays.length) * 0.92;
+    for (let i = 0; i < d.length; i += 4) {
+      const v = grays[i >> 2] > thresh ? 255 : 0;
+      d[i] = v; d[i + 1] = v; d[i + 2] = v;
+    }
+    ctx.putImageData(imgData, 0, 0);
+  }
+
+  async function _runOCR(canvas, hintEl) {
+    let text = '';
+    if ('TextDetector' in window) {
+      try {
+        const det = new window.TextDetector();
+        const res = await det.detect(canvas);
+        if (res && res.length) text = res.map(r => r.rawValue).join('\n');
+      } catch (_) {}
+    }
+    if (!text) {
+      if (!window.Tesseract) {
+        if (hintEl) hintEl.innerText = 'Загрузка OCR...';
+        await new Promise((res, rej) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+          s.onload = res;
+          s.onerror = () => rej(new Error('OCR недоступен'));
+          document.head.appendChild(s);
+        });
+      }
+      if (hintEl) hintEl.innerText = 'Распознавание...';
+      const r = await window.Tesseract.recognize(canvas, 'eng');
+      text = r?.data?.text || '';
+    }
+    return text;
+  }
+
+  function _autofillFromParsed(parsed) {
+    if (parsed.cardNumber) {
+      numInput.value = parsed.cardNumber;
+      numInput.dispatchEvent(new Event('input'));
+    }
+    if (parsed.expiry) {
+      expInput.value = parsed.expiry;
+      expInput.dispatchEvent(new Event('input'));
+    }
+  }
+
+  function _openLiveScannerOverlay(stream) {
+    _scanStream = stream;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'cardScannerOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:200;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;';
+
+    overlay.innerHTML = `
+      <video id="csScanVideo" autoplay playsinline muted
+        style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></video>
+      <canvas id="csScanVignette"
+        style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;"></canvas>
+      <div id="csScanFrame" style="
+        position:relative;z-index:2;
+        width:88vw;max-width:380px;
+        aspect-ratio:1.586/1;
+        border-radius:12px;
+        box-shadow:0 0 0 9999px rgba(0,0,0,0.62);
+        border:2px solid rgba(34,211,238,0.7);
+        overflow:hidden;
+        pointer-events:none;">
+        <span style="position:absolute;top:-1px;left:-1px;width:22px;height:22px;border-top:3px solid #22d3ee;border-left:3px solid #22d3ee;border-radius:10px 0 0 0;"></span>
+        <span style="position:absolute;top:-1px;right:-1px;width:22px;height:22px;border-top:3px solid #22d3ee;border-right:3px solid #22d3ee;border-radius:0 10px 0 0;"></span>
+        <span style="position:absolute;bottom:-1px;left:-1px;width:22px;height:22px;border-bottom:3px solid #22d3ee;border-left:3px solid #22d3ee;border-radius:0 0 0 10px;"></span>
+        <span style="position:absolute;bottom:-1px;right:-1px;width:22px;height:22px;border-bottom:3px solid #22d3ee;border-right:3px solid #22d3ee;border-radius:0 0 10px 0;"></span>
+        <div id="csScanLaser" style="
+          position:absolute;left:0;right:0;height:2px;
+          background:linear-gradient(90deg,transparent,rgba(34,211,238,0.9),transparent);
+          box-shadow:0 0 8px 2px rgba(34,211,238,0.5);
+          animation:iceLogixScanLaser 1.8s ease-in-out infinite;
+          top:0;"></div>
+      </div>
+      <p id="csScanHint" style="position:relative;z-index:2;margin-top:18px;color:rgba(255,255,255,0.75);font-size:13px;text-align:center;padding:0 24px;">
+        Наведите камеру на карту — сканирование автоматическое
+      </p>
+      <button id="csScanCloseBtn" style="
+        position:absolute;top:18px;right:18px;z-index:3;
+        background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);
+        border:1px solid rgba(255,255,255,0.2);border-radius:50%;
+        width:40px;height:40px;display:flex;align-items:center;justify-content:center;
+        color:#fff;cursor:pointer;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <style>
+        @keyframes iceLogixScanLaser {
+          0%   { top:4%;  }
+          50%  { top:90%; }
+          100% { top:4%;  }
+        }
+      </style>
+    `;
+
+    const video     = document.getElementById('csScanVideo');
+    const vigCanvas = document.getElementById('csScanVignette');
+    const frame     = document.getElementById('csScanFrame');
+    const hint      = document.getElementById('csScanHint');
+    video.srcObject = stream;
+
+    function drawVignette() {
+      vigCanvas.width  = window.innerWidth;
+      vigCanvas.height = window.innerHeight;
+      const vc = vigCanvas.getContext('2d');
+      const fr = frame.getBoundingClientRect();
+      vc.fillStyle = 'rgba(0,0,0,0.55)';
+      vc.fillRect(0, 0, vigCanvas.width, vigCanvas.height);
+      vc.clearRect(fr.left, fr.top, fr.width, fr.height);
+    }
+    requestAnimationFrame(drawVignette);
+    window.addEventListener('resize', drawVignette);
+
+    const cropCanvas  = document.createElement('canvas');
+    cropCanvas.width  = 600;
+    cropCanvas.height = Math.round(600 / 1.586);
+    const cropCtx     = cropCanvas.getContext('2d');
+
+    let scanning = true;
+    let attempts = 0;
+
+    _scanInterval = setInterval(async () => {
+      if (!scanning || video.readyState < 2) return;
+      const fr    = frame.getBoundingClientRect();
+      const vRect = video.getBoundingClientRect();
+      const scaleX = video.videoWidth  / (vRect.width  || window.innerWidth);
+      const scaleY = video.videoHeight / (vRect.height || window.innerHeight);
+      cropCtx.drawImage(
+        video,
+        fr.left * scaleX, fr.top * scaleY, fr.width * scaleX, fr.height * scaleY,
+        0, 0, cropCanvas.width, cropCanvas.height
+      );
+      _preprocessForOCR(cropCtx, cropCanvas.width, cropCanvas.height);
+
+      try {
+        const text   = await _runOCR(cropCanvas, hint);
+        const parsed = extractCardDataFromText(text);
+
+        if (parsed.cardNumber && parsed.isLuhnValid) {
+          scanning = false;
+          tgUtil.haptic('success');
+          try { navigator.vibrate && navigator.vibrate(80); } catch (_) {}
+          _stopCardScanner();
+          window.removeEventListener('resize', drawVignette);
+          _autofillFromParsed(parsed);
+          scanStatus.classList.remove('hidden');
+          scanStatus.innerHTML = `<strong>Карта распознана.</strong> Проверьте номер и введите CVC/CVV.`;
+          document.getElementById('cardCvcInput')?.focus();
+          return;
+        }
+
+        attempts++;
+        if (attempts > 6 && parsed.cardNumber) {
+          scanning = false;
+          tgUtil.haptic('light');
+          _stopCardScanner();
+          window.removeEventListener('resize', drawVignette);
+          _autofillFromParsed(parsed);
+          scanStatus.classList.remove('hidden');
+          scanStatus.innerHTML = `Номер считан, проверьте цифры и введите CVC/CVV.`;
+          numInput.focus();
+        }
+      } catch (_e) { /* silent — keep looping */ }
+    }, 700);
+
+    document.getElementById('csScanCloseBtn').onclick = () => {
+      _stopCardScanner();
+      window.removeEventListener('resize', drawVignette);
+    };
+  }
+
+  // ── Button handlers ───────────────────────────────────────────────────
+  liveScanBtn.onclick = async () => {
     tgUtil.haptic('light');
-    scanStatus.classList.remove('hidden');
-    scanStatus.innerHTML = `📷 Сделайте четкое фото карты или нажмите на иконку камеры над клавиатурой телефона.`;
-    cameraInput.click();
+    liveBtnText.innerText = 'Открытие камеры...';
+    liveScanBtn.disabled = true;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 } }
+      });
+      _openLiveScannerOverlay(stream);
+    } catch (_err) {
+      fallbackInput.click();
+      scanStatus.classList.remove('hidden');
+      scanStatus.innerHTML = `Камера недоступна — выберите фото карты.`;
+    } finally {
+      liveBtnText.innerText = 'Сканировать карту';
+      liveScanBtn.disabled = false;
+    }
   };
 
-  scanPhotoBtn.onclick = () => {
+  fallbackBtn.onclick = () => {
     tgUtil.haptic('light');
-    fileInput.click();
+    fallbackInput.click();
   };
 
   const handleCardImage = async (file) => {
     if (!file) return;
 
-    scanPhotoBtn.disabled = true;
-    scanCameraBtn.disabled = true;
-    scanBtnText.innerText = '⏳ Анализ...';
+    liveScanBtn.disabled = true;
+    liveBtnText.innerText = 'Анализ фото...';
     scanStatus.classList.remove('hidden');
-    scanStatus.innerHTML = '⏳ <span class="animate-pulse">Считывание номера и срока действия...</span>';
+    scanStatus.innerHTML = '<span class="animate-pulse">Считывание номера и срока действия...</span>';
 
     try {
       const img = new Image();
       const url = URL.createObjectURL(file);
       await new Promise((resolve, reject) => {
         img.onload = resolve;
-        img.onerror = () => reject(new Error('Не удалось открыть файл изображения'));
+        img.onerror = () => reject(new Error('Не удалось открыть изображение'));
         img.src = url;
       });
 
-      const maxDim = 1000;
-      let width = img.width;
-      let height = img.height;
-      if (width > maxDim || height > maxDim) {
-        if (width > height) {
-          height = Math.round((height * maxDim) / width);
-          width = maxDim;
-        } else {
-          width = Math.round((width * maxDim) / height);
-          height = maxDim;
-        }
-      }
+      const targetW = 600;
+      const scale   = Math.min(1, targetW / img.width);
+      const w       = Math.round(img.width  * scale);
+      const h       = Math.round(img.height * scale);
 
       const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
+      canvas.width = w; canvas.height = h;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
+      ctx.drawImage(img, 0, 0, w, h);
       URL.revokeObjectURL(url);
 
-      let recognizedText = '';
+      _preprocessForOCR(ctx, w, h);
 
-      // Попытка нативного аппаратного TextDetector (Shape Detection API в Android/Chromium)
-      if ('TextDetector' in window) {
-        try {
-          scanStatus.innerText = 'Аппаратное распознавание...';
-          const detector = new window.TextDetector();
-          const detected = await detector.detect(canvas);
-          if (detected && detected.length > 0) {
-            recognizedText = detected.map(d => d.rawValue).join('\n');
-          }
-        } catch (_tdErr) {
-          console.warn('TextDetector fallback to OCR');
-        }
-      }
-
-      // Fallback на Tesseract.js с мягким контрастом
-      if (!recognizedText) {
-        scanStatus.innerText = 'Подготовка оптического сканера...';
-        if (!window.Tesseract) {
-          await new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-            script.onload = resolve;
-            script.onerror = () => reject(new Error('Сетевой модуль сканирования недоступен'));
-            document.head.appendChild(script);
-          });
-        }
-
-        scanStatus.innerText = 'Распознавание символов карты...';
-        const imgData = ctx.getImageData(0, 0, width, height);
-        const d = imgData.data;
-        for (let i = 0; i < d.length; i += 4) {
-          const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-          const val = Math.min(255, Math.max(0, ((gray - 128) * 1.25) + 128));
-          d[i] = val;
-          d[i + 1] = val;
-          d[i + 2] = val;
-        }
-        ctx.putImageData(imgData, 0, 0);
-
-        const result = await window.Tesseract.recognize(canvas, 'eng');
-        recognizedText = result?.data?.text || '';
-      }
-
-      // Интеллектуальный парсинг с автозаменой схожих символов OCR
-      const parsed = extractCardDataFromText(recognizedText);
-
-      let anyFilled = false;
-      if (parsed.cardNumber) {
-        numInput.value = parsed.cardNumber;
-        numInput.dispatchEvent(new Event('input'));
-        anyFilled = true;
-      }
-      if (parsed.expiry) {
-        expInput.value = parsed.expiry;
-        expInput.dispatchEvent(new Event('input'));
-        anyFilled = true;
-      }
-      if (parsed.holder) {
-        holderInput.value = parsed.holder;
-        holderInput.dispatchEvent(new Event('input'));
-        anyFilled = true;
-      }
+      const text   = await _runOCR(canvas, null);
+      const parsed = extractCardDataFromText(text);
 
       if (parsed.cardNumber) {
+        _autofillFromParsed(parsed);
         tgUtil.haptic('success');
-        scanStatus.classList.remove('hidden');
         if (parsed.isLuhnValid) {
-          scanStatus.innerHTML = `✅ <strong>Данные карты успешно считаны!</strong> Проверьте номер и введите CVC/CVV.`;
+          scanStatus.innerHTML = `<strong>Карта распознана.</strong> Проверьте номер и введите CVC/CVV.`;
         } else {
-          scanStatus.innerHTML = `✅ <strong>Номер считан по фото!</strong> Пожалуйста, сверьте цифры и укажите CVC/CVV.`;
+          scanStatus.innerHTML = `Номер считан — сверьте цифры и введите CVC/CVV.`;
         }
         document.getElementById('cardCvcInput')?.focus();
-      } else if (anyFilled) {
+      } else if (parsed.expiry) {
+        expInput.value = parsed.expiry;
+        expInput.dispatchEvent(new Event('input'));
         tgUtil.haptic('light');
-        scanStatus.classList.remove('hidden');
-        scanStatus.innerHTML = `ℹ️ Часть данных карты заполнена. Проверьте номер.`;
+        scanStatus.innerHTML = `Срок действия считан. Введите номер карты вручную.`;
         numInput.focus();
       } else {
-        scanStatus.classList.remove('hidden');
-        scanStatus.innerHTML = `💡 <span class="text-amber-300">Не удалось четко различить номер на фото.</span> Сфотографируйте карту ближе или используйте камеру над клавиатурой.`;
+        scanStatus.innerHTML = `Не удалось распознать карту. Сфотографируйте ближе при хорошем освещении.`;
         numInput.focus();
       }
-    } catch (scanErr) {
-      console.warn('Scan card error:', scanErr);
-      scanStatus.classList.remove('hidden');
-      scanStatus.innerHTML = `💡 <span class="text-amber-300">Не удалось распознать фото.</span> Попробуйте камеру смартфона над клавиатурой или введите номер вручную.`;
+    } catch (err) {
+      console.warn('handleCardImage error:', err);
+      scanStatus.innerHTML = `Ошибка анализа фото. Введите данные вручную.`;
       numInput.focus();
     } finally {
-      scanPhotoBtn.disabled = false;
-      scanCameraBtn.disabled = false;
-      scanBtnText.innerText = 'Из галереи';
-      fileInput.value = '';
-      cameraInput.value = '';
+      liveScanBtn.disabled = false;
+      liveBtnText.innerText = 'Сканировать карту';
+      fallbackInput.value = '';
     }
   };
 
-  cameraInput.onchange = (e) => handleCardImage(e.target.files?.[0]);
-  fileInput.onchange = (e) => handleCardImage(e.target.files?.[0]);
+  fallbackInput.onchange = (e) => handleCardImage(e.target.files?.[0]);
 
   const addCardForm = document.getElementById('addCardForm');
   if (addCardForm) {
