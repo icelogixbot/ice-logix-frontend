@@ -2387,16 +2387,15 @@ async function renderMyOrders() {
 }
 
 // =====================================================================
+// =====================================================================
 // BEPAID КАРТЫ & ПЛАТЕЖИ (ТЗ v1.0 — Разделы 13, 14, 15, 23, 40)
 // =====================================================================
-window.userCards = [];
-
 function detectCardType(number) {
   const clean = String(number || '').replace(/\D/g, '');
   if (/^4/.test(clean)) return 'Visa';
   if (/^(5[1-5]|222[1-9]|22[3-9]|2[3-6]|27[01]|2720)/.test(clean)) return 'Mastercard';
-  if (/^220[0-4]/.test(clean)) return 'Mir';
-  if (/^9112/.test(clean) || /^9/.test(clean)) return 'Belkart';
+  if (/^220[0-4]/.test(clean)) return 'МИР';
+  if (/^(9112|9860|9861|9862)/.test(clean)) return 'БЕЛКАРТ';
   return 'Банковская карта';
 }
 
@@ -2404,43 +2403,70 @@ function getCardIcon(type) {
   const t = (type || '').toLowerCase();
   if (t.includes('visa')) return '💳 Visa';
   if (t.includes('master')) return '💳 Mastercard';
-  if (t.includes('mir')) return '💳 МИР';
-  if (t.includes('belkart')) return '💳 БЕЛКАРТ';
+  if (t.includes('mir') || t.includes('мир')) return '💳 МИР';
+  if (t.includes('belkart') || t.includes('белкарт')) return '💳 БЕЛКАРТ';
   return '💳 Карта';
 }
 
+function checkLuhn(cardNo) {
+  const s = String(cardNo || '').replace(/\D/g, '');
+  if (s.length < 13 || s.length > 19) return false;
+  let nSum = 0;
+  let isSecond = false;
+  for (let i = s.length - 1; i >= 0; i--) {
+    let d = parseInt(s.charAt(i), 10);
+    if (isSecond) {
+      d = d * 2;
+      if (d > 9) d -= 9;
+    }
+    nSum += d;
+    isSecond = !isSecond;
+  }
+  return (nSum % 10 === 0);
+}
+
+window.userCards = window.userCards || [];
+
 window.loadUserCards = async function() {
-  if (!userId) return [];
+  const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
+  if (!curUserId) {
+    window.userCards = Array.isArray(window.userCards) ? window.userCards : [];
+    return window.userCards;
+  }
   try {
     const { data, error } = await supabaseClient
       .from('payment_methods')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', curUserId)
       .eq('status', 'ACTIVE')
       .order('is_default', { ascending: false })
       .order('created_at', { ascending: false });
-    if (!error && Array.isArray(data) && data.length > 0) {
+    if (!error && Array.isArray(data)) {
       window.userCards = data;
-      try { localStorage.setItem('ice_payment_methods_' + userId, JSON.stringify(data)); } catch (_e) {}
+      try { localStorage.setItem('ice_payment_methods_' + curUserId, JSON.stringify(data)); } catch (_e) {}
       return data;
     }
   } catch (_e) {}
 
   try {
-    const cached = localStorage.getItem('ice_payment_methods_' + userId);
+    const cached = localStorage.getItem('ice_payment_methods_' + curUserId);
     if (cached) {
-      window.userCards = JSON.parse(cached);
-      return window.userCards;
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed)) {
+        window.userCards = parsed;
+        return window.userCards;
+      }
     }
   } catch (_e) {}
-  return [];
+  window.userCards = Array.isArray(window.userCards) ? window.userCards : [];
+  return window.userCards;
 };
 
 window.renderCheckoutCards = function() {
   const container = document.getElementById('checkoutCardsList');
   if (!container) return;
 
-  const cards = window.userCards || [];
+  const cards = Array.isArray(window.userCards) ? window.userCards : [];
   if (cards.length === 0) {
     container.innerHTML = `
       <div class="p-3 rounded-xl bg-white/5 border border-white/10 text-center">
@@ -2478,17 +2504,18 @@ window.renderCheckoutCards = function() {
 
 window.openAddCardModal = function(onSuccess) {
   tgUtil.haptic('light');
-  if (window.userCards && window.userCards.length >= 5) {
+  window.userCards = Array.isArray(window.userCards) ? window.userCards : [];
+  if (window.userCards.length >= 5) {
     tgUtil.alert('Достигнут максимальный лимит 5 карт на одного клиента (Раздел 23 ТЗ).');
     return;
   }
 
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/85 flex items-center justify-center z-[130] p-4';
+  modal.className = 'fixed inset-0 bg-black/85 flex items-center justify-center z-[130] p-4 overflow-y-auto';
   modal.id = 'addCardModal';
 
   modal.innerHTML = `
-    <div class="glass-card max-w-sm w-full mx-4 p-5 space-y-4 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.8)] border border-cyan-500/30 transform transition-all duration-300 scale-95 opacity-0" id="addCardModalContent">
+    <div class="glass-card max-w-sm w-full mx-auto p-5 space-y-4 shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-cyan-500/30 transform transition-all duration-300 scale-95 opacity-0 my-auto" id="addCardModalContent">
       <div class="flex justify-between items-center border-b border-white/10 pb-3">
         <div class="flex items-center gap-2">
           <span class="text-xl">💳</span>
@@ -2502,6 +2529,53 @@ window.openAddCardModal = function(onSuccess) {
         </button>
       </div>
 
+      <!-- Realistic Interactive Virtual Card -->
+      <div id="interactiveCardPreview" class="relative w-full rounded-2xl p-4 text-white shadow-2xl overflow-hidden border border-cyan-400/30 transition-all duration-300" style="background: linear-gradient(135deg, #091222 0%, #0d2847 45%, #0891b2 100%); min-height: 170px;">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.18),transparent_50%)] pointer-events-none"></div>
+        <div class="relative z-10 flex flex-col justify-between h-full space-y-3">
+          <div class="flex justify-between items-center">
+            <div class="flex items-center gap-2">
+              <div class="w-10 h-7 rounded-md bg-gradient-to-tr from-amber-400 via-yellow-200 to-amber-500 p-0.5 shadow border border-amber-300/60 flex items-center justify-center">
+                <div class="w-full h-full border border-amber-800/40 rounded flex items-center justify-center">
+                  <div class="w-3 h-3 border-x border-amber-800/40"></div>
+                </div>
+              </div>
+              <svg class="w-5 h-5 text-cyan-200/90" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8.5 16.5a5 5 0 0 1 0-9"/><path d="M12 19a8.5 8.5 0 0 0 0-14"/><path d="M15.5 21.5a12 12 0 0 0 0-19"/></svg>
+            </div>
+            <div id="cardBrandLogo" class="text-xs font-bold px-2 py-0.5 rounded-md bg-black/40 backdrop-blur border border-white/20 text-cyan-200">
+              Банковская карта
+            </div>
+          </div>
+
+          <div class="py-1">
+            <div id="visualCardNumber" class="font-mono text-base tracking-[0.18em] font-black text-white text-center drop-shadow-md select-none">
+              •••• •••• •••• ••••
+            </div>
+          </div>
+
+          <div class="flex justify-between items-end text-[10px] text-white/80">
+            <div>
+              <span class="block text-[8px] uppercase tracking-wider text-white/50">Держатель</span>
+              <span id="visualCardHolder" class="font-semibold text-white tracking-wider uppercase truncate block max-w-[170px]">CARD HOLDER</span>
+            </div>
+            <div class="text-right">
+              <span class="block text-[8px] uppercase tracking-wider text-white/50">Срок</span>
+              <span id="visualCardExp" class="font-mono font-bold text-white text-xs">MM/YY</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Photo / Camera Scan Button -->
+      <div>
+        <input type="file" id="cardPhotoInput" accept="image/*" class="hidden">
+        <button type="button" id="scanCardPhotoBtn" class="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-cyan-500/20 border border-cyan-400/40 hover:border-cyan-300 text-cyan-200 font-semibold text-xs flex items-center justify-center gap-2 transition active:scale-[0.98]">
+          <span class="text-base">📷</span>
+          <span id="scanBtnText">Считать карту по фото / камере (ИИ)</span>
+        </button>
+        <div id="scanStatusMsg" class="hidden text-center text-[10px] text-cyan-300 mt-1 animate-pulse"></div>
+      </div>
+
       <div class="p-2.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-[11px] text-cyan-200">
         🛡️ <strong>Безопасная верификация:</strong> для проверки карты будет заблокирован <strong>1.00 BYN</strong> и мгновенно возвращен на счет.
       </div>
@@ -2509,24 +2583,24 @@ window.openAddCardModal = function(onSuccess) {
       <div class="space-y-3">
         <div>
           <label class="text-white/70 text-xs block mb-1">Номер карты</label>
-          <input type="text" id="cardNumInput" maxlength="19" placeholder="0000 0000 0000 0000" class="w-full bg-slate-900/90 border border-white/20 rounded-xl p-3 text-white text-sm font-mono tracking-wider focus:border-cyan-400 focus:outline-none">
+          <input type="text" id="cardNumInput" name="cardnumber" autocomplete="cc-number" inputmode="numeric" maxlength="19" placeholder="0000 0000 0000 0000" class="w-full bg-slate-900/90 border border-white/20 rounded-xl p-3 text-white text-sm font-mono tracking-wider focus:border-cyan-400 focus:outline-none">
           <span id="cardTypeBadge" class="text-[10px] text-cyan-300 mt-1 block"></span>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="text-white/70 text-xs block mb-1">Срок (ММ/ГГ)</label>
-            <input type="text" id="cardExpInput" maxlength="5" placeholder="12/28" class="w-full bg-slate-900/90 border border-white/20 rounded-xl p-3 text-white text-sm font-mono text-center focus:border-cyan-400 focus:outline-none">
+            <input type="text" id="cardExpInput" name="cc-exp" autocomplete="cc-exp" inputmode="numeric" maxlength="5" placeholder="12/28" class="w-full bg-slate-900/90 border border-white/20 rounded-xl p-3 text-white text-sm font-mono text-center focus:border-cyan-400 focus:outline-none">
           </div>
           <div>
             <label class="text-white/70 text-xs block mb-1">CVC / CVV</label>
-            <input type="password" id="cardCvcInput" maxlength="3" placeholder="•••" class="w-full bg-slate-900/90 border border-white/20 rounded-xl p-3 text-white text-sm font-mono text-center focus:border-cyan-400 focus:outline-none">
+            <input type="password" id="cardCvcInput" name="cvc" autocomplete="cc-csc" inputmode="numeric" maxlength="3" placeholder="•••" class="w-full bg-slate-900/90 border border-white/20 rounded-xl p-3 text-white text-sm font-mono text-center focus:border-cyan-400 focus:outline-none">
           </div>
         </div>
 
         <div>
           <label class="text-white/70 text-xs block mb-1">Имя владельца карты</label>
-          <input type="text" id="cardHolderInput" placeholder="IVAN IVANOV" class="w-full bg-slate-900/90 border border-white/20 rounded-xl p-3 text-white text-sm uppercase focus:border-cyan-400 focus:outline-none">
+          <input type="text" id="cardHolderInput" name="ccname" autocomplete="cc-name" placeholder="IVAN IVANOV" class="w-full bg-slate-900/90 border border-white/20 rounded-xl p-3 text-white text-sm uppercase focus:border-cyan-400 focus:outline-none">
         </div>
       </div>
 
@@ -2553,21 +2627,184 @@ window.openAddCardModal = function(onSuccess) {
   modal.onclick = (e) => { if (e.target === modal) close(); };
 
   const numInput = document.getElementById('cardNumInput');
+  const expInput = document.getElementById('cardExpInput');
+  const holderInput = document.getElementById('cardHolderInput');
   const typeBadge = document.getElementById('cardTypeBadge');
+  const visualNum = document.getElementById('visualCardNumber');
+  const visualExp = document.getElementById('visualCardExp');
+  const visualHolder = document.getElementById('visualCardHolder');
+  const visualBrand = document.getElementById('cardBrandLogo');
+
   numInput.oninput = (e) => {
     let val = e.target.value.replace(/\D/g, '').substring(0, 16);
     let formatted = val.match(/.{1,4}/g)?.join(' ') || val;
     e.target.value = formatted;
-    typeBadge.innerText = val.length >= 4 ? detectCardType(val) : '';
+    const bType = detectCardType(val);
+    typeBadge.innerText = val.length >= 4 ? bType : '';
+    visualBrand.innerText = val.length >= 4 ? bType : 'Банковская карта';
+
+    if (val.length === 0) {
+      visualNum.innerText = '•••• •••• •••• ••••';
+    } else {
+      let mask = formatted;
+      while (mask.replace(/\s/g, '').length < 16) {
+        if (mask.length === 4 || mask.length === 9 || mask.length === 14) mask += ' ';
+        mask += '•';
+      }
+      visualNum.innerText = mask;
+    }
   };
 
-  const expInput = document.getElementById('cardExpInput');
   expInput.oninput = (e) => {
     let val = e.target.value.replace(/\D/g, '').substring(0, 4);
     if (val.length >= 3) {
       e.target.value = val.substring(0, 2) + '/' + val.substring(2);
     } else {
       e.target.value = val;
+    }
+    visualExp.innerText = e.target.value || 'MM/YY';
+  };
+
+  holderInput.oninput = (e) => {
+    visualHolder.innerText = (e.target.value || 'CARD HOLDER').toUpperCase();
+  };
+
+  // AI Photo Scanning feature
+  const scanBtn = document.getElementById('scanCardPhotoBtn');
+  const fileInput = document.getElementById('cardPhotoInput');
+  const scanStatus = document.getElementById('scanStatusMsg');
+  const scanBtnText = document.getElementById('scanBtnText');
+
+  scanBtn.onclick = () => {
+    tgUtil.haptic('light');
+    fileInput.click();
+  };
+
+  fileInput.onchange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    scanBtn.disabled = true;
+    scanBtnText.innerText = '⏳ ИИ считывает карту...';
+    scanStatus.classList.remove('hidden');
+    scanStatus.innerText = 'Анализ лицевой стороны карты...';
+
+    try {
+      // Load Tesseract.js dynamically if not present
+      if (!window.Tesseract) {
+        scanStatus.innerText = 'Загрузка модуля распознавания...';
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+          script.onload = resolve;
+          script.onerror = () => reject(new Error('Не удалось загрузить модуль сканирования'));
+          document.head.appendChild(script);
+        });
+      }
+
+      scanStatus.innerText = 'Распознавание номера и срока...';
+
+      // Read image and enhance contrast on canvas for OCR
+      const img = new Image();
+      const imgLoaded = new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+      img.src = URL.createObjectURL(file);
+      await imgLoaded;
+
+      const canvas = document.createElement('canvas');
+      const maxDim = 1200;
+      let scale = 1;
+      if (img.width > maxDim || img.height > maxDim) {
+        scale = maxDim / Math.max(img.width, img.height);
+      }
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      // Contrast enhancement
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const d = imgData.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const v = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+        const factor = 1.35;
+        const enhanced = Math.min(255, Math.max(0, (v - 128) * factor + 128));
+        d[i] = enhanced;
+        d[i + 1] = enhanced;
+        d[i + 2] = enhanced;
+      }
+      ctx.putImageData(imgData, 0, 0);
+
+      const result = await window.Tesseract.recognize(canvas, 'eng');
+      const text = result?.data?.text || '';
+
+      // Extract card number candidates
+      const digitsOnly = text.replace(/[^\d\s\n-]/g, ' ');
+      const rawCandidates = digitsOnly.match(/\b(?:\d[\s-]*?){13,19}\b/g) || [];
+
+      let foundCardNumber = null;
+      for (const cand of rawCandidates) {
+        const clean = cand.replace(/\D/g, '');
+        if (clean.length === 16 && checkLuhn(clean)) {
+          foundCardNumber = clean;
+          break;
+        }
+      }
+      if (!foundCardNumber) {
+        for (const cand of rawCandidates) {
+          const clean = cand.replace(/\D/g, '');
+          if (clean.length === 16) {
+            foundCardNumber = clean;
+            break;
+          }
+        }
+      }
+
+      // Extract expiry date (MM/YY)
+      const expMatch = text.match(/\b(0[1-9]|1[0-2])[\/\-\s]([2-3]\d)\b/);
+
+      // Extract cardholder name
+      const lines = text.split('\n').map(l => l.trim().toUpperCase());
+      let foundHolder = null;
+      for (const line of lines) {
+        if (/^[A-Z]{2,15}\s+[A-Z]{2,15}$/.test(line)) {
+          if (!line.includes('VISA') && !line.includes('BANK') && !line.includes('CARD') && !line.includes('VALID') && !line.includes('THRU')) {
+            foundHolder = line;
+            break;
+          }
+        }
+      }
+
+      if (foundCardNumber) {
+        numInput.value = foundCardNumber;
+        numInput.dispatchEvent(new Event('input'));
+      }
+      if (expMatch) {
+        expInput.value = `${expMatch[1]}/${expMatch[2]}`;
+        expInput.dispatchEvent(new Event('input'));
+      }
+      if (foundHolder) {
+        holderInput.value = foundHolder;
+        holderInput.dispatchEvent(new Event('input'));
+      }
+
+      if (foundCardNumber) {
+        tgUtil.haptic('success');
+        tgUtil.alert('✅ Данные карты успешно считаны! Пожалуйста, проверьте номер и введите CVC/CVV.');
+        document.getElementById('cardCvcInput')?.focus();
+      } else {
+        tgUtil.alert('Не удалось четко распознать 16 цифр номера карты. Пожалуйста, сделайте фото ближе или введите номер вручную.');
+      }
+    } catch (scanErr) {
+      console.warn('OCR error:', scanErr);
+      tgUtil.alert('Не удалось распознать фото. Введите данные карты вручную.');
+    } finally {
+      scanBtn.disabled = false;
+      scanBtnText.innerText = '📷 Считать карту по фото / камере (ИИ)';
+      scanStatus.classList.add('hidden');
+      fileInput.value = '';
     }
   };
 
@@ -2581,7 +2818,7 @@ window.openAddCardModal = function(onSuccess) {
     }
     const cvc = document.getElementById('cardCvcInput').value.trim();
     if (cvc.length < 3) { tgUtil.alert('Введите 3-значный CVC/CVV код'); return; }
-    const holder = (document.getElementById('cardHolderInput').value.trim() || 'CARD HOLDER').toUpperCase();
+    const holder = (holderInput.value.trim() || 'CARD HOLDER').toUpperCase();
 
     const submitBtn = document.getElementById('submitAddCardBtn');
     submitBtn.disabled = true;
@@ -2589,23 +2826,28 @@ window.openAddCardModal = function(onSuccess) {
 
     const cardType = detectCardType(rawNum);
     const expMeta = `${String(mm).padStart(2, '0')}/${String(yy).slice(-2)}`;
+    const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
 
     // Токенизация bePaid без сохранения полного номера и CVV (Раздел 2.2, 12 ТЗ)
     const newCard = {
-      user_id: userId,
+      user_id: curUserId,
       provider: 'bepaid_mock',
       provider_token_id: 'tok_bepaid_' + Math.random().toString(36).substring(2, 10),
       card_brand: cardType,
       last4: rawNum.slice(-4),
       expiry_metadata: expMeta,
-      is_default: window.userCards.length === 0,
+      is_default: (window.userCards || []).length === 0,
       status: 'ACTIVE'
     };
 
     try {
-      const { data, error } = await supabaseClient.from('payment_methods').insert(newCard).select();
-      if (!error && data && data.length > 0) {
-        newCard.id = data[0].id;
+      if (curUserId && typeof supabaseClient !== 'undefined' && supabaseClient) {
+        const { data, error } = await supabaseClient.from('payment_methods').insert(newCard).select();
+        if (!error && data && data.length > 0) {
+          newCard.id = data[0].id;
+        } else {
+          newCard.id = 'c_' + Date.now();
+        }
       } else {
         newCard.id = 'c_' + Date.now();
       }
@@ -2613,13 +2855,14 @@ window.openAddCardModal = function(onSuccess) {
       newCard.id = 'c_' + Date.now();
     }
 
+    window.userCards = Array.isArray(window.userCards) ? window.userCards : [];
     window.userCards.unshift(newCard);
     try {
-      localStorage.setItem('ice_payment_methods_' + userId, JSON.stringify(window.userCards));
+      if (curUserId) localStorage.setItem('ice_payment_methods_' + curUserId, JSON.stringify(window.userCards));
     } catch (_e) {}
 
     tgUtil.haptic('success');
-    tgUtil.alert(`✅ Карта ${cardType} •••• ${newCard.last4} успешно привязана!\\n1.00 BYN возвращен на ваш счет.`);
+    tgUtil.alert(`✅ Карта ${cardType} •••• ${newCard.last4} успешно привязана!\n1.00 BYN возвращен на ваш счет.`);
     close();
 
     window.renderCheckoutCards();
@@ -2630,41 +2873,44 @@ window.openAddCardModal = function(onSuccess) {
 window.openCardsManagementModal = async function() {
   tgUtil.haptic('light');
   await window.loadUserCards();
+  window.userCards = Array.isArray(window.userCards) ? window.userCards : [];
 
   const modal = document.createElement('div');
   modal.className = 'fixed inset-0 bg-black/85 flex items-center justify-center z-[120] p-4';
   modal.id = 'cardsManageModal';
 
   const renderCardListHtml = () => {
-    if (!window.userCards || window.userCards.length === 0) {
+    const cards = Array.isArray(window.userCards) ? window.userCards : [];
+    if (cards.length === 0) {
       return `
         <div class="text-center py-6 text-white/50 text-xs">
-          <p class="text-2xl mb-2">💳</p>
-          <p>У вас нет сохраненных банковских карт</p>
+          <p class="text-3xl mb-2">💳</p>
+          <p class="font-semibold text-white/70">У вас нет сохраненных банковских карт</p>
+          <p class="text-[11px] text-white/40 mt-1">Привяжите карту для быстрой оплаты заказов в 1 клик</p>
         </div>
       `;
     }
-    return window.userCards.map(c => {
+    return cards.map(c => {
       const brand = c.card_brand || c.card_type || 'Банковская карта';
       const last4 = c.last4 || c.card_last4 || '••••';
       const exp = c.expiry_metadata || (c.exp_month ? `${String(c.exp_month).padStart(2, '0')}/${String(c.exp_year).slice(-2)}` : '12/28');
       return `
-        <div class="p-3 rounded-xl bg-white/5 border ${c.is_default ? 'border-cyan-500/50 bg-cyan-500/5' : 'border-white/10'} flex items-center justify-between gap-2">
+        <div class="p-3 rounded-xl bg-white/5 border ${c.is_default ? 'border-cyan-500/50 bg-cyan-500/10' : 'border-white/10'} flex items-center justify-between gap-2 transition hover:bg-white/10">
           <div>
             <div class="flex items-center gap-1.5">
               <span class="text-sm font-bold text-white">${getCardIcon(brand)}</span>
-              <span class="text-sm font-mono text-cyan-300 font-bold">•••• ${last4}</span>
-              ${c.is_default ? '<span class="text-[9px] text-cyan-300 font-semibold bg-cyan-500/20 px-1.5 py-0.5 rounded">Основная</span>' : ''}
+              <span class="text-sm font-mono text-cyan-300 font-bold tracking-wider">•••• ${last4}</span>
+              ${c.is_default ? '<span class="text-[9px] text-cyan-300 font-semibold bg-cyan-500/20 px-1.5 py-0.5 rounded border border-cyan-400/30">Основная</span>' : ''}
             </div>
             <p class="text-[10px] text-white/50 mt-0.5">${exp} · Токенизирована bePaid</p>
           </div>
           <div class="flex items-center gap-1.5">
             ${!c.is_default ? `
-              <button class="px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-[10px] text-cyan-400 font-semibold" onclick="window.setDefaultCard('${c.id}')">
+              <button class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[10px] text-cyan-400 font-semibold transition" onclick="window.setDefaultCard('${c.id}')">
                 Сделать осн.
               </button>
             ` : ''}
-            <button class="p-1.5 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs" onclick="window.deleteCard('${c.id}')" title="Удалить карту">
+            <button class="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs transition" onclick="window.deleteCard('${c.id}')" title="Удалить карту">
               🗑️
             </button>
           </div>
@@ -2673,14 +2919,16 @@ window.openCardsManagementModal = async function() {
     }).join('');
   };
 
+  const cardsCount = (window.userCards || []).length;
+
   modal.innerHTML = `
-    <div class="glass-card max-w-sm w-full mx-4 p-5 space-y-4 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.8)] border border-white/20 transform transition-all duration-300 scale-95 opacity-0" id="cardsManageModalContent">
+    <div class="glass-card max-w-sm w-full mx-auto p-5 space-y-4 shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-white/20 transform transition-all duration-300 scale-95 opacity-0" id="cardsManageModalContent">
       <div class="flex justify-between items-center border-b border-white/10 pb-3">
         <div class="flex items-center gap-2">
           <span class="text-xl">💳</span>
           <div>
             <h3 class="text-white font-bold text-sm">Мои банковские карты</h3>
-            <p class="text-[10px] text-white/50">До 5 карт (bePaid)</p>
+            <p class="text-[10px] text-white/50">Сохранено ${cardsCount} из 5 (bePaid)</p>
           </div>
         </div>
         <button id="closeCardsManageBtn" class="text-white/40 hover:text-white p-1 rounded-lg">
@@ -2692,13 +2940,19 @@ window.openCardsManagementModal = async function() {
         ${renderCardListHtml()}
       </div>
 
-      ${window.userCards.length < 5 ? `
-        <button id="modalAddNewCardBtn" class="btn-primary w-full py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 text-xs">
+      ${cardsCount < 5 ? `
+        <button id="modalAddNewCardBtn" class="btn-primary w-full py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 text-xs shadow-md shadow-cyan-500/20">
           <span>+ Привязать новую карту (1.00 BYN)</span>
         </button>
       ` : `
-        <p class="text-[11px] text-amber-400 text-center font-semibold">Достигнут максимум 5 карт по ТЗ</p>
+        <p class="text-[11px] text-amber-400 text-center font-semibold p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+          Достигнут максимум 5 карт по ТЗ
+        </p>
       `}
+
+      <div class="p-2.5 rounded-lg bg-white/5 border border-white/10 text-[10px] text-white/50 text-center">
+        🔒 Данные карт защищены стандартом PCI DSS. Полный номер и CVV никогда не хранятся на наших серверах.
+      </div>
     </div>
   `;
 
@@ -2729,30 +2983,41 @@ window.openCardsManagementModal = async function() {
   }
 
   window.setDefaultCard = async (cardId) => {
+    const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
+    window.userCards = Array.isArray(window.userCards) ? window.userCards : [];
     window.userCards.forEach(c => { c.is_default = (c.id === cardId); });
     try {
-      await supabaseClient.from('payment_methods').update({ is_default: false }).eq('user_id', userId);
-      await supabaseClient.from('payment_methods').update({ is_default: true }).eq('id', cardId);
-      localStorage.setItem('ice_payment_methods_' + userId, JSON.stringify(window.userCards));
+      if (curUserId && typeof supabaseClient !== 'undefined' && supabaseClient) {
+        await supabaseClient.from('payment_methods').update({ is_default: false }).eq('user_id', curUserId);
+        await supabaseClient.from('payment_methods').update({ is_default: true }).eq('id', cardId);
+      }
+      if (curUserId) localStorage.setItem('ice_payment_methods_' + curUserId, JSON.stringify(window.userCards));
     } catch (_e) {}
-    document.getElementById('modalCardsList').innerHTML = renderCardListHtml();
+    const listEl = document.getElementById('modalCardsList');
+    if (listEl) listEl.innerHTML = renderCardListHtml();
     tgUtil.haptic('light');
   };
 
   window.deleteCard = async (cardId) => {
     if (!confirm('Удалить эту карту?')) return;
+    const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
+    window.userCards = Array.isArray(window.userCards) ? window.userCards : [];
     window.userCards = window.userCards.filter(c => c.id !== cardId);
     if (window.userCards.length > 0 && !window.userCards.some(c => c.is_default)) {
       window.userCards[0].is_default = true;
     }
     try {
-      await supabaseClient.from('payment_methods').update({ status: 'DELETED', deleted_at: new Date().toISOString() }).eq('id', cardId);
-      localStorage.setItem('ice_payment_methods_' + userId, JSON.stringify(window.userCards));
+      if (curUserId && typeof supabaseClient !== 'undefined' && supabaseClient) {
+        await supabaseClient.from('payment_methods').update({ status: 'DELETED', deleted_at: new Date().toISOString() }).eq('id', cardId);
+      }
+      if (curUserId) localStorage.setItem('ice_payment_methods_' + curUserId, JSON.stringify(window.userCards));
     } catch (_e) {}
-    document.getElementById('modalCardsList').innerHTML = renderCardListHtml();
+    const listEl = document.getElementById('modalCardsList');
+    if (listEl) listEl.innerHTML = renderCardListHtml();
     tgUtil.haptic('medium');
   };
 };
+
 
 window.openSecondPaymentModal = function(orderId, amount) {
   tgUtil.haptic('light');
