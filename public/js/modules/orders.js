@@ -2399,6 +2399,96 @@ function detectCardType(number) {
   return 'Банковская карта';
 }
 
+function detectBank(number) {
+  const clean = String(number || '').replace(/\D/g, '');
+  if (clean.length < 4) return null;
+  const bin6 = clean.substring(0, 6);
+  const bin4 = clean.substring(0, 4);
+
+  // Беларусь
+  if (/^(409428|430488|510049|535109|911202|986002)/.test(bin6)) {
+    return { name: 'Приорбанк', shortName: 'Приорбанк', code: 'prior', icon: '🟡', badgeBg: 'bg-amber-400/20 text-amber-300 border border-amber-400/40' };
+  }
+  if (/^(425519|425520|545622|911201|911221|986001)/.test(bin6)) {
+    return { name: 'Беларусбанк', shortName: 'Беларусбанк', code: 'belarusbank', icon: '🟢', badgeBg: 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40' };
+  }
+  if (/^(425581|535105|911204|986004)/.test(bin6)) {
+    return { name: 'МТБанк', shortName: 'МТБанк', code: 'mtbank', icon: '🔴', badgeBg: 'bg-red-500/20 text-red-300 border border-red-400/40' };
+  }
+  if (/^(416956|535118|911205)/.test(bin6)) {
+    return { name: 'Белгазпромбанк', shortName: 'Белгазпромбанк', code: 'bgpb', icon: '🔵', badgeBg: 'bg-blue-500/20 text-blue-300 border border-blue-400/40' };
+  }
+  if (/^(404884|528028|911210)/.test(bin6)) {
+    return { name: 'БСБ Банк', shortName: 'БСБ Банк', code: 'bsb', icon: '🔷', badgeBg: 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40' };
+  }
+  // Т-Банк (Тинькофф)
+  if (/^(553691|521324|437773|220070|220077|220075|220076|220078|521693|400194)/.test(bin6)) {
+    return { name: 'Т-Банк', shortName: 'Т-Банк', code: 'tbank', icon: '🟡', badgeBg: 'bg-yellow-400/20 text-yellow-300 border border-yellow-400/40' };
+  }
+  // Альфа-Банк
+  if (/^(401200|477964|521178|548999|911208|415428|4584|519747|220015|220016)/.test(bin6) || /^(4584)/.test(bin4)) {
+    return { name: 'Альфа-Банк', shortName: 'Альфа-Банк', code: 'alfa', icon: '🔴', badgeBg: 'bg-red-500/20 text-red-300 border border-red-400/40' };
+  }
+  // Сбер
+  if (/^(418868|510087|911203|986003|427229|220024)/.test(bin6) || /^(4276|4279|5469|2202)/.test(bin4)) {
+    return { name: 'Сбер', shortName: 'Сбер', code: 'sber', icon: '🟢', badgeBg: 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40' };
+  }
+  // ВТБ
+  if (/^(403270|518649|911207|220025|462230)/.test(bin6)) {
+    return { name: 'ВТБ', shortName: 'ВТБ', code: 'vtb', icon: '🔵', badgeBg: 'bg-blue-600/20 text-blue-300 border border-blue-500/40' };
+  }
+  // Яндекс Банк
+  if (/^(220073|220074|5337)/.test(bin6) || /^(5337)/.test(bin4)) {
+    return { name: 'Яндекс Банк', shortName: 'Яндекс Банк', code: 'yandex', icon: '🟠', badgeBg: 'bg-orange-500/20 text-orange-300 border border-orange-400/40' };
+  }
+  return null;
+}
+
+function getCardRateLimitStatus() {
+  const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : 'guest');
+  const key = 'ice_card_rate_limit_' + curUserId;
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return { blocked: false, remainingMin: 0 };
+    const data = JSON.parse(raw);
+    const now = Date.now();
+    if (data.blockedUntil && data.blockedUntil > now) {
+      const remainingMin = Math.ceil((data.blockedUntil - now) / 60000);
+      return { blocked: true, remainingMin };
+    }
+    return { blocked: false, remainingMin: 0 };
+  } catch (_) {
+    return { blocked: false, remainingMin: 0 };
+  }
+}
+
+function recordCardAttempt() {
+  const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : 'guest');
+  const key = 'ice_card_rate_limit_' + curUserId;
+  try {
+    const now = Date.now();
+    const raw = localStorage.getItem(key);
+    let data = raw ? JSON.parse(raw) : { attempts: [] };
+    const recent = (data.attempts || []).filter(t => (now - t) < 10 * 60 * 1000);
+    recent.push(now);
+    let blockedUntil = null;
+    if (recent.length >= 3) {
+      blockedUntil = now + 10 * 60 * 1000;
+    }
+    localStorage.setItem(key, JSON.stringify({ attempts: recent, blockedUntil }));
+    if (blockedUntil) {
+      return { blocked: true, remainingMin: 10 };
+    }
+  } catch (_) {}
+  return { blocked: false };
+}
+
+function clearCardRateLimit() {
+  const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : 'guest');
+  const key = 'ice_card_rate_limit_' + curUserId;
+  try { localStorage.removeItem(key); } catch (_) {}
+}
+
 function getCardIcon(type) {
   const t = (type || '').toLowerCase();
   if (t.includes('visa')) return '💳 Visa';
@@ -2469,9 +2559,9 @@ window.renderCheckoutCards = function() {
   const cards = Array.isArray(window.userCards) ? window.userCards : [];
   if (cards.length === 0) {
     container.innerHTML = `
-      <div class="p-3 rounded-xl bg-white/5 border border-white/10 text-center">
-        <p class="text-xs text-white/70 mb-2">У вас пока нет сохраненных карт</p>
-        <button type="button" class="btn-primary w-full py-2.5 text-xs rounded-xl flex items-center justify-center gap-1.5" onclick="window.openAddCardModal(() => { if (typeof recalculateOrderTotals === 'function') recalculateOrderTotals(); })">
+      <div class="p-3.5 rounded-2xl bg-slate-900/80 border border-white/10 text-center space-y-2">
+        <p class="text-xs text-white/70">У вас пока нет привязанных банковских карт</p>
+        <button type="button" class="btn-primary w-full py-2.5 text-xs rounded-xl flex items-center justify-center gap-1.5 font-bold shadow-md shadow-cyan-500/20" onclick="window.openAddCardModal(() => { if (typeof recalculateOrderTotals === 'function') recalculateOrderTotals(); })">
           <span>+ Привязать карту (bePaid)</span>
         </button>
       </div>
@@ -2479,31 +2569,68 @@ window.renderCheckoutCards = function() {
     return;
   }
 
-  container.innerHTML = cards.map((c, idx) => {
+  const cardsHtml = cards.map((c, idx) => {
     const brand = c.card_brand || c.card_type || 'Банковская карта';
     const last4 = c.last4 || c.card_last4 || '••••';
     const exp = c.expiry_metadata || (c.exp_month ? `${String(c.exp_month).padStart(2, '0')}/${String(c.exp_year).slice(-2)}` : '12/28');
+    const isSelected = c.is_default || idx === 0;
+    const bankName = c.bank_name || '';
+
     return `
-      <label class="flex items-center justify-between p-3 rounded-xl bg-white/5 border ${c.is_default || idx === 0 ? 'border-cyan-500/50 bg-cyan-500/5' : 'border-white/10'} cursor-pointer hover:bg-white/10 transition">
+      <label class="flex items-center justify-between p-3 rounded-2xl transition-all cursor-pointer ${isSelected ? 'bg-gradient-to-r from-cyan-950/60 to-slate-900 border border-cyan-500/50 shadow-md shadow-cyan-500/10' : 'bg-slate-900/70 border border-white/10 hover:border-white/20'}">
         <div class="flex items-center gap-3">
-          <input type="radio" name="selectedCheckoutCard" value="${c.id}" ${c.is_default || idx === 0 ? 'checked' : ''} class="w-4 h-4 accent-cyan-500">
+          <input type="radio" name="selectedCheckoutCard" value="${c.id}" ${isSelected ? 'checked' : ''} class="w-4 h-4 accent-cyan-400 cursor-pointer" onchange="window.selectCheckoutCard('${c.id}')">
+          <div class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-sm select-none">
+            ${brand === 'Visa' ? '<span class="text-[9px] font-black text-blue-400">VISA</span>' :
+              brand === 'Mastercard' ? '<span class="inline-flex items-center"><span class="w-2 h-2 rounded-full bg-red-500"></span><span class="w-2 h-2 rounded-full bg-amber-400 -ml-1"></span></span>' :
+              brand === 'МИР' ? '<span class="text-[8px] font-black text-teal-400">МИР</span>' :
+              brand === 'БЕЛКАРТ' ? '<span class="text-[7px] font-black text-emerald-400">БК</span>' : '💳'}
+          </div>
           <div>
-            <p class="text-xs font-bold text-white flex items-center gap-1.5">
-              <span>${getCardIcon(brand)}</span>
-              <span>•••• ${last4}</span>
-              ${c.is_default ? '<span class="text-[9px] text-cyan-300 font-semibold bg-cyan-500/20 px-1.5 py-0.5 rounded">Основная</span>' : ''}
-            </p>
-            <p class="text-[10px] text-white/50">${exp} · Токенизирована bePaid</p>
+            <div class="flex items-center gap-1.5">
+              ${bankName ? `<span class="text-xs font-bold text-white">${bankName}</span>` : ''}
+              <span class="text-xs font-mono font-bold text-white tracking-wider">•••• ${last4}</span>
+              ${c.is_default ? '<span class="text-[8px] text-cyan-300 font-bold bg-cyan-500/20 px-1.5 py-0.5 rounded-full border border-cyan-400/40">Осн.</span>' : ''}
+            </div>
+            <p class="text-[10px] text-white/40 mt-0.5">${brand} · ${exp} · bePaid</p>
           </div>
         </div>
-        <span class="text-[10px] text-green-400 flex items-center gap-1">🔒 bePaid</span>
+        <span class="text-[10px] text-cyan-400 font-mono font-bold">1 клик</span>
       </label>
     `;
   }).join('');
+
+  const addMoreHtml = cards.length < 5 ? `
+    <button type="button" class="w-full py-2.5 rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 border border-dashed border-cyan-500/30 hover:border-cyan-400 bg-cyan-500/5 hover:bg-cyan-500/10 text-cyan-300 transition-all active:scale-95" onclick="window.openAddCardModal(() => { if (typeof recalculateOrderTotals === 'function') recalculateOrderTotals(); })">
+      <span>+ Привязать ещё одну карту</span>
+    </button>
+  ` : '';
+
+  container.innerHTML = `
+    <div class="space-y-2">
+      ${cardsHtml}
+      ${addMoreHtml}
+    </div>
+  `;
+};
+
+window.selectCheckoutCard = function(cardId) {
+  if (Array.isArray(window.userCards)) {
+    window.userCards.forEach(c => { c.is_default = (c.id === cardId); });
+  }
+  tgUtil.haptic('light');
+  window.renderCheckoutCards();
 };
 
 window.openAddCardModal = function(onSuccess) {
   tgUtil.haptic('light');
+
+  const rateLimit = getCardRateLimitStatus();
+  if (rateLimit.blocked) {
+    tgUtil.alert(`⏳ Слишком много попыток ввода карты. В целях безопасности подождите ${rateLimit.remainingMin} мин.`);
+    return;
+  }
+
   window.userCards = Array.isArray(window.userCards) ? window.userCards : [];
   if (window.userCards.length >= 5) {
     tgUtil.alert('Достигнут максимальный лимит 5 карт на одного клиента (Раздел 23 ТЗ).');
@@ -2531,23 +2658,30 @@ window.openAddCardModal = function(onSuccess) {
       <form id="addCardForm" autocomplete="on" onsubmit="event.preventDefault();" class="space-y-3 pt-1">
         
         <!-- Поле: Номер карты -->
-        <div class="rounded-2xl bg-slate-900/90 border border-white/15 focus-within:border-cyan-400 p-3 transition shadow-inner">
-          <div class="flex justify-between items-center mb-1">
-            <span class="text-[10px] uppercase font-bold text-white/40 tracking-wider">Номер карты</span>
-            <span id="detectedBrandBadge" class="text-[11px] font-bold text-cyan-300 hidden"></span>
+        <div>
+          <div class="rounded-2xl bg-slate-900/90 border border-white/15 focus-within:border-cyan-400 p-3 transition shadow-inner">
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-[10px] uppercase font-bold text-white/40 tracking-wider">Номер карты</span>
+              <span id="detectedBrandBadge" class="text-[11px] font-bold text-cyan-300 hidden"></span>
+            </div>
+            <div class="flex items-center gap-2.5">
+              <span id="cardBrandIcon" class="text-xl select-none">💳</span>
+              <input 
+                type="text" 
+                id="cardNumInput" 
+                name="cardnumber" 
+                autocomplete="cc-number" 
+                inputmode="numeric" 
+                maxlength="19" 
+                placeholder="0000 0000 0000 0000" 
+                class="w-full bg-transparent text-white text-base font-mono font-bold tracking-[0.12em] focus:outline-none placeholder:text-white/20"
+              >
+            </div>
           </div>
-          <div class="flex items-center gap-2.5">
-            <span id="cardBrandIcon" class="text-xl select-none">💳</span>
-            <input 
-              type="text" 
-              id="cardNumInput" 
-              name="cardnumber" 
-              autocomplete="cc-number" 
-              inputmode="numeric" 
-              maxlength="19" 
-              placeholder="0000 0000 0000 0000" 
-              class="w-full bg-transparent text-white text-base font-mono font-bold tracking-[0.12em] focus:outline-none placeholder:text-white/20"
-            >
+          <!-- Ошибка алгоритма Луна -->
+          <div id="cardNumError" class="text-[11px] text-amber-400 mt-1.5 px-2 hidden flex items-center gap-1.5 font-medium">
+            <span>⚠️</span>
+            <span>В номере карты опечатка — проверьте цифры</span>
           </div>
         </div>
 
@@ -2640,29 +2774,39 @@ window.openAddCardModal = function(onSuccess) {
   const brandBadge = document.getElementById('detectedBrandBadge');
   const submitBtn = document.getElementById('submitAddCardBtn');
   const addCardForm = document.getElementById('addCardForm');
+  const numErrorEl = document.getElementById('cardNumError');
 
   function updateBrandVisual(rawDigits) {
     const brand = detectCardType(rawDigits);
+    const bank = detectBank(rawDigits);
+
     if (rawDigits.length >= 2) {
       if (brand === 'Visa') {
         brandIcon.innerHTML = '<span class="text-xs font-black text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-400/30">VISA</span>';
-        if (brandBadge) { brandBadge.innerText = 'VISA'; brandBadge.classList.remove('hidden'); }
       } else if (brand === 'Mastercard') {
         brandIcon.innerHTML = '<span class="inline-flex items-center"><span class="w-3.5 h-3.5 rounded-full bg-red-500"></span><span class="w-3.5 h-3.5 rounded-full bg-amber-400 -ml-1.5"></span></span>';
-        if (brandBadge) { brandBadge.innerText = 'Mastercard'; brandBadge.classList.remove('hidden'); }
       } else if (brand === 'МИР') {
         brandIcon.innerHTML = '<span class="text-xs font-black text-teal-400 bg-teal-500/10 px-1.5 py-0.5 rounded border border-teal-400/30">МИР</span>';
-        if (brandBadge) { brandBadge.innerText = 'МИР'; brandBadge.classList.remove('hidden'); }
       } else if (brand === 'БЕЛКАРТ') {
         brandIcon.innerHTML = '<span class="text-xs font-black text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-400/30">БЕЛКАРТ</span>';
-        if (brandBadge) { brandBadge.innerText = 'БЕЛКАРТ'; brandBadge.classList.remove('hidden'); }
       } else {
         brandIcon.innerText = '💳';
-        if (brandBadge) { brandBadge.innerText = brand; brandBadge.classList.remove('hidden'); }
       }
     } else {
       brandIcon.innerText = '💳';
-      if (brandBadge) { brandBadge.innerText = ''; brandBadge.classList.add('hidden'); }
+    }
+
+    if (brandBadge) {
+      if (bank) {
+        brandBadge.innerHTML = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${bank.badgeBg}">${bank.icon} ${bank.shortName}</span>`;
+        brandBadge.classList.remove('hidden');
+      } else if (brand && brand !== 'Банковская карта') {
+        brandBadge.innerHTML = `<span class="text-[11px] font-bold text-cyan-300">${brand}</span>`;
+        brandBadge.classList.remove('hidden');
+      } else {
+        brandBadge.innerText = '';
+        brandBadge.classList.add('hidden');
+      }
     }
   }
 
@@ -2672,7 +2816,19 @@ window.openAddCardModal = function(onSuccess) {
     const [mmStr, yyStr] = expVal.split('/');
     const cvcVal = (cvcInput.value || '').trim();
 
-    const isNumValid = rawNum.length === 16;
+    let isNumValid = false;
+    if (rawNum.length === 16) {
+      if (checkLuhn(rawNum)) {
+        isNumValid = true;
+        if (numErrorEl) numErrorEl.classList.add('hidden');
+      } else {
+        isNumValid = false;
+        if (numErrorEl) numErrorEl.classList.remove('hidden');
+      }
+    } else {
+      if (numErrorEl) numErrorEl.classList.add('hidden');
+    }
+
     let isExpValid = false;
     if (mmStr && yyStr && mmStr.length === 2 && yyStr.length === 2) {
       const mm = parseInt(mmStr, 10);
@@ -2743,6 +2899,18 @@ window.openAddCardModal = function(onSuccess) {
   submitBtn.onclick = async () => {
     if (!validateForm()) return;
 
+    // Антифрод проверка лимита попыток
+    const limitCheck = getCardRateLimitStatus();
+    if (limitCheck.blocked) {
+      tgUtil.alert(`⏳ Слишком много попыток. Подождите ${limitCheck.remainingMin} мин.`);
+      return;
+    }
+    const attemptResult = recordCardAttempt();
+    if (attemptResult && attemptResult.blocked) {
+      tgUtil.alert(`⏳ Превышен лимит попыток. В целях безопасности подождите 10 мин.`);
+      return;
+    }
+
     const rawNum = numInput.value.replace(/\D/g, '');
     const expVal = expInput.value;
     const [mm, yy] = expVal.split('/');
@@ -2754,6 +2922,7 @@ window.openAddCardModal = function(onSuccess) {
     `;
 
     const cardType = detectCardType(rawNum);
+    const bankInfo = detectBank(rawNum);
     const expMeta = `${String(mm).padStart(2, '0')}/${String(yy).slice(-2)}`;
     const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
 
@@ -2763,6 +2932,8 @@ window.openAddCardModal = function(onSuccess) {
       provider: 'bepaid_mock',
       provider_token_id: 'tok_bepaid_' + Math.random().toString(36).substring(2, 10),
       card_brand: cardType,
+      bank_name: bankInfo ? bankInfo.name : null,
+      bank_code: bankInfo ? bankInfo.code : null,
       last4: rawNum.slice(-4),
       expiry_metadata: expMeta,
       is_default: (window.userCards || []).length === 0,
@@ -2784,14 +2955,18 @@ window.openAddCardModal = function(onSuccess) {
       newCard.id = 'c_' + Date.now();
     }
 
+    // Успешная привязка — сбрасываем антифрод счётчик
+    clearCardRateLimit();
+
     window.userCards = Array.isArray(window.userCards) ? window.userCards : [];
     window.userCards.unshift(newCard);
     try {
       if (curUserId) localStorage.setItem('ice_payment_methods_' + curUserId, JSON.stringify(window.userCards));
     } catch (_e) {}
 
+    const bankGreeting = bankInfo ? ` (${bankInfo.name})` : '';
     tgUtil.haptic('success');
-    tgUtil.alert(`✅ Карта ${cardType} •••• ${newCard.last4} успешно привязана!\n1.00 BYN возвращен на ваш счет.`);
+    tgUtil.alert(`✅ Карта ${cardType}${bankGreeting} •••• ${newCard.last4} успешно привязана!\n1.00 BYN возвращен на ваш счет.`);
     close();
 
     window.renderCheckoutCards();
@@ -2821,6 +2996,7 @@ window.openCardsManagementModal = async function() {
     }
     return cards.map(c => {
       const brand = c.card_brand || c.card_type || 'Банковская карта';
+      const bank = c.bank_name || '';
       const last4 = c.last4 || c.card_last4 || '••••';
       const exp = c.expiry_metadata || (c.exp_month ? `${String(c.exp_month).padStart(2, '0')}/${String(c.exp_year).slice(-2)}` : '12/28');
       const isDef = Boolean(c.is_default);
@@ -2835,8 +3011,9 @@ window.openCardsManagementModal = async function() {
                 brand === 'БЕЛКАРТ' ? '<span class="text-[8px] font-black text-emerald-400">БК</span>' : '💳'}
             </div>
             <div>
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-mono font-bold text-white tracking-wider">•••• ${last4}</span>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                ${bank ? `<span class="text-xs font-bold text-white">${bank}</span>` : ''}
+                <span class="text-xs font-mono font-bold text-white tracking-wider">•••• ${last4}</span>
                 ${isDef ? '<span class="text-[9px] text-cyan-300 font-bold bg-cyan-500/20 px-2 py-0.5 rounded-full border border-cyan-400/40">Основная</span>' : ''}
               </div>
               <p class="text-[10px] text-white/40 mt-0.5">${brand} · ${exp} · bePaid</p>
