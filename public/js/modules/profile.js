@@ -200,10 +200,10 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
       <button id="financesBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition border-t border-white/5" onclick="switchTab('finances')">
-        <span class="text-xl">💳</span>
+        <span class="text-xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/></svg></span></span>
         <div class="flex-1">
           <p class="font-semibold text-white text-sm">Финансы</p>
-          <p class="text-xs" style="color: var(--text-muted);">Способы оплаты, история транзакций, статистика</p>
+          <p class="text-xs" style="color: var(--text-muted);">Способы оплаты, купоны и возвраты</p>
         </div>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
       </button>

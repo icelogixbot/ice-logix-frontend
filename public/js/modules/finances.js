@@ -1,34 +1,36 @@
 // ============================================================
 // ICE LOGIX Module: Finances (Финансы)
 // ============================================================
-// Способы оплаты, история транзакций, купоны, возвраты.
+// Способы оплаты, купоны и гарантия возвратов.
 // 0ms отклик, локальное кэширование, надежное управление картами.
 
 window._financesSubTab = window._financesSubTab || 'payment';
 window._financesManageMode = false;
 window._financesCache = window._financesCache || {
-  history: null,
   coupons: null,
   refunds: null,
   lastFetch: {}
 };
 
-// Маппинг названий банков → эмодзи-иконка
-function _getBankEmoji(bankName) {
-  if (!bankName) return null;
-  const n = String(bankName).toLowerCase();
-  if (n.includes('приор')) return '🟡';
-  if (n.includes('беларусбанк') || n.includes('беларус')) return '🟢';
-  if (n.includes('мтбанк') || n.includes('мт банк')) return '🔴';
-  if (n.includes('белгаз')) return '🔵';
-  if (n.includes('бсб')) return '🔷';
-  if (n.includes('альфа')) return '🔴';
-  if (n.includes('сбер')) return '🟢';
-  if (n.includes('втб')) return '🔵';
-  if (n.includes('тинькофф') || n.includes('т-банк') || n.includes('tbank')) return '🟡';
-  if (n.includes('яндекс')) return '🟠';
-  return '🏦';
-}
+// Глобальные хэндлеры для 100% надежности при любых условиях кэширования
+window.backFromFinances = function() {
+  if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+  if (typeof switchTab === 'function') switchTab('profile');
+};
+
+window.toggleFinancesManage = function() {
+  window._financesManageMode = !window._financesManageMode;
+  if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+  _renderFinancesCardsOnly();
+};
+
+window.openFinancesAddCard = function() {
+  if (typeof window.openAddCardModal === 'function') {
+    window.openAddCardModal(() => {
+      _renderFinancesCardsOnly();
+    });
+  }
+};
 
 // Синхронная инициализация карт без блокировки UI
 function _ensureCardsLoadedSync() {
@@ -56,16 +58,24 @@ function _ensureCardsLoadedSync() {
 function _renderCardsListHtml(cards, manageMode) {
   if (cards.length === 0) {
     return `
-      <div class="text-center py-8 px-4 rounded-3xl bg-slate-900/60 border border-white/5 space-y-3">
-        <div class="w-14 h-14 mx-auto rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-2xl select-none">
-          💳
+      <div class="text-center py-8 px-4 rounded-3xl bg-slate-900/60 border border-white/5 space-y-3 max-w-[315px] mx-auto">
+        <div class="w-12 h-12 mx-auto rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 select-none">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="3"/>
+            <line x1="2" y1="10" x2="22" y2="10"/>
+          </svg>
         </div>
-        <p class="font-bold text-white text-base">Нет привязанных карт</p>
-        <p class="text-xs text-white/50 max-w-xs mx-auto leading-relaxed">
-          Привяжите карту для мгновенной оплаты заказов в 1 клик. Поддерживаются все популярные банки Беларуси и СНГ.
+        <p class="font-bold text-white text-sm">Нет привязанных карт</p>
+        <p class="text-[11px] text-white/50 leading-relaxed">
+          Привяжите карту для быстрой оплаты в 1 клик. Поддерживаются Белкарт, Mastercard, Visa и МИР.
         </p>
-        <button type="button" id="financesAddCardFirstBtn" class="btn-primary px-5 py-3 rounded-2xl text-xs font-bold shadow-lg shadow-cyan-500/20 active:scale-95 transition-transform inline-flex items-center gap-2 mt-2">
-          <span class="text-base font-black">+</span>
+        <button
+          type="button"
+          id="financesAddCardFirstBtn"
+          onclick="window.openFinancesAddCard()"
+          class="btn-primary px-4 py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-cyan-500/20 active:scale-95 transition-transform inline-flex items-center gap-2 mt-1"
+        >
+          <span class="text-base font-black leading-none">+</span>
           <span>Привязать карту</span>
         </button>
       </div>
@@ -93,20 +103,19 @@ function _renderCardsListHtml(cards, manageMode) {
 
         return `
           <div class="space-y-2">
-            <!-- Пластиковая банковская карта (ISO ID-1, пропорции 1.586 : 1) -->
-            <div class="relative w-full aspect-[1.586/1] max-w-[360px] mx-auto rounded-2xl p-5 flex flex-col justify-between overflow-hidden select-none transition-all duration-300 ${
+            <!-- Пластиковая банковская карта (ISO ID-1, пропорции 1.586 : 1, компактная ширина 315px) -->
+            <div class="relative w-full aspect-[1.586/1] max-w-[315px] mx-auto rounded-2xl p-4 sm:p-5 flex flex-col justify-between overflow-hidden select-none transition-all duration-300 ${
               isDef
                 ? 'bg-gradient-to-br from-slate-900 via-slate-800/95 to-cyan-950 border border-cyan-400/40 shadow-2xl shadow-cyan-950/60 ring-1 ring-white/10'
                 : 'bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 border border-white/15 shadow-xl shadow-black/70 ring-1 ring-white/5'
             }">
               <!-- Световой блик пластика -->
               <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.04] to-transparent pointer-events-none"></div>
-              <div class="absolute -right-16 -bottom-16 w-44 h-44 rounded-full pointer-events-none blur-2xl ${isDef ? 'bg-cyan-500/15' : 'bg-white/5'}"></div>
 
-              <!-- 1. Верхний ряд: Логотип/название банка слева + Логотип системы справа -->
+              <!-- 1. Верхний ряд: Банк слева + Логотип системы справа -->
               <div class="relative z-10 flex items-center justify-between gap-3">
                 <div class="min-w-0">
-                  <span class="text-xs font-black tracking-widest uppercase text-white/90 drop-shadow-sm truncate block font-sans">
+                  <span class="text-[11px] font-black tracking-widest uppercase text-white/90 drop-shadow-sm truncate block font-sans">
                     ${bankName || 'БАНК'}
                   </span>
                 </div>
@@ -123,10 +132,9 @@ function _renderCardsListHtml(cards, manageMode) {
                 </div>
               </div>
 
-              <!-- 2. Средняя часть: Золотистый EMV-чип и NFC-волна -->
-              <div class="relative z-10 my-auto flex items-center gap-3 pt-1">
-                <!-- EMV-чип -->
-                <div class="w-11 h-8 rounded-md bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 border border-amber-300/60 shadow-inner relative overflow-hidden p-1 flex-shrink-0">
+              <!-- 2. Средняя часть: Чистый золотистый EMV-чип (без лишних силуэтов) -->
+              <div class="relative z-10 my-auto flex items-center pt-1">
+                <div class="w-10 h-7 rounded-md bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 border border-amber-300/60 shadow-inner relative overflow-hidden p-0.5 flex-shrink-0">
                   <div class="w-full h-full border border-amber-900/20 rounded-sm grid grid-cols-2 gap-0.5 opacity-80">
                     <div class="border-r border-b border-amber-900/30"></div>
                     <div class="border-b border-amber-900/30"></div>
@@ -134,39 +142,32 @@ function _renderCardsListHtml(cards, manageMode) {
                     <div></div>
                   </div>
                 </div>
-                <!-- NFC бесконтактная оплата -->
-                <svg class="w-5 h-5 text-white/40 rotate-90 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                  <path d="M8.5 16.5a5 5 0 0 1 0-7"/>
-                  <path d="M12 19a8.5 8.5 0 0 1 0-12"/>
-                  <path d="M15.5 21.5a12 12 0 0 1 0-17"/>
-                </svg>
               </div>
 
               <!-- 3. Нижняя часть: Номер карты и срок действия -->
-              <div class="relative z-10 space-y-2">
+              <div class="relative z-10 space-y-1.5">
                 <!-- Рельефный номер карты -->
-                <div class="font-mono text-base sm:text-lg font-bold text-white tracking-[0.22em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] select-none">
+                <div class="font-mono text-sm sm:text-base font-bold text-white tracking-[0.20em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] select-none">
                   •••• •••• •••• ${last4}
                 </div>
 
                 <!-- Срок действия -->
                 <div class="flex items-end justify-between text-left">
                   <div>
-                    <p class="text-[8px] uppercase tracking-widest text-white/40 font-bold select-none leading-none">VALID THRU</p>
-                    <p class="text-xs font-mono font-bold text-white/90 mt-1 select-none tracking-wider">${exp}</p>
+                    <p class="text-[7px] uppercase tracking-widest text-white/40 font-bold select-none leading-none">VALID THRU</p>
+                    <p class="text-xs font-mono font-bold text-white/90 mt-0.5 select-none tracking-wider">${exp}</p>
                   </div>
-                  <span class="text-[9px] font-mono tracking-widest uppercase text-white/30 select-none">ICE LOGIX</span>
                 </div>
               </div>
             </div>
 
-            <!-- Панель управления картой (появляется ТОЛЬКО после нажатия кнопки «Управление»!) -->
+            <!-- Панель управления картой (появляется ТОЛЬКО после нажатия кнопки «Управление») -->
             ${manageMode ? `
-              <div class="flex items-center justify-end gap-2 max-w-[360px] mx-auto px-1 pt-1">
+              <div class="flex items-center justify-end gap-2 max-w-[315px] mx-auto px-1 pt-0.5">
                 ${!isDef ? `
                   <button
                     type="button"
-                    class="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-xs font-bold text-cyan-300 active:scale-95 transition flex items-center gap-1.5 shadow-sm shadow-cyan-500/10"
+                    class="px-2.5 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-xs font-bold text-cyan-300 active:scale-95 transition flex items-center gap-1.5 shadow-sm shadow-cyan-500/10"
                     onclick="window.setDefaultCard('${c.id}')"
                   >
                     <span>★</span>
@@ -175,7 +176,7 @@ function _renderCardsListHtml(cards, manageMode) {
                 ` : ''}
                 <button
                   type="button"
-                  class="px-3 py-1.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-xs font-bold text-red-300 active:scale-95 transition flex items-center gap-1.5"
+                  class="px-2.5 py-1.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-xs font-bold text-red-300 active:scale-95 transition flex items-center gap-1.5"
                   onclick="window.deleteCard('${c.id}')"
                   title="Удалить карту"
                 >
@@ -200,10 +201,15 @@ function _renderFinancesCardsOnly() {
   const manageMode = window._financesManageMode;
 
   container.innerHTML = `
-    <div class="flex items-center justify-between px-1">
+    <div class="flex items-center justify-between px-1 max-w-[315px] mx-auto">
       <h4 class="text-white font-bold text-sm">Мои карты</h4>
       ${cards.length > 0 ? `
-        <button type="button" id="financesManageBtn" class="text-xs px-2.5 py-1 rounded-xl border transition active:scale-95 ${manageMode ? 'border-cyan-500/60 bg-cyan-500/15 text-cyan-300 font-semibold' : 'border-white/15 bg-white/5 text-white/60'}">
+        <button
+          type="button"
+          id="financesManageBtn"
+          onclick="window.toggleFinancesManage()"
+          class="text-xs px-2.5 py-1 rounded-xl border transition active:scale-95 ${manageMode ? 'border-cyan-500/60 bg-cyan-500/15 text-cyan-300 font-semibold' : 'border-white/15 bg-white/5 text-white/60'}"
+        >
           ${manageMode ? 'Готово' : 'Управление'}
         </button>
       ` : ''}
@@ -212,14 +218,21 @@ function _renderFinancesCardsOnly() {
     ${_renderCardsListHtml(cards, manageMode)}
 
     ${cards.length > 0 && cards.length < 5 ? `
-      <button type="button" id="financesAddCardBottomBtn" class="w-full py-3 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 border-2 border-dashed border-cyan-500/30 hover:border-cyan-400 bg-cyan-500/5 hover:bg-cyan-500/10 text-cyan-300 transition-all active:scale-95">
-        <span class="text-base leading-none font-black">+</span>
-        <span>Привязать ещё одну карту</span>
-      </button>
+      <div class="max-w-[315px] mx-auto pt-1">
+        <button
+          type="button"
+          id="financesAddCardBottomBtn"
+          onclick="window.openFinancesAddCard()"
+          class="w-full py-3 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 border-2 border-dashed border-cyan-500/30 hover:border-cyan-400 bg-cyan-500/5 hover:bg-cyan-500/10 text-cyan-300 transition-all active:scale-95"
+        >
+          <span class="text-base leading-none font-black">+</span>
+          <span>Привязать ещё одну карту</span>
+        </button>
+      </div>
     ` : ''}
 
     ${cards.length >= 5 ? `
-      <div class="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center">
+      <div class="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center max-w-[315px] mx-auto">
         <p class="text-xs text-amber-300 font-semibold">Достигнут максимальный лимит 5 карт</p>
       </div>
     ` : ''}
@@ -237,10 +250,15 @@ function _renderPaymentTabHtml() {
     <div class="space-y-4">
       <!-- Секция: Привязанные карты -->
       <div id="financesCardsSection" class="space-y-3">
-        <div class="flex items-center justify-between px-1">
+        <div class="flex items-center justify-between px-1 max-w-[315px] mx-auto">
           <h4 class="text-white font-bold text-sm">Мои карты</h4>
           ${cards.length > 0 ? `
-            <button type="button" id="financesManageBtn" class="text-xs px-2.5 py-1 rounded-xl border transition active:scale-95 ${manageMode ? 'border-cyan-500/60 bg-cyan-500/15 text-cyan-300 font-semibold' : 'border-white/15 bg-white/5 text-white/60'}">
+            <button
+              type="button"
+              id="financesManageBtn"
+              onclick="window.toggleFinancesManage()"
+              class="text-xs px-2.5 py-1 rounded-xl border transition active:scale-95 ${manageMode ? 'border-cyan-500/60 bg-cyan-500/15 text-cyan-300 font-semibold' : 'border-white/15 bg-white/5 text-white/60'}"
+            >
               ${manageMode ? 'Готово' : 'Управление'}
             </button>
           ` : ''}
@@ -249,110 +267,27 @@ function _renderPaymentTabHtml() {
         ${_renderCardsListHtml(cards, manageMode)}
 
         ${cards.length > 0 && cards.length < 5 ? `
-          <button type="button" id="financesAddCardBottomBtn" class="w-full py-3.5 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 border-2 border-dashed border-cyan-500/30 hover:border-cyan-400 bg-cyan-500/5 hover:bg-cyan-500/10 text-cyan-300 transition-all active:scale-95">
-            <span class="text-base leading-none font-black">+</span>
-            <span>Привязать ещё одну карту</span>
-          </button>
+          <div class="max-w-[315px] mx-auto pt-1">
+            <button
+              type="button"
+              id="financesAddCardBottomBtn"
+              onclick="window.openFinancesAddCard()"
+              class="w-full py-3.5 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 border-2 border-dashed border-cyan-500/30 hover:border-cyan-400 bg-cyan-500/5 hover:bg-cyan-500/10 text-cyan-300 transition-all active:scale-95"
+            >
+              <span class="text-base leading-none font-black">+</span>
+              <span>Привязать ещё одну карту</span>
+            </button>
+          </div>
         ` : ''}
 
         ${cards.length >= 5 ? `
-          <div class="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center">
+          <div class="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center max-w-[315px] mx-auto">
             <p class="text-xs text-amber-300 font-semibold">Достигнут максимальный лимит 5 карт</p>
           </div>
         ` : ''}
       </div>
     </div>
   `;
-}
-
-// HTML вкладки «История»
-function _renderHistoryTabHtml(txItems) {
-  if (!txItems || txItems.length === 0) {
-    return `
-      <div class="text-center py-12 px-4 rounded-3xl bg-slate-900/60 border border-white/5 space-y-3">
-        <div class="w-14 h-14 mx-auto rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl select-none">
-          📋
-        </div>
-        <p class="font-bold text-white text-base">История транзакций пуста</p>
-        <p class="text-xs text-white/40 max-w-xs mx-auto leading-relaxed">
-          Здесь будут отображаться оплаты ваших заказов, возвраты средств и операции по бонусным баллам ICE.
-        </p>
-      </div>
-    `;
-  }
-
-  return `
-    <div class="space-y-2.5">
-      ${txItems.map(tx => `
-        <div class="p-3.5 rounded-2xl bg-slate-900/70 border border-white/10 flex items-center justify-between gap-3">
-          <div class="flex items-center gap-3 min-w-0">
-            <div class="w-10 h-10 rounded-xl ${tx.source === 'card' ? 'bg-cyan-500/10 text-cyan-300' : 'bg-purple-500/10 text-purple-300'} flex items-center justify-center text-lg flex-shrink-0">
-              ${tx.source === 'card' ? '💳' : '💎'}
-            </div>
-            <div class="min-w-0">
-              <p class="text-xs font-bold text-white truncate">${tx.title}</p>
-              <p class="text-[10px] text-white/40 mt-0.5">${tx.date.toLocaleString('ru-RU')}</p>
-            </div>
-          </div>
-          <div class="text-right flex-shrink-0">
-            <p class="text-xs font-bold font-mono ${tx.isPositive ? 'text-emerald-400' : 'text-white'}">${tx.amount}</p>
-            <span class="inline-block mt-0.5 text-[9px] px-1.5 py-0.2 rounded-md ${tx.badgeColor || 'bg-white/10 text-white/60'} font-semibold">
-              ${tx.badge}
-            </span>
-          </div>
-        </div>
-      `).join('')}
-    </div>
-  `;
-}
-
-// Загрузка данных истории
-async function _loadHistoryData() {
-  const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
-  let txItems = [];
-  if (curUserId && typeof supabaseClient !== 'undefined' && supabaseClient) {
-    try {
-      const [historyRes, paymentsRes] = await Promise.all([
-        supabaseClient.from('transaction_history').select('*').eq('user_id', curUserId).order('created_at', { ascending: false }).limit(50),
-        supabaseClient.from('payments').select('*').eq('user_id', curUserId).order('created_at', { ascending: false }).limit(50)
-      ]);
-
-      if (historyRes?.data) {
-        historyRes.data.forEach(item => {
-          txItems.push({
-            source: 'bonus',
-            id: item.id,
-            date: new Date(item.created_at),
-            title: item.description || (item.amount >= 0 ? 'Начисление бонусов' : 'Списание бонусов'),
-            amount: `${item.amount >= 0 ? '+' : ''}${item.amount} ICE`,
-            isPositive: item.amount >= 0,
-            badge: 'ICE Бонусы'
-          });
-        });
-      }
-
-      if (paymentsRes?.data) {
-        paymentsRes.data.forEach(item => {
-          const isSuccess = item.status === 'PAID';
-          txItems.push({
-            source: 'card',
-            id: item.id,
-            date: new Date(item.created_at),
-            title: item.type === 'FIRST_PAYMENT' ? 'Оплата заказа (1-й этап)' : (item.type === 'SECOND_PAYMENT' ? 'Оплата заказа (2-й этап)' : 'Оплата картой'),
-            amount: `-${Number(item.amount || 0).toFixed(2)} BYN`,
-            isPositive: false,
-            badge: isSuccess ? 'Успешно' : (item.status === 'PENDING' ? 'В обработке' : 'Отклонено'),
-            badgeColor: isSuccess ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
-          });
-        });
-      }
-    } catch (e) {
-      console.warn('Finances tx history load err:', e);
-    }
-  }
-  txItems.sort((a, b) => b.date - a.date);
-  window._financesCache.history = txItems;
-  return txItems;
 }
 
 // HTML вкладки «Купоны»
@@ -362,50 +297,64 @@ function _renderCouponsTabHtml(stats) {
 
   return `
     <div class="space-y-4">
-
       <!-- Плашка: сумма выкупа -->
       ${totalSpentByn > 0 ? `
         <div class="p-4 rounded-3xl bg-gradient-to-r from-cyan-950/60 via-slate-900/80 to-slate-900 border border-cyan-500/30 flex items-center justify-between">
           <div>
             <p class="text-[11px] text-white/50 mb-0.5">Всего выкуплено через ICE LOGIX</p>
-            <p class="text-xl font-black text-cyan-400 font-mono">${totalSpentByn.toFixed(2)} BYN</p>
-            <p class="text-[10px] text-white/40 mt-0.5">${ordersCount} ${ordersCount === 1 ? 'заказ' : ordersCount < 5 ? 'заказа' : 'заказов'}</p>
+            <p class="text-lg font-black text-cyan-300 font-mono tracking-tight">${totalSpentByn.toFixed(2)} BYN</p>
           </div>
-          <span class="text-3xl select-none">🏆</span>
+          <div class="text-right">
+            <span class="text-[10px] px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 font-bold">
+              ${ordersCount} заказов
+            </span>
+          </div>
         </div>
       ` : ''}
 
-      <!-- Поле ввода промокода -->
-      <div class="glass-card p-4 rounded-3xl border border-white/10 bg-slate-900/80 space-y-3">
-        <div class="flex items-center gap-2">
-          <span class="text-base select-none">🎁</span>
-          <h3 class="text-white font-bold text-sm">Промокод</h3>
+      <!-- Ввод промокода -->
+      <div class="glass-card p-4 rounded-3xl border border-white/10 space-y-3">
+        <div class="flex items-center gap-2 text-white font-bold text-sm">
+          <svg class="w-4 h-4 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+            <circle cx="7" cy="7" r="1.5" fill="currentColor"/>
+          </svg>
+          <span>Активировать промокод</span>
         </div>
+        <p class="text-xs text-white/50 leading-relaxed">
+          Введите промокод для получения скидки на доставку или бонусных баллов ICE.
+        </p>
         <div class="flex gap-2">
           <input
             type="text"
             id="couponInput"
-            placeholder="Введите промокод"
-            maxlength="32"
-            autocomplete="off"
-            class="flex-1 bg-slate-800/80 border border-white/15 focus:border-cyan-400 rounded-2xl px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none transition font-mono uppercase tracking-wider"
+            placeholder="ВВЕДИТЕ ПРОМОКОД"
+            class="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white placeholder-white/20 uppercase tracking-wider focus:outline-none focus:border-cyan-400 transition"
           >
-          <button id="applyCouponBtn" type="button" class="btn-primary px-4 py-2.5 rounded-2xl text-xs font-bold active:scale-95 transition flex-shrink-0">
+          <button
+            type="button"
+            id="applyCouponBtn"
+            class="btn-primary px-4 py-2 rounded-xl text-xs font-bold active:scale-95 transition"
+          >
             Применить
           </button>
         </div>
-        <p id="couponMsg" class="text-[11px] text-white/40 hidden"></p>
+        <div id="couponMsg" class="text-xs hidden"></div>
       </div>
 
-      <!-- Пустое состояние / будущий список купонов -->
+      <!-- Состояние купонов -->
       <div class="text-center py-8 px-4 rounded-3xl bg-slate-900/60 border border-white/5 space-y-2">
-        <span class="text-3xl block select-none">🎫</span>
+        <div class="w-12 h-12 mx-auto rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 select-none">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+            <circle cx="7" cy="7" r="1.5" fill="currentColor"/>
+          </svg>
+        </div>
         <p class="font-bold text-white text-sm">Активных купонов нет</p>
         <p class="text-xs text-white/40 max-w-xs mx-auto leading-relaxed">
-          Следите за акциями ICE LOGIX в Telegram-канале — там публикуем эксклюзивные промокоды на скидки.
+          Следите за акциями ICE LOGIX в Telegram-канале — там регулярно публикуются промокоды на скидки.
         </p>
       </div>
-
     </div>
   `;
 }
@@ -441,14 +390,16 @@ function _renderRefundsTabHtml(refundItems) {
       <!-- Инфо-карточка о политике возвратов -->
       <div class="glass-card p-4 rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/20 space-y-2.5">
         <div class="flex items-center gap-2 text-white font-bold text-sm">
-          <span>🛡️</span>
+          <svg class="w-4 h-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
           <span>Гарантия возврата средств</span>
         </div>
         <p class="text-xs text-white/70 leading-relaxed">
           При отмене заказа до момента выкупа или отсутствии нужного размера/товара у поставщика, деньги возвращаются в 100% объеме на привязанную карту без комиссий.
         </p>
         <div class="pt-2 border-t border-white/5 flex items-center justify-between text-[11px] text-white/50">
-          <span>⏱️ Срок зачисления банком:</span>
+          <span>Срок зачисления банком:</span>
           <strong class="text-emerald-400">1–3 рабочих дня</strong>
         </div>
       </div>
@@ -458,7 +409,11 @@ function _renderRefundsTabHtml(refundItems) {
         <h4 class="text-white font-bold text-sm px-1">История возвратов</h4>
         ${items.length === 0 ? `
           <div class="text-center py-10 px-4 rounded-3xl bg-slate-900/60 border border-white/5 space-y-2">
-            <span class="text-3xl block select-none">✨</span>
+            <div class="w-12 h-12 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 select-none">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+            </div>
             <p class="font-bold text-white text-sm">Возвратов пока не было</p>
             <p class="text-xs text-white/40 max-w-xs mx-auto">
               Все ваши средства и покупки в полной безопасности.
@@ -515,19 +470,19 @@ function _renderLoadingSkeletonHtml(msg) {
 
 // Быстрое переключение табов за 0 мс (без перезагрузки экрана)
 function switchFinancesSubTab(targetTab) {
-  if (window._financesSubTab === targetTab && document.getElementById('financesSubContent')) return;
+  if (targetTab === 'history') targetTab = 'payment'; // Защита от старых вызовов
   window._financesSubTab = targetTab;
   if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
 
   // 1. Мгновенно обновляем стили кнопок в DOM
-  const tabs = ['payment', 'history', 'coupons', 'refunds'];
+  const tabs = ['payment', 'coupons', 'refunds'];
   tabs.forEach(tab => {
     const btn = document.getElementById('financesTab' + tab.charAt(0).toUpperCase() + tab.slice(1));
     if (btn) {
       if (tab === targetTab) {
-        btn.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition-all btn-primary shadow-md';
+        btn.className = 'w-full py-2.5 px-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20';
       } else {
-        btn.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition-all text-white/60 hover:text-white';
+        btn.className = 'w-full py-2.5 px-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 text-white/60 hover:text-white hover:bg-white/5 active:scale-95';
       }
     }
   });
@@ -539,18 +494,6 @@ function switchFinancesSubTab(targetTab) {
   if (targetTab === 'payment') {
     container.innerHTML = _renderPaymentTabHtml();
     _attachPaymentTabHandlers();
-  } else if (targetTab === 'history') {
-    const cached = window._financesCache?.history;
-    if (cached) {
-      container.innerHTML = _renderHistoryTabHtml(cached);
-    } else {
-      container.innerHTML = _renderLoadingSkeletonHtml('Загружаем историю операций...');
-      _loadHistoryData().then(data => {
-        if (window._financesSubTab === 'history') {
-          container.innerHTML = _renderHistoryTabHtml(data);
-        }
-      });
-    }
   } else if (targetTab === 'coupons') {
     const cached = window._financesCache?.coupons;
     if (cached) {
@@ -584,22 +527,13 @@ function switchFinancesSubTab(targetTab) {
 // Главная точка входа рендера раздела Финансы
 async function renderFinances() {
   _ensureCardsLoadedSync();
-  const subTab = window._financesSubTab || 'payment';
+  let subTab = window._financesSubTab || 'payment';
+  if (subTab === 'history') subTab = 'payment';
+  window._financesSubTab = subTab;
 
   let initialContent = '';
   if (subTab === 'payment') {
     initialContent = _renderPaymentTabHtml();
-  } else if (subTab === 'history') {
-    const cached = window._financesCache?.history;
-    initialContent = cached ? _renderHistoryTabHtml(cached) : _renderLoadingSkeletonHtml('Загружаем историю операций...');
-    if (!cached) {
-      _loadHistoryData().then(data => {
-        if (window._financesSubTab === 'history') {
-          const c = document.getElementById('financesSubContent');
-          if (c) c.innerHTML = _renderHistoryTabHtml(data);
-        }
-      });
-    }
   } else if (subTab === 'coupons') {
     const cached = window._financesCache?.coupons;
     initialContent = _renderCouponsTabHtml(cached || { totalSpentByn: 0, ordersCount: 0 });
@@ -632,30 +566,68 @@ async function renderFinances() {
       
       <!-- Шапка: Кнопка Назад и Заголовок -->
       <div class="flex items-center gap-3 mb-4 mt-2">
-        <button id="backFromFinancesBtn" class="global-back-btn" title="Назад в профиль">
+        <button id="backFromFinancesBtn" onclick="window.backFromFinances()" class="global-back-btn" title="Назад в профиль">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="15 18 9 12 15 6"/>
           </svg>
         </button>
         <div>
           <h2 class="text-xl font-bold text-white tracking-wide">Финансы</h2>
-          <p class="text-[11px] text-white/40">Оплата, история, купоны и возвраты</p>
+          <p class="text-[11px] text-white/40">Способы оплаты, купоны и возвраты</p>
         </div>
       </div>
 
-      <!-- Горизонтальные табы -->
-      <div class="flex gap-1 mb-5 p-1 rounded-2xl bg-slate-900/80 border border-white/10">
-        <button id="financesTabPayment" type="button" class="flex-1 py-2 rounded-xl text-xs font-bold transition-all ${subTab === 'payment' ? 'btn-primary shadow-md' : 'text-white/60 hover:text-white'}">
-          💳 Оплата
+      <!-- Сегментированная навигация по подразделам с четкими SVG-иконками -->
+      <div class="grid grid-cols-3 gap-1.5 mb-5 p-1.5 rounded-2xl bg-slate-900/90 border border-white/10 shadow-lg backdrop-blur-md">
+        <button
+          id="financesTabPayment"
+          type="button"
+          onclick="window.switchFinancesSubTab('payment')"
+          class="w-full py-2.5 px-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 ${
+            subTab === 'payment'
+              ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20'
+              : 'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'
+          }"
+        >
+          <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="3"/>
+            <line x1="2" y1="10" x2="22" y2="10"/>
+          </svg>
+          <span class="truncate">Оплата</span>
         </button>
-        <button id="financesTabHistory" type="button" class="flex-1 py-2 rounded-xl text-xs font-bold transition-all ${subTab === 'history' ? 'btn-primary shadow-md' : 'text-white/60 hover:text-white'}">
-          📋 История
+
+        <button
+          id="financesTabCoupons"
+          type="button"
+          onclick="window.switchFinancesSubTab('coupons')"
+          class="w-full py-2.5 px-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 ${
+            subTab === 'coupons'
+              ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20'
+              : 'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'
+          }"
+        >
+          <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+            <circle cx="7" cy="7" r="1.5" fill="currentColor"/>
+          </svg>
+          <span class="truncate">Купоны</span>
         </button>
-        <button id="financesTabCoupons" type="button" class="flex-1 py-2 rounded-xl text-xs font-bold transition-all ${subTab === 'coupons' ? 'btn-primary shadow-md' : 'text-white/60 hover:text-white'}">
-          🎁 Купоны
-        </button>
-        <button id="financesTabRefunds" type="button" class="flex-1 py-2 rounded-xl text-xs font-bold transition-all ${subTab === 'refunds' ? 'btn-primary shadow-md' : 'text-white/60 hover:text-white'}">
-          🔄 Возвраты
+
+        <button
+          id="financesTabRefunds"
+          type="button"
+          onclick="window.switchFinancesSubTab('refunds')"
+          class="w-full py-2.5 px-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 ${
+            subTab === 'refunds'
+              ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20'
+              : 'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'
+          }"
+        >
+          <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+          </svg>
+          <span class="truncate">Возвраты</span>
         </button>
       </div>
 
@@ -670,28 +642,14 @@ async function renderFinances() {
 
 // Обработчики вкладки «Оплата»
 function _attachPaymentTabHandlers() {
-  const openAdd = () => {
-    if (typeof window.openAddCardModal === 'function') {
-      window.openAddCardModal(() => {
-        _renderFinancesCardsOnly();
-      });
-    }
-  };
-
   const addFirstBtn = document.getElementById('financesAddCardFirstBtn');
-  if (addFirstBtn) addFirstBtn.onclick = openAdd;
+  if (addFirstBtn) addFirstBtn.onclick = window.openFinancesAddCard;
 
   const addBottomBtn = document.getElementById('financesAddCardBottomBtn');
-  if (addBottomBtn) addBottomBtn.onclick = openAdd;
+  if (addBottomBtn) addBottomBtn.onclick = window.openFinancesAddCard;
 
   const manageBtn = document.getElementById('financesManageBtn');
-  if (manageBtn) {
-    manageBtn.onclick = () => {
-      window._financesManageMode = !window._financesManageMode;
-      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
-      _renderFinancesCardsOnly();
-    };
-  }
+  if (manageBtn) manageBtn.onclick = window.toggleFinancesManage;
 }
 
 // Обработчики вкладки «Купоны»
@@ -725,23 +683,15 @@ function _attachCouponsTabHandlers() {
 function attachFinancesHandlers() {
   // Назад в профиль
   const backBtn = document.getElementById('backFromFinancesBtn');
-  if (backBtn) {
-    backBtn.onclick = () => {
-      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
-      if (typeof switchTab === 'function') switchTab('profile');
-    };
-  }
+  if (backBtn) backBtn.onclick = window.backFromFinances;
 
-  // Переключение табов (0 мс)
+  // Табы
   const bindTab = (btnId, tabName) => {
     const btn = document.getElementById(btnId);
-    if (btn) {
-      btn.onclick = () => switchFinancesSubTab(tabName);
-    }
+    if (btn) btn.onclick = () => window.switchFinancesSubTab(tabName);
   };
 
   bindTab('financesTabPayment', 'payment');
-  bindTab('financesTabHistory', 'history');
   bindTab('financesTabCoupons', 'coupons');
   bindTab('financesTabRefunds', 'refunds');
 

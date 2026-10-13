@@ -80,21 +80,10 @@ async function renderHistory() {
 
   if (subScreen === 'transactions') {
     const { data, error } = await supabaseClient.from('transaction_history').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(100);
-    const financesBanner = `
-      <div class="glass-card p-3.5 mb-4 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 flex items-center justify-between gap-3">
-        <div>
-          <p class="text-xs font-bold text-white">💳 Финансовые операции</p>
-          <p class="text-[11px] text-white/60 mt-0.5">Все карты, платежи и статистика теперь в разделе «Финансы»</p>
-        </div>
-        <button onclick="switchTab('finances')" class="btn-primary text-xs font-bold px-3 py-1.5 rounded-xl flex-shrink-0 active:scale-95 transition">
-          Открыть
-        </button>
-      </div>
-    `;
     if (error || !data || !data.length) {
-      content = financesBanner + '<p class="text-white/50 text-center py-8">Транзакций пока нет</p>';
+      content = '<p class="text-white/50 text-center py-8">Транзакций пока нет</p>';
     } else {
-      content = financesBanner + data.map(tx => `
+      content = data.map(tx => `
         <div class="flex justify-between py-3 border-b border-white/5">
           <div>
             <p class="text-white text-sm font-semibold">${getTransactionTypeText(tx.type)}</p>

@@ -3152,6 +3152,9 @@ let adminOrdersTotalPages = 1;
         else if (tab === 'cart') attachCartHandlers();
         else if (tab === 'promo') attachPromoPageHandlers();
         else if (tab === 'history') attachHistoryHandlers();
+        else if (tab === 'finances') {
+          if (typeof attachFinancesHandlers === 'function') attachFinancesHandlers();
+        }
         else if (tab === 'reviews') attachReviewsHandlers();
         else if (tab === 'ugc') attachUGCHandlers();
         else if (tab === 'reftree') attachReferralTreeHandlers();
@@ -3165,6 +3168,9 @@ let adminOrdersTotalPages = 1;
       tgUtil.hideMainButton();
       if (tabName !== 'neworder') {
         window.tempOrder = null;
+      }
+      if (tabName === 'finances') {
+        try { delete _tabCache['finances:']; } catch(_) {}
       }
 
       // If user is already on this exact tab and subscreen, only early-return if content is actually rendered
@@ -3195,7 +3201,7 @@ let adminOrdersTotalPages = 1;
       
       // Restore from HTML cache for instant screen switch (0ms delay, no flicker)
       const _ck = (tabName || '') + ':' + (subScreen || '');
-      if (_tabCache[_ck] && Date.now() - _tabCache[_ck].ts < 600000) {
+      if (tabName !== 'finances' && _tabCache[_ck] && Date.now() - _tabCache[_ck].ts < 600000) {
         const _cd = document.getElementById('content');
         if (_cd) {
           _cd.innerHTML = _tabCache[_ck].html;
