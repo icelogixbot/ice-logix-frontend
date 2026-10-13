@@ -54,24 +54,19 @@
         // ── STEP A: Country Selection Overlay (if no country selected yet) ──
         if (!window.orderCountry) {
           return `
-            <style>
-              .hide-scrollbar::-webkit-scrollbar {
-                display: none;
-              }
-              .hide-scrollbar {
-                -ms-overflow-style: none;
-                scrollbar-width: none;
-              }
-            </style>
-            <div class="flex items-center justify-center min-h-[70vh] p-2 page-enter">
-              <div class="glass-card w-full max-w-md p-6 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
+            <div class="space-y-4 page-enter pb-8">
+              <button type="button" class="global-back-btn" onclick="window.goBackGlobal()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                Назад
+              </button>
+              <div class="glass-card p-5 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
                 <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
                 <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
 
-                <h2 class="text-xl font-extrabold text-white text-center mb-1 mt-4">Выберите страну отправления</h2>
+                <h2 class="text-xl font-extrabold text-white text-center mb-1">Выберите страну отправления</h2>
                 <p class="text-white/60 text-xs text-center mb-5">От страны зависят тарифы на доставку и пошлины</p>
 
-                <div class="flex flex-col gap-2.5 max-h-[50vh] overflow-y-auto pr-1 hide-scrollbar">
+                <div class="flex flex-col gap-2.5">
                   ${ALL_COUNTRIES.map(c => {
                     if (c.active) {
                       return `
@@ -2845,21 +2840,6 @@ window.openAddCardModal = function(onSuccess) {
               <p id="liveCardExpiry" class="text-xs font-mono font-bold text-white/90 mt-0.5 select-none tracking-wider">ММ/ГГ</p>
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- Панель быстрого теста банков (1 клик без ввода вручную) -->
-      <div class="pt-0.5 pb-0.5">
-        <div class="flex items-center justify-between text-[10px] text-white/50 mb-1 px-1">
-          <span>🧪 Тест банков (1 клик):</span>
-          <span class="text-[9px] text-cyan-400/80">нажмите для проверки</span>
-        </div>
-        <div class="grid grid-cols-5 gap-1 select-none">
-          <button type="button" class="py-1 px-0.5 rounded-lg bg-slate-500/15 hover:bg-slate-500/25 border border-slate-500/30 text-[9px] font-bold text-slate-300 truncate transition active:scale-95 text-center" onclick="window.testFillCard('belveb')" title="Банк БелВЭБ">БелВЭБ</button>
-          <button type="button" class="py-1 px-0.5 rounded-lg bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 text-[9px] font-bold text-blue-300 truncate transition active:scale-95 text-center" onclick="window.testFillCard('vtb')" title="Банк ВТБ">ВТБ</button>
-          <button type="button" class="py-1 px-0.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-[9px] font-bold text-rose-300 truncate transition active:scale-95 text-center" onclick="window.testFillCard('dabrabyt')" title="Банк Дабрабыт">Дабрабыт</button>
-          <button type="button" class="py-1 px-0.5 rounded-lg bg-sky-400/15 hover:bg-sky-400/25 border border-sky-400/30 text-[9px] font-bold text-sky-300 truncate transition active:scale-95 text-center" onclick="window.testFillCard('paritet')" title="Паритетбанк">Паритет</button>
-          <button type="button" class="py-1 px-0.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-[9px] font-bold text-indigo-300 truncate transition active:scale-95 text-center" onclick="window.testFillCard('mtbank')" title="МТБанк">МТБанк</button>
         </div>
       </div>
 

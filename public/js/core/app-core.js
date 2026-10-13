@@ -2531,6 +2531,14 @@ let adminOrdersTotalPages = 1;
           const targetDisp = isRegistered ? '' : 'none';
           if (balanceIsland.style.display !== targetDisp) balanceIsland.style.display = targetDisp;
         }
+        const globalSearchBtn = document.getElementById('globalSearchBtn');
+        if (globalSearchBtn) {
+          globalSearchBtn.onclick = () => {
+            if (typeof openSpotlightSearch === 'function') openSpotlightSearch();
+          };
+          const targetDisp = isRegistered ? '' : 'none';
+          if (globalSearchBtn.style.display !== targetDisp) globalSearchBtn.style.display = targetDisp;
+        }
         const settingsBtn = document.getElementById('settingsBtn');
         if (settingsBtn) {
           settingsBtn.onclick = () => showAppSettings('security');
@@ -3214,55 +3222,144 @@ let adminOrdersTotalPages = 1;
       renderCurrentScreen();
     }
 
-    // Wires Telegram's native BackButton based on current tab/subscreen.
-    // On 'home' — hides the BackButton. Anywhere else — shows it and on tap returns to home or previousTab.
-    function syncTelegramBackButton() {
-      const isRoot = currentTab === 'home' && !currentSubScreen;
-      if (isRoot) {
-        tgUtil.setBackButton(null);
-        return;
-      }
-      
-      if (currentTab === 'new-order') {
-        tgUtil.setBackButton(() => {
-          tgUtil.haptic('light');
-          if (window.orderAddMode) {
-            if (window.orderAddSubMode) {
-              window.orderAddSubMode = null;
-              window.orderLinkAnalyzed = false;
-              renderCurrentScreen();
-              syncTelegramBackButton();
-            } else {
-              window.orderAddMode = false;
-              renderCurrentScreen();
-              syncTelegramBackButton();
-            }
-            return;
-          }
-          if (previousTab && previousTab !== currentTab) {
-            switchTab(previousTab);
-          } else {
-            switchTab('home');
-          }
-        });
-        return;
+    // ============================================================
+    // ICE LOGIX: Unified Global Navigation & Back Handler
+    // ============================================================
+    window.goBackGlobal = function() {
+      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+
+      // 1. Check if any active overlay / modal is open in the DOM
+      const openOverlay = document.querySelector('.full-screen-modal-overlay, #spotlightModal:not(.opacity-0), #settingsModal, #notificationsModal, #personalDataModal, #commissionContractModal, #fortuneWheelModal, #allTransactionsModal, #reviewActionModal, #familySettingsModal, #marketplaceWhitelistModal, #recoveryCodeModal');
+      if (openOverlay) {
+        const closeBtn = openOverlay.querySelector('#spotlightCloseBtn, #closeSettingsModal, #closeNotifPanel, #closePersonalDataBtn, #closeContractModalBtn, #closeFortuneWheelBtn, #closeTransactionsModal, #closeReviewModalBtn, #closeFamilyModalBtn, #closeWhitelistModalBtn, #closeRecoveryModalBtn, [data-action="close"]');
+        if (closeBtn) {
+          closeBtn.click();
+        } else {
+          openOverlay.remove();
+          syncTelegramBackButton();
+        }
+        return true;
       }
 
-      tgUtil.setBackButton(() => {
-        tgUtil.haptic('light');
-        if (currentSubScreen) {
-          currentSubScreen = null;
+      // 2. If subscreen is open
+      if (currentSubScreen) {
+        currentSubScreen = null;
+        renderCurrentScreen();
+        syncTelegramBackButton();
+        return true;
+      }
+
+      // 3. If in new-order flow
+      if (currentTab === 'neworder' || currentTab === 'new-order') {
+        if (window.orderAddMode) {
+          if (window.orderAddSubMode) {
+            window.orderAddSubMode = null;
+            window.orderLinkAnalyzed = false;
+            renderCurrentScreen();
+            syncTelegramBackButton();
+            return true;
+          }
+          if (window.orderCountry) {
+            window.orderCountry = null;
+            renderCurrentScreen();
+            syncTelegramBackButton();
+            return true;
+          }
+          window.orderAddMode = false;
           renderCurrentScreen();
           syncTelegramBackButton();
-          return;
+          return true;
         }
+      }
+
+      // 4. If on secondary tab (cart, wishlist, finances, history, dropshipper, academy, admin, etc.)
+      const rootTabs = ['home', 'calculator', 'neworder', 'catalogs', 'profile'];
+      if (!rootTabs.includes(currentTab)) {
         if (previousTab && previousTab !== currentTab) {
           switchTab(previousTab);
         } else {
           switchTab('home');
         }
+        return true;
+      }
+
+      // 5. If on root tab other than home
+      if (currentTab !== 'home') {
+        if (previousTab && previousTab !== currentTab && rootTabs.includes(previousTab)) {
+          switchTab(previousTab);
+        } else {
+          switchTab('home');
+        }
+        return true;
+      }
+
+      return false;
+    };
+
+    // Wires Telegram's native BackButton based on current tab/subscreen.
+    function syncTelegramBackButton() {
+      const isRoot = currentTab === 'home' && !currentSubScreen && !window.orderCountry && !window.orderAddSubMode;
+      const hasOverlay = !!document.querySelector('.full-screen-modal-overlay, #spotlightModal:not(.opacity-0), #settingsModal, #notificationsModal, #personalDataModal');
+      
+      if (isRoot && !hasOverlay) {
+        tgUtil.setBackButton(null);
+        return;
+      }
+
+      tgUtil.setBackButton(() => {
+        window.goBackGlobal();
       });
     }
+
+    // Delegated click listener for all .global-back-btn
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.global-back-btn');
+      if (btn && !btn.hasAttribute('onclick')) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.goBackGlobal();
+      }
+    });
+
+    // Edge-swipe Right Gesture Navigation (iOS-like feel)
+    (function initEdgeSwipeNavigation() {
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let touchStartTime = 0;
+      let isEdgeSwipe = false;
+
+      document.addEventListener('touchstart', (e) => {
+        if (!e.touches || e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        touchStartTime = Date.now();
+        isEdgeSwipe = touchStartX <= 42;
+      }, { passive: true });
+
+      document.addEventListener('touchend', (e) => {
+        if (!isEdgeSwipe || !e.changedTouches || e.changedTouches.length !== 1) {
+          isEdgeSwipe = false;
+          return;
+        }
+        const touch = e.changedTouches[0];
+        const deltaX = touch.clientX - touchStartX;
+        const deltaY = touch.clientY - touchStartY;
+        const deltaTime = Date.now() - touchStartTime;
+
+        isEdgeSwipe = false;
+
+        if (deltaX >= 65 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5 && deltaTime <= 700) {
+          const target = e.target;
+          if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+            return;
+          }
+          if (typeof window.goBackGlobal === 'function') {
+            window.goBackGlobal();
+          }
+        }
+      }, { passive: true });
+    })();
 
     function renderFooter() {
       return `

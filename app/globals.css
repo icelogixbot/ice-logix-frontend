@@ -1082,7 +1082,7 @@
       transform: translateX(-4px);
     }
   }
-    body.tg-native-back .global-back-btn { display: none !important; }
+    body.tg-native-back .global-back-btn { display: inline-flex !important; }
     
     /* Review & Course Cards */
     .review-card, .course-card {

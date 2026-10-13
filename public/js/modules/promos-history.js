@@ -369,70 +369,83 @@ function attachHistoryHandlers() {
   });
 }
 
-// Все транзакции (модальное окно)
+// Все транзакции (полноэкранный режим)
 async function showAllTransactions() {
   const { data, error } = await supabaseClient.from('transaction_history').select('*').eq('user_id', userId).order('created_at', { ascending: false });
   if (error) { tgUtil.alert('Ошибка загрузки'); return; }
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[110] p-4 overflow-y-auto pt-16 pb-20';
+  modal.id = 'allTransactionsModal';
+  modal.className = 'full-screen-modal-overlay page-enter';
   modal.innerHTML = `
-    <div class="bg-[#1e293b] rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col border border-white/20">
-      <div class="p-5 border-b border-white/20">
-        <h3 class="text-white font-bold text-lg"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18M7 6h1v4M16.71 13.88l.7.71-2.82 2.82"/></svg></span> История транзакций</h3>
-      </div>
-      <div class="p-5 overflow-y-auto flex-1">
-        ${data && data.length > 0 ? data.map(tx => `
-          <div class="flex justify-between py-2 border-b border-white/10">
-            <div>
-              <p class="text-white">${getTransactionTypeText(tx.type)}</p>
-              <p class="text-white/50 text-xs">${new Date(tx.created_at).toLocaleString('ru-RU')}</p>
-              ${tx.description ? `<p class="text-white/70 text-sm">${tx.description}</p>` : ''}
-            </div>
-            <p class="${tx.amount >= 0 ? 'text-green-400' : 'text-red-400'} font-bold">${tx.amount >= 0 ? '+' : ''}${tx.amount} <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></p>
+    <div class="full-screen-modal-header">
+      <button id="closeTransactionsModal" class="global-back-btn !mb-0 py-1.5 px-3.5 text-xs">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        Назад
+      </button>
+      <h3 class="text-white font-bold text-base flex items-center gap-2">
+        <span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18M7 6h1v4M16.71 13.88l.7.71-2.82 2.82"/></svg></span>
+        История транзакций
+      </h3>
+      <div class="w-16"></div>
+    </div>
+    <div class="full-screen-modal-body">
+      ${data && data.length > 0 ? data.map(tx => `
+        <div class="flex justify-between py-3 border-b border-white/10 items-center">
+          <div>
+            <p class="text-white font-semibold text-sm">${getTransactionTypeText(tx.type)}</p>
+            <p class="text-white/40 text-xs mt-0.5">${new Date(tx.created_at).toLocaleString('ru-RU')}</p>
+            ${tx.description ? `<p class="text-white/70 text-xs mt-1">${tx.description}</p>` : ''}
           </div>
-        `).join('') : '<p class="text-white/70 text-center py-4">Нет транзакций</p>'}
-      </div>
-      <div class="p-5 border-t border-white/20">
-        <button id="closeTransactionsModal" class="btn-secondary w-full">Закрыть</button>
-      </div>
+          <p class="${tx.amount >= 0 ? 'text-green-400' : 'text-red-400'} font-bold text-sm leading-none flex items-center gap-1">${tx.amount >= 0 ? '+' : ''}${tx.amount} <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-4 h-4 object-contain inline-block"></span></p>
+        </div>
+      `).join('') : '<p class="text-white/50 text-center py-10">Транзакций пока нет</p>'}
     </div>
   `;
   document.body.appendChild(modal);
-  modal.querySelector('#closeTransactionsModal').onclick = () => modal.remove();
-  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+  if (typeof syncTelegramBackButton === 'function') syncTelegramBackButton();
+  modal.querySelector('#closeTransactionsModal').onclick = () => { modal.remove(); if (typeof syncTelegramBackButton === 'function') syncTelegramBackButton(); };
 }
 
 async function showAccountRecovery() {
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[110] p-4 overflow-y-auto pt-16 pb-20';
+  modal.id = 'recoveryCodeModal';
+  modal.className = 'full-screen-modal-overlay page-enter';
   modal.innerHTML = `
-    <div class="bg-[#1e293b] rounded-2xl max-w-md w-full border border-white/20">
-      <div class="p-5 border-b border-white/20">
-        <h3 class="text-white font-bold text-lg"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg></span> Восстановить доступ</h3>
-        <p class="text-white/50 text-xs mt-1">Подтвердите номер телефона для восстановления данных</p>
+    <div class="full-screen-modal-header">
+      <button id="closeRecoveryModalBtn" class="global-back-btn !mb-0 py-1.5 px-3.5 text-xs">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        Назад
+      </button>
+      <h3 class="text-white font-bold text-base flex items-center gap-2">
+        <span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg></span>
+        Восстановить доступ
+      </h3>
+      <div class="w-16"></div>
+    </div>
+    <div class="full-screen-modal-body space-y-4 max-w-md mx-auto w-full pt-4">
+      <p class="text-white/60 text-xs">Подтвердите номер телефона для восстановления данных аккаунта</p>
+      <div id="recoveryPhasePhone">
+        <label class="text-white/70 text-sm block mb-1">Привязанный номер телефона</label>
+        <input type="tel" id="recoveryPhoneInput" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-white"
+          placeholder="+375XXXXXXXXX">
+        <button id="recoverySendCodeBtn" class="btn-primary mt-4 w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2">
+          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span> Отправить код
+        </button>
+        <p id="recoveryPhoneError" class="text-red-400 text-xs mt-2 hidden"></p>
       </div>
-      <div class="p-5 space-y-3">
-        <div id="recoveryPhasePhone">
-          <label class="text-white/70 text-sm">Привязанный номер телефона</label>
-          <input type="tel" id="recoveryPhoneInput" class="btn-secondary w-full mt-1 p-3 rounded-xl border border-white/30"
-            placeholder="+375XXXXXXXXX">
-          <button id="recoverySendCodeBtn" class="btn-primary mt-3 w-full">
-            <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span> Отправить код
-          </button>
-          <p id="recoveryPhoneError" class="text-red-400 text-xs mt-2 hidden"></p>
+      <div id="recoveryPhaseCode" class="hidden">
+        <label class="text-white/70 text-sm block mb-1">Код из Telegram-бота</label>
+        <input type="text" id="recoveryCodeInput" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-white"
+          placeholder="6-значный код" maxlength="6">
+        <button id="recoveryVerifyBtn" class="mt-4 w-full bg-green-500 hover:bg-green-600 py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2">
+          <span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Подтвердить
+        </button>
+        <div class="flex justify-between items-center mt-2">
+          <p id="recoveryCodeError" class="text-red-400 text-xs hidden"></p>
+          <button id="recoveryResendBtn" class="text-cyan-400 text-xs hidden">Отправить повторно (<span id="recoveryTimer">60</span>с)</button>
         </div>
-        <div id="recoveryPhaseCode" class="hidden">
-          <label class="text-white/70 text-sm">Код из Telegram-бота</label>
-          <input type="text" id="recoveryCodeInput" class="btn-secondary w-full mt-1 p-3 rounded-xl border border-white/30"
-            placeholder="6-значный код" maxlength="6">
-          <button id="recoveryVerifyBtn" class="mt-3 w-full bg-green-500 hover:bg-green-600 py-2.5 rounded-xl font-bold">
-            <span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Подтвердить
-          </button>
-          <div class="flex justify-between items-center mt-2">
-            <p id="recoveryCodeError" class="text-red-400 text-xs hidden"></p>
-            <button id="recoveryResendBtn" class="text-cyan-400 text-xs hidden">Отправить повторно (<span id="recoveryTimer">60</span>с)</button>
-          </div>
-        </div>
+      </div>
+    </div>
         <div id="recoveryPhaseSuccess" class="hidden text-center py-4">
           <p class="text-4xl mb-2"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span></p>
           <p class="text-white font-bold">Доступ восстановлен!</p>
@@ -646,12 +659,20 @@ async function showAppSettings(initialTab = 'security') {
   }
 
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[110] p-4';
+  modal.id = 'settingsModal';
+  modal.className = 'full-screen-modal-overlay page-enter';
   modal.innerHTML = `
-    <div id="settingsModalCard" class="bg-[#1e293b] rounded-2xl max-w-md w-full flex flex-col border border-white/20" style="${initialTab === 'security' || initialTab === 'language' ? 'height: min(92vh, 600px);' : 'max-height: 90vh;'} overflow: hidden;">
-      <div class="p-5 border-b border-white/20">
-        <h3 class="text-white font-bold text-lg flex items-center gap-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> ${t('settings_title', 'Настройки')}</h3>
-      </div>
+    <div class="full-screen-modal-header">
+      <button id="closeSettingsModal" class="global-back-btn !mb-0 py-1.5 px-3 text-xs">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        Назад
+      </button>
+      <h3 class="text-white font-bold text-base flex items-center gap-2">
+        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+        ${t('settings_title', 'Настройки')}
+      </h3>
+      <div class="w-16"></div>
+    </div>
       <!-- Tabs (Reordered per user request: Security, Notifications, Language, Theme) -->
       <div class="flex border-b border-white/10 bg-slate-900/40">
         <button class="settings-tab flex-1 py-2.5 text-[10px] sm:text-xs font-medium transition flex flex-col items-center gap-1 ${initialTab==='security'?'text-cyan-400 border-b-2 border-cyan-400':'text-white/50'}"
@@ -675,82 +696,88 @@ async function showAppSettings(initialTab = 'security') {
           <span>${t('settings_theme', 'Тема')}</span>
         </button>
       </div>
-      <!-- Notifications panel -->
-      <div id="settingsPanel-notifications" class="p-5 flex-1 space-y-4 ${initialTab!=='notifications'?'hidden':''}" style="overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none;">
-        <div class="flex items-center justify-between"><span class="text-white text-sm">Изменение статуса заказа</span>${toggle('notifyStatusChanges', notif.status_changes)}</div>
-        <div class="flex items-center justify-between"><span class="text-white text-sm">Новости и обновления</span>${toggle('notifyNews', notif.news)}</div>
-        <div class="flex items-center justify-between"><span class="text-white text-sm">Акции и предложения</span>${toggle('notifyPromotions', notif.promotions)}</div>
-      </div>
-      <!-- Theme panel -->
-      <div id="settingsPanel-theme" class="p-5 flex-1 space-y-4 ${initialTab!=='theme'?'hidden':''}" style="overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none;">
-        <p class="text-white/60 text-xs mb-3">Выберите оформление интерфейса</p>
-        <div class="grid grid-cols-2 gap-3">
-          <button class="theme-btn rounded-xl p-4 border-2 transition ${currentTheme==='dark'?'border-cyan-500 bg-slate-800':'border-white/20 bg-white/5'}" data-theme="dark">
-            <p class="text-2xl mb-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span></p>
-            <p class="text-white text-sm font-bold">Тёмная</p>
-            <p class="text-white/50 text-xs">По умолчанию</p>
-          </button>
-          <button class="theme-btn rounded-xl p-4 border-2 transition ${currentTheme==='light'?'border-cyan-500 bg-slate-200':'border-white/20 bg-white/5'}" data-theme="light">
-            <p class="text-2xl mb-2"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></span></p>
-            <p class="text-white text-sm font-bold">Светлая</p>
-            <p class="text-white/50 text-xs">Эксперимент</p>
-          </button>
+      <!-- Settings Full Screen Body -->
+      <div class="full-screen-modal-body" id="settingsModalCard">
+        <!-- Notifications panel -->
+        <div id="settingsPanel-notifications" class="max-w-md mx-auto space-y-4 ${initialTab!=='notifications'?'hidden':''}">
+          <div class="flex items-center justify-between"><span class="text-white text-sm">Изменение статуса заказа</span>${toggle('notifyStatusChanges', notif.status_changes)}</div>
+          <div class="flex items-center justify-between"><span class="text-white text-sm">Новости и обновления</span>${toggle('notifyNews', notif.news)}</div>
+          <div class="flex items-center justify-between"><span class="text-white text-sm">Акции и предложения</span>${toggle('notifyPromotions', notif.promotions)}</div>
         </div>
-        <button id="resetSettingsBtn" class="mt-4 w-full text-white/40 text-xs py-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></span> Сбросить по умолчанию</button>
-      </div>
-      <!-- Language panel -->
-      <div id="settingsPanel-language" class="p-5 flex-1 space-y-4 ${initialTab!=='language'?'hidden':''}" style="overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none;">
-        <p class="text-white/60 text-xs mb-3">Выберите язык интерфейса / Выберыце мову інтэрфейсу / Choose interface language</p>
-        <div class="space-y-2">
-          <button class="lang-btn w-full rounded-xl p-3 border-2 transition text-left flex items-center justify-between ${currentLang==='ru'?'border-cyan-500 bg-slate-800':'border-white/20 bg-white/5'}" data-lang="ru">
-            <span class="text-white text-sm font-bold">Русский</span>
-            <span class="text-xs text-white/50">По умолчанию</span>
-          </button>
-          <button class="lang-btn w-full rounded-xl p-3 border-2 transition text-left flex items-center justify-between ${currentLang==='be'?'border-cyan-500 bg-slate-800':'border-white/20 bg-white/5'}" data-lang="be">
-            <span class="text-white text-sm font-bold">Беларуская</span>
-            <span class="text-xs text-white/50">Зробена з любоўю</span>
-          </button>
-          <button class="lang-btn w-full rounded-xl p-3 border-2 transition text-left flex items-center justify-between ${currentLang==='en'?'border-cyan-500 bg-slate-800':'border-white/20 bg-white/5'}" data-lang="en">
-            <span class="text-white text-sm font-bold">English</span>
-            <span class="text-xs text-white/50">International</span>
-          </button>
-        </div>
-      </div>
-      <!-- Security panel -->
-      <div id="settingsPanel-security" class="p-4 flex-1 space-y-3 ${initialTab!=='security'?'hidden':''}" style="overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none;">
-        <p class="text-white/60 text-xs">Управление способами входа и безопасностью.</p>
-        
-        <div class="bg-white/5 border border-white/10 rounded-xl p-3 space-y-2">
-          <p class="text-white text-xs font-semibold uppercase tracking-wider text-white/50 pb-1">Привязка аккаунтов</p>
-          ${identitiesHtml}
-        </div>
-
-        ${!isDummyEmail ? `
-        <button id="changePasswordBtn" class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-left transition" style="background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3);">
-          <span class="ix text-purple-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
-          <div class="flex-1 min-w-0">
-            <p class="font-semibold text-white text-sm">Изменить пароль</p>
-            <p class="text-xs text-white/50">Обновить пароль аккаунта</p>
+        <!-- Theme panel -->
+        <div id="settingsPanel-theme" class="max-w-md mx-auto space-y-4 ${initialTab!=='theme'?'hidden':''}">
+          <p class="text-white/60 text-xs mb-3">Выберите оформление интерфейса</p>
+          <div class="grid grid-cols-2 gap-3">
+            <button class="theme-btn rounded-xl p-4 border-2 transition ${currentTheme==='dark'?'border-cyan-500 bg-slate-800':'border-white/20 bg-white/5'}" data-theme="dark">
+              <p class="text-2xl mb-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span></p>
+              <p class="text-white text-sm font-bold">Тёмная</p>
+              <p class="text-white/50 text-xs">По умолчанию</p>
+            </button>
+            <button class="theme-btn rounded-xl p-4 border-2 transition ${currentTheme==='light'?'border-cyan-500 bg-slate-200':'border-white/20 bg-white/5'}" data-theme="light">
+              <p class="text-2xl mb-2"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></span></p>
+              <p class="text-white text-sm font-bold">Светлая</p>
+              <p class="text-white/50 text-xs">Эксперимент</p>
+            </button>
           </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:rgba(255,255,255,0.4);flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
-        ` : ''}
-
-        <button id="securityRecoveryBtn" class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-left transition" style="background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3);">
-          <span class="ix text-indigo-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
-          <div class="flex-1 min-w-0">
-            <p class="font-semibold text-white text-sm">Сброс аккаунта</p>
-            <p class="text-xs text-white/50">Полный выход со всех устройств</p>
+          <button id="resetSettingsBtn" class="mt-4 w-full text-white/40 text-xs py-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></span> Сбросить по умолчанию</button>
+        </div>
+        <!-- Language panel -->
+        <div id="settingsPanel-language" class="max-w-md mx-auto space-y-4 ${initialTab!=='language'?'hidden':''}">
+          <p class="text-white/60 text-xs mb-3">Выберите язык интерфейса / Выберыце мову інтэрфейсу / Choose interface language</p>
+          <div class="space-y-2">
+            <button class="lang-btn w-full rounded-xl p-3 border-2 transition text-left flex items-center justify-between ${currentLang==='ru'?'border-cyan-500 bg-slate-800':'border-white/20 bg-white/5'}" data-lang="ru">
+              <span class="text-white text-sm font-bold">Русский</span>
+              <span class="text-xs text-white/50">По умолчанию</span>
+            </button>
+            <button class="lang-btn w-full rounded-xl p-3 border-2 transition text-left flex items-center justify-between ${currentLang==='be'?'border-cyan-500 bg-slate-800':'border-white/20 bg-white/5'}" data-lang="be">
+              <span class="text-white text-sm font-bold">Беларуская</span>
+              <span class="text-xs text-white/50">Зробена з любоўю</span>
+            </button>
+            <button class="lang-btn w-full rounded-xl p-3 border-2 transition text-left flex items-center justify-between ${currentLang==='en'?'border-cyan-500 bg-slate-800':'border-white/20 bg-white/5'}" data-lang="en">
+              <span class="text-white text-sm font-bold">English</span>
+              <span class="text-xs text-white/50">International</span>
+            </button>
           </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:rgba(255,255,255,0.4);flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
-      </div>
-      <div class="p-4 border-t border-white/20 flex gap-3">
-        <button id="closeAppSettings" class="btn-secondary flex-1">${currentLang === 'be' ? 'Закрыць' : currentLang === 'en' ? 'Close' : 'Закрыть'}</button>
-        <button id="saveAppSettings" class="btn-primary flex-1">${t('settings_save', 'Сохранить')}</button>
+        </div>
+        <!-- Security panel -->
+        <div id="settingsPanel-security" class="max-w-md mx-auto space-y-3 ${initialTab!=='security'?'hidden':''}">
+          <p class="text-white/60 text-xs">Управление способами входа и безопасностью.</p>
+          
+          <div class="bg-white/5 border border-white/10 rounded-xl p-3 space-y-2">
+            <p class="text-white text-xs font-semibold uppercase tracking-wider text-white/50 pb-1">Привязка аккаунтов</p>
+            ${identitiesHtml}
+          </div>
+
+          ${!isDummyEmail ? `
+          <button id="changePasswordBtn" class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-left transition" style="background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3);">
+            <span class="ix text-purple-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+            <div class="flex-1 min-w-0">
+              <p class="font-semibold text-white text-sm">Изменить пароль</p>
+              <p class="text-xs text-white/50">Обновить пароль аккаунта</p>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:rgba(255,255,255,0.4);flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          ` : ''}
+
+          <button id="securityRecoveryBtn" class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-left transition" style="background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3);">
+            <span class="ix text-indigo-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+            <div class="flex-1 min-w-0">
+              <p class="font-semibold text-white text-sm">Сброс аккаунта</p>
+              <p class="text-xs text-white/50">Полный выход со всех устройств</p>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:rgba(255,255,255,0.4);flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+        <div class="pt-6 pb-6 flex gap-3 max-w-md mx-auto w-full">
+          <button id="closeAppSettings" class="btn-secondary flex-1 py-3 rounded-xl font-bold">${currentLang === 'be' ? 'Закрыць' : currentLang === 'en' ? 'Close' : 'Закрыть'}</button>
+          <button id="saveAppSettings" class="btn-primary flex-1 py-3 rounded-xl font-bold">${t('settings_save', 'Сохранить')}</button>
+        </div>
       </div>
     </div>`;
   document.body.appendChild(modal);
+  if (typeof syncTelegramBackButton === 'function') syncTelegramBackButton();
+  modal.querySelector('#closeSettingsModal')?.addEventListener('click', () => { modal.remove(); if (typeof syncTelegramBackButton === 'function') syncTelegramBackButton(); });
+  modal.querySelector('#closeAppSettings')?.addEventListener('click', () => { modal.remove(); if (typeof syncTelegramBackButton === 'function') syncTelegramBackButton(); });
 
   // Tab switching
   let initialTheme = currentTheme;
@@ -992,7 +1019,8 @@ async function showAppSettings(initialTab = 'security') {
 
 async function showNotificationsPanel() {
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[110] p-4 overflow-y-auto pt-16 pb-20';
+  modal.id = 'notificationsModal';
+  modal.className = 'full-screen-modal-overlay page-enter';
 
   let notifications = [];
   try {
@@ -1004,14 +1032,14 @@ async function showNotificationsPanel() {
     if (error) return '<p class="text-red-400 text-sm text-center py-6">Ошибка загрузки уведомлений</p>';
     if (!items || items.length === 0) return '<p class="text-white/50 text-center py-8">Уведомлений пока нет</p>';
     return items.map(n => `
-      <div class="p-3 rounded-xl mb-3 ${n.is_read ? 'bg-white/5' : 'bg-cyan-500/10 border border-cyan-500/20'}">
+      <div class="p-3.5 rounded-2xl mb-3 ${n.is_read ? 'bg-white/5 border border-white/5' : 'bg-cyan-500/10 border border-cyan-500/25'}">
         <div class="flex items-start justify-between gap-2">
           <div class="flex-1">
             <p class="text-white text-sm font-semibold">${n.title || 'Уведомление'}</p>
-            ${n.body ? `<p class="text-white/60 text-xs mt-1">${n.body}</p>` : ''}
-            <p class="text-white/30 text-xs mt-1">${new Date(n.created_at).toLocaleString('ru-RU')}</p>
+            ${n.body ? `<p class="text-white/70 text-xs mt-1 leading-relaxed">${n.body}</p>` : ''}
+            <p class="text-white/30 text-[10px] mt-1.5 font-mono">${new Date(n.created_at).toLocaleString('ru-RU')}</p>
           </div>
-          ${!n.is_read ? '<span class="w-2 h-2 rounded-full mt-1 flex-shrink-0" style="background:#22d3ee;"></span>' : ''}
+          ${!n.is_read ? '<span class="w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0" style="background:#22d3ee;"></span>' : ''}
         </div>
       </div>
     `).join('');
@@ -1020,25 +1048,25 @@ async function showNotificationsPanel() {
   const unread = notifications.filter(n => !n.is_read);
 
   modal.innerHTML = `
-    <div class="bg-[#1e293b] rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col border border-white/20">
-      <div class="p-5 border-b border-white/20 flex items-center justify-between">
-        <h3 class="text-white font-bold text-lg flex items-center gap-2">
-          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
-          Уведомления
-          <span id="notifBadgeCounter" class="${unread.length > 0 ? '' : 'hidden'} ml-1 px-2 py-0.5 rounded-full text-xs font-bold" style="background:#ef4444;color:#fff;">${unread.length}</span>
-        </h3>
-        <button id="closeNotifPanel" class="text-white/50 hover:text-white transition p-1">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
-        </button>
-      </div>
-      <div class="p-4 overflow-y-auto flex-1" id="notifsContainer">
-        ${renderNotifsList(notifications, null)}
-      </div>
+    <div class="full-screen-modal-header">
+      <button id="closeNotifPanel" class="global-back-btn !mb-0 py-1.5 px-3 text-xs">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        Назад
+      </button>
+      <h3 class="text-white font-bold text-base flex items-center gap-2">
+        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+        Уведомления
+        <span id="notifBadgeCounter" class="${unread.length > 0 ? '' : 'hidden'} ml-1 px-2 py-0.5 rounded-full text-[10px] font-bold" style="background:#ef4444;color:#fff;">${unread.length}</span>
+      </h3>
+      <div class="w-16"></div>
+    </div>
+    <div class="full-screen-modal-body max-w-md mx-auto w-full" id="notifsContainer">
+      ${renderNotifsList(notifications, null)}
     </div>`;
 
   document.body.appendChild(modal);
-  modal.querySelector('#closeNotifPanel')?.addEventListener('click', () => modal.remove());
-  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+  if (typeof syncTelegramBackButton === 'function') syncTelegramBackButton();
+  modal.querySelector('#closeNotifPanel')?.addEventListener('click', () => { modal.remove(); if (typeof syncTelegramBackButton === 'function') syncTelegramBackButton(); });
 
   // Background fetch fresh notifications
   if (supabaseClient && userId) {
@@ -1431,7 +1459,17 @@ async function renderCart() {
     }
     
     if (!data || data.length === 0) {
-      return '<div class="text-center py-10"><p class="text-white/70 mb-4"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span> Ваша корзина пуста</p><button id="goToCatalogBtn" class="btn-primary">Перейти в каталог</button></div>' + renderFooter();
+      return `
+        <button class="global-back-btn mb-4">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          Назад
+        </button>
+        <div class="text-center py-10">
+          <p class="text-white/70 mb-4"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span> Ваша корзина пуста</p>
+          <button id="goToCatalogBtn" class="btn-primary">Перейти в каталог</button>
+        </div>
+        ${renderFooter()}
+      `;
     }
     
     // Preprocess nested products to resolve placeholders/missing URLs
@@ -1467,6 +1505,10 @@ async function renderCart() {
     }).join('');
     
     return `
+      <button class="global-back-btn mb-4">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        Назад
+      </button>
       <div class="space-y-3">
         ${itemsHtml}
         <div class="glass-card mt-4">
