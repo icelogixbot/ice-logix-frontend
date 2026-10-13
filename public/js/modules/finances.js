@@ -72,9 +72,16 @@ function _renderCardsListHtml(cards, manageMode) {
     `;
   }
 
+  // Основная карта всегда строго первая в списке
+  const sortedCards = [...cards].sort((a, b) => {
+    if (a.is_default && !b.is_default) return -1;
+    if (!a.is_default && b.is_default) return 1;
+    return 0;
+  });
+
   return `
-    <div class="space-y-3.5">
-      ${cards.map(c => {
+    <div class="space-y-4">
+      ${sortedCards.map(c => {
         const brand = c.card_brand || c.card_type || 'Банковская карта';
         const bankName = c.bank_name || '';
         const last4 = c.last4 || c.card_last4 || '••••';
@@ -82,90 +89,101 @@ function _renderCardsListHtml(cards, manageMode) {
         const isDef = Boolean(c.is_default);
         const brandLogoHtml = typeof window.getCardBrandLogoHtml === 'function'
           ? window.getCardBrandLogoHtml(brand)
-          : `<span class="text-sm">💳</span>`;
-        const bankEmoji = _getBankEmoji(bankName);
+          : `<span class="text-xs font-bold text-white font-mono">${brand}</span>`;
 
         return `
-          <div class="relative overflow-hidden rounded-3xl p-4.5 transition-all duration-200 ${
-            isDef
-              ? 'bg-gradient-to-br from-slate-900 via-slate-800/95 to-cyan-950/80 border border-cyan-400/50 shadow-xl shadow-cyan-950/40 ring-1 ring-cyan-400/20'
-              : 'bg-gradient-to-br from-slate-900 via-slate-900/95 to-slate-800/70 border border-white/12 shadow-lg shadow-black/40 hover:border-white/20'
-          }">
-            <!-- Декоративные световые акценты пластиковой карты -->
-            <div class="absolute -right-12 -top-12 w-36 h-36 rounded-full pointer-events-none select-none blur-2xl ${
-              isDef ? 'bg-cyan-500/15' : 'bg-white/5'
-            }"></div>
-            <div class="absolute -left-12 -bottom-12 w-32 h-32 rounded-full pointer-events-none select-none blur-2xl ${
-              isDef ? 'bg-cyan-400/10' : 'bg-purple-500/5'
-            }"></div>
+          <div class="space-y-2">
+            <!-- Пластиковая банковская карта (ISO ID-1, пропорции 1.586 : 1) -->
+            <div class="relative w-full aspect-[1.586/1] max-w-[360px] mx-auto rounded-2xl p-5 flex flex-col justify-between overflow-hidden select-none transition-all duration-300 ${
+              isDef
+                ? 'bg-gradient-to-br from-slate-900 via-slate-800/95 to-cyan-950 border border-cyan-400/40 shadow-2xl shadow-cyan-950/60 ring-1 ring-white/10'
+                : 'bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 border border-white/15 shadow-xl shadow-black/70 ring-1 ring-white/5'
+            }">
+              <!-- Световой блик пластика -->
+              <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.04] to-transparent pointer-events-none"></div>
+              <div class="absolute -right-16 -bottom-16 w-44 h-44 rounded-full pointer-events-none blur-2xl ${isDef ? 'bg-cyan-500/15' : 'bg-white/5'}"></div>
 
-            <!-- Верхняя строка карточки: Банк + Статус Основная + Логотип системы -->
-            <div class="relative flex items-center justify-between gap-2 mb-4">
-              <div class="flex items-center gap-2 min-w-0">
-                ${bankName ? `<span class="text-xl select-none leading-none">${bankEmoji}</span>` : '<span class="text-xl select-none leading-none">💳</span>'}
-                <span class="text-xs font-bold text-white tracking-wide truncate">${bankName || brand}</span>
-              </div>
-
-              <div class="flex items-center gap-2 flex-shrink-0 select-none">
-                ${isDef ? `
-                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-400/20 text-cyan-300 border border-cyan-400/40 shadow-sm shadow-cyan-400/20">
-                    Основная
+              <!-- 1. Верхний ряд: Логотип/название банка слева + Логотип системы справа -->
+              <div class="relative z-10 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <span class="text-xs font-black tracking-widest uppercase text-white/90 drop-shadow-sm truncate block font-sans">
+                    ${bankName || 'БАНК'}
                   </span>
-                ` : ''}
-                <div class="flex items-center justify-center">
-                  ${brandLogoHtml}
+                </div>
+
+                <div class="flex items-center gap-2 flex-shrink-0">
+                  ${isDef ? `
+                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-cyan-400/20 text-cyan-300 border border-cyan-400/40 shadow-sm shadow-cyan-400/20 uppercase tracking-wider">
+                      Основная
+                    </span>
+                  ` : ''}
+                  <div class="flex items-center justify-center">
+                    ${brandLogoHtml}
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. Средняя часть: Золотистый EMV-чип и NFC-волна -->
+              <div class="relative z-10 my-auto flex items-center gap-3 pt-1">
+                <!-- EMV-чип -->
+                <div class="w-11 h-8 rounded-md bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 border border-amber-300/60 shadow-inner relative overflow-hidden p-1 flex-shrink-0">
+                  <div class="w-full h-full border border-amber-900/20 rounded-sm grid grid-cols-2 gap-0.5 opacity-80">
+                    <div class="border-r border-b border-amber-900/30"></div>
+                    <div class="border-b border-amber-900/30"></div>
+                    <div class="border-r border-amber-900/30"></div>
+                    <div></div>
+                  </div>
+                </div>
+                <!-- NFC бесконтактная оплата -->
+                <svg class="w-5 h-5 text-white/40 rotate-90 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                  <path d="M8.5 16.5a5 5 0 0 1 0-7"/>
+                  <path d="M12 19a8.5 8.5 0 0 1 0-12"/>
+                  <path d="M15.5 21.5a12 12 0 0 1 0-17"/>
+                </svg>
+              </div>
+
+              <!-- 3. Нижняя часть: Номер карты и срок действия -->
+              <div class="relative z-10 space-y-2">
+                <!-- Рельефный номер карты -->
+                <div class="font-mono text-base sm:text-lg font-bold text-white tracking-[0.22em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] select-none">
+                  •••• •••• •••• ${last4}
+                </div>
+
+                <!-- Срок действия -->
+                <div class="flex items-end justify-between text-left">
+                  <div>
+                    <p class="text-[8px] uppercase tracking-widest text-white/40 font-bold select-none leading-none">VALID THRU</p>
+                    <p class="text-xs font-mono font-bold text-white/90 mt-1 select-none tracking-wider">${exp}</p>
+                  </div>
+                  <span class="text-[9px] font-mono tracking-widest uppercase text-white/30 select-none">ICE LOGIX</span>
                 </div>
               </div>
             </div>
 
-            <!-- Средняя часть: Золотистый EMV-чип + Номер карты в стиле пластика -->
-            <div class="relative flex items-center justify-between gap-3 my-3">
-              <div class="w-10 h-7 rounded-md bg-gradient-to-br from-amber-200/50 via-amber-400/30 to-amber-600/40 border border-amber-300/40 flex items-center justify-center p-1 select-none shadow-inner flex-shrink-0">
-                <div class="w-full h-full border border-amber-300/40 rounded-sm grid grid-cols-2 gap-0.5 opacity-80">
-                  <div class="border-r border-b border-amber-300/50"></div>
-                  <div class="border-b border-amber-300/50"></div>
-                  <div class="border-r border-amber-300/50"></div>
-                  <div></div>
-                </div>
-              </div>
-
-              <div class="font-mono text-[15px] sm:text-base font-bold text-white/95 tracking-[0.18em] select-none text-right">
-                •••• •••• •••• ${last4}
-              </div>
-            </div>
-
-            <!-- Нижняя строка: Срок действия и кнопки управления -->
-            <div class="relative pt-2.5 mt-2 border-t border-white/10 flex items-center justify-between gap-2">
-              <div>
-                <p class="text-[9px] uppercase tracking-wider text-white/40 font-semibold select-none leading-tight">Срок действия</p>
-                <p class="text-xs font-mono font-bold text-white/80 mt-0.5 select-none">${exp}</p>
-              </div>
-
-              <div class="flex items-center gap-2 flex-shrink-0">
+            <!-- Панель управления картой (появляется ТОЛЬКО после нажатия кнопки «Управление»!) -->
+            ${manageMode ? `
+              <div class="flex items-center justify-end gap-2 max-w-[360px] mx-auto px-1 pt-1">
                 ${!isDef ? `
                   <button
                     type="button"
-                    class="px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/40 text-[11px] font-bold text-cyan-300 active:scale-95 transition flex items-center gap-1 shadow-sm shadow-cyan-500/10"
+                    class="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-xs font-bold text-cyan-300 active:scale-95 transition flex items-center gap-1.5 shadow-sm shadow-cyan-500/10"
                     onclick="window.setDefaultCard('${c.id}')"
                   >
                     <span>★</span>
                     <span>Сделать основной</span>
                   </button>
                 ` : ''}
-
-                ${manageMode ? `
-                  <button
-                    type="button"
-                    class="px-2.5 py-1.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-[11px] font-bold text-red-300 active:scale-95 transition flex items-center gap-1"
-                    onclick="window.deleteCard('${c.id}')"
-                    title="Удалить карту"
-                  >
-                    <span>🗑️</span>
-                    <span>Удалить</span>
-                  </button>
-                ` : ''}
+                <button
+                  type="button"
+                  class="px-3 py-1.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-xs font-bold text-red-300 active:scale-95 transition flex items-center gap-1.5"
+                  onclick="window.deleteCard('${c.id}')"
+                  title="Удалить карту"
+                >
+                  <span>🗑️</span>
+                  <span>Удалить</span>
+                </button>
               </div>
-            </div>
+            ` : ''}
           </div>
         `;
       }).join('')}

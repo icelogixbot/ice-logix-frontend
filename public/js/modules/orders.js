@@ -3150,6 +3150,11 @@ window.openCardsManagementModal = async function() {
     const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
     window.userCards = Array.isArray(window.userCards) ? window.userCards : [];
     window.userCards.forEach(c => { c.is_default = (c.id === cardId); });
+    window.userCards.sort((a, b) => {
+      if (a.is_default && !b.is_default) return -1;
+      if (!a.is_default && b.is_default) return 1;
+      return 0;
+    });
     if (curUserId) {
       try { localStorage.setItem('ice_payment_methods_' + curUserId, JSON.stringify(window.userCards)); } catch (_) {}
       if (typeof supabaseClient !== 'undefined' && supabaseClient) {
