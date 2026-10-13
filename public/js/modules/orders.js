@@ -124,16 +124,17 @@
               }
             </style>
 
-            <div class="flex items-center justify-center min-h-[70vh] p-2 page-enter">
-              <div class="glass-card w-full max-w-md p-6 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
+            <div class="space-y-4 page-enter pb-8">
+              <button type="button" class="global-back-btn" onclick="window.orderCountry=null; renderCurrentScreen();">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                Назад
+              </button>
+
+              <div class="glass-card p-5 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
                 <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
                 <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
 
-                <button type="button" class="absolute top-4 left-4 text-white/60 hover:text-cyan-400 text-xs font-bold transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.orderCountry=null; renderCurrentScreen();">
-                  ← Назад
-                </button>
-
-                <h2 class="text-xl font-extrabold text-white text-center mb-1 mt-4">Добавление товара в заказ</h2>
+                <h2 class="text-xl font-extrabold text-white text-center mb-1">Добавление товара в заказ</h2>
                 <p class="text-white/60 text-xs text-center mb-5">Выберите способ добавления товара</p>
                 
                 ${vacationBanner}
