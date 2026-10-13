@@ -739,7 +739,16 @@
           <div id="checkoutCardsList" class="space-y-2">
             <!-- Populated via window.renderCheckoutCards() -->
           </div>
-          <p class="text-[10px] text-white/50">🔒 Безопасная авторизация bePaid. Проверка карты 1.00 BYN с мгновенным возвратом.</p>
+          <div class="flex items-center justify-between pt-1 border-t border-white/5 flex-wrap gap-2">
+            <p class="text-[10px] text-white/50">🔒 Авторизация bePaid (1.00 BYN с возвратом)</p>
+            <div class="flex items-center gap-1 opacity-90">
+              <div class="h-4 px-1 rounded bg-white flex items-center justify-center shadow-xs"><img src="/assets/payment-methods/belkart.webp" alt="БК" class="h-2.5 w-auto"></div>
+              <div class="h-4 px-1 rounded bg-white flex items-center justify-center shadow-xs"><img src="/assets/payment-methods/mastercard.webp" alt="MC" class="h-2.5 w-auto"></div>
+              <div class="h-4 px-1 rounded bg-white flex items-center justify-center shadow-xs"><img src="/assets/payment-methods/mir.webp" alt="МИР" class="h-2 w-auto"></div>
+              <div class="h-4 px-1 rounded bg-white flex items-center justify-center shadow-xs"><img src="/assets/payment-methods/visa.webp" alt="VISA" class="h-2 w-auto"></div>
+              <div class="h-4 px-1 rounded bg-white flex items-center justify-center shadow-xs"><img src="/assets/payment-methods/unionpay.webp" alt="UPI" class="h-2.5 w-auto"></div>
+            </div>
+          </div>
         </div>
 
         <!-- Breakdown & Totals (Разделы 4, 7, 8, 13, 14, 15 ТЗ) -->
@@ -2396,7 +2405,28 @@ function detectCardType(number) {
   if (/^(5[1-5]|222[1-9]|22[3-9]|2[3-6]|27[01]|2720)/.test(clean)) return 'Mastercard';
   if (/^220[0-4]/.test(clean)) return 'МИР';
   if (/^(9112|9860|9861|9862)/.test(clean)) return 'БЕЛКАРТ';
+  if (/^(62|81)/.test(clean)) return 'UnionPay';
   return 'Банковская карта';
+}
+
+function getCardBrandLogoHtml(brand, customClass = '') {
+  const b = String(brand || '').toLowerCase().trim();
+  if (b === 'visa') {
+    return `<img src="/assets/payment-methods/visa.webp" alt="Visa" class="h-3.5 w-auto object-contain select-none ${customClass}" loading="lazy">`;
+  }
+  if (b === 'mastercard') {
+    return `<img src="/assets/payment-methods/mastercard.webp" alt="Mastercard" class="h-4 w-auto object-contain select-none ${customClass}" loading="lazy">`;
+  }
+  if (b === 'белкарт' || b === 'belkart' || b === 'бк') {
+    return `<img src="/assets/payment-methods/belkart.webp" alt="Белкарт" class="h-4 w-4 object-contain select-none ${customClass}" loading="lazy">`;
+  }
+  if (b === 'мир' || b === 'mir') {
+    return `<img src="/assets/payment-methods/mir.webp" alt="МИР" class="h-3.5 w-auto object-contain select-none ${customClass}" loading="lazy">`;
+  }
+  if (b === 'unionpay' || b === 'union pay') {
+    return `<img src="/assets/payment-methods/unionpay.webp" alt="UnionPay" class="h-4 w-auto object-contain select-none ${customClass}" loading="lazy">`;
+  }
+  return `<span class="text-xs select-none">💳</span>`;
 }
 
 function detectBank(number) {
@@ -2580,11 +2610,8 @@ window.renderCheckoutCards = function() {
       <label class="flex items-center justify-between p-3 rounded-2xl transition-all cursor-pointer ${isSelected ? 'bg-gradient-to-r from-cyan-950/60 to-slate-900 border border-cyan-500/50 shadow-md shadow-cyan-500/10' : 'bg-slate-900/70 border border-white/10 hover:border-white/20'}">
         <div class="flex items-center gap-3">
           <input type="radio" name="selectedCheckoutCard" value="${c.id}" ${isSelected ? 'checked' : ''} class="w-4 h-4 accent-cyan-400 cursor-pointer" onchange="window.selectCheckoutCard('${c.id}')">
-          <div class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-sm select-none">
-            ${brand === 'Visa' ? '<span class="text-[9px] font-black text-blue-400">VISA</span>' :
-              brand === 'Mastercard' ? '<span class="inline-flex items-center"><span class="w-2 h-2 rounded-full bg-red-500"></span><span class="w-2 h-2 rounded-full bg-amber-400 -ml-1"></span></span>' :
-              brand === 'МИР' ? '<span class="text-[8px] font-black text-teal-400">МИР</span>' :
-              brand === 'БЕЛКАРТ' ? '<span class="text-[7px] font-black text-emerald-400">БК</span>' : '💳'}
+          <div class="w-8 h-8 rounded-lg bg-white flex items-center justify-center p-1 select-none shadow-sm flex-shrink-0">
+            ${getCardBrandLogoHtml(brand, 'max-h-5 max-w-full')}
           </div>
           <div>
             <div class="flex items-center gap-1.5">
@@ -2732,19 +2759,31 @@ window.openAddCardModal = function(onSuccess) {
         </button>
       </form>
 
-      <!-- Линейка поддерживаемых платежных систем (как внизу на Скриншоте 1 WB) -->
-      <div class="pt-1 flex flex-col items-center gap-2">
-        <div class="flex items-center justify-center gap-3.5 py-1 opacity-75">
-          <span class="text-xs font-black tracking-wider text-blue-400">VISA</span>
-          <span class="text-xs font-bold text-orange-400 flex items-center gap-0.5">
-            <span class="inline-block w-2.5 h-2.5 rounded-full bg-red-500"></span>
-            <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-400 -ml-1"></span>
-          </span>
-          <span class="text-xs font-black tracking-wider text-emerald-400">БЕЛКАРТ</span>
-          <span class="text-xs font-black tracking-wider text-teal-400">МИР</span>
+      <!-- Линейка поддерживаемых платежных систем (bePaid) -->
+      <div class="pt-2 flex flex-col items-center gap-2.5">
+        <div class="w-full flex items-center justify-center gap-1.5 flex-wrap px-1">
+          <div class="h-7 px-2.5 rounded-xl bg-white flex items-center justify-center shadow-sm hover:scale-105 transition-transform" title="Белкарт">
+            <img src="/assets/payment-methods/belkart.webp" alt="Белкарт" class="h-4.5 w-auto object-contain select-none" loading="lazy">
+          </div>
+          <div class="h-7 px-2.5 rounded-xl bg-white flex items-center justify-center shadow-sm hover:scale-105 transition-transform" title="Mastercard">
+            <img src="/assets/payment-methods/mastercard.webp" alt="Mastercard" class="h-4 w-auto object-contain select-none" loading="lazy">
+          </div>
+          <div class="h-7 px-2.5 rounded-xl bg-white flex items-center justify-center shadow-sm hover:scale-105 transition-transform" title="МИР">
+            <img src="/assets/payment-methods/mir.webp" alt="МИР" class="h-3.5 w-auto object-contain select-none" loading="lazy">
+          </div>
+          <div class="h-7 px-2.5 rounded-xl bg-white flex items-center justify-center shadow-sm hover:scale-105 transition-transform" title="VISA">
+            <img src="/assets/payment-methods/visa.webp" alt="VISA" class="h-3.5 w-auto object-contain select-none" loading="lazy">
+          </div>
+          <div class="h-7 px-2.5 rounded-xl bg-white flex items-center justify-center shadow-sm hover:scale-105 transition-transform" title="UnionPay">
+            <img src="/assets/payment-methods/unionpay.webp" alt="UnionPay" class="h-4 w-auto object-contain select-none" loading="lazy">
+          </div>
+        </div>
+        <div class="flex items-center justify-center gap-1.5 text-[10px] text-white/50">
+          <span>🔒</span>
+          <span>Безопасный эквайринг <strong>bePaid (РБ)</strong> · Стандарт PCI DSS</span>
         </div>
         <p class="text-[10px] text-white/40 text-center leading-relaxed px-2">
-          🛡️ Для проверки карты блокируется <strong>1.00 BYN</strong> и сразу возвращается. Платежный шлюз bePaid (РБ), стандарт PCI DSS.
+          Для проверки карты блокируется <strong>1.00 BYN</strong> и сразу возвращается.
         </p>
       </div>
 
@@ -2780,18 +2819,8 @@ window.openAddCardModal = function(onSuccess) {
     const brand = detectCardType(rawDigits);
     const bank = detectBank(rawDigits);
 
-    if (rawDigits.length >= 2) {
-      if (brand === 'Visa') {
-        brandIcon.innerHTML = '<span class="text-xs font-black text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-400/30">VISA</span>';
-      } else if (brand === 'Mastercard') {
-        brandIcon.innerHTML = '<span class="inline-flex items-center"><span class="w-3.5 h-3.5 rounded-full bg-red-500"></span><span class="w-3.5 h-3.5 rounded-full bg-amber-400 -ml-1.5"></span></span>';
-      } else if (brand === 'МИР') {
-        brandIcon.innerHTML = '<span class="text-xs font-black text-teal-400 bg-teal-500/10 px-1.5 py-0.5 rounded border border-teal-400/30">МИР</span>';
-      } else if (brand === 'БЕЛКАРТ') {
-        brandIcon.innerHTML = '<span class="text-xs font-black text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-400/30">БЕЛКАРТ</span>';
-      } else {
-        brandIcon.innerText = '💳';
-      }
+    if (rawDigits.length >= 2 && brand && brand !== 'Банковская карта') {
+      brandIcon.innerHTML = `<span class="inline-flex items-center justify-center bg-white rounded-md px-1.5 py-0.5 shadow-sm border border-white/20">${getCardBrandLogoHtml(brand, 'max-h-4 max-w-[38px]')}</span>`;
     } else {
       brandIcon.innerText = '💳';
     }
@@ -3004,11 +3033,8 @@ window.openCardsManagementModal = async function() {
       return `
         <div class="p-3.5 rounded-2xl ${isDef ? 'bg-gradient-to-r from-cyan-950/40 to-slate-900 border border-cyan-500/50 shadow-md shadow-cyan-500/10' : 'bg-slate-900/80 border border-white/10'} flex items-center justify-between gap-3 transition hover:border-white/20">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-lg select-none flex-shrink-0">
-              ${brand === 'Visa' ? '<span class="text-[10px] font-black text-blue-400">VISA</span>' :
-                brand === 'Mastercard' ? '<span class="inline-flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span><span class="w-2.5 h-2.5 rounded-full bg-amber-400 -ml-1"></span></span>' :
-                brand === 'МИР' ? '<span class="text-[9px] font-black text-teal-400">МИР</span>' :
-                brand === 'БЕЛКАРТ' ? '<span class="text-[8px] font-black text-emerald-400">БК</span>' : '💳'}
+            <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center p-1 select-none flex-shrink-0 shadow-sm">
+              ${getCardBrandLogoHtml(brand, 'max-h-6 max-w-full')}
             </div>
             <div>
               <div class="flex items-center gap-1.5 flex-wrap">
@@ -3069,7 +3095,24 @@ window.openCardsManagementModal = async function() {
       <div class="space-y-1.5">
         <div class="flex items-center justify-between px-1">
           <span class="text-xs font-bold text-white/80">Сохраненные карты</span>
-          <span class="text-[10px] text-white/40">bePaid (РБ)</span>
+          <div class="flex items-center gap-1">
+            <span class="text-[10px] text-white/40 mr-1">bePaid:</span>
+            <div class="h-4.5 px-1.5 rounded-md bg-white flex items-center justify-center shadow-xs">
+              <img src="/assets/payment-methods/belkart.webp" alt="БК" class="h-2.5 w-auto" loading="lazy">
+            </div>
+            <div class="h-4.5 px-1.5 rounded-md bg-white flex items-center justify-center shadow-xs">
+              <img src="/assets/payment-methods/mastercard.webp" alt="MC" class="h-2.5 w-auto" loading="lazy">
+            </div>
+            <div class="h-4.5 px-1.5 rounded-md bg-white flex items-center justify-center shadow-xs">
+              <img src="/assets/payment-methods/mir.webp" alt="МИР" class="h-2 w-auto" loading="lazy">
+            </div>
+            <div class="h-4.5 px-1.5 rounded-md bg-white flex items-center justify-center shadow-xs">
+              <img src="/assets/payment-methods/visa.webp" alt="VISA" class="h-2 w-auto" loading="lazy">
+            </div>
+            <div class="h-4.5 px-1.5 rounded-md bg-white flex items-center justify-center shadow-xs">
+              <img src="/assets/payment-methods/unionpay.webp" alt="UPI" class="h-2.5 w-auto" loading="lazy">
+            </div>
+          </div>
         </div>
         <div id="modalCardsList" class="space-y-2 max-h-56 overflow-y-auto pr-0.5">
           ${renderCardListHtml()}
@@ -3825,3 +3868,4 @@ if (typeof getDeliveryCountdownText === 'function') window.getDeliveryCountdownT
 if (typeof renderMyOrders === 'function') window.renderMyOrders = renderMyOrders;
 if (typeof detectCardType === 'function') window.detectCardType = detectCardType;
 if (typeof getCardIcon === 'function') window.getCardIcon = getCardIcon;
+if (typeof getCardBrandLogoHtml === 'function') window.getCardBrandLogoHtml = getCardBrandLogoHtml;
