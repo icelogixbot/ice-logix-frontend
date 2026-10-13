@@ -3043,7 +3043,7 @@ window.openCardsManagementModal = async function() {
           <div class="flex items-center gap-1.5 flex-shrink-0">
             ${!isDef ? `
               <button type="button" class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-cyan-500/20 text-[10px] text-cyan-300 font-semibold transition active:scale-95" onclick="window.setDefaultCard('${c.id}')">
-                Сделать осн.
+                Сделать основной
               </button>
             ` : ''}
             <button type="button" class="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs transition active:scale-95" onclick="window.deleteCard('${c.id}')" title="Удалить карту">

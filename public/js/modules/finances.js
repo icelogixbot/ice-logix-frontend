@@ -73,7 +73,7 @@ function _renderCardsListHtml(cards, manageMode) {
   }
 
   return `
-    <div class="space-y-2.5">
+    <div class="space-y-3.5">
       ${cards.map(c => {
         const brand = c.card_brand || c.card_type || 'Банковская карта';
         const bankName = c.bank_name || '';
@@ -86,34 +86,86 @@ function _renderCardsListHtml(cards, manageMode) {
         const bankEmoji = _getBankEmoji(bankName);
 
         return `
-          <div class="p-3.5 rounded-2xl transition-all ${isDef ? 'bg-gradient-to-r from-cyan-950/50 via-slate-900 to-slate-900 border border-cyan-500/50 shadow-md shadow-cyan-500/10' : 'bg-slate-900/80 border border-white/10'} flex items-center justify-between gap-3">
-            <div class="flex items-center gap-2.5 min-w-0">
+          <div class="relative overflow-hidden rounded-3xl p-4.5 transition-all duration-200 ${
+            isDef
+              ? 'bg-gradient-to-br from-slate-900 via-slate-800/95 to-cyan-950/80 border border-cyan-400/50 shadow-xl shadow-cyan-950/40 ring-1 ring-cyan-400/20'
+              : 'bg-gradient-to-br from-slate-900 via-slate-900/95 to-slate-800/70 border border-white/12 shadow-lg shadow-black/40 hover:border-white/20'
+          }">
+            <!-- Декоративные световые акценты пластиковой карты -->
+            <div class="absolute -right-12 -top-12 w-36 h-36 rounded-full pointer-events-none select-none blur-2xl ${
+              isDef ? 'bg-cyan-500/15' : 'bg-white/5'
+            }"></div>
+            <div class="absolute -left-12 -bottom-12 w-32 h-32 rounded-full pointer-events-none select-none blur-2xl ${
+              isDef ? 'bg-cyan-400/10' : 'bg-purple-500/5'
+            }"></div>
+
+            <!-- Верхняя строка карточки: Банк + Статус Основная + Логотип системы -->
+            <div class="relative flex items-center justify-between gap-2 mb-4">
+              <div class="flex items-center gap-2 min-w-0">
+                ${bankName ? `<span class="text-xl select-none leading-none">${bankEmoji}</span>` : '<span class="text-xl select-none leading-none">💳</span>'}
+                <span class="text-xs font-bold text-white tracking-wide truncate">${bankName || brand}</span>
+              </div>
+
               <div class="flex items-center gap-2 flex-shrink-0 select-none">
-                ${bankName ? `<span class="text-xl select-none leading-none">${bankEmoji}</span>` : ''}
-                <div class="flex items-center justify-center select-none flex-shrink-0">
+                ${isDef ? `
+                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-400/20 text-cyan-300 border border-cyan-400/40 shadow-sm shadow-cyan-400/20">
+                    Основная
+                  </span>
+                ` : ''}
+                <div class="flex items-center justify-center">
                   ${brandLogoHtml}
                 </div>
               </div>
-              <div class="min-w-0">
-                <div class="flex items-center gap-1.5 flex-wrap">
-                  <span class="text-xs font-bold text-white truncate">${bankName || brand}</span>
-                  ${isDef ? '<span class="text-[9px] text-cyan-300 font-bold bg-cyan-500/20 px-2 py-0.5 rounded-full border border-cyan-400/40">Основная</span>' : ''}
+            </div>
+
+            <!-- Средняя часть: Золотистый EMV-чип + Номер карты в стиле пластика -->
+            <div class="relative flex items-center justify-between gap-3 my-3">
+              <div class="w-10 h-7 rounded-md bg-gradient-to-br from-amber-200/50 via-amber-400/30 to-amber-600/40 border border-amber-300/40 flex items-center justify-center p-1 select-none shadow-inner flex-shrink-0">
+                <div class="w-full h-full border border-amber-300/40 rounded-sm grid grid-cols-2 gap-0.5 opacity-80">
+                  <div class="border-r border-b border-amber-300/50"></div>
+                  <div class="border-b border-amber-300/50"></div>
+                  <div class="border-r border-amber-300/50"></div>
+                  <div></div>
                 </div>
-                <p class="text-[10px] text-white/40 mt-0.5 font-mono">•••• ${last4} · ${exp}</p>
+              </div>
+
+              <div class="font-mono text-[15px] sm:text-base font-bold text-white/95 tracking-[0.18em] select-none text-right">
+                •••• •••• •••• ${last4}
               </div>
             </div>
-            ${manageMode ? `
-              <div class="flex items-center gap-1.5 flex-shrink-0">
-                ${!isDef ? `
-                  <button type="button" class="px-2.5 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/25 text-[10px] text-cyan-300 font-semibold transition active:scale-95" onclick="window.setDefaultCard('${c.id}')">
-                    Основная
-                  </button>
-                ` : `<span class="text-[10px] text-cyan-400/60 px-1 font-medium">✓ осн.</span>`}
-                <button type="button" class="p-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 transition active:scale-95" onclick="window.deleteCard('${c.id}')" title="Удалить">
-                  🗑️
-                </button>
+
+            <!-- Нижняя строка: Срок действия и кнопки управления -->
+            <div class="relative pt-2.5 mt-2 border-t border-white/10 flex items-center justify-between gap-2">
+              <div>
+                <p class="text-[9px] uppercase tracking-wider text-white/40 font-semibold select-none leading-tight">Срок действия</p>
+                <p class="text-xs font-mono font-bold text-white/80 mt-0.5 select-none">${exp}</p>
               </div>
-            ` : ''}
+
+              <div class="flex items-center gap-2 flex-shrink-0">
+                ${!isDef ? `
+                  <button
+                    type="button"
+                    class="px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/40 text-[11px] font-bold text-cyan-300 active:scale-95 transition flex items-center gap-1 shadow-sm shadow-cyan-500/10"
+                    onclick="window.setDefaultCard('${c.id}')"
+                  >
+                    <span>★</span>
+                    <span>Сделать основной</span>
+                  </button>
+                ` : ''}
+
+                ${manageMode ? `
+                  <button
+                    type="button"
+                    class="px-2.5 py-1.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-[11px] font-bold text-red-300 active:scale-95 transition flex items-center gap-1"
+                    onclick="window.deleteCard('${c.id}')"
+                    title="Удалить карту"
+                  >
+                    <span>🗑️</span>
+                    <span>Удалить</span>
+                  </button>
+                ` : ''}
+              </div>
+            </div>
           </div>
         `;
       }).join('')}
@@ -165,41 +217,6 @@ function _renderPaymentTabHtml() {
 
   return `
     <div class="space-y-4">
-      
-      <!-- Карточка: Безопасный эквайринг bePaid -->
-      <div class="glass-card p-4 rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-slate-900/60 to-cyan-950/30 space-y-3">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <span class="text-base select-none">🔒</span>
-            <h3 class="text-white font-bold text-sm">Платежная система bePaid</h3>
-          </div>
-          <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 font-bold">
-            PCI DSS L1
-          </span>
-        </div>
-
-        <!-- Линейка логотипов (стиль WB: чистый ряд без фона) -->
-        <div class="flex items-center justify-center gap-4 py-2 select-none">
-          <img src="/assets/payment-methods/visa.webp" alt="VISA" class="h-3.5 w-auto object-contain select-none" loading="lazy">
-          <img src="/assets/payment-methods/mastercard.webp" alt="Mastercard" class="h-4 w-auto object-contain select-none" loading="lazy">
-          <img src="/assets/payment-methods/belkart.webp" alt="Белкарт" class="h-4 w-auto object-contain select-none" loading="lazy">
-          <img src="/assets/payment-methods/mir.webp" alt="МИР" class="h-3.5 w-auto object-contain select-none" loading="lazy">
-          <img src="/assets/payment-methods/unionpay.webp" alt="UnionPay" class="h-4 w-auto object-contain select-none" loading="lazy">
-        </div>
-
-        <!-- Преимущества и условия -->
-        <div class="pt-2 border-t border-white/5 space-y-1.5 text-[11px] text-white/60">
-          <div class="flex items-start gap-2">
-            <span class="text-cyan-400 text-xs mt-0.5">•</span>
-            <span><strong>Оплата в 2 этапа:</strong> 70% при оформлении заказа и 30% при поступлении товара на склад в Беларусь.</span>
-          </div>
-          <div class="flex items-start gap-2">
-            <span class="text-cyan-400 text-xs mt-0.5">•</span>
-            <span><strong>Полная безопасность:</strong> данные карт токенизируются сертифицированным эквайером Беларуси.</span>
-          </div>
-        </div>
-      </div>
-
       <!-- Секция: Привязанные карты -->
       <div id="financesCardsSection" class="space-y-3">
         <div class="flex items-center justify-between px-1">
@@ -214,7 +231,7 @@ function _renderPaymentTabHtml() {
         ${_renderCardsListHtml(cards, manageMode)}
 
         ${cards.length > 0 && cards.length < 5 ? `
-          <button type="button" id="financesAddCardBottomBtn" class="w-full py-3 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 border-2 border-dashed border-cyan-500/30 hover:border-cyan-400 bg-cyan-500/5 hover:bg-cyan-500/10 text-cyan-300 transition-all active:scale-95">
+          <button type="button" id="financesAddCardBottomBtn" class="w-full py-3.5 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 border-2 border-dashed border-cyan-500/30 hover:border-cyan-400 bg-cyan-500/5 hover:bg-cyan-500/10 text-cyan-300 transition-all active:scale-95">
             <span class="text-base leading-none font-black">+</span>
             <span>Привязать ещё одну карту</span>
           </button>
@@ -226,7 +243,6 @@ function _renderPaymentTabHtml() {
           </div>
         ` : ''}
       </div>
-
     </div>
   `;
 }
