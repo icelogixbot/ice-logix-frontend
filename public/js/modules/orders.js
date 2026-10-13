@@ -2411,20 +2411,22 @@ function detectCardType(number) {
 
 function getCardBrandLogoHtml(brand, customClass = '') {
   const b = String(brand || '').toLowerCase().trim();
+  // Единая оптическая высота для всех логотипов — max-h-[18px]
+  const cls = `max-h-[18px] w-auto object-contain select-none${customClass ? ' ' + customClass : ''}`;
   if (b === 'visa') {
-    return `<img src="/assets/payment-methods/visa.webp" alt="Visa" class="h-4 w-auto object-contain select-none ${customClass}" loading="lazy">`;
+    return `<img src="/assets/payment-methods/visa.webp" alt="Visa" class="${cls}" loading="lazy">`;
   }
   if (b === 'mastercard') {
-    return `<img src="/assets/payment-methods/mastercard.webp" alt="Mastercard" class="h-4.5 w-auto object-contain select-none ${customClass}" loading="lazy">`;
+    return `<img src="/assets/payment-methods/mastercard.webp" alt="Mastercard" class="${cls}" loading="lazy">`;
   }
   if (b === 'белкарт' || b === 'belkart' || b === 'бк') {
-    return `<img src="/assets/payment-methods/belkart.webp" alt="Белкарт" class="h-4.5 w-4.5 object-contain select-none ${customClass}" loading="lazy">`;
+    return `<img src="/assets/payment-methods/belkart.webp" alt="Белкарт" class="${cls}" loading="lazy">`;
   }
   if (b === 'мир' || b === 'mir') {
-    return `<img src="/assets/payment-methods/mir.webp" alt="МИР" class="h-4 w-auto object-contain select-none ${customClass}" loading="lazy">`;
+    return `<img src="/assets/payment-methods/mir.webp" alt="МИР" class="${cls}" loading="lazy">`;
   }
   if (b === 'unionpay' || b === 'union pay') {
-    return `<img src="/assets/payment-methods/unionpay.webp" alt="UnionPay" class="h-4.5 w-auto object-contain select-none ${customClass}" loading="lazy">`;
+    return `<img src="/assets/payment-methods/unionpay.webp" alt="UnionPay" class="${cls}" loading="lazy">`;
   }
   return `<span class="text-xs select-none">💳</span>`;
 }
