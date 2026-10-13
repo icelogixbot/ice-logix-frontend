@@ -73,14 +73,9 @@ async function renderFinances() {
             return `
               <div class="p-3.5 rounded-2xl transition-all ${isDef ? 'bg-gradient-to-r from-cyan-950/50 via-slate-900 to-slate-900 border border-cyan-500/50 shadow-md shadow-cyan-500/10' : 'bg-slate-900/80 border border-white/10'} flex items-center justify-between gap-3">
                 <div class="flex items-center gap-2.5 min-w-0">
-                  <!-- Двойной логотип: банк + платёжная система -->
-                  <div class="flex items-center gap-1 flex-shrink-0">
-                    ${bankName ? `
-                      <div class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center select-none text-lg leading-none">
-                        ${bankEmoji}
-                      </div>
-                    ` : ''}
-                    <div class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center p-2 select-none flex-shrink-0">
+                  <div class="flex items-center gap-2 flex-shrink-0 select-none">
+                    ${bankName ? `<span class="text-xl select-none leading-none">${bankEmoji}</span>` : ''}
+                    <div class="flex items-center justify-center select-none flex-shrink-0">
                       ${brandLogoHtml}
                     </div>
                   </div>
@@ -126,23 +121,13 @@ async function renderFinances() {
             </span>
           </div>
 
-          <!-- Линейка логотипов без белого фона с единой оптической высотой -->
-          <div class="flex items-center justify-between gap-1.5 pt-1 pb-1 px-1 flex-wrap">
-            <div class="h-8 px-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shadow-xs" title="Белкарт">
-              <img src="/assets/payment-methods/belkart.webp" alt="Белкарт" class="h-4.5 w-auto object-contain select-none" loading="lazy">
-            </div>
-            <div class="h-8 px-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shadow-xs" title="Mastercard">
-              <img src="/assets/payment-methods/mastercard.webp" alt="Mastercard" class="h-4.5 w-auto object-contain select-none" loading="lazy">
-            </div>
-            <div class="h-8 px-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shadow-xs" title="МИР">
-              <img src="/assets/payment-methods/mir.webp" alt="МИР" class="h-4 w-auto object-contain select-none" loading="lazy">
-            </div>
-            <div class="h-8 px-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shadow-xs" title="VISA">
-              <img src="/assets/payment-methods/visa.webp" alt="VISA" class="h-4 w-auto object-contain select-none" loading="lazy">
-            </div>
-            <div class="h-8 px-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shadow-xs" title="UnionPay">
-              <img src="/assets/payment-methods/unionpay.webp" alt="UnionPay" class="h-4.5 w-auto object-contain select-none" loading="lazy">
-            </div>
+          <!-- Линейка логотипов (стиль WB: чистый ряд без фона) -->
+          <div class="flex items-center justify-center gap-4 py-2 select-none">
+            <img src="/assets/payment-methods/visa.webp" alt="VISA" class="h-3.5 w-auto object-contain select-none" loading="lazy">
+            <img src="/assets/payment-methods/mastercard.webp" alt="Mastercard" class="h-4 w-auto object-contain select-none" loading="lazy">
+            <img src="/assets/payment-methods/belkart.webp" alt="Белкарт" class="h-4 w-auto object-contain select-none" loading="lazy">
+            <img src="/assets/payment-methods/mir.webp" alt="МИР" class="h-3.5 w-auto object-contain select-none" loading="lazy">
+            <img src="/assets/payment-methods/unionpay.webp" alt="UnionPay" class="h-4 w-auto object-contain select-none" loading="lazy">
           </div>
 
           <!-- Преимущества и условия -->
