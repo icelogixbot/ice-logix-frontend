@@ -2403,8 +2403,8 @@ function detectCardType(number) {
   const clean = String(number || '').replace(/\D/g, '');
   if (/^4/.test(clean)) return 'Visa';
   if (/^(5[1-5]|222[1-9]|22[3-9]|2[3-6]|27[01]|2720)/.test(clean)) return 'Mastercard';
-  if (/^220[0-4]/.test(clean)) return 'МИР';
-  if (/^(9112|9860|9861|9862)/.test(clean)) return 'БЕЛКАРТ';
+  if (/^(9112|9860|9861|9862|2204)/.test(clean)) return 'БЕЛКАРТ';
+  if (/^220[0-3]/.test(clean)) return 'МИР';
   if (/^(62|81)/.test(clean)) return 'UnionPay';
   return 'Банковская карта';
 }
@@ -2446,20 +2446,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-teal-950/60 ring-teal-400/20',
     badgeBg: 'bg-teal-500/20 text-teal-300 border border-teal-400/40',
     accentColor: '#00A88F',
-    binRegex: /^(418701|510076|520261|544837|911206|986006|405786)/
-  },
-  belarusbank: {
-    code: 'belarusbank',
-    name: 'Беларусбанк',
-    shortName: 'Беларусбанк',
-    logo: '/assets/banks/belarusbank.webp',
-    icon: '🟢',
-    cardGradient: 'from-[#052819] via-[#091b13] to-[#073620]',
-    cardBorder: 'border-emerald-400/40',
-    cardGlow: 'shadow-emerald-950/60 ring-emerald-400/20',
-    badgeBg: 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40',
-    accentColor: '#006A4E',
-    binRegex: /^(425519|425520|545622|911201|911221|986001|405787|516315)/
+    binRegex: /^(418701|4187|510076|520261|544837|911206|986006|405786)/
   },
   belagroprom: {
     code: 'belagroprom',
@@ -2472,7 +2459,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-orange-950/60 ring-orange-400/20',
     badgeBg: 'bg-orange-500/20 text-orange-300 border border-orange-400/40',
     accentColor: '#FF7A00',
-    binRegex: /^(405877|437435|521405|524430|911200|986000|544775|416954)/
+    binRegex: /^(405877|4058|437435|4374|521405|524430|911200|986000|544775|416954)/
   },
   prior: {
     code: 'prior',
@@ -2485,7 +2472,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-yellow-950/60 ring-yellow-400/20',
     badgeBg: 'bg-amber-400/20 text-amber-300 border border-amber-400/40',
     accentColor: '#FFD200',
-    binRegex: /^(409428|430488|510049|535109|911202|986002)/
+    binRegex: /^(409428|4094|430488|4304|510049|535109|911202|986002)/
   },
   sber: {
     code: 'sber',
@@ -2498,7 +2485,20 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-emerald-950/60 ring-emerald-400/20',
     badgeBg: 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40',
     accentColor: '#21A038',
-    binRegex: /^(418868|510087|911203|986003|405255|427229|220024|4276|4279|5469|2202)/
+    binRegex: /^(418868|4188|510087|911203|986003|405255|427229|220024|4276|4279|5469|2202)/
+  },
+  belarusbank: {
+    code: 'belarusbank',
+    name: 'Беларусбанк',
+    shortName: 'Беларусбанк',
+    logo: '/assets/banks/belarusbank.webp',
+    icon: '🟢',
+    cardGradient: 'from-[#052819] via-[#091b13] to-[#073620]',
+    cardBorder: 'border-emerald-400/40',
+    cardGlow: 'shadow-emerald-950/60 ring-emerald-400/20',
+    badgeBg: 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40',
+    accentColor: '#006A4E',
+    binRegex: /^(4255|405787|4057|5456|5163|535108|6762|6769|6771|911201|91122|9112|9860|2204|2200)/
   }
 };
 window.BANK_CONFIGS = BANK_CONFIGS;
@@ -2509,7 +2509,7 @@ function getBankLogoHtml(bankOrCode, customClass = '') {
   const bank = BANK_CONFIGS[code] || Object.values(BANK_CONFIGS).find(b => b.name.toLowerCase() === code || b.shortName.toLowerCase() === code);
   const extra = customClass ? ' ' + customClass : '';
   if (bank && bank.logo) {
-    return `<img src="${bank.logo}" alt="${bank.name}" class="h-4 max-h-[17px] w-auto object-contain select-none${extra}" loading="lazy">`;
+    return `<img src="${bank.logo}" alt="${bank.name}" class="h-4 max-h-[18px] w-auto object-contain select-none${extra}" loading="lazy">`;
   }
   return '';
 }
@@ -2518,12 +2518,10 @@ window.getBankLogoHtml = getBankLogoHtml;
 function detectBank(number) {
   const clean = String(number || '').replace(/\D/g, '');
   if (clean.length < 4) return null;
-  const bin6 = clean.substring(0, 6);
-  const bin4 = clean.substring(0, 4);
 
   for (const key of Object.keys(BANK_CONFIGS)) {
     const bank = BANK_CONFIGS[key];
-    if (bank.binRegex && (bank.binRegex.test(bin6) || bank.binRegex.test(bin4))) {
+    if (bank.binRegex && bank.binRegex.test(clean)) {
       return bank;
     }
   }
@@ -2676,7 +2674,7 @@ window.renderCheckoutCards = function() {
           </div>
           <div>
             <div class="flex items-center gap-1.5 flex-wrap">
-              ${bankLogoHtml ? `<span class="inline-flex items-center bg-white/95 rounded px-1.5 py-0.5 shadow-sm">${bankLogoHtml}</span>` : (bankName ? `<span class="text-xs font-bold text-white">${bankName}</span>` : '')}
+              ${bankLogoHtml ? `<span class="inline-flex items-center">${bankLogoHtml}</span>` : (bankName ? `<span class="text-xs font-bold text-white">${bankName}</span>` : '')}
               <span class="text-xs font-mono font-bold text-white tracking-wider">•••• ${last4}</span>
               ${c.is_default ? '<span class="text-[8px] text-cyan-300 font-bold bg-cyan-500/20 px-1.5 py-0.5 rounded-full border border-cyan-400/40">Осн.</span>' : ''}
             </div>
@@ -2743,14 +2741,14 @@ window.openAddCardModal = function(onSuccess) {
       </div>
 
       <!-- Живая интерактивная банковская карта (ISO ID-1, динамический банк и платежная система) -->
-      <div class="relative w-full aspect-[1.586/1] max-w-[315px] mx-auto rounded-2xl p-4 flex flex-col justify-between overflow-hidden select-none transition-all duration-500 shadow-2xl bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 border border-white/15" id="liveCardPreview">
+      <div class="relative w-full aspect-[1.586/1] max-w-[315px] mx-auto rounded-2xl p-4 sm:p-5 flex flex-col justify-between overflow-hidden select-none transition-all duration-500 shadow-2xl bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 border border-white/15" id="liveCardPreview">
         <!-- Световой блик пластика -->
-        <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.05] to-transparent pointer-events-none"></div>
+        <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.04] to-transparent pointer-events-none"></div>
 
         <!-- 1. Верхний ряд: Логотип банка слева + Логотип системы справа -->
         <div class="relative z-10 flex items-center justify-between gap-3 min-h-[26px]">
           <div id="liveCardBankSlot" class="flex items-center min-w-0 transition-opacity duration-300">
-            <span class="text-[11px] font-black tracking-widest uppercase text-white/70 font-sans truncate" id="liveCardBankName">ICE LOGIX</span>
+            <span class="text-[11px] font-black tracking-widest uppercase text-white/70 font-sans truncate" id="liveCardBankName">БАНК</span>
           </div>
 
           <div id="liveCardBrandSlot" class="flex items-center justify-center flex-shrink-0 transition-all duration-300">
@@ -2758,8 +2756,8 @@ window.openAddCardModal = function(onSuccess) {
           </div>
         </div>
 
-        <!-- 2. Средняя часть: Золотистый EMV-чип + NFC волны -->
-        <div class="relative z-10 flex items-center justify-between pt-0.5">
+        <!-- 2. Средняя часть: Золотистый EMV-чип (без лишних значков/черкашей) -->
+        <div class="relative z-10 my-auto flex items-center pt-0.5">
           <div class="w-9 h-6.5 rounded-md bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 border border-amber-300/60 shadow-inner relative overflow-hidden p-0.5 flex-shrink-0">
             <div class="w-full h-full border border-amber-900/20 rounded-sm grid grid-cols-2 gap-0.5 opacity-80">
               <div class="border-r border-b border-amber-900/30"></div>
@@ -2767,10 +2765,6 @@ window.openAddCardModal = function(onSuccess) {
               <div class="border-r border-amber-900/30"></div>
               <div></div>
             </div>
-          </div>
-          <!-- Значок бесконтактной оплаты NFC -->
-          <div class="text-white/40 transform rotate-90 scale-90 select-none opacity-80 pr-1">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8.5 16.5a5 5 0 0 1 0-9"/><path d="M12 19a8.5 8.5 0 0 0 0-14"/><path d="M15.5 21.5a12 12 0 0 0 0-19"/></svg>
           </div>
         </div>
 
@@ -2782,12 +2776,8 @@ window.openAddCardModal = function(onSuccess) {
 
           <div class="flex items-end justify-between text-left pt-0.5">
             <div>
-              <p class="text-[7px] uppercase tracking-widest text-white/40 font-bold select-none leading-none">VALID THRU</p>
-              <p id="liveCardExpiry" class="text-xs font-mono font-bold text-white/90 mt-0.5 select-none tracking-wider">MM/YY</p>
-            </div>
-            <div>
-              <p class="text-[7px] uppercase tracking-widest text-white/40 font-bold select-none leading-none text-right">CARDHOLDER</p>
-              <p class="text-[10px] font-sans font-bold text-white/70 mt-0.5 select-none tracking-wider text-right uppercase">VALUED CLIENT</p>
+              <p class="text-[7px] uppercase tracking-wider text-white/40 font-bold select-none leading-none">СРОК ДЕЙСТВИЯ</p>
+              <p id="liveCardExpiry" class="text-xs font-mono font-bold text-white/90 mt-0.5 select-none tracking-wider">ММ/ГГ</p>
             </div>
           </div>
         </div>
@@ -2963,14 +2953,14 @@ window.openAddCardModal = function(onSuccess) {
 
     if (liveCard) {
       if (bank) {
-        liveCard.className = `relative w-full aspect-[1.586/1] max-w-[315px] mx-auto rounded-2xl p-4 flex flex-col justify-between overflow-hidden select-none transition-all duration-500 shadow-2xl bg-gradient-to-br ${bank.cardGradient} border ${bank.cardBorder} ${bank.cardGlow}`;
+        liveCard.className = `relative w-full aspect-[1.586/1] max-w-[315px] mx-auto rounded-2xl p-4 sm:p-5 flex flex-col justify-between overflow-hidden select-none transition-all duration-500 shadow-2xl bg-gradient-to-br ${bank.cardGradient} border ${bank.cardBorder} ${bank.cardGlow}`;
         if (bankSlot) {
-          bankSlot.innerHTML = `<div class="h-6 px-2.5 py-0.5 rounded-lg bg-white/95 backdrop-blur-md border border-white/40 shadow-sm flex items-center justify-center">${getBankLogoHtml(bank.code, 'max-h-4 max-w-[85px]')}</div>`;
+          bankSlot.innerHTML = getBankLogoHtml(bank.code, 'h-5 max-h-[22px] w-auto object-contain');
         }
       } else {
-        liveCard.className = 'relative w-full aspect-[1.586/1] max-w-[315px] mx-auto rounded-2xl p-4 flex flex-col justify-between overflow-hidden select-none transition-all duration-500 shadow-2xl bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 border border-white/15';
+        liveCard.className = 'relative w-full aspect-[1.586/1] max-w-[315px] mx-auto rounded-2xl p-4 sm:p-5 flex flex-col justify-between overflow-hidden select-none transition-all duration-500 shadow-2xl bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 border border-white/15';
         if (bankSlot) {
-          bankSlot.innerHTML = '<span class="text-[11px] font-black tracking-widest uppercase text-white/70 font-sans truncate" id="liveCardBankName">ICE LOGIX</span>';
+          bankSlot.innerHTML = '<span class="text-[11px] font-black tracking-widest uppercase text-white/70 font-sans truncate" id="liveCardBankName">БАНК</span>';
         }
       }
 
@@ -2993,7 +2983,7 @@ window.openAddCardModal = function(onSuccess) {
   window.testFillCard = function(bankCode) {
     const testMap = {
       belinvest: { num: '4187010000000006', exp: '12/28', cvc: '777' },
-      belarusbank: { num: '4255190000000003', exp: '12/28', cvc: '777' },
+      belarusbank: { num: '9860180000000000', exp: '12/28', cvc: '777' },
       belagroprom: { num: '4058770000000001', exp: '12/28', cvc: '777' },
       prior: { num: '4094280000000007', exp: '12/28', cvc: '777' },
       sber: { num: '4188680000000005', exp: '12/28', cvc: '777' }
@@ -3077,7 +3067,7 @@ window.openAddCardModal = function(onSuccess) {
     }
     const expSlot = document.getElementById('liveCardExpiry');
     if (expSlot) {
-      expSlot.innerText = e.target.value.trim() || 'MM/YY';
+      expSlot.innerText = e.target.value.trim() || 'ММ/ГГ';
     }
     validateForm();
     if (digits.length === 4) {
@@ -3220,7 +3210,7 @@ window.openCardsManagementModal = async function() {
             </div>
             <div>
               <div class="flex items-center gap-1.5 flex-wrap">
-                ${bankLogoHtml ? `<span class="inline-flex items-center bg-white/95 rounded px-1.5 py-0.5 shadow-sm">${bankLogoHtml}</span>` : (bank ? `<span class="text-xs font-bold text-white">${bank}</span>` : '')}
+                ${bankLogoHtml ? `<span class="inline-flex items-center">${bankLogoHtml}</span>` : (bank ? `<span class="text-xs font-bold text-white">${bank}</span>` : '')}
                 <span class="text-xs font-mono font-bold text-white tracking-wider">•••• ${last4}</span>
                 ${isDef ? '<span class="text-[9px] text-cyan-300 font-bold bg-cyan-500/20 px-2 py-0.5 rounded-full border border-cyan-400/40">Основная</span>' : ''}
               </div>

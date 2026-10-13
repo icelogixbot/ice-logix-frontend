@@ -103,13 +103,13 @@ function _renderCardsListHtml(cards, manageMode) {
           ? window.getCardBrandLogoHtml(brand)
           : `<span class="text-xs font-bold text-white font-mono">${brand}</span>`;
         const bankLogoHtml = typeof window.getBankLogoHtml === 'function' && bankCfg
-          ? window.getBankLogoHtml(bankCfg.code, 'max-h-4 max-w-[85px]')
+          ? window.getBankLogoHtml(bankCfg.code, 'h-5 max-h-[22px] w-auto object-contain')
           : '';
 
         const cardBgClass = bankCfg
           ? `bg-gradient-to-br ${bankCfg.cardGradient} border ${bankCfg.cardBorder} ${bankCfg.cardGlow} ${isDef ? 'ring-2 ring-cyan-400/50' : 'ring-1 ring-white/10'}`
           : (isDef
-              ? 'bg-gradient-to-br from-slate-900 via-slate-800/95 to-cyan-950 border border-cyan-400/40 shadow-2xl shadow-cyan-950/60 ring-1 ring-white/10'
+              ? 'bg-gradient-to-br from-slate-900 via-slate-850 to-cyan-950 border border-cyan-400/40 shadow-2xl shadow-cyan-950/60 ring-1 ring-white/10'
               : 'bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 border border-white/15 shadow-xl shadow-black/70 ring-1 ring-white/5');
 
         return `
@@ -117,18 +117,18 @@ function _renderCardsListHtml(cards, manageMode) {
             <!-- Пластиковая банковская карта (ISO ID-1, пропорции 1.586 : 1, компактная ширина 315px) -->
             <div class="relative w-full aspect-[1.586/1] max-w-[315px] mx-auto rounded-2xl p-4 sm:p-5 flex flex-col justify-between overflow-hidden select-none transition-all duration-300 ${cardBgClass}">
               <!-- Световой блик пластика -->
-              <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.05] to-transparent pointer-events-none"></div>
+              <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.04] to-transparent pointer-events-none"></div>
 
               <!-- 1. Верхний ряд: Банк слева + Логотип системы справа -->
               <div class="relative z-10 flex items-center justify-between gap-3 min-h-[26px]">
                 <div class="min-w-0 flex items-center">
                   ${bankLogoHtml ? `
-                    <div class="h-6 px-2.5 py-0.5 rounded-lg bg-white/95 backdrop-blur-md border border-white/40 shadow-sm flex items-center justify-center">
+                    <div class="flex items-center">
                       ${bankLogoHtml}
                     </div>
                   ` : `
                     <span class="text-[11px] font-black tracking-widest uppercase text-white/90 drop-shadow-sm truncate block font-sans">
-                      ${bankName || 'ICE LOGIX'}
+                      ${bankName || 'БАНК'}
                     </span>
                   `}
                 </div>
@@ -167,7 +167,7 @@ function _renderCardsListHtml(cards, manageMode) {
                 <!-- Срок действия -->
                 <div class="flex items-end justify-between text-left">
                   <div>
-                    <p class="text-[7px] uppercase tracking-widest text-white/40 font-bold select-none leading-none">VALID THRU</p>
+                    <p class="text-[7px] uppercase tracking-wider text-white/40 font-bold select-none leading-none">СРОК ДЕЙСТВИЯ</p>
                     <p class="text-xs font-mono font-bold text-white/90 mt-0.5 select-none tracking-wider">${exp}</p>
                   </div>
                 </div>
