@@ -2459,7 +2459,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-orange-950/60 ring-orange-400/20',
     badgeBg: 'bg-orange-500/20 text-orange-300 border border-orange-400/40',
     accentColor: '#FF7A00',
-    binRegex: /^(405877|4058|437435|4374|521405|524430|911200|986000|544775|416954)/
+    binRegex: /^(405877|4058|437435|521405|524430|911200|986000|544775|416954)/
   },
   prior: {
     code: 'prior',
@@ -2486,6 +2486,71 @@ const BANK_CONFIGS = {
     badgeBg: 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40',
     accentColor: '#21A038',
     binRegex: /^(418868|4188|510087|911203|986003|405255|427229|220024|4276|4279|5469|2202)/
+  },
+  belveb: {
+    code: 'belveb',
+    name: 'Банк БелВЭБ',
+    shortName: 'БелВЭБ',
+    logo: '/assets/banks/belveb.webp',
+    icon: '🦅',
+    cardGradient: 'from-[#0d1527] via-[#141f36] to-[#1e2d4d]',
+    cardBorder: 'border-slate-400/40',
+    cardGlow: 'shadow-slate-900/60 ring-slate-400/20',
+    badgeBg: 'bg-slate-500/20 text-slate-200 border border-slate-400/40',
+    accentColor: '#4A5568',
+    binRegex: /^(4169|5160|5208|4258|4314|986008|220023)/
+  },
+  vtb: {
+    code: 'vtb',
+    name: 'Банк ВТБ (Беларусь)',
+    shortName: 'ВТБ',
+    logo: '/assets/banks/vtb.webp',
+    icon: '🔷',
+    cardGradient: 'from-[#031548] via-[#071d5e] to-[#0c2a82]',
+    cardBorder: 'border-blue-400/40',
+    cardGlow: 'shadow-blue-950/60 ring-blue-400/20',
+    badgeBg: 'bg-blue-500/20 text-blue-300 border border-blue-400/40',
+    accentColor: '#002882',
+    binRegex: /^(425518|425516|535105|548777|220026|986007|403487|4034)/
+  },
+  dabrabyt: {
+    code: 'dabrabyt',
+    name: 'Банк Дабрабыт',
+    shortName: 'Дабрабыт',
+    logo: '/assets/banks/dabrabyt.webp',
+    icon: '🌺',
+    cardGradient: 'from-[#2d070d] via-[#1a060a] to-[#3f0c15]',
+    cardBorder: 'border-rose-500/40',
+    cardGlow: 'shadow-rose-950/60 ring-rose-500/20',
+    badgeBg: 'bg-rose-500/20 text-rose-300 border border-rose-400/40',
+    accentColor: '#C41230',
+    binRegex: /^(4168|5168|986015|220015|425527|535127)/
+  },
+  paritet: {
+    code: 'paritet',
+    name: 'Паритетбанк',
+    shortName: 'Паритетбанк',
+    logo: '/assets/banks/paritet.webp',
+    icon: '🔵',
+    cardGradient: 'from-[#061e47] via-[#0a1630] to-[#0b2866]',
+    cardBorder: 'border-sky-400/40',
+    cardGlow: 'shadow-sky-950/60 ring-sky-400/20',
+    badgeBg: 'bg-sky-500/20 text-sky-300 border border-sky-400/40',
+    accentColor: '#004B9B',
+    binRegex: /^(405256|405258|425523|535123|986004|220014)/
+  },
+  mtbank: {
+    code: 'mtbank',
+    name: 'МТБанк',
+    shortName: 'МТБанк',
+    logo: '/assets/banks/mtbank.webp',
+    icon: '🔴',
+    cardGradient: 'from-[#0b1c4d] via-[#0f1738] to-[#1c2e6b]',
+    cardBorder: 'border-indigo-400/40',
+    cardGlow: 'shadow-indigo-950/60 ring-indigo-400/20',
+    badgeBg: 'bg-indigo-500/20 text-indigo-300 border border-indigo-400/40',
+    accentColor: '#0F3E99',
+    binRegex: /^(405257|425517|437457|510047|535107|986005|220017|418837)/
   },
   belarusbank: {
     code: 'belarusbank',
@@ -2790,11 +2855,11 @@ window.openAddCardModal = function(onSuccess) {
           <span class="text-[9px] text-cyan-400/80">нажмите для проверки</span>
         </div>
         <div class="grid grid-cols-5 gap-1 select-none">
-          <button type="button" class="py-1 px-0.5 rounded-lg bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/30 text-[9px] font-bold text-teal-300 truncate transition active:scale-95 text-center" onclick="window.testFillCard('belinvest')" title="Белинвестбанк">Белинвест</button>
-          <button type="button" class="py-1 px-0.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-[9px] font-bold text-emerald-300 truncate transition active:scale-95 text-center" onclick="window.testFillCard('belarusbank')" title="Беларусбанк">Беларус</button>
-          <button type="button" class="py-1 px-0.5 rounded-lg bg-orange-500/15 hover:bg-orange-500/25 border border-orange-500/30 text-[9px] font-bold text-orange-300 truncate transition active:scale-95 text-center" onclick="window.testFillCard('belagroprom')" title="Белагропромбанк">Агропром</button>
-          <button type="button" class="py-1 px-0.5 rounded-lg bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/30 text-[9px] font-bold text-amber-300 truncate transition active:scale-95 text-center" onclick="window.testFillCard('prior')" title="Приорбанк">Приор</button>
-          <button type="button" class="py-1 px-0.5 rounded-lg bg-emerald-400/15 hover:bg-emerald-400/25 border border-emerald-400/30 text-[9px] font-bold text-emerald-300 truncate transition active:scale-95 text-center" onclick="window.testFillCard('sber')" title="Сбер Банк">Сбер</button>
+          <button type="button" class="py-1 px-0.5 rounded-lg bg-slate-500/15 hover:bg-slate-500/25 border border-slate-500/30 text-[9px] font-bold text-slate-300 truncate transition active:scale-95 text-center" onclick="window.testFillCard('belveb')" title="Банк БелВЭБ">БелВЭБ</button>
+          <button type="button" class="py-1 px-0.5 rounded-lg bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 text-[9px] font-bold text-blue-300 truncate transition active:scale-95 text-center" onclick="window.testFillCard('vtb')" title="Банк ВТБ">ВТБ</button>
+          <button type="button" class="py-1 px-0.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-[9px] font-bold text-rose-300 truncate transition active:scale-95 text-center" onclick="window.testFillCard('dabrabyt')" title="Банк Дабрабыт">Дабрабыт</button>
+          <button type="button" class="py-1 px-0.5 rounded-lg bg-sky-400/15 hover:bg-sky-400/25 border border-sky-400/30 text-[9px] font-bold text-sky-300 truncate transition active:scale-95 text-center" onclick="window.testFillCard('paritet')" title="Паритетбанк">Паритет</button>
+          <button type="button" class="py-1 px-0.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-[9px] font-bold text-indigo-300 truncate transition active:scale-95 text-center" onclick="window.testFillCard('mtbank')" title="МТБанк">МТБанк</button>
         </div>
       </div>
 
@@ -2982,6 +3047,11 @@ window.openAddCardModal = function(onSuccess) {
 
   window.testFillCard = function(bankCode) {
     const testMap = {
+      belveb: { num: '4169000000000009', exp: '12/28', cvc: '777' },
+      vtb: { num: '4034870000000008', exp: '12/28', cvc: '777' },
+      dabrabyt: { num: '4168000000000000', exp: '12/28', cvc: '777' },
+      paritet: { num: '4052560000000002', exp: '12/28', cvc: '777' },
+      mtbank: { num: '4374570000000002', exp: '12/28', cvc: '777' },
       belinvest: { num: '4187010000000006', exp: '12/28', cvc: '777' },
       belarusbank: { num: '9860180000000000', exp: '12/28', cvc: '777' },
       belagroprom: { num: '4058770000000001', exp: '12/28', cvc: '777' },
