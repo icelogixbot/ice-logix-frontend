@@ -2431,47 +2431,101 @@ function getCardBrandLogoHtml(brand, customClass = '') {
 }
 window.getCardBrandLogoHtml = getCardBrandLogoHtml;
 
+// =====================================================================
+// БАНКОВСКИЕ КОНФИГУРАЦИИ & ЛОГОТИПЫ (Пакет 1: 5 банков)
+// =====================================================================
+const BANK_CONFIGS = {
+  belinvest: {
+    code: 'belinvest',
+    name: 'Белинвестбанк',
+    shortName: 'Белинвестбанк',
+    logo: '/assets/banks/belinvest.webp',
+    icon: '🌊',
+    cardGradient: 'from-[#012f2a] via-[#081e1c] to-[#013f36]',
+    cardBorder: 'border-teal-400/40',
+    cardGlow: 'shadow-teal-950/60 ring-teal-400/20',
+    badgeBg: 'bg-teal-500/20 text-teal-300 border border-teal-400/40',
+    accentColor: '#00A88F',
+    binRegex: /^(418701|510076|520261|544837|911206|986006|405786)/
+  },
+  belarusbank: {
+    code: 'belarusbank',
+    name: 'Беларусбанк',
+    shortName: 'Беларусбанк',
+    logo: '/assets/banks/belarusbank.webp',
+    icon: '🟢',
+    cardGradient: 'from-[#052819] via-[#091b13] to-[#073620]',
+    cardBorder: 'border-emerald-400/40',
+    cardGlow: 'shadow-emerald-950/60 ring-emerald-400/20',
+    badgeBg: 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40',
+    accentColor: '#006A4E',
+    binRegex: /^(425519|425520|545622|911201|911221|986001|405787|516315)/
+  },
+  belagroprom: {
+    code: 'belagroprom',
+    name: 'Белагропромбанк',
+    shortName: 'Белагропром',
+    logo: '/assets/banks/belagroprom.webp',
+    icon: '🌾',
+    cardGradient: 'from-[#2b1605] via-[#141215] to-[#3d1d07]',
+    cardBorder: 'border-orange-400/40',
+    cardGlow: 'shadow-orange-950/60 ring-orange-400/20',
+    badgeBg: 'bg-orange-500/20 text-orange-300 border border-orange-400/40',
+    accentColor: '#FF7A00',
+    binRegex: /^(405877|437435|521405|524430|911200|986000|544775|416954)/
+  },
+  prior: {
+    code: 'prior',
+    name: 'Приорбанк',
+    shortName: 'Приорбанк',
+    logo: '/assets/banks/prior.webp',
+    icon: '🟡',
+    cardGradient: 'from-[#1c1a0e] via-[#0f0f11] to-[#252108]',
+    cardBorder: 'border-yellow-400/40',
+    cardGlow: 'shadow-yellow-950/60 ring-yellow-400/20',
+    badgeBg: 'bg-amber-400/20 text-amber-300 border border-amber-400/40',
+    accentColor: '#FFD200',
+    binRegex: /^(409428|430488|510049|535109|911202|986002)/
+  },
+  sber: {
+    code: 'sber',
+    name: 'Сбер Банк',
+    shortName: 'Сбер Банк',
+    logo: '/assets/banks/sber.webp',
+    icon: '🟢',
+    cardGradient: 'from-[#032716] via-[#0a1b1f] to-[#0b331a]',
+    cardBorder: 'border-emerald-400/40',
+    cardGlow: 'shadow-emerald-950/60 ring-emerald-400/20',
+    badgeBg: 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40',
+    accentColor: '#21A038',
+    binRegex: /^(418868|510087|911203|986003|405255|427229|220024|4276|4279|5469|2202)/
+  }
+};
+window.BANK_CONFIGS = BANK_CONFIGS;
+
+function getBankLogoHtml(bankOrCode, customClass = '') {
+  if (!bankOrCode) return '';
+  const code = (typeof bankOrCode === 'string' ? bankOrCode : (bankOrCode.code || '')).toLowerCase().trim();
+  const bank = BANK_CONFIGS[code] || Object.values(BANK_CONFIGS).find(b => b.name.toLowerCase() === code || b.shortName.toLowerCase() === code);
+  const extra = customClass ? ' ' + customClass : '';
+  if (bank && bank.logo) {
+    return `<img src="${bank.logo}" alt="${bank.name}" class="h-4 max-h-[17px] w-auto object-contain select-none${extra}" loading="lazy">`;
+  }
+  return '';
+}
+window.getBankLogoHtml = getBankLogoHtml;
+
 function detectBank(number) {
   const clean = String(number || '').replace(/\D/g, '');
   if (clean.length < 4) return null;
   const bin6 = clean.substring(0, 6);
   const bin4 = clean.substring(0, 4);
 
-  // Беларусь
-  if (/^(409428|430488|510049|535109|911202|986002)/.test(bin6)) {
-    return { name: 'Приорбанк', shortName: 'Приорбанк', code: 'prior', icon: '🟡', badgeBg: 'bg-amber-400/20 text-amber-300 border border-amber-400/40' };
-  }
-  if (/^(425519|425520|545622|911201|911221|986001)/.test(bin6)) {
-    return { name: 'Беларусбанк', shortName: 'Беларусбанк', code: 'belarusbank', icon: '🟢', badgeBg: 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40' };
-  }
-  if (/^(425581|535105|911204|986004)/.test(bin6)) {
-    return { name: 'МТБанк', shortName: 'МТБанк', code: 'mtbank', icon: '🔴', badgeBg: 'bg-red-500/20 text-red-300 border border-red-400/40' };
-  }
-  if (/^(416956|535118|911205)/.test(bin6)) {
-    return { name: 'Белгазпромбанк', shortName: 'Белгазпромбанк', code: 'bgpb', icon: '🔵', badgeBg: 'bg-blue-500/20 text-blue-300 border border-blue-400/40' };
-  }
-  if (/^(404884|528028|911210)/.test(bin6)) {
-    return { name: 'БСБ Банк', shortName: 'БСБ Банк', code: 'bsb', icon: '🔷', badgeBg: 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40' };
-  }
-  // Т-Банк (Тинькофф)
-  if (/^(553691|521324|437773|220070|220077|220075|220076|220078|521693|400194)/.test(bin6)) {
-    return { name: 'Т-Банк', shortName: 'Т-Банк', code: 'tbank', icon: '🟡', badgeBg: 'bg-yellow-400/20 text-yellow-300 border border-yellow-400/40' };
-  }
-  // Альфа-Банк
-  if (/^(401200|477964|521178|548999|911208|415428|4584|519747|220015|220016)/.test(bin6) || /^(4584)/.test(bin4)) {
-    return { name: 'Альфа-Банк', shortName: 'Альфа-Банк', code: 'alfa', icon: '🔴', badgeBg: 'bg-red-500/20 text-red-300 border border-red-400/40' };
-  }
-  // Сбер
-  if (/^(418868|510087|911203|986003|427229|220024)/.test(bin6) || /^(4276|4279|5469|2202)/.test(bin4)) {
-    return { name: 'Сбер', shortName: 'Сбер', code: 'sber', icon: '🟢', badgeBg: 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40' };
-  }
-  // ВТБ
-  if (/^(403270|518649|911207|220025|462230)/.test(bin6)) {
-    return { name: 'ВТБ', shortName: 'ВТБ', code: 'vtb', icon: '🔵', badgeBg: 'bg-blue-600/20 text-blue-300 border border-blue-500/40' };
-  }
-  // Яндекс Банк
-  if (/^(220073|220074|5337)/.test(bin6) || /^(5337)/.test(bin4)) {
-    return { name: 'Яндекс Банк', shortName: 'Яндекс Банк', code: 'yandex', icon: '🟠', badgeBg: 'bg-orange-500/20 text-orange-300 border border-orange-400/40' };
+  for (const key of Object.keys(BANK_CONFIGS)) {
+    const bank = BANK_CONFIGS[key];
+    if (bank.binRegex && (bank.binRegex.test(bin6) || bank.binRegex.test(bin4))) {
+      return bank;
+    }
   }
   return null;
 }
@@ -2610,6 +2664,8 @@ window.renderCheckoutCards = function() {
     const exp = c.expiry_metadata || (c.exp_month ? `${String(c.exp_month).padStart(2, '0')}/${String(c.exp_year).slice(-2)}` : '12/28');
     const isSelected = c.is_default || idx === 0;
     const bankName = c.bank_name || '';
+    const bankCode = c.bank_code || '';
+    const bankLogoHtml = getBankLogoHtml(bankCode || bankName);
 
     return `
       <label class="flex items-center justify-between p-3 rounded-2xl transition-all cursor-pointer ${isSelected ? 'bg-gradient-to-r from-cyan-950/60 to-slate-900 border border-cyan-500/50 shadow-md shadow-cyan-500/10' : 'bg-slate-900/70 border border-white/10 hover:border-white/20'}">
@@ -2619,8 +2675,8 @@ window.renderCheckoutCards = function() {
             ${getCardBrandLogoHtml(brand, 'max-h-5 max-w-full')}
           </div>
           <div>
-            <div class="flex items-center gap-1.5">
-              ${bankName ? `<span class="text-xs font-bold text-white">${bankName}</span>` : ''}
+            <div class="flex items-center gap-1.5 flex-wrap">
+              ${bankLogoHtml ? `<span class="inline-flex items-center bg-white/95 rounded px-1.5 py-0.5 shadow-sm">${bankLogoHtml}</span>` : (bankName ? `<span class="text-xs font-bold text-white">${bankName}</span>` : '')}
               <span class="text-xs font-mono font-bold text-white tracking-wider">•••• ${last4}</span>
               ${c.is_default ? '<span class="text-[8px] text-cyan-300 font-bold bg-cyan-500/20 px-1.5 py-0.5 rounded-full border border-cyan-400/40">Осн.</span>' : ''}
             </div>
@@ -2684,6 +2740,72 @@ window.openAddCardModal = function(onSuccess) {
         </button>
         <h3 class="text-white font-bold text-sm tracking-wide">Привязать новую карту</h3>
         <div class="w-10"></div>
+      </div>
+
+      <!-- Живая интерактивная банковская карта (ISO ID-1, динамический банк и платежная система) -->
+      <div class="relative w-full aspect-[1.586/1] max-w-[315px] mx-auto rounded-2xl p-4 flex flex-col justify-between overflow-hidden select-none transition-all duration-500 shadow-2xl bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 border border-white/15" id="liveCardPreview">
+        <!-- Световой блик пластика -->
+        <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.05] to-transparent pointer-events-none"></div>
+
+        <!-- 1. Верхний ряд: Логотип банка слева + Логотип системы справа -->
+        <div class="relative z-10 flex items-center justify-between gap-3 min-h-[26px]">
+          <div id="liveCardBankSlot" class="flex items-center min-w-0 transition-opacity duration-300">
+            <span class="text-[11px] font-black tracking-widest uppercase text-white/70 font-sans truncate" id="liveCardBankName">ICE LOGIX</span>
+          </div>
+
+          <div id="liveCardBrandSlot" class="flex items-center justify-center flex-shrink-0 transition-all duration-300">
+            <span class="text-xs text-white/50 select-none">💳</span>
+          </div>
+        </div>
+
+        <!-- 2. Средняя часть: Золотистый EMV-чип + NFC волны -->
+        <div class="relative z-10 flex items-center justify-between pt-0.5">
+          <div class="w-9 h-6.5 rounded-md bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 border border-amber-300/60 shadow-inner relative overflow-hidden p-0.5 flex-shrink-0">
+            <div class="w-full h-full border border-amber-900/20 rounded-sm grid grid-cols-2 gap-0.5 opacity-80">
+              <div class="border-r border-b border-amber-900/30"></div>
+              <div class="border-b border-amber-900/30"></div>
+              <div class="border-r border-amber-900/30"></div>
+              <div></div>
+            </div>
+          </div>
+          <!-- Значок бесконтактной оплаты NFC -->
+          <div class="text-white/40 transform rotate-90 scale-90 select-none opacity-80 pr-1">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8.5 16.5a5 5 0 0 1 0-9"/><path d="M12 19a8.5 8.5 0 0 0 0-14"/><path d="M15.5 21.5a12 12 0 0 0 0-19"/></svg>
+          </div>
+        </div>
+
+        <!-- 3. Нижняя часть: Номер карты и срок действия -->
+        <div class="relative z-10 space-y-1">
+          <div id="liveCardNumber" class="font-mono text-sm sm:text-base font-bold text-white tracking-[0.18em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] select-none">
+            •••• •••• •••• ••••
+          </div>
+
+          <div class="flex items-end justify-between text-left pt-0.5">
+            <div>
+              <p class="text-[7px] uppercase tracking-widest text-white/40 font-bold select-none leading-none">VALID THRU</p>
+              <p id="liveCardExpiry" class="text-xs font-mono font-bold text-white/90 mt-0.5 select-none tracking-wider">MM/YY</p>
+            </div>
+            <div>
+              <p class="text-[7px] uppercase tracking-widest text-white/40 font-bold select-none leading-none text-right">CARDHOLDER</p>
+              <p class="text-[10px] font-sans font-bold text-white/70 mt-0.5 select-none tracking-wider text-right uppercase">VALUED CLIENT</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Панель быстрого теста банков (1 клик без ввода вручную) -->
+      <div class="pt-0.5 pb-0.5">
+        <div class="flex items-center justify-between text-[10px] text-white/50 mb-1 px-1">
+          <span>🧪 Тест банков (1 клик):</span>
+          <span class="text-[9px] text-cyan-400/80">нажмите для проверки</span>
+        </div>
+        <div class="grid grid-cols-5 gap-1 select-none">
+          <button type="button" class="py-1 px-0.5 rounded-lg bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/30 text-[9px] font-bold text-teal-300 truncate transition active:scale-95 text-center" onclick="window.testFillCard('belinvest')" title="Белинвестбанк">Белинвест</button>
+          <button type="button" class="py-1 px-0.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-[9px] font-bold text-emerald-300 truncate transition active:scale-95 text-center" onclick="window.testFillCard('belarusbank')" title="Беларусбанк">Беларус</button>
+          <button type="button" class="py-1 px-0.5 rounded-lg bg-orange-500/15 hover:bg-orange-500/25 border border-orange-500/30 text-[9px] font-bold text-orange-300 truncate transition active:scale-95 text-center" onclick="window.testFillCard('belagroprom')" title="Белагропромбанк">Агропром</button>
+          <button type="button" class="py-1 px-0.5 rounded-lg bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/30 text-[9px] font-bold text-amber-300 truncate transition active:scale-95 text-center" onclick="window.testFillCard('prior')" title="Приорбанк">Приор</button>
+          <button type="button" class="py-1 px-0.5 rounded-lg bg-emerald-400/15 hover:bg-emerald-400/25 border border-emerald-400/30 text-[9px] font-bold text-emerald-300 truncate transition active:scale-95 text-center" onclick="window.testFillCard('sber')" title="Сбер Банк">Сбер</button>
+        </div>
       </div>
 
       <!-- Карточка формы ввода реквизитов (WB style) -->
@@ -2822,7 +2944,7 @@ window.openAddCardModal = function(onSuccess) {
 
     if (brandBadge) {
       if (bank) {
-        brandBadge.innerHTML = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${bank.badgeBg}">${bank.icon} ${bank.shortName}</span>`;
+        brandBadge.innerHTML = `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${bank.badgeBg}">${getBankLogoHtml(bank.code, 'max-h-3 max-w-[50px]')} ${bank.shortName}</span>`;
         brandBadge.classList.remove('hidden');
       } else if (brand && brand !== 'Банковская карта') {
         brandBadge.innerHTML = `<span class="text-[11px] font-bold text-cyan-300">${brand}</span>`;
@@ -2832,7 +2954,66 @@ window.openAddCardModal = function(onSuccess) {
         brandBadge.classList.add('hidden');
       }
     }
+
+    // Обновляем интерактивную пластиковую карту
+    const liveCard = document.getElementById('liveCardPreview');
+    const bankSlot = document.getElementById('liveCardBankSlot');
+    const brandSlot = document.getElementById('liveCardBrandSlot');
+    const numSlot = document.getElementById('liveCardNumber');
+
+    if (liveCard) {
+      if (bank) {
+        liveCard.className = `relative w-full aspect-[1.586/1] max-w-[315px] mx-auto rounded-2xl p-4 flex flex-col justify-between overflow-hidden select-none transition-all duration-500 shadow-2xl bg-gradient-to-br ${bank.cardGradient} border ${bank.cardBorder} ${bank.cardGlow}`;
+        if (bankSlot) {
+          bankSlot.innerHTML = `<div class="h-6 px-2.5 py-0.5 rounded-lg bg-white/95 backdrop-blur-md border border-white/40 shadow-sm flex items-center justify-center">${getBankLogoHtml(bank.code, 'max-h-4 max-w-[85px]')}</div>`;
+        }
+      } else {
+        liveCard.className = 'relative w-full aspect-[1.586/1] max-w-[315px] mx-auto rounded-2xl p-4 flex flex-col justify-between overflow-hidden select-none transition-all duration-500 shadow-2xl bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 border border-white/15';
+        if (bankSlot) {
+          bankSlot.innerHTML = '<span class="text-[11px] font-black tracking-widest uppercase text-white/70 font-sans truncate" id="liveCardBankName">ICE LOGIX</span>';
+        }
+      }
+
+      if (brandSlot) {
+        if (brand && brand !== 'Банковская карта') {
+          brandSlot.innerHTML = `<div class="flex items-center justify-center">${getCardBrandLogoHtml(brand, 'max-h-5 max-w-[55px]')}</div>`;
+        } else {
+          brandSlot.innerHTML = '<span class="text-xs text-white/50 select-none">💳</span>';
+        }
+      }
+
+      if (numSlot) {
+        let displayDigits = rawDigits || '';
+        let padded = displayDigits + '••••••••••••••••'.substring(displayDigits.length, 16);
+        numSlot.innerText = `${padded.substring(0, 4)} ${padded.substring(4, 8)} ${padded.substring(8, 12)} ${padded.substring(12, 16)}`;
+      }
+    }
   }
+
+  window.testFillCard = function(bankCode) {
+    const testMap = {
+      belinvest: { num: '4187010000000006', exp: '12/28', cvc: '777' },
+      belarusbank: { num: '4255190000000003', exp: '12/28', cvc: '777' },
+      belagroprom: { num: '4058770000000001', exp: '12/28', cvc: '777' },
+      prior: { num: '4094280000000007', exp: '12/28', cvc: '777' },
+      sber: { num: '4188680000000005', exp: '12/28', cvc: '777' }
+    };
+    const c = testMap[bankCode];
+    if (!c || !numInput || !expInput || !cvcInput) return;
+
+    numInput.value = c.num.replace(/(.{4})/g, '$1 ').trim();
+    expInput.value = c.exp;
+    cvcInput.value = c.cvc;
+
+    updateBrandVisual(c.num);
+    const expSlot = document.getElementById('liveCardExpiry');
+    if (expSlot) expSlot.innerText = c.exp;
+    validateForm();
+
+    if (typeof tgUtil !== 'undefined' && tgUtil.haptic) {
+      tgUtil.haptic('selection');
+    }
+  };
 
   function validateForm() {
     const rawNum = (numInput.value || '').replace(/\D/g, '');
@@ -2893,6 +3074,10 @@ window.openAddCardModal = function(onSuccess) {
       e.target.value = digits.substring(0, 2) + '/' + digits.substring(2);
     } else {
       e.target.value = digits;
+    }
+    const expSlot = document.getElementById('liveCardExpiry');
+    if (expSlot) {
+      expSlot.innerText = e.target.value.trim() || 'MM/YY';
     }
     validateForm();
     if (digits.length === 4) {
@@ -3021,6 +3206,8 @@ window.openCardsManagementModal = async function() {
     return cards.map(c => {
       const brand = c.card_brand || c.card_type || 'Банковская карта';
       const bank = c.bank_name || '';
+      const bankCode = c.bank_code || '';
+      const bankLogoHtml = getBankLogoHtml(bankCode || bank);
       const last4 = c.last4 || c.card_last4 || '••••';
       const exp = c.expiry_metadata || (c.exp_month ? `${String(c.exp_month).padStart(2, '0')}/${String(c.exp_year).slice(-2)}` : '12/28');
       const isDef = Boolean(c.is_default);
@@ -3033,7 +3220,7 @@ window.openCardsManagementModal = async function() {
             </div>
             <div>
               <div class="flex items-center gap-1.5 flex-wrap">
-                ${bank ? `<span class="text-xs font-bold text-white">${bank}</span>` : ''}
+                ${bankLogoHtml ? `<span class="inline-flex items-center bg-white/95 rounded px-1.5 py-0.5 shadow-sm">${bankLogoHtml}</span>` : (bank ? `<span class="text-xs font-bold text-white">${bank}</span>` : '')}
                 <span class="text-xs font-mono font-bold text-white tracking-wider">•••• ${last4}</span>
                 ${isDef ? '<span class="text-[9px] text-cyan-300 font-bold bg-cyan-500/20 px-2 py-0.5 rounded-full border border-cyan-400/40">Основная</span>' : ''}
               </div>

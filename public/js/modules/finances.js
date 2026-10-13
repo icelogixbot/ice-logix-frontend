@@ -94,30 +94,43 @@ function _renderCardsListHtml(cards, manageMode) {
       ${sortedCards.map(c => {
         const brand = c.card_brand || c.card_type || 'Банковская карта';
         const bankName = c.bank_name || '';
+        const bankCode = c.bank_code || '';
+        const bankCfg = (window.BANK_CONFIGS && (window.BANK_CONFIGS[bankCode] || Object.values(window.BANK_CONFIGS).find(b => b.name === bankName || b.shortName === bankName))) || null;
         const last4 = c.last4 || c.card_last4 || '••••';
         const exp = c.expiry_metadata || (c.exp_month ? `${String(c.exp_month).padStart(2, '0')}/${String(c.exp_year).slice(-2)}` : '••/••');
         const isDef = Boolean(c.is_default);
         const brandLogoHtml = typeof window.getCardBrandLogoHtml === 'function'
           ? window.getCardBrandLogoHtml(brand)
           : `<span class="text-xs font-bold text-white font-mono">${brand}</span>`;
+        const bankLogoHtml = typeof window.getBankLogoHtml === 'function' && bankCfg
+          ? window.getBankLogoHtml(bankCfg.code, 'max-h-4 max-w-[85px]')
+          : '';
+
+        const cardBgClass = bankCfg
+          ? `bg-gradient-to-br ${bankCfg.cardGradient} border ${bankCfg.cardBorder} ${bankCfg.cardGlow} ${isDef ? 'ring-2 ring-cyan-400/50' : 'ring-1 ring-white/10'}`
+          : (isDef
+              ? 'bg-gradient-to-br from-slate-900 via-slate-800/95 to-cyan-950 border border-cyan-400/40 shadow-2xl shadow-cyan-950/60 ring-1 ring-white/10'
+              : 'bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 border border-white/15 shadow-xl shadow-black/70 ring-1 ring-white/5');
 
         return `
           <div class="space-y-2">
             <!-- Пластиковая банковская карта (ISO ID-1, пропорции 1.586 : 1, компактная ширина 315px) -->
-            <div class="relative w-full aspect-[1.586/1] max-w-[315px] mx-auto rounded-2xl p-4 sm:p-5 flex flex-col justify-between overflow-hidden select-none transition-all duration-300 ${
-              isDef
-                ? 'bg-gradient-to-br from-slate-900 via-slate-800/95 to-cyan-950 border border-cyan-400/40 shadow-2xl shadow-cyan-950/60 ring-1 ring-white/10'
-                : 'bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 border border-white/15 shadow-xl shadow-black/70 ring-1 ring-white/5'
-            }">
+            <div class="relative w-full aspect-[1.586/1] max-w-[315px] mx-auto rounded-2xl p-4 sm:p-5 flex flex-col justify-between overflow-hidden select-none transition-all duration-300 ${cardBgClass}">
               <!-- Световой блик пластика -->
-              <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.04] to-transparent pointer-events-none"></div>
+              <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.05] to-transparent pointer-events-none"></div>
 
               <!-- 1. Верхний ряд: Банк слева + Логотип системы справа -->
-              <div class="relative z-10 flex items-center justify-between gap-3">
-                <div class="min-w-0">
-                  <span class="text-[11px] font-black tracking-widest uppercase text-white/90 drop-shadow-sm truncate block font-sans">
-                    ${bankName || 'БАНК'}
-                  </span>
+              <div class="relative z-10 flex items-center justify-between gap-3 min-h-[26px]">
+                <div class="min-w-0 flex items-center">
+                  ${bankLogoHtml ? `
+                    <div class="h-6 px-2.5 py-0.5 rounded-lg bg-white/95 backdrop-blur-md border border-white/40 shadow-sm flex items-center justify-center">
+                      ${bankLogoHtml}
+                    </div>
+                  ` : `
+                    <span class="text-[11px] font-black tracking-widest uppercase text-white/90 drop-shadow-sm truncate block font-sans">
+                      ${bankName || 'ICE LOGIX'}
+                    </span>
+                  `}
                 </div>
 
                 <div class="flex items-center gap-2 flex-shrink-0">
