@@ -1715,15 +1715,14 @@ async function showPersonalDataForm() {
         </div>
       </div>
 
-      <div class="p-5 border-t border-white/10 bg-white/5 flex gap-3">
-        <button id="savePersonalDataBtn" class="btn-primary flex-1 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2">
+      <div class="p-4 border-t border-white/10 bg-slate-900/95 flex gap-3 flex-shrink-0" style="padding-bottom: calc(16px + env(safe-area-inset-bottom, 16px));">
+        <button id="savePersonalDataBtn" class="btn-primary flex-1 py-3.5 rounded-xl font-bold transition flex items-center justify-center gap-2">
           ${ix('check')} Сохранить
         </button>
-        <button id="cancelPersonalDataBtn" class="btn-secondary flex-1 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2">
+        <button id="cancelPersonalDataBtn" class="btn-secondary flex-1 py-3.5 rounded-xl font-bold transition flex items-center justify-center gap-2">
           Отмена
         </button>
       </div>
-    </div>
   `;
   document.body.appendChild(modal);
 
@@ -1803,21 +1802,38 @@ async function showPersonalDataForm() {
       if (addRecipientBtn) {
           addRecipientBtn.onclick = () => {
               const subModal = document.createElement('div');
-              subModal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[120] p-4';
+              subModal.className = 'full-screen-modal-overlay page-enter';
               subModal.innerHTML = `
-                  <div class="glass-card max-w-sm w-full p-5" style="background: linear-gradient(135deg, rgba(30,41,59,0.95), rgba(15,23,42,0.98)); border: 1px solid rgba(255,255,255,0.1);">
-                      <h3 class="text-white font-bold mb-4">Добавить получателя</h3>
-                      <input type="text" id="recName" class="btn-secondary w-full p-3 rounded-xl mb-3 text-sm bg-white/5 text-white border border-white/10" placeholder="ФИО полностью">
-                      <input type="text" id="recPassport" class="btn-secondary w-full p-3 rounded-xl mb-3 text-sm bg-white/5 text-white border border-white/10" placeholder="Серия и номер паспорта">
-                      <input type="text" id="recPhone" class="btn-secondary w-full p-3 rounded-xl mb-4 text-sm bg-white/5 text-white border border-white/10" placeholder="Номер телефона">
-                      <div class="flex gap-2">
-                          <button id="saveRecBtn" class="bg-cyan-500/20 text-cyan-400 px-4 py-3 rounded-xl flex-1 font-bold">Сохранить</button>
-                          <button id="cancelRecBtn" class="bg-white/10 text-white px-4 py-3 rounded-xl flex-1">Отмена</button>
+                  <div class="full-screen-modal-header">
+                      <button type="button" class="global-back-btn" id="cancelRecBtn">
+                          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+                          <span>Назад</span>
+                      </button>
+                      <h3 class="text-white font-bold text-sm">Добавить получателя</h3>
+                      <div style="width: 48px;"></div>
+                  </div>
+                  <div class="full-screen-modal-body space-y-3">
+                      <div>
+                          <label class="text-white/60 text-xs block mb-1">ФИО полностью</label>
+                          <input type="text" id="recName" class="btn-secondary w-full p-3 rounded-xl text-sm bg-white/5 text-white border border-white/10" placeholder="Иванов Иван Иванович">
                       </div>
+                      <div>
+                          <label class="text-white/60 text-xs block mb-1">Серия и номер паспорта</label>
+                          <input type="text" id="recPassport" class="btn-secondary w-full p-3 rounded-xl text-sm bg-white/5 text-white border border-white/10" placeholder="MP1234567">
+                      </div>
+                      <div>
+                          <label class="text-white/60 text-xs block mb-1">Номер телефона</label>
+                          <input type="text" id="recPhone" class="btn-secondary w-full p-3 rounded-xl text-sm bg-white/5 text-white border border-white/10" placeholder="+375XXXXXXXXX">
+                      </div>
+                  </div>
+                  <div class="p-4 border-t border-white/10 bg-slate-900/95 flex gap-2 flex-shrink-0" style="padding-bottom: calc(16px + env(safe-area-inset-bottom, 16px));">
+                      <button id="saveRecBtn" class="btn-primary flex-1 py-3.5 rounded-xl font-bold">Сохранить</button>
+                      <button id="cancelRecBtn2" class="btn-secondary flex-1 py-3.5 rounded-xl">Отмена</button>
                   </div>
               `;
               document.body.appendChild(subModal);
               subModal.querySelector('#cancelRecBtn').onclick = () => subModal.remove();
+              subModal.querySelector('#cancelRecBtn2').onclick = () => subModal.remove();
               subModal.querySelector('#saveRecBtn').onclick = async () => {
                   const full_name = subModal.querySelector('#recName').value.trim();
                   const passport = subModal.querySelector('#recPassport').value.trim();
@@ -1944,58 +1960,58 @@ async function showPersonalDataForm() {
 
 async function showOwnerControlsForm() {
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[110] p-4 overflow-y-auto';
+  modal.className = 'full-screen-modal-overlay page-enter';
+  modal.id = 'ownerControlsModal';
   modal.innerHTML = `
-    <div class="bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-      <div class="p-5 border-b border-white/10 flex justify-between items-center bg-white/5">
+    <div class="full-screen-modal-header">
+      <button type="button" class="global-back-btn" id="closeOwnerControlsBtn">
+        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+        <span>Назад</span>
+      </button>
+      <div class="text-center">
+        <h3 class="text-white font-bold text-sm truncate">Управление тарифами</h3>
+        <p class="text-white/40 text-[10px]">Настройки отпуска и буфера</p>
+      </div>
+      <div style="width: 48px;"></div>
+    </div>
+    
+    <div class="full-screen-modal-body space-y-5">
+      <!-- Раздел: Режим отпуска -->
+      <div class="space-y-3">
+        <h4 class="text-cyan-400 font-bold text-xs uppercase tracking-wider flex items-center gap-1">
+          <span>🌴 Режим отпуска байера</span>
+        </h4>
+        <div class="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
+          <span class="text-white text-sm font-semibold">Активировать отпуск</span>
+          <input type="checkbox" id="ocVacationActive" class="w-5 h-5 accent-cyan-500">
+        </div>
         <div>
-          <h3 class="text-white font-bold text-lg flex items-center gap-2">
-            ${ix('settings', { cls: 'text-cyan-400' })}
-            <span>Управление тарифами</span>
-          </h3>
-          <p class="text-white/50 text-xs mt-0.5">Глобальные настройки отпуска и буфера</p>
-        </div>
-        <button id="closeOwnerControlsBtn" class="text-white/50 hover:text-white transition-colors text-lg">${ix('x')}</button>
-      </div>
-      
-      <div class="p-5 overflow-y-auto flex-1 space-y-5">
-        <!-- Раздел: Режим отпуска -->
-        <div class="space-y-3">
-          <h4 class="text-cyan-400 font-bold text-xs uppercase tracking-wider flex items-center gap-1">
-            <span>🌴 Режим отпуска байера</span>
-          </h4>
-          <div class="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
-            <span class="text-white text-sm font-semibold">Активировать отпуск</span>
-            <input type="checkbox" id="ocVacationActive" class="w-5 h-5 accent-cyan-500">
-          </div>
-          <div>
-            <label class="text-white/60 text-xs font-semibold block mb-1">Количество дней отпуска</label>
-            <input type="number" id="ocVacationDays" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="Напр. 7" min="0">
-            <p class="text-white/40 text-[10px] mt-1 leading-relaxed">Эти дни будут автоматически добавлены ко всем срокам доставки на сайте, а пользователям будет показан предупреждающий баннер в калькуляторе и корзине.</p>
-          </div>
-        </div>
-        
-        <!-- Раздел: Курсовой буфер -->
-        <div class="space-y-3 pt-2 border-t border-white/5">
-          <h4 class="text-cyan-400 font-bold text-xs uppercase tracking-wider flex items-center gap-1">
-            <span>💱 Курсовой буфер безопасности (P2P эквивалент)</span>
-          </h4>
-          <div>
-            <label class="text-white/60 text-xs font-semibold block mb-1">Размер буфера (%)</label>
-            <input type="number" id="ocExchangeBuffer" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="Напр. 3" min="0" max="20" step="0.5">
-            <p class="text-white/40 text-[10px] mt-1 leading-relaxed">Процент надбавки ко всем курсам валют НБРБ для защиты от резких скачков (по умолчанию +3%). Рекомендуется устанавливать буфер на уровне +3%..+5% для полного соответствия коммерческому курсу Binance P2P (USDT/BYN).</p>
-          </div>
+          <label class="text-white/60 text-xs font-semibold block mb-1">Количество дней отпуска</label>
+          <input type="number" id="ocVacationDays" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="Напр. 7" min="0">
+          <p class="text-white/40 text-[10px] mt-1 leading-relaxed">Эти дни будут автоматически добавлены ко всем срокам доставки на сайте, а пользователям будет показан предупреждающий баннер в калькуляторе и корзине.</p>
         </div>
       </div>
       
-      <div class="p-5 border-t border-white/10 bg-white/5 flex gap-3">
-        <button id="saveOwnerControlsBtn" class="btn-primary flex-1 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2">
-          ${ix('check')} Сохранить
-        </button>
-        <button id="cancelOwnerControlsBtn" class="btn-secondary flex-1 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2">
-          Отмена
-        </button>
+      <!-- Раздел: Курсовой буфер -->
+      <div class="space-y-3 pt-2 border-t border-white/5">
+        <h4 class="text-cyan-400 font-bold text-xs uppercase tracking-wider flex items-center gap-1">
+          <span>💱 Курсовой буфер безопасности (P2P эквивалент)</span>
+        </h4>
+        <div>
+          <label class="text-white/60 text-xs font-semibold block mb-1">Размер буфера (%)</label>
+          <input type="number" id="ocExchangeBuffer" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="Напр. 3" min="0" max="20" step="0.5">
+          <p class="text-white/40 text-[10px] mt-1 leading-relaxed">Процент надбавки ко всем курсам валют НБРБ для защиты от резких скачков (по умолчанию +3%). Рекомендуется устанавливать буфер на уровне +3%..+5% для полного соответствия коммерческому курсу Binance P2P (USDT/BYN).</p>
+        </div>
       </div>
+    </div>
+    
+    <div class="p-4 border-t border-white/10 bg-slate-900/95 flex gap-3 flex-shrink-0" style="padding-bottom: calc(16px + env(safe-area-inset-bottom, 16px));">
+      <button id="saveOwnerControlsBtn" class="btn-primary flex-1 py-3.5 rounded-xl font-bold transition flex items-center justify-center gap-2">
+        ${ix('check')} Сохранить
+      </button>
+      <button id="cancelOwnerControlsBtn" class="btn-secondary flex-1 py-3.5 rounded-xl font-bold transition flex items-center justify-center gap-2">
+        Отмена
+      </button>
     </div>
   `;
   document.body.appendChild(modal);
@@ -2067,41 +2083,47 @@ async function showOwnerControlsForm() {
 
 function showMeasurementsForm() {
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[110] p-4 overflow-y-auto pt-16 pb-20';
+  modal.className = 'full-screen-modal-overlay page-enter';
+  modal.id = 'measurementsModal';
   modal.innerHTML = `
-    <div class="bg-[#1e293b] rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col border border-white/20">
-      <div class="p-5 border-b border-white/20">
-        <h3 class="text-white font-bold text-lg">📏 Мои размеры</h3>
-        <p class="text-white/50 text-xs mt-1">Сохраните ваши параметры для автоподбора размеров и умного калькулятора.</p>
+    <div class="full-screen-modal-header">
+      <button type="button" class="global-back-btn" id="closeMeasBtn" onclick="document.getElementById('measurementsModal')?.remove()">
+        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+        <span>Назад</span>
+      </button>
+      <div class="text-center">
+        <h3 class="text-white font-bold text-sm truncate">📏 Мои размеры</h3>
+        <p class="text-white/40 text-[10px]">Параметры для автоподбора</p>
       </div>
-      <div class="p-5 overflow-y-auto flex-1 space-y-3">
-        <div>
-          <label class="text-white/70 text-sm">Рост (см)</label>
-          <input type="number" id="measHeight" class="w-full p-3 rounded-xl bg-white/20 border border-white/30" placeholder="175">
-        </div>
-        <div>
-          <label class="text-white/70 text-sm">Вес (кг)</label>
-          <input type="number" id="measWeight" class="w-full p-3 rounded-xl bg-white/20 border border-white/30" placeholder="70">
-        </div>
-        <div>
-          <label class="text-white/70 text-sm">Длина стопы (см)</label>
-          <input type="number" step="0.1" id="measFoot" class="w-full p-3 rounded-xl bg-white/20 border border-white/30" placeholder="27.5">
-        </div>
-        <div>
-          <label class="text-white/70 text-sm">Размер одежды (EU/RU)</label>
-          <input type="text" id="measClothes" class="w-full p-3 rounded-xl bg-white/20 border border-white/30" placeholder="M / 48">
-        </div>
-        <div>
-          <label class="text-white/70 text-sm">Размер обуви (EU)</label>
-          <input type="number" step="0.5" id="measShoe" class="w-full p-3 rounded-xl bg-white/20 border border-white/30" placeholder="42">
-        </div>
+      <div style="width: 48px;"></div>
+    </div>
+    
+    <div class="full-screen-modal-body space-y-3">
+      <div>
+        <label class="text-white/70 text-xs block mb-1">Рост (см)</label>
+        <input type="number" id="measHeight" class="w-full p-3 rounded-xl bg-white/10 border border-white/20 text-white" placeholder="175">
       </div>
-      <div class="p-5 border-t border-white/20">
-        <div class="flex gap-3">
-          <button id="saveMeasBtn" class="flex-1 bg-cyan-500 py-2 rounded-xl">Сохранить</button>
-          <button id="cancelMeasBtn" class="flex-1 bg-white/20 py-2 rounded-xl">Отмена</button>
-        </div>
+      <div>
+        <label class="text-white/70 text-xs block mb-1">Вес (кг)</label>
+        <input type="number" id="measWeight" class="w-full p-3 rounded-xl bg-white/10 border border-white/20 text-white" placeholder="70">
       </div>
+      <div>
+        <label class="text-white/70 text-xs block mb-1">Длина стопы (см)</label>
+        <input type="number" step="0.1" id="measFoot" class="w-full p-3 rounded-xl bg-white/10 border border-white/20 text-white" placeholder="27.5">
+      </div>
+      <div>
+        <label class="text-white/70 text-xs block mb-1">Размер одежды (EU/RU)</label>
+        <input type="text" id="measClothes" class="w-full p-3 rounded-xl bg-white/10 border border-white/20 text-white" placeholder="M / 48">
+      </div>
+      <div>
+        <label class="text-white/70 text-xs block mb-1">Размер обуви (EU)</label>
+        <input type="number" step="0.5" id="measShoe" class="w-full p-3 rounded-xl bg-white/10 border border-white/20 text-white" placeholder="42">
+      </div>
+    </div>
+    
+    <div class="p-4 border-t border-white/10 bg-slate-900/95 flex gap-3 flex-shrink-0" style="padding-bottom: calc(16px + env(safe-area-inset-bottom, 16px));">
+      <button id="saveMeasBtn" class="btn-primary flex-1 py-3.5 rounded-xl font-bold">Сохранить</button>
+      <button id="cancelMeasBtn" class="btn-secondary flex-1 py-3.5 rounded-xl font-bold">Отмена</button>
     </div>
   `;
   document.body.appendChild(modal);
@@ -2182,17 +2204,29 @@ async function downloadCustomsInvoice(orderId) {
 
 function showFortuneWheel() {
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[120] p-4';
+  modal.className = 'full-screen-modal-overlay page-enter';
+  modal.id = 'fortuneWheelModal';
   modal.innerHTML = `
-    <h2 class="text-2xl font-bold text-white mb-6 animate-pulse">🎡 Колесо Фортуны</h2>
-    <div class="relative w-64 h-64 mb-8">
-      <div id="wheel" class="w-full h-full rounded-full border-4 border-cyan-500 shadow-[0_0_20px_#06b6d4] transition-all duration-[3000ms] ease-out flex items-center justify-center overflow-hidden" style="background: conic-gradient(#ec4899 0deg 90deg, #8b5cf6 90deg 180deg, #06b6d4 180deg 270deg, #10b981 270deg 360deg);">
-         <div class="absolute inset-0 flex items-center justify-center font-bold text-white text-xl drop-shadow-md">КРУТИ!</div>
+    <div class="full-screen-modal-header">
+      <button type="button" class="global-back-btn" id="closeWheelBtn">
+        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+        <span>Назад</span>
+      </button>
+      <div class="text-center">
+        <h3 class="text-white font-bold text-sm">🎡 Колесо Фортуны</h3>
+        <p class="text-white/40 text-[10px]">Призы и бонусы каждый месяц</p>
       </div>
-      <div class="absolute top-0 left-1/2 -ml-3 -mt-2 w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-t-[20px] border-t-white z-10"></div>
+      <div style="width: 48px;"></div>
     </div>
-    <button id="spinWheelBtn" class="bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold py-3 px-10 rounded-full text-lg shadow-[0_0_15px_#ec4899] hover:scale-105 transition">Крутить (1 раз в месяц)</button>
-    <button id="closeWheelBtn" class="mt-4 text-white/50 text-sm">Позже</button>
+    <div class="full-screen-modal-body flex flex-col items-center justify-center py-6">
+      <div class="relative w-64 h-64 mb-8">
+        <div id="wheel" class="w-full h-full rounded-full border-4 border-cyan-500 shadow-[0_0_20px_#06b6d4] transition-all duration-[3000ms] ease-out flex items-center justify-center overflow-hidden" style="background: conic-gradient(#ec4899 0deg 90deg, #8b5cf6 90deg 180deg, #06b6d4 180deg 270deg, #10b981 270deg 360deg);">
+           <div class="absolute inset-0 flex items-center justify-center font-bold text-white text-xl drop-shadow-md">КРУТИ!</div>
+        </div>
+        <div class="absolute top-0 left-1/2 -ml-3 -mt-2 w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-t-[20px] border-t-white z-10"></div>
+      </div>
+      <button id="spinWheelBtn" class="bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold py-3.5 px-10 rounded-2xl text-base shadow-[0_0_15px_#ec4899] hover:scale-105 transition">Крутить (1 раз в месяц)</button>
+    </div>
   `;
   document.body.appendChild(modal);
   

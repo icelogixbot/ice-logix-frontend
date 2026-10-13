@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>ICE LOGIX — Пульт Оператора Поддержки</title>
+  <meta name="theme-color" content="#090d16">
+  <link rel="icon" type="image/png" href="/assets/splash-logo-512.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="/vendor/supabase.min.js"></script>
+  <link rel="stylesheet" href="/css/support-desk.css?v=20261014_01">
+</head>
+<body>
+  <!-- Фоновое арктическое свечение -->
+  <div class="desk-ambient"></div>
+
+  <!-- Экран блокировки (при неавторизованном доступе) -->
+  <div id="lockdownScreen" class="lockdown-overlay" style="display: none;">
+    <div class="lockdown-card">
+      <div class="lockdown-shield">🛡️</div>
+      <h2 style="font-size: 20px; font-weight: 800; color: #fff; margin: 0 0 8px;">Доступ ограничен</h2>
+      <p style="font-size: 13px; color: #94a3b8; line-height: 1.5; margin: 0 0 16px;">
+        Этот терминал предназначен исключительно для авторизованных операторов службы заботы <b>ICE LOGIX</b>.
+      </p>
+      <div id="lockdownUserDetail" style="font-size: 11px; color: #ef4444; background: rgba(239,68,68,0.1); padding: 8px 12px; border-radius: 8px; margin-bottom: 20px;">
+        Проверка прав доступа...
+      </div>
+      <button id="lockdownCloseBtn" style="width: 100%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 12px; border-radius: 12px; font-weight: 700; cursor: pointer;">
+        Закрыть окно
+      </button>
+    </div>
+  </div>
+
+  <!-- Главный контейнер пульта -->
+  <div id="deskContainer" class="desk-container">
+    
+    <!-- Шапка пульта -->
+    <header class="desk-header">
+      <div class="desk-header-brand">
+        <div class="desk-brand-logo">❄️</div>
+        <div>
+          <div class="desk-header-title">ICE LOGIX • Служба заботы</div>
+          <div class="desk-header-subtitle">
+            <span class="status-dot-pulse"></span>
+            <span id="operatorNameBadge">Оператор в сети</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="desk-header-actions">
+        <button id="deskRefreshBtn" class="desk-btn-icon" title="Обновить список">
+          <span>🔄</span>
+          <span class="hidden sm:inline">Обновить</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Основная рабочая область -->
+    <div class="desk-body">
+      
+      <!-- Сайдбар со списком тикетов -->
+      <aside class="desk-sidebar">
+        <!-- Табы фильтрации -->
+        <div class="desk-tabs-bar">
+          <div class="desk-tab active" data-tab="open">
+            <span>🔴 Новые</span>
+            <span id="badgeOpen" class="tab-badge" style="display: none;">0</span>
+          </div>
+          <div class="desk-tab" data-tab="in_progress">
+            <span>🟡 В работе</span>
+            <span id="badgeInProgress" class="tab-badge" style="display: none; background: #eab308;">0</span>
+          </div>
+          <div class="desk-tab" data-tab="closed">
+            <span>⚪ Архив</span>
+            <span id="badgeClosed" class="tab-badge" style="display: none; background: #64748b;">0</span>
+          </div>
+        </div>
+
+        <!-- Поисковая строка -->
+        <div class="desk-search-box">
+          <input type="text" id="ticketSearchInput" class="desk-search-input" placeholder="🔍 Поиск по имени или @юзернейму...">
+        </div>
+
+        <!-- Контейнер карточек тикетов -->
+        <div id="ticketsListContainer" class="desk-tickets-list">
+          <!-- Рендерится через JS -->
+        </div>
+      </aside>
+
+      <!-- Правая панель: Окно переписки -->
+      <main id="chatPanel" class="desk-chat-panel">
+        
+        <!-- Заглушка, когда диалог не выбран -->
+        <div id="chatEmptyState" class="empty-state-box">
+          <div class="empty-state-icon">🎧</div>
+          <div style="font-size: 16px; font-weight: 800; color: #fff;">Пульт управления обращениями</div>
+          <p style="font-size: 13px; max-width: 300px; margin-top: 6px; line-height: 1.4;">
+            Выберите диалог из списка слева, чтобы посмотреть историю и ответить клиенту.
+          </p>
+        </div>
+
+        <!-- Активная комната диалога -->
+        <div id="chatActiveRoom" style="display: none; flex-direction: column; width: 100%; height: 100%;">
+          
+          <!-- Шапка диалога + Досье клиента -->
+          <div class="chat-client-bar">
+            <div class="client-meta-box">
+              <button id="mobileBackBtn" class="mobile-back-btn">
+                <span>◀</span>
+                <span>Назад</span>
+              </button>
+              
+              <div id="chatClientAvatar" class="client-avatar">U</div>
+              
+              <div class="client-info-col">
+                <div class="client-title-row">
+                  <span id="chatClientName" class="client-display-name">Клиент</span>
+                  <span id="chatClientHandle" class="client-handle">@user</span>
+                </div>
+                <div id="clientDossierChips" class="client-dossier-chips">
+                  <!-- Загружается из базы: баланс, заказы -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Действия над тикетом -->
+            <div>
+              <button id="chatCloseTicketBtn" class="desk-btn-icon" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: #34d399;" title="Завершить обращение">
+                <span>✅</span>
+                <span class="hidden sm:inline">Завершить</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Область сообщений -->
+          <div id="chatMessagesContainer" class="chat-messages-container">
+            <!-- Сообщения рендерятся через JS -->
+          </div>
+
+          <!-- Полоса быстрых ответов (Шаблоны в 1 клик) -->
+          <div class="quick-templates-bar">
+            <div class="template-chip" data-text="Здравствуйте! Уточняем информацию по вашему вопросу на складе.">📦 Уточняем на складе</div>
+            <div class="template-chip" data-text="Сроки доставки из Китая в Беларусь составляют 10-14 рабочих дней.">✈️ Сроки 10-14 дней</div>
+            <div class="template-chip" data-text="Пожалуйста, пришлите скриншот или фото бирки/товара для точной проверки.">📸 Пришлите фото</div>
+            <div class="template-chip" data-text="Оплата проходит через защищенный шлюз bePaid картами Visa, Mastercard и БЕЛКАРТ.">💳 Оплата bePaid</div>
+            <div class="template-chip" data-text="Ваш заказ уже поступил на склад и готовится к выдаче.">🏢 На складе</div>
+          </div>
+
+          <!-- Нижняя панель ввода сообщения -->
+          <div class="chat-input-bar">
+            <textarea id="chatMessageInput" class="chat-input-textarea" placeholder="Напишите ответ клиенту... (Enter для отправки)"></textarea>
+            <button id="chatSendBtn" class="btn-send">
+              <span>Отправить</span>
+              <span>✈️</span>
+            </button>
+          </div>
+
+        </div>
+
+      </main>
+
+    </div>
+  </div>
+
+  <!-- Подключение логики пульта -->
+  <script src="/js/modules/support-desk.js?v=20261014_01"></script>
+</body>
+</html>

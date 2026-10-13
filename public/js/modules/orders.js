@@ -2548,6 +2548,71 @@ const BANK_CONFIGS = {
     accentColor: '#0F3E99',
     binRegex: /^(405257|425517|437457|510047|535107|986005|220017|418837)/
   },
+  technobank: {
+    code: 'technobank',
+    name: 'ОАО «Технобанк»',
+    shortName: 'Технобанк',
+    logo: '/assets/banks/technobank.webp',
+    icon: '🔷',
+    cardGradient: 'from-[#09173d] via-[#102256] to-[#183478]',
+    cardBorder: 'border-blue-400/40',
+    cardGlow: 'shadow-blue-950/60 ring-blue-400/20',
+    badgeBg: 'bg-blue-500/20 text-blue-300 border border-blue-400/40',
+    accentColor: '#2A3494',
+    binRegex: /^(547174|5471|425514|516014|520814|986014|220018)/
+  },
+  bsb: {
+    code: 'bsb',
+    name: 'ЗАО «БСБ Банк»',
+    shortName: 'БСБ Банк',
+    logo: '/assets/banks/bsb.webp',
+    icon: '🏰',
+    cardGradient: 'from-[#260810] via-[#150a0e] to-[#3b0d18]',
+    cardBorder: 'border-red-500/40',
+    cardGlow: 'shadow-red-950/60 ring-red-500/20',
+    badgeBg: 'bg-red-500/20 text-red-300 border border-red-400/40',
+    accentColor: '#FF0B18',
+    binRegex: /^(425524|425525|535124|520824|986016|220016)/
+  },
+  bnb: {
+    code: 'bnb',
+    name: 'ОАО «БНБ-Банк»',
+    shortName: 'БНБ-Банк',
+    logo: '/assets/banks/bnb.webp',
+    icon: '🦁',
+    cardGradient: 'from-[#1c1815] via-[#141416] to-[#2d1e0f]',
+    cardBorder: 'border-amber-500/40',
+    cardGlow: 'shadow-amber-950/60 ring-amber-500/20',
+    badgeBg: 'bg-amber-500/20 text-amber-300 border border-amber-400/40',
+    accentColor: '#FF6617',
+    binRegex: /^(437456|425526|535126|510046|986011|220011|418836)/
+  },
+  belgazprom: {
+    code: 'belgazprom',
+    name: 'ОАО «Белгазпромбанк»',
+    shortName: 'Белгазпромбанк',
+    logo: '/assets/banks/belgazprom.webp',
+    icon: '🔥',
+    cardGradient: 'from-[#041a36] via-[#082247] to-[#0c3163]',
+    cardBorder: 'border-sky-400/40',
+    cardGlow: 'shadow-sky-950/60 ring-sky-400/20',
+    badgeBg: 'bg-sky-500/20 text-sky-300 border border-sky-400/40',
+    accentColor: '#004785',
+    binRegex: /^(425515|437455|535106|510045|986012|220012|405254)/
+  },
+  alfa: {
+    code: 'alfa',
+    name: 'ЗАО «Альфа-Банк»',
+    shortName: 'Альфа-Банк',
+    logo: '/assets/banks/alfa.webp',
+    icon: '🅰️',
+    cardGradient: 'from-[#1c080a] via-[#121214] to-[#280a0d]',
+    cardBorder: 'border-red-500/40',
+    cardGlow: 'shadow-red-950/60 ring-red-500/20',
+    badgeBg: 'bg-red-500/20 text-red-300 border border-red-400/40',
+    accentColor: '#EF3124',
+    binRegex: /^(425520|405252|535120|510048|986010|220013|418838|548778)/
+  },
   belarusbank: {
     code: 'belarusbank',
     name: 'Беларусбанк',
@@ -2785,21 +2850,19 @@ window.openAddCardModal = function(onSuccess) {
   }
 
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/85 flex items-center justify-center z-[130] p-4 overflow-y-auto';
+  modal.className = 'full-screen-modal-overlay page-enter';
   modal.id = 'addCardModal';
 
   modal.innerHTML = `
-    <div class="glass-card max-w-sm w-full mx-auto p-5 space-y-4 shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-cyan-500/30 transform transition-all duration-300 scale-95 opacity-0 my-auto rounded-3xl" id="addCardModalContent">
-      
-      <!-- Шапка в стиле WB: Кнопка Назад и Заголовок -->
-      <div class="flex items-center justify-between pb-2 border-b border-white/10">
-        <button id="closeAddCardBtn" type="button" class="flex items-center gap-1 text-white/70 hover:text-white text-xs font-semibold px-2 py-1.5 rounded-lg hover:bg-white/10 transition active:scale-95">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-          <span>Назад</span>
-        </button>
-        <h3 class="text-white font-bold text-sm tracking-wide">Привязать новую карту</h3>
-        <div class="w-10"></div>
-      </div>
+    <div class="full-screen-modal-header">
+      <button id="closeAddCardBtn" type="button" class="global-back-btn">
+        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+        <span>Назад</span>
+      </button>
+      <div class="text-center font-bold text-sm text-white">Привязать карту</div>
+      <div style="width: 48px;"></div>
+    </div>
+    <div class="full-screen-modal-body space-y-4" id="addCardModalContent">
 
       <!-- Живая интерактивная банковская карта (ISO ID-1, динамический банк и платежная система) -->
       <div class="relative w-full aspect-[1.586/1] max-w-[315px] mx-auto rounded-2xl p-4 sm:p-5 flex flex-col justify-between overflow-hidden select-none transition-all duration-500 shadow-2xl bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 border border-white/15" id="liveCardPreview">
@@ -3037,7 +3100,12 @@ window.openAddCardModal = function(onSuccess) {
       belarusbank: { num: '9860180000000000', exp: '12/28', cvc: '777' },
       belagroprom: { num: '4058770000000001', exp: '12/28', cvc: '777' },
       prior: { num: '4094280000000007', exp: '12/28', cvc: '777' },
-      sber: { num: '4188680000000005', exp: '12/28', cvc: '777' }
+      sber: { num: '4188680000000005', exp: '12/28', cvc: '777' },
+      technobank: { num: '5471740000000000', exp: '12/28', cvc: '777' },
+      bsb: { num: '4255240000000006', exp: '12/28', cvc: '777' },
+      bnb: { num: '4374560000000003', exp: '12/28', cvc: '777' },
+      belgazprom: { num: '4255150000000007', exp: '12/28', cvc: '777' },
+      alfa: { num: '4255200000000000', exp: '12/28', cvc: '777' }
     };
     const c = testMap[bankCode];
     if (!c || !numInput || !expInput || !cvcInput) return;
@@ -3230,7 +3298,7 @@ window.openCardsManagementModal = async function() {
   window.userCards = Array.isArray(window.userCards) ? window.userCards : [];
 
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/85 flex items-center justify-center z-[120] p-4 overflow-y-auto';
+  modal.className = 'full-screen-modal-overlay page-enter';
   modal.id = 'cardsManageModal';
 
   const renderCardListHtml = () => {
@@ -3286,17 +3354,16 @@ window.openCardsManagementModal = async function() {
   const cardsCount = (window.userCards || []).length;
 
   modal.innerHTML = `
-    <div class="glass-card max-w-sm w-full mx-auto p-5 space-y-4 shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-cyan-500/20 transform transition-all duration-300 scale-95 opacity-0 my-auto rounded-3xl" id="cardsManageModalContent">
-      
-      <!-- Шапка WB: Назад и Заголовок -->
-      <div class="flex items-center justify-between pb-3 border-b border-white/10">
-        <button id="closeCardsManageBtn" type="button" class="flex items-center gap-1 text-white/70 hover:text-white text-xs font-semibold px-2 py-1.5 rounded-lg hover:bg-white/10 transition active:scale-95">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-          <span>Назад</span>
-        </button>
-        <h3 class="text-white font-bold text-sm tracking-wide">Способы оплаты</h3>
-        <div class="w-10"></div>
-      </div>
+    <div class="full-screen-modal-header">
+      <button id="closeCardsManageBtn" type="button" class="global-back-btn">
+        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+        <span>Назад</span>
+      </button>
+      <div class="text-center font-bold text-sm text-white">Способы оплаты</div>
+      <div style="width: 48px;"></div>
+    </div>
+
+    <div class="full-screen-modal-body space-y-4" id="cardsManageModalContent">
 
       <!-- Список сохраненных карт -->
       <div class="space-y-1.5">
@@ -3437,26 +3504,23 @@ window.openCardsManagementModal = async function() {
 window.openSecondPaymentModal = function(orderId, amount) {
   tgUtil.haptic('light');
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/85 flex items-center justify-center z-[130] p-4';
+  modal.className = 'full-screen-modal-overlay page-enter';
   modal.id = 'secondPaymentModal';
 
   const totalDue = Number(amount || 0);
   const curBal = Number(typeof balance !== 'undefined' ? (balance || 0) : 0);
 
   modal.innerHTML = `
-    <div class="glass-card max-w-sm w-full mx-4 p-5 space-y-4 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.8)] border border-amber-500/30 transform transition-all duration-300 scale-95 opacity-0" id="secondPayModalContent">
-      <div class="flex justify-between items-center border-b border-white/10 pb-3">
-        <div class="flex items-center gap-2">
-          <span class="text-xl">📦</span>
-          <div>
-            <h3 class="text-white font-bold text-sm">Оплата 2-го этапа</h3>
-            <p class="text-[10px] text-amber-400">Заказ #${orderId.slice(0, 8)}</p>
-          </div>
-        </div>
-        <button id="closeSecondPayBtn" class="text-white/40 hover:text-white p-1 rounded-lg">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
+    <div class="full-screen-modal-header">
+      <button id="closeSecondPayBtn" type="button" class="global-back-btn">
+        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+        <span>Назад</span>
+      </button>
+      <div class="text-center font-bold text-sm text-white">Оплата 2-го этапа</div>
+      <div style="width: 48px;"></div>
+    </div>
+
+    <div class="full-screen-modal-body space-y-4" id="secondPayModalContent">
 
       <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-1">
         <div class="flex justify-between text-white/80">
@@ -3610,20 +3674,20 @@ window.openSecondPaymentModal = function(orderId, amount) {
 window.openInvoiceModal = (orderId, originalPrice) => {
   tgUtil.haptic('light');
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[120] p-4';
+  modal.className = 'full-screen-modal-overlay page-enter';
   modal.id = 'invoiceTypeModal';
   
   modal.innerHTML = `
-    <div class="glass-card max-w-sm w-full mx-4 p-6 space-y-5 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.7)] transform transition-all duration-300 scale-95 opacity-0" id="invModalContent">
-      <div class="flex justify-between items-center border-b border-white/10 pb-3">
-        <h3 class="text-white font-bold text-base flex items-center gap-2">
-          <span class="text-cyan-400 text-xl">📄</span> 
-          <span>Создание инвойса</span>
-        </h3>
-        <button id="closeInvModalBtn" class="text-white/40 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
+    <div class="full-screen-modal-header">
+      <button id="closeInvModalBtn" type="button" class="global-back-btn">
+        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+        <span>Назад</span>
+      </button>
+      <div class="text-center font-bold text-sm text-white">Создание инвойса</div>
+      <div style="width: 48px;"></div>
+    </div>
+    
+    <div class="full-screen-modal-body space-y-4" id="invModalContent">
       
       <div class="space-y-3">
         <button id="btnStdInv" class="w-full btn-secondary text-left flex items-start gap-3 p-3 border border-cyan-500/30 hover:bg-cyan-500/10">
@@ -3691,31 +3755,32 @@ window.openInvoiceModal = (orderId, originalPrice) => {
 window.openYandexMapStub = () => {
   tgUtil.haptic('medium');
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[120] p-4';
+  modal.className = 'full-screen-modal-overlay page-enter';
   modal.id = 'yandexMapModal';
   
   modal.innerHTML = `
-    <div class="glass-card max-w-lg w-full mx-4 p-6 space-y-4 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.7)] transform transition-all duration-300 scale-95 opacity-0 flex flex-col" style="height: 70vh;" id="yMapModalContent">
-      <div class="flex justify-between items-center border-b border-white/10 pb-3">
-        <h3 class="text-white font-bold text-base flex items-center gap-2">
-          <span class="text-cyan-400 text-xl">📍</span> 
-          <span>Выбор на карте</span>
-        </h3>
-        <button id="closeYMapModalBtn" class="text-white/50 hover:text-white transition-colors">
-          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
-        </button>
+    <div class="full-screen-modal-header">
+      <button id="closeYMapModalBtn" type="button" class="global-back-btn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div class="flex-1 min-w-0">
+        <h3 class="text-white font-bold text-base truncate">Выбор на карте</h3>
+        <p class="text-white/40 text-[10px]">Пункты выдачи и доставка</p>
       </div>
-      
+    </div>
+    
+    <div class="full-screen-modal-body space-y-4 flex flex-col justify-between" id="yMapModalContent">
       <!-- Контейнер для Яндекс.Карт -->
-      <div id="yandexMapContainer" class="flex-1 bg-slate-800 rounded-xl overflow-hidden border border-white/10 relative flex items-center justify-center">
-        <div class="text-center p-6">
-          <p class="text-cyan-400 font-bold mb-2">Интеграция с Яндекс Картами</p>
+      <div id="yandexMapContainer" class="flex-1 min-h-[300px] bg-slate-800 rounded-2xl overflow-hidden border border-white/10 relative flex items-center justify-center p-6 text-center">
+        <div class="space-y-2">
+          <div class="text-3xl mb-2">📍</div>
+          <p class="text-cyan-400 font-bold text-sm">Интеграция с Яндекс Картами</p>
           <p class="text-white/60 text-xs">Для полноценной работы нужно добавить API ключ Яндекса.</p>
-          <p class="text-white/60 text-xs mt-2">Здесь появится интерактивная карта для выбора адреса / отделения.</p>
+          <p class="text-white/60 text-xs">Здесь появится интерактивная карта для выбора адреса / отделения.</p>
         </div>
       </div>
       
-      <button id="btnConfirmMapStub" class="btn-primary w-full py-3 rounded-xl font-bold flex justify-center items-center gap-2">
+      <button id="btnConfirmMapStub" class="btn-primary w-full py-3.5 rounded-xl font-bold flex justify-center items-center gap-2">
         Сохранить тестовый адрес
       </button>
     </div>
@@ -3723,15 +3788,9 @@ window.openYandexMapStub = () => {
   
   document.body.appendChild(modal);
   
-  requestAnimationFrame(() => {
-    document.getElementById('yMapModalContent').classList.remove('scale-95', 'opacity-0');
-    document.getElementById('yMapModalContent').classList.add('scale-100', 'opacity-100');
-  });
-
   const close = () => {
-    document.getElementById('yMapModalContent').classList.remove('scale-100', 'opacity-100');
-    document.getElementById('yMapModalContent').classList.add('scale-95', 'opacity-0');
-    setTimeout(() => modal.remove(), 300);
+    modal.classList.add('opacity-0');
+    setTimeout(() => modal.remove(), 250);
   };
   
   document.getElementById('closeYMapModalBtn').onclick = close;
@@ -3992,21 +4051,21 @@ window.generateShippingManifest = async (orderId) => {
 window.openInsuranceClaimModal = (orderId, orderTotal) => {
   tgUtil.haptic('light');
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[120] p-4';
+  modal.className = 'full-screen-modal-overlay page-enter';
   modal.id = 'insuranceClaimModal';
   
   modal.innerHTML = `
-    <div class="glass-card max-w-sm w-full mx-4 p-6 space-y-5 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.7)] transform transition-all duration-300 scale-95 opacity-0" id="claimModalContent">
-      <div class="flex justify-between items-center border-b border-white/10 pb-3">
-        <h3 class="text-white font-bold text-base flex items-center gap-2">
-          <span class="text-amber-400 text-xl">🛡️</span> 
-          <span class="bg-gradient-to-r from-amber-200 to-amber-500 bg-clip-text text-transparent">Страховой случай</span>
-        </h3>
-        <button id="closeClaimModalBtn" class="text-white/40 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
+    <div class="full-screen-modal-header">
+      <button id="closeClaimModalBtn" type="button" class="global-back-btn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div class="flex-1 min-w-0">
+        <h3 class="text-white font-bold text-base truncate">Страховой случай</h3>
+        <p class="text-amber-400 text-[10px]">Оформление претензии</p>
       </div>
-      
+    </div>
+    
+    <div class="full-screen-modal-body space-y-5" id="claimModalContent">
       <div class="bg-gradient-to-br from-amber-500/10 to-transparent border border-amber-500/20 p-4 rounded-xl text-xs text-white/80 leading-relaxed relative overflow-hidden">
         <div class="absolute -right-4 -top-4 text-amber-500/10 text-6xl">🛡️</div>
         <p class="font-bold text-amber-300 mb-2 text-sm flex items-center gap-1.5"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span> Условия возмещения:</p>
@@ -4034,16 +4093,13 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
   `;
   document.body.appendChild(modal);
   
-  // Анимация появления
-  requestAnimationFrame(() => {
-    const content = document.getElementById('claimModalContent');
-    if (content) {
-      content.classList.remove('scale-95', 'opacity-0');
-      content.classList.add('scale-100', 'opacity-100');
-    }
-  });
+  const close = () => {
+    modal.classList.add('opacity-0');
+    setTimeout(() => modal.remove(), 250);
+  };
   
-  document.getElementById('closeClaimModalBtn').onclick = () => modal.remove();
+  document.getElementById('closeClaimModalBtn').onclick = close;
+  modal.onclick = (e) => { if (e.target === modal) close(); };
   
   document.getElementById('submitClaimBtn').onclick = async () => {
     const reason = document.getElementById('claimReason')?.value.trim();

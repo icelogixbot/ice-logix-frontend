@@ -186,7 +186,7 @@
       iconSvg: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
       action: () => {
         closeSpotlightSearch();
-        const tgLink = 'https://t.me/icelogix_support';
+        const tgLink = 'https://t.me/icelogix_support_bot';
         if (window.Telegram?.WebApp?.openTelegramLink) {
           window.Telegram.WebApp.openTelegramLink(tgLink);
         } else {
@@ -609,7 +609,7 @@
 
       contentEl.querySelector('#spotlightAskManagerBtn').onclick = () => {
         closeSpotlightSearch();
-        const tgLink = 'https://t.me/icelogix_support';
+        const tgLink = 'https://t.me/icelogix_support_bot';
         if (window.Telegram?.WebApp?.openTelegramLink) {
           window.Telegram.WebApp.openTelegramLink(tgLink);
         } else {

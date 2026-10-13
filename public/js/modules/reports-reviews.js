@@ -75,34 +75,48 @@
       if (addBtn) {
         addBtn.onclick = () => {
           const modal = document.createElement('div');
-          modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4';
+          modal.className = 'full-screen-modal-overlay page-enter';
+          modal.id = 'addReportModal';
           modal.innerHTML = `
-            <div class="glass-card max-w-md w-full max-h-[90vh] overflow-y-auto">
-              <h3 class="text-white font-bold text-lg mb-4"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Новый отчёт</h3>
-              <input type="text" id="reportTitle" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-3" placeholder="Заголовок">
-              <textarea id="reportDesc" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-3" placeholder="Описание" rows="3"></textarea>
-              <select id="reportType" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-3">
+            <div class="full-screen-modal-header">
+              <button type="button" class="global-back-btn" id="cancelReportBtn">
+                <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+                <span>Назад</span>
+              </button>
+              <div class="text-center">
+                <h3 class="text-white font-bold text-sm truncate">Новый отчёт</h3>
+                <p class="text-white/40 text-[10px]">Публикация в ленте</p>
+              </div>
+              <div style="width: 48px;"></div>
+            </div>
+
+            <div class="full-screen-modal-body space-y-3">
+              <input type="text" id="reportTitle" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-sm text-white" placeholder="Заголовок">
+              <textarea id="reportDesc" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-sm text-white" placeholder="Описание" rows="3"></textarea>
+              <select id="reportType" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-sm text-white">
                 <option value="photo">Фото</option>
                 <option value="video">Видео</option>
               </select>
 
-              <p class="text-white/60 text-xs mb-2 font-semibold">Фото/видео:</p>
-              <div id="reportPhotoPreviews" class="flex flex-wrap gap-2 mb-3"></div>
-              <label class="cursor-pointer flex items-center gap-2 bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/30 rounded-xl px-4 py-3 mb-3 transition">
+              <p class="text-white/60 text-xs mb-1 font-semibold">Фото/видео:</p>
+              <div id="reportPhotoPreviews" class="flex flex-wrap gap-2 mb-2"></div>
+              <label class="cursor-pointer flex items-center gap-2 bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/30 rounded-xl px-4 py-3 mb-2 transition">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;color:#22d3ee" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                 <span class="text-cyan-400 text-sm font-semibold">Выбрать из галереи</span>
                 <input type="file" id="reportFileInput" accept="image/*,video/*" multiple class="hidden">
               </label>
-              <span id="reportUploadStatus" class="text-xs text-white/50 mb-3 block"></span>
+              <span id="reportUploadStatus" class="text-xs text-white/50 mb-2 block"></span>
 
-              <input type="url" id="reportProductUrl" class="btn-secondary w-full p-3 rounded-xl border border-cyan-500/30 mb-3" placeholder="Ссылка на оригинальный товар (для 'Хочу такой же')">
-              <div class="flex gap-3 mt-4">
-                <button id="saveReportBtn" class="btn-primary flex-1">Сохранить</button>
-                <button id="cancelReportBtn" class="btn-secondary flex-1">Отмена</button>
-              </div>
+              <input type="url" id="reportProductUrl" class="btn-secondary w-full p-3.5 rounded-xl border border-cyan-500/30 mb-2 text-sm text-white" placeholder="Ссылка на оригинальный товар (для 'Хочу такой же')">
+            </div>
+
+            <div class="p-4 border-t border-white/10 bg-slate-900/95 flex gap-3 flex-shrink-0" style="padding-bottom: calc(16px + env(safe-area-inset-bottom, 16px));">
+              <button id="saveReportBtn" class="btn-primary flex-1 py-3.5 rounded-xl font-bold">Сохранить</button>
+              <button id="cancelReportBtn2" class="btn-secondary flex-1 py-3.5 rounded-xl font-bold">Отмена</button>
             </div>
           `;
           document.body.appendChild(modal);
+          modal.querySelector('#cancelReportBtn2').onclick = () => modal.remove();
 
           const uploadedUrls = [];
           const statusEl = modal.querySelector('#reportUploadStatus');
@@ -734,7 +748,8 @@
           if (!userId) { window.requireAuth('Для написания отзыва необходимо войти.'); return; }
 
           const modal = document.createElement('div');
-          modal.className = 'fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4 overflow-y-auto page-enter';
+          modal.className = 'full-screen-modal-overlay page-enter';
+          modal.id = 'reviewActionModal';
           document.body.appendChild(modal);
 
           let partnerUserIds = [];
@@ -779,34 +794,54 @@
 
             if (actions.length === 0) {
               modal.innerHTML = `
-                <div class="glass-card max-w-md w-full p-6 text-center space-y-4">
-                  <span class="text-4xl">🎉</span>
+                <div class="full-screen-modal-header">
+                  <button type="button" class="global-back-btn" id="closeReviewModalBtn">
+                    <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+                    <span>Назад</span>
+                  </button>
+                  <div class="text-center">
+                    <h3 class="text-white font-bold text-sm truncate">Отзывы</h3>
+                  </div>
+                  <div style="width: 48px;"></div>
+                </div>
+                <div class="full-screen-modal-body flex flex-col items-center justify-center text-center p-6 space-y-4">
+                  <span class="text-5xl">🎉</span>
                   <h3 class="text-white font-bold text-lg">Нет доступных действий</h3>
-                  <p class="text-white/60 text-xs text-left">
+                  <p class="text-white/60 text-xs">
                     Вы выполнили все доступные действия для написания отзывов! Новые действия появятся автоматически после доставки ваших заказов или участия в реферальной системе.
                   </p>
-                  <button class="btn-primary w-full py-2.5 rounded-xl font-bold" id="closeReviewModalBtn">Отлично</button>
+                  <button class="btn-primary w-full max-w-xs py-3.5 rounded-xl font-bold" id="closeReviewModalBtn2">Отлично</button>
                 </div>
               `;
-              modal.querySelector('#closeReviewModalBtn').onclick = () => {
+              const closeHandler = () => {
                 modal.remove();
                 clearBlobUrls('review:');
                 renderCurrentScreen();
               };
+              modal.querySelector('#closeReviewModalBtn').onclick = closeHandler;
+              const b2 = modal.querySelector('#closeReviewModalBtn2');
+              if (b2) b2.onclick = closeHandler;
               return;
             }
 
             if (actions.length >= 2) {
               modal.innerHTML = `
-                <div class="glass-card max-w-md w-full p-6 space-y-4 text-left">
-                  <div class="flex justify-between items-center">
-                    <h3 class="text-white font-extrabold text-lg">Доступные действия</h3>
-                    <button class="text-white/40 hover:text-white text-sm" id="closeReviewModalBtn">✕</button>
+                <div class="full-screen-modal-header">
+                  <button type="button" class="global-back-btn" id="closeReviewModalBtn">
+                    <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+                    <span>Назад</span>
+                  </button>
+                  <div class="text-center">
+                    <h3 class="text-white font-bold text-sm truncate">Доступные действия</h3>
+                    <p class="text-white/40 text-[10px]">Выберите заказ или категорию</p>
                   </div>
+                  <div style="width: 48px;"></div>
+                </div>
+                <div class="full-screen-modal-body space-y-4 text-left">
                   <p class="text-white/60 text-xs">У вас есть несколько доступных действий для отзыва. Выберите одно, чтобы продолжить:</p>
-                  <div class="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                  <div class="space-y-2.5">
                     ${actions.map(a => `
-                      <div class="p-3 bg-white/5 border border-white/10 hover:border-cyan-500/50 rounded-xl cursor-pointer transition select-action-card" data-action-id="${a.id}">
+                      <div class="p-3.5 bg-white/5 border border-white/10 hover:border-cyan-500/50 rounded-2xl cursor-pointer transition select-action-card" data-action-id="${a.id}">
                         <div class="flex justify-between items-center text-left">
                           <span class="text-white font-bold text-xs uppercase bg-white/5 px-2 py-0.5 rounded-full">${a.category}</span>
                           <span class="text-[10px] text-white/40">Доступно</span>
@@ -842,12 +877,19 @@
             let selectedStars = 5;
 
             modal.innerHTML = `
-              <div class="glass-card max-w-md w-full p-6 space-y-4 text-left">
-                <div class="flex justify-between items-center">
-                  <h3 class="text-white font-extrabold text-lg">Оставить отзыв</h3>
-                  <button class="text-white/40 hover:text-white text-sm" id="backToActionsBtn">✕</button>
+              <div class="full-screen-modal-header">
+                <button type="button" class="global-back-btn" id="backToActionsBtn">
+                  <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+                  <span>Назад</span>
+                </button>
+                <div class="text-center">
+                  <h3 class="text-white font-bold text-sm truncate">Оставить отзыв</h3>
+                  <p class="text-white/40 text-[10px]">Честный отзыв клиента</p>
                 </div>
+                <div style="width: 48px;"></div>
+              </div>
 
+              <div class="full-screen-modal-body space-y-4 text-left">
                 ${action ? `
                   <div class="p-3 bg-white/5 rounded-xl border border-white/5 text-xs text-white/70 space-y-1 text-left">
                     <div class="font-bold text-cyan-400">Действие: ${action.title}</div>

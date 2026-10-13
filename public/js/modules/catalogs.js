@@ -382,27 +382,32 @@ function attachMarketplacesHandlers() {
   function showInstructionModal({ name, instruction, instructionImages, requiresVpn }) {
     const images = instructionImages ? JSON.parse(instructionImages) : [];
     const modal = document.createElement('div');
-    modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    modal.className = 'full-screen-modal-overlay page-enter';
+    modal.id = 'catalogInstructionModal';
     modal.innerHTML = `
-      <div class="bg-[#1e293b] rounded-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto border border-white/20">
-        <div class="sticky top-0 bg-[#1e293b] p-4 border-b border-white/10 flex justify-between items-center">
-          <h3 class="text-white font-bold text-xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span> ${name}</h3>
-          <button class="close-modal text-white text-2xl">&times;</button>
+      <div class="full-screen-modal-header">
+        <button type="button" class="global-back-btn close-modal">
+          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+          <span>Назад</span>
+        </button>
+        <div class="text-center">
+          <h3 class="text-white font-bold text-sm truncate">${name}</h3>
+          <p class="text-white/40 text-[10px]">Инструкция по заказу</p>
         </div>
-        <div class="p-4">
-          ${requiresVpn === 'true' ? '<p class="text-yellow-400 mb-3"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></span> Для доступа может потребоваться VPN.</p>' : ''}
-          <p class="text-white/90 whitespace-pre-line">${instruction || 'Подробная инструкция появится позже.'}</p>
-          ${images.length > 0 ? `
-            <div class="mt-4 space-y-3">
-              ${images.map(url => `<img src="${url}" class="w-full rounded-xl border border-white/20">`).join('')}
-            </div>
-          ` : ''}
-        </div>
+        <div style="width: 48px;"></div>
+      </div>
+      <div class="full-screen-modal-body space-y-4">
+        ${requiresVpn === 'true' ? '<div class="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs flex items-center gap-2"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></span> Для доступа может потребоваться VPN.</div>' : ''}
+        <div class="text-white/90 text-sm leading-relaxed whitespace-pre-line bg-white/5 p-4 rounded-2xl border border-white/10">${instruction || 'Подробная инструкция появится позже.'}</div>
+        ${images.length > 0 ? `
+          <div class="space-y-3">
+            ${images.map(url => `<img src="${url}" class="w-full rounded-2xl border border-white/20">`).join('')}
+          </div>
+        ` : ''}
       </div>
     `;
     document.body.appendChild(modal);
     modal.querySelector('.close-modal').onclick = () => modal.remove();
-    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
   }
 
   const saveCustomsLimitsBtn = document.getElementById('saveCustomsLimitsBtn');

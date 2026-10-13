@@ -677,40 +677,46 @@
       
       window.openCalcWeightModal = () => {
         const modalHtml = `
-          <div id="calcWeightModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md page-enter">
-            <div class="glass-card w-full max-w-sm p-6 border border-white/15 rounded-3xl relative shadow-2xl" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px);">
-              <button onclick="document.getElementById('calcWeightModal').remove()" class="absolute top-4 right-4 text-white/50 hover:text-white text-xl">×</button>
-              
-              <h3 class="text-lg font-extrabold text-white mb-2 flex items-center gap-1.5">
-                <span>⚖️ Узнать примерный вес</span>
-              </h3>
-              <p class="text-white/60 text-xs mb-4">Наш ИИ определит примерный вес товара для более точного расчета.</p>
-              
-              <div class="flex border-b border-white/10 mb-4">
+          <div id="calcWeightModal" class="full-screen-modal-overlay page-enter">
+            <div class="full-screen-modal-header">
+              <button type="button" class="global-back-btn" onclick="document.getElementById('calcWeightModal')?.remove()">
+                <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+                <span>Назад</span>
+              </button>
+              <div class="text-center">
+                <h3 class="text-white font-bold text-sm truncate">⚖️ Примерный вес товара</h3>
+                <p class="text-white/40 text-[10px]">ИИ-определение веса</p>
+              </div>
+              <div style="width: 48px;"></div>
+            </div>
+
+            <div class="full-screen-modal-body space-y-4">
+              <div class="flex border-b border-white/10 pb-1">
                 <button type="button" id="tabDescBtn" class="flex-1 pb-2 text-xs font-bold text-cyan-400 border-b-2 border-cyan-400" onclick="switchWeightTab('desc')">По описанию</button>
                 <button type="button" id="tabPhotoBtn" class="flex-1 pb-2 text-xs font-bold text-white/60" onclick="switchWeightTab('photo')">По фото</button>
               </div>
               
               <div id="tabDescContent" class="space-y-3">
                 <div>
-                  <label class="text-white/70 text-[10px] block mb-1">Описание товара или бренд/модель</label>
-                  <textarea id="calcWeightDesc" rows="3" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-xs text-white" placeholder="Например: Кроссовки зимние Adidas Terrex, размер 43"></textarea>
+                  <label class="text-white/70 text-xs block mb-1">Описание товара или бренд/модель</label>
+                  <textarea id="calcWeightDesc" rows="3" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-sm text-white" placeholder="Например: Кроссовки зимние Adidas Terrex, размер 43"></textarea>
                 </div>
-                <button type="button" id="estimateWeightDescBtn" class="btn-primary w-full py-3 rounded-xl font-bold text-xs" onclick="estimateWeight('desc')">
+                <button type="button" id="estimateWeightDescBtn" class="btn-primary w-full py-3.5 rounded-xl font-bold text-sm" onclick="estimateWeight('desc')">
                   Определить вес
                 </button>
               </div>
               
               <div id="tabPhotoContent" class="space-y-3 hidden">
-                <div id="calcWeightPhotoZone" class="p-4 border-2 border-dashed border-white/30 rounded-xl text-center cursor-pointer hover:bg-white/5 transition" onclick="document.getElementById('calcWeightPhotoInput').click()">
-                  <div class="text-2xl mb-1">📸</div>
-                  <p class="text-white/80 text-xs font-semibold">Выберите фото</p>
+                <div id="calcWeightPhotoZone" class="p-6 border-2 border-dashed border-white/30 rounded-2xl text-center cursor-pointer hover:bg-white/5 transition" onclick="document.getElementById('calcWeightPhotoInput').click()">
+                  <div class="text-3xl mb-1">📸</div>
+                  <p class="text-white/80 text-sm font-semibold">Выберите фото</p>
+                  <p class="text-white/40 text-[10px] mt-1">Загрузите скриншот или фото вещи</p>
                   <input type="file" id="calcWeightPhotoInput" accept="image/*" class="hidden" onchange="handleWeightPhotoSelect(this)">
                 </div>
                 <div id="calcWeightPhotoPreview" class="hidden text-center">
-                  <img id="calcWeightPhotoImg" class="mx-auto rounded-xl max-h-24 object-cover border border-white/20">
+                  <img id="calcWeightPhotoImg" class="mx-auto rounded-xl max-h-36 object-cover border border-white/20">
                 </div>
-                <button type="button" id="estimateWeightPhotoBtn" class="btn-primary w-full py-3 rounded-xl font-bold text-xs" onclick="estimateWeight('photo')">
+                <button type="button" id="estimateWeightPhotoBtn" class="btn-primary w-full py-3.5 rounded-xl font-bold text-sm" onclick="estimateWeight('photo')">
                   Определить вес
                 </button>
               </div>
