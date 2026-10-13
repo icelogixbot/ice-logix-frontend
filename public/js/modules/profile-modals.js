@@ -21,23 +21,22 @@ window.togglePackageExtra = (country, extraName) => {
 async function showCommissionContractModal() {
   tgUtil.haptic('medium');
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center z-[99999] p-4 overflow-y-auto pt-10 pb-10';
+  modal.className = 'full-screen-modal-overlay page-enter';
   modal.id = 'commissionContractModal';
 
   // Render loading state initially
   modal.innerHTML = `
-    <div class="bg-slate-900/95 border border-white/10 rounded-2xl max-w-lg w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden page-enter">
-      <div class="p-5 border-b border-white/10 flex justify-between items-center bg-white/5">
-        <h3 class="text-white font-bold text-base flex items-center gap-2">
-          ${ix('file-text', { cls: 'text-cyan-400' })}
-          <span>Договор комиссии байера</span>
-        </h3>
-        <button id="closeContractModalBtn" class="text-white/50 hover:text-white transition-colors text-2xl leading-none">&times;</button>
-      </div>
-      <div class="p-8 text-center text-white/50 text-sm flex-1 flex flex-col justify-center items-center gap-2">
-        <span class="ix animate-spin text-cyan-400 text-3xl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg></span>
-        <span>Формирование персонального договора...</span>
-      </div>
+    <div class="full-screen-modal-header">
+      <button type="button" class="global-back-btn" id="closeContractModalBtn">
+        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+        <span>Назад</span>
+      </button>
+      <h3 class="text-white font-bold text-sm">Договор комиссии байера</h3>
+      <div style="width: 48px;"></div>
+    </div>
+    <div class="full-screen-modal-body flex flex-col justify-center items-center text-center text-white/50 text-sm gap-2">
+      <span class="ix animate-spin text-cyan-400 text-3xl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg></span>
+      <span>Формирование персонального договора...</span>
     </div>
   `;
   document.body.appendChild(modal);
@@ -73,19 +72,19 @@ async function showCommissionContractModal() {
     const dateStr = new Date().toLocaleDateString('ru-RU');
 
     modal.innerHTML = `
-      <div class="bg-slate-900/95 border border-white/10 rounded-2xl max-w-lg w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden page-enter">
-        <div class="p-5 border-b border-white/10 flex justify-between items-center bg-white/5 flex-shrink-0">
-          <div>
-            <h3 class="text-white font-bold text-base flex items-center gap-2">
-              ${ix('file-text', { cls: 'text-cyan-400' })}
-              <span>Договор комиссии байера</span>
-            </h3>
-            <p class="text-white/50 text-[10px] mt-0.5">Официальный договор на оказание услуг выкупа</p>
-          </div>
-          <button id="closeContractModalBtn" class="text-white/50 hover:text-white transition-colors text-2xl leading-none">&times;</button>
+      <div class="full-screen-modal-header">
+        <button type="button" class="global-back-btn" id="closeContractModalBtn">
+          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+          <span>Назад</span>
+        </button>
+        <div class="text-center">
+          <h3 class="text-white font-bold text-sm truncate">Договор комиссии</h3>
+          <p class="text-white/40 text-[10px]">Официальный договор выкупа</p>
         </div>
-        
-        <div class="p-5 overflow-y-auto flex-1 text-xs text-white/80 space-y-4 leading-relaxed bg-slate-950/20 max-h-[60vh] select-text">
+        <div style="width: 48px;"></div>
+      </div>
+      
+      <div class="full-screen-modal-body text-xs text-white/80 space-y-4 leading-relaxed select-text">
           <div class="text-center font-bold text-sm text-white uppercase mb-2">Договор комиссии № ${Math.floor(100000 + Math.random() * 900000)}</div>
           <div class="flex justify-between text-[11px] text-white/50">
             <span>г. Несвиж</span>
@@ -291,7 +290,7 @@ async function showCommissionContractModal() {
 async function showFamilySettingsModal() {
   tgUtil.haptic('medium');
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[110] p-4 overflow-y-auto';
+  modal.className = 'full-screen-modal-overlay page-enter';
   modal.id = 'familySettingsModal';
   
   const fam = window.userSettings?.family || {};
@@ -459,22 +458,21 @@ async function showFamilySettingsModal() {
 
   const updateModalHTML = async () => {
     modal.innerHTML = `
-      <div class="bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden page-enter">
-        <div class="p-5 border-b border-white/10 flex justify-between items-center bg-white/5">
-          <div>
-            <h3 class="text-white font-bold text-lg flex items-center gap-2">
-              ${ix('users', { cls: 'text-cyan-400' })}
-              <span>Семейный бюджет</span>
-            </h3>
-            <p class="text-white/50 text-xs mt-0.5">Управление совместными покупками</p>
-          </div>
-          <button id="closeFamilyModalBtn" class="text-white/50 hover:text-white transition-colors text-lg">${ix('x')}</button>
+      <div class="full-screen-modal-header">
+        <button type="button" class="global-back-btn" id="closeFamilyModalBtn">
+          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+          <span>Назад</span>
+        </button>
+        <div class="text-center">
+          <h3 class="text-white font-bold text-sm truncate">Семейный бюджет</h3>
+          <p class="text-white/40 text-[10px]">Управление покупками</p>
         </div>
-        
-        <div class="p-5 overflow-y-auto flex-1" id="familyModalBody">
-          <div class="flex items-center justify-center py-10">
-            <div class="animate-spin rounded-full h-8 w-8 border-2 border-cyan-500 border-t-transparent"></div>
-          </div>
+        <div style="width: 48px;"></div>
+      </div>
+      
+      <div class="full-screen-modal-body" id="familyModalBody">
+        <div class="flex items-center justify-center py-10">
+          <div class="animate-spin rounded-full h-8 w-8 border-2 border-cyan-500 border-t-transparent"></div>
         </div>
       </div>
     `;
@@ -709,7 +707,7 @@ async function showFamilySettingsModal() {
 async function showCurrencyAlertsModal() {
   tgUtil.haptic('medium');
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[110] p-4 overflow-y-auto';
+  modal.className = 'full-screen-modal-overlay page-enter';
   modal.id = 'currencyAlertsModal';
 
   const _esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]));
@@ -854,20 +852,20 @@ async function showCurrencyAlertsModal() {
 
   const updateModalHTML = () => {
     modal.innerHTML = `
-      <div class="bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden page-enter">
-        <div class="p-5 border-b border-white/10 flex justify-between items-center bg-white/5">
-          <div>
-            <h3 class="text-white font-bold text-lg flex items-center gap-2">
-              <span>📈 Трекер курсов и уведомления</span>
-            </h3>
-            <p class="text-white/50 text-xs mt-0.5">Следите за лучшим курсом для выкупа</p>
-          </div>
-          <button id="closeAlertsModalBtn" class="text-white/50 hover:text-white transition-colors text-lg">${ix('x')}</button>
+      <div class="full-screen-modal-header">
+        <button type="button" class="global-back-btn" id="closeAlertsModalBtn">
+          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+          <span>Назад</span>
+        </button>
+        <div class="text-center">
+          <h3 class="text-white font-bold text-sm truncate">Трекер курсов</h3>
+          <p class="text-white/40 text-[10px]">Курсы валют и алерты</p>
         </div>
-        
-        <div class="p-5 overflow-y-auto flex-1" id="alertsModalBody">
-          ${renderModalContent()}
-        </div>
+        <div style="width: 48px;"></div>
+      </div>
+      
+      <div class="full-screen-modal-body" id="alertsModalBody">
+        ${renderModalContent()}
       </div>
     `;
     document.body.appendChild(modal);
@@ -974,24 +972,24 @@ async function renderAdminTicketsList() {
 window.showLogisticsHistory = async (orderId) => {
   tgUtil.haptic('medium');
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[130] p-4 page-enter';
+  modal.className = 'full-screen-modal-overlay page-enter';
   modal.id = 'logisticsModal';
 
   modal.innerHTML = `
-    <div class="bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-2xl max-w-md w-full max-h-[80vh] flex flex-col shadow-2xl overflow-hidden relative">
-      <div class="p-4.5 border-b border-white/10 flex justify-between items-center bg-white/5">
-        <h3 class="text-white font-bold text-sm flex items-center gap-2">
-          <span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
-          История перемещений
-        </h3>
-        <button id="closeLogisticsModalBtn" class="text-white/50 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10">
-          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
-        </button>
+    <div class="full-screen-modal-header">
+      <button type="button" class="global-back-btn" id="closeLogisticsModalBtn">
+        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+        <span>Назад</span>
+      </button>
+      <div class="text-center">
+        <h3 class="text-white font-bold text-sm truncate">История перемещений</h3>
+        <p class="text-white/40 text-[10px]">Трекинг статуса посылки</p>
       </div>
-      <div id="logisticsContent" class="p-5 overflow-y-auto flex-1 text-center py-10 text-white/50 text-xs flex flex-col items-center justify-center">
-        <span class="ix ix-mute animate-pulse text-2xl mb-2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span>
-        Загрузка истории...
-      </div>
+      <div style="width: 48px;"></div>
+    </div>
+    <div id="logisticsContent" class="full-screen-modal-body text-center py-10 text-white/50 text-xs flex flex-col items-center justify-center">
+      <span class="ix ix-mute animate-pulse text-2xl mb-2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span>
+      Загрузка истории...
     </div>
   `;
   document.body.appendChild(modal);
@@ -1009,7 +1007,7 @@ window.showLogisticsHistory = async (orderId) => {
     if (error) throw error;
     
     const content = modal.querySelector('#logisticsContent');
-    content.className = 'p-5 overflow-y-auto flex-1'; // remove loading styles
+    content.className = 'full-screen-modal-body'; // remove loading styles
 
     if (!events || events.length === 0) {
       content.innerHTML = '<p class="text-center text-white/50 text-xs py-10">Информация о трекинге пока недоступна.</p>';
@@ -1050,7 +1048,7 @@ window.showLogisticsHistory = async (orderId) => {
 window.openSupportChat = (orderId, isAdmin = false) => {
   tgUtil.haptic('medium');
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[130] p-4';
+  modal.className = 'full-screen-modal-overlay page-enter';
   modal.id = 'supportChatModal';
   
   const _esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]));
@@ -1102,27 +1100,27 @@ window.openSupportChat = (orderId, isAdmin = false) => {
   };
 
   modal.innerHTML = `
-    <div class="bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-2xl max-w-md w-full h-[80vh] flex flex-col shadow-2xl overflow-hidden page-enter">
-      <div class="p-4.5 border-b border-white/10 flex justify-between items-center bg-white/5">
-        <div class="min-w-0">
-          <h3 class="text-white font-bold text-sm flex items-center gap-2 truncate">
-            <span>💬 Чат по заказу #${orderId.slice(0, 8)}</span>
-          </h3>
-          <p class="text-cyan-400 text-[10px] mt-0.5">${isAdmin ? 'Режим менеджера' : 'Ответ в течение 5-15 минут'}</p>
-        </div>
-        <button id="closeChatModalBtn" class="text-white/50 hover:text-white transition-colors text-lg">${ix('x')}</button>
+    <div class="full-screen-modal-header">
+      <button type="button" class="global-back-btn" id="closeChatModalBtn">
+        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+        <span>Назад</span>
+      </button>
+      <div class="text-center min-w-0 flex-1 px-2">
+        <h3 class="text-white font-bold text-sm truncate">Чат по заказу #${orderId.slice(0, 8)}</h3>
+        <p class="text-cyan-400 text-[10px]">${isAdmin ? 'Режим менеджера' : 'Ответ в течение 5-15 минут'}</p>
       </div>
+      <div style="width: 48px;"></div>
+    </div>
 
-      <div class="flex-1 overflow-y-auto p-4 space-y-3" id="chatMessagesContainer">
-        <div class="flex items-center justify-center py-10">
-          <div class="animate-spin rounded-full h-6 w-6 border-2 border-cyan-500 border-t-transparent"></div>
-        </div>
+    <div class="full-screen-modal-body p-4 space-y-3" id="chatMessagesContainer">
+      <div class="flex items-center justify-center py-10">
+        <div class="animate-spin rounded-full h-6 w-6 border-2 border-cyan-500 border-t-transparent"></div>
       </div>
+    </div>
 
-      <div class="p-3 border-t border-white/10 bg-white/5 flex gap-2 items-center">
-        <input type="text" id="chatMessageInput" placeholder="Введите сообщение..." class="flex-1 p-2.5 rounded-xl bg-slate-900 border border-white/20 text-white text-xs focus:border-cyan-500 focus:outline-none">
-        <button id="sendChatMessageBtn" class="bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold px-4 py-2.5 rounded-xl text-xs transition">Отправить</button>
-      </div>
+    <div class="p-3 border-t border-white/10 bg-slate-900/95 flex gap-2 items-center flex-shrink-0" style="padding-bottom: calc(12px + env(safe-area-inset-bottom, 12px));">
+      <input type="text" id="chatMessageInput" placeholder="Введите сообщение..." class="flex-1 p-2.5 rounded-xl bg-slate-800 border border-white/20 text-white text-xs focus:border-cyan-500 focus:outline-none">
+      <button id="sendChatMessageBtn" class="bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold px-4 py-2.5 rounded-xl text-xs transition">Отправить</button>
     </div>
   `;
   document.body.appendChild(modal);
@@ -1215,7 +1213,7 @@ window.openSupportChat = (orderId, isAdmin = false) => {
 window.showVipSectionModal = () => {
   tgUtil.haptic('success');
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[120] p-4 overflow-y-auto';
+  modal.className = 'full-screen-modal-overlay page-enter';
   modal.id = 'vipSectionModal';
   
   const hasCelebrated = localStorage.getItem('vipUnlockCelebrated') === 'true';
@@ -1291,20 +1289,20 @@ window.showVipSectionModal = () => {
   };
 
   modal.innerHTML = `
-    <div class="bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden page-enter">
-      <div class="p-5 border-b border-white/10 flex justify-between items-center bg-white/5">
-        <div>
-          <h3 class="text-amber-400 font-extrabold text-lg flex items-center gap-2">
-            <span>🔥 VIP-Горящие товары</span>
-          </h3>
-          <p class="text-white/50 text-xs mt-0.5">Эксклюзивные предложения от ICE LOGIX</p>
-        </div>
-        <button id="closeVipModalBtn" class="text-white/50 hover:text-white transition-colors text-lg">${ix('x')}</button>
+    <div class="full-screen-modal-header">
+      <button type="button" class="global-back-btn" id="closeVipModalBtn">
+        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+        <span>Назад</span>
+      </button>
+      <div class="text-center">
+        <h3 class="text-amber-400 font-extrabold text-sm truncate">🔥 VIP-Горящие товары</h3>
+        <p class="text-white/40 text-[10px]">Эксклюзивные предложения</p>
       </div>
-      
-      <div class="p-5 overflow-y-auto flex-1" id="vipModalBody">
-        ${hasCelebrated ? renderVipGrid() : renderCelebration()}
-      </div>
+      <div style="width: 48px;"></div>
+    </div>
+    
+    <div class="full-screen-modal-body" id="vipModalBody">
+      ${hasCelebrated ? renderVipGrid() : renderCelebration()}
     </div>
   `;
   document.body.appendChild(modal);
@@ -1386,27 +1384,25 @@ async function showMarketplaceWhitelistModal() {
   
   // Create overlay
   const overlay = document.createElement('div');
-  overlay.className = 'fixed inset-0 z-50 flex items-end justify-center sm:items-center bg-black/60 backdrop-blur-sm transition-opacity opacity-0';
-  
-  const modal = document.createElement('div');
-  modal.className = 'w-full sm:max-w-md bg-[var(--bg-gradient-end)] rounded-t-3xl sm:rounded-3xl border border-white/10 shadow-2xl flex flex-col transition-transform translate-y-full sm:translate-y-10 sm:scale-95';
-  modal.style.maxHeight = '90vh';
+  overlay.className = 'full-screen-modal-overlay page-enter';
+  overlay.id = 'marketplaceWhitelistModal';
   
   // Loading state
-  modal.innerHTML = `
-    <div class="p-6 text-center">
-      <div class="inline-block w-8 h-8 border-4 border-[var(--ice-primary)] border-t-transparent rounded-full animate-spin"></div>
-      <p class="mt-4 text-white/70">Загрузка настроек...</p>
+  overlay.innerHTML = `
+    <div class="full-screen-modal-header">
+      <button type="button" class="global-back-btn" onclick="document.getElementById('marketplaceWhitelistModal')?.remove()">
+        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+        <span>Назад</span>
+      </button>
+      <h3 class="text-white font-bold text-sm">Маркетплейсы</h3>
+      <div style="width: 48px;"></div>
+    </div>
+    <div class="full-screen-modal-body flex flex-col justify-center items-center text-center text-white/70 py-10">
+      <div class="inline-block w-8 h-8 border-4 border-[var(--ice-primary)] border-t-transparent rounded-full animate-spin mb-4"></div>
+      <p>Загрузка настроек...</p>
     </div>
   `;
-  overlay.appendChild(modal);
   document.body.appendChild(overlay);
-
-  // Animate in
-  requestAnimationFrame(() => {
-    overlay.classList.remove('opacity-0');
-    modal.classList.remove('translate-y-full', 'sm:translate-y-10', 'sm:scale-95');
-  });
 
   try {
     const { data: whitelistData, error } = await supabaseClient
@@ -1441,20 +1437,25 @@ async function showMarketplaceWhitelistModal() {
       `).join('');
     };
 
-    modal.innerHTML = `
-      <div class="p-6 pb-4 border-b border-white/10 flex justify-between items-center">
-        <h3 class="text-lg font-bold text-white">Маркетплейсы</h3>
-        <button id="closeWlBtn" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/70 hover:bg-white/20">
-          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+    overlay.innerHTML = `
+      <div class="full-screen-modal-header">
+        <button type="button" class="global-back-btn" id="closeWlBtn">
+          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+          <span>Назад</span>
         </button>
+        <div class="text-center">
+          <h3 class="text-white font-bold text-sm truncate">Маркетплейсы</h3>
+          <p class="text-white/40 text-[10px]">Настройка поиска</p>
+        </div>
+        <div style="width: 48px;"></div>
       </div>
-      <div class="p-6 overflow-y-auto flex-1 custom-scrollbar">
-        <p class="text-sm text-white/60 mb-4">Выберите площадки, по которым будет работать поиск:</p>
+      <div class="full-screen-modal-body">
+        <p class="text-xs text-white/60 mb-4">Выберите площадки, по которым будет работать поиск:</p>
         <div id="wlPlatformsContainer">
           ${renderList()}
         </div>
       </div>
-      <div class="p-6 border-t border-white/10">
+      <div class="p-4 border-t border-white/10 bg-slate-900/90 flex-shrink-0" style="padding-bottom: calc(16px + env(safe-area-inset-bottom, 16px));">
         <button id="saveWlBtn" class="btn-primary w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2">
           Сохранить настройки
         </button>
@@ -1463,7 +1464,7 @@ async function showMarketplaceWhitelistModal() {
     
     // Add handlers to toggles manually because CSS-only toggle is tricky in raw HTML
     AVAILABLE_PLATFORMS_LIST.forEach(p => {
-      const checkbox = modal.querySelector(`#wl_${p.id}`);
+      const checkbox = overlay.querySelector(`#wl_${p.id}`);
       if (checkbox) {
         checkbox.addEventListener('change', (e) => {
           state[p.id] = e.target.checked;
@@ -1476,15 +1477,13 @@ async function showMarketplaceWhitelistModal() {
     });
 
     const close = () => {
-      overlay.classList.add('opacity-0');
-      modal.classList.add('translate-y-full', 'sm:translate-y-10', 'sm:scale-95');
-      setTimeout(() => overlay.remove(), 300);
+      overlay.remove();
     };
 
-    modal.querySelector('#closeWlBtn').onclick = close;
+    overlay.querySelector('#closeWlBtn').onclick = close;
     
-    modal.querySelector('#saveWlBtn').onclick = async () => {
-      const btn = modal.querySelector('#saveWlBtn');
+    overlay.querySelector('#saveWlBtn').onclick = async () => {
+      const btn = overlay.querySelector('#saveWlBtn');
       const orig = btn.innerHTML;
       btn.innerHTML = '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="animate-spin"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10"/></svg></span> Сохранение...';
       btn.disabled = true;
@@ -1534,28 +1533,31 @@ async function showRecoveryCodeModal() {
   } catch (e) {}
 
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[120] p-4 overflow-y-auto';
+  modal.className = 'full-screen-modal-overlay page-enter';
+  modal.id = 'recoveryCodeModal';
   modal.innerHTML = `
-    <div class="bg-slate-900/95 backdrop-blur-2xl border border-white/10 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
-      <div class="p-5 border-b border-white/10 flex justify-between items-center bg-white/5">
-        <h3 class="text-white font-bold text-lg flex items-center gap-2">
-          <span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
-          <span>Восстановление аккаунта</span>
-        </h3>
-        <button id="closeRecBtn" class="text-white/50 hover:text-white transition-colors text-lg">${ix('x')}</button>
+    <div class="full-screen-modal-header">
+      <button type="button" class="global-back-btn" id="closeRecBtn">
+        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+        <span>Назад</span>
+      </button>
+      <div class="text-center">
+        <h3 class="text-white font-bold text-sm truncate">Восстановление аккаунта</h3>
+        <p class="text-white/40 text-[10px]">Резервный код доступа</p>
       </div>
-      <div class="p-5 space-y-4">
-        <p class="text-white/70 text-sm leading-relaxed">Резервный код позволяет вернуть аккаунт со всеми заказами при потере доступа к Telegram. Сгенерируйте код и сохраните его в надёжном месте.</p>
-        <div id="recCodeBox" class="${existing ? '' : 'hidden'} bg-black/40 border border-cyan-500/30 rounded-xl p-4 text-center">
-          <p class="text-[10px] text-cyan-400/80 uppercase tracking-wider font-bold mb-2">Ваш код восстановления</p>
-          <p id="recCodeValue" class="text-2xl font-black text-white tracking-widest font-mono select-all">${existing || ''}</p>
-        </div>
-        <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
-          <p class="text-amber-300 text-xs leading-relaxed">⚠️ Сохраните его — это единственный способ вернуть аккаунт при потере Telegram! Никому не передавайте этот код.</p>
-        </div>
-        <button id="genRecBtn" class="btn-primary w-full py-3 rounded-xl font-bold">${existing ? 'Сгенерировать новый код' : 'Сгенерировать код восстановления'}</button>
-        <button id="copyRecBtn" class="${existing ? '' : 'hidden'} btn-secondary w-full py-3 rounded-xl font-bold">Скопировать код</button>
+      <div style="width: 48px;"></div>
+    </div>
+    <div class="full-screen-modal-body space-y-4">
+      <p class="text-white/70 text-sm leading-relaxed">Резервный код позволяет вернуть аккаунт со всеми заказами при потере доступа к Telegram. Сгенерируйте код и сохраните его в надёжном месте.</p>
+      <div id="recCodeBox" class="${existing ? '' : 'hidden'} bg-black/40 border border-cyan-500/30 rounded-xl p-4 text-center">
+        <p class="text-[10px] text-cyan-400/80 uppercase tracking-wider font-bold mb-2">Ваш код восстановления</p>
+        <p id="recCodeValue" class="text-2xl font-black text-white tracking-widest font-mono select-all">${existing || ''}</p>
       </div>
+      <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
+        <p class="text-amber-300 text-xs leading-relaxed">⚠️ Сохраните его — это единственный способ вернуть аккаунт при потере Telegram! Никому не передавайте этот код.</p>
+      </div>
+      <button id="genRecBtn" class="btn-primary w-full py-3.5 rounded-xl font-bold">${existing ? 'Сгенерировать новый код' : 'Сгенерировать код восстановления'}</button>
+      <button id="copyRecBtn" class="${existing ? '' : 'hidden'} btn-secondary w-full py-3.5 rounded-xl font-bold">Скопировать код</button>
     </div>
   `;
   document.body.appendChild(modal);
@@ -1601,21 +1603,22 @@ async function showRecoveryCodeModal() {
 
 async function showPersonalDataForm() {
   const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start sm:items-center justify-center z-[110] p-0 sm:p-4 overflow-y-auto';
+  modal.className = 'full-screen-modal-overlay page-enter';
+  modal.id = 'personalDataModal';
   modal.innerHTML = `
-    <div class="bg-slate-900/100 sm:bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-none sm:rounded-2xl max-w-md w-full h-[100dvh] sm:h-auto sm:max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-      <div class="p-5 border-b border-white/10 flex justify-between items-center bg-white/5">
-        <div>
-          <h3 class="text-white font-bold text-lg flex items-center gap-2">
-            ${ix('user', { cls: 'text-cyan-400' })}
-            <span>Мои данные</span>
-          </h3>
-          <p class="text-white/50 text-xs mt-0.5">Личные данные, размеры и паспорт</p>
-        </div>
-        <button id="closePersonalDataBtn" class="text-white/50 hover:text-white transition-colors text-lg">${ix('x')}</button>
+    <div class="full-screen-modal-header">
+      <button type="button" class="global-back-btn" id="closePersonalDataBtn">
+        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+        <span>Назад</span>
+      </button>
+      <div class="text-center">
+        <h3 class="text-white font-bold text-sm truncate">Мои данные</h3>
+        <p class="text-white/40 text-[10px]">Личные данные и паспорт</p>
       </div>
-      
-      <div class="p-5 overflow-y-auto flex-1 space-y-5">
+      <div style="width: 48px;"></div>
+    </div>
+    
+    <div class="full-screen-modal-body space-y-5">
         <!-- Раздел: Основная информация -->
         <div class="space-y-3">
           <h4 class="text-cyan-400 font-bold text-xs uppercase tracking-wider">Основная информация</h4>
