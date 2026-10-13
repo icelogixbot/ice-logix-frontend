@@ -3140,41 +3140,65 @@ window.openCardsManagementModal = async function() {
     };
   }
 
+    window.renderManageCardsModalList = () => {
+      const listEl = document.getElementById('modalCardsList');
+      if (listEl) listEl.innerHTML = renderCardListHtml();
+    };
+  };
+
   window.setDefaultCard = async (cardId) => {
     const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
     window.userCards = Array.isArray(window.userCards) ? window.userCards : [];
     window.userCards.forEach(c => { c.is_default = (c.id === cardId); });
-    try {
-      if (curUserId && typeof supabaseClient !== 'undefined' && supabaseClient) {
-        await supabaseClient.from('payment_methods').update({ is_default: false }).eq('user_id', curUserId);
-        await supabaseClient.from('payment_methods').update({ is_default: true }).eq('id', cardId);
+    if (curUserId) {
+      try { localStorage.setItem('ice_payment_methods_' + curUserId, JSON.stringify(window.userCards)); } catch (_) {}
+      if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+        Promise.all([
+          supabaseClient.from('payment_methods').update({ is_default: false }).eq('user_id', curUserId),
+          supabaseClient.from('payment_methods').update({ is_default: true }).eq('id', cardId)
+        ]).catch(err => console.warn('Supabase setDefaultCard err:', err));
       }
-      if (curUserId) localStorage.setItem('ice_payment_methods_' + curUserId, JSON.stringify(window.userCards));
-    } catch (_e) {}
-    const listEl = document.getElementById('modalCardsList');
-    if (listEl) listEl.innerHTML = renderCardListHtml();
-    tgUtil.haptic('light');
+    }
+    if (typeof window._renderFinancesCardsOnly === 'function') window._renderFinancesCardsOnly();
+    if (typeof window.renderManageCardsModalList === 'function') window.renderManageCardsModalList();
+    if (typeof window.renderCheckoutCards === 'function') window.renderCheckoutCards();
+    if (typeof tgUtil !== 'undefined' && tgUtil.toast) tgUtil.toast('Основная карта обновлена');
   };
 
   window.deleteCard = async (cardId) => {
-    if (!confirm('Удалить эту карту?')) return;
+    let confirmed = false;
+    try {
+      if (typeof tgUtil !== 'undefined' && tgUtil.confirm) {
+        confirmed = await tgUtil.confirm('Удалить эту карту?');
+      } else {
+        confirmed = window.confirm('Удалить эту карту?');
+      }
+    } catch (_) {
+      confirmed = window.confirm('Удалить эту карту?');
+    }
+    if (!confirmed) return;
+
     const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
     window.userCards = Array.isArray(window.userCards) ? window.userCards : [];
     window.userCards = window.userCards.filter(c => c.id !== cardId);
     if (window.userCards.length > 0 && !window.userCards.some(c => c.is_default)) {
       window.userCards[0].is_default = true;
     }
-    try {
-      if (curUserId && typeof supabaseClient !== 'undefined' && supabaseClient) {
-        await supabaseClient.from('payment_methods').update({ status: 'DELETED', deleted_at: new Date().toISOString() }).eq('id', cardId);
+    if (curUserId) {
+      try { localStorage.setItem('ice_payment_methods_' + curUserId, JSON.stringify(window.userCards)); } catch (_) {}
+      if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+        supabaseClient.from('payment_methods')
+          .update({ status: 'DELETED', deleted_at: new Date().toISOString() })
+          .eq('id', cardId)
+          .then(() => {})
+          .catch(err => console.warn('Supabase deleteCard err:', err));
       }
-      if (curUserId) localStorage.setItem('ice_payment_methods_' + curUserId, JSON.stringify(window.userCards));
-    } catch (_e) {}
-    const listEl = document.getElementById('modalCardsList');
-    if (listEl) listEl.innerHTML = renderCardListHtml();
-    tgUtil.haptic('medium');
+    }
+    if (typeof window._renderFinancesCardsOnly === 'function') window._renderFinancesCardsOnly();
+    if (typeof window.renderManageCardsModalList === 'function') window.renderManageCardsModalList();
+    if (typeof window.renderCheckoutCards === 'function') window.renderCheckoutCards();
+    if (typeof tgUtil !== 'undefined' && tgUtil.toast) tgUtil.toast('Карта удалена');
   };
-};
 
 
 window.openSecondPaymentModal = function(orderId, amount) {
