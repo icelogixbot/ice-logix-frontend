@@ -332,6 +332,9 @@ async function renderFinances() {
 
       </div>
     `;
+
+  // ==================== Вкладка: ВОЗВРАТЫ ====================
+  } else if (subTab === 'refunds') {
     let refundItems = [];
     if (curUserId && typeof supabaseClient !== 'undefined' && supabaseClient) {
       try {
