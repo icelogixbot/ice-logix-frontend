@@ -199,11 +199,11 @@
         </div>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
-      <button id="myCardsBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition border-t border-white/5" onclick="window.openCardsManagementModal()">
+      <button id="financesBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition border-t border-white/5" onclick="switchTab('finances')">
         <span class="text-xl">💳</span>
         <div class="flex-1">
-          <p class="font-semibold text-white text-sm">Мои банковские карты</p>
-          <p class="text-xs" style="color: var(--text-muted);">Управление картами bePaid (до 5 карт)</p>
+          <p class="font-semibold text-white text-sm">Финансы</p>
+          <p class="text-xs" style="color: var(--text-muted);">Способы оплаты, история транзакций, статистика</p>
         </div>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
@@ -289,13 +289,14 @@
     dropshipperProfileBtn.onclick = () => switchTab('dropshipper');
   }
 
+  const financesBtn = document.getElementById('financesBtn');
+  if (financesBtn) {
+    financesBtn.onclick = () => switchTab('finances');
+  }
+
   const myCardsBtn = document.getElementById('myCardsBtn');
   if (myCardsBtn) {
-    myCardsBtn.onclick = () => {
-      if (typeof window.openCardsManagementModal === 'function') {
-        window.openCardsManagementModal();
-      }
-    };
+    myCardsBtn.onclick = () => switchTab('finances');
   }
 
   const academyBtn = document.getElementById('academyBtn');

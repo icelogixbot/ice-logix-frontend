@@ -742,11 +742,11 @@
           <div class="flex items-center justify-between pt-1 border-t border-white/5 flex-wrap gap-2">
             <p class="text-[10px] text-white/50">🔒 Авторизация bePaid (1.00 BYN с возвратом)</p>
             <div class="flex items-center gap-1 opacity-90">
-              <div class="h-4 px-1 rounded bg-white flex items-center justify-center shadow-xs"><img src="/assets/payment-methods/belkart.webp" alt="БК" class="h-2.5 w-auto"></div>
-              <div class="h-4 px-1 rounded bg-white flex items-center justify-center shadow-xs"><img src="/assets/payment-methods/mastercard.webp" alt="MC" class="h-2.5 w-auto"></div>
-              <div class="h-4 px-1 rounded bg-white flex items-center justify-center shadow-xs"><img src="/assets/payment-methods/mir.webp" alt="МИР" class="h-2 w-auto"></div>
-              <div class="h-4 px-1 rounded bg-white flex items-center justify-center shadow-xs"><img src="/assets/payment-methods/visa.webp" alt="VISA" class="h-2 w-auto"></div>
-              <div class="h-4 px-1 rounded bg-white flex items-center justify-center shadow-xs"><img src="/assets/payment-methods/unionpay.webp" alt="UPI" class="h-2.5 w-auto"></div>
+              <div class="h-5 px-1.5 rounded-md bg-white/5 border border-white/10 flex items-center justify-center shadow-xs"><img src="/assets/payment-methods/belkart.webp" alt="БК" class="h-3 w-auto object-contain" loading="lazy"></div>
+              <div class="h-5 px-1.5 rounded-md bg-white/5 border border-white/10 flex items-center justify-center shadow-xs"><img src="/assets/payment-methods/mastercard.webp" alt="MC" class="h-3 w-auto object-contain" loading="lazy"></div>
+              <div class="h-5 px-1.5 rounded-md bg-white/5 border border-white/10 flex items-center justify-center shadow-xs"><img src="/assets/payment-methods/mir.webp" alt="МИР" class="h-2.5 w-auto object-contain" loading="lazy"></div>
+              <div class="h-5 px-1.5 rounded-md bg-white/5 border border-white/10 flex items-center justify-center shadow-xs"><img src="/assets/payment-methods/visa.webp" alt="VISA" class="h-2.5 w-auto object-contain" loading="lazy"></div>
+              <div class="h-5 px-1.5 rounded-md bg-white/5 border border-white/10 flex items-center justify-center shadow-xs"><img src="/assets/payment-methods/unionpay.webp" alt="UPI" class="h-3 w-auto object-contain" loading="lazy"></div>
             </div>
           </div>
         </div>
@@ -2412,22 +2412,23 @@ function detectCardType(number) {
 function getCardBrandLogoHtml(brand, customClass = '') {
   const b = String(brand || '').toLowerCase().trim();
   if (b === 'visa') {
-    return `<img src="/assets/payment-methods/visa.webp" alt="Visa" class="h-3.5 w-auto object-contain select-none ${customClass}" loading="lazy">`;
+    return `<img src="/assets/payment-methods/visa.webp" alt="Visa" class="h-4 w-auto object-contain select-none ${customClass}" loading="lazy">`;
   }
   if (b === 'mastercard') {
-    return `<img src="/assets/payment-methods/mastercard.webp" alt="Mastercard" class="h-4 w-auto object-contain select-none ${customClass}" loading="lazy">`;
+    return `<img src="/assets/payment-methods/mastercard.webp" alt="Mastercard" class="h-4.5 w-auto object-contain select-none ${customClass}" loading="lazy">`;
   }
   if (b === 'белкарт' || b === 'belkart' || b === 'бк') {
-    return `<img src="/assets/payment-methods/belkart.webp" alt="Белкарт" class="h-4 w-4 object-contain select-none ${customClass}" loading="lazy">`;
+    return `<img src="/assets/payment-methods/belkart.webp" alt="Белкарт" class="h-4.5 w-4.5 object-contain select-none ${customClass}" loading="lazy">`;
   }
   if (b === 'мир' || b === 'mir') {
-    return `<img src="/assets/payment-methods/mir.webp" alt="МИР" class="h-3.5 w-auto object-contain select-none ${customClass}" loading="lazy">`;
+    return `<img src="/assets/payment-methods/mir.webp" alt="МИР" class="h-4 w-auto object-contain select-none ${customClass}" loading="lazy">`;
   }
   if (b === 'unionpay' || b === 'union pay') {
-    return `<img src="/assets/payment-methods/unionpay.webp" alt="UnionPay" class="h-4 w-auto object-contain select-none ${customClass}" loading="lazy">`;
+    return `<img src="/assets/payment-methods/unionpay.webp" alt="UnionPay" class="h-4.5 w-auto object-contain select-none ${customClass}" loading="lazy">`;
   }
   return `<span class="text-xs select-none">💳</span>`;
 }
+window.getCardBrandLogoHtml = getCardBrandLogoHtml;
 
 function detectBank(number) {
   const clean = String(number || '').replace(/\D/g, '');
@@ -2544,6 +2545,9 @@ function checkLuhn(cardNo) {
   }
   return (nSum % 10 === 0);
 }
+window.detectBank = detectBank;
+window.detectCardType = detectCardType;
+window.checkLuhn = checkLuhn;
 
 window.userCards = window.userCards || [];
 
@@ -2610,7 +2614,7 @@ window.renderCheckoutCards = function() {
       <label class="flex items-center justify-between p-3 rounded-2xl transition-all cursor-pointer ${isSelected ? 'bg-gradient-to-r from-cyan-950/60 to-slate-900 border border-cyan-500/50 shadow-md shadow-cyan-500/10' : 'bg-slate-900/70 border border-white/10 hover:border-white/20'}">
         <div class="flex items-center gap-3">
           <input type="radio" name="selectedCheckoutCard" value="${c.id}" ${isSelected ? 'checked' : ''} class="w-4 h-4 accent-cyan-400 cursor-pointer" onchange="window.selectCheckoutCard('${c.id}')">
-          <div class="w-8 h-8 rounded-lg bg-white flex items-center justify-center p-1 select-none shadow-sm flex-shrink-0">
+          <div class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center p-1 select-none shadow-sm flex-shrink-0">
             ${getCardBrandLogoHtml(brand, 'max-h-5 max-w-full')}
           </div>
           <div>
@@ -2761,21 +2765,21 @@ window.openAddCardModal = function(onSuccess) {
 
       <!-- Линейка поддерживаемых платежных систем (bePaid) -->
       <div class="pt-2 flex flex-col items-center gap-2.5">
-        <div class="w-full flex items-center justify-center gap-1.5 flex-wrap px-1">
-          <div class="h-7 px-2.5 rounded-xl bg-white flex items-center justify-center shadow-sm hover:scale-105 transition-transform" title="Белкарт">
+        <div class="w-full flex items-center justify-center gap-2 flex-wrap px-1">
+          <div class="h-8 px-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors shadow-xs" title="Белкарт">
             <img src="/assets/payment-methods/belkart.webp" alt="Белкарт" class="h-4.5 w-auto object-contain select-none" loading="lazy">
           </div>
-          <div class="h-7 px-2.5 rounded-xl bg-white flex items-center justify-center shadow-sm hover:scale-105 transition-transform" title="Mastercard">
-            <img src="/assets/payment-methods/mastercard.webp" alt="Mastercard" class="h-4 w-auto object-contain select-none" loading="lazy">
+          <div class="h-8 px-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors shadow-xs" title="Mastercard">
+            <img src="/assets/payment-methods/mastercard.webp" alt="Mastercard" class="h-4.5 w-auto object-contain select-none" loading="lazy">
           </div>
-          <div class="h-7 px-2.5 rounded-xl bg-white flex items-center justify-center shadow-sm hover:scale-105 transition-transform" title="МИР">
-            <img src="/assets/payment-methods/mir.webp" alt="МИР" class="h-3.5 w-auto object-contain select-none" loading="lazy">
+          <div class="h-8 px-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors shadow-xs" title="МИР">
+            <img src="/assets/payment-methods/mir.webp" alt="МИР" class="h-4 w-auto object-contain select-none" loading="lazy">
           </div>
-          <div class="h-7 px-2.5 rounded-xl bg-white flex items-center justify-center shadow-sm hover:scale-105 transition-transform" title="VISA">
-            <img src="/assets/payment-methods/visa.webp" alt="VISA" class="h-3.5 w-auto object-contain select-none" loading="lazy">
+          <div class="h-8 px-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors shadow-xs" title="VISA">
+            <img src="/assets/payment-methods/visa.webp" alt="VISA" class="h-4 w-auto object-contain select-none" loading="lazy">
           </div>
-          <div class="h-7 px-2.5 rounded-xl bg-white flex items-center justify-center shadow-sm hover:scale-105 transition-transform" title="UnionPay">
-            <img src="/assets/payment-methods/unionpay.webp" alt="UnionPay" class="h-4 w-auto object-contain select-none" loading="lazy">
+          <div class="h-8 px-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors shadow-xs" title="UnionPay">
+            <img src="/assets/payment-methods/unionpay.webp" alt="UnionPay" class="h-4.5 w-auto object-contain select-none" loading="lazy">
           </div>
         </div>
         <div class="flex items-center justify-center gap-1.5 text-[10px] text-white/50">
@@ -2820,7 +2824,7 @@ window.openAddCardModal = function(onSuccess) {
     const bank = detectBank(rawDigits);
 
     if (rawDigits.length >= 2 && brand && brand !== 'Банковская карта') {
-      brandIcon.innerHTML = `<span class="inline-flex items-center justify-center bg-white rounded-md px-1.5 py-0.5 shadow-sm border border-white/20">${getCardBrandLogoHtml(brand, 'max-h-4 max-w-[38px]')}</span>`;
+      brandIcon.innerHTML = `<span class="inline-flex items-center justify-center bg-white/10 rounded-lg px-2 py-1 shadow-sm border border-white/15">${getCardBrandLogoHtml(brand, 'max-h-4 max-w-[38px]')}</span>`;
     } else {
       brandIcon.innerText = '💳';
     }
@@ -3033,7 +3037,7 @@ window.openCardsManagementModal = async function() {
       return `
         <div class="p-3.5 rounded-2xl ${isDef ? 'bg-gradient-to-r from-cyan-950/40 to-slate-900 border border-cyan-500/50 shadow-md shadow-cyan-500/10' : 'bg-slate-900/80 border border-white/10'} flex items-center justify-between gap-3 transition hover:border-white/20">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center p-1 select-none flex-shrink-0 shadow-sm">
+            <div class="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center p-1.5 select-none flex-shrink-0 shadow-sm">
               ${getCardBrandLogoHtml(brand, 'max-h-6 max-w-full')}
             </div>
             <div>
@@ -3075,42 +3079,26 @@ window.openCardsManagementModal = async function() {
         <div class="w-10"></div>
       </div>
 
-      <!-- Виджеты WB: 3 карточки сверху (Скриншот 2) -->
-      <div class="grid grid-cols-3 gap-2">
-        <div class="p-2.5 rounded-2xl bg-slate-900/80 border border-white/10 text-center">
-          <span class="block text-[9px] uppercase font-bold text-white/40 tracking-wider">Карты</span>
-          <span class="block text-xs font-black text-cyan-300 mt-0.5">${cardsCount} / 5</span>
-        </div>
-        <div class="p-2.5 rounded-2xl bg-slate-900/80 border border-white/10 text-center">
-          <span class="block text-[9px] uppercase font-bold text-white/40 tracking-wider">Проверка</span>
-          <span class="block text-xs font-black text-emerald-300 mt-0.5">1.00 BYN</span>
-        </div>
-        <div class="p-2.5 rounded-2xl bg-slate-900/80 border border-white/10 text-center">
-          <span class="block text-[9px] uppercase font-bold text-white/40 tracking-wider">Защита</span>
-          <span class="block text-xs font-black text-blue-300 mt-0.5">PCI DSS</span>
-        </div>
-      </div>
-
       <!-- Список сохраненных карт -->
       <div class="space-y-1.5">
         <div class="flex items-center justify-between px-1">
           <span class="text-xs font-bold text-white/80">Сохраненные карты</span>
           <div class="flex items-center gap-1">
             <span class="text-[10px] text-white/40 mr-1">bePaid:</span>
-            <div class="h-4.5 px-1.5 rounded-md bg-white flex items-center justify-center shadow-xs">
-              <img src="/assets/payment-methods/belkart.webp" alt="БК" class="h-2.5 w-auto" loading="lazy">
+            <div class="h-5 px-1.5 rounded-md bg-white/5 border border-white/10 flex items-center justify-center shadow-xs">
+              <img src="/assets/payment-methods/belkart.webp" alt="БК" class="h-3 w-auto" loading="lazy">
             </div>
-            <div class="h-4.5 px-1.5 rounded-md bg-white flex items-center justify-center shadow-xs">
-              <img src="/assets/payment-methods/mastercard.webp" alt="MC" class="h-2.5 w-auto" loading="lazy">
+            <div class="h-5 px-1.5 rounded-md bg-white/5 border border-white/10 flex items-center justify-center shadow-xs">
+              <img src="/assets/payment-methods/mastercard.webp" alt="MC" class="h-3 w-auto" loading="lazy">
             </div>
-            <div class="h-4.5 px-1.5 rounded-md bg-white flex items-center justify-center shadow-xs">
-              <img src="/assets/payment-methods/mir.webp" alt="МИР" class="h-2 w-auto" loading="lazy">
+            <div class="h-5 px-1.5 rounded-md bg-white/5 border border-white/10 flex items-center justify-center shadow-xs">
+              <img src="/assets/payment-methods/mir.webp" alt="МИР" class="h-2.5 w-auto" loading="lazy">
             </div>
-            <div class="h-4.5 px-1.5 rounded-md bg-white flex items-center justify-center shadow-xs">
-              <img src="/assets/payment-methods/visa.webp" alt="VISA" class="h-2 w-auto" loading="lazy">
+            <div class="h-5 px-1.5 rounded-md bg-white/5 border border-white/10 flex items-center justify-center shadow-xs">
+              <img src="/assets/payment-methods/visa.webp" alt="VISA" class="h-2.5 w-auto" loading="lazy">
             </div>
-            <div class="h-4.5 px-1.5 rounded-md bg-white flex items-center justify-center shadow-xs">
-              <img src="/assets/payment-methods/unionpay.webp" alt="UPI" class="h-2.5 w-auto" loading="lazy">
+            <div class="h-5 px-1.5 rounded-md bg-white/5 border border-white/10 flex items-center justify-center shadow-xs">
+              <img src="/assets/payment-methods/unionpay.webp" alt="UPI" class="h-3 w-auto" loading="lazy">
             </div>
           </div>
         </div>

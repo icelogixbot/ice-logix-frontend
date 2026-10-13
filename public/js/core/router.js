@@ -153,6 +153,9 @@
       } else if (currentTab === 'history') {
         contentDiv.innerHTML = shadowBannerHtml + await renderHistory();
         attachHistoryHandlers();
+      } else if (currentTab === 'finances') {
+        contentDiv.innerHTML = shadowBannerHtml + await renderFinances();
+        attachFinancesHandlers();
       } else if (currentTab === 'resale') {
         contentDiv.innerHTML = shadowBannerHtml + await renderResale();
       } else if (currentTab === 'admin_resale' && isOwner) {
