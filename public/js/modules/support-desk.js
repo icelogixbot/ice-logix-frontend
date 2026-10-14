@@ -22,14 +22,8 @@
   let messagesList = [];
   let realtimeChannel = null;
 
-  // Sound & Haptic Helper
-  const haptic = (type = 'light') => {
-    try {
-      if (window.Telegram?.WebApp?.HapticFeedback) {
-        window.Telegram.WebApp.HapticFeedback.impactOccurred(type);
-      }
-    } catch (e) {}
-  };
+  // Sound & Haptic Helper (полностью отключены любые вибрации по требованию пользователя)
+  const haptic = () => {};
 
   // Safe HTML Escaping
   const esc = (s) =>
@@ -127,7 +121,6 @@
           const isHeader = e.target.closest && e.target.closest('.desk-header');
 
           if (isHeader || isAtTop || !tg.isExpanded) {
-            haptic('light');
             try {
               tg.close();
             } catch {}
@@ -335,7 +328,6 @@
 
   async function selectTicket(ticket) {
     activeTicket = ticket;
-    haptic('medium');
 
     // Подсветка в сайдбаре
     renderTicketsList();
@@ -486,7 +478,6 @@
     const sendBtn = document.getElementById('chatSendBtn');
     if (sendBtn) sendBtn.disabled = true;
 
-    haptic('medium');
     textarea.value = '';
 
     try {
@@ -570,8 +561,6 @@
   async function closeTicket() {
     if (!activeTicket) return;
     if (!confirm('Вы уверены, что хотите закрыть это обращение и перенести его в архив?')) return;
-
-    haptic('success');
     try {
       const nowIso = new Date().toISOString();
 
@@ -649,7 +638,6 @@
             if (!messagesList.some((m) => m.id === newMsg.id)) {
               messagesList.push(newMsg);
               renderMessages();
-              haptic('light');
             }
           }
         }
@@ -668,7 +656,6 @@
         document.querySelectorAll('.desk-tab').forEach((t) => t.classList.remove('active'));
         tab.classList.add('active');
         activeTab = tab.getAttribute('data-tab');
-        haptic('light');
         renderTicketsList();
       });
     });
@@ -685,7 +672,6 @@
     const refreshBtn = document.getElementById('deskRefreshBtn');
     if (refreshBtn) {
       refreshBtn.addEventListener('click', async () => {
-        haptic('light');
         await loadTickets();
         if (activeTicket) await loadMessages(activeTicket.id);
       });
@@ -729,7 +715,6 @@
         if (textarea && text) {
           textarea.value = text;
           textarea.focus();
-          haptic('light');
         }
       });
     });
