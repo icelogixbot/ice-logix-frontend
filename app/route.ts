@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 let cachedHtml: string | null = null;
 
 function getHtml(): string {
-  if (!cachedHtml) {
+  if (process.env.NODE_ENV !== 'production' || !cachedHtml) {
     cachedHtml = readFileSync(join(process.cwd(), 'public', 'app.html'), 'utf-8');
   }
   return cachedHtml;
