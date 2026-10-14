@@ -737,14 +737,43 @@
             <span class="text-white/70 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
               <span>💳 Способ оплаты (1-й этап):</span>
             </span>
-            <button type="button" class="text-xs text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1" onclick="window.openAddCardModal(() => { if (typeof recalculateOrderTotals === 'function') recalculateOrderTotals(); })">
+            <button id="checkoutAddCardBtn" type="button" class="text-xs text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1" onclick="window.openAddCardModal(() => { if (typeof recalculateOrderTotals === 'function') recalculateOrderTotals(); })">
               <span>+ Привязать карту</span>
             </button>
           </div>
+
+          <!-- Переключатель способов оплаты: Карта / ЕРИП / Оплати -->
+          <div class="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-slate-900 border border-white/10" id="checkoutPaymentMethodTabs">
+            <button
+              type="button"
+              id="checkoutMethodTabCard"
+              onclick="window.setCheckoutPaymentMethod('card')"
+              class="py-2 px-1 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20"
+            >
+              <span>💳 Карта</span>
+            </button>
+            <button
+              type="button"
+              id="checkoutMethodTabErip"
+              onclick="window.setCheckoutPaymentMethod('erip')"
+              class="py-2 px-1 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 text-white/60 hover:text-white"
+            >
+              <span>🏛️ ЕРИП</span>
+            </button>
+            <button
+              type="button"
+              id="checkoutMethodTabOplati"
+              onclick="window.setCheckoutPaymentMethod('oplati')"
+              class="py-2 px-1 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 text-white/60 hover:text-white"
+            >
+              <span>🟢 Оплати</span>
+            </button>
+          </div>
+
           <div id="checkoutCardsList" class="space-y-2">
             <!-- Populated via window.renderCheckoutCards() -->
           </div>
-          <div class="flex items-center justify-between pt-1 border-t border-white/5 flex-wrap gap-2">
+          <div class="flex items-center justify-between pt-1 border-t border-white/5 flex-wrap gap-2" id="checkoutCardLogosRow">
             <p class="text-[10px] text-white/50">🔒 Авторизация bePaid (1.00 BYN с возвратом)</p>
             <div class="flex items-center gap-2.5 opacity-90 select-none">
               <img src="/assets/payment-methods/visa.webp" alt="VISA" class="h-3 w-auto object-contain" loading="lazy">
@@ -1397,7 +1426,13 @@
               }
 
               tgUtil.haptic('success');
-              tgUtil.alert(`✅ Заказ #${createdOrderId.slice(0, 8)} успешно оформлен!\\n1-й этап (${firstPaymentToPay.toFixed(2)} BYN) оплачен.`);
+              if (window._checkoutPaymentMethod === 'erip' && typeof window.openEripPaymentModal === 'function') {
+                window.openEripPaymentModal(firstPaymentToPay, { order_id: 'ICE-' + createdOrderId.slice(0, 8).toUpperCase() });
+              } else if (window._checkoutPaymentMethod === 'oplati' && typeof window.openOplatiPaymentModal === 'function') {
+                window.openOplatiPaymentModal(firstPaymentToPay, { order_id: 'OPL-' + createdOrderId.slice(0, 8).toUpperCase() });
+              } else {
+                tgUtil.alert(`✅ Заказ #${createdOrderId.slice(0, 8)} успешно оформлен!\n1-й этап (${firstPaymentToPay.toFixed(2)} BYN) оплачен.`);
+              }
 
               const cartIds = window.tempOrder.items.map(item => item.cartId).filter(Boolean);
               if (cartIds.length > 0) {
@@ -2851,9 +2886,72 @@ window.loadUserCards = async function() {
   return window.userCards;
 };
 
+window._checkoutPaymentMethod = window._checkoutPaymentMethod || 'card';
+
+window.setCheckoutPaymentMethod = function(method) {
+  window._checkoutPaymentMethod = method;
+  if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
+
+  const tabCard = document.getElementById('checkoutMethodTabCard');
+  const tabErip = document.getElementById('checkoutMethodTabErip');
+  const tabOplati = document.getElementById('checkoutMethodTabOplati');
+  const addCardBtn = document.getElementById('checkoutAddCardBtn');
+  const cardLogosRow = document.getElementById('checkoutCardLogosRow');
+
+  const activeCls = 'py-2 px-1 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20';
+  const inactiveCls = 'py-2 px-1 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 text-white/60 hover:text-white hover:bg-white/5 active:scale-95';
+
+  if (tabCard) tabCard.className = method === 'card' ? activeCls : inactiveCls;
+  if (tabErip) tabErip.className = method === 'erip' ? activeCls : inactiveCls;
+  if (tabOplati) tabOplati.className = method === 'oplati' ? activeCls : inactiveCls;
+
+  if (addCardBtn) addCardBtn.style.display = method === 'card' ? '' : 'none';
+  if (cardLogosRow) cardLogosRow.style.display = method === 'card' ? '' : 'none';
+
+  window.renderCheckoutCards();
+};
+
 window.renderCheckoutCards = function() {
   const container = document.getElementById('checkoutCardsList');
   if (!container) return;
+
+  const method = window._checkoutPaymentMethod || 'card';
+
+  if (method === 'erip') {
+    container.innerHTML = `
+      <div class="p-3.5 rounded-2xl bg-cyan-500/10 border border-cyan-400/30 space-y-2">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-base">🏛️</span>
+            <span class="text-xs font-bold text-white">Система «Расчет» (ЕРИП) bePaid</span>
+          </div>
+          <span class="text-[9px] font-bold text-emerald-400 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30">0% КОМИССИЯ</span>
+        </div>
+        <p class="text-[11px] text-white/70 leading-relaxed">
+          Счёт будет сформирован автоматически после нажатия кнопки «Оплатить». Оплата в приложении любого банка РБ без ввода данных карты.
+        </p>
+      </div>
+    `;
+    return;
+  }
+
+  if (method === 'oplati') {
+    container.innerHTML = `
+      <div class="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-400/30 space-y-2">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-5 h-5 rounded-md bg-emerald-500 text-white font-black text-[10px] flex items-center justify-center">О!</span>
+            <span class="text-xs font-bold text-white">Сервис «Оплати» (Белинвестбанк)</span>
+          </div>
+          <span class="text-[9px] font-bold text-emerald-300 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30">QR • КЭШБЭК</span>
+        </div>
+        <p class="text-[11px] text-white/70 leading-relaxed">
+          QR-код и ссылка в мобильное приложение «Оплати» откроются сразу после нажатия кнопки «Оплатить». Мгновенный платеж в 1 клик.
+        </p>
+      </div>
+    `;
+    return;
+  }
 
   const cards = Array.isArray(window.userCards) ? window.userCards : [];
   if (cards.length === 0) {

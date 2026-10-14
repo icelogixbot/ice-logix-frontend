@@ -327,7 +327,7 @@
       window._aiSearchBlobUrls = [];
       window._aiSearchFile = null;
       window._aiSearchResults = null;
-      window._calcMode = 'menu';
+      window._calcMode = 'manual';
       window.renderCurrentScreen();
     };
 

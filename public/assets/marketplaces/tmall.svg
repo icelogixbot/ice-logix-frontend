@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="tmallBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff0036"/>
+      <stop offset="100%" stop-color="#cf002b"/>
+    </linearGradient>
+  </defs>
+  <!-- Background squircle -->
+  <rect width="128" height="128" rx="28" fill="url(#tmallBg)"/>
+
+  <!-- Tmall Cat Silhouette -->
+  <!-- Cat Ears + Head (White badge) -->
+  <path d="M26 42 L38 28 L52 38 C59 36 69 36 76 38 L90 28 L102 42 C106 50 106 64 102 73 C95 86 78 89 64 89 C50 89 33 86 26 73 C22 64 22 50 26 42 Z" fill="#ffffff"/>
+
+  <!-- Black Cat Mask / Face inside white badge -->
+  <path d="M30 46 L39 34 L51 43 C59 41 69 41 77 43 L89 34 L98 46 C101 53 101 64 98 71 C92 82 76 85 64 85 C52 85 36 82 30 71 C27 64 27 53 30 46 Z" fill="#111111"/>
+
+  <!-- White Cat Eyes (distinctive angled oval eyes of Tmall cat) -->
+  <ellipse cx="49" cy="60" rx="7" ry="5" transform="rotate(-15 49 60)" fill="#ffffff"/>
+  <ellipse cx="79" cy="60" rx="7" ry="5" transform="rotate(15 79 60)" fill="#ffffff"/>
+
+  <!-- White Cat Nose / Mouth dot -->
+  <ellipse cx="64" cy="68" rx="3.5" ry="2.5" fill="#ffffff"/>
+
+  <!-- TMALL Typography at bottom -->
+  <text x="64" y="112" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="2">TMALL</text>
+</svg>

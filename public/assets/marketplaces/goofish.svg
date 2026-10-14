@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="goofishBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffdc00"/>
+      <stop offset="100%" stop-color="#ffbf00"/>
+    </linearGradient>
+  </defs>
+  <!-- Background squircle -->
+  <rect width="128" height="128" rx="28" fill="url(#goofishBg)"/>
+
+  <!-- Goofish / Xianyu Cute Fish Mascot -->
+  <g>
+    <!-- White fish body / head squircle -->
+    <path d="M64 26 C88 26 102 44 102 68 C102 90 86 102 64 102 C42 102 26 90 26 68 C26 44 40 26 64 26 Z" fill="#ffffff"/>
+    
+    <!-- Top fin -->
+    <path d="M58 24 C64 17 72 20 70 26 Z" fill="#ffbf00"/>
+
+    <!-- Left eye -->
+    <circle cx="49" cy="56" r="12" fill="#1e1e1e"/>
+    <circle cx="52" cy="53" r="4.5" fill="#ffffff"/>
+    <circle cx="46" cy="59" r="2" fill="#ffffff"/>
+
+    <!-- Right eye -->
+    <circle cx="79" cy="56" r="12" fill="#1e1e1e"/>
+    <circle cx="82" cy="53" r="4.5" fill="#ffffff"/>
+    <circle cx="76" cy="59" r="2" fill="#ffffff"/>
+
+    <!-- Cute smile -->
+    <path d="M56 75 Q64 84 72 75" fill="none" stroke="#1e1e1e" stroke-width="4.5" stroke-linecap="round"/>
+
+    <!-- Cheeks (blush) -->
+    <circle cx="36" cy="67" r="5" fill="#ff7f50" opacity="0.6"/>
+    <circle cx="92" cy="67" r="5" fill="#ff7f50" opacity="0.6"/>
+  </g>
+</svg>

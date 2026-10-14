@@ -25,18 +25,26 @@ async function renderHome() {
       console.error(e);
     }
 
-          // Use only DB marketplaces with show_on_home=true; fall back to static list only when none configured
-          const homeDbMarketplaces = dbMarketplaces.filter(mp => mp.show_on_home);
+          // Filter only the 7 allowed Chinese marketplaces (excluding 1688 and all non-Chinese)
+          const allowedSlugs = ['dewu', 'poizon', 'taobao', 'pinduoduo', 'пиндуодуо', 'goofish', 'xianyu', 'сяньюй', '95', '95fen', 'jd', 'tmall'];
+          const homeDbMarketplaces = dbMarketplaces
+            .filter(mp => mp.show_on_home)
+            .filter(mp => {
+              const n = (mp.name || '').toLowerCase();
+              return allowedSlugs.some(slug => n.includes(slug));
+            });
+
           const staticMarketplaces = [
-            { name: 'Poizon', url: 'https://poizon.com', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=dewu.com', icon: '<span class="mp-dot" style="background:#22c55e" aria-hidden="true"></span>' },
-            { name: 'Taobao', url: 'https://taobao.com', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=taobao.com', icon: '<span class="mp-dot" style="background:#fb923c" aria-hidden="true"></span>' },
-            { name: '1688', url: 'https://1688.com', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=1688.com', icon: '<span class="mp-dot" style="background:#facc15" aria-hidden="true"></span>' },
-            { name: 'Zalando', url: 'https://zalando.de', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=zalando.de', icon: '<span class="mp-dot" style="background:#92400e" aria-hidden="true"></span>' },
-            { name: 'Nike', url: 'https://nike.com', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=nike.com', icon: '<span class="mp-dot" style="background:#374151" aria-hidden="true"></span>' },
-            { name: 'ASOS', url: 'https://asos.com', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=asos.com', icon: '<span class="mp-dot" style="background:#3b82f6" aria-hidden="true"></span>' }
+            { name: 'Dewu', url: 'https://dewu.com', website_url: 'https://dewu.com', logo_url: '/assets/marketplaces/dewu.svg', icon: '<span class="mp-dot" style="background:#00f5d4" aria-hidden="true"></span>' },
+            { name: 'TaoBao', url: 'https://taobao.com', website_url: 'https://taobao.com', logo_url: '/assets/marketplaces/taobao.svg', icon: '<span class="mp-dot" style="background:#ff5000" aria-hidden="true"></span>' },
+            { name: 'Pinduoduo', url: 'https://mobile.yangkeduo.com', website_url: 'https://mobile.yangkeduo.com', logo_url: '/assets/marketplaces/pinduoduo.svg', icon: '<span class="mp-dot" style="background:#e02e24" aria-hidden="true"></span>' },
+            { name: 'Goofish', url: 'https://www.goofish.com', website_url: 'https://www.goofish.com', logo_url: '/assets/marketplaces/goofish.svg', icon: '<span class="mp-dot" style="background:#ffd400" aria-hidden="true"></span>' },
+            { name: '95', url: 'https://www.95fen.com', website_url: 'https://www.95fen.com', logo_url: '/assets/marketplaces/95fen.svg', icon: '<span class="mp-dot" style="background:#00ff9d" aria-hidden="true"></span>' },
+            { name: 'JD', url: 'https://www.jd.com', website_url: 'https://www.jd.com', logo_url: '/assets/marketplaces/jd.svg', icon: '<span class="mp-dot" style="background:#ea251b" aria-hidden="true"></span>' },
+            { name: 'Tmall', url: 'https://www.tmall.com', website_url: 'https://www.tmall.com', logo_url: '/assets/marketplaces/tmall.svg', icon: '<span class="mp-dot" style="background:#ff0036" aria-hidden="true"></span>' }
           ];
 
-          // If admin has configured show_on_home venues — use them; otherwise fall back to the legacy static list
+          // Use DB marketplaces if configured for home and matching allowed list, otherwise fall back to static list
           const marketplaces = homeDbMarketplaces.length > 0 ? homeDbMarketplaces : staticMarketplaces;
 
           // Загрузка сегодняшних подборок из канала (@icelogix_selection)
@@ -400,9 +408,7 @@ function attachHomeHandlers() {
     }
 
     async function renderCalculator() {
-      window._calcMode = window._calcMode || 'menu';
-      window._aiSubTab = window._aiSubTab || 'photo';
-      window._aiSearchRegion = window._aiSearchRegion || 'all';
+      window._calcMode = 'manual';
       scrollToPageTop();
 
       const selectedCountryObj = ALL_COUNTRIES.find(c => c.code === (window.calcCountry || 'CN'));
@@ -410,159 +416,6 @@ function attachHomeHandlers() {
         ? `${selectedCountryObj.flag} ${selectedCountryObj.name}`
         : '🇨🇳 Китай';
 
-      // ─── MODE 1: CHOICE MENU ─────────────────────────────────────────────
-      if (window._calcMode === 'menu') {
-        return `
-          <div class="glass-card page-enter relative text-left p-5 shadow-2xl border border-white/10">
-            <button type="button" class="absolute top-4 right-4 text-white/50 hover:text-cyan-400 text-[10px] font-bold bg-white/5 hover:bg-white/10 border border-white/10 px-2.5 py-1.5 rounded-xl transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.switchTab('history'); window._historySubScreen = 'calculations'; window.renderCurrentScreen();">
-              🕒 История
-            </button>
-
-            <div class="text-center mb-6 mt-4">
-              <h2 class="text-xl font-extrabold text-white tracking-tight">Калькулятор доставки</h2>
-              <p class="text-white/60 text-xs mt-1">Выберите удобный способ расчета стоимости вашего товара</p>
-            </div>
-
-            <div class="space-y-4">
-              <!-- Option A: Manual -->
-              <div onclick="window._calcMode = 'manual'; window.renderCurrentScreen();" class="glass-card p-5 border border-white/15 hover:border-cyan-400/60 rounded-2xl cursor-pointer transition duration-200 active:scale-[0.98] group relative overflow-hidden bg-gradient-to-br from-white/5 via-white/[0.02] to-cyan-500/5 shadow-lg">
-                <div class="flex items-center gap-4">
-                  <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition duration-300 shadow-inner">
-                    📦
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center justify-between">
-                      <h3 class="text-sm font-bold text-white group-hover:text-cyan-300 transition leading-snug">Я нашел товар и знаю все нужные данные о нем</h3>
-                      <span class="text-cyan-400 text-xs font-semibold group-hover:translate-x-1 transition duration-200 flex-shrink-0 ml-2">Перейти →</span>
-                    </div>
-                    <p class="text-white/60 text-xs mt-1 leading-relaxed">Ввести название, цену и вес вручную для моментального расчета.</p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Option B: AI Search -->
-              <div onclick="window._calcMode = 'ai_search'; window.renderCurrentScreen();" class="glass-card p-5 border border-cyan-500/40 hover:border-cyan-400 rounded-2xl cursor-pointer transition duration-200 active:scale-[0.98] group relative overflow-hidden bg-gradient-to-br from-cyan-500/10 via-blue-600/10 to-indigo-900/20 shadow-[0_0_25px_rgba(6,182,212,0.18)]">
-                <div class="flex items-center gap-4">
-                  <div class="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition duration-300 shadow-lg shadow-cyan-500/20">
-                    ✨
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center justify-between">
-                      <h3 class="text-sm font-bold text-white group-hover:text-cyan-300 transition leading-snug">Помогите мне найти товар и ввести все нужные данные о нем</h3>
-                      <span class="text-cyan-400 text-xs font-semibold group-hover:translate-x-1 transition duration-200 flex-shrink-0 ml-2">Найти →</span>
-                    </div>
-                    <p class="text-white/60 text-xs mt-1 leading-relaxed">Поиск по фото или описанию. ИИ подберет товар, определит цену и ориентировочный вес.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          ${renderFooter()}
-        `;
-      }
-
-      // ─── MODE 2: AI SEARCH ───────────────────────────────────────────────
-      if (window._calcMode === 'ai_search') {
-        return `
-          <div class="space-y-4 page-enter pb-8">
-            <button type="button" class="global-back-btn" onclick="window._calcMode = 'menu'; window.renderCurrentScreen();">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-              Назад к выбору
-            </button>
-
-            <div class="glass-card text-left p-5 space-y-4 shadow-2xl border border-white/10 rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
-              <div class="text-center mb-4">
-              <h2 class="text-lg font-extrabold text-white flex items-center justify-center gap-1.5">
-                <span>✨ Поиск товара ИИ & Парсингом</span>
-              </h2>
-              <p class="text-white/60 text-xs mt-1">ИИ и парсер подберут товар и определят данные для расчета</p>
-            </div>
-
-            <!-- Unified search form: photo + description (both required) -->
-            <div class="space-y-3">
-              <div>
-                <label class="text-white/80 text-xs font-bold block mb-1">📸 Фото товара <span class="text-red-400">*</span> <span class="text-white/40 font-normal">(до 5 фото)</span></label>
-                <div id="aiPhotoDropZone" class="p-5 border-2 border-dashed border-cyan-500/40 hover:border-cyan-400 rounded-2xl text-center cursor-pointer bg-cyan-500/5 hover:bg-cyan-500/10 transition" onclick="document.getElementById('aiPhotoInput').click()">
-                  <div class="text-3xl mb-1">📸</div>
-                  <p id="aiPhotoStatusText" class="text-white/90 text-xs font-bold">${(window._aiSearchFiles && window._aiSearchFiles.length) ? '✅ Загружено: ' + window._aiSearchFiles.length + ' фото' : 'Нажмите, чтобы загрузить фото'}</p>
-                  <p class="text-white/40 text-[10px] mt-0.5">JPG, PNG, WEBP до 10 МБ каждый</p>
-                  <input type="file" id="aiPhotoInput" accept="image/*" multiple class="hidden" onchange="window.handleAiSearchPhotoSelect(this)">
-                </div>
-                <div id="aiPhotoPreviewBox" class="${(window._aiSearchFiles && window._aiSearchFiles.length) ? '' : 'hidden'} mt-2">
-                  <div id="aiPhotoPreviewGrid" class="flex flex-wrap gap-2 justify-center">
-                    ${(window._aiSearchFiles || []).map((f, i) => `
-                      <div class="relative inline-block">
-                        <img src="${(window._aiSearchBlobUrls && window._aiSearchBlobUrls[i]) || ''}" class="rounded-xl h-20 w-20 object-cover border border-cyan-500/40 shadow-lg ai-photo-thumb" data-idx="${i}">
-                        <button type="button" onclick="window.removeAiSearchPhoto(${i})" class="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 text-[10px] font-bold flex items-center justify-center shadow-lg cursor-pointer">✕</button>
-                      </div>
-                    `).join('')}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label class="text-white/80 text-xs font-bold block mb-1">✍️ Описание товара <span class="text-red-400">*</span></label>
-                <textarea id="aiPhotoHint" rows="2" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-xs text-white" placeholder="Например: Кроссовки Nike Dunk Low, сине-белый цвет"></textarea>
-                <p class="text-white/40 text-[10px] mt-1">Чем точнее описание (бренд, модель, цвет), тем лучше результат поиска.</p>
-              </div>
-            </div>
-
-            <!-- Выбор региона поиска -->
-            <div class="mt-3">
-              <label class="text-white/70 text-xs block mb-1.5">🌍 Регион поиска</label>
-              <div class="relative">
-                <button type="button" id="calcAiRegionBtn" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm flex justify-between items-center cursor-pointer" onclick="document.getElementById('calcAiRegionDropdown').classList.toggle('hidden')">
-                  <span id="calcAiRegionVal">${window._aiSearchRegion === 'CN' ? '🇨🇳 Китай' : window._aiSearchRegion === 'EU' ? '🇪🇺 Европа' : window._aiSearchRegion === 'US' ? '🇺🇸 США' : window._aiSearchRegion === 'JP' ? '🇯🇵 Япония' : '🌍 Все площадки'}</span>
-                  <span>▼</span>
-                </button>
-                <div id="calcAiRegionDropdown" class="hidden absolute left-0 right-0 bottom-full mb-1 bg-slate-900 border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden max-h-[45vh] overflow-y-auto">
-                  <div class="p-3 hover:bg-white/5 cursor-pointer text-xs text-white flex items-center gap-2 border-b border-white/5" onclick="window._aiSearchRegion='all'; document.getElementById('calcAiRegionVal').textContent='🌍 Все площадки'; document.getElementById('calcAiRegionDropdown').classList.add('hidden');">🌍 Все площадки</div>
-                  <div class="p-3 hover:bg-white/5 cursor-pointer text-xs text-white flex items-center gap-2 border-b border-white/5" onclick="window._aiSearchRegion='CN'; document.getElementById('calcAiRegionVal').textContent='🇨🇳 Китай'; document.getElementById('calcAiRegionDropdown').classList.add('hidden');">🇨🇳 Китай (Poizon, Taobao, 1688, Pinduoduo, Xianyu...)</div>
-                  <div class="p-3 hover:bg-white/5 cursor-pointer text-xs text-white flex items-center gap-2 border-b border-white/5" onclick="window._aiSearchRegion='EU'; document.getElementById('calcAiRegionVal').textContent='🇪🇺 Европа'; document.getElementById('calcAiRegionDropdown').classList.add('hidden');">🇪🇺 Европа (Zalando, ASOS, Farfetch, Vinted...)</div>
-                  <div class="p-3 hover:bg-white/5 cursor-pointer text-xs text-white flex items-center gap-2 border-b border-white/5" onclick="window._aiSearchRegion='US'; document.getElementById('calcAiRegionVal').textContent='🇺🇸 США'; document.getElementById('calcAiRegionDropdown').classList.add('hidden');">🇺🇸 США (GOAT, StockX)</div>
-                  <div class="p-3 hover:bg-white/5 cursor-pointer text-xs text-white flex items-center gap-2" onclick="window._aiSearchRegion='JP'; document.getElementById('calcAiRegionVal').textContent='🇯🇵 Япония'; document.getElementById('calcAiRegionDropdown').classList.add('hidden');">🇯🇵 Япония (Mercari)</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Дополнительные фильтры: Подлинность, Состояние, Макс. цена -->
-            <div class="mt-3 grid grid-cols-2 gap-2">
-              <div>
-                <label class="text-white/70 text-[11px] block mb-1">🏷️ Подлинность</label>
-                <select id="aiAuthTier" class="btn-secondary w-full p-2.5 rounded-xl border border-white/20 text-xs">
-                  <option value="all" selected>Любая</option>
-                  <option value="original">✨ Только оригинал</option>
-                  <option value="replica">⚠️ Реплика / Копия</option>
-                </select>
-              </div>
-              <div>
-                <label class="text-white/70 text-[11px] block mb-1">📦 Состояние</label>
-                <select id="aiItemCondition" class="btn-secondary w-full p-2.5 rounded-xl border border-white/20 text-xs">
-                  <option value="all" selected>Любое</option>
-                  <option value="new">✨ Только новый</option>
-                  <option value="used">🔄 Б/У (95分 / Xianyu)</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="mt-2">
-              <label class="text-white/70 text-[11px] block mb-1">💰 Максимальная цена (¥ / CNY)</label>
-              <input type="number" id="aiMaxPrice" step="1" min="1" class="btn-secondary w-full p-2.5 rounded-xl border border-white/20 text-xs" placeholder="Любая цена (или введите лимит)">
-            </div>
-
-            <button type="button" id="calcAiSearchRunBtn" onclick="window.runAiProductSearch()" class="btn-primary w-full py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 active:scale-95 transition cursor-pointer border-0 mt-3">
-              <span>🔍 Найти товар и рассчитать</span>
-            </button>
-
-            <!-- Search Results Output -->
-            <div id="calcAiSearchResult" class="hidden mt-4"></div>
-          </div>
-        </div>
-        ${renderFooter()}
-      `;
-    }
-
-      // ─── MODE 3: MANUAL CALCULATION FORM ────────────────────────────────
       // Check if we need to auto-fill pending AI data
       if (window._pendingAiData) {
         const d = window._pendingAiData;
@@ -587,17 +440,6 @@ function attachHomeHandlers() {
 
       return `
         <div class="space-y-4 page-enter pb-8">
-          <div class="flex items-center justify-between">
-            <button type="button" class="global-back-btn !mb-0" onclick="window._calcMode = 'menu'; window.renderCurrentScreen();">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-              Назад к выбору
-            </button>
-
-            <button type="button" class="text-white/40 hover:text-cyan-400 text-xs font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full transition active:scale-95 flex items-center gap-1.5 cursor-pointer" onclick="window.switchTab('history'); window._historySubScreen = 'calculations'; window.renderCurrentScreen();">
-              🕒 История
-            </button>
-          </div>
-
           <div class="glass-card text-left p-5 space-y-4 shadow-2xl border border-white/10 rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
             <h2 class="text-xl font-extrabold text-white text-center mb-6">Калькулятор доставки</h2>
 

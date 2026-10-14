@@ -17,7 +17,7 @@ async function renderCatalogs() {
             </div>
             <div class="flex-1">
               <h3 class="text-white font-bold text-lg mb-1">Площадки</h3>
-              <p class="text-sm" style="color: var(--text-secondary);">Poizon, Taobao, Zalando и 50+ маркетплейсов</p>
+              <p class="text-sm" style="color: var(--text-secondary);">Dewu, TaoBao, Pinduoduo, Goofish, 95, JD, Tmall</p>
             </div>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);">
               <polyline points="9 18 15 12 9 6"/>
@@ -84,21 +84,131 @@ function attachCatalogsHandlers() {
   if (resaleBtn) resaleBtn.onclick = () => switchTab('resale');
 }
 
+// ==================== ДЕФОЛТНЫЙ КАТАЛОГ КИТАЙСКИХ ПЛОЩАДОК ====================
+const DEFAULT_CHINESE_MARKETPLACES = [
+  {
+    name: 'Dewu',
+    website_url: 'https://dewu.com',
+    url: 'https://dewu.com',
+    logo_url: '/assets/marketplaces/dewu.svg',
+    country: 'Китай',
+    description: 'Ведущий маркетплейс оригинальных кроссовок, стритвира и аксессуаров со строгим легитчеком.',
+    categories: ['Обувь', 'Одежда', 'Аксессуары'],
+    gender: ['Мужской', 'Женский', 'Унисекс'],
+    requires_vpn: true,
+    is_active: true,
+    sort_order: 1
+  },
+  {
+    name: 'TaoBao',
+    website_url: 'https://taobao.com',
+    url: 'https://taobao.com',
+    logo_url: '/assets/marketplaces/taobao.svg',
+    country: 'Китай',
+    description: 'Крупнейший розничный гипермаркет Китая от Alibaba. Миллионы трендовых вещей и выгодные цены.',
+    categories: ['Одежда', 'Обувь', 'Аксессуары'],
+    gender: ['Мужской', 'Женский', 'Унисекс'],
+    requires_vpn: false,
+    is_active: true,
+    sort_order: 2
+  },
+  {
+    name: 'Pinduoduo',
+    website_url: 'https://mobile.yangkeduo.com',
+    url: 'https://mobile.yangkeduo.com',
+    logo_url: '/assets/marketplaces/pinduoduo.svg',
+    country: 'Китай',
+    description: 'Платформа совместных покупок с прямыми фабричными ценами и огромным каталогом.',
+    categories: ['Обувь', 'Одежда', 'Аксессуары'],
+    gender: ['Мужской', 'Женский', 'Унисекс'],
+    requires_vpn: true,
+    is_active: true,
+    sort_order: 3
+  },
+  {
+    name: 'Goofish',
+    website_url: 'https://www.goofish.com',
+    url: 'https://www.goofish.com',
+    logo_url: '/assets/marketplaces/goofish.svg',
+    country: 'Китай',
+    description: 'Главная ресейл-биржа Китая от Alibaba (Xianyu). Винтаж, редкие сникеры и эксклюзивы.',
+    categories: ['Обувь', 'Одежда', 'Аксессуары'],
+    gender: ['Мужской', 'Женский', 'Унисекс'],
+    requires_vpn: false,
+    is_active: true,
+    sort_order: 4
+  },
+  {
+    name: '95',
+    website_url: 'https://www.95fen.com',
+    url: 'https://www.95fen.com',
+    logo_url: '/assets/marketplaces/95fen.svg',
+    country: 'Китай',
+    description: 'Премиальный аутлет-ресейл экосистемы Dewu с профессиональной проверкой подлинности.',
+    categories: ['Обувь', 'Одежда', 'Аксессуары'],
+    gender: ['Мужской', 'Женский', 'Унисекс'],
+    requires_vpn: true,
+    is_active: true,
+    sort_order: 5
+  },
+  {
+    name: 'JD',
+    website_url: 'https://www.jd.com',
+    url: 'https://www.jd.com',
+    logo_url: '/assets/marketplaces/jd.svg',
+    country: 'Китай',
+    description: 'Флагманский ритейлер моды, обуви и премиальной техники с официальной гарантией подлинности.',
+    categories: ['Одежда', 'Обувь', 'Аксессуары'],
+    gender: ['Мужской', 'Женский', 'Унисекс'],
+    requires_vpn: false,
+    is_active: true,
+    sort_order: 6
+  },
+  {
+    name: 'Tmall',
+    website_url: 'https://www.tmall.com',
+    url: 'https://www.tmall.com',
+    logo_url: '/assets/marketplaces/tmall.svg',
+    country: 'Китай',
+    description: 'Официальные бутики мировых и премиальных азиатских брендов (Alibaba Group).',
+    categories: ['Одежда', 'Обувь', 'Аксессуары'],
+    gender: ['Мужской', 'Женский', 'Унисекс'],
+    requires_vpn: false,
+    is_active: true,
+    sort_order: 7
+  }
+];
+
 // ==================== РЕНДЕР ПОДКАТАЛОГА ПЛОЩАДОК ====================
 async function renderMarketplaces() {
   try {
+    const allowedSlugs = ['dewu', 'poizon', 'taobao', 'pinduoduo', 'пиндуодуо', 'goofish', 'xianyu', 'сяньюй', '95', '95fen', 'jd', 'tmall'];
+
     if (!window.marketplacesCache) {
-      const { data: rawData, error } = await supabaseClient
-        .from('marketplaces')
-        .select('*')
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true });
-      if (error) throw error;
-      window.marketplacesCache = preprocessMarketplaces(rawData);
+      try {
+        const { data: rawData } = await supabaseClient
+          .from('marketplaces')
+          .select('*')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true });
+        if (rawData && rawData.length > 0) {
+          window.marketplacesCache = preprocessMarketplaces(rawData);
+        }
+      } catch (err) {
+        console.warn('Using default Chinese marketplaces list:', err);
+      }
     }
-    const data = window.marketplacesCache;
-    if (!data || data.length === 0) {
-      return `<p class="text-center mt-10 text-white/70">Каталог площадок пока пуст</p>`;
+
+    let data = window.marketplacesCache || [];
+    // Strict filter: only allowed Chinese platforms (remove 1688 and all non-Chinese)
+    data = data.filter(mp => {
+      const n = (mp.name || '').toLowerCase();
+      return allowedSlugs.some(slug => n.includes(slug));
+    });
+
+    if (data.length === 0) {
+      data = DEFAULT_CHINESE_MARKETPLACES;
+      window.marketplacesCache = data;
     }
     
     // Разрешённые категории
@@ -121,20 +231,21 @@ async function renderMarketplaces() {
         ${data.map(mp => {
           let tagsHtml = '';
           const name = (mp.name || '').toLowerCase();
-          if (mp.requires_vpn || name.includes('poizon')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">Нужен VPN</span>';
-          if (name.includes('1688')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">Только опт</span>';
-          if (name.includes('taobao') || name.includes('wechat')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">Сложная рег.</span>';
+          if (mp.requires_vpn || name.includes('poizon') || name.includes('dewu')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">100% Оригинал</span>';
+          if (name.includes('taobao')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">Гипермаркет</span>';
+          if (name.includes('pinduoduo') || name.includes('пиндуодуо')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">Совместный выкуп</span>';
+          if (name.includes('goofish') || name === '95' || name.includes('95fen')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">Ресейл</span>';
+          if (name.includes('tmall') || name.includes('jd')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Официальные магазины</span>';
           return `
           <div class="glass-card flex gap-3 p-3 items-center page-enter">
             <div style="width: 68px; height: 68px; flex-shrink: 0; border-radius: 16px; overflow:hidden; background: var(--glass-bg-strong); display:flex; align-items:center; justify-content:center; border: 1px solid var(--glass-border-strong);" class="relative">
               ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-cover cursor-pointer" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" onclick="event.stopPropagation(); tgUtil.openLink('${mp.website_url || mp.url}')">` : ''}
               <span style="${mp.logo_url ? 'display:none;' : ''}" class="text-4xl flex items-center justify-center"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span></span>
-              ${mp.country === 'США' || mp.country === 'Япония' || mp.country === 'ОАЭ' ? '<span class="absolute bottom-0 right-0 bg-yellow-500 text-black text-[8px] font-bold px-1 rounded-tl">Скоро</span>' : ''}
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
                 <h3 class="font-bold text-white text-sm truncate">${mp.name}</h3>
-                <span class="text-[9px] text-white/50 bg-white/5 px-1.5 py-0.2 rounded-full border border-white/5">${mp.country}</span>
+                <span class="text-[9px] text-white/50 bg-white/5 px-1.5 py-0.2 rounded-full border border-white/5">${mp.country || 'Китай'}</span>
               </div>
               <p class="text-white/60 text-[11px] mt-1 line-clamp-1 leading-tight">${mp.description || ''}</p>
               <div class="flex flex-wrap gap-1 mt-1.5 items-center">
@@ -275,12 +386,12 @@ function attachMarketplacesHandlers() {
   async function renderFilteredGrid() {
     if (marketplacesData.length === 0) {
       let dbData = [];
-      if (window.marketplacesCache) {
+      if (window.marketplacesCache && window.marketplacesCache.length > 0) {
         dbData = [...window.marketplacesCache];
       } else {
         try {
-          const { data } = await supabaseClient.from('marketplaces').select('*').eq('is_active', true);
-          if (data) {
+          const { data } = await supabaseClient.from('marketplaces').select('*').eq('is_active', true).order('sort_order', { ascending: true });
+          if (data && data.length > 0) {
             dbData = preprocessMarketplaces(data);
             window.marketplacesCache = dbData;
           }
@@ -288,20 +399,14 @@ function attachMarketplacesHandlers() {
           console.error(e);
         }
       }
-      const staticMarketplaces = [
-        { name: 'Poizon', country: 'Китай', description: 'Популярный маркетплейс брендовых вещей', website_url: 'https://poizon.com', url: 'https://poizon.com', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=dewu.com', icon: '<span class="mp-dot" style="background:#22c55e" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] },
-        { name: 'Taobao', country: 'Китай', description: 'Крупнейший интернет-магазин Китая', website_url: 'https://taobao.com', url: 'https://taobao.com', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=taobao.com', icon: '<span class="mp-dot" style="background:#fb923c" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] },
-        { name: '1688', country: 'Китай', description: 'Оптовая платформа от Alibaba Group', website_url: 'https://1688.com', url: 'https://1688.com', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=1688.com', icon: '<span class="mp-dot" style="background:#facc15" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] },
-        { name: 'Zalando', country: 'Германия', description: 'Европейский интернет-магазин одежды и обуви', website_url: 'https://zalando.de', url: 'https://zalando.de', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=zalando.de', icon: '<span class="mp-dot" style="background:#92400e" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] },
-        { name: 'Nike', country: 'США', description: 'Официальный магазин спортивного бренда', website_url: 'https://nike.com', url: 'https://nike.com', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=nike.com', icon: '<span class="mp-dot" style="background:#374151" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] },
-        { name: 'ASOS', country: 'Великобритания', description: 'Британский интернет-магазин одежды и косметики', website_url: 'https://asos.com', url: 'https://asos.com', logo_url: 'https://www.google.com/s2/favicons?sz=128&domain=asos.com', icon: '<span class="mp-dot" style="background:#3b82f6" aria-hidden="true"></span>', categories: ['Обувь', 'Одежда', 'Аксессуары'], gender: ['Мужской', 'Женский'] }
-      ];
-      marketplacesData = [...dbData];
-      staticMarketplaces.forEach(staticMp => {
-        if (!marketplacesData.some(mp => mp.name.toLowerCase() === staticMp.name.toLowerCase())) {
-          marketplacesData.push(staticMp);
-        }
+      const allowedSlugs = ['dewu', 'poizon', 'taobao', 'pinduoduo', 'пиндуодуо', 'goofish', 'xianyu', 'сяньюй', '95', '95fen', 'jd', 'tmall'];
+      marketplacesData = dbData.filter(mp => {
+        const n = (mp.name || '').toLowerCase();
+        return allowedSlugs.some(slug => n.includes(slug));
       });
+      if (marketplacesData.length === 0) {
+        marketplacesData = [...DEFAULT_CHINESE_MARKETPLACES];
+      }
     }
     
     const activeCountry = window.mpFilterCountry || 'all';

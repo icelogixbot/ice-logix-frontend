@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="dewuBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b171b"/>
+      <stop offset="100%" stop-color="#02080a"/>
+    </linearGradient>
+    <linearGradient id="dewuCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f5d4"/>
+      <stop offset="50%" stop-color="#00d2c4"/>
+      <stop offset="100%" stop-color="#00b4d8"/>
+    </linearGradient>
+    <filter id="dewuGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+  <!-- Background squircle -->
+  <rect width="128" height="128" rx="28" fill="url(#dewuBg)"/>
+  <rect width="126" height="126" x="1" y="1" rx="27" fill="none" stroke="url(#dewuCyan)" stroke-width="2" stroke-opacity="0.3"/>
+  
+  <!-- Outer glowing ring / box -->
+  <rect x="22" y="22" width="84" height="84" rx="20" fill="none" stroke="url(#dewuCyan)" stroke-width="4.5" filter="url(#dewuGlow)"/>
+  
+  <!-- Stylized Chinese character 得 (Dewu) -->
+  <g fill="url(#dewuCyan)">
+    <!-- Left radical 彳 -->
+    <path d="M42 38 C38 43 35 48 33 53 C35.5 53.5 38 52 40 50 C41.5 46.5 43 43 44 40 Z"/>
+    <path d="M44 54 C39 61 35 68 31 75 C34 75.5 37 74 39 71 C41.5 66 44 60 46 56 Z"/>
+    <rect x="42" y="70" width="4.5" height="24" rx="2.2"/>
+    
+    <!-- Right side 旦 + 寸 -->
+    <!-- 日 top -->
+    <rect x="52" y="38" width="38" height="22" rx="3" fill="none" stroke="url(#dewuCyan)" stroke-width="4.5"/>
+    <line x1="53" y1="49" x2="89" y2="49" stroke="url(#dewuCyan)" stroke-width="4"/>
+    
+    <!-- Horizontal divider 一 -->
+    <rect x="49" y="66" width="44" height="4.5" rx="2.25"/>
+    
+    <!-- 寸 bottom -->
+    <rect x="67" y="69" width="4.5" height="27" rx="2.25"/>
+    <path d="M54 75 Q72 74 88 74" stroke="url(#dewuCyan)" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <circle cx="80" cy="84" r="3.2"/>
+  </g>
+</svg>

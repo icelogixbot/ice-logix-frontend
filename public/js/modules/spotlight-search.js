@@ -1595,15 +1595,13 @@
 
   function searchMarketplaces(cleanLower) {
     const list = [
-      { name: 'Poizon', country: 'Китай', desc: 'Кроссовки, одежда, электроника и легитчек', url: 'https://poizon.com', badge: '100% Оригинал', icon: '👟' },
-      { name: 'Taobao', country: 'Китай', desc: 'Крупнейший гипермаркет Китая', url: 'https://taobao.com', badge: 'Низкие цены', icon: '🛍️' },
-      { name: '1688', country: 'Китай', desc: 'Оптовая платформа Alibaba Group', url: 'https://1688.com', badge: 'Опт / Фабрики', icon: '📦' },
-      { name: 'Zalando', country: 'Германия', desc: 'Европейский маркетплейс брендовой одежды', url: 'https://zalando.de', badge: 'Европа', icon: '🇪🇺' },
-      { name: 'ASOS', country: 'Великобритания', desc: 'Британский интернет-магазин одежды', url: 'https://asos.com', badge: 'UK Сток', icon: '🇬🇧' },
-      { name: 'Nike', country: 'США / ЕС', desc: 'Официальный магазин спортивного бренда', url: 'https://nike.com', badge: 'Официальный', icon: '✔️' },
-      { name: 'GOAT', country: 'США', desc: 'Аутентичный сникер-маркетплейс', url: 'https://goat.com', badge: 'Редкие релизы', icon: '🐐' },
-      { name: 'StockX', country: 'США', desc: 'Биржа кроссовок и стритвира', url: 'https://stockx.com', badge: 'Биржа', icon: '📈' },
-      { name: 'Weidian', country: 'Китай', desc: 'Магазины независимых китайских дизайнеров', url: 'https://weidian.com', badge: 'Вейдиан', icon: '🏷️' }
+      { name: 'Dewu', country: 'Китай', desc: 'Кроссовки, одежда, стритвир и 100% легитчек', url: 'https://dewu.com', badge: '100% Оригинал', icon: '👟' },
+      { name: 'TaoBao', country: 'Китай', desc: 'Крупнейший гипермаркет Китая от Alibaba Group', url: 'https://taobao.com', badge: 'Выгодные цены', icon: '🛍️' },
+      { name: 'Pinduoduo', country: 'Китай', desc: 'Платформа совместных покупок по фабричным ценам', url: 'https://mobile.yangkeduo.com', badge: 'Фабрики', icon: '📦' },
+      { name: 'Goofish', country: 'Китай', desc: 'Главная ресейл-биржа Китая от Alibaba (Xianyu)', url: 'https://www.goofish.com', badge: 'Ресейл', icon: '🐟' },
+      { name: '95', country: 'Китай', desc: 'Премиальный аутлет-ресейл экосистемы Dewu с легитчеком', url: 'https://www.95fen.com', badge: 'Аутлет / Легит', icon: '✨' },
+      { name: 'JD', country: 'Китай', desc: 'Флагманский ритейлер моды, обуви и премиальной техники', url: 'https://www.jd.com', badge: 'Гарантия качества', icon: '🐶' },
+      { name: 'Tmall', country: 'Китай', desc: 'Официальные бутики мировых брендов (Alibaba Group)', url: 'https://www.tmall.com', badge: 'Флагманские бутики', icon: '🐱' }
     ];
 
     return list.filter(m => {
