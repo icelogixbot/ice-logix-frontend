@@ -494,12 +494,14 @@ function attachHomeHandlers() {
       // ─── MODE 2: AI SEARCH ───────────────────────────────────────────────
       if (window._calcMode === 'ai_search') {
         return `
-          <div class="glass-card page-enter relative text-left p-5 space-y-4 shadow-2xl border border-white/10">
-            <button type="button" class="absolute top-4 left-4 text-cyan-400 hover:text-cyan-300 text-[10px] font-bold bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-1.5 rounded-xl transition active:scale-95 flex items-center gap-1 cursor-pointer z-10 border-0" onclick="window._calcMode = 'menu'; window.renderCurrentScreen();">
-              ← Назад к выбору
+          <div class="space-y-4 page-enter pb-8">
+            <button type="button" class="global-back-btn" onclick="window._calcMode = 'menu'; window.renderCurrentScreen();">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              Назад к выбору
             </button>
 
-            <div class="text-center mb-4 mt-8">
+            <div class="glass-card text-left p-5 space-y-4 shadow-2xl border border-white/10 rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
+              <div class="text-center mb-4">
               <h2 class="text-lg font-extrabold text-white flex items-center justify-center gap-1.5">
                 <span>✨ Поиск товара ИИ & Парсингом</span>
               </h2>
@@ -585,9 +587,10 @@ function attachHomeHandlers() {
             <!-- Search Results Output -->
             <div id="calcAiSearchResult" class="hidden mt-4"></div>
           </div>
-          ${renderFooter()}
-        `;
-      }
+        </div>
+        ${renderFooter()}
+      `;
+    }
 
       // ─── MODE 3: MANUAL CALCULATION FORM ────────────────────────────────
       // Check if we need to auto-fill pending AI data
@@ -613,16 +616,20 @@ function attachHomeHandlers() {
       }
 
       return `
-        <div class="glass-card page-enter relative text-left">
-          <button type="button" class="absolute top-4 left-4 text-cyan-400 hover:text-cyan-300 text-[10px] font-bold bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-1.5 rounded-lg transition active:scale-95 flex items-center gap-1 cursor-pointer z-10 border-0" onclick="window._calcMode = 'menu'; window.renderCurrentScreen();">
-            ← Назад к выбору
-          </button>
+        <div class="space-y-4 page-enter pb-8">
+          <div class="flex items-center justify-between">
+            <button type="button" class="global-back-btn !mb-0" onclick="window._calcMode = 'menu'; window.renderCurrentScreen();">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              Назад к выбору
+            </button>
 
-          <button type="button" class="absolute top-4 right-4 text-white/40 hover:text-cyan-400 text-[10px] font-bold bg-white/5 border border-white/10 px-2 py-1.5 rounded-lg transition active:scale-95 flex items-center gap-1 cursor-pointer z-10" onclick="window.switchTab('history'); window._historySubScreen = 'calculations'; window.renderCurrentScreen();">
-            🕒 История
-          </button>
+            <button type="button" class="text-white/40 hover:text-cyan-400 text-xs font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-full transition active:scale-95 flex items-center gap-1.5 cursor-pointer" onclick="window.switchTab('history'); window._historySubScreen = 'calculations'; window.renderCurrentScreen();">
+              🕒 История
+            </button>
+          </div>
 
-          <h2 class="text-xl font-extrabold text-white text-center mb-6 mt-8">Калькулятор доставки</h2>
+          <div class="glass-card text-left p-5 space-y-4 shadow-2xl border border-white/10 rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
+            <h2 class="text-xl font-extrabold text-white text-center mb-6">Калькулятор доставки</h2>
 
           <form id="calculatorForm" class="space-y-4" onsubmit="event.preventDefault();">
             <!-- Наименование товара -->
@@ -776,14 +783,15 @@ function attachHomeHandlers() {
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Предупреждение -->
-        <div class="mt-4 text-center max-w-md mx-auto">
-          <p class="text-white/40 text-[10px]">⚠️ Обратите внимание: расчет является ориентировочным. Окончательная стоимость формируется после взвешивания на нашем складе.</p>
-        </div>
-        ${renderFooter()}
-      `;
-    }
+      <!-- Предупреждение -->
+      <div class="mt-4 text-center max-w-md mx-auto">
+        <p class="text-white/40 text-[10px]">⚠️ Обратите внимание: расчет является ориентировочным. Окончательная стоимость формируется после взвешивания на нашем складе.</p>
+      </div>
+      ${renderFooter()}
+    `;
+  }
 
 
 // Global Exports
