@@ -120,12 +120,6 @@ async function renderHome() {
         </div>
         <span class="story-label">Акции</span>
       </div>
-      <div class="story-card" data-story="academy">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(139,92,246,0.25), rgba(109,40,217,0.18));">
-          <span style="font-size: 24px;"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></span></span>
-        </div>
-        <span class="story-label">Академия</span>
-      </div>
     </div>
     </div>
     
@@ -215,10 +209,6 @@ function attachHomeHandlers() {
       document.querySelector('[data-story="legitcheck"]')?.addEventListener('click', () => {
         if (!window.userId) { window.requireAuth('Для проверки подлинности необходимо войти или зарегистрироваться.'); return; }
         switchTab('legitcheck');
-      });
-      document.querySelector('[data-story="academy"]')?.addEventListener('click', () => {
-        if (!window.userId) { window.requireAuth('Для доступа к академии необходимо войти или зарегистрироваться.'); return; }
-        switchTab('academy');
       });
       document.getElementById('moreMarketplacesBtn')?.addEventListener('click', () => {
         switchTab('catalogs', 'marketplaces');
