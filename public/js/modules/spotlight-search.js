@@ -1203,7 +1203,320 @@
   }
 
   // ============================================================
-  // RENDER SEARCH RESULTS
+  // GOOGLE AI OVERVIEW SYNTHESIZER (STEP 2)
+  // Generates authoritative, personalized, natural language
+  // syntheses inspired by Google's generative AI overview.
+  // ============================================================
+
+  function buildGoogleAiOverview({
+    query,
+    userCtx,
+    profileMatch,
+    aiIntent,
+    detectedUrl,
+    mathResult,
+    matchingOrders,
+    matchingFaq,
+    matchingBrands,
+    matchingProducts,
+    matchingMarketplaces,
+    matchingShortcuts
+  }) {
+    const qLower = (query || '').toLowerCase().trim();
+    let bodyHtml = '';
+    let bullets = [];
+    let actions = [];
+    let sources = [];
+
+    // --- Scenario 1: Detected Direct Product Link (Poizon, Taobao, 1688, etc.) ---
+    if (detectedUrl) {
+      bodyHtml = `Обнаружена прямая ссылка на каталог <span class="text-cyan-300 font-bold">${detectedUrl.platformName}</span>. Товар доступен для официального выкупа в Китае, прохождения экспертизы на подлинность (легитчек) и экспресс-доставки в Беларусь или РФ.`;
+      bullets = [
+        `🔍 <span class="font-bold text-white">Проверка оригинальности:</span> Каждая позиция проверяется экспертами на складе Poizon с выдачей синей пломбы и QR-сертификата.`,
+        `⏱️ <span class="font-bold text-white">Сроки доставки:</span> Экспресс-авиа 8–12 рабочих дней до Минска с дальнейшей отправкой Европочтой или СДЭК.`
+      ];
+      actions = [
+        `<button id="aiOverviewCalcUrlBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md flex items-center gap-1.5">
+          <span>⚡</span> Рассчитать в калькуляторе
+        </button>`,
+        `<button id="aiOverviewOrderUrlBtn" class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition active:scale-95 flex items-center gap-1.5">
+          <span>📝</span> Оформить выкуп
+        </button>`
+      ];
+      sources = [`🔗 Маркетплейс ${detectedUrl.platformName}`, `🛡️ Экспертиза ICE LOGIX`, `✈️ ShopbyShop Logistics`];
+    }
+    // --- Scenario 2: Complex Price + Weight Calculation ---
+    else if (aiIntent && aiIntent.type === 'complex_calc') {
+      bodyHtml = `ИИ выполнил полный экспресс-расчет «под ключ» для категории <span class="text-white font-bold">${aiIntent.itemName}</span> (${aiIntent.priceCny} ¥, вес ${aiIntent.weightKg} кг):`;
+      bullets = [
+        `💰 <span class="font-bold text-white">Итоговая стоимость с доставкой:</span> <span class="text-cyan-300 font-extrabold text-sm">≈ ${aiIntent.totalRub.toLocaleString('ru-RU')} ₽</span> или <span class="text-white font-bold">≈ ${aiIntent.totalByn} BYN</span>.`,
+        `🇨🇳 <span class="font-bold text-white">Выкуп товара в Китае:</span> ${aiIntent.buyCostByn} BYN (по курсу ЦБ с официальной комиссией сервиса 20%).`,
+        `✈️ <span class="font-bold text-white">Экспресс-авиадоставка:</span> ${aiIntent.shippingCostByn} BYN (тариф $10 за 1 кг). Оплачивается вторым этапом по точному весу.`,
+        `⚖️ <span class="font-bold text-white">Таможня:</span> Пошлина 0 BYN (стоимость не превышает беспошлинный лимит 200€ на посылку).`
+      ];
+      actions = [
+        `<button id="aiOverviewApplyCalcBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md flex items-center gap-1.5">
+          <span>🚀</span> Перенести в заказ
+        </button>`
+      ];
+      sources = [`🤖 Калькулятор тарифов ICE LOGIX`, `✈️ Логистика ShopbyShop`, `⚖️ Таможенный лимит 200€`];
+    }
+    // --- Scenario 3: Currency / Math Widget ---
+    else if (mathResult) {
+      if (mathResult.type === 'cny') {
+        bodyHtml = `Экспресс-конвертация суммы в юанях по актуальному курсу с учетом официального выкупа и комиссии ICE LOGIX (20%):`;
+        bullets = [
+          `💵 <span class="font-bold text-white">Примерная стоимость под ключ:</span> <span class="text-cyan-300 font-black text-sm">≈ ${mathResult.totalEstRub.toLocaleString('ru-RU')} ₽</span> или <span class="text-white font-bold">≈ ${mathResult.totalEstByn} BYN</span> (${mathResult.cnyAmount} ¥).`,
+          `📦 <span class="font-bold text-white">Выкуп без доставки:</span> ${mathResult.subtotalByn} BYN (курс ${mathResult.cnyRateByn} BYN/CNY).`
+        ];
+        actions = [
+          `<button id="aiOverviewOpenCalcBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md">
+            Открыть калькулятор →
+          </button>`
+        ];
+        sources = [`🇨🇳 Курс ЦБ / НБРБ`, `🤝 Комиссия 20%`];
+      } else if (mathResult.type === 'currency') {
+        bodyHtml = `Конвертация валюты по официальному курсу:`;
+        bullets = [
+          `💵 <span class="font-bold text-white">${mathResult.amount} ${mathResult.currency}</span> = <span class="text-cyan-300 font-bold">≈ ${mathResult.bynEquivalent} BYN</span> (или ≈ ${mathResult.rubEquivalent.toLocaleString('ru-RU')} ₽).`
+        ];
+        sources = [`🏦 Официальный курс валют`];
+      } else if (mathResult.type === 'math') {
+        bodyHtml = `Результат арифметического расчета:`;
+        bullets = [
+          `🔢 <span class="font-mono text-white/80">${mathResult.expression}</span> = <span class="text-cyan-300 font-black text-lg font-mono">${mathResult.result}</span>`
+        ];
+        sources = [`⚡ Встроенный калькулятор`];
+      }
+    }
+    // --- Scenario 4: User Profile Intent (Balance or Saved Cards or Delivery Address) ---
+    else if (profileMatch) {
+      if (profileMatch.type === 'balance') {
+        bodyHtml = `Здравствуйте, ${userCtx.userName}! На вашем персональном балансе сейчас <span class="text-cyan-300 font-black text-sm">${userCtx.balance || 0} ICE</span> (эквивалент ${userCtx.balance || 0} BYN).`;
+        bullets = [
+          `💡 <span class="font-bold text-white">Номинал:</span> 1 ICE = 1 BYN. Баллы можно использовать для оплаты выкупа товаров на Poizon и доставки без банковских комиссий.`,
+          `⚡ <span class="font-bold text-white">Пополнение:</span> Моментальное зачисление картами любых банков Беларуси через платежный шлюз bePaid (0% комиссии).`
+        ];
+        actions = [
+          `<button id="aiOverviewFinancesBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md">
+            Перейти в «Финансы» →
+          </button>`
+        ];
+        sources = [`👤 Ваш профиль @${userCtx.userId || 'user'}`, `💳 Платежный шлюз bePaid`];
+      } else if (profileMatch.type === 'cards') {
+        const cardCount = userCtx.cards.length;
+        bodyHtml = cardCount > 0
+          ? `К вашему профилю надежно привязано <span class="text-cyan-300 font-bold">${cardCount} ${cardCount === 1 ? 'банковская карта' : 'банковские карты'}</span> для быстрой оплаты в 1 клик.`
+          : `К вашему профилю пока не привязаны банковские карты. Сервис ICE LOGIX поддерживает карты всех 20 банков Беларуси.`;
+        bullets = [
+          `🛡️ <span class="font-bold text-white">Безопасность:</span> Данные карт не хранятся на наших серверах, а токенизируются по стандарту безопасности PCI-DSS Level 1 через шлюз bePaid.`,
+          `🇧🇾 <span class="font-bold text-white">Поддерживаемые банки:</span> Беларусбанк, Приорбанк, Альфа-Банк, МТБанк, Сбер Банк, Белинвестбанк и все остальные банки РБ (Белкарт, Visa, Mastercard, МИР).`
+        ];
+        actions = [
+          `<button id="aiOverviewManageCardsBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md">
+            ${cardCount > 0 ? 'Управление картами →' : '+ Привязать карту'}
+          </button>`
+        ];
+        sources = [`💳 Токенизация bePaid`, `🔒 Стандарт PCI-DSS`];
+      } else if (profileMatch.type === 'address') {
+        const addr = userCtx.deliveryInfo;
+        bodyHtml = addr
+          ? `Ваш текущий сохраненный адрес доставки: <span class="text-white font-bold">${addr.city || ''}, ${addr.address || addr.pvz_address || 'Пункт выдачи'}</span> (служба: ${addr.carrier || 'Европочта / СДЭК'}).`
+          : `В вашем профиле еще не сохранен адрес пункта выдачи. Вы сможете указать ближайшее отделение СДЭК или Европочты при первом оформлении заказа.`;
+        bullets = [
+          `📦 <span class="font-bold text-white">Службы выдачи:</span> Европочта (вся Беларусь), СДЭК (Беларусь и РФ), Белпочта.`,
+          `⏱️ <span class="font-bold text-white">Срок по прибытии:</span> 1–2 дня после прохождения таможенного контроля в Минске.`
+        ];
+        actions = [
+          `<button id="aiOverviewProfileBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md">
+            Открыть профиль →
+          </button>`
+        ];
+        sources = [`👤 Профиль пользователя`, `🚚 Европочта & СДЭК`];
+      }
+    }
+    // --- Scenario 5: User Orders / Tracking Inquiry ---
+    else if (qLower.includes('посылк') || qLower.includes('заказ') || qLower.includes('трек') || qLower.includes('где') || matchingOrders.length > 0) {
+      if (matchingOrders.length > 0) {
+        const topOrder = matchingOrders[0];
+        const statusTitle = formatOrderStatus(topOrder.status);
+        const orderNum = topOrder.order_number || topOrder.id?.slice(0, 8);
+        bodyHtml = `Здравствуйте, ${userCtx.userName}! По вашему запросу найден заказ <span class="text-white font-bold">#${orderNum}</span> (${topOrder.title || 'Товар с Poizon'}). Текущий этап: <span class="text-cyan-300 font-extrabold">${statusTitle}</span>.`;
+        bullets = [
+          `📍 <span class="font-bold text-white">Трек-номер:</span> ${topOrder.track_number ? `<code class="px-1.5 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[11px]">${topOrder.track_number}</code>` : '<span class="text-white/60">Формируется на складе в Китае</span>'}.`,
+          `✈️ <span class="font-bold text-white">Маршрут:</span> Транзитный склад Китая → Сортировочный хаб в Минске → Пункт выдачи (${userCtx.deliveryInfo?.city || 'Беларусь / РФ'}).`,
+          `🛡️ <span class="font-bold text-white">Страховка:</span> Посылка застрахована на 100% стоимости выкупа.`
+        ];
+        actions = [
+          `<button class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md" onclick="window.spotlightOpenOrder('${topOrder.id}')">
+            Открыть детали заказа #${orderNum} →
+          </button>`
+        ];
+        sources = [`👤 Профиль @${userCtx.userId || 'user'}`, `📦 База заказов Supabase`, `📍 Трекинг ShopbyShop`];
+      } else {
+        bodyHtml = `Здравствуйте, ${userCtx.userName}! В вашем профиле пока нет оформленных посылок. Как только вы сделаете первый заказ, здесь в режиме реального времени появится его трек-номер, видеоотчет проверки и статус перемещения.`;
+        bullets = [
+          `💡 <span class="font-bold text-white">Как сделать заказ:</span> Скопируйте ссылку на интересующую вещь в приложении Poizon и вставьте её в наш калькулятор.`,
+          `⏱️ <span class="font-bold text-white">Сроки доставки:</span> Авиадоставка 8–12 дней с момента поступления на китайский склад.`
+        ];
+        actions = [
+          `<button id="aiOverviewStartOrderBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md">
+            Оформить первый заказ →
+          </button>`
+        ];
+        sources = [`👤 Профиль пользователя`, `📦 База заказов ICE LOGIX`];
+      }
+    }
+    // --- Scenario 6: Dedicated AI Semantic Q&A Intent ---
+    else if (aiIntent && aiIntent.type === 'ai_answer') {
+      bodyHtml = `<span class="font-bold text-white text-[13px] block mb-1">${aiIntent.title}</span>${aiIntent.text}`;
+      bullets = [
+        `💡 <span class="font-bold text-white">Официальные условия:</span> ICE LOGIX работает по договору публичной оферты и является официальным зарегистрированным сервисом в Республике Беларусь.`,
+        `🤝 <span class="font-bold text-white">Гарантия качества:</span> Полная ответственность за сохранность груза и 100% оригинальность подтверждается двойной экспертизой.`
+      ];
+      if (aiIntent.actionTitle) {
+        actions = [
+          `<button id="aiOverviewSemanticActionBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md">
+            ${aiIntent.actionTitle}
+          </button>`
+        ];
+      }
+      sources = [`💡 База знаний ICE LOGIX`, `🛡️ Юридическая оферта`];
+    }
+    // --- Scenario 7: Knowledge Base FAQ Match ---
+    else if (matchingFaq.length > 0) {
+      const topFaq = matchingFaq[0];
+      bodyHtml = `<span class="font-bold text-white text-[13px] block mb-1">${topFaq.title}</span>${topFaq.summary}`;
+      bullets = [
+        `📌 <span class="font-bold text-white">Подробности:</span> ${topFaq.details}`,
+        `⏱️ <span class="font-bold text-white">Оперативность:</span> Служба заботы ICE LOGIX готова проконсультировать вас по любым нестандартным отправлениям.`
+      ];
+      actions = [
+        `<button id="aiOverviewAskSupportBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md flex items-center gap-1.5">
+          <span>🎧</span> Служба заботы 24/7
+        </button>`
+      ];
+      sources = [`💡 База знаний FAQ`, `📋 Регламент обслуживания`];
+    }
+    // --- Scenario 8: Brand & Streetwear Match ---
+    else if (matchingBrands.length > 0) {
+      const topBrand = matchingBrands[0];
+      bodyHtml = `Бренд <span class="text-white font-bold">${topBrand.name}</span> (${topBrand.category}) доступен для выкупа с китайского маркетплейса Poizon (Dewu) по ценам существенно выгоднее европейского ритейла.`;
+      bullets = [
+        `👟 <span class="font-bold text-white">Оригинальность:</span> 100% аутентичный товар с фирменными пломбами Poizon, сертификатом экспертизы и сканируемым QR-кодом.`,
+        `📏 <span class="font-bold text-white">Подбор размера:</span> Для обуви и одежды ${topBrand.name} рекомендуем ориентироваться на замеры длины стельки в сантиметрах (CM/JP) или европейский размер (EUR).`
+      ];
+      actions = [
+        `<button class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md" onclick="window.spotlightOpenBrand('${topBrand.name}')">
+          Смотреть ${topBrand.name} в каталоге →
+        </button>`
+      ];
+      sources = [`👟 Poizon Global Verified`, `🏷️ Каталог брендов`];
+    }
+    // --- Scenario 9: Size Guide / Shoes / Clothing specific queries ---
+    else if (qLower.includes('размер') || qLower.includes('стельк') || qLower.includes('сетка')) {
+      bodyHtml = `Рекомендации ИИ по подбору размера обуви и одежды на Poizon:`;
+      bullets = [
+        `👟 <span class="font-bold text-white">Обувь:</span> Ориентируйтесь на длину стопы в сантиметрах (CM / JP) или европейский размер (EUR).`,
+        `👕 <span class="font-bold text-white">Одежда:</span> В карточке каждого товара есть таблица фактических замеров изделия (длина по спине, обхват груди, рукав).`,
+        `💡 <span class="font-bold text-white">Голосование покупателей:</span> В блоке "True to size" реальные владельцы отмечают, садится вещь в размер или требует брать на полразмера больше.`
+      ];
+      actions = [
+        `<button id="aiOverviewOpenCatalogsBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md">
+          Открыть каталоги Poizon →
+        </button>`
+      ];
+      sources = [`📏 Размерная сетка Poizon`, `👟 Эксперты ICE LOGIX`];
+    }
+    // --- Scenario 10: Delivery Terms / Customs specific queries ---
+    else if (qLower.includes('доставк') || qLower.includes('срок') || qLower.includes('когда') || qLower.includes('минск') || qLower.includes('пошлин') || qLower.includes('таможн')) {
+      bodyHtml = `Сроки и таможенные правила доставки ICE LOGIX в Беларусь и РФ:`;
+      bullets = [
+        `✈️ <span class="font-bold text-white">Экспресс-авиа (ShopbyShop):</span> 8–12 дней от китайского склада до центрального хаба в Минске.`,
+        `⚖️ <span class="font-bold text-white">Таможенный лимит:</span> Беспошлинно до 200€ и 31 кг на одну посылку (при превышении — 15% от суммы превышения).`,
+        `🚚 <span class="font-bold text-white">Выдача:</span> СДЭК и Европочта по всей Беларуси и РФ (1–2 дня после выпуска с таможни).`
+      ];
+      actions = [
+        `<button id="aiOverviewOpenCalcBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md">
+          Рассчитать в калькуляторе →
+        </button>`
+      ];
+      sources = [`✈️ ShopbyShop Logistics`, `⚖️ Таможенный комитет ЕАЭС`];
+    }
+    // --- Scenario 11: General Fallback Synthesis ---
+    else {
+      bodyHtml = `По запросу «<span class="text-cyan-300 font-bold">${query}</span>» точных прямых совпадений в каталоге не обнаружено. Однако вы можете:`;
+      bullets = [
+        `🔗 <span class="font-bold text-white">Поиск по ссылке:</span> Скопируйте ссылку на интересующую вещь прямо в приложении Poizon (Dewu), Taobao или 1688 и вставьте в строку поиска.`,
+        `🎧 <span class="font-bold text-white">Помощь человека:</span> Наша Служба заботы 24/7 найдет любую модель обуви или одежды по фото или названию.`
+      ];
+      actions = [
+        `<button id="aiOverviewAskSupportBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md flex items-center gap-1.5">
+          <span>🎧</span> Спросить у оператора
+        </button>`
+      ];
+      sources = [`🤖 Персональный ИИ`, `💡 База знаний ICE LOGIX`];
+    }
+
+    return `
+      <div class="google-ai-overview-card p-4 rounded-2xl bg-gradient-to-b from-cyan-950/40 via-slate-900/90 to-slate-900/95 border-t-2 border-t-cyan-400 border-x border-b border-white/10 shadow-2xl backdrop-blur-xl space-y-3 animate-fadeIn">
+        
+        <!-- Header: Sparkle + AI Overview Badge -->
+        <div class="flex items-center justify-between pb-2.5 border-b border-white/10">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-xs shadow-md shadow-cyan-500/20">
+              ✨
+            </div>
+            <span class="text-xs font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-200 to-indigo-200">
+              AI Overview
+            </span>
+            <span class="text-[9px] px-2 py-0.5 rounded-full bg-cyan-400/15 text-cyan-300 font-bold border border-cyan-400/25">
+              Персональный ИИ
+            </span>
+          </div>
+          <span class="text-[10px] text-white/40 flex items-center gap-1 font-medium">
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            Синтезировано
+          </span>
+        </div>
+
+        <!-- Synthesized Natural Answer -->
+        <div class="text-xs text-white/90 leading-relaxed">
+          ${bodyHtml}
+        </div>
+
+        <!-- Structured Key Highlights (Bullets) -->
+        ${bullets.length > 0 ? `
+          <div class="p-3 rounded-xl bg-white/5 border border-white/5 space-y-1.5 text-[11px] text-white/80">
+            ${bullets.map(b => `<div class="leading-snug">${b}</div>`).join('')}
+          </div>
+        ` : ''}
+
+        <!-- Interactive Quick Actions (Chips) -->
+        ${actions.length > 0 ? `
+          <div class="pt-1 flex flex-wrap gap-2">
+            ${actions.join('')}
+          </div>
+        ` : ''}
+
+        <!-- Sources / Citations (Google Style) -->
+        ${sources.length > 0 ? `
+          <div class="pt-2 border-t border-white/5 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <span class="text-[10px] text-white/40 font-semibold uppercase tracking-wider flex-shrink-0">Источники:</span>
+            ${sources.map(s => `
+              <span class="flex-shrink-0 text-[10px] px-2 py-0.5 rounded-md bg-white/5 text-cyan-300/80 border border-white/5 font-medium">
+                ${s}
+              </span>
+            `).join('')}
+          </div>
+        ` : ''}
+
+      </div>
+    `;
+  }
+
+  // ============================================================
+  // RENDER SEARCH RESULTS (GOOGLE AI ARCHITECTURE)
   // ============================================================
 
   function renderSearchResults({ 
@@ -1222,272 +1535,32 @@
   }) {
     if (!contentEl) return;
 
-    const hasAnyResults = !!(
-      profileMatch ||
-      aiIntent ||
-      detectedUrl ||
-      mathResult || 
-      matchingShortcuts.length || 
-      matchingFaq.length || 
-      matchingBrands.length || 
-      matchingMarketplaces.length ||
-      matchingOrders.length || 
-      matchingProducts.length
-    );
-
-    if (!hasAnyResults) {
-      contentEl.innerHTML = `
-        <div class="text-center py-12 px-4 space-y-4 animate-fadeIn">
-          <div class="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 mx-auto flex items-center justify-center text-white/30 text-2xl">
-            🔍
-          </div>
-          <div>
-            <p class="text-white font-bold text-base">Ничего не найдено</p>
-            <p class="text-white/50 text-xs mt-1">По запросу «${query}» нет точных совпадений</p>
-          </div>
-          <div class="pt-2 flex flex-col gap-2 max-w-xs mx-auto">
-            <button id="spotlightAskManagerBtn" class="btn-primary py-2.5 px-4 text-xs font-bold rounded-xl flex items-center justify-center gap-2">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-              Спросить у службы заботы
-            </button>
-            <button id="spotlightBackHomeBtn" class="py-2.5 px-4 text-xs font-semibold text-white/60 hover:text-white rounded-xl transition">
-              Вернуться к подсказкам
-            </button>
-          </div>
-        </div>
-      `;
-
-      contentEl.querySelector('#spotlightAskManagerBtn').onclick = () => {
-        const tgLink = 'https://t.me/icelogix_support_bot';
-        if (window.Telegram?.WebApp?.openTelegramLink) {
-          window.Telegram.WebApp.openTelegramLink(tgLink);
-        } else {
-          window.open(tgLink, '_blank');
-        }
-      };
-
-      contentEl.querySelector('#spotlightBackHomeBtn').onclick = () => {
-        if (searchInputEl) searchInputEl.value = '';
-        renderSpotlightHome();
-      };
-      return;
-    }
-
     let html = `<div class="space-y-4 animate-fadeIn">`;
 
-    // ── 1. PERSONAL PROFILE MATCH (BALANCE, CARDS, ADDRESS) ──
-    if (profileMatch) {
-      if (profileMatch.type === 'balance') {
-        html += `
-          <div class="p-4 rounded-2xl bg-gradient-to-br from-cyan-950/70 via-blue-950/50 to-slate-900 border border-cyan-400/30 shadow-xl space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="text-[11px] font-black uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
-                <span>💰</span> ${profileMatch.title}
-              </span>
-              <span class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-300 font-bold">Личный счет</span>
-            </div>
-            <div class="flex items-baseline justify-between py-1">
-              <div>
-                <p class="text-3xl font-black text-white tracking-tight">${profileMatch.balance} <span class="text-cyan-400 text-xl font-bold">ICE</span></p>
-                <p class="text-xs text-white/50 mt-0.5">Эквивалент: ${profileMatch.balance} BYN (1 ICE = 1 BYN)</p>
-              </div>
-              <button id="spotlightTopUpBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md">
-                В Финансы →
-              </button>
-            </div>
-            <p class="text-[10px] text-white/40 border-t border-white/10 pt-2">
-              Баллами можно оплачивать выкуп товаров с Poizon и доставку по СНГ без комиссии.
-            </p>
-          </div>
-        `;
-      } else if (profileMatch.type === 'cards') {
-        html += `
-          <div class="p-4 rounded-2xl bg-gradient-to-br from-violet-950/60 to-slate-900 border border-violet-500/30 shadow-xl space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="text-[11px] font-black uppercase tracking-wider text-violet-300 flex items-center gap-1.5">
-                <span>💳</span> ${profileMatch.title} (${profileMatch.count})
-              </span>
-              <button id="spotlightManageCardsBtn" class="text-[11px] text-cyan-400 font-bold hover:underline">
-                Управление →
-              </button>
-            </div>
-            ${profileMatch.cards.length > 0 ? `
-              <div class="space-y-2">
-                ${profileMatch.cards.map(c => `
-                  <div class="p-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
-                    <div class="flex items-center gap-2.5">
-                      <div class="w-7 h-5 rounded bg-white/10 flex items-center justify-center text-[10px] font-mono font-bold text-white">
-                        ${c.brand === 'belkart' ? 'БЕЛ' : c.brand === 'mir' ? 'МИР' : 'CARD'}
-                      </div>
-                      <p class="text-xs text-white font-mono font-bold">•••• ${c.last4 || '****'}</p>
-                    </div>
-                    <span class="text-[10px] ${c.is_default ? 'text-cyan-400 font-bold' : 'text-white/40'}">
-                      ${c.is_default ? '★ Основная' : 'Сохраненная'}
-                    </span>
-                  </div>
-                `).join('')}
-              </div>
-            ` : `
-              <div class="p-3 rounded-xl bg-white/5 border border-white/10 text-center space-y-2">
-                <p class="text-xs text-white/60">У вас пока нет привязанных карт bePaid</p>
-                <button id="spotlightAddCardBtn" class="btn-primary py-2 px-3 text-xs font-bold rounded-xl">
-                  + Привязать карту
-                </button>
-              </div>
-            `}
-          </div>
-        `;
-      }
-    }
+    // ── TOP: GOOGLE AI OVERVIEW SYNTHESIS CARD ──
+    html += buildGoogleAiOverview({
+      query,
+      userCtx,
+      profileMatch,
+      aiIntent,
+      detectedUrl,
+      mathResult,
+      matchingOrders,
+      matchingFaq,
+      matchingBrands,
+      matchingProducts,
+      matchingMarketplaces,
+      matchingShortcuts
+    });
 
-    // ── 2. AI NATURAL LANGUAGE INTENT (COMPLEX CALCULATION OR SMART ANSWER) ──
-    if (aiIntent) {
-      if (aiIntent.type === 'complex_calc') {
-        html += `
-          <div class="p-4 rounded-2xl bg-gradient-to-br from-cyan-950/70 via-blue-950/50 to-indigo-950/40 border border-cyan-400/40 shadow-xl space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="text-[11px] font-black uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
-                <span>🤖</span> ${aiIntent.badge}
-              </span>
-              <span class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-300 font-bold border border-cyan-400/30">
-                ${aiIntent.itemName}
-              </span>
-            </div>
-            
-            <div class="flex items-baseline justify-between py-1">
-              <div>
-                <p class="text-2xl font-black text-white tracking-tight">≈ ${aiIntent.totalRub.toLocaleString('ru-RU')} ₽</p>
-                <p class="text-xs text-cyan-300 font-semibold mt-0.5">или ≈ ${aiIntent.totalByn} BYN с доставкой</p>
-              </div>
-              <button id="spotlightAiApplyBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md">
-                В заказ →
-              </button>
-            </div>
+    // ── STRUCTURED RESULTS BELOW AI OVERVIEW ──
 
-            <div class="p-2.5 rounded-xl bg-black/30 border border-white/5 text-[11px] text-white/70 space-y-1">
-              <div class="flex justify-between">
-                <span>Товар (${aiIntent.priceCny}¥ + 20% выкуп):</span>
-                <span class="text-white font-semibold">${aiIntent.buyCostByn} BYN</span>
-              </div>
-              <div class="flex justify-between">
-                <span>Авиадоставка (${aiIntent.weightKg} кг × $10):</span>
-                <span class="text-white font-semibold">${aiIntent.shippingCostByn} BYN</span>
-              </div>
-            </div>
-          </div>
-        `;
-      } else if (aiIntent.type === 'ai_answer') {
-        html += `
-          <div class="p-4 rounded-2xl bg-gradient-to-br from-indigo-950/60 via-slate-900 to-cyan-950/40 border border-cyan-500/30 shadow-xl space-y-2.5">
-            <div class="flex items-center justify-between">
-              <span class="text-[11px] font-black uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
-                <span>✨</span> ${aiIntent.badge}
-              </span>
-              <span class="text-[10px] text-white/40">Прямой ответ</span>
-            </div>
-            <h4 class="text-sm font-bold text-white">${aiIntent.title}</h4>
-            <p class="text-xs text-white/80 leading-relaxed">${aiIntent.text}</p>
-            ${aiIntent.actionTitle ? `
-              <div class="pt-1">
-                <button id="spotlightAiActionBtn" class="btn-primary py-2 px-3 text-xs font-bold rounded-xl">
-                  ${aiIntent.actionTitle}
-                </button>
-              </div>
-            ` : ''}
-          </div>
-        `;
-      }
-    }
-
-    // ── 3. DETECTED URL CARD ──
-    if (detectedUrl) {
-      html += `
-        <div class="p-4 rounded-2xl bg-gradient-to-br from-cyan-950/70 to-blue-950/50 border border-cyan-400/40 shadow-xl space-y-3">
-          <div class="flex items-center justify-between">
-            <span class="text-[11px] font-black uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
-              <span>${detectedUrl.icon}</span> Ссылка на товар распознана
-            </span>
-            <span class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-300 font-bold border border-cyan-400/30">
-              ${detectedUrl.platformBadge}
-            </span>
-          </div>
-          <div>
-            <p class="text-white text-sm font-bold">${detectedUrl.platformName}</p>
-            <p class="text-white/60 text-xs truncate font-mono mt-0.5">${detectedUrl.url}</p>
-          </div>
-          <div class="grid grid-cols-2 gap-2 pt-1 border-t border-white/10">
-            <button id="spotlightUrlCalcBtn" class="py-2.5 px-3 rounded-xl bg-cyan-400 text-black text-xs font-black hover:bg-cyan-300 transition active:scale-95 text-center">
-              Рассчитать в калькуляторе →
-            </button>
-            <button id="spotlightUrlOrderBtn" class="py-2.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition active:scale-95 text-center">
-              Оформить выкуп
-            </button>
-          </div>
-        </div>
-      `;
-    }
-
-    // ── 4. MATH / CURRENCY WIDGET ──
-    if (mathResult && !aiIntent) {
-      if (mathResult.type === 'cny') {
-        html += `
-          <div class="p-4 rounded-2xl bg-gradient-to-br from-cyan-950/60 to-blue-950/40 border border-cyan-500/30 shadow-lg">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-[11px] font-black uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
-                <span>🇨🇳</span> Экспресс-расчет стоимости
-              </span>
-              <span class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-300 font-bold">Курс онлайн</span>
-            </div>
-            <div class="flex items-baseline justify-between py-1">
-              <div>
-                <p class="text-2xl font-black text-white tracking-tight">≈ ${mathResult.totalEstRub.toLocaleString('ru-RU')} ₽</p>
-                <p class="text-xs text-cyan-300 font-semibold mt-0.5">или ≈ ${mathResult.totalEstByn} BYN (${mathResult.cnyAmount} ¥)</p>
-              </div>
-              <button id="spotlightOpenCalcBtn" class="px-3 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md">
-                В калькулятор →
-              </button>
-            </div>
-            <p class="text-[10px] text-white/50 mt-2 border-t border-white/10 pt-2 leading-relaxed">
-              Включает выкуп товара (${mathResult.cnyAmount}¥), комиссию сервиса 20% и среднюю доставку в СНГ.
-            </p>
-          </div>
-        `;
-      } else if (mathResult.type === 'currency') {
-        html += `
-          <div class="p-4 rounded-2xl bg-white/5 border border-white/15 shadow-lg space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-[11px] font-bold uppercase tracking-wider text-cyan-400">Конвертер валют</span>
-              <span class="text-[10px] text-white/40">Официальный курс</span>
-            </div>
-            <div class="flex items-baseline justify-between">
-              <div>
-                <p class="text-xl font-black text-white">${mathResult.amount} ${mathResult.currency} = ≈ ${mathResult.bynEquivalent} BYN</p>
-                <p class="text-xs text-white/50 mt-0.5">или ≈ ${mathResult.rubEquivalent.toLocaleString('ru-RU')} ₽ (RUB)</p>
-              </div>
-            </div>
-          </div>
-        `;
-      } else if (mathResult.type === 'math') {
-        html += `
-          <div class="p-3.5 rounded-2xl bg-white/5 border border-white/15 flex items-center justify-between">
-            <div>
-              <p class="text-[10px] text-white/40 uppercase font-bold tracking-wide">Быстрый счет</p>
-              <p class="text-base text-white/70 font-mono">${mathResult.expression} =</p>
-            </div>
-            <p class="text-2xl font-black text-cyan-400 font-mono">${mathResult.result}</p>
-          </div>
-        `;
-      }
-    }
-
-    // ── 5. USER'S ISOLATED ORDERS & TRACKING ──
+    // 1. Specific User Orders & Parcels
     if (matchingOrders.length > 0) {
       html += `
         <div class="space-y-2">
           <p class="text-xs font-bold text-white/60 uppercase tracking-wide flex items-center gap-1.5">
-            <span>📦</span> Ваши заказы и посылки (${matchingOrders.length})
+            <span>📦</span> Ваши посылки (${matchingOrders.length})
           </p>
           <div class="space-y-2">
             ${matchingOrders.map(o => `
@@ -1507,6 +1580,7 @@
                       </button>
                     </div>
                   ` : ''}
+                </div>
                 <button class="px-2.5 py-1.5 rounded-xl bg-white/10 text-white text-xs font-bold hover:bg-white/20 transition flex-shrink-0">
                   Детали
                 </button>
@@ -1517,7 +1591,22 @@
       `;
     }
 
-    // ── 6. CATALOG PRODUCTS ──
+    // 2. Detected URL Preview
+    if (detectedUrl) {
+      html += `
+        <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-cyan-300 flex items-center gap-1.5">
+              <span>${detectedUrl.icon}</span> Ссылка: ${detectedUrl.platformName}
+            </span>
+            <span class="text-[9px] px-2 py-0.5 rounded bg-white/10 text-white/60">${detectedUrl.platformBadge}</span>
+          </div>
+          <p class="text-xs text-white/60 font-mono truncate">${detectedUrl.url}</p>
+        </div>
+      `;
+    }
+
+    // 3. Catalog Products
     if (matchingProducts.length > 0) {
       html += `
         <div class="space-y-2">
@@ -1542,7 +1631,7 @@
       `;
     }
 
-    // ── 7. MARKETPLACES ──
+    // 4. Marketplaces
     if (matchingMarketplaces.length > 0) {
       html += `
         <div class="space-y-2">
@@ -1572,7 +1661,7 @@
       `;
     }
 
-    // ── 8. QUICK ACTIONS & APP SHORTCUTS ──
+    // 5. Quick Navigation Shortcuts
     if (matchingShortcuts.length > 0) {
       html += `
         <div class="space-y-2">
@@ -1599,38 +1688,7 @@
       `;
     }
 
-    // ── 9. FAQ / KNOWLEDGE BASE ──
-    if (matchingFaq.length > 0) {
-      html += `
-        <div class="space-y-2">
-          <p class="text-xs font-bold text-white/60 uppercase tracking-wide flex items-center gap-1.5">
-            <span>💡</span> База знаний (${matchingFaq.length})
-          </p>
-          <div class="space-y-2.5">
-            ${matchingFaq.map(f => `
-              <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-2">
-                <div class="flex items-center justify-between">
-                  <h4 class="text-sm font-bold text-white flex items-center gap-2">
-                    ${highlightMatches(f.title, query)}
-                  </h4>
-                  <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-cyan-300">
-                    ${f.badge}
-                  </span>
-                </div>
-                <p class="text-xs text-cyan-300 font-semibold leading-relaxed">
-                  ${f.summary}
-                </p>
-                <p class="text-xs text-white/60 leading-relaxed border-t border-white/5 pt-1.5">
-                  ${f.details}
-                </p>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    }
-
-    // ── 10. BRANDS ──
+    // 6. Popular Brands
     if (matchingBrands.length > 0) {
       html += `
         <div class="space-y-2">
@@ -1655,97 +1713,142 @@
     html += `</div>`;
     contentEl.innerHTML = html;
 
-    // Attach Profile Actions
-    const topUpBtn = contentEl.querySelector('#spotlightTopUpBtn');
-    if (topUpBtn) {
-      topUpBtn.onclick = () => {
+    // Attach All Handlers
+    attachSearchResultsHandlers({ query, userCtx, profileMatch, aiIntent, detectedUrl, mathResult });
+  }
+
+  // ============================================================
+  // ATTACH SEARCH RESULTS HANDLERS
+  // ============================================================
+
+  function attachSearchResultsHandlers({ query, userCtx, profileMatch, aiIntent, detectedUrl, mathResult }) {
+    if (!contentEl) return;
+
+    // AI Overview Action: Calc from URL
+    const calcUrlBtn = contentEl.querySelector('#aiOverviewCalcUrlBtn');
+    if (calcUrlBtn && detectedUrl) {
+      calcUrlBtn.onclick = () => {
+        if (typeof switchTab === 'function') switchTab('calculator');
+        setTimeout(() => {
+          const urlInput = document.getElementById('itemUrl') || document.getElementById('productUrl');
+          if (urlInput) {
+            urlInput.value = detectedUrl.url;
+            urlInput.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }, 250);
+      };
+    }
+
+    // AI Overview Action: Order from URL
+    const orderUrlBtn = contentEl.querySelector('#aiOverviewOrderUrlBtn');
+    if (orderUrlBtn && detectedUrl) {
+      orderUrlBtn.onclick = () => {
+        if (typeof switchTab === 'function') switchTab('neworder');
+        setTimeout(() => {
+          const orderUrlInput = document.getElementById('orderItemUrl');
+          if (orderUrlInput) {
+            orderUrlInput.value = detectedUrl.url;
+            orderUrlInput.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }, 250);
+      };
+    }
+
+    // AI Overview Action: Apply Complex Calc to Order / Calculator
+    const applyCalcBtn = contentEl.querySelector('#aiOverviewApplyCalcBtn');
+    if (applyCalcBtn && aiIntent) {
+      applyCalcBtn.onclick = () => {
+        if (typeof switchTab === 'function') switchTab('calculator');
+        setTimeout(() => {
+          const priceInput = document.getElementById('itemPrice');
+          const weightInput = document.getElementById('itemWeight');
+          if (priceInput) {
+            priceInput.value = aiIntent.priceCny;
+            priceInput.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+          if (weightInput) {
+            weightInput.value = aiIntent.weightKg;
+            weightInput.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }, 250);
+      };
+    }
+
+    // AI Overview Action: Open Calculator
+    const openCalcBtn = contentEl.querySelector('#aiOverviewOpenCalcBtn');
+    if (openCalcBtn) {
+      openCalcBtn.onclick = () => {
+        if (typeof switchTab === 'function') switchTab('calculator');
+      };
+    }
+
+    // AI Overview Action: Finances
+    const financesBtn = contentEl.querySelector('#aiOverviewFinancesBtn');
+    if (financesBtn) {
+      financesBtn.onclick = () => {
         if (typeof showUserFinances === 'function') showUserFinances();
         else if (typeof switchTab === 'function') switchTab('finances');
       };
     }
 
-    const manageCardsBtn = contentEl.querySelector('#spotlightManageCardsBtn');
+    // AI Overview Action: Manage Cards
+    const manageCardsBtn = contentEl.querySelector('#aiOverviewManageCardsBtn');
     if (manageCardsBtn) {
       manageCardsBtn.onclick = () => {
-        if (typeof showUserFinances === 'function') {
+        if (userCtx.cards.length > 0) {
           window._financesManageMode = true;
-          showUserFinances();
-        } else if (typeof switchTab === 'function') {
-          switchTab('finances');
+          if (typeof showUserFinances === 'function') showUserFinances();
+          else if (typeof switchTab === 'function') switchTab('finances');
+        } else {
+          if (typeof window.openAddCardModal === 'function') window.openAddCardModal();
         }
       };
     }
 
-    const addCardBtn = contentEl.querySelector('#spotlightAddCardBtn');
-    if (addCardBtn) {
-      addCardBtn.onclick = () => {
-        if (typeof window.openAddCardModal === 'function') {
-          window.openAddCardModal();
-        }
+    // AI Overview Action: Profile
+    const profileBtn = contentEl.querySelector('#aiOverviewProfileBtn');
+    if (profileBtn) {
+      profileBtn.onclick = () => {
+        if (typeof switchTab === 'function') switchTab('profile');
       };
     }
 
-    // Attach AI Actions
-    if (aiIntent) {
-      if (aiIntent.type === 'complex_calc') {
-        const applyBtn = contentEl.querySelector('#spotlightAiApplyBtn');
-        if (applyBtn) {
-          applyBtn.onclick = () => {
-            if (typeof switchTab === 'function') switchTab('calculator');
-            setTimeout(() => {
-              const priceInput = document.getElementById('itemPrice');
-              const weightInput = document.getElementById('itemWeight');
-              if (priceInput) {
-                priceInput.value = aiIntent.priceCny;
-                priceInput.dispatchEvent(new Event('input', { bubbles: true }));
-              }
-              if (weightInput) {
-                weightInput.value = aiIntent.weightKg;
-                weightInput.dispatchEvent(new Event('input', { bubbles: true }));
-              }
-            }, 250);
-          };
-        }
-      } else if (aiIntent.type === 'ai_answer' && aiIntent.action) {
-        const aiActionBtn = contentEl.querySelector('#spotlightAiActionBtn');
-        if (aiActionBtn) {
-          aiActionBtn.onclick = aiIntent.action;
-        }
-      }
+    // AI Overview Action: Start First Order
+    const startOrderBtn = contentEl.querySelector('#aiOverviewStartOrderBtn');
+    if (startOrderBtn) {
+      startOrderBtn.onclick = () => {
+        if (typeof switchTab === 'function') switchTab('neworder');
+      };
     }
 
-    // Attach actions for URL card
-    if (detectedUrl) {
-      const urlCalcBtn = contentEl.querySelector('#spotlightUrlCalcBtn');
-      if (urlCalcBtn) {
-        urlCalcBtn.onclick = () => {
-          if (typeof switchTab === 'function') switchTab('calculator');
-          setTimeout(() => {
-            const urlInput = document.getElementById('itemUrl') || document.getElementById('productUrl');
-            if (urlInput) {
-              urlInput.value = detectedUrl.url;
-              urlInput.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-          }, 250);
-        };
-      }
-
-      const urlOrderBtn = contentEl.querySelector('#spotlightUrlOrderBtn');
-      if (urlOrderBtn) {
-        urlOrderBtn.onclick = () => {
-          if (typeof switchTab === 'function') switchTab('neworder');
-          setTimeout(() => {
-            const orderUrlInput = document.getElementById('orderItemUrl');
-            if (orderUrlInput) {
-              orderUrlInput.value = detectedUrl.url;
-              orderUrlInput.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-          }, 250);
-        };
-      }
+    // AI Overview Action: Semantic Action
+    const semanticBtn = contentEl.querySelector('#aiOverviewSemanticActionBtn');
+    if (semanticBtn && aiIntent?.action) {
+      semanticBtn.onclick = aiIntent.action;
     }
 
-    // Attach shortcut clicks
+    // AI Overview Action: Open Catalogs
+    const catalogsBtn = contentEl.querySelector('#aiOverviewOpenCatalogsBtn');
+    if (catalogsBtn) {
+      catalogsBtn.onclick = () => {
+        if (typeof switchTab === 'function') switchTab('catalogs');
+      };
+    }
+
+    // AI Overview Action: Ask Support
+    const supportBtns = contentEl.querySelectorAll('#aiOverviewAskSupportBtn');
+    supportBtns.forEach(btn => {
+      btn.onclick = () => {
+        const tgLink = 'https://t.me/icelogix_support_bot';
+        if (window.Telegram?.WebApp?.openTelegramLink) {
+          window.Telegram.WebApp.openTelegramLink(tgLink);
+        } else {
+          window.open(tgLink, '_blank');
+        }
+      };
+    });
+
+    // Shortcut clicks
     contentEl.querySelectorAll('.spotlight-shortcut-item').forEach(item => {
       const sid = item.getAttribute('data-shortcut-id');
       const shortcutObj = APP_SHORTCUTS.find(s => s.id === sid);
