@@ -808,6 +808,12 @@
           renderCurrentScreen();
         } else if (link === 'offer') {
           downloadAgreement();
+        } else if (link === 'contacts') {
+          if (typeof window.showContactsModal === 'function') {
+            window.showContactsModal();
+          } else {
+            tgUtil.alert('Контакты временно недоступны');
+          }
         } else {
           tgUtil.alert(footerLink.innerText + ' будет доступно позже');
         }

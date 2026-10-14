@@ -404,6 +404,213 @@ function attachFAQHandlers() {
 
 function _escHtml(s){return String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
+// ==================== МОДАЛЬНОЕ ОКНО КОНТАКТОВ И РЕКВИЗИТОВ ====================
+function showContactsModal() {
+  const existing = document.getElementById('contactsModalOverlay');
+  if (existing) {
+    existing.remove();
+  }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'contactsModalOverlay';
+  overlay.className = 'fixed inset-0 z-[150] flex items-end justify-center bg-black/70 backdrop-blur-sm opacity-0 transition-opacity duration-300';
+
+  const sheet = document.createElement('div');
+  sheet.className = 'bg-[#0f172a]/95 border-t border-cyan-500/30 rounded-t-3xl w-full max-w-lg p-5 pb-8 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl overflow-y-auto max-h-[85vh] text-left relative';
+
+  sheet.innerHTML = `
+    <!-- Индикатор свайпа -->
+    <div class="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-2 cursor-pointer" id="contactsDragHandle"></div>
+
+    <!-- Заголовок -->
+    <div class="flex items-start justify-between border-b border-white/10 pb-3">
+      <div>
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <span class="text-cyan-400">📞</span> Контакты и реквизиты
+        </h3>
+        <p class="text-xs text-white/60 mt-0.5">ICE LOGIX — официальный сервис доставки</p>
+      </div>
+      <button id="closeContactsModalBtn" class="text-white/60 hover:text-white p-1 rounded-lg bg-white/5 active:scale-95 transition" title="Закрыть">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Список информационных карточек -->
+    <div class="space-y-3 pt-1">
+      <!-- 1. Служба заботы -->
+      <div class="glass-card p-3.5 rounded-2xl bg-gradient-to-br from-cyan-950/40 to-blue-950/40 border border-cyan-500/30">
+        <div class="flex items-center justify-between mb-1.5">
+          <div class="flex items-center gap-2">
+            <span class="text-base">🎧</span>
+            <span class="font-bold text-white text-sm">Служба заботы о клиентах</span>
+          </div>
+          <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+            Онлайн 10:00–21:00
+          </span>
+        </div>
+        <p class="text-xs text-white/70 leading-relaxed mb-3">
+          Вопросы по заказам, трек-номерам, подбору размера, выкупу и оплате.
+        </p>
+        <button id="contactsTgSupportBtn" class="btn-primary w-full py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/10">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.458c.538-.196 1.006.128.832.967z"/>
+          </svg>
+          Написать в @icelogix_support_bot
+        </button>
+      </div>
+
+      <!-- 2. Юридические данные -->
+      <div class="glass-card p-3.5 rounded-2xl bg-white/5 border border-white/10">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-base">⚖️</span>
+          <span class="font-bold text-white text-sm">Юридические данные</span>
+        </div>
+        <div class="space-y-2 text-xs">
+          <div class="flex items-center justify-between py-1 border-b border-white/5">
+            <span class="text-white/60">Наименование:</span>
+            <span class="text-white font-medium text-right">ИП Иванов И.И.</span>
+          </div>
+          <div class="flex items-center justify-between py-1 border-b border-white/5">
+            <span class="text-white/60">УНП:</span>
+            <div class="flex items-center gap-2">
+              <span class="font-mono text-cyan-300 font-bold">123456789</span>
+              <button class="contacts-copy-btn text-[11px] text-cyan-400 hover:text-cyan-300 bg-cyan-400/10 px-2 py-0.5 rounded active:scale-95 transition" data-copy="123456789">
+                Копировать
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center justify-between py-1 border-b border-white/5">
+            <span class="text-white/60">Юр. адрес:</span>
+            <span class="text-white/90 text-right">Беларусь, г. Несвиж / Минск</span>
+          </div>
+          <div class="flex items-center justify-between py-1">
+            <span class="text-white/60">Email:</span>
+            <div class="flex items-center gap-2">
+              <span class="text-white/90">support@icelogix.by</span>
+              <button class="contacts-copy-btn text-[11px] text-cyan-400 hover:text-cyan-300 bg-cyan-400/10 px-2 py-0.5 rounded active:scale-95 transition" data-copy="support@icelogix.by">
+                Копировать
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Партнерство и B2B -->
+      <div class="glass-card p-3.5 rounded-2xl bg-white/5 border border-white/10">
+        <div class="flex items-center gap-2 mb-1.5">
+          <span class="text-base">🤝</span>
+          <span class="font-bold text-white text-sm">Партнерство и B2B</span>
+        </div>
+        <p class="text-xs text-white/70 leading-relaxed mb-2">
+          Дропшиппинг, оптовые заказы, сотрудничество с брендами и блогерами.
+        </p>
+        <div class="flex items-center justify-between bg-black/20 p-2 rounded-xl border border-white/5 text-xs">
+          <span class="text-white/80">partners@icelogix.by</span>
+          <button class="contacts-copy-btn text-[11px] text-cyan-400 hover:text-cyan-300 bg-cyan-400/10 px-2.5 py-1 rounded-lg active:scale-95 transition" data-copy="partners@icelogix.by">
+            Скопировать Email
+          </button>
+        </div>
+      </div>
+
+      <!-- 4. Доставка и склады -->
+      <div class="glass-card p-3.5 rounded-2xl bg-white/5 border border-white/10">
+        <div class="flex items-center gap-2 mb-1.5">
+          <span class="text-base">📦</span>
+          <span class="font-bold text-white text-sm">Логистика и пункты выдачи</span>
+        </div>
+        <p class="text-xs text-white/70 leading-relaxed">
+          Доставка осуществляется через партнерские пункты <strong class="text-white">СДЭК</strong>, <strong class="text-white">Европочта</strong>, <strong class="text-white">Белпочта</strong> или курьером лично в руки по Беларуси и СНГ.
+        </p>
+      </div>
+    </div>
+
+    <!-- Кнопка закрытия -->
+    <div class="pt-2">
+      <button id="closeContactsModalActionBtn" class="btn-secondary w-full py-2.5 rounded-xl text-white/80 hover:text-white text-xs font-semibold border border-white/10 active:scale-95 transition">
+        Закрыть
+      </button>
+    </div>
+  `;
+
+  overlay.appendChild(sheet);
+  document.body.appendChild(overlay);
+
+  // Плавное открытие
+  requestAnimationFrame(() => {
+    overlay.classList.remove('opacity-0');
+    sheet.classList.remove('translate-y-full');
+  });
+
+  const closeModal = () => {
+    overlay.classList.add('opacity-0');
+    sheet.classList.add('translate-y-full');
+    setTimeout(() => {
+      overlay.remove();
+      if (window.tgUtil?.setBackButton) {
+        window.tgUtil.setBackButton(null);
+      }
+    }, 300);
+  };
+
+  // Обработчики закрытия
+  document.getElementById('closeContactsModalBtn')?.addEventListener('click', closeModal);
+  document.getElementById('closeContactsModalActionBtn')?.addEventListener('click', closeModal);
+  document.getElementById('contactsDragHandle')?.addEventListener('click', closeModal);
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeModal();
+  });
+
+  // Кнопка перехода в Telegram
+  document.getElementById('contactsTgSupportBtn')?.addEventListener('click', () => {
+    const tgUrl = 'https://t.me/icelogix_support_bot';
+    if (window.Telegram?.WebApp?.openTelegramLink) {
+      window.Telegram.WebApp.openTelegramLink(tgUrl);
+    } else {
+      window.open(tgUrl, '_blank');
+    }
+  });
+
+  // Кнопки копирования
+  sheet.querySelectorAll('.contacts-copy-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const text = btn.dataset.copy;
+      if (!text) return;
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+
+      if (window.tgUtil?.haptic) {
+        window.tgUtil.haptic('light');
+      }
+
+      const origText = btn.innerHTML;
+      btn.innerHTML = '✓ Скопировано';
+      btn.classList.add('text-emerald-400');
+      setTimeout(() => {
+        btn.innerHTML = origText;
+        btn.classList.remove('text-emerald-400');
+      }, 2000);
+    });
+  });
+
+  // Telegram WebApp BackButton
+  if (window.tgUtil?.setBackButton) {
+    window.tgUtil.setBackButton(closeModal);
+  }
+}
 
 // Global Exports
 if (typeof renderAboutUs === 'function') window.renderAboutUs = renderAboutUs;
@@ -422,4 +629,5 @@ if (typeof initCartSteppers === 'function') window.initCartSteppers = initCartSt
 if (typeof ensureBackButtonForSubscreen === 'function') window.ensureBackButtonForSubscreen = ensureBackButtonForSubscreen;
 if (typeof renderFAQ === 'function') window.renderFAQ = renderFAQ;
 if (typeof attachFAQHandlers === 'function') window.attachFAQHandlers = attachFAQHandlers;
+if (typeof showContactsModal === 'function') window.showContactsModal = showContactsModal;
 if (typeof _escHtml === 'function') window._escHtml = _escHtml;
