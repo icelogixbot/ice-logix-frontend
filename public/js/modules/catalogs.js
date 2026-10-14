@@ -443,16 +443,17 @@ function attachMarketplacesHandlers() {
     grid.innerHTML = filtered.map(mp => {
       let tagsHtml = '';
       const name = (mp.name || '').toLowerCase();
-      if (mp.requires_vpn || name.includes('poizon')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">Нужен VPN</span>';
-      if (name.includes('1688')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">Только опт</span>';
-      if (name.includes('taobao') || name.includes('wechat')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">Сложная рег.</span>';
+      if (mp.requires_vpn || name.includes('poizon') || name.includes('dewu')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">100% Оригинал</span>';
+      if (name.includes('taobao')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">Гипермаркет</span>';
+      if (name.includes('pinduoduo') || name.includes('пиндуодуо')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">Совместный выкуп</span>';
+      if (name.includes('goofish') || name === '95' || name.includes('95fen')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">Ресейл</span>';
+      if (name.includes('tmall') || name.includes('jd')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Официальные магазины</span>';
       
       return `
       <div class="glass-card flex gap-3 p-3 items-center page-enter">
         <div style="width: 68px; height: 68px; flex-shrink: 0; border-radius: 16px; overflow:hidden; background: var(--glass-bg-strong); display:flex; align-items:center; justify-content:center; border: 1px solid var(--glass-border-strong);" class="relative">
           ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-cover cursor-pointer" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" onclick="event.stopPropagation(); tgUtil.openLink('${mp.website_url || mp.url}')">` : ''}
           <span style="${mp.logo_url ? 'display:none;' : ''}" class="text-4xl flex items-center justify-center"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span></span>
-          ${mp.country === 'США' || mp.country === 'Япония' || mp.country === 'ОАЭ' ? '<span class="absolute bottom-0 right-0 bg-yellow-500 text-black text-[8px] font-bold px-1 rounded-tl">Скоро</span>' : ''}
         </div>
         
         <div class="flex-1 min-w-0">

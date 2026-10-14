@@ -296,8 +296,8 @@
     {
       id: 'shortcut_catalogs',
       title: 'Каталоги и маркетплейсы',
-      keywords: ['каталог', 'каталоги', 'площадки', 'магазины', 'где купить', '1688', 'zalando', 'poizon'],
-      subtitle: 'Poizon, Taobao, Zalando, 1688 и каталог готовых товаров',
+      keywords: ['каталог', 'каталоги', 'площадки', 'маркетплейсы', 'магазины', 'где купить', 'dewu', 'taobao', 'pinduoduo', 'goofish', '95'],
+      subtitle: 'Dewu, TaoBao, Pinduoduo, Goofish, 95, JD, Tmall',
       iconSvg: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
       action: () => {
         if (typeof switchTab === 'function') switchTab('catalogs');
@@ -1932,7 +1932,7 @@
     else {
       bodyHtml = `По запросу «<span class="text-cyan-300 font-bold">${query}</span>» точных прямых совпадений в каталоге не обнаружено. Однако вы можете:`;
       bullets = [
-        `🔗 <span class="font-bold text-white">Поиск по ссылке:</span> Скопируйте ссылку на интересующую вещь прямо в приложении Poizon (Dewu), Taobao или 1688 и вставьте в строку поиска.`,
+        `🔗 <span class="font-bold text-white">Поиск по ссылке:</span> Скопируйте ссылку на интересующую вещь прямо в приложении Dewu, TaoBao или Pinduoduo и вставьте в строку поиска.`,
         `🎧 <span class="font-bold text-white">Помощь человека:</span> Наша Служба заботы 24/7 найдет любую модель обуви или одежды по фото или названию.`
       ];
       actions = [

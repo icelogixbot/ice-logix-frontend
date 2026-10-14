@@ -1540,7 +1540,7 @@
             try {
               const text = await navigator.clipboard.readText();
               const cleaned = text?.trim();
-              if (cleaned && (cleaned.startsWith('http://') || cleaned.startsWith('https://') || cleaned.includes('dewu.com') || cleaned.includes('taobao.com') || cleaned.includes('1688.com') || cleaned.includes('poizon') || cleaned.includes('zalando') || cleaned.includes('vinted'))) {
+              if (cleaned && (cleaned.startsWith('http://') || cleaned.startsWith('https://') || cleaned.includes('dewu.com') || cleaned.includes('taobao.com') || cleaned.includes('tmall.com') || cleaned.includes('jd.com') || cleaned.includes('pinduoduo.com') || cleaned.includes('yangkeduo.com') || cleaned.includes('goofish.com') || cleaned.includes('95fen.com') || cleaned.includes('poizon'))) {
                 if (urlInp) {
                   urlInp.value = cleaned;
                   glassToast('Ссылка успешно вставлена!', { kind: 'success' });
