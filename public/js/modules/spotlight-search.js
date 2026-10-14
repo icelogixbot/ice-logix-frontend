@@ -367,6 +367,59 @@
   ];
 
   // ============================================================
+  // GOOGLE AI-STYLE PROMPT INSPIRATION & EXPLORATION (STEP 1)
+  // ============================================================
+
+  let activePromptCategoryId = 'orders';
+
+  const PROMPT_CATEGORIES = [
+    {
+      id: 'orders',
+      icon: '📦',
+      label: 'Заказы и профиль',
+      prompts: [
+        { title: 'Где моя посылка?', desc: 'Статус, трек-номер и местонахождение', q: 'где моя посылка' },
+        { title: 'Мой баланс и карты', desc: 'Привязанные способы оплаты и ICE баллы', q: 'мой баланс и карты' },
+        { title: 'Мой адрес доставки', desc: 'Куда направляются ваши посылки', q: 'мой адрес доставки' },
+        { title: 'История покупок', desc: 'Список всех оформленных заказов', q: 'мои заказы' }
+      ]
+    },
+    {
+      id: 'clothes',
+      icon: '👟',
+      label: 'Одежда и размеры',
+      prompts: [
+        { title: 'Таблица размеров обуви', desc: 'Сравнение EU, US, UK и сантиметров (CM)', q: 'размерная сетка кроссовок' },
+        { title: 'Как сидит Trapstar и Corteiz?', desc: 'Особенности кроя: оверсайз или в размер', q: 'как сидит Trapstar и Corteiz' },
+        { title: 'Зимние куртки и пуховики', desc: 'Arc\'teryx, The North Face, Trapstar', q: 'зимние куртки и пуховики' },
+        { title: 'Как выбрать размер на Пойзоне?', desc: 'Замеры стельки и бирка в сантиметрах', q: 'как выбрать размер на Poizon' }
+      ]
+    },
+    {
+      id: 'delivery',
+      icon: '⏱️',
+      label: 'Доставка и цены',
+      prompts: [
+        { title: 'Пуховик 850¥ вес 2 кг в Минск', desc: 'Мгновенный расчет доставки с пошлиной', q: 'пуховик 850¥ вес 2 кг в Минск' },
+        { title: 'Сроки авиа и авто доставки', desc: 'Сколько дней идет из Китая в Беларусь/РФ', q: 'сроки доставки из Китая' },
+        { title: 'Таможенный лимит 200€', desc: 'Как рассчитывается пошлина при превышении', q: 'таможенный лимит 200 евро' },
+        { title: 'Страховка груза и гарантия', desc: 'Защита от утери и повреждения при пути', q: 'страховка груза' }
+      ]
+    },
+    {
+      id: 'poizon',
+      icon: '🛍️',
+      label: 'Poizon и выкуп',
+      prompts: [
+        { title: 'Синяя или черная кнопка?', desc: 'В чем разница между тарифами Poizon', q: 'синяя или черная кнопка Poizon' },
+        { title: 'Как заказать по ссылке?', desc: 'Вставка ссылки на товар в ICE LOGIX', q: 'как заказать по ссылке Poizon' },
+        { title: 'Проверка оригинальности', desc: 'Легит-чек, сертификаты и синие пломбы', q: 'проверка оригинальности Poizon' },
+        { title: 'Комиссия ICE LOGIX 20%', desc: 'Что входит в официальную комиссию', q: 'комиссия 20% ICE LOGIX' }
+      ]
+    }
+  ];
+
+  // ============================================================
   // PAGE RENDERER (NATIVE TAB VIEW INSIDE #content)
   // ============================================================
 
@@ -515,7 +568,7 @@
   }
 
   // ============================================================
-  // EMPTY STATE / PERSONALIZED HOME SCREEN
+  // EMPTY STATE / PERSONALIZED GOOGLE AI HOME SCREEN (STEP 1)
   // ============================================================
 
   function renderSpotlightHome() {
@@ -523,140 +576,114 @@
 
     const userCtx = getUserContext();
     const history = getSearchHistory();
+    const activeCategory = PROMPT_CATEGORIES.find(c => c.id === activePromptCategoryId) || PROMPT_CATEGORIES[0];
 
     contentEl.innerHTML = `
       <div class="space-y-4 animate-fadeIn">
         
-        <!-- Personalized Welcome Banner -->
-        <div class="p-4 rounded-2xl bg-gradient-to-r from-cyan-950/50 via-slate-900 to-indigo-950/40 border border-cyan-500/25 flex items-center justify-between shadow-md">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-xl flex-shrink-0">
-              ✨
-            </div>
-            <div>
-              <p class="text-white text-xs font-bold leading-tight">
-                ${userCtx.isRegistered ? `Привет, ${userCtx.userName}! 👋` : 'Умный поиск ICE LOGIX'}
-              </p>
-              <p class="text-[11px] text-cyan-300/80 mt-0.5">
-                ${userCtx.isRegistered ? `Баланс: <span class="font-bold text-white">${userCtx.balance || 0} ICE</span> • Карт: <span class="font-bold text-white">${userCtx.cards.length}</span>` : 'ИИ готов рассчитать доставку и найти товар'}
-              </p>
-            </div>
-          </div>
-          <span class="text-[10px] px-2.5 py-1 rounded-lg bg-cyan-400/15 text-cyan-300 font-bold border border-cyan-400/30">AI Ready</span>
-        </div>
-
-        <!-- Recent Searches Block (Personal for this User) -->
+        <!-- Recent Searches Row (Compact & Clean) -->
         ${history.length > 0 ? `
-          <div class="space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-white/60 uppercase tracking-wide flex items-center gap-1.5">
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between px-0.5">
+              <span class="text-[11px] font-bold text-white/50 uppercase tracking-wider flex items-center gap-1.5">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-white/40">
                   <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                 </svg>
-                Вы недавно искали
+                Недавние запросы
               </span>
-              <button id="spotlightClearHistoryBtn" class="text-[11px] text-cyan-400/80 hover:text-cyan-300 transition">
+              <button id="spotlightClearHistoryBtn" class="text-[11px] text-cyan-400/80 hover:text-cyan-300 transition font-medium">
                 Очистить
               </button>
             </div>
-            <div class="flex flex-wrap gap-2">
+            <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1">
               ${history.map(item => `
-                <button class="spotlight-chip px-3 py-1.5 rounded-full bg-cyan-950/30 border border-cyan-500/25 text-cyan-200 hover:text-white text-xs font-medium transition active:scale-95 flex items-center gap-1.5" data-search-trigger="${item}">
-                  <span class="text-[10px] text-cyan-400/60">🕒</span>
-                  <span>${item}</span>
+                <button class="spotlight-chip flex-shrink-0 px-3 py-1.5 rounded-full bg-slate-900/80 border border-white/10 hover:border-cyan-400/40 text-white/80 hover:text-white text-xs font-medium transition active:scale-95 flex items-center gap-1.5 backdrop-blur-sm shadow-sm" data-search-trigger="${item}">
+                  <span class="text-[10px] text-cyan-400/70">🕒</span>
+                  <span class="truncate max-w-[180px]">${item}</span>
                 </button>
               `).join('')}
             </div>
           </div>
         ` : ''}
 
-        <!-- 4 Quick Action Cards (2x2 Grid) -->
-        <div class="grid grid-cols-2 gap-2.5">
-          <div class="spotlight-quick-card p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-400/40 cursor-pointer transition active:scale-[0.98]" data-search-trigger="где моя посылка">
-            <div class="w-9 h-9 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center mb-2">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-                <line x1="12" y1="22.08" x2="12" y2="12"/>
-              </svg>
-            </div>
-            <p class="text-white text-xs font-bold leading-tight">Мои посылки</p>
-            <p class="text-[11px] text-white/50 mt-0.5 leading-snug">Статусы и трек-номера</p>
+        <!-- Google AI Style Prompt Inspiration Section -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between px-0.5">
+            <span class="text-[11px] font-bold text-white/50 uppercase tracking-wider flex items-center gap-1.5">
+              <span class="text-cyan-400">✨</span> ИИ-поиск и подсказки
+            </span>
+            <span class="text-[10px] text-cyan-300 font-semibold px-2 py-0.5 rounded-full bg-cyan-400/10 border border-cyan-400/20 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+              Google AI Mode
+            </span>
           </div>
 
-          <div class="spotlight-quick-card p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-400/40 cursor-pointer transition active:scale-[0.98]" data-search-trigger="пуховик 700¥ 2 кг">
-            <div class="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center mb-2 font-black text-sm">
-              ✨
-            </div>
-            <p class="text-white text-xs font-bold leading-tight">ИИ Расчет веса</p>
-            <p class="text-[11px] text-white/50 mt-0.5 leading-snug">"Пуховик 700¥ 2 кг"</p>
+          <!-- Category Selector Tabs -->
+          <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 -mx-1 px-1">
+            ${PROMPT_CATEGORIES.map(cat => {
+              const isActive = cat.id === activeCategory.id;
+              return `
+                <button type="button" class="prompt-category-btn flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                  isActive
+                    ? 'bg-gradient-to-r from-cyan-500/25 to-blue-500/25 border border-cyan-400/50 text-cyan-200 shadow-sm shadow-cyan-500/15'
+                    : 'bg-slate-900/60 hover:bg-slate-900/90 border border-white/10 text-white/60 hover:text-white'
+                }" data-category-id="${cat.id}">
+                  <span>${cat.icon}</span>
+                  <span>${cat.label}</span>
+                </button>
+              `;
+            }).join('')}
           </div>
 
-          <div class="spotlight-quick-card p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-400/40 cursor-pointer transition active:scale-[0.98]" data-search-trigger="мои карты">
-            <div class="w-9 h-9 rounded-xl bg-violet-500/15 text-violet-400 flex items-center justify-center mb-2">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="5" width="20" height="14" rx="2"/>
-                <line x1="2" y1="10" x2="22" y2="10"/>
-              </svg>
-            </div>
-            <p class="text-white text-xs font-bold leading-tight">Мои финансы</p>
-            <p class="text-[11px] text-white/50 mt-0.5 leading-snug">Карты, баланс, купоны</p>
-          </div>
-
-          <div class="spotlight-quick-card p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-400/40 cursor-pointer transition active:scale-[0.98]" data-search-trigger="когда приедет посылка в Минск">
-            <div class="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center mb-2">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12 6 12 12 16 14"/>
-              </svg>
-            </div>
-            <p class="text-white text-xs font-bold leading-tight">Вопрос к ИИ</p>
-            <p class="text-[11px] text-white/50 mt-0.5 leading-snug">Сроки, таможня, пошлины</p>
-          </div>
-        </div>
-
-        <!-- AI Prompt Suggestions (Natural Language Chips) -->
-        <div class="space-y-2">
-          <p class="text-xs font-bold text-white/60 uppercase tracking-wide flex items-center gap-1.5">
-            <span>🤖</span> Примеры запросов для ИИ
-          </p>
-          <div class="flex flex-wrap gap-2">
-            ${[
-              { label: '📦 Где моя посылка?', q: 'где моя посылка' },
-              { label: '💳 Мои привязанные карты', q: 'мои карты' },
-              { label: '💰 Мой баланс ICE', q: 'мой баланс' },
-              { label: '🧥 Куртка 650¥ вес 1.5 кг', q: 'куртка 650¥ 1.5 кг' },
-              { label: '🇧🇾 Оплата картой Беларусбанка', q: 'оплата картой Беларусбанка' },
-              { label: '⏱️ Сроки доставки в Минск', q: 'сроки доставки в Минск' },
-              { label: '⚖️ Таможня 200€', q: 'таможня 200 евро' },
-              { label: '👟 Кроссовки Nike 450¥', q: 'кроссовки Nike 450¥' },
-              { label: '🛡️ Страховка груза', q: 'страховка груза' },
-              { label: '📏 Как подобрать размер?', q: 'как подобрать размер' }
-            ].map(tag => `
-              <button class="spotlight-chip px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white text-xs font-medium transition active:scale-95" data-search-trigger="${tag.q}">
-                ${tag.label}
-              </button>
-            `).join('')}
-          </div>
-        </div>
-
-        <!-- Popular Brands Showcase -->
-        <div class="space-y-2">
-          <p class="text-xs font-bold text-white/60 uppercase tracking-wide">Популярные бренды</p>
-          <div class="grid grid-cols-2 gap-2">
-            ${POPULAR_BRANDS.slice(0, 4).map(b => `
-              <div class="p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-400/30 flex items-center justify-between cursor-pointer transition active:scale-98" data-search-trigger="${b.name}">
-                <div>
-                  <p class="text-white text-xs font-bold">${b.name}</p>
-                  <p class="text-[10px] text-white/40">${b.category}</p>
+          <!-- Prompt Cards for Selected Category -->
+          <div class="space-y-2">
+            ${activeCategory.prompts.map(p => `
+              <div class="spotlight-prompt-item p-3 rounded-2xl bg-slate-900/70 hover:bg-slate-900/95 border border-white/10 hover:border-cyan-400/40 cursor-pointer transition-all duration-200 active:scale-[0.99] flex items-center justify-between group backdrop-blur-md shadow-sm" data-search-trigger="${p.q}">
+                <div class="flex items-center gap-3 min-w-0 pr-2">
+                  <div class="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-400/20 flex items-center justify-center text-cyan-400 group-hover:scale-105 group-hover:bg-cyan-500/20 group-hover:border-cyan-400/40 transition-all flex-shrink-0 text-sm">
+                    ${activeCategory.icon}
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-white text-xs font-bold leading-tight group-hover:text-cyan-200 transition-colors truncate">
+                      ${p.title}
+                    </p>
+                    <p class="text-[11px] text-white/45 mt-0.5 leading-snug line-clamp-1">
+                      ${p.desc}
+                    </p>
+                  </div>
                 </div>
-                <span class="text-white/30 text-xs">→</span>
+                <div class="flex items-center gap-1 flex-shrink-0 text-white/30 group-hover:text-cyan-300 transition-colors">
+                  <span class="text-[10px] font-semibold hidden group-hover:inline transition-opacity">Искать</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="group-hover:translate-x-0.5 transition-transform">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
               </div>
             `).join('')}
           </div>
         </div>
+
+        <!-- Subtle AI Footnote -->
+        <div class="pt-3 pb-1 flex items-center justify-center gap-2 text-[11px] text-white/35 text-center">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-cyan-400/70">
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+          </svg>
+          <span>Спрашивайте на человеческом языке — ИИ найдет точный ответ</span>
+        </div>
+
       </div>
     `;
+
+    // Category button click handlers
+    contentEl.querySelectorAll('.prompt-category-btn').forEach(btn => {
+      btn.onclick = () => {
+        const catId = btn.getAttribute('data-category-id');
+        if (catId && catId !== activePromptCategoryId) {
+          activePromptCategoryId = catId;
+          renderSpotlightHome();
+        }
+      };
+    });
 
     // Attach click triggers to all cards and chips
     contentEl.querySelectorAll('[data-search-trigger]').forEach(btn => {
