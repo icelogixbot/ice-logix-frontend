@@ -99,6 +99,33 @@ body::before { opacity: .12 !important; }
 .story-icon:hover { transform: translateY(-2px) !important; border-color: rgba(130,199,241,.55) !important; box-shadow: 0 10px 24px rgba(27,120,176,.22) !important; }
 .story-icon svg { color: var(--ui-blue) !important; }
 
+/* Marketplace Stories - Clean native squircle rendering */
+.marketplace-story .story-icon {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+.marketplace-story .story-icon:hover {
+  transform: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+.marketplace-story .story-icon img {
+  width: 58px !important;
+  height: 58px !important;
+  max-width: 58px !important;
+  max-height: 58px !important;
+  object-fit: contain !important;
+  border-radius: 14px !important;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45)) !important;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.18s ease !important;
+}
+.marketplace-story:active .story-icon img {
+  transform: scale(0.92) !important;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) !important;
+}
+
 .btn-primary,
 .buyNowBtn,
 .filter-chip.active {

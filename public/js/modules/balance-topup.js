@@ -1,16 +1,85 @@
 // ============================================================
 // ICE LOGIX Module: Balance Top-Up & Currency Center
 // ============================================================
-// Отдельное независимое модальное окно пополнения баланса и
-// информации о внутренней валюте ICE Coin (ICL).
-// Включает интерактивные рабочие заглушки для ЕРИП и «Оплати».
+// Встроенный экран пополнения баланса и информации о внутренней
+// валюте ICE Coin (ICL). Рендерится строго внутри #content с
+// сохранением единого шаблона: шапка (.app-header), нижнее меню
+// (.bottom-bar) и футер (ensureGlobalFooter) остаются видимыми!
+// Способы пополнения: ЕРИП, Оплати, Банковская карта онлайн bePaid.
 
 (function() {
   'use strict';
 
   let _selectedTopupAmount = 50;
   let _selectedTopupMethod = 'erip'; // По умолчанию ЕРИП как самый выгодный и безопасный способ
-  let _topupTimerInterval = null;
+
+  // Синхронное безопасное получение реального баланса
+  function getLiveUserBalance() {
+    if (typeof window.balance === 'number' && !isNaN(window.balance)) {
+      return window.balance;
+    }
+    const hb = document.getElementById('headerBalance');
+    if (hb && hb.innerText && !isNaN(parseFloat(hb.innerText))) {
+      const parsed = parseFloat(hb.innerText);
+      window.balance = parsed;
+      return parsed;
+    }
+    try {
+      const cached = localStorage.getItem('ice_cached_user');
+      if (cached) {
+        const u = JSON.parse(cached);
+        if (u && typeof u.balance === 'number') {
+          window.balance = u.balance;
+          return u.balance;
+        }
+      }
+    } catch (_) {}
+    return 0;
+  }
+
+  // Обновление баланса во всем приложении (DOM + Cache + Supabase)
+  async function applyTopupCredit(addedAmount, successMsg) {
+    const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
+    const addedIce = parseFloat(addedAmount) || 0;
+    if (addedIce <= 0) return;
+
+    if (curUserId && typeof supabaseClient !== 'undefined' && supabaseClient) {
+      try {
+        const { data: u } = await supabaseClient.from('users').select('ices_balance').eq('user_id', curUserId).single();
+        const newBal = (u?.ices_balance || 0) + addedIce;
+        await supabaseClient.from('users').update({ ices_balance: newBal }).eq('user_id', curUserId);
+      } catch (e) {
+        console.warn('Failed to update ices_balance in Supabase:', e);
+      }
+    }
+
+    const prevBal = getLiveUserBalance();
+    const nextBal = prevBal + addedIce;
+    window.balance = nextBal;
+
+    const hb = document.getElementById('headerBalance');
+    if (hb) hb.innerText = nextBal;
+
+    const tb = document.getElementById('topupCurrentBalText');
+    if (tb) tb.innerText = `${nextBal} ICE`;
+
+    const tbByn = document.getElementById('topupCurrentBalByn');
+    if (tbByn) tbByn.innerText = `(~${nextBal} BYN)`;
+
+    try {
+      const cached = localStorage.getItem('ice_cached_user');
+      if (cached) {
+        const u = JSON.parse(cached);
+        u.balance = nextBal;
+        localStorage.setItem('ice_cached_user', JSON.stringify(u));
+      }
+    } catch (_) {}
+
+    if (typeof tgUtil !== 'undefined') {
+      if (tgUtil.haptic) tgUtil.haptic('success');
+      tgUtil.alert(successMsg || `Баланс успешно пополнен на +${addedIce} ICE!`);
+    }
+  }
 
   // Генератор реалистичного SVG QR-кода для сервиса «Оплати»
   function generateOplatiQrSvg(amount, invoiceId) {
@@ -72,7 +141,7 @@
   }
 
   // ============================================================
-  // Интерактивное окно подтверждения ЕРИП (Рабочая заглушка)
+  // Интерактивное всплывающее окно подтверждения ЕРИП (Рабочая заглушка)
   // ============================================================
   window.openEripPaymentModal = function(amount, orderContext = null, onComplete = null) {
     if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
@@ -204,29 +273,15 @@
       `;
       if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('medium');
 
-      await new Promise(r => setTimeout(r, 1600));
+      await new Promise(r => setTimeout(r, 1500));
 
-      // Если это пополнение баланса, начисляем на баланс
       if (!isOrder) {
-        const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
-        const addedIce = amountVal;
-        if (curUserId && typeof supabaseClient !== 'undefined') {
-          try {
-            const { data: u } = await supabaseClient.from('users').select('ices_balance').eq('user_id', curUserId).single();
-            const newBal = (u?.ices_balance || 0) + addedIce;
-            await supabaseClient.from('users').update({ ices_balance: newBal }).eq('user_id', curUserId);
-          } catch(e) {}
+        await applyTopupCredit(amountVal, `Счёт ЕРИП подтверждён! Начислено +${amountVal} ICE на ваш баланс.`);
+      } else {
+        if (typeof tgUtil !== 'undefined') {
+          if (tgUtil.haptic) tgUtil.haptic('success');
+          tgUtil.alert('Платеж ЕРИП успешно подтверждён! Заказ принят в работу.');
         }
-        window.balance = (typeof window.balance === 'number' ? window.balance : 0) + addedIce;
-        const hb = document.getElementById('headerBalance');
-        if (hb) hb.innerText = window.balance;
-        const tb = document.getElementById('topupCurrentBalText');
-        if (tb) tb.innerText = `${window.balance} ICE`;
-      }
-
-      if (typeof tgUtil !== 'undefined') {
-        if (tgUtil.haptic) tgUtil.haptic('success');
-        tgUtil.alert(isOrder ? 'Платеж ЕРИП успешно подтверждён! Заказ принят в работу.' : `Счёт ЕРИП подтверждён! Начислено +${amountVal} ICE на ваш баланс.`);
       }
 
       if (typeof onComplete === 'function') onComplete();
@@ -235,7 +290,7 @@
   };
 
   // ============================================================
-  // Интерактивное окно сервиса «Оплати» (Рабочая заглушка)
+  // Интерактивное всплывающее окно сервиса «Оплати» (Рабочая заглушка)
   // ============================================================
   window.openOplatiPaymentModal = function(amount, orderContext = null, onComplete = null) {
     if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
@@ -340,7 +395,6 @@
     // Диплинк / кнопка приложения
     document.getElementById('openOplatiAppBtn').onclick = (e) => {
       if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('medium');
-      // В мобильной среде пытаемся вызвать диплинк
       const deepLink = `oplati://payment?order=${invoiceNum}&amount=${amountVal}`;
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
@@ -362,25 +416,12 @@
       await new Promise(r => setTimeout(r, 1400));
 
       if (!isOrder) {
-        const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
-        const addedIce = amountVal;
-        if (curUserId && typeof supabaseClient !== 'undefined') {
-          try {
-            const { data: u } = await supabaseClient.from('users').select('ices_balance').eq('user_id', curUserId).single();
-            const newBal = (u?.ices_balance || 0) + addedIce;
-            await supabaseClient.from('users').update({ ices_balance: newBal }).eq('user_id', curUserId);
-          } catch(e) {}
+        await applyTopupCredit(amountVal, `Платеж получен! Начислено +${amountVal} ICE на ваш баланс.`);
+      } else {
+        if (typeof tgUtil !== 'undefined') {
+          if (tgUtil.haptic) tgUtil.haptic('success');
+          tgUtil.alert('Платеж через «Оплати» успешно подтверждён!');
         }
-        window.balance = (typeof window.balance === 'number' ? window.balance : 0) + addedIce;
-        const hb = document.getElementById('headerBalance');
-        if (hb) hb.innerText = window.balance;
-        const tb = document.getElementById('topupCurrentBalText');
-        if (tb) tb.innerText = `${window.balance} ICE`;
-      }
-
-      if (typeof tgUtil !== 'undefined') {
-        if (tgUtil.haptic) tgUtil.haptic('success');
-        tgUtil.alert(isOrder ? 'Платеж через «Оплати» успешно подтверждён!' : `Платеж получен! Начислено +${amountVal} ICE на ваш баланс.`);
       }
 
       if (typeof onComplete === 'function') onComplete();
@@ -389,35 +430,28 @@
   };
 
   // ============================================================
-  // Главное отдельное окно «Пополнение баланса и Валюта ICE»
+  // Главный экран: Пополнение баланса и Валюта ICE (Внутри #content)
   // ============================================================
-  window.openBalanceTopupModal = function(defaultAmount = 50, onSuccess = null) {
-    if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
-
-    _selectedTopupAmount = parseFloat(defaultAmount) || 50;
-
-    // Синхронизация карт для банковского метода
+  window.renderBalanceTopupPage = async function() {
+    const curBalance = getLiveUserBalance();
     const cards = Array.isArray(window.userCards) ? window.userCards : [];
     const primaryCard = cards.find(c => c.is_default) || cards[0] || null;
-    const curBalance = typeof window.balance !== 'undefined' ? window.balance : 0;
 
-    const modal = document.createElement('div');
-    modal.className = 'full-screen-modal-overlay page-enter';
-    modal.id = 'balanceTopupModal';
+    return `
+      <div class="page-enter px-4 pb-12 max-w-md mx-auto space-y-4">
 
-    modal.innerHTML = `
-      <div class="full-screen-modal-header">
-        <button id="closeTopupModalBtn" type="button" class="global-back-btn">
-          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-          <span>Назад</span>
-        </button>
-        <div class="text-center font-bold text-sm text-white flex items-center justify-center gap-1.5">
-          <span>Пополнение баланса</span>
+        <!-- Шапка раздела с кнопкой Назад -->
+        <div class="flex items-center gap-3 mb-4 mt-2">
+          <button id="backFromTopupBtn" onclick="window.goBackGlobal()" class="global-back-btn" title="Назад">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <div>
+            <h2 class="text-xl font-bold text-white tracking-wide">Пополнение баланса</h2>
+            <p class="text-[11px] text-white/40">О валюте ICE Coin и способы пополнения</p>
+          </div>
         </div>
-        <div style="width: 48px;"></div>
-      </div>
-
-      <div class="full-screen-modal-body space-y-4 max-w-md mx-auto pb-10" id="balanceTopupBody">
 
         <!-- 1. Карточка текущего состояния баланса -->
         <div class="glass-card p-4 rounded-3xl border border-cyan-500/30 bg-gradient-to-br from-cyan-950/40 via-slate-900/80 to-slate-950 shadow-xl relative overflow-hidden">
@@ -447,7 +481,7 @@
 
           <div class="flex items-baseline gap-2 relative z-10">
             <span class="text-3xl font-black text-white font-mono tracking-tight" id="topupCurrentBalText">${curBalance} ICE</span>
-            <span class="text-xs font-bold text-white/40 font-mono">(~${curBalance} BYN)</span>
+            <span class="text-xs font-bold text-white/40 font-mono" id="topupCurrentBalByn">(~${curBalance} BYN)</span>
           </div>
         </div>
 
@@ -506,7 +540,7 @@
         <div class="glass-card p-4 rounded-3xl border border-white/10 space-y-3">
           <label class="block text-white font-bold text-xs uppercase tracking-wider flex items-center justify-between">
             <span>Сумма пополнения (BYN)</span>
-            <span class="text-[10px] font-mono text-cyan-300 normal-case">Зачисление: <b id="topupConvertedIceText">50 ICE</b></span>
+            <span class="text-[10px] font-mono text-cyan-300 normal-case">Зачисление: <b id="topupConvertedIceText">${_selectedTopupAmount} ICE</b></span>
           </label>
 
           <!-- Быстрые чипсы выбора сумм -->
@@ -516,7 +550,7 @@
                 type="button"
                 data-amount="${amt}"
                 class="topup-amount-chip py-2 px-1 rounded-xl text-xs font-mono font-bold transition active:scale-95 text-center ${
-                  amt === 50
+                  amt === _selectedTopupAmount
                     ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20'
                     : 'bg-white/5 hover:bg-white/10 text-white/70 border border-white/5'
                 }"
@@ -534,7 +568,7 @@
               min="1"
               max="50000"
               step="1"
-              value="50"
+              value="${_selectedTopupAmount}"
               placeholder="Введите сумму"
               class="w-full bg-slate-900/90 border border-white/15 focus:border-cyan-400 rounded-2xl py-3 px-4 pr-16 text-white font-mono font-bold text-base focus:outline-none transition shadow-inner"
             >
@@ -544,7 +578,7 @@
           </div>
         </div>
 
-        <!-- 4. Способы пополнения -->
+        <!-- 4. Способы пополнения (СТРОГО 3: ЕРИП, Оплати, Карта онлайн bePaid) -->
         <div class="glass-card p-4 rounded-3xl border border-white/10 space-y-3">
           <h4 class="text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2">
             <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
@@ -553,9 +587,13 @@
 
           <div class="space-y-2" id="topupMethodsGroup">
             <!-- 1. ЕРИП (Система Расчет) -->
-            <label class="topup-method-card flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer bg-cyan-500/10 border-cyan-500/50 shadow-md shadow-cyan-950/40" data-method="erip">
+            <label class="topup-method-card flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer ${
+              _selectedTopupMethod === 'erip'
+                ? 'bg-cyan-500/10 border-cyan-500/50 shadow-md shadow-cyan-950/40'
+                : 'bg-white/[0.03] border-white/10 hover:border-white/20'
+            }" data-method="erip">
               <div class="flex items-center gap-3">
-                <input type="radio" name="topupMethodRadio" value="erip" checked class="accent-cyan-400 w-4 h-4">
+                <input type="radio" name="topupMethodRadio" value="erip" ${_selectedTopupMethod === 'erip' ? 'checked' : ''} class="accent-cyan-400 w-4 h-4">
                 <div>
                   <div class="flex items-center gap-2">
                     <span class="text-xs font-bold text-white">Система «Расчет» (ЕРИП)</span>
@@ -568,9 +606,13 @@
             </label>
 
             <!-- 2. Сервис «Оплати» -->
-            <label class="topup-method-card flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer bg-white/[0.03] border-white/10 hover:border-white/20" data-method="oplati">
+            <label class="topup-method-card flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer ${
+              _selectedTopupMethod === 'oplati'
+                ? 'bg-emerald-500/15 border-emerald-500/60 shadow-md shadow-emerald-950/40'
+                : 'bg-white/[0.03] border-white/10 hover:border-white/20'
+            }" data-method="oplati">
               <div class="flex items-center gap-3">
-                <input type="radio" name="topupMethodRadio" value="oplati" class="accent-emerald-400 w-4 h-4">
+                <input type="radio" name="topupMethodRadio" value="oplati" ${_selectedTopupMethod === 'oplati' ? 'checked' : ''} class="accent-emerald-400 w-4 h-4">
                 <div>
                   <div class="flex items-center gap-2">
                     <span class="text-xs font-bold text-white">Мобильный кошелек «Оплати»</span>
@@ -583,9 +625,13 @@
             </label>
 
             <!-- 3. Банковская карта онлайн bePaid -->
-            <label class="topup-method-card flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer bg-white/[0.03] border-white/10 hover:border-white/20" data-method="card">
+            <label class="topup-method-card flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer ${
+              _selectedTopupMethod === 'card'
+                ? 'bg-cyan-500/10 border-cyan-500/50 shadow-md shadow-cyan-950/40'
+                : 'bg-white/[0.03] border-white/10 hover:border-white/20'
+            }" data-method="card">
               <div class="flex items-center gap-3">
-                <input type="radio" name="topupMethodRadio" value="card" class="accent-cyan-400 w-4 h-4">
+                <input type="radio" name="topupMethodRadio" value="card" ${_selectedTopupMethod === 'card' ? 'checked' : ''} class="accent-cyan-400 w-4 h-4">
                 <div>
                   <div class="flex items-center gap-2">
                     <span class="text-xs font-bold text-white">Банковская карта онлайн</span>
@@ -595,51 +641,6 @@
                 </div>
               </div>
               <span class="text-lg">💳</span>
-            </label>
-
-            <!-- 4. Telegram Stars -->
-            <label class="topup-method-card flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer bg-white/[0.03] border-white/10 hover:border-white/20" data-method="stars">
-              <div class="flex items-center gap-3">
-                <input type="radio" name="topupMethodRadio" value="stars" class="accent-amber-400 w-4 h-4">
-                <div>
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs font-bold text-white">Telegram Stars</span>
-                    <span class="text-[9px] font-bold text-amber-300">Внутри Telegram</span>
-                  </div>
-                  <p class="text-[10px] text-white/50 leading-tight mt-0.5">Оплата звездами баланса Telegram</p>
-                </div>
-              </div>
-              <span class="text-lg">⭐</span>
-            </label>
-
-            <!-- 5. Криптовалюта USDT -->
-            <label class="topup-method-card flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer bg-white/[0.03] border-white/10 hover:border-white/20" data-method="crypto">
-              <div class="flex items-center gap-3">
-                <input type="radio" name="topupMethodRadio" value="crypto" class="accent-purple-400 w-4 h-4">
-                <div>
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs font-bold text-white">Криптовалюта USDT</span>
-                    <span class="text-[9px] font-mono text-purple-300 font-bold">TRC-20</span>
-                  </div>
-                  <p class="text-[10px] text-white/50 leading-tight mt-0.5">Прямой крипто-перевод для крупных сумм</p>
-                </div>
-              </div>
-              <span class="text-lg">💎</span>
-            </label>
-
-            <!-- 6. СБП / Консультант -->
-            <label class="topup-method-card flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer bg-white/[0.03] border-white/10 hover:border-white/20" data-method="manager">
-              <div class="flex items-center gap-3">
-                <input type="radio" name="topupMethodRadio" value="manager" class="accent-cyan-400 w-4 h-4">
-                <div>
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs font-bold text-white">СБП / Менеджер поддержки</span>
-                    <span class="text-[9px] font-bold text-cyan-300">Банки РФ</span>
-                  </div>
-                  <p class="text-[10px] text-white/50 leading-tight mt-0.5">Перевод через СБП РФ или счет для юрлиц</p>
-                </div>
-              </div>
-              <span class="text-lg">🎧</span>
             </label>
           </div>
         </div>
@@ -651,35 +652,71 @@
             id="proceedTopupSubmitBtn"
             class="btn-primary w-full py-4 rounded-2xl font-black text-sm shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2 active:scale-95 transition"
           >
-            <span>Пополнить на 50 BYN (50 ICE)</span>
+            <span>Пополнить на ${_selectedTopupAmount} BYN (${_selectedTopupAmount} ICE)</span>
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
         </div>
 
       </div>
     `;
+  };
 
-    document.body.appendChild(modal);
+  // ============================================================
+  // Обработчики главного экрана пополнения
+  // ============================================================
+  window.attachBalanceTopupPageHandlers = function() {
+    // 1. Кнопка «Назад»
+    const backBtn = document.getElementById('backFromTopupBtn');
+    if (backBtn) {
+      backBtn.onclick = () => {
+        if (typeof window.goBackGlobal === 'function') {
+          window.goBackGlobal();
+        } else if (typeof switchTab === 'function') {
+          switchTab('profile');
+        }
+      };
+    }
 
-    const closeTopupModal = () => {
-      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
-      modal.classList.add('page-exit');
-      setTimeout(() => modal.remove(), 220);
-    };
+    // 2. Кнопка «История транзакций»
+    const historyBtn = document.getElementById('topupOpenTxHistoryBtn');
+    if (historyBtn) {
+      historyBtn.onclick = () => {
+        if (typeof window.showAllTransactions === 'function') {
+          window.showAllTransactions();
+        } else if (typeof switchTab === 'function') {
+          switchTab('history');
+        }
+      };
+    }
 
-    document.getElementById('closeTopupModalBtn').onclick = closeTopupModal;
+    // 3. Фоновая синхронизация реального баланса из базы данных Supabase
+    const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
+    if (curUserId && typeof supabaseClient !== 'undefined' && supabaseClient) {
+      supabaseClient.from('users').select('ices_balance').eq('user_id', curUserId).maybeSingle().then(({ data, error }) => {
+        if (!error && data && typeof data.ices_balance === 'number') {
+          window.balance = data.ices_balance;
+          const hb = document.getElementById('headerBalance');
+          if (hb) hb.innerText = data.ices_balance;
 
-    // Переход в историю транзакций
-    document.getElementById('topupOpenTxHistoryBtn').onclick = () => {
-      closeTopupModal();
-      if (typeof window.showAllTransactions === 'function') {
-        window.showAllTransactions();
-      } else if (typeof switchTab === 'function') {
-        switchTab('history');
-      }
-    };
+          const tb = document.getElementById('topupCurrentBalText');
+          if (tb) tb.innerText = `${data.ices_balance} ICE`;
 
-    // Обновление отображения суммы
+          const tbByn = document.getElementById('topupCurrentBalByn');
+          if (tbByn) tbByn.innerText = `(~${data.ices_balance} BYN)`;
+
+          try {
+            const cached = localStorage.getItem('ice_cached_user');
+            if (cached) {
+              const u = JSON.parse(cached);
+              u.balance = data.ices_balance;
+              localStorage.setItem('ice_cached_user', JSON.stringify(u));
+            }
+          } catch (_) {}
+        }
+      }).catch(() => {});
+    }
+
+    // 4. Управление суммой пополнения
     const customInput = document.getElementById('topupCustomAmountInput');
     const submitBtn = document.getElementById('proceedTopupSubmitBtn');
     const convertedIceText = document.getElementById('topupConvertedIceText');
@@ -693,15 +730,6 @@
         convertedIceText.innerText = `${_selectedTopupAmount} ICE`;
       }
 
-      // Обновляем текст кнопки
-      let methodLabel = '';
-      if (_selectedTopupMethod === 'erip') methodLabel = 'через ЕРИП';
-      else if (_selectedTopupMethod === 'oplati') methodLabel = 'через «Оплати»';
-      else if (_selectedTopupMethod === 'card') methodLabel = 'картой';
-      else if (_selectedTopupMethod === 'stars') methodLabel = 'звездами';
-      else if (_selectedTopupMethod === 'crypto') methodLabel = 'в USDT';
-      else if (_selectedTopupMethod === 'manager') methodLabel = 'через СБП';
-
       if (submitBtn) {
         submitBtn.innerHTML = `
           <span>Пополнить на ${_selectedTopupAmount} BYN (${_selectedTopupAmount} ICE)</span>
@@ -709,7 +737,7 @@
         `;
       }
 
-      // Чипсы
+      // Подсветка чипсов
       document.querySelectorAll('#topupChipsGrid button').forEach(chip => {
         const val = parseFloat(chip.dataset.amount);
         if (val === _selectedTopupAmount) {
@@ -728,7 +756,7 @@
       };
     });
 
-    // Слушатель поля ввода
+    // Слушатель поля ввода суммы
     if (customInput) {
       customInput.oninput = () => {
         updateTopupAmount(customInput.value);
@@ -737,7 +765,7 @@
 
     // Слушатели радиокнопок способов оплаты
     document.querySelectorAll('.topup-method-card').forEach(card => {
-      card.onclick = (e) => {
+      card.onclick = () => {
         const radio = card.querySelector('input[type="radio"]');
         if (radio) {
           radio.checked = true;
@@ -757,92 +785,75 @@
               c.className = 'topup-method-card flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer bg-white/[0.03] border-white/10 hover:border-white/20';
             }
           });
-
-          updateTopupAmount(_selectedTopupAmount);
         }
       };
     });
 
-    // Действие по кнопке «Пополнить»
-    submitBtn.onclick = async () => {
-      const amountVal = _selectedTopupAmount;
-      if (amountVal <= 0 || isNaN(amountVal)) {
-        if (typeof tgUtil !== 'undefined') tgUtil.alert('Пожалуйста, укажите корректную сумму пополнения.');
-        return;
-      }
-
-      if (_selectedTopupMethod === 'erip') {
-        // Запуск окна ЕРИП
-        closeTopupModal();
-        window.openEripPaymentModal(amountVal, null, onSuccess);
-
-      } else if (_selectedTopupMethod === 'oplati') {
-        // Запуск окна «Оплати»
-        closeTopupModal();
-        window.openOplatiPaymentModal(amountVal, null, onSuccess);
-
-      } else if (_selectedTopupMethod === 'card') {
-        // Онлайн карта
-        if (cards.length === 0) {
-          if (typeof window.openAddCardModal === 'function') {
-            window.openAddCardModal(() => {
-              if (typeof tgUtil !== 'undefined') tgUtil.alert('Карта привязана! Повторите пополнение.');
-            });
-          }
+    // 5. Обработка кнопки «Пополнить»
+    if (submitBtn) {
+      submitBtn.onclick = async () => {
+        const amountVal = _selectedTopupAmount;
+        if (amountVal <= 0 || isNaN(amountVal)) {
+          if (typeof tgUtil !== 'undefined') tgUtil.alert('Пожалуйста, укажите корректную сумму пополнения.');
           return;
         }
 
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = `
-          <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-          <span>Авторизация bePaid...</span>
-        `;
-        if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('medium');
+        if (_selectedTopupMethod === 'erip') {
+          // Запуск интерактивного счета ЕРИП
+          window.openEripPaymentModal(amountVal);
 
-        await new Promise(r => setTimeout(r, 1500));
+        } else if (_selectedTopupMethod === 'oplati') {
+          // Запуск интерактивного окна «Оплати»
+          window.openOplatiPaymentModal(amountVal);
 
-        const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
-        if (curUserId && typeof supabaseClient !== 'undefined') {
-          try {
-            const { data: u } = await supabaseClient.from('users').select('ices_balance').eq('user_id', curUserId).single();
-            const newBal = (u?.ices_balance || 0) + amountVal;
-            await supabaseClient.from('users').update({ ices_balance: newBal }).eq('user_id', curUserId);
-          } catch(e) {}
+        } else if (_selectedTopupMethod === 'card') {
+          // Оплата картой через bePaid
+          const cards = Array.isArray(window.userCards) ? window.userCards : [];
+          if (cards.length === 0) {
+            if (typeof window.openAddCardModal === 'function') {
+              window.openAddCardModal(() => {
+                if (typeof tgUtil !== 'undefined') tgUtil.alert('Карта привязана! Повторите пополнение.');
+              });
+            } else {
+              if (typeof tgUtil !== 'undefined') tgUtil.alert('Пожалуйста, добавьте карту в разделе Финансы.');
+            }
+            return;
+          }
+
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = `
+            <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <span>Авторизация bePaid...</span>
+          `;
+          if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('medium');
+
+          await new Promise(r => setTimeout(r, 1400));
+          await applyTopupCredit(amountVal, `Баланс успешно пополнен на +${amountVal} ICE с банковской карты!`);
+
+          submitBtn.disabled = false;
+          updateTopupAmount(_selectedTopupAmount);
         }
-        window.balance = (typeof window.balance === 'number' ? window.balance : 0) + amountVal;
-        const hb = document.getElementById('headerBalance');
-        if (hb) hb.innerText = window.balance;
+      };
+    }
+  };
 
-        if (typeof tgUtil !== 'undefined') {
-          if (tgUtil.haptic) tgUtil.haptic('success');
-          tgUtil.alert(`Баланс успешно пополнен на ${amountVal} ICE!`);
-        }
-        if (typeof onSuccess === 'function') onSuccess();
-        closeTopupModal();
+  // Обратная совместимость для вызова из других компонентов
+  window.openBalanceTopupModal = function(defaultAmount = 50) {
+    if (typeof defaultAmount === 'number' && defaultAmount > 0) {
+      _selectedTopupAmount = defaultAmount;
+    }
+    if (typeof switchTab === 'function') {
+      switchTab('topup');
+    }
+  };
 
-      } else if (_selectedTopupMethod === 'stars') {
-        if (typeof tgUtil !== 'undefined') {
-          tgUtil.haptic('medium');
-          tgUtil.alert(`Счёт на ${amountVal} Telegram Stars сформирован. Оплата звездами доступна через бота.`);
-        }
-
-      } else if (_selectedTopupMethod === 'crypto') {
-        navigator.clipboard?.writeText('TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE');
-        if (typeof tgUtil !== 'undefined') {
-          tgUtil.haptic('light');
-          tgUtil.alert('Адрес TRC-20 кошелька скопирован в буфер!');
-        }
-
-      } else if (_selectedTopupMethod === 'manager') {
-        const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : 'юзер');
-        const tgLink = `https://t.me/icelogix_support_bot?start=topup_${amountVal}_uid_${curUserId}`;
-        if (typeof tg !== 'undefined' && tg.openTelegramLink) {
-          tg.openTelegramLink(tgLink);
-        } else {
-          window.open(tgLink, '_blank');
-        }
-      }
-    };
+  window.openBalanceTopup = function(defaultAmount = 50) {
+    if (typeof defaultAmount === 'number' && defaultAmount > 0) {
+      _selectedTopupAmount = defaultAmount;
+    }
+    if (typeof switchTab === 'function') {
+      switchTab('topup');
+    }
   };
 
 })();

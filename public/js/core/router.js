@@ -198,6 +198,11 @@
           contentDiv.innerHTML = shadowBannerHtml + await renderSettingsPage(window._settingsInitialTab || 'account');
           if (typeof attachSettingsPageHandlers === 'function') attachSettingsPageHandlers(window._settingsInitialTab || 'account');
         }
+      } else if (currentTab === 'topup') {
+        if (typeof renderBalanceTopupPage === 'function') {
+          contentDiv.innerHTML = shadowBannerHtml + await renderBalanceTopupPage();
+          if (typeof attachBalanceTopupPageHandlers === 'function') attachBalanceTopupPageHandlers();
+        }
       } else {
         console.warn('[ICE LOGIX Router] Unknown tab:', currentTab, '— falling back to home');
         currentTab = 'home';
@@ -230,7 +235,7 @@
         window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       }
 
-      if (currentTab !== 'home' && currentTab !== 'catalogs' && currentTab !== 'reports' && currentTab !== 'reviews' && currentTab !== 'academy' && currentTab !== 'dropshipper' && currentTab !== 'products' && currentTab !== 'wishlist' && currentTab !== 'search' && currentTab !== 'notifications' && currentTab !== 'settings' && !currentSubScreen) {
+      if (currentTab !== 'home' && currentTab !== 'catalogs' && currentTab !== 'reports' && currentTab !== 'reviews' && currentTab !== 'academy' && currentTab !== 'dropshipper' && currentTab !== 'products' && currentTab !== 'wishlist' && currentTab !== 'search' && currentTab !== 'notifications' && currentTab !== 'settings' && currentTab !== 'topup' && !currentSubScreen) {
         ensureBackButton();
       }
       initCardSliders();

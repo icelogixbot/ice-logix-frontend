@@ -103,7 +103,7 @@ const DEFAULT_CHINESE_MARKETPLACES = [
     name: 'TaoBao',
     website_url: 'https://taobao.com',
     url: 'https://taobao.com',
-    logo_url: '/assets/marketplaces/taobao.svg',
+    logo_url: '/assets/marketplaces/taobao.png',
     country: 'Китай',
     description: 'Крупнейший розничный гипермаркет Китая от Alibaba. Миллионы трендовых вещей и выгодные цены.',
     categories: ['Одежда', 'Обувь', 'Аксессуары'],
@@ -116,7 +116,7 @@ const DEFAULT_CHINESE_MARKETPLACES = [
     name: 'Pinduoduo',
     website_url: 'https://mobile.yangkeduo.com',
     url: 'https://mobile.yangkeduo.com',
-    logo_url: '/assets/marketplaces/pinduoduo.svg',
+    logo_url: '/assets/marketplaces/pinduoduo.png',
     country: 'Китай',
     description: 'Платформа совместных покупок с прямыми фабричными ценами и огромным каталогом.',
     categories: ['Обувь', 'Одежда', 'Аксессуары'],
@@ -142,7 +142,7 @@ const DEFAULT_CHINESE_MARKETPLACES = [
     name: '95',
     website_url: 'https://www.95fen.com',
     url: 'https://www.95fen.com',
-    logo_url: '/assets/marketplaces/95fen.svg',
+    logo_url: '/assets/marketplaces/95fen.png',
     country: 'Китай',
     description: 'Премиальный аутлет-ресейл экосистемы Dewu с профессиональной проверкой подлинности.',
     categories: ['Обувь', 'Одежда', 'Аксессуары'],
@@ -155,7 +155,7 @@ const DEFAULT_CHINESE_MARKETPLACES = [
     name: 'JD',
     website_url: 'https://www.jd.com',
     url: 'https://www.jd.com',
-    logo_url: '/assets/marketplaces/jd.svg',
+    logo_url: '/assets/marketplaces/jd.png',
     country: 'Китай',
     description: 'Флагманский ритейлер моды, обуви и премиальной техники с официальной гарантией подлинности.',
     categories: ['Одежда', 'Обувь', 'Аксессуары'],
@@ -168,7 +168,7 @@ const DEFAULT_CHINESE_MARKETPLACES = [
     name: 'Tmall',
     website_url: 'https://www.tmall.com',
     url: 'https://www.tmall.com',
-    logo_url: '/assets/marketplaces/tmall.svg',
+    logo_url: '/assets/marketplaces/tmall.png',
     country: 'Китай',
     description: 'Официальные бутики мировых и премиальных азиатских брендов (Alibaba Group).',
     categories: ['Одежда', 'Обувь', 'Аксессуары'],
@@ -238,9 +238,9 @@ async function renderMarketplaces() {
           if (name.includes('tmall') || name.includes('jd')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Официальные магазины</span>';
           return `
           <div class="glass-card flex gap-3 p-3 items-center page-enter">
-            <div style="width: 68px; height: 68px; flex-shrink: 0; border-radius: 16px; overflow:hidden; background: var(--glass-bg-strong); display:flex; align-items:center; justify-content:center; border: 1px solid var(--glass-border-strong);" class="relative">
-              ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-cover cursor-pointer" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" onclick="event.stopPropagation(); tgUtil.openLink('${mp.website_url || mp.url}')">` : ''}
-              <span style="${mp.logo_url ? 'display:none;' : ''}" class="text-4xl flex items-center justify-center"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span></span>
+            <div class="relative flex items-center justify-center flex-shrink-0" style="width: 58px; height: 58px;">
+              ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-contain cursor-pointer transition-transform duration-200 active:scale-95" style="border-radius: 13px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.4));" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" onclick="event.stopPropagation(); tgUtil.openLink('${mp.website_url || mp.url}')">` : ''}
+              <span style="${mp.logo_url ? 'display:none;' : ''}" class="text-3xl flex items-center justify-center"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span></span>
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
@@ -451,9 +451,9 @@ function attachMarketplacesHandlers() {
       
       return `
       <div class="glass-card flex gap-3 p-3 items-center page-enter">
-        <div style="width: 68px; height: 68px; flex-shrink: 0; border-radius: 16px; overflow:hidden; background: var(--glass-bg-strong); display:flex; align-items:center; justify-content:center; border: 1px solid var(--glass-border-strong);" class="relative">
-          ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-cover cursor-pointer" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" onclick="event.stopPropagation(); tgUtil.openLink('${mp.website_url || mp.url}')">` : ''}
-          <span style="${mp.logo_url ? 'display:none;' : ''}" class="text-4xl flex items-center justify-center"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span></span>
+        <div class="relative flex items-center justify-center flex-shrink-0" style="width: 58px; height: 58px;">
+          ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-contain cursor-pointer transition-transform duration-200 active:scale-95" style="border-radius: 13px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.4));" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" onclick="event.stopPropagation(); tgUtil.openLink('${mp.website_url || mp.url}')">` : ''}
+          <span style="${mp.logo_url ? 'display:none;' : ''}" class="text-3xl flex items-center justify-center"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span></span>
         </div>
         
         <div class="flex-1 min-w-0">

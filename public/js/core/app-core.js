@@ -614,17 +614,17 @@
       const localLogos = {
         'dewu': '/assets/marketplaces/dewu.svg',
         'poizon': '/assets/marketplaces/dewu.svg',
-        'taobao': '/assets/marketplaces/taobao.svg',
-        'pinduoduo': '/assets/marketplaces/pinduoduo.svg',
-        'пиндуодуо': '/assets/marketplaces/pinduoduo.svg',
+        'taobao': '/assets/marketplaces/taobao.png',
+        'pinduoduo': '/assets/marketplaces/pinduoduo.png',
+        'пиндуодуо': '/assets/marketplaces/pinduoduo.png',
         'goofish': '/assets/marketplaces/goofish.svg',
         'xianyu': '/assets/marketplaces/goofish.svg',
         'сяньюй': '/assets/marketplaces/goofish.svg',
-        '95': '/assets/marketplaces/95fen.svg',
-        '95fen': '/assets/marketplaces/95fen.svg',
-        'jd': '/assets/marketplaces/jd.svg',
-        'jd.com': '/assets/marketplaces/jd.svg',
-        'tmall': '/assets/marketplaces/tmall.svg'
+        '95': '/assets/marketplaces/95fen.png',
+        '95fen': '/assets/marketplaces/95fen.png',
+        'jd': '/assets/marketplaces/jd.png',
+        'jd.com': '/assets/marketplaces/jd.png',
+        'tmall': '/assets/marketplaces/tmall.png'
       };
 
       return marketplaces.map(mp => {
@@ -2408,6 +2408,7 @@ let adminOrdersTotalPages = 1;
             if (_cu) {
               if (_cu.balance !== undefined) {
                 balance = _cu.balance;
+                window.balance = balance;
                 const _hb = document.getElementById('headerBalance');
                 if (_hb) _hb.innerText = balance;
               }
@@ -2812,6 +2813,7 @@ let adminOrdersTotalPages = 1;
         isRegistered = true;
         isOwner = (data.role === 'owner' || data.role === 'admin');
         balance = data.ices_balance || 0;
+        window.balance = balance;
         userReferralCode = data.referral_code;
         userLimits.dailyCount = data.daily_requests_count || 0;
         userLimits.lastDate = data.last_request_date ? new Date(data.last_request_date).toDateString() : null;
@@ -2859,6 +2861,7 @@ let adminOrdersTotalPages = 1;
         if (_hb && _hb.innerText != balance) {
           _hb.innerText = balance;
         }
+        window.balance = balance;
         if (data.settings?.theme && data.settings.theme !== window._currentAppliedTheme) {
           applyTheme(data.settings.theme);
         }
@@ -3153,7 +3156,9 @@ let adminOrdersTotalPages = 1;
     window.animateClick = animateClick;
 
     window.openBalanceTopup = function(defaultAmount = 50) {
-      if (typeof window.openBalanceTopupModal === 'function') {
+      if (typeof switchTab === 'function') {
+        switchTab('topup');
+      } else if (typeof window.openBalanceTopupModal === 'function') {
         window.openBalanceTopupModal(defaultAmount);
       }
     };
@@ -3164,8 +3169,8 @@ let adminOrdersTotalPages = 1;
         addBalBtn.onclick = (e) => {
           if (e) e.stopPropagation();
           if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
-          if (typeof window.openBalanceTopupModal === 'function') {
-            window.openBalanceTopupModal();
+          if (typeof switchTab === 'function') {
+            switchTab('topup');
           } else if (typeof window.openBalanceTopup === 'function') {
             window.openBalanceTopup();
           }
@@ -3259,8 +3264,8 @@ let adminOrdersTotalPages = 1;
         window.orderAddSubMode = null;
         window.orderAddMode = false;
       }
-      if (tabName === 'finances') {
-        try { delete _tabCache['finances:']; } catch(_) {}
+      if (tabName === 'finances' || tabName === 'topup') {
+        try { delete _tabCache[tabName + ':']; } catch(_) {}
       }
 
       // If user taps the active tab, smooth scroll to top (native Telegram/iOS tab bar pattern)
@@ -3305,7 +3310,7 @@ let adminOrdersTotalPages = 1;
 
       // Restore from HTML cache for instant screen switch (0ms delay, no flicker)
       const _ck = (tabName || '') + ':' + (subScreen || '');
-      const dynamicTabs = ['finances', 'search', 'notifications', 'settings'];
+      const dynamicTabs = ['finances', 'search', 'notifications', 'settings', 'topup'];
       if (!dynamicTabs.includes(tabName) && _tabCache[_ck] && Date.now() - _tabCache[_ck].ts < 600000) {
         const _cd = document.getElementById('content');
         if (_cd) {
