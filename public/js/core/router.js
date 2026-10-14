@@ -194,8 +194,8 @@
         }
       } else if (currentTab === 'settings') {
         if (typeof renderSettingsPage === 'function') {
-          contentDiv.innerHTML = shadowBannerHtml + await renderSettingsPage(window._settingsInitialTab || 'security');
-          if (typeof attachSettingsPageHandlers === 'function') attachSettingsPageHandlers(window._settingsInitialTab || 'security');
+          contentDiv.innerHTML = shadowBannerHtml + await renderSettingsPage(window._settingsInitialTab || 'account');
+          if (typeof attachSettingsPageHandlers === 'function') attachSettingsPageHandlers(window._settingsInitialTab || 'account');
         }
       } else {
         console.warn('[ICE LOGIX Router] Unknown tab:', currentTab, '— falling back to home');

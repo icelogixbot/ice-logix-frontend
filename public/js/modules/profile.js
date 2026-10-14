@@ -214,6 +214,15 @@
           <p class="text-xs" style="color: var(--text-muted);">${isDropshipper ? t('dropshipper_cabinet_sub', 'Управление магазином') : t('earn_with_us_sub', 'Стань партнёром ICE LOGIX')}</p>
         </div>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <button id="profileSettingsBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition border-t border-white/5" onclick="if(typeof showAppSettings==='function'){showAppSettings('account');}else if(typeof switchTab==='function'){switchTab('settings');}">
+        <span class="text-xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span></span>
+        <div class="flex-1">
+          <p class="font-semibold text-white text-sm">Настройки</p>
+          <p class="text-xs" style="color: var(--text-muted);">Аккаунт, защита и оформление</p>
+        </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
       ${isOwner ? `
       <button id="adminPanelBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition border-t border-white/5">
         <span class="text-xl"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zM5 20h14"/></svg></span></span>
@@ -225,27 +234,6 @@
       </button>
       ` : ''}
     </div>
-  </div>
-  
-  <!-- Logout & Delete Account Buttons -->
-  <div class="flex gap-3 w-full justify-center" style="max-width: 320px; margin: 0 auto;">
-    <button id="logoutBtn" class="w-1/2 py-3 px-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-        <polyline points="16 17 21 12 16 7"/>
-        <line x1="21" y1="12" x2="9" y2="12"/>
-      </svg>
-      Выйти
-    </button>
-    <button id="deleteAccountBtn" class="w-1/2 py-3 px-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5" style="background: rgba(248,113,113,0.15); border: 1px solid rgba(248,113,113,0.3); color: #F87171;">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="3 6 5 6 21 6"/>
-        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-        <line x1="10" y1="11" x2="10" y2="17"/>
-        <line x1="14" y1="11" x2="14" y2="17"/>
-      </svg>
-      Удалить аккаунт
-    </button>
   </div>
   
   ${renderFooter()}
@@ -314,86 +302,94 @@
 
 
 
+  window.logoutUser = async function() {
+    const confirmLogout = await tgUtil.confirm('Вы действительно хотите выйти из аккаунта?');
+    if (!confirmLogout) return;
+    try { await supabaseClient.auth.signOut(); } catch(e) {}
+    localStorage.setItem('ice_logged_out', 'true');
+    location.reload();
+  };
+
+  window.deleteUserAccount = async function() {
+    const confirmDelete = await tgUtil.confirm('Вы действительно хотите полностью удалить ваш аккаунт и все связанные с ним данные? Это действие необратимо.');
+    if (!confirmDelete) return;
+
+    try {
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (!user) throw new Error("Пользователь не найден");
+
+      const userEmail = user.email || '';
+      const isTelegramUser = userEmail.startsWith('tg_') && userEmail.endsWith('@icelogix.by');
+      const session = (await supabaseClient.auth.getSession()).data.session;
+      const accessToken = session?.access_token;
+
+      if (isTelegramUser) {
+        if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+        const otpRes = await fetch('https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/telegram-auth', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          },
+          body: JSON.stringify({ action: 'send-delete-otp' })
+        });
+        const otpData = await otpRes.json();
+        if (!otpData.ok) throw new Error(otpData.error || 'Не удалось отправить код подтверждения');
+
+        const code = prompt('Код подтверждения отправлен в ваш Telegram. Введите его для удаления аккаунта:');
+        if (!code) return;
+
+        const deleteRes = await fetch('https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/telegram-auth', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          },
+          body: JSON.stringify({ action: 'delete-account', otpCode: code.trim() })
+        });
+        const deleteData = await deleteRes.json();
+        if (!deleteData.ok) throw new Error(deleteData.error || 'Не удалось удалить аккаунт');
+
+      } else {
+        const pwd = prompt('Для подтверждения удаления введите пароль от вашего аккаунта:');
+        if (!pwd) return;
+
+        const deleteRes = await fetch('https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/telegram-auth', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          },
+          body: JSON.stringify({ action: 'delete-account', password: pwd })
+        });
+        const deleteData = await deleteRes.json();
+        if (!deleteData.ok) throw new Error(deleteData.error || 'Не удалось удалить аккаунт');
+      }
+
+      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
+      await supabaseClient.auth.signOut();
+      localStorage.setItem('ice_logged_out', 'true');
+      if (typeof tgUtil !== 'undefined' && tgUtil.alert) {
+        tgUtil.alert('Ваш аккаунт был успешно удален.');
+      }
+      location.reload();
+
+    } catch (err) {
+      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('error');
+      if (typeof tgUtil !== 'undefined' && tgUtil.alert) {
+        tgUtil.alert('Ошибка удаления аккаунта: ' + err.message);
+      }
+    }
+  };
+
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
-    logoutBtn.onclick = async () => {
-      const confirmLogout = await tgUtil.confirm('Вы действительно хотите выйти из аккаунта?');
-      if (!confirmLogout) return;
-      try { await supabaseClient.auth.signOut(); } catch(e) {}
-      localStorage.setItem('ice_logged_out', 'true');
-      location.reload();
-    };
+    logoutBtn.onclick = () => window.logoutUser();
   }
 
   const deleteAccountBtn = document.getElementById('deleteAccountBtn');
   if (deleteAccountBtn) {
-    deleteAccountBtn.onclick = async () => {
-      const confirmDelete = await tgUtil.confirm('Вы действительно хотите полностью удалить ваш аккаунт и все связанные с ним данные? Это действие необратимо.');
-      if (!confirmDelete) return;
-
-      try {
-        const { data: { user } } = await supabaseClient.auth.getUser();
-        if (!user) throw new Error("Пользователь не найден");
-
-        const userEmail = user.email || '';
-        const isTelegramUser = userEmail.startsWith('tg_') && userEmail.endsWith('@icelogix.by');
-        const session = (await supabaseClient.auth.getSession()).data.session;
-        const accessToken = session?.access_token;
-
-        if (isTelegramUser) {
-          tgUtil.haptic('light');
-          const otpRes = await fetch('https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/telegram-auth', {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`
-            },
-            body: JSON.stringify({ action: 'send-delete-otp' })
-          });
-          const otpData = await otpRes.json();
-          if (!otpData.ok) throw new Error(otpData.error || 'Не удалось отправить код подтверждения');
-
-          const code = prompt('Код подтверждения отправлен в ваш Telegram. Введите его для удаления аккаунта:');
-          if (!code) return;
-
-          const deleteRes = await fetch('https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/telegram-auth', {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`
-            },
-            body: JSON.stringify({ action: 'delete-account', otpCode: code.trim() })
-          });
-          const deleteData = await deleteRes.json();
-          if (!deleteData.ok) throw new Error(deleteData.error || 'Не удалось удалить аккаунт');
-
-        } else {
-          const pwd = prompt('Для подтверждения удаления введите пароль от вашего аккаунта:');
-          if (!pwd) return;
-
-          const deleteRes = await fetch('https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/telegram-auth', {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`
-            },
-            body: JSON.stringify({ action: 'delete-account', password: pwd })
-          });
-          const deleteData = await deleteRes.json();
-          if (!deleteData.ok) throw new Error(deleteData.error || 'Не удалось удалить аккаунт');
-        }
-
-        tgUtil.haptic('success');
-        await supabaseClient.auth.signOut();
-        localStorage.setItem('ice_logged_out', 'true');
-        tgUtil.alert('Ваш аккаунт был успешно удален.');
-        location.reload();
-
-      } catch (err) {
-        tgUtil.haptic('error');
-        tgUtil.alert('Ошибка удаления аккаунта: ' + err.message);
-      }
-    };
+    deleteAccountBtn.onclick = () => window.deleteUserAccount();
   }
 
   const copyBtn = document.getElementById('copyReferralLinkBtn');

@@ -3200,158 +3200,216 @@ let adminOrdersTotalPages = 1;
       } catch(e) {}
     }
 
-    function switchTab(tabName, subScreen = null) {
-      if (typeof scrollToPageTop === 'function') scrollToPageTop();
-      tgUtil.hideMainButton();
-      if (tabName !== 'neworder' && tabName !== 'new-order') {
-        window.tempOrder = null;
-        window.orderCountry = null;
-        window.orderAddSubMode = null;
-        window.orderAddMode = false;
-      }
-      if (tabName === 'finances') {
-        try { delete _tabCache['finances:']; } catch(_) {}
-      }
-
-      // If user is already on this exact tab and subscreen, only early-return if content is actually rendered
-      const _contentEl = document.getElementById('content');
-      const _hasRenderedContent = _contentEl && _contentEl.innerHTML && _contentEl.innerHTML.trim().length > 100;
-      if (currentTab === tabName && currentSubScreen === subScreen && _hasRenderedContent) {
-        scrollToPageTop();
-        return;
-      }
-
-      if (currentTab && currentTab !== tabName) previousTab = currentTab;
-      currentTab = tabName;
-      currentSubScreen = subScreen;
-      if (tabName !== 'calculator') clearBlobUrls('calc:');
-      if (tabName !== 'neworder') clearBlobUrls('order:');
-      if (tabName !== 'legitcheck') {
-        clearBlobUrls('legit:');
-        window.legitPhotos = [];
-        window.legitResult = null;
-      }
-      const currentActive = document.querySelector('.tab-item.active');
-      const targetActive = document.querySelector(`.tab-item[data-tab="${tabName}"]`);
-      if (currentActive !== targetActive) {
-        document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
-        if (targetActive) targetActive.classList.add('active');
-      }
-      tgUtil.haptic('selection');
-      
-      // Highlight header icon if active
-      const searchBtn = document.getElementById('globalSearchBtn');
-      const notifBtn = document.getElementById('notificationsBtn');
-      const settBtn = document.getElementById('settingsBtn');
-      if (searchBtn) searchBtn.classList.toggle('active-header-btn', tabName === 'search');
-      if (notifBtn) notifBtn.classList.toggle('active-header-btn', tabName === 'notifications');
-      if (settBtn) settBtn.classList.toggle('active-header-btn', tabName === 'settings');
-
-      // Restore from HTML cache for instant screen switch (0ms delay, no flicker)
-      const _ck = (tabName || '') + ':' + (subScreen || '');
-      const dynamicTabs = ['finances', 'search', 'notifications', 'settings'];
-      if (!dynamicTabs.includes(tabName) && _tabCache[_ck] && Date.now() - _tabCache[_ck].ts < 600000) {
-        const _cd = document.getElementById('content');
-        if (_cd) {
-          _cd.innerHTML = _tabCache[_ck].html;
-          scrollToPageTop();
-          if (typeof window.ensureGlobalFooter === 'function') window.ensureGlobalFooter();
-          _silentRefreshHandlers(tabName);
-          return;
-        }
-      }
-      scrollToPageTop();
-      renderCurrentScreen();
-    }
-
-    // ============================================================
-    // ICE LOGIX: Unified Global Navigation & Back Handler
-    // ============================================================
-    window.goBackGlobal = function() {
-      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
-
-      // 1. Check if any active overlay / modal is open in the DOM
-      const openOverlay = document.querySelector('.full-screen-modal-overlay, #spotlightModal:not(.opacity-0), #settingsModal, #notificationsModal, #personalDataModal, #commissionContractModal, #fortuneWheelModal, #allTransactionsModal, #reviewActionModal, #familySettingsModal, #marketplaceWhitelistModal, #recoveryCodeModal');
-      if (openOverlay) {
-        const closeBtn = openOverlay.querySelector('.full-screen-modal-header .global-back-btn, .full-screen-modal-header button, #spotlightCloseBtn, #closeSettingsModal, #closeNotifPanel, #closePersonalDataBtn, #closeContractModalBtn, #closeFortuneWheelBtn, #closeTransactionsModal, #closeReviewModalBtn, #closeFamilyModalBtn, #closeWhitelistModalBtn, #closeRecoveryModalBtn, [data-action="close"], button[id^="close"], button[id^="back"]');
-        if (closeBtn) {
-          closeBtn.click();
-        } else {
-          openOverlay.remove();
-          syncTelegramBackButton();
-        }
-        return true;
-      }
-
-      // 2. If subscreen is open
-      if (currentSubScreen) {
-        currentSubScreen = null;
-        renderCurrentScreen();
-        syncTelegramBackButton();
-        return true;
-      }
-
-      // 2b. If on Home tab inside a calculator / AI search submode
-      if (currentTab === 'home' && window._calcMode && window._calcMode !== 'menu') {
-        window._calcMode = 'menu';
-        renderCurrentScreen();
-        syncTelegramBackButton();
-        return true;
-      }
-
-      // 3. If in new-order flow
-      if (currentTab === 'neworder' || currentTab === 'new-order') {
-        if (window.orderAddMode) {
-          if (window.orderAddSubMode) {
-            window.orderAddSubMode = null;
-            window.orderLinkAnalyzed = false;
-            renderCurrentScreen();
-            syncTelegramBackButton();
-            return true;
-          }
-          if (window.orderCountry) {
-            window.orderCountry = null;
-            renderCurrentScreen();
-            syncTelegramBackButton();
-            return true;
-          }
-          if (window.tempOrder && window.tempOrder.items && window.tempOrder.items.length > 0) {
-            window.orderAddMode = false;
-            renderCurrentScreen();
-            syncTelegramBackButton();
-            return true;
-          }
-          // At root country selection with empty cart: do nothing!
-          return false;
-        }
-        // At root cart review: do nothing!
-        return false;
-      }
-
-      // 2c. If in reviews sub-screen (feed) -> return to hub
-      if (currentTab === 'reviews' && window.reviewsScreen === 'feed') {
-        window.reviewsScreen = 'hub';
-        renderCurrentScreen();
-        syncTelegramBackButton();
-        return true;
-      }
-
-      // 4. Primary root and standalone service tabs (home, calculator, order, catalogs, profile, reports, reviews, academy, promo, legitcheck)
-      const rootTabs = ['home', 'calculator', 'neworder', 'new-order', 'catalogs', 'profile', 'reports', 'reviews', 'academy', 'promo', 'legitcheck'];
-      if (!rootTabs.includes(currentTab)) {
-        if (previousTab && previousTab !== currentTab) {
-          switchTab(previousTab);
-        } else {
-          switchTab('home');
-        }
-        return true;
-      }
-
-      // Root tabs and primary service tabs are top-level destinations — no back action to home
-      return false;
-    };
-
-    // Wires Telegram's native BackButton based on current tab/subscreen.
+    // ============================================================
+    // Smooth Navigation, Scroll Restoration & Modal Exit Engine
+    // ============================================================
+    window._scrollPositions = window._scrollPositions || {};
+    window._isNavigatingBack = false;
+    window._navEpoch = window._navEpoch || 0;
+
+    window.closeModalWithAnimation = function(modal, callback) {
+      if (!modal) return;
+      if (modal.classList.contains('page-exit')) return;
+      modal.classList.add('page-exit');
+      modal.style.pointerEvents = 'none';
+      setTimeout(() => {
+        try { modal.remove(); } catch(e) {}
+        if (typeof syncTelegramBackButton === 'function') syncTelegramBackButton();
+        if (typeof callback === 'function') callback();
+      }, 200);
+    };
+
+    function renderScreenSkeleton(tabName, subScreen) {
+      return `
+        <div class="screen-skeleton">
+          <div class="flex items-center justify-between mb-2 px-1">
+            <div class="flex items-center gap-2">
+              <div class="skeleton-box" style="width: 32px; height: 32px; border-radius: 10px;"></div>
+              <div class="skeleton-box" style="width: 140px; height: 24px; border-radius: 8px;"></div>
+            </div>
+            <div class="skeleton-box" style="width: 28px; height: 28px; border-radius: 8px;"></div>
+          </div>
+          <div class="skeleton-box p-4" style="height: 100px;"></div>
+          <div class="skeleton-box p-4" style="height: 120px;"></div>
+          <div class="skeleton-box p-4" style="height: 96px;"></div>
+        </div>
+      `;
+    }
+
+    function switchTab(tabName, subScreen = null) {
+      tgUtil.hideMainButton();
+      if (tabName !== 'neworder' && tabName !== 'new-order') {
+        window.tempOrder = null;
+        window.orderCountry = null;
+        window.orderAddSubMode = null;
+        window.orderAddMode = false;
+      }
+      if (tabName === 'finances') {
+        try { delete _tabCache['finances:']; } catch(_) {}
+      }
+
+      // If user taps the active tab, smooth scroll to top (native Telegram/iOS tab bar pattern)
+      const _contentEl = document.getElementById('content');
+      const _hasRenderedContent = _contentEl && _contentEl.innerHTML && _contentEl.innerHTML.trim().length > 100;
+      if (currentTab === tabName && currentSubScreen === subScreen && _hasRenderedContent) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      // Save scroll position of current screen before leaving
+      const _prevKey = (currentTab || '') + ':' + (currentSubScreen || '');
+      if (!window._isNavigatingBack && currentTab) {
+        window._scrollPositions[_prevKey] = window.scrollY || document.documentElement.scrollTop || 0;
+      }
+
+      if (currentTab && currentTab !== tabName) previousTab = currentTab;
+      currentTab = tabName;
+      currentSubScreen = subScreen;
+      if (tabName !== 'calculator') clearBlobUrls('calc:');
+      if (tabName !== 'neworder') clearBlobUrls('order:');
+      if (tabName !== 'legitcheck') {
+        clearBlobUrls('legit:');
+        window.legitPhotos = [];
+        window.legitResult = null;
+      }
+      const currentActive = document.querySelector('.tab-item.active');
+      const targetActive = document.querySelector(`.tab-item[data-tab="${tabName}"]`);
+      if (currentActive !== targetActive) {
+        document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+        if (targetActive) targetActive.classList.add('active');
+      }
+      tgUtil.haptic('selection');
+      
+      // Highlight header icon if active
+      const searchBtn = document.getElementById('globalSearchBtn');
+      const notifBtn = document.getElementById('notificationsBtn');
+      const settBtn = document.getElementById('settingsBtn');
+      if (searchBtn) searchBtn.classList.toggle('active-header-btn', tabName === 'search');
+      if (notifBtn) notifBtn.classList.toggle('active-header-btn', tabName === 'notifications');
+      if (settBtn) settBtn.classList.toggle('active-header-btn', tabName === 'settings');
+
+      // Restore from HTML cache for instant screen switch (0ms delay, no flicker)
+      const _ck = (tabName || '') + ':' + (subScreen || '');
+      const dynamicTabs = ['finances', 'search', 'notifications', 'settings'];
+      if (!dynamicTabs.includes(tabName) && _tabCache[_ck] && Date.now() - _tabCache[_ck].ts < 600000) {
+        const _cd = document.getElementById('content');
+        if (_cd) {
+          _cd.innerHTML = _tabCache[_ck].html;
+          _cd.classList.remove('screen-fade-in');
+          void _cd.offsetWidth;
+          _cd.classList.add('screen-fade-in');
+
+          if (window._isNavigatingBack) {
+            const savedY = window._scrollPositions[_ck] || 0;
+            window.scrollTo({ top: savedY, left: 0, behavior: 'instant' });
+            window._isNavigatingBack = false;
+          } else {
+            window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+          }
+
+          if (typeof window.ensureGlobalFooter === 'function') window.ensureGlobalFooter();
+          _silentRefreshHandlers(tabName);
+          syncTelegramBackButton();
+          return;
+        }
+      }
+
+      // If not in cache and moving to a new section, mount lightweight shimmer skeleton (0ms feedback)
+      const _cd = document.getElementById('content');
+      if (_cd && !window._isNavigatingBack) {
+        _cd.innerHTML = renderScreenSkeleton(tabName, subScreen);
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      }
+
+      renderCurrentScreen();
+    }
+
+    // ============================================================
+    // ICE LOGIX: Unified Global Navigation & Back Handler
+    // ============================================================
+    window.goBackGlobal = function() {
+      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+
+      // 1. Check if any active overlay / modal is open in the DOM
+      const openOverlay = document.querySelector('.full-screen-modal-overlay, #spotlightModal:not(.opacity-0), #settingsModal, #notificationsModal, #personalDataModal, #commissionContractModal, #fortuneWheelModal, #allTransactionsModal, #reviewActionModal, #familySettingsModal, #marketplaceWhitelistModal, #recoveryCodeModal');
+      if (openOverlay) {
+        const closeBtn = openOverlay.querySelector('.full-screen-modal-header .global-back-btn, .full-screen-modal-header button, #spotlightCloseBtn, #closeSettingsModal, #closeNotifPanel, #closePersonalDataBtn, #closeContractModalBtn, #closeFortuneWheelBtn, #closeTransactionsModal, #closeReviewModalBtn, #closeFamilyModalBtn, #closeWhitelistModalBtn, #closeRecoveryModalBtn, [data-action="close"], button[id^="close"], button[id^="back"]');
+        if (closeBtn) {
+          closeBtn.click();
+        } else {
+          window.closeModalWithAnimation(openOverlay);
+        }
+        return true;
+      }
+
+      // 2. If subscreen is open
+      if (currentSubScreen) {
+        window._isNavigatingBack = true;
+        currentSubScreen = null;
+        renderCurrentScreen();
+        syncTelegramBackButton();
+        return true;
+      }
+
+      // 2b. If on Home tab inside a calculator / AI search submode
+      if (currentTab === 'home' && window._calcMode && window._calcMode !== 'menu') {
+        window._calcMode = 'menu';
+        renderCurrentScreen();
+        syncTelegramBackButton();
+        return true;
+      }
+
+      // 3. If in new-order flow
+      if (currentTab === 'neworder' || currentTab === 'new-order') {
+        if (window.orderAddMode) {
+          if (window.orderAddSubMode) {
+            window.orderAddSubMode = null;
+            window.orderLinkAnalyzed = false;
+            renderCurrentScreen();
+            syncTelegramBackButton();
+            return true;
+          }
+          if (window.orderCountry) {
+            window.orderCountry = null;
+            renderCurrentScreen();
+            syncTelegramBackButton();
+            return true;
+          }
+          if (window.tempOrder && window.tempOrder.items && window.tempOrder.items.length > 0) {
+            window.orderAddMode = false;
+            renderCurrentScreen();
+            syncTelegramBackButton();
+            return true;
+          }
+          return false;
+        }
+        return false;
+      }
+
+      // 2c. If in reviews sub-screen (feed) -> return to hub
+      if (currentTab === 'reviews' && window.reviewsScreen === 'feed') {
+        window.reviewsScreen = 'hub';
+        renderCurrentScreen();
+        syncTelegramBackButton();
+        return true;
+      }
+
+      // 4. Primary root and standalone service tabs
+      const rootTabs = ['home', 'calculator', 'neworder', 'new-order', 'catalogs', 'profile', 'reports', 'reviews', 'academy', 'promo', 'legitcheck'];
+      if (!rootTabs.includes(currentTab)) {
+        window._isNavigatingBack = true;
+        if (previousTab && previousTab !== currentTab) {
+          switchTab(previousTab);
+        } else {
+          switchTab('home');
+        }
+        return true;
+      }
+
+      return false;
+    };
+
+    // Wires Telegram's native BackButton based on current tab/subscreen.
     function syncTelegramBackButton() {
       const rootTabs = ['home', 'calculator', 'neworder', 'new-order', 'catalogs', 'profile', 'reports', 'reviews', 'academy', 'promo', 'legitcheck'];
       const isHomeSubmode = currentTab === 'home' && window._calcMode && window._calcMode !== 'menu';

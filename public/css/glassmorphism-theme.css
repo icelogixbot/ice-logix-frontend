@@ -1078,21 +1078,12 @@
     }
     .scroll-x::-webkit-scrollbar { display: none; }
 
-    /* Scroll container with fade edges to hint scrollability */
+    /* Scroll container (fade shadow removed per UI request) */
     .scroll-hint-container {
       position: relative;
     }
     .scroll-hint-container::after {
-      content: '';
-      position: absolute;
-      right: 0;
-      top: 0;
-      bottom: 8px;
-      width: 48px;
-      background: linear-gradient(to right, transparent, var(--bg-gradient-end, #1A3A5C));
-      pointer-events: none;
-      z-index: 2;
-      border-radius: 0 16px 16px 0;
+      display: none !important;
     }
     /* Scroll dots indicator */
     .scroll-dots {
@@ -1374,12 +1365,50 @@
     
     /* Page Transitions */
     .page-enter {
-      animation: pageEnter 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: pageEnter 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .page-exit {
+      animation: pageExit 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+      pointer-events: none !important;
+    }
+    .screen-fade-in {
+      animation: screenFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     
     @keyframes pageEnter {
       from { opacity: 0; transform: translateY(12px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pageExit {
+      from { opacity: 1; transform: translateY(0) scale(1); }
+      to { opacity: 0; transform: translateY(16px) scale(0.98); }
+    }
+    @keyframes screenFadeIn {
+      from { opacity: 0.6; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Screen Skeletons for Instant 0ms Route Response */
+    .screen-skeleton {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      padding-top: 4px;
+      padding-bottom: 32px;
+      animation: screenFadeIn 0.15s ease-out;
+    }
+    .skeleton-box {
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.04) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite ease-in-out;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .skeleton-bar {
+      height: 14px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.06);
     }
 
     /* Unify active scale-down for premium click response */
