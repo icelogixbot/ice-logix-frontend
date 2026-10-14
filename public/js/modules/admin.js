@@ -3371,367 +3371,82 @@ async function renderAdminOrdersList() {
 }
 
 async function renderProductsCatalog() {
-  try {
-    let query = supabaseClient.from('products').select('*', { count: 'exact' }).eq('is_active', true);
-    if (productsFilter.category !== 'all') query = query.eq('category', productsFilter.category);
-    if (productsFilter.brand !== 'all') query = query.eq('brand', productsFilter.brand);
-    if (productsFilter.sort === 'price_asc') query = query.order('price', { ascending: true });
-    else if (productsFilter.sort === 'price_desc') query = query.order('price', { ascending: false });
-    else query = query.order('created_at', { ascending: false });
+  return `
+    <div class="space-y-4 page-enter">
+      <button id="backFromProductsCatalogBtn" class="global-back-btn m-0">
+        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span>
+        Назад к каталогам
+      </button>
 
-    const from = (productsPage - 1) * 20;
-    const to = from + 19;
+      <div class="glass-card p-6 text-center flex flex-col items-center relative overflow-hidden my-3 border border-amber-500/25">
+        <div class="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-amber-500/10 blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-12 -left-12 w-40 h-40 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none"></div>
 
-    const [productsRes, userOrdersRes, userTxRes] = await Promise.all([
-      query.range(from, to),
-      userId ? supabaseClient.from('orders').select('id').eq('user_id', userId).in('status', ['paid', 'bought', 'on_sklad_cn', 'in_transit', 'in_belarus', 'delivered']).limit(1) : Promise.resolve({ data: [] }),
-      userId ? supabaseClient.from('transactions').select('id').eq('user_id', userId).limit(1) : Promise.resolve({ data: [] })
-    ]);
-
-    if (productsRes.error) throw productsRes.error;
-    const rawData = productsRes.data || [];
-    const count = productsRes.count || 0;
-    const data = preprocessProducts(rawData);
-
-    productsTotalPages = Math.ceil((count || 0) / 20);
-
-    const userOrders = userOrdersRes?.data || [];
-    const userTx = userTxRes?.data || [];
-    const isVipUnlocked = (userOrders.length > 0) || (userTx.length > 0);
-
-    const categories = [...new Set(data.map(p => p.category).filter(Boolean))];
-    const brands = [...new Set(data.map(p => p.brand).filter(Boolean))];
-
-    const activeFilters = [
-      productsFilter.category !== 'all' ? productsFilter.category : '',
-      productsFilter.brand !== 'all' ? productsFilter.brand : '',
-      productsFilter.sort !== 'new' ? (productsFilter.sort === 'price_asc' ? 'Цена <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></span>' : 'Цена <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></span>') : ''
-    ].filter(Boolean).join(', ');
-
-    return `
-      <button id="backFromProductsCatalogBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
-      
-      <!-- VIP Section Banner -->
-      ${isVipUnlocked ? `
-        <!-- Unlocked VIP Section Card -->
-        <div class="glass-card mb-5 overflow-hidden relative border border-green-500/20 bg-gradient-to-br from-slate-900 via-emerald-950/10 to-slate-900 p-4 cursor-pointer hover:scale-[1.01] transition-all" onclick="window.showVipSectionModal()">
-          <div class="absolute -right-8 -top-8 w-24 h-24 rounded-full blur-2xl" style="background: rgba(16,185,129,0.2);"></div>
-          <div class="flex items-center justify-between gap-4 relative z-10">
-            <div class="flex items-center gap-3 min-w-0">
-              <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0" style="background: linear-gradient(135deg, rgba(16,185,129,0.25), rgba(4,120,87,0.15));">
-                🔥
-              </div>
-              <div class="flex-1 min-w-0 text-left">
-                <h3 class="text-green-400 font-extrabold text-sm uppercase tracking-wider mb-0.5">🔥 VIP-Раздел открыт!</h3>
-                <p class="text-white/70 text-[10px] leading-relaxed">Вам доступны эксклюзивные товары с максимальными скидками до 70%!</p>
-              </div>
-            </div>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-green-400 flex-shrink-0">
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
-          </div>
+        <div class="w-20 h-20 rounded-3xl flex items-center justify-center mb-4 relative" style="background: linear-gradient(135deg, rgba(251,191,36,0.25), rgba(245,158,11,0.12)); border: 1px solid rgba(251,191,36,0.35);">
+          <span class="text-4xl text-amber-400">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </span>
+          <span class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-amber-500 text-black flex items-center justify-center text-xs font-black shadow-lg">
+            ⏳
+          </span>
         </div>
-      ` : `
-        <!-- Locked VIP Section Card -->
-        <div class="glass-card mb-5 overflow-hidden relative border border-yellow-500/20 bg-gradient-to-br from-slate-900 via-amber-950/10 to-slate-900 p-4 cursor-pointer hover:scale-[1.01] transition-all" onclick="tgUtil.alert('Секретный VIP-раздел заблокирован! Оформите и оплатите хотя бы один заказ, чтобы разблокировать доступ к уникальным скидкам до 70%!')">
-          <div class="absolute -right-8 -top-8 w-24 h-24 rounded-full blur-2xl" style="background: rgba(251,191,36,0.15);"></div>
-          <div class="flex items-center gap-4 relative z-10">
-            <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0 animate-pulse" style="background: linear-gradient(135deg, rgba(251,191,36,0.25), rgba(245,158,11,0.15));">
-              🔒
+
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 mb-3 tracking-wider uppercase">
+          <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+          Раздел в разработке
+        </div>
+
+        <h2 class="text-xl font-black text-white mb-2">Каталог товаров скоро откроется</h2>
+        <p class="text-sm text-white/70 max-w-sm leading-relaxed mb-6">
+          Мы формируем эксклюзивную витрину готовых оригинальных предложений от нашей команды. Скоро здесь появятся лучшие товары по суперценам с быстрой доставкой!
+        </p>
+
+        <div class="w-full space-y-2.5 max-w-sm mb-6 text-left">
+          <div class="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold text-base flex-shrink-0">🏷️</div>
+            <div class="flex-1 min-w-0">
+              <p class="text-white text-xs font-bold leading-tight">Оригинальные бренды</p>
+              <p class="text-[11px] text-white/50 mt-0.5">Кроссовки, одежда и аксессуары с лучших мировых площадок</p>
             </div>
-            <div class="flex-1 min-w-0 text-left">
-              <h3 class="text-amber-400 font-extrabold text-sm uppercase tracking-wider mb-0.5">🔒 VIP-Раздел закрыт</h3>
-              <p class="text-white/60 text-[10px] leading-relaxed">Оплатите свой первый заказ, чтобы открыть доступ к эксклюзивным VIP-товарам со скидками до 70%!</p>
+          </div>
+          <div class="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-bold text-base flex-shrink-0">⚡</div>
+            <div class="flex-1 min-w-0">
+              <p class="text-white text-xs font-bold leading-tight">Заказ в 1 клик</p>
+              <p class="text-[11px] text-white/50 mt-0.5">Фиксированная финальная стоимость без необходимости расчета</p>
+            </div>
+          </div>
+          <div class="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center font-bold text-base flex-shrink-0">🛡️</div>
+            <div class="flex-1 min-w-0">
+              <p class="text-white text-xs font-bold leading-tight">Гарантия подлинности</p>
+              <p class="text-[11px] text-white/50 mt-0.5">Каждая позиция проходит строгий Legit Check перед передачей</p>
             </div>
           </div>
         </div>
-      `}
 
-      <div class="flex items-center gap-3 mb-4">
-        <button id="openFilterModalBtn" class="btn-secondary py-1.5 px-4 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-white/20">
-          <span class="ix" style="width: 14px; height: 14px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></span> Фильтры
+        <button id="returnToCatalogsFromProductsBtn" class="btn-primary w-full max-w-sm py-3 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-600 text-white transition-all flex items-center justify-center gap-2">
+          <span class="ix" style="width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+          Вернуться к каталогам
         </button>
-        ${activeFilters ? `<p class="text-white/50 text-xs truncate flex-1">Активно: ${activeFilters}</p><button id="resetFiltersBtn" class="text-cyan-400 text-xs flex-shrink-0">Сбросить</button>` : '<p class="text-white/50 text-xs">Все товары</p>'}
       </div>
-      <div class="grid grid-cols-2 gap-2" id="productsGrid" style="margin-left: -6px; margin-right: -6px;">
-        ${data.map(p => `
-          <div class="product-card" data-product-id="${p.id}">
-            <div class="relative">
-              ${renderCardMedia(p.image_url, p.title)}
-              <span class="absolute top-2 right-2 wishlist-heart text-lg ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/60'} z-20" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
-            </div>
-            <div style="padding: 8px 8px 10px 8px; display: flex; flex-direction: column; flex: 1;">
-              <p class="text-white font-bold text-sm truncate" style="font-size: 14px; font-weight: 700; line-height: 1.2;">${p.title}</p>
-              <p class="text-cyan-400 font-bold text-xs mt-1" style="font-size: 13px;">${p.price} ${p.currency}</p>
-              <p class="text-white/50 text-[11px] truncate mt-0.5">${p.brand || ''} ${p.category || ''}</p>
-              <div class="flex gap-1.5 mt-2">
-                <button class="btn-primary addToCartBtn flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg" data-product-id="${p.id}">Корзина</button>
-                <button class="buyNowBtn flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg" data-url="${p.url}" data-price="${p.price}">Заказать</button>
-              </div>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-      <div id="catalogSentinel" class="py-6 flex justify-center">
-        ${productsPage < productsTotalPages ? '<p class="text-white/30 text-sm">Загрузка...</p>' : '<p class="text-white/30 text-sm">Все товары загружены</p>'}
-      </div>
-      ${renderFooter()}
-    `;
-  } catch (err) {
-    return '<p class="text-center mt-10 text-red-400">Ошибка загрузки товаров</p>';
-  }
+      ${typeof renderFooter === 'function' ? renderFooter() : ''}
+    </div>
+  `;
 }
 
 function attachProductsCatalogHandlers() {
-  // Init image sliders & dots for catalog cards
-  initCardSliders();
-  // Кнопка сброса фильтров в шапке
-  const resetFiltersBtn = document.getElementById('resetFiltersBtn');
-  if (resetFiltersBtn) {
-    resetFiltersBtn.onclick = () => {
-      productsFilter = { category: 'all', brand: 'all', sort: 'new' };
-      productsPage = 1;
-      renderCurrentScreen();
-    };
-  }
-
-  // Модальное окно фильтров
-  const openFilterBtn = document.getElementById('openFilterModalBtn');
-  if (openFilterBtn) {
-    openFilterBtn.onclick = async () => {
-      const { data: allP } = await supabaseClient.from('products').select('category, brand').eq('is_active', true);
-      const allCats = [...new Set(allP?.map(p => p.category).filter(Boolean) || [])];
-      const allBrands = [...new Set(allP?.map(p => p.brand).filter(Boolean) || [])];
-      
-      const modal = document.createElement('div');
-      modal.className = 'fixed inset-0 z-[120] flex items-end justify-center bg-black/60 backdrop-blur-xs transition-opacity duration-300';
-      
-      const card = document.createElement('div');
-      card.className = 'bg-[#1a2333] border-t border-white/20 rounded-t-3xl w-full max-w-md p-5 pb-8 space-y-5 transform translate-y-full transition-transform duration-300 shadow-2xl';
-      card.style.maxHeight = '80vh';
-      card.style.overflowY = 'auto';
-      
-      card.innerHTML = `
-        <div class="flex items-center justify-between border-b border-white/10 pb-3">
-          <h3 class="text-white font-bold text-base flex items-center gap-2">
-            <span class="ix" style="width:16px;height:16px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></span> Фильтры
-          </h3>
-          <button id="closeFiltersSheet" class="text-white/60 hover:text-white"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-        </div>
-
-        <div class="space-y-4">
-          <div>
-            <label class="text-white/60 text-xs mb-2 font-semibold flex items-center gap-1.5"><span class="ix" style="width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span> Категория</label>
-            <select id="mfCategory" class="btn-secondary w-full p-3 rounded-xl border border-white/10 bg-[#1e293b] text-white text-xs">
-              <option value="all">Все категории</option>
-              ${allCats.map(c => `<option value="${c}" ${productsFilter.category === c ? 'selected' : ''}>${c}</option>`).join('')}
-            </select>
-          </div>
-
-          <div>
-            <label class="text-white/60 text-xs mb-2 font-semibold flex items-center gap-1.5"><span class="ix" style="width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m16.2 7.8-2 2v-2ZM12 8v4M9.8 16.2l2-2v2Z"/></svg></span> Бренд</label>
-            <select id="mfBrand" class="btn-secondary w-full p-3 rounded-xl border border-white/10 bg-[#1e293b] text-white text-xs">
-              <option value="all">Все бренды</option>
-              ${allBrands.map(b => `<option value="${b}" ${productsFilter.brand === b ? 'selected' : ''}>${b}</option>`).join('')}
-            </select>
-          </div>
-
-          <div>
-            <label class="text-white/60 text-xs mb-2 font-semibold flex items-center gap-1.5"><span class="ix" style="width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Сортировка</label>
-            <select id="mfSort" class="btn-secondary w-full p-3 rounded-xl border border-white/10 bg-[#1e293b] text-white text-xs">
-              <option value="new" ${productsFilter.sort === 'new' ? 'selected' : ''}>Новинки</option>
-              <option value="price_asc" ${productsFilter.sort === 'price_asc' ? 'selected' : ''}>Цена: по возрастанию</option>
-              <option value="price_desc" ${productsFilter.sort === 'price_desc' ? 'selected' : ''}>Цена: по убыванию</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="flex gap-3 pt-2">
-          <button id="mfReset" class="btn-secondary flex-1 py-3 text-xs font-bold rounded-xl border border-white/20">Сбросить</button>
-          <button id="mfApply" class="btn-primary flex-1 py-3 text-xs font-bold rounded-xl bg-cyan-500 text-white">Применить</button>
-        </div>
-      `;
-
-      modal.appendChild(card);
-      document.body.appendChild(modal);
-      
-      requestAnimationFrame(() => {
-        card.classList.remove('translate-y-full');
-      });
-      
-      const closeSheet = () => {
-        card.classList.add('translate-y-full');
-        setTimeout(() => {
-          modal.remove();
-        }, 300);
-      };
-      
-      card.querySelector('#closeFiltersSheet').onclick = closeSheet;
-      modal.addEventListener('click', (e) => { if (e.target === modal) closeSheet(); });
-      
-      card.querySelector('#mfApply').onclick = () => {
-        productsFilter.category = card.querySelector('#mfCategory').value;
-        productsFilter.brand = card.querySelector('#mfBrand').value;
-        productsFilter.sort = card.querySelector('#mfSort').value;
-        productsPage = 1;
-        closeSheet();
-        renderCurrentScreen();
-      };
-      
-      card.querySelector('#mfReset').onclick = () => {
-        productsFilter = { category: 'all', brand: 'all', sort: 'new' };
-        productsPage = 1;
-        closeSheet();
-        renderCurrentScreen();
-      };
-    };
-  }
-
-  // Бесконечная прокрутка
-  const sentinel = document.getElementById('catalogSentinel');
-  if (sentinel && productsPage < productsTotalPages) {
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
-        observer.unobserve(sentinel);
-        loadMoreProducts();
-      }
-    }, { rootMargin: '150px' });
-    observer.observe(sentinel);
-  }
-
-  // Сердечки (избранное)
-  document.querySelectorAll('.wishlist-heart').forEach(heart => {
-    heart.onclick = (e) => {
-      e.stopPropagation();
-      const productId = heart.dataset.productId;
-      if (window.toggleProductWishlist) {
-        window.toggleProductWishlist(productId, heart);
-      }
-    };
-  });
-
-  // Кнопки "В корзину"
-  document.querySelectorAll('.addToCartBtn').forEach(btn => {
-    btn.onclick = (e) => {
-      e.stopPropagation();
-      const productId = btn.dataset.productId;
-      if (productId) addToCart(productId);
-    };
-  });
-
- // Кнопки "Заказать" (прямой переход)
-document.querySelectorAll('.buyNowBtn').forEach(btn => {
-  btn.removeEventListener('click', btn._buyHandler);
-  const handler = (e) => {
-    e.stopPropagation();
-    const url = btn.dataset.url;
-    const price = parseFloat(btn.dataset.price);
-    if (!url || isNaN(price)) { tgUtil.alert('Ошибка: не удалось получить данные товара'); return; }
-    window.tempOrder = { url, price, weight: 1, total: window.iceLogixPricing.quickEstimate(price, 1), discountAmount: 0, appliedPromo: null };
-    currentTab = 'neworder'; currentSubScreen = null; appliedPromo = null; renderCurrentScreen();
-  };
-  btn._buyHandler = handler;
-  btn.addEventListener('click', handler);
-});
-
-// Клик по карточке — трекинг просмотров и переход к заказу
-document.querySelectorAll('#productsGrid .product-card').forEach(card => {
-  card.onclick = (e) => {
-    if (e.target.closest('.wishlist-heart') || e.target.closest('.addToCartBtn') || e.target.closest('.cart-stepper') || e.target.closest('.buyNowBtn') || e.target.closest('.card-photo-container')) return;
-    const productId = card.dataset.productId;
-    const buyBtn = card.querySelector('.buyNowBtn');
-    const url = buyBtn?.dataset.url;
-    const price = parseFloat(buyBtn?.dataset.price);
-    if (userId && productId) {
-      supabaseClient.from('user_views').upsert({ user_id: userId, product_id: productId }, { onConflict: 'user_id,product_id' }).then(() => {});
-    }
-    if (url && !isNaN(price)) {
-      if (!window.userId) { window.requireAuth('Для оформления заказа необходимо войти или зарегистрироваться.'); return; }
-      window.tempOrder = { url, price, weight: 1, total: window.iceLogixPricing.quickEstimate(price, 1), discountAmount: 0, appliedPromo: null };
-      currentTab = 'neworder'; currentSubScreen = null; appliedPromo = null; renderCurrentScreen();
-    }
-  };
-});
-
-  // Назад
   const backBtn = document.getElementById('backFromProductsCatalogBtn');
-  if (backBtn) backBtn.onclick = () => { currentSubScreen = null; renderCurrentScreen(); };
+  const returnBtn = document.getElementById('returnToCatalogsFromProductsBtn');
+  const goBack = () => {
+    currentSubScreen = null;
+    renderCurrentScreen();
+  };
+  if (backBtn) backBtn.onclick = goBack;
+  if (returnBtn) returnBtn.onclick = goBack;
 }
 
-async function loadMoreProducts() {
-  if (isLoadingMoreProducts || productsPage >= productsTotalPages) return;
-  isLoadingMoreProducts = true;
-  productsPage++;
-  try {
-    let query = supabaseClient.from('products').select('*').eq('is_active', true);
-    if (productsFilter.category !== 'all') query = query.eq('category', productsFilter.category);
-    if (productsFilter.brand !== 'all') query = query.eq('brand', productsFilter.brand);
-    if (productsFilter.sort === 'price_asc') query = query.order('price', { ascending: true });
-    else if (productsFilter.sort === 'price_desc') query = query.order('price', { ascending: false });
-    else query = query.order('created_at', { ascending: false });
-    const from = (productsPage - 1) * 20;
-    const { data } = await query.range(from, from + 19);
-    const grid = document.getElementById('productsGrid');
-    if (grid && data && data.length > 0) {
-      data.forEach(p => {
-        const div = document.createElement('div');
-        div.className = 'product-card';
-        div.dataset.productId = p.id;
-        div.innerHTML = `
-          <div class="relative">
-            ${renderCardMedia(p.image_url, p.title)}
-            <span class="absolute top-0 right-0 wishlist-heart text-xl ${wishlist.has(p.id) ? 'text-red-500' : 'text-white/50'} z-20" data-product-id="${p.id}">${getHeartIcon(wishlist.has(p.id))}</span>
-          </div>
-          <div class="p-2">
-            <p class="text-white font-bold text-sm truncate">${p.title}</p>
-            <p class="text-cyan-400 text-xs">${p.price} ${p.currency}</p>
-            <p class="text-white/50 text-xs">${p.brand || ''} ${p.category || ''}</p>
-            <div class="flex gap-1 mt-2">
-              <button class="btn-primary addToCartBtn flex-1 bg-cyan-500/70 hover:" data-product-id="${p.id}">Корзина</button>
-              <button class="buyNowBtn flex-1 bg-green-500/70 hover:bg-green-500 py-1 rounded text-xs" data-url="${p.url}" data-price="${p.price}">Заказать</button>
-            </div>
-          </div>`;
-        div.querySelector('.addToCartBtn').onclick = (e) => { e.stopPropagation(); addToCart(p.id); };
-        div.querySelector('.buyNowBtn').onclick = (e) => {
-          e.stopPropagation();
-          if (p.url) { window.tempOrder = { url: p.url, price: p.price, weight: 1, total: window.iceLogixPricing.quickEstimate(p.price, 1), discountAmount: 0, appliedPromo: null }; currentTab = 'neworder'; currentSubScreen = null; appliedPromo = null; renderCurrentScreen(); }
-        };
-        div.querySelector('.wishlist-heart').onclick = (e) => {
-          e.stopPropagation();
-          const heart = e.currentTarget;
-          if (window.toggleProductWishlist) {
-            window.toggleProductWishlist(p.id, heart);
-          }
-        };
-        div.onclick = (e) => {
-          if (e.target.closest('.wishlist-heart') || e.target.closest('.addToCartBtn') || e.target.closest('.cart-stepper') || e.target.closest('.buyNowBtn') || e.target.closest('.card-photo-container')) return;
-          if (userId) supabaseClient.from('user_views').upsert({ user_id: userId, product_id: p.id }, { onConflict: 'user_id,product_id' }).then(() => {});
-          if (p.url) { window.tempOrder = { url: p.url, price: p.price, weight: 1, total: window.iceLogixPricing.quickEstimate(p.price, 1), discountAmount: 0, appliedPromo: null }; currentTab = 'neworder'; currentSubScreen = null; appliedPromo = null; renderCurrentScreen(); }
-        };
-        grid.appendChild(div);
-      });
-      initCardSliders();
-    }
-    // Обновляем sentinel
-    const sentinel = document.getElementById('catalogSentinel');
-    if (sentinel) {
-      if (productsPage < productsTotalPages) {
-        const observer = new IntersectionObserver((entries) => {
-          if (entries[0].isIntersecting) { observer.unobserve(sentinel); loadMoreProducts(); }
-        }, { rootMargin: '150px' });
-        observer.observe(sentinel);
-        sentinel.innerHTML = '<p class="text-white/30 text-sm">Загрузка...</p>';
-      } else {
-        sentinel.innerHTML = '<p class="text-white/30 text-sm">Все товары загружены</p>';
-      }
-    }
-  } catch(e) {
-    console.error('Ошибка подгрузки товаров:', e);
-    productsPage--;
-  } finally {
-    isLoadingMoreProducts = false;
-  }
-}
+async function loadMoreProducts() {}
 
     // [EXTRACTED MODULE] About & FAQ is loaded from /js/modules/about-faq.js
 // ==================== АДМИН: УПРАВЛЕНИЕ ТЕКСТАМИ (ФАЗА 12) ====================

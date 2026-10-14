@@ -24,30 +24,46 @@ async function renderCatalogs() {
             </svg>
           </div>
         </div>
-        <div class="glass-card cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all" id="openProductsCatalogBtn">
+        <div class="glass-card cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all relative overflow-hidden border border-amber-500/20" id="openProductsCatalogBtn">
           <div class="flex items-center gap-4">
-            <div class="w-16 h-16 rounded-2xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(251,191,36,0.25), rgba(245,158,11,0.15));">
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center relative flex-shrink-0" style="background: linear-gradient(135deg, rgba(251,191,36,0.25), rgba(245,158,11,0.15));">
               <span class="text-3xl" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span></span>
+              <span class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-500 text-black flex items-center justify-center text-[10px] shadow-md font-bold">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </span>
             </div>
-            <div class="flex-1">
-              <h3 class="text-white font-bold text-lg mb-1">Товары</h3>
-              <p class="text-sm" style="color: var(--text-secondary);">Готовые предложения от нашей команды</p>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap mb-1">
+                <h3 class="text-white font-bold text-lg leading-tight">Товары</h3>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 uppercase tracking-wide">
+                  <span class="ix" style="width:10px;height:10px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span> В разработке
+                </span>
+              </div>
+              <p class="text-sm" style="color: var(--text-secondary);">Готовые предложения от нашей команды. Скоро открытие!</p>
             </div>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);" class="flex-shrink-0">
               <polyline points="9 18 15 12 9 6"/>
             </svg>
           </div>
         </div>
-        <div class="glass-card cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all" id="openResaleBtn">
+        <div class="glass-card cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all relative overflow-hidden border border-pink-500/20" id="openResaleBtn">
           <div class="flex items-center gap-4">
-            <div class="w-16 h-16 rounded-2xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(236,72,153,0.25), rgba(219,39,119,0.15));">
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center relative flex-shrink-0" style="background: linear-gradient(135deg, rgba(236,72,153,0.25), rgba(219,39,119,0.15));">
               <span class="text-3xl" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"><span class="ix text-pink-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg></span></span>
+              <span class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-pink-500 text-white flex items-center justify-center text-[10px] shadow-md font-bold">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </span>
             </div>
-            <div class="flex-1">
-              <h3 class="text-white font-bold text-lg mb-1">Наличие</h3>
-              <p class="text-sm" style="color: var(--text-secondary);">Покупка и продажа вещей клиентов. Комиссия сервиса — всего 2% за продажу</p>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap mb-1">
+                <h3 class="text-white font-bold text-lg leading-tight">Наличие</h3>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-pink-500/15 text-pink-300 border border-pink-500/30 uppercase tracking-wide">
+                  <span class="ix" style="width:10px;height:10px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span> В разработке
+                </span>
+              </div>
+              <p class="text-sm" style="color: var(--text-secondary);">Покупка и продажа вещей клиентов (комиссия 2%). Скоро запуск!</p>
             </div>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);" class="flex-shrink-0">
               <polyline points="9 18 15 12 9 6"/>
             </svg>
           </div>

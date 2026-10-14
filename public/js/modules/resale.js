@@ -4,106 +4,81 @@
 // ==================== ФАЗА 18: ICE Resale и Совместная доставка ====================
 
 window.publishToResale = async (orderId, orderTitle) => {
-  if (!userId) return tgUtil.alert('Необходима авторизация');
-  
-  const ok = await tgUtil.confirm('Введите цену продажи в BYN:\nКомиссия платформы 2% будет удержана при успешной сделке. Продолжить?');
-  if (!ok) return;
-  
-  // Для надежности используем встроенный prompt браузера (работает в WebApp)
-  const price = prompt('Введите цену продажи в BYN:');
-  if (!price || isNaN(parseFloat(price))) return;
-  
-  const desc = prompt('Добавьте комментарий для покупателей (например, "Не подошел размер, маломерят"):');
-  if (desc === null) return;
-  
-  tgUtil.haptic('light');
-  glassToast('Отправка на модерацию...', { kind: 'info' });
-  
-  try {
-    const { error } = await supabaseClient.from('resale_items').insert({
-      user_id: userId,
-      order_id: orderId,
-      title: orderTitle || 'Товар из заказа',
-      price_byn: parseFloat(price),
-      description: desc,
-      status: 'pending'
-    });
-    if (error) throw error;
-    
-    tgUtil.haptic('success');
-    glassToast('Товар успешно отправлен на модерацию!', { kind: 'success' });
-  } catch(e) {
-    console.error(e);
-    tgUtil.alert('Ошибка публикации: ' + e.message);
+  if (typeof tgUtil !== 'undefined' && tgUtil.alert) {
+    tgUtil.alert('Раздел "Наличие" (ICE Resale) находится в разработке. Возможность публикации вещей откроется в ближайших обновлениях!');
+  } else {
+    alert('Раздел "Наличие" (ICE Resale) находится в разработке.');
   }
 };
 
 async function renderResale() {
-  tgUtil.haptic('light');
-  if (!userId) return `<p class="text-center mt-10 text-red-400">Авторизуйтесь</p>${typeof renderFooter === 'function' ? renderFooter() : ''}`;
-  
-  try {
-    const { data, error } = await supabaseClient.from('resale_items').select('*, users(username, full_name)').eq('status', 'approved').order('created_at', { ascending: false });
-    if (error) throw error;
+  if (typeof tgUtil !== 'undefined' && tgUtil.haptic) {
+    tgUtil.haptic('light');
+  }
 
-    if (data && data.length > 0) {
-      const orderIds = data.map(d => d.order_id).filter(Boolean);
-      if (orderIds.length > 0) {
-        try {
-          const { data: ordersData, error: ordersError } = await supabaseClient.from('orders').select('*').in('id', orderIds);
-          if (!ordersError && ordersData) {
-            const ordersMap = new Map(ordersData.map(o => [o.id, o]));
-            data.forEach(item => {
-              item.orders = ordersMap.get(item.order_id) || null;
-            });
-          }
-        } catch (orderErr) {
-          console.error('Ошибка загрузки связанных заказов:', orderErr);
-        }
-      }
-    }
-    
-    let html = `
-      <div class="flex items-center gap-3 mb-6">
-        <button class="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-white/10 transition-colors" onclick="switchTab('catalogs')">
-          <span class="ix text-white"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></span>
-        </button>
-        <h2 class="text-xl font-black text-white uppercase tracking-wider">ICE Resale <span class="text-pink-400">Наличие</span></h2>
-      </div>
-      <p class="text-xs text-white/50 mb-4 bg-white/5 p-3 rounded-xl">Покупайте новые оригинальные вещи напрямую у других клиентов, которым не подошел размер, по сниженным ценам. Комиссия сервиса — всего 2% за продажу.</p>
-    `;
-    
-    if (!data || data.length === 0) {
-      html += '<p class="text-center mt-10 text-white/70">В пристрое пока нет товаров</p>';
-    } else {
-      html += '<div class="grid grid-cols-2 gap-3">';
-      html += data.map(item => `
-        <div class="glass-card flex flex-col relative overflow-hidden">
-          <div class="absolute top-2 right-2 bg-pink-500/80 text-white text-[10px] font-bold px-1.5 py-0.5 rounded border border-pink-400 backdrop-blur-md z-20">В наличии</div>
-          <div class="relative">
-            ${renderCardMedia(getResaleImages(item), item.title)}
-          </div>
-          <div class="p-3 flex-1 flex flex-col">
-            <p class="text-white font-bold text-sm leading-tight mb-1 line-clamp-2">${item.title}</p>
-            <p class="text-xs text-white/70 mb-2 line-clamp-2">${item.description || ''}</p>
-            <p class="text-cyan-400 font-bold mb-2 mt-auto">${item.price_byn} BYN</p>
-            <div class="flex items-center gap-1 text-[10px] text-white/50">
-              <span class="ix" style="width:12px;height:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-              ${item.users?.username ? '@' + item.users.username : (item.users?.full_name || 'Продавец')}
+  return `
+    <div class="space-y-4 page-enter">
+      <button class="global-back-btn m-0" onclick="switchTab('catalogs')">
+        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span>
+        Назад к каталогам
+      </button>
+
+      <div class="glass-card p-6 text-center flex flex-col items-center relative overflow-hidden my-3 border border-pink-500/25">
+        <div class="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-pink-500/10 blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-12 -left-12 w-40 h-40 rounded-full bg-purple-500/10 blur-3xl pointer-events-none"></div>
+
+        <div class="w-20 h-20 rounded-3xl flex items-center justify-center mb-4 relative" style="background: linear-gradient(135deg, rgba(236,72,153,0.25), rgba(219,39,119,0.12)); border: 1px solid rgba(236,72,153,0.35);">
+          <span class="text-4xl text-pink-400">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+          </span>
+          <span class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-pink-500 text-white flex items-center justify-center text-xs font-black shadow-lg">
+            ⏳
+          </span>
+        </div>
+
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-pink-500/20 text-pink-300 border border-pink-500/40 mb-3 tracking-wider uppercase">
+          <span class="w-2 h-2 rounded-full bg-pink-400 animate-ping"></span>
+          Раздел в разработке
+        </div>
+
+        <h2 class="text-xl font-black text-white mb-2">ICE Resale <span class="text-pink-400">(Наличие)</span></h2>
+        <p class="text-sm text-white/70 max-w-sm leading-relaxed mb-6">
+          Сервис покупки и продажи оригинальных вещей между клиентами с минимальной комиссией всего 2% готовится к открытию. Скоро вы сможете продавать свои вещи и покупать товары из наличия с моментальной доставкой!
+        </p>
+
+        <div class="w-full space-y-2.5 max-w-sm mb-6 text-left">
+          <div class="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-pink-500/20 text-pink-300 flex items-center justify-center font-bold text-base flex-shrink-0">🤝</div>
+            <div class="flex-1 min-w-0">
+              <p class="text-white text-xs font-bold leading-tight">Безопасная сделка</p>
+              <p class="text-[11px] text-white/50 mt-0.5">Деньги переводятся продавцу только после подтверждения получения</p>
             </div>
           </div>
-          <button class="w-full py-2.5 bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 text-xs font-bold transition-colors border-t border-pink-500/30" onclick="window.open('https://t.me/${item.users?.username || ''}', '_blank')">Связаться</button>
+          <div class="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center font-bold text-base flex-shrink-0">💸</div>
+            <div class="flex-1 min-w-0">
+              <p class="text-white text-xs font-bold leading-tight">Минимальная комиссия 2%</p>
+              <p class="text-[11px] text-white/50 mt-0.5">Честные и прозрачные условия продажи вещей между пользователями</p>
+            </div>
+          </div>
+          <div class="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-bold text-base flex-shrink-0">📦</div>
+            <div class="flex-1 min-w-0">
+              <p class="text-white text-xs font-bold leading-tight">Быстрая доставка</p>
+              <p class="text-[11px] text-white/50 mt-0.5">Вещи из наличия отправляются в течение 1–2 дней по РБ и РФ</p>
+            </div>
+          </div>
         </div>
-      `).join('');
-      html += '</div>';
-    }
-    html += typeof renderFooter === 'function' ? renderFooter() : '';
-    return html;
-  } catch (e) {
-    return `<p class="text-red-400 text-center mt-5">Ошибка загрузки: ${e.message}</p>${typeof renderFooter === 'function' ? renderFooter() : ''}`;
-  }
-}
 
+        <button onclick="switchTab('catalogs')" class="btn-primary w-full max-w-sm py-3 rounded-xl text-xs font-bold bg-pink-500 hover:bg-pink-600 text-white transition-all flex items-center justify-center gap-2">
+          <span class="ix" style="width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
+          Вернуться к каталогам
+        </button>
+      </div>
+      ${typeof renderFooter === 'function' ? renderFooter() : ''}
+    </div>
+  `;
+}
 
 // Global Exports
 if (typeof renderResale === 'function') window.renderResale = renderResale;
