@@ -746,6 +746,7 @@
             <div class="flex items-center gap-2.5 opacity-90 select-none">
               <img src="/assets/payment-methods/visa.webp" alt="VISA" class="h-3 w-auto object-contain" loading="lazy">
               <img src="/assets/payment-methods/mastercard.webp" alt="MC" class="h-3.5 w-auto object-contain" loading="lazy">
+              <img src="/assets/payment-methods/maestro.webp" alt="Maestro" class="h-3.5 w-auto object-contain" loading="lazy">
               <img src="/assets/payment-methods/belkart.webp" alt="БК" class="h-3.5 w-auto object-contain" loading="lazy">
               <img src="/assets/payment-methods/mir.webp" alt="МИР" class="h-3 w-auto object-contain" loading="lazy">
               <img src="/assets/payment-methods/unionpay.webp" alt="UPI" class="h-3.5 w-auto object-contain" loading="lazy">
@@ -2403,6 +2404,7 @@ async function renderMyOrders() {
 // =====================================================================
 function detectCardType(number) {
   const clean = String(number || '').replace(/\D/g, '');
+  if (/^(50|56|57|58|67|6390|6262|6762|6769|6771|6705|6706|6708|6711|6763|6768|6770)/.test(clean)) return 'Maestro';
   if (/^4/.test(clean)) return 'Visa';
   if (/^(5[1-5]|222[1-9]|22[3-9]|2[3-6]|27[01]|2720)/.test(clean)) return 'Mastercard';
   if (/^(9112|9860|9861|9862|2204)/.test(clean)) return 'БЕЛКАРТ';
@@ -2419,6 +2421,9 @@ function getCardBrandLogoHtml(brand, customClass = '') {
   }
   if (b === 'mastercard') {
     return `<img src="/assets/payment-methods/mastercard.webp" alt="Mastercard" class="h-4 max-h-[17px] w-auto object-contain select-none${extra}" loading="lazy">`;
+  }
+  if (b === 'maestro') {
+    return `<img src="/assets/payment-methods/maestro.webp" alt="Maestro" class="h-4 max-h-[17px] w-auto object-contain select-none${extra}" loading="lazy">`;
   }
   if (b === 'белкарт' || b === 'belkart' || b === 'бк') {
     return `<img src="/assets/payment-methods/belkart.webp" alt="Белкарт" class="h-4 max-h-[17px] w-auto object-contain select-none${extra}" loading="lazy">`;
@@ -2695,7 +2700,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-emerald-950/60 ring-emerald-400/20',
     badgeBg: 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40',
     accentColor: '#006A4E',
-    binRegex: /^(401803|409087|424641|425519|425520|425521|440512|448789|484894|512558|525714|543044|544598|547087|547091|547504|552979|553608|557075|557076|671129|671154|671176|671177|671197|676339|676579|677723|679036|911200|986018|986019|986020|986021|2200|2204|4255|6762|9860)/
+    binRegex: /^(401803|409087|424641|425519|425520|425521|440512|448789|484894|512558|525714|543044|544598|547087|547091|547504|552979|553608|557075|557076|671129|671154|671176|671177|671197|676339|676579|677723|679036|911200|986018|986019|986020|986021|2200|2204|4255|6762|6769|6771|9860)/
   }
 };
 window.BANK_CONFIGS = BANK_CONFIGS;
@@ -3061,6 +3066,7 @@ window.openAddCardModal = function(onSuccess) {
         <div class="flex items-center justify-center gap-3.5 select-none py-1">
           <img src="/assets/payment-methods/visa.webp" alt="VISA" class="h-3.5 w-auto object-contain select-none" loading="lazy">
           <img src="/assets/payment-methods/mastercard.webp" alt="Mastercard" class="h-4 w-auto object-contain select-none" loading="lazy">
+          <img src="/assets/payment-methods/maestro.webp" alt="Maestro" class="h-4 w-auto object-contain select-none" loading="lazy">
           <img src="/assets/payment-methods/belkart.webp" alt="Белкарт" class="h-4 w-auto object-contain select-none" loading="lazy">
           <img src="/assets/payment-methods/mir.webp" alt="МИР" class="h-3.5 w-auto object-contain select-none" loading="lazy">
           <img src="/assets/payment-methods/unionpay.webp" alt="UnionPay" class="h-4 w-auto object-contain select-none" loading="lazy">
@@ -3444,6 +3450,7 @@ window.openCardsManagementModal = async function() {
             <span class="text-[10px] text-white/40 mr-0.5">bePaid:</span>
             <img src="/assets/payment-methods/visa.webp" alt="VISA" class="h-3 w-auto object-contain" loading="lazy">
             <img src="/assets/payment-methods/mastercard.webp" alt="MC" class="h-3.5 w-auto object-contain" loading="lazy">
+            <img src="/assets/payment-methods/maestro.webp" alt="Maestro" class="h-3.5 w-auto object-contain" loading="lazy">
             <img src="/assets/payment-methods/belkart.webp" alt="БК" class="h-3.5 w-auto object-contain" loading="lazy">
             <img src="/assets/payment-methods/mir.webp" alt="МИР" class="h-3 w-auto object-contain" loading="lazy">
             <img src="/assets/payment-methods/unionpay.webp" alt="UPI" class="h-3.5 w-auto object-contain" loading="lazy">
