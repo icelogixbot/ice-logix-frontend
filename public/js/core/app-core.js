@@ -795,7 +795,11 @@
         }
       }
       const _savedHome = localStorage.getItem('ice_tab_home_v2');
-      if (_savedHome) _tabCache['home:'] = { html: _savedHome, ts: Date.now() };
+      if (_savedHome && !_savedHome.includes('rate-tracker-card') && !_savedHome.includes('Биржевой курс')) {
+        _tabCache['home:'] = { html: _savedHome, ts: Date.now() };
+      } else {
+        try { localStorage.removeItem('ice_tab_home_v2'); } catch(e) {}
+      }
     } catch(e) {}
     let _suppressSpinner = false;
 
@@ -2746,7 +2750,7 @@ let adminOrdersTotalPages = 1;
         // Safe boot without double-rendering or flickering navigation bars
         try {
           const _c = document.getElementById('content');
-          const _hasValidContent = _c && _c.innerHTML && (_c.innerHTML.includes('marketplaces') || _c.innerHTML.includes('product-card')) && !_c.innerHTML.includes('Страница не найдена');
+          const _hasValidContent = _c && _c.innerHTML && (_c.innerHTML.includes('marketplaces') || _c.innerHTML.includes('product-card')) && !_c.innerHTML.includes('Страница не найдена') && !_c.innerHTML.includes('rate-tracker-card') && !_c.innerHTML.includes('Биржевой курс');
           if (!window._homeRenderedOnce || !_hasValidContent) {
             currentTab = 'home';
             switchTab('home');
