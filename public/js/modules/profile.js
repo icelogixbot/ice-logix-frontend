@@ -215,7 +215,33 @@
         </div>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
+      <button id="supportDeskBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition border-t border-white/5">
+        <span class="text-xl text-cyan-400">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </span>
+        <div class="flex-1">
+          <p class="font-semibold text-white text-sm flex items-center gap-1.5">
+            Служба заботы
+            <span class="text-[9px] bg-cyan-500/20 text-cyan-300 px-1.5 py-0.5 rounded-full font-bold">24/7</span>
+          </p>
+          <p class="text-xs" style="color: var(--text-muted);">Чат поддержки @icelogix_support_bot</p>
+        </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
       ${isOwner ? `
+      <button id="operatorDeskBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition border-t border-white/5">
+        <span class="text-xl text-emerald-400">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+        </span>
+        <div class="flex-1">
+          <p class="font-semibold text-white text-sm flex items-center gap-1.5">
+            Пульт оператора
+            <span class="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full font-bold">CRM</span>
+          </p>
+          <p class="text-xs" style="color: var(--text-muted);">Управление тикетами и чатами</p>
+        </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
       <button id="adminPanelBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition" style="border-top: 1px solid var(--glass-border);">
         <span class="text-xl"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zM5 20h14"/></svg></span></span>
         <div class="flex-1">
@@ -302,6 +328,24 @@
   const academyBtn = document.getElementById('academyBtn');
   if (academyBtn) {
     academyBtn.onclick = () => switchTab('academy');
+  }
+
+  const supportDeskBtn = document.getElementById('supportDeskBtn');
+  if (supportDeskBtn) {
+    supportDeskBtn.onclick = () => {
+      if (window.Telegram?.WebApp?.openTelegramLink) {
+        window.Telegram.WebApp.openTelegramLink('https://t.me/icelogix_support_bot');
+      } else {
+        window.open('https://t.me/icelogix_support_bot', '_blank');
+      }
+    };
+  }
+
+  const operatorDeskBtn = document.getElementById('operatorDeskBtn');
+  if (operatorDeskBtn) {
+    operatorDeskBtn.onclick = () => {
+      window.location.href = '/support-desk.html';
+    };
   }
 
   const adminBtn = document.getElementById('adminPanelBtn');

@@ -794,7 +794,13 @@
       if (footerLink) {
         e.preventDefault();
         const link = footerLink.getAttribute('data-link');
-        if (link === 'faq') {
+        if (link === 'support') {
+          if (window.Telegram?.WebApp?.openTelegramLink) {
+            window.Telegram.WebApp.openTelegramLink('https://t.me/icelogix_support_bot');
+          } else {
+            window.open('https://t.me/icelogix_support_bot', '_blank');
+          }
+        } else if (link === 'faq') {
           currentSubScreen = 'faq';
           renderCurrentScreen();
         } else if (link === 'about') {
@@ -1530,26 +1536,30 @@
       tgUtil.haptic('impact');
 
       const modal = document.createElement('div');
-      modal.className = 'fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center z-[120] p-4';
+      modal.className = 'full-screen-modal-overlay page-enter';
+      modal.id = 'fortuneWheelModal';
       modal.innerHTML = `
-        <div class="glass-card alert-modal-card max-w-sm w-full p-5 text-center flex flex-col items-center relative overflow-hidden border border-white/20 shadow-2xl" style="background: rgba(15, 23, 42, 0.9);">
-          <div class="absolute -left-20 -top-20 w-44 h-44 rounded-full blur-3xl opacity-30" style="background: var(--ice-primary);"></div>
-          <div class="absolute -right-20 -bottom-20 w-44 h-44 rounded-full blur-3xl opacity-20" style="background: #8B5CF6;"></div>
+        <div class="full-screen-modal-header">
+          <button id="closeFortuneModalBtn" type="button" class="global-back-btn">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <div class="flex-1 min-w-0">
+            <h3 class="text-white font-bold text-base truncate">Колесо Удачи</h3>
+            <p class="text-cyan-400 text-[10px]">Ежедневный бонус ICE LOGIX</p>
+          </div>
+        </div>
 
-          <div class="w-full flex justify-between items-center mb-4 relative z-10">
-            <h3 class="text-white font-bold text-base flex items-center gap-1.5">
-              🔮 Колесо Удачи
-            </h3>
-            <button id="closeFortuneModalBtn" class="text-white/50 hover:text-white transition-colors text-lg">&times;</button>
+        <div class="full-screen-modal-body flex flex-col items-center justify-between py-6" id="fortuneModalBody">
+          <div class="text-center">
+            <p id="fortuneStatusText" class="text-white/80 text-sm font-semibold">Испытайте вашу удачу!</p>
+            <p class="text-white/40 text-xs mt-1">Крутите колесо и получайте баллы и скидки</p>
           </div>
 
           <div class="relative w-[300px] h-[300px] my-4 flex items-center justify-center">
             <canvas id="fortuneWheelCanvas" width="300" height="300" class="w-[300px] h-[300px]"></canvas>
           </div>
 
-          <p id="fortuneStatusText" class="text-white/80 text-sm font-semibold mb-5 h-5 relative z-10">Испытайте вашу удачу!</p>
-
-          <button id="startFortuneSpinBtn" class="btn-primary w-full py-3 rounded-xl font-bold text-sm transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5 shadow-lg relative z-10" style="background: linear-gradient(135deg, var(--ice-primary), #8B5CF6); border: none;">
+          <button id="startFortuneSpinBtn" class="btn-primary w-full max-w-sm py-4 rounded-2xl font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg" style="background: linear-gradient(135deg, var(--ice-primary), #8B5CF6); border: none;">
             🔮 ЗАПУСТИТЬ КОЛЕСО!
           </button>
         </div>
@@ -3400,10 +3410,11 @@ let adminOrdersTotalPages = 1;
             </div>
           </div>
           <div class="footer-links">
+            <span class="footer-link text-cyan-400 font-bold" data-link="support">🎧 Служба заботы</span>
+            <span class="footer-link" data-link="faq">Ответы на вопросы (FAQ)</span>
             <span class="footer-link" data-link="offer">Публичная оферта</span>
             <span class="footer-link" data-link="privacy">Политика конфиденциальности</span>
             <span class="footer-link" data-link="contacts">Контакты</span>
-            <span class="footer-link" data-link="faq">Ответы на вопросы (FAQ)</span>
           </div>
           <div class="copyright">
             ИП Иванов И.И., УНП 123456789<br>
