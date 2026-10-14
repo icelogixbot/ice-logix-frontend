@@ -65,6 +65,33 @@
       try { tg.setBackgroundColor?.('#090d16'); } catch {}
       try { tg.setBottomBarColor?.('#090d16'); } catch {}
 
+      // Предотвращение остановки на половине экрана при свайпе вниз:
+      // Как только пользователь делает свайп вниз из полного экрана — закрываем сразу без зависания на половине
+      let hasBeenExpanded = false;
+      const initDeskTime = Date.now();
+
+      if (tg.isExpanded) {
+        hasBeenExpanded = true;
+      }
+
+      tg.onEvent?.('viewportChanged', () => {
+        // Первые 450мс даем на анимацию tg.expand() при старте
+        if (Date.now() - initDeskTime < 450) {
+          if (tg.isExpanded) hasBeenExpanded = true;
+          return;
+        }
+
+        if (tg.isExpanded) {
+          hasBeenExpanded = true;
+        } else if (hasBeenExpanded && !tg.isExpanded) {
+          // Зафиксирован переход из полноэкранного режима вниз (свайп вниз)
+          // Мгновенно закрываем Mini App, исключая половинный режим
+          try {
+            tg.close();
+          } catch {}
+        }
+      });
+
       // Поддержка нативной кнопки BackButton Telegram на мобильных устройствах
       if (tg.BackButton) {
         tg.BackButton.onClick(() => {
@@ -78,47 +105,35 @@
         });
       }
 
-      // Поддержка активного жеста свайпа вниз на шапке для мгновенного закрытия/сворачивания
-      const headerEl = document.querySelector('.desk-header');
-      if (headerEl) {
-        let startY = 0;
-        let startX = 0;
-        let isDragging = false;
+      // Глобальный перехватчик свайпа вниз для мгновенного полного сворачивания
+      let globalTouchStartY = 0;
+      let globalTouchStartX = 0;
+      window.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+          globalTouchStartY = e.touches[0].clientY;
+          globalTouchStartX = e.touches[0].clientX;
+        }
+      }, { passive: true });
 
-        headerEl.addEventListener('touchstart', (e) => {
-          if (e.touches.length === 1) {
-            startY = e.touches[0].clientY;
-            startX = e.touches[0].clientX;
-            isDragging = true;
-          }
-        }, { passive: true });
+      window.addEventListener('touchmove', (e) => {
+        if (e.touches.length !== 1) return;
+        const deltaY = e.touches[0].clientY - globalTouchStartY;
+        const deltaX = Math.abs(e.touches[0].clientX - globalTouchStartX);
 
-        headerEl.addEventListener('touchmove', (e) => {
-          if (!isDragging || e.touches.length !== 1) return;
-          const currentY = e.touches[0].clientY;
-          const currentX = e.touches[0].clientX;
-          const deltaY = currentY - startY;
-          const deltaX = Math.abs(currentX - startX);
+        // Если жест направлен вниз с хорошей амплитудой
+        if (deltaY > 50 && deltaY > deltaX * 1.3) {
+          const ticketsList = document.getElementById('ticketsList');
+          const isAtTop = !ticketsList || ticketsList.scrollTop <= 0;
+          const isHeader = e.target.closest && e.target.closest('.desk-header');
 
-          // Если пользователь смахнул вниз более чем на 45px
-          if (deltaY > 45 && deltaY > deltaX * 1.2) {
-            isDragging = false;
+          if (isHeader || isAtTop || !tg.isExpanded) {
             haptic('light');
             try {
-              if (window.Telegram?.WebApp?.close) {
-                window.Telegram.WebApp.close();
-              }
+              tg.close();
             } catch {}
           }
-        }, { passive: true });
-
-        headerEl.addEventListener('touchend', () => {
-          isDragging = false;
-        }, { passive: true });
-        headerEl.addEventListener('touchcancel', () => {
-          isDragging = false;
-        }, { passive: true });
-      }
+        }
+      }, { passive: true });
     }
 
     // Проверяем авторизацию
