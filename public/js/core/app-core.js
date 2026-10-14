@@ -2377,6 +2377,10 @@ let adminOrdersTotalPages = 1;
     setTimeout(dismissSplashScreen, 2800);
 
     async function init() {
+      if (window.isTelegramEnvironment === false) {
+        console.log('[ICE LOGIX] Browser Landing Gate active. Mini App core stopped.');
+        return;
+      }
       console.log("=== ICE LOGIX VERSION: 2026.05.24.02 ===");
       try {
         // Fast restore cached user balance and avatar IMMEDIATELY for 0ms rendering

@@ -666,6 +666,7 @@ window.togglePackageConsolidation = (country) => {
         // ==================== WATCHDOG: content disappear guard ====================
         // Starts 3s after init to avoid triggering during initial load
         setTimeout(() => {
+          if (window.isTelegramEnvironment === false) return;
           let _contentWatchdogTimer = null;
           const _contentDiv = document.getElementById('content');
           if (_contentDiv && typeof MutationObserver !== 'undefined') {
