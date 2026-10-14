@@ -3465,9 +3465,9 @@ let adminOrdersTotalPages = 1;
         return true;
       }
 
-      // 4. Primary root and standalone service tabs
-      const rootTabs = ['home', 'calculator', 'neworder', 'new-order', 'catalogs', 'profile', 'reports', 'reviews', 'academy', 'promo', 'legitcheck'];
-      if (!rootTabs.includes(currentTab)) {
+      // 4. Primary bottom navigation tabs (cannot be swiped back - navigation handled via bottom bar)
+      const bottomRootTabs = ['home', 'calculator', 'neworder', 'new-order', 'catalogs', 'profile'];
+      if (!bottomRootTabs.includes(currentTab)) {
         window._isNavigatingBack = true;
         if (previousTab && previousTab !== currentTab) {
           switchTab(previousTab);
@@ -3482,13 +3482,14 @@ let adminOrdersTotalPages = 1;
 
     // Wires Telegram's native BackButton based on current tab/subscreen.
     function syncTelegramBackButton() {
-      const rootTabs = ['home', 'calculator', 'neworder', 'new-order', 'catalogs', 'profile', 'reports', 'reviews', 'academy', 'promo', 'legitcheck'];
+      // Bottom tabs and standalone service tabs that rely purely on swipe-back (no on-screen or Telegram header buttons)
+      const noHeaderBackTabs = ['home', 'calculator', 'neworder', 'new-order', 'catalogs', 'profile', 'reports', 'reviews', 'academy', 'promo', 'legitcheck'];
       const isHomeSubmode = currentTab === 'home' && window._calcMode && window._calcMode !== 'menu';
       const hasOrderItems = Boolean(window.tempOrder && window.tempOrder.items && window.tempOrder.items.length > 0);
       const isOrderSubmode = (currentTab === 'neworder' || currentTab === 'new-order') && 
         (Boolean(window.orderCountry) || Boolean(window.orderAddSubMode) || (Boolean(window.orderAddMode) && hasOrderItems));
       const isReviewsSubmode = currentTab === 'reviews' && window.reviewsScreen === 'feed';
-      const isRoot = rootTabs.includes(currentTab) && !currentSubScreen && !isHomeSubmode && !isOrderSubmode && !isReviewsSubmode;
+      const isRoot = noHeaderBackTabs.includes(currentTab) && !currentSubScreen && !isHomeSubmode && !isOrderSubmode && !isReviewsSubmode;
       const hasOverlay = !!document.querySelector('.full-screen-modal-overlay, #spotlightModal:not(.opacity-0), #settingsModal, #notificationsModal, #personalDataModal');
       
       if (isRoot && !hasOverlay) {
