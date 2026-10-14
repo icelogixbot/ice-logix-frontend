@@ -51,12 +51,7 @@
     if (tg) {
       try { tg.ready(); } catch {}
       try { tg.expand(); } catch {}
-      // Отключаем блокировку закрытия при взмахе вниз (разрешаем мгновенное сворачивание)
-      // Включаем closing confirmation: в Telegram это предотвращает случайное закрытие и
-      // переводит свайп вниз в нативное сворачивание в нижнюю панель (Mini Apps Dock)
       try { tg.enableClosingConfirmation?.(); } catch {}
-      // Включаем вертикальный свайп для нативного закрытия/сворачивания
-      try { tg.enableVerticalSwipes?.(); } catch {}
       try { tg.setHeaderColor?.('#090d16'); } catch {}
       try { tg.setBackgroundColor?.('#090d16'); } catch {}
       try { tg.setBottomBarColor?.('#090d16'); } catch {}
