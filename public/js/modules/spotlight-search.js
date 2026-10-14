@@ -66,12 +66,22 @@
       if (rawDelivery) deliveryInfo = JSON.parse(rawDelivery);
     } catch (_) {}
 
+    // Isolated user orders for instant autocomplete
+    let orders = [];
+    if (curUserId) {
+      try {
+        const cached = localStorage.getItem('ice_cached_orders_' + curUserId);
+        if (cached) orders = JSON.parse(cached) || [];
+      } catch (_) {}
+    }
+
     return {
       userId: curUserId,
       userName,
       balance,
       cards: Array.isArray(cards) ? cards : [],
       deliveryInfo,
+      orders: Array.isArray(orders) ? orders : [],
       isRegistered
     };
   }
@@ -463,6 +473,11 @@
           </button>
         </div>
 
+        <!-- Google AI Autocomplete & Suggestion Pills Bar (Step 4) -->
+        <div id="spotlightSuggestionsBar" class="hidden overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1 transition-all duration-200">
+          <!-- Dynamic Horizontal Scrollable Suggestion Pills -->
+        </div>
+
         <!-- Dynamic Content Body (Home or Search Results) -->
         <div id="spotlightContent" class="space-y-4"></div>
       </div>
@@ -470,17 +485,231 @@
     `;
   }
 
-  function attachSpotlightPageHandlers() {
+  // ============================================================
+  // GOOGLE AI AUTOCOMPLETE & INSTANT SUGGESTION PILLS (STEP 4)
+  // Personal profile binding, live autocomplete & query pills
+  // ============================================================
+
+  let suggestionsBarEl = null;
+
+  function getGoogleSuggestions(rawQ, userCtx) {
+    const q = (rawQ || '').trim().toLowerCase();
+    const suggestions = [];
+    if (!q || q.length < 1) return [];
+
+    // 1. Personal Orders Binding (Instant profile tracking)
+    if (userCtx.orders && userCtx.orders.length > 0) {
+      const topOrder = userCtx.orders[0];
+      const ordNum = topOrder.order_number || topOrder.id?.slice(0, 8);
+      const isOrderQuery = q.includes('заказ') || q.includes('посылк') || q.includes('трек') || q.includes('где');
+      
+      if (isOrderQuery || (ordNum && String(ordNum).toLowerCase().includes(q))) {
+        suggestions.push({
+          icon: '📦',
+          text: `Мой заказ #${ordNum}`,
+          q: `где посылка #${ordNum}`
+        });
+        if (topOrder.track_number) {
+          suggestions.push({
+            icon: '📍',
+            text: `Трек-номер: ${topOrder.track_number}`,
+            q: topOrder.track_number
+          });
+        }
+      }
+    }
+
+    // 2. Personal Delivery City Binding
+    if (userCtx.deliveryInfo?.city) {
+      const userCity = userCtx.deliveryInfo.city.toLowerCase();
+      if (q.includes('доставк') || q.includes('город') || userCity.includes(q)) {
+        suggestions.push({
+          icon: '🚚',
+          text: `Доставка в ${userCtx.deliveryInfo.city}`,
+          q: `доставка в ${userCtx.deliveryInfo.city}`
+        });
+      }
+    }
+
+    // 3. Personal Balance & Cards Binding
+    if (q.includes('баланс') || q.includes('счет') || q.includes('ice') || q.includes('кошел')) {
+      suggestions.push({
+        icon: '💎',
+        text: `Мой баланс: ${userCtx.balance || 0} ICE`,
+        q: 'мой баланс'
+      });
+    }
+    if (q.includes('карт') || q.includes('оплат') || q.includes('bepaid')) {
+      suggestions.push({
+        icon: '💳',
+        text: userCtx.cards.length > 0 ? `Привязано карт: ${userCtx.cards.length}` : 'Привязать карту bePaid',
+        q: 'мои карты'
+      });
+      suggestions.push({
+        icon: '✌️',
+        text: 'Почему оплата в 2 этапа?',
+        q: 'почему 2 этапа'
+      });
+    }
+
+    // 4. Instant Numeric CNY Currency Conversions
+    const numMatch = q.match(/^(\d{2,6})\s*(¥|юаней|юань|ю|cny)?$/);
+    if (numMatch) {
+      const val = numMatch[1];
+      suggestions.push({ icon: '🇨🇳', text: `${val} ¥ в рублях (BYN / RUB)`, q: `${val} ¥` });
+      suggestions.push({ icon: '⚡', text: `${val} ¥ вес 1.5 кг «под ключ»`, q: `кроссовки ${val}¥ вес 1.5 кг` });
+      suggestions.push({ icon: '🧥', text: `Пуховик ${val} ¥ вес 2 кг`, q: `пуховик ${val}¥ вес 2 кг` });
+    }
+
+    // 5. Intelligent match with AI_KNOWLEDGE_TOPICS
+    if (typeof AI_KNOWLEDGE_TOPICS !== 'undefined') {
+      for (const topic of AI_KNOWLEDGE_TOPICS) {
+        if (suggestions.length >= 6) break;
+        const matchesKeyword = topic.keywords.some(k => k.toLowerCase().includes(q) || q.includes(k.toLowerCase()));
+        if (matchesKeyword) {
+          if (topic.id === 'authenticity_slang') {
+            if (!suggestions.some(s => s.q === 'паль или ориг')) {
+              suggestions.push({ icon: '🛡️', text: 'Как отличить паль от оригинала', q: 'паль или ориг' });
+              suggestions.push({ icon: '🏷️', text: 'Синие пломбы и сертификаты Poizon', q: 'синие пломбы poizon' });
+            }
+          } else if (topic.id === 'silhouette_dunk') {
+            if (!suggestions.some(s => s.q === 'dunk panda')) {
+              suggestions.push({ icon: '👟', text: 'Dunk Low True to Size (размеры)', q: 'размеры dunk low' });
+              suggestions.push({ icon: '🛹', text: 'SB Dunk vs Dunk Low', q: 'sb dunk' });
+            }
+          } else if (topic.id === 'silhouette_jordan4') {
+            if (!suggestions.some(s => s.q === 'jordan 4')) {
+              suggestions.push({ icon: '🏀', text: 'Jordan 4: посадка и вес коробки', q: 'как сидят jordan 4' });
+              suggestions.push({ icon: '🔥', text: 'Jordan 4 Black Cat & Military Black', q: 'jordan 4 military black' });
+            }
+          } else if (topic.id === 'silhouette_af1') {
+            if (!suggestions.some(s => s.q === 'air force 1')) {
+              suggestions.push({ icon: '👟', text: 'Air Force 1 ’07 белый/черный', q: 'air force 1' });
+              suggestions.push({ icon: '📏', text: 'AF1 большемерят на 0.5?', q: 'размеры air force 1' });
+            }
+          } else if (topic.id === 'silhouette_nb') {
+            if (!suggestions.some(s => s.q.includes('new balance'))) {
+              suggestions.push({ icon: '👟', text: 'New Balance 1906R и 2002R', q: 'new balance 1906' });
+              suggestions.push({ icon: '🏃', text: 'NB 530 дышащая сетка', q: 'nb 530' });
+            }
+          } else if (topic.id === 'silhouette_adidas_samba_campus') {
+            if (!suggestions.some(s => s.q.includes('samba'))) {
+              suggestions.push({ icon: '👟', text: 'Adidas Samba OG маломерят?', q: 'adidas samba' });
+              suggestions.push({ icon: '🛹', text: 'Campus 00s дутые кеды', q: 'adidas campus 00s' });
+            }
+          } else if (topic.id === 'silhouette_travis_yeezy') {
+            if (!suggestions.some(s => s.q.includes('travis') || s.q.includes('yeezy'))) {
+              suggestions.push({ icon: '🔥', text: 'Travis Scott x Jordan Retro', q: 'трэвис скотт' });
+              suggestions.push({ icon: '👟', text: 'Yeezy Slides маломерят (+2)', q: 'yeezy slides' });
+            }
+          } else if (topic.id === 'streetwear_trapstar_corteiz') {
+            if (!suggestions.some(s => s.q.includes('trapstar') || s.q.includes('кортез'))) {
+              suggestions.push({ icon: '🇬🇧', text: 'Пуховик Trapstar Decoded', q: 'пуховик трапстар' });
+              suggestions.push({ icon: '👕', text: 'Corteiz худи и штаны оверсайз', q: 'худи кортез' });
+            }
+          } else if (topic.id === 'outdoor_arcteryx_tnf') {
+            if (!suggestions.some(s => s.q.includes('arcteryx') || s.q.includes('nuptse'))) {
+              suggestions.push({ icon: '🏔️', text: 'Arc\'teryx куртка GORE-TEX', q: 'куртка arcteryx' });
+              suggestions.push({ icon: '❄️', text: 'TNF Nuptse 1996 пуховик 700', q: 'пуховик tnf nuptse' });
+            }
+          } else if (topic.id === 'shoes_ugg') {
+            if (!suggestions.some(s => s.q.includes('ugg'))) {
+              suggestions.push({ icon: '❄️', text: 'UGG Tasman и Ultra Mini', q: 'угги тасман' });
+            }
+          } else if (topic.id === 'delivery_belarus_cities') {
+            if (!suggestions.some(s => s.q.includes('беларус'))) {
+              suggestions.push({ icon: '🇧🇾', text: 'Доставка в Минск и регионы РБ', q: 'доставка по беларуси' });
+              suggestions.push({ icon: '📦', text: 'Пункты Европочты и СДЭК', q: 'пункты выдачи европочта' });
+            }
+          } else if (topic.id === 'delivery_russia_cities') {
+            if (!suggestions.some(s => s.q.includes('москв'))) {
+              suggestions.push({ icon: '🇷🇺', text: 'Доставка в Москву и СПб (СДЭК)', q: 'доставка в москву сдэк' });
+            }
+          } else if (topic.id === 'poizon_blue_black_btn') {
+            suggestions.push({ icon: '🛍️', text: 'Синяя или черная кнопка Poizon?', q: 'синяя или черная кнопка пойзон' });
+          } else if (topic.id === 'customs_limits') {
+            suggestions.push({ icon: '⚖️', text: 'Таможенный лимит 200€ и пошлина', q: 'таможенный лимит 200 евро' });
+          } else if (topic.id === 'support_care_service') {
+            suggestions.push({ icon: '🎧', text: 'Служба заботы 24/7 (Telegram)', q: 'связаться с поддержкой' });
+          }
+        }
+      }
+    }
+
+    // 6. Match with POPULAR_BRANDS
+    if (typeof POPULAR_BRANDS !== 'undefined') {
+      for (const b of POPULAR_BRANDS) {
+        if (suggestions.length >= 6) break;
+        const isMatch = b.name.toLowerCase().includes(q) || b.aliases.some(a => a.includes(q) || q.includes(a));
+        if (isMatch && !suggestions.some(s => s.q.toLowerCase() === b.name.toLowerCase())) {
+          suggestions.push({ icon: '🏷️', text: `${b.name} (${b.category})`, q: b.name });
+        }
+      }
+    }
+
+    return suggestions.slice(0, 5);
+  }
+
+  function updateGoogleSuggestions(q) {
+    if (!suggestionsBarEl) suggestionsBarEl = document.getElementById('spotlightSuggestionsBar');
+    if (!suggestionsBarEl) return;
+
+    const userCtx = getUserContext();
+    const suggestions = getGoogleSuggestions(q, userCtx);
+
+    if (!suggestions || suggestions.length === 0 || !q.trim()) {
+      suggestionsBarEl.classList.add('hidden');
+      suggestionsBarEl.innerHTML = '';
+      return;
+    }
+
+    suggestionsBarEl.classList.remove('hidden');
+    suggestionsBarEl.innerHTML = `
+      <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+        <span class="text-[10px] text-cyan-400 font-bold uppercase tracking-wider flex-shrink-0 flex items-center gap-1 pl-1 pr-0.5">
+          <span>✨</span>
+        </span>
+        ${suggestions.map(s => `
+          <button type="button" class="google-suggestion-pill flex-shrink-0 px-3 py-1.5 rounded-full bg-slate-900/90 border border-cyan-500/25 hover:border-cyan-400 text-white/90 hover:text-cyan-200 text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap active:scale-95 transition-all shadow-sm shadow-cyan-950/40 backdrop-blur-md" data-suggestion-trigger="${s.q}">
+            <span class="text-xs">${s.icon}</span>
+            <span>${s.text}</span>
+          </button>
+        `).join('')}
+      </div>
+    `;
+
+    // Attach click listeners to suggestion pills
+    suggestionsBarEl.querySelectorAll('[data-suggestion-trigger]').forEach(btn => {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const targetQ = btn.getAttribute('data-suggestion-trigger');
+        if (targetQ && searchInputEl) {
+          searchInputEl.value = targetQ;
+          clearBtnEl?.classList.remove('hidden');
+          saveQueryToHistory(targetQ);
+          updateGoogleSuggestions(targetQ);
+          handleSearchQuery(targetQ);
+          searchInputEl.focus();
+        }
+      };
+    });
+  }
+
+    function attachSpotlightPageHandlers() {
     searchInputEl = document.getElementById('spotlightSearchInput');
     contentEl = document.getElementById('spotlightContent');
     clearBtnEl = document.getElementById('spotlightClearBtn');
 
     if (!searchInputEl || !contentEl) return;
 
+    suggestionsBarEl = document.getElementById('spotlightSuggestionsBar');
+
     clearBtnEl.onclick = () => {
       searchInputEl.value = '';
       searchInputEl.focus();
       clearBtnEl.classList.add('hidden');
+      updateGoogleSuggestions('');
       renderSpotlightHome();
     };
 
@@ -491,6 +720,9 @@
       } else {
         clearBtnEl.classList.add('hidden');
       }
+
+      // Live 0ms Google Suggestion Pills
+      updateGoogleSuggestions(q);
 
       if (debounceTimeout) clearTimeout(debounceTimeout);
       debounceTimeout = setTimeout(() => {
@@ -573,6 +805,7 @@
 
   function renderSpotlightHome() {
     if (!contentEl) return;
+    updateGoogleSuggestions('');
 
     const userCtx = getUserContext();
     const history = getSearchHistory();
