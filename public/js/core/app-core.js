@@ -3340,7 +3340,7 @@ let adminOrdersTotalPages = 1;
       }
     });
 
-    // Edge-swipe Right Gesture Navigation (iOS-like feel)
+    // Edge-swipe Right Gesture Navigation (iOS-like feel, expanded comfortable touch zone)
     (function initEdgeSwipeNavigation() {
       let touchStartX = 0;
       let touchStartY = 0;
@@ -3353,7 +3353,11 @@ let adminOrdersTotalPages = 1;
         touchStartX = touch.clientX;
         touchStartY = touch.clientY;
         touchStartTime = Date.now();
-        isEdgeSwipe = touchStartX <= 42;
+        
+        // Комфортная широкая зона свайпа: левые 38% экрана (минимум 120px),
+        // чтобы не приходилось целиться в край рамки телефона
+        const maxStartX = Math.max(120, Math.floor(window.innerWidth * 0.38));
+        isEdgeSwipe = touchStartX <= maxStartX;
       }, { passive: true });
 
       document.addEventListener('touchend', (e) => {
@@ -3368,11 +3372,22 @@ let adminOrdersTotalPages = 1;
 
         isEdgeSwipe = false;
 
-        if (deltaX >= 65 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5 && deltaTime <= 700) {
+        // Порог: 50px (или 35px при быстром естественном флике) под удобным углом
+        const isHorizontalSwipe = deltaX >= 50 || (deltaX >= 35 && deltaTime <= 260);
+        const isNotVertical = Math.abs(deltaX) > Math.abs(deltaY) * 1.25;
+        const isWithinTime = deltaTime <= 650;
+
+        if (isHorizontalSwipe && isNotVertical && isWithinTime) {
           const target = e.target;
-          if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+          if (target && target.closest && target.closest('input, textarea, select, [contenteditable="true"], .no-swipe-back, input[type="range"]')) {
             return;
           }
+          // Если жест внутри горизонтального скроллера, не находящегося в самом начале — не перехватываем
+          const hScroll = target && target.closest && target.closest('.overflow-x-auto');
+          if (hScroll && hScroll.scrollLeft > 10) {
+            return;
+          }
+
           if (typeof window.goBackGlobal === 'function') {
             window.goBackGlobal();
           }
@@ -3419,7 +3434,7 @@ let adminOrdersTotalPages = 1;
             </div>
           </div>
           <div class="footer-links">
-            <span class="footer-link text-cyan-400 font-bold" data-link="support">🎧 Служба заботы</span>
+            <span class="footer-link text-cyan-400 font-bold" data-link="support">Поддержка</span>
             <span class="footer-link" data-link="faq">Ответы на вопросы (FAQ)</span>
             <span class="footer-link" data-link="offer">Публичная оферта</span>
             <span class="footer-link" data-link="privacy">Политика конфиденциальности</span>
