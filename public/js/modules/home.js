@@ -14,6 +14,7 @@ async function renderHome() {
     let dbMarketplaces = [];
     try {
       const _sb = (typeof supabaseClient !== 'undefined' && supabaseClient) ? supabaseClient : window.supabaseClient;
+      if (window.CacheDB) window.CacheDB.clear('marketplaces');
       if (window.CacheDB && _sb) {
         const dbData = await window.CacheDB.get('marketplaces', async () => {
           const { data } = await _sb.from('marketplaces').select('*').eq('is_active', true).order('sort_order', { ascending: true });
@@ -35,10 +36,10 @@ async function renderHome() {
             });
 
           const staticMarketplaces = [
-            { name: 'Dewu', url: 'https://dewu.com', website_url: 'https://dewu.com', logo_url: '/assets/marketplaces/dewu.svg', icon: '<span class="mp-dot" style="background:#00f5d4" aria-hidden="true"></span>' },
+            { name: 'Dewu', url: 'https://dewu.com', website_url: 'https://dewu.com', logo_url: '/assets/marketplaces/dewu.png', icon: '<span class="mp-dot" style="background:#00f5d4" aria-hidden="true"></span>' },
             { name: 'TaoBao', url: 'https://taobao.com', website_url: 'https://taobao.com', logo_url: '/assets/marketplaces/taobao.png', icon: '<span class="mp-dot" style="background:#ff5000" aria-hidden="true"></span>' },
             { name: 'Pinduoduo', url: 'https://mobile.yangkeduo.com', website_url: 'https://mobile.yangkeduo.com', logo_url: '/assets/marketplaces/pinduoduo.png', icon: '<span class="mp-dot" style="background:#e02e24" aria-hidden="true"></span>' },
-            { name: 'Goofish', url: 'https://www.goofish.com', website_url: 'https://www.goofish.com', logo_url: '/assets/marketplaces/goofish.svg', icon: '<span class="mp-dot" style="background:#ffd400" aria-hidden="true"></span>' },
+            { name: 'Goofish', url: 'https://www.goofish.com', website_url: 'https://www.goofish.com', logo_url: '/assets/marketplaces/goofish.png', icon: '<span class="mp-dot" style="background:#ffd400" aria-hidden="true"></span>' },
             { name: '95', url: 'https://www.95fen.com', website_url: 'https://www.95fen.com', logo_url: '/assets/marketplaces/95fen.png', icon: '<span class="mp-dot" style="background:#00ff9d" aria-hidden="true"></span>' },
             { name: 'JD', url: 'https://www.jd.com', website_url: 'https://www.jd.com', logo_url: '/assets/marketplaces/jd.png', icon: '<span class="mp-dot" style="background:#ea251b" aria-hidden="true"></span>' },
             { name: 'Tmall', url: 'https://www.tmall.com', website_url: 'https://www.tmall.com', logo_url: '/assets/marketplaces/tmall.png', icon: '<span class="mp-dot" style="background:#ff0036" aria-hidden="true"></span>' }
@@ -147,7 +148,7 @@ async function renderHome() {
         ${marketplaces.map(mp => `
           <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}">
             <div class="story-icon">
-              ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
+              ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261014_06" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
               <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 22px;">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
             </div>
             <span class="story-label">${mp.name}</span>

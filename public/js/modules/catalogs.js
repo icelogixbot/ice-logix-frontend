@@ -90,7 +90,7 @@ const DEFAULT_CHINESE_MARKETPLACES = [
     name: 'Dewu',
     website_url: 'https://dewu.com',
     url: 'https://dewu.com',
-    logo_url: '/assets/marketplaces/dewu.svg',
+    logo_url: '/assets/marketplaces/dewu.png',
     country: 'Китай',
     description: 'Ведущий маркетплейс оригинальных кроссовок, стритвира и аксессуаров со строгим легитчеком.',
     categories: ['Обувь', 'Одежда', 'Аксессуары'],
@@ -129,7 +129,7 @@ const DEFAULT_CHINESE_MARKETPLACES = [
     name: 'Goofish',
     website_url: 'https://www.goofish.com',
     url: 'https://www.goofish.com',
-    logo_url: '/assets/marketplaces/goofish.svg',
+    logo_url: '/assets/marketplaces/goofish.png',
     country: 'Китай',
     description: 'Главная ресейл-биржа Китая от Alibaba (Xianyu). Винтаж, редкие сникеры и эксклюзивы.',
     categories: ['Обувь', 'Одежда', 'Аксессуары'],
@@ -239,7 +239,7 @@ async function renderMarketplaces() {
           return `
           <div class="glass-card flex gap-3 p-3 items-center page-enter">
             <div class="relative flex items-center justify-center flex-shrink-0" style="width: 58px; height: 58px;">
-              ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-contain cursor-pointer transition-transform duration-200 active:scale-95" style="border-radius: 13px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.4));" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" onclick="event.stopPropagation(); tgUtil.openLink('${mp.website_url || mp.url}')">` : ''}
+              ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261014_06" class="w-full h-full object-contain cursor-pointer transition-transform duration-200 active:scale-95" style="border-radius: 13px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.4));" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" onclick="event.stopPropagation(); tgUtil.openLink('${mp.website_url || mp.url}')">` : ''}
               <span style="${mp.logo_url ? 'display:none;' : ''}" class="text-3xl flex items-center justify-center"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span></span>
             </div>
             <div class="flex-1 min-w-0">
@@ -452,7 +452,7 @@ function attachMarketplacesHandlers() {
       return `
       <div class="glass-card flex gap-3 p-3 items-center page-enter">
         <div class="relative flex items-center justify-center flex-shrink-0" style="width: 58px; height: 58px;">
-          ${mp.logo_url ? `<img src="${mp.logo_url}" class="w-full h-full object-contain cursor-pointer transition-transform duration-200 active:scale-95" style="border-radius: 13px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.4));" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" onclick="event.stopPropagation(); tgUtil.openLink('${mp.website_url || mp.url}')">` : ''}
+          ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261014_06" class="w-full h-full object-contain cursor-pointer transition-transform duration-200 active:scale-95" style="border-radius: 13px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.4));" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" onclick="event.stopPropagation(); tgUtil.openLink('${mp.website_url || mp.url}')">` : ''}
           <span style="${mp.logo_url ? 'display:none;' : ''}" class="text-3xl flex items-center justify-center"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span></span>
         </div>
         

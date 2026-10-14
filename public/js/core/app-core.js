@@ -663,14 +663,14 @@
     function preprocessMarketplaces(marketplaces) {
       if (!marketplaces) return [];
       const localLogos = {
-        'dewu': '/assets/marketplaces/dewu.svg',
-        'poizon': '/assets/marketplaces/dewu.svg',
+        'dewu': '/assets/marketplaces/dewu.png',
+        'poizon': '/assets/marketplaces/dewu.png',
         'taobao': '/assets/marketplaces/taobao.png',
         'pinduoduo': '/assets/marketplaces/pinduoduo.png',
         'пиндуодуо': '/assets/marketplaces/pinduoduo.png',
-        'goofish': '/assets/marketplaces/goofish.svg',
-        'xianyu': '/assets/marketplaces/goofish.svg',
-        'сяньюй': '/assets/marketplaces/goofish.svg',
+        'goofish': '/assets/marketplaces/goofish.png',
+        'xianyu': '/assets/marketplaces/goofish.png',
+        'сяньюй': '/assets/marketplaces/goofish.png',
         '95': '/assets/marketplaces/95fen.png',
         '95fen': '/assets/marketplaces/95fen.png',
         'jd': '/assets/marketplaces/jd.png',
