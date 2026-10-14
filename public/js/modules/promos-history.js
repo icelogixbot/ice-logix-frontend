@@ -562,14 +562,18 @@ async function renderSettingsPage(initialTab = 'account') {
   const currentTheme = appSettings.theme || localStorage.getItem('theme') || 'dark';
   const currentLang = appSettings.lang || localStorage.getItem('lang') || 'ru';
 
-  const userTelegramId = authUser?.user_metadata?.telegram_id || data?.telegram_id || null;
+  const userTelegramId = authUser?.user_metadata?.telegram_id || data?.telegram_id || window.Telegram?.WebApp?.initDataUnsafe?.user?.id || null;
   const userPhone = authUser?.phone || data?.phone || null;
   const userEmail = authUser?.email || '';
   const isDummyEmail = userEmail.startsWith('tg_') && userEmail.endsWith('@icelogix.by');
 
-  const userNameDisplay = data?.full_name || authUser?.user_metadata?.full_name || (data?.username ? '@' + data.username : 'Пользователь');
-  const userHandleDisplay = data?.username ? '@' + data.username : (data?.phone || userEmail || (userTelegramId ? 'TG ID: ' + userTelegramId : ''));
-  const userAvatar = data?.avatar_url || authUser?.user_metadata?.avatar_url || null;
+  const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+  const rawUsername = data?.username || tgUser?.username || authUser?.user_metadata?.user_name || authUser?.user_metadata?.username || '';
+  const cleanUsername = rawUsername ? (rawUsername.startsWith('@') ? rawUsername : '@' + rawUsername) : '';
+
+  const userNameDisplay = data?.full_name || authUser?.user_metadata?.full_name || (tgUser?.first_name ? `${tgUser.first_name}${tgUser.last_name ? ' ' + tgUser.last_name : ''}` : '') || cleanUsername || 'Пользователь';
+  const userHandleDisplay = cleanUsername || (userTelegramId ? 'ID: ' + userTelegramId : (!isDummyEmail && userEmail ? userEmail : ''));
+  const userAvatar = data?.avatar_url || authUser?.user_metadata?.avatar_url || (tgUser?.photo_url ? tgUser.photo_url : null);
   const isTgSession = !!(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || userTelegramId);
   const idDisplay = userTelegramId ? String(userTelegramId) : (userId ? String(userId).slice(0, 8) + '...' : '—');
   const rawIdForCopy = userTelegramId ? String(userTelegramId) : (userId ? String(userId) : '');
@@ -976,26 +980,34 @@ async function renderSettingsPage(initialTab = 'account') {
           </button>
         </div>
       </div>
-
-      <!-- Bottom Action Save Bar -->
-      <div class="pt-4 flex gap-3">
-        <button id="closeAppSettings" class="btn-secondary flex-1 py-3.5 rounded-2xl font-bold text-xs">
-          Назад
-        </button>
-        <button id="saveAppSettings" class="btn-primary flex-1 py-3.5 rounded-2xl font-bold text-xs shadow-lg shadow-cyan-500/20">
-          Сохранить
-        </button>
-      </div>
     </div>
     ${typeof renderFooter === 'function' ? renderFooter() : ''}
   `;
 }
 
 function attachSettingsPageHandlers(initialTab = 'account') {
-  let selectedTheme = localStorage.getItem('theme') || 'dark';
-  let selectedLang = localStorage.getItem('lang') || 'ru';
-  let savedTheme = selectedTheme;
-  let savedLang = selectedLang;
+  // Helper for saving app_settings to DB in background
+  async function persistAppSettings(partial) {
+    if (!supabaseClient || !userId) return;
+    try {
+      const { data } = await supabaseClient.from('users').select('app_settings').eq('user_id', userId).maybeSingle();
+      const current = data?.app_settings || {};
+      const updated = { ...current, ...partial };
+      await supabaseClient.from('users').update({ app_settings: updated }).eq('user_id', userId);
+    } catch (e) {
+      console.warn('Auto-save app_settings failed:', e);
+    }
+  }
+
+  // Helper for saving notification_settings to DB in background
+  async function persistNotifSettings(newNotif) {
+    if (!supabaseClient || !userId) return;
+    try {
+      await supabaseClient.from('users').update({ notification_settings: newNotif }).eq('user_id', userId);
+    } catch (e) {
+      console.warn('Auto-save notification_settings failed:', e);
+    }
+  }
 
   // Segmented tab switching (5 tabs)
   document.querySelectorAll('.settings-page-tab').forEach(tab => {
@@ -1033,10 +1045,15 @@ function attachSettingsPageHandlers(initialTab = 'account') {
     };
   }
 
-  // Account: Clear Cache
+  // Account: Clear Cache with confirmation
   const clearCacheBtn = document.getElementById('clearAppCacheBtn');
   if (clearCacheBtn) {
-    clearCacheBtn.onclick = () => {
+    clearCacheBtn.onclick = async () => {
+      const confirmed = (typeof tgUtil !== 'undefined' && tgUtil.confirm)
+        ? await tgUtil.confirm('Вы действительно хотите очистить кэш приложения? Данные авторизации сохранятся.')
+        : confirm('Вы действительно хотите очистить кэш приложения? Данные авторизации сохранятся.');
+      if (!confirmed) return;
+
       try {
         const preserveKeys = {};
         for (let i = 0; i < localStorage.length; i++) {
@@ -1080,25 +1097,28 @@ function attachSettingsPageHandlers(initialTab = 'account') {
     };
   }
 
-  // Theme selection
+  // Theme selection: Instant Auto-Save
   document.querySelectorAll('.theme-btn').forEach(btn => {
     btn.onclick = () => {
-      selectedTheme = btn.dataset.theme;
+      const targetTheme = btn.dataset.theme;
       document.querySelectorAll('.theme-btn').forEach(b => {
         b.classList.remove('border-cyan-400', 'shadow-md', 'shadow-cyan-500/15');
         b.classList.add('border-white/10');
       });
       btn.classList.remove('border-white/10');
       btn.classList.add('border-cyan-400', 'shadow-md', 'shadow-cyan-500/15');
-      if (typeof applyTheme === 'function') applyTheme(selectedTheme);
-      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+      
+      localStorage.setItem('theme', targetTheme);
+      if (typeof applyTheme === 'function') applyTheme(targetTheme);
+      persistAppSettings({ theme: targetTheme });
+      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
     };
   });
 
-  // Language selection
+  // Language selection: Instant Auto-Save
   document.querySelectorAll('.lang-btn').forEach(btn => {
     btn.onclick = () => {
-      selectedLang = btn.dataset.lang;
+      const targetLang = btn.dataset.lang;
       document.querySelectorAll('.lang-btn').forEach(b => {
         b.classList.remove('border-cyan-400', 'bg-cyan-950/30', 'shadow-md', 'shadow-cyan-500/10');
         b.classList.add('border-white/10', 'bg-white/5');
@@ -1109,16 +1129,53 @@ function attachSettingsPageHandlers(initialTab = 'account') {
       btn.classList.add('border-cyan-400', 'bg-cyan-950/30', 'shadow-md', 'shadow-cyan-500/10');
       const curBadge = btn.querySelector('span:last-child');
       if (curBadge) { curBadge.textContent = '✓ Выбран'; curBadge.className = 'text-xs text-cyan-400 font-bold'; }
-      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+      
+      localStorage.setItem('lang', targetLang);
+      persistAppSettings({ lang: targetLang });
+      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
+      
+      window._settingsInitialTab = 'language';
+      if (typeof applyLanguage === 'function') applyLanguage(targetLang);
     };
+  });
+
+  // Signals (Notification toggles): Instant Auto-Save
+  ['notifyStatusChanges', 'notifyNews', 'notifyPromotions'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.onchange = () => {
+        const sc = document.getElementById('notifyStatusChanges')?.checked ?? true;
+        const sn = document.getElementById('notifyNews')?.checked ?? true;
+        const sp = document.getElementById('notifyPromotions')?.checked ?? true;
+        const newNotif = { status_changes: sc, news: sn, promotions: sp };
+        
+        localStorage.setItem('notification_settings', JSON.stringify(newNotif));
+        persistNotifSettings(newNotif);
+        if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+      };
+    }
   });
 
   // Reset defaults
   const resetBtn = document.getElementById('resetSettingsBtn');
   if (resetBtn) {
-    resetBtn.onclick = () => {
-      selectedTheme = 'dark';
-      if (typeof applyTheme === 'function') applyTheme('dark');
+    resetBtn.onclick = async () => {
+      const confirmed = (typeof tgUtil !== 'undefined' && tgUtil.confirm)
+        ? await tgUtil.confirm('Сбросить все настройки приложения к исходным?')
+        : confirm('Сбросить все настройки приложения к исходным?');
+      if (!confirmed) return;
+
+      const defaultTheme = 'dark';
+      const defaultLang = 'ru';
+      const defaultNotif = { status_changes: true, news: true, promotions: true };
+
+      localStorage.setItem('theme', defaultTheme);
+      localStorage.setItem('lang', defaultLang);
+      localStorage.setItem('notification_settings', JSON.stringify(defaultNotif));
+
+      persistAppSettings({ theme: defaultTheme, lang: defaultLang });
+      persistNotifSettings(defaultNotif);
+
       document.querySelectorAll('.theme-btn').forEach(b => {
         b.classList.toggle('border-cyan-400', b.dataset.theme === 'dark');
         b.classList.toggle('border-white/10', b.dataset.theme !== 'dark');
@@ -1129,7 +1186,12 @@ function attachSettingsPageHandlers(initialTab = 'account') {
       if (sc) sc.checked = true;
       if (sn) sn.checked = true;
       if (sp) sp.checked = true;
+
+      if (typeof applyTheme === 'function') applyTheme(defaultTheme);
+      window._settingsInitialTab = 'theme';
+      if (typeof applyLanguage === 'function') applyLanguage(defaultLang);
       if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('medium');
+      if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Настройки сброшены к значениям по умолчанию.');
     };
   }
 
@@ -1269,60 +1331,6 @@ function attachSettingsPageHandlers(initialTab = 'account') {
   if (recoveryBtn) {
     recoveryBtn.onclick = () => {
       if (typeof showRecoveryCodeModal === 'function') showRecoveryCodeModal();
-    };
-  }
-
-  // Close / Back button
-  const closeBtn = document.getElementById('closeAppSettings');
-  if (closeBtn) {
-    closeBtn.onclick = () => {
-      if (typeof applyTheme === 'function') applyTheme(savedTheme);
-      if (typeof applyLanguage === 'function') applyLanguage(savedLang);
-      if (typeof window.goBackGlobal === 'function') window.goBackGlobal();
-    };
-  }
-
-  // Save button
-  const saveBtn = document.getElementById('saveAppSettings');
-  if (saveBtn) {
-    saveBtn.onclick = async () => {
-      const statusChangesEl = document.getElementById('notifyStatusChanges');
-      const newsEl = document.getElementById('notifyNews');
-      const promosEl = document.getElementById('notifyPromotions');
-
-      const newNotif = {
-        status_changes: statusChangesEl ? statusChangesEl.checked : true,
-        news: newsEl ? newsEl.checked : true,
-        promotions: promosEl ? promosEl.checked : true
-      };
-      const newApp = { theme: selectedTheme, lang: selectedLang };
-
-      localStorage.setItem('notification_settings', JSON.stringify(newNotif));
-      localStorage.setItem('theme', selectedTheme);
-      localStorage.setItem('lang', selectedLang);
-
-      if (supabaseClient && userId) {
-        try {
-          await supabaseClient.from('users').update({ notification_settings: newNotif, app_settings: newApp }).eq('user_id', userId);
-        } catch (e) {
-          console.error('Failed to save settings to DB:', e);
-        }
-      }
-
-      savedTheme = selectedTheme;
-      savedLang = selectedLang;
-
-      if (typeof applyTheme === 'function') applyTheme(selectedTheme);
-      if (typeof applyLanguage === 'function') applyLanguage(selectedLang);
-
-      saveBtn.style.setProperty('background', 'linear-gradient(135deg, #10b981, #059669)', 'important');
-      saveBtn.innerHTML = 'Сохранено ✓';
-      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
-
-      setTimeout(() => {
-        saveBtn.style.removeProperty('background');
-        saveBtn.innerHTML = 'Сохранить';
-      }, 1500);
     };
   }
 }

@@ -70,36 +70,6 @@ async function renderHome() {
           }
   
   return `
-    <!-- Currency Tracker -->
-    <div class="glass-card mb-5" style="padding: 12px 16px;">
-      <div class="flex justify-between items-center mb-2">
-        <h3 class="text-white font-bold text-sm flex items-center gap-1"><span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span> Биржевой курс ICE LOGIX</h3>
-        <span class="text-green-400 text-[10px] bg-green-400/20 px-2 py-0.5 rounded-full animate-pulse">Live</span>
-      </div>
-      <div style="overflow-x: auto; padding: 2px 0; scrollbar-width: none; -ms-overflow-style: none;">
-        <div style="display: flex; gap: 6px; width: max-content; padding-bottom: 2px;">
-          ${[
-            { flag: '🇨🇳', code: 'CNY', label: '¥1',     key: 'cny_rate', def: 0.46,    mult: 1    },
-            { flag: '🇪🇺', code: 'EUR', label: '€1',     key: 'eur_rate', def: 3.55,    mult: 1    },
-            { flag: '🇷🇺', code: 'RUB', label: '₽1',     key: 'rub_rate', def: 0.031,   mult: 1    },
-            { flag: '🇺🇸', code: 'USD', label: '$1',     key: 'usd_rate', def: 3.25,    mult: 1    },
-            { flag: '🇵🇱', code: 'PLN', label: 'zł1',    key: 'pln_rate', def: 0.80,    mult: 1    },
-            { flag: '🇯🇵', code: 'JPY', label: '¥100',   key: 'jpy_rate', def: 0.022,   mult: 100  },
-            { flag: '🇻🇳', code: 'VND', label: '₫1000',  key: 'vnd_rate', def: 0.00013, mult: 1000 },
-            { flag: '🇦🇪', code: 'AED', label: 'د.إ1',   key: 'aed_rate', def: 0.88,    mult: 1    },
-            { flag: '🇹🇷', code: 'TRY', label: '₺1',     key: 'try_rate', def: 0.096,   mult: 1    },
-            { flag: '🇰🇷', code: 'KRW', label: '₩1000',  key: 'krw_rate', def: 0.0024,  mult: 1000 },
-          ].map(c => {
-            const rate = (Number(window.appSettings?.[c.key] || c.def) * c.mult).toFixed(2);
-            return `<div class="rate-tracker-card" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 6px 10px; flex-shrink: 0;">
-              <div style="font-size: 10px; color: rgba(255,255,255,0.45); white-space: nowrap; margin-bottom: 3px;">${c.flag} ${c.code}</div>
-              <div style="font-size: 11px; font-weight: 700; color: white; white-space: nowrap;">${c.label} ≈ <span style="color: #67e8f9;">${rate} Br/ICE</span></div>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>
-    </div>
-
     <!-- Promo Banners (WB Style Full Width with Slow Auto-scroll) -->
     <div class="banner-carousel-wrapper mb-4" id="bannerCarouselWrapper">
       <div class="banner-carousel" id="promoBannersContainer">

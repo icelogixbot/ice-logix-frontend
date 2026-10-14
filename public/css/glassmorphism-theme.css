@@ -819,6 +819,136 @@
       transition: background 0.15s ease;
     }
     
+    /* ============================================================
+       CNY Exchange Rate Special Banner Slide (ICE LOGIX)
+       ============================================================ */
+    .banner-slide-cny {
+      background: radial-gradient(circle at 85% 20%, rgba(6, 182, 212, 0.40) 0%, transparent 60%),
+                  linear-gradient(135deg, #051423 0%, #0c2847 48%, #083344 100%) !important;
+      border: 1px solid rgba(103, 232, 249, 0.35) !important;
+      box-shadow: 0 8px 30px rgba(6, 182, 212, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+      position: relative;
+    }
+
+    .banner-slide-cny::before {
+      background: linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(5, 20, 35, 0.72) 100%) !important;
+    }
+
+    .cny-watermark {
+      position: absolute;
+      right: 18px;
+      top: -12px;
+      font-size: 110px;
+      font-weight: 900;
+      color: rgba(103, 232, 249, 0.08);
+      line-height: 1;
+      pointer-events: none;
+      user-select: none;
+      font-family: system-ui, -apple-system, sans-serif;
+      z-index: 1;
+    }
+
+    .cny-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .cny-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(6, 182, 212, 0.20);
+      border: 1px solid rgba(103, 232, 249, 0.45);
+      color: #67e8f9;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 8px;
+      letter-spacing: 0.3px;
+    }
+
+    .cny-flag {
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    .cny-live-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 8px #4ade80;
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    .cny-tagline {
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.65);
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+
+    .cny-main-rate {
+      font-size: 25px;
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -0.5px;
+      color: #ffffff;
+      margin: 2px 0 4px 0;
+      text-shadow: 0 2px 14px rgba(6, 182, 212, 0.5);
+    }
+
+    .cny-rate-val {
+      color: #67e8f9;
+      font-family: var(--font-mono, monospace);
+    }
+
+    .cny-rate-curr {
+      font-size: 15px;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.85);
+      margin-left: 2px;
+    }
+
+    .cny-subtitle {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.82);
+      margin: 0 0 8px 0;
+      max-width: 95%;
+    }
+
+    .cny-footer-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .cny-btn {
+      background: rgba(6, 182, 212, 0.25) !important;
+      border: 1px solid rgba(103, 232, 249, 0.5) !important;
+      color: #ffffff !important;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .cny-btn:active {
+      transform: scale(0.97);
+      background: rgba(6, 182, 212, 0.35) !important;
+    }
+
+    .cny-ice-note {
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.45);
+      font-family: var(--font-mono, monospace);
+      font-weight: 600;
+    }
+
     .banner-dots {
       position: absolute;
       bottom: 8px;

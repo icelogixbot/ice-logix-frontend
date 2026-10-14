@@ -2564,7 +2564,7 @@ let adminOrdersTotalPages = 1;
         if (settingsBtn) {
           settingsBtn.onclick = () => {
             animateClick(settingsBtn);
-            window._settingsInitialTab = 'security';
+            window._settingsInitialTab = 'account';
             switchTab('settings');
           };
           const targetDisp = isRegistered ? '' : 'none';
@@ -3566,79 +3566,122 @@ let adminOrdersTotalPages = 1;
           console.error('Ошибка загрузки баннеров:', e);
         }
 
-        const fallbackSlides = [
-          {
-            id: 'promo-sale',
-            bg: 'linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #f43f5e 100%)',
-            badge: 'ДО 70% ВЫГОДЫ',
-            title: 'БОЛЬШАЯ РАСПРОДАЖА',
-            subtitle: 'Оригинальные кроссовки и одежда из Poizon, Taobao & 1688',
-            btnText: 'В каталог',
-            action: 'catalog'
-          },
-          {
-            id: 'promo-legit',
-            bg: 'linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #4f46e5 100%)',
-            badge: '100% ОРИГИНАЛ',
-            title: 'ЛЕГИТ-ЧЕК В ПОДАРОК',
-            subtitle: 'Двойная проверка подлинности и бирки перед отправкой',
-            btnText: 'Проверить вещь',
-            action: 'legit'
-          },
-          {
-            id: 'promo-delivery',
-            bg: 'linear-gradient(135deg, #059669 0%, #0d9488 50%, #0891b2 100%)',
-            badge: 'БЫСТРАЯ ДОСТАВКА',
-            title: 'ЛУЧШИЙ КУРС ВАЛЮТ',
-            subtitle: 'Экспресс-доставка из Китая и Европы от 7 рабочих дней',
-            btnText: 'В калькулятор',
-            action: 'calculator'
-          }
-        ];
-
-        let slides = [];
-        if (dbPromos.length > 0) {
-          dbPromos.forEach(p => {
-            slides.push({
-              id: p.id,
-              isDb: true,
-              bannerUrl: p.banner_url,
-              title: p.title || 'Специальное предложение',
-              subtitle: p.description || 'Активируйте акцию для расчета в калькуляторе'
-            });
-          });
-        }
-
-        if (slides.length < 3) {
-          fallbackSlides.forEach(fb => {
-            if (slides.length < 3) slides.push(fb);
-          });
-        }
-
-        return slides.map(s => {
-          if (s.isDb && s.bannerUrl) {
-            return `
-              <div class="banner-slide" data-promotion-id="${s.id}" style="background-image: url('${s.bannerUrl}');">
-                <div class="banner-content">
-                  <span class="banner-badge">АКЦИЯ ICE LOGIX</span>
-                  <h3 class="banner-title">${s.title}</h3>
-                  <p class="banner-subtitle">${s.subtitle}</p>
-                  <span class="banner-btn">Применить скидку →</span>
-                </div>
-              </div>
-            `;
-          } else {
-            return `
-              <div class="banner-slide" data-promo-action="${s.action || 'catalog'}" style="background: ${s.bg};">
-                <div class="banner-content">
-                  <span class="banner-badge">${s.badge}</span>
-                  <h3 class="banner-title">${s.title}</h3>
-                  <p class="banner-subtitle">${s.subtitle}</p>
-                  <span class="banner-btn">${s.btnText} →</span>
-                </div>
-              </div>
-            `;
-          }
+        let cnyRate = 0.46;
+        try {
+          if (window.appSettings && window.appSettings.cny_rate) {
+            cnyRate = Number(window.appSettings.cny_rate);
+          } else if (window.iceLogixPricing && window.iceLogixPricing.getExchangeRates) {
+            const rates = await window.iceLogixPricing.getExchangeRates();
+            if (rates && rates.CNY_to_BYN) {
+              const buffer = (window.iceLogixPricing.CONFIG?.currency_buffer_pct || 3) / 100;
+              cnyRate = rates.CNY_to_BYN * (1 + buffer);
+            }
+          }
+        } catch (_re) {
+          cnyRate = 0.46;
+        }
+        const cnyRateNum = Number(cnyRate) || 0.46;
+        const cnyRateFormatted = cnyRateNum.toFixed(2);
+        const cny100Formatted = (cnyRateNum * 100).toFixed(0);
+
+        const rateSlide = {
+          id: 'promo-cny-rate',
+          isRateSlide: true,
+          cnyRate: cnyRateFormatted,
+          cny100: cny100Formatted,
+          action: 'calculator'
+        };
+
+        const fallbackSlides = [
+          {
+            id: 'promo-sale',
+            bg: 'linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #f43f5e 100%)',
+            badge: 'ДО 70% ВЫГОДЫ',
+            title: 'БОЛЬШАЯ РАСПРОДАЖА',
+            subtitle: 'Оригинальные кроссовки и одежда из Poizon, Taobao & 1688',
+            btnText: 'В каталог',
+            action: 'catalog'
+          },
+          {
+            id: 'promo-legit',
+            bg: 'linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #4f46e5 100%)',
+            badge: '100% ОРИГИНАЛ',
+            title: 'ЛЕГИТ-ЧЕК В ПОДАРОК',
+            subtitle: 'Двойная проверка подлинности и бирки перед отправкой',
+            btnText: 'Проверить вещь',
+            action: 'legit'
+          }
+        ];
+
+        let slides = [rateSlide];
+        if (dbPromos.length > 0) {
+          dbPromos.forEach(p => {
+            slides.push({
+              id: p.id,
+              isDb: true,
+              bannerUrl: p.banner_url,
+              title: p.title || 'Специальное предложение',
+              subtitle: p.description || 'Активируйте акцию для расчета в калькуляторе'
+            });
+          });
+        }
+
+        if (slides.length < 3) {
+          fallbackSlides.forEach(fb => {
+            if (slides.length < 3) slides.push(fb);
+          });
+        }
+
+        return slides.map(s => {
+          if (s.isRateSlide) {
+            return `
+              <div class="banner-slide banner-slide-cny" data-promo-action="calculator">
+                <div class="cny-watermark" aria-hidden="true">¥</div>
+                <div class="banner-content">
+                  <div class="cny-header-row">
+                    <span class="cny-badge">
+                      <span class="cny-flag">🇨🇳</span> ВЫКУП В КИТАЕ <span class="cny-live-dot"></span>
+                    </span>
+                    <span class="cny-tagline">Poizon • Taobao • 1688</span>
+                  </div>
+                  <div class="cny-main-rate">
+                    1 ¥ ≈ <span class="cny-rate-val">${s.cnyRate}</span> <span class="cny-rate-curr">BYN</span>
+                  </div>
+                  <p class="banner-subtitle cny-subtitle">
+                    Честный курс без наценок • 100 ¥ ≈ <strong style="color: #67e8f9;">${s.cny100} BYN</strong>
+                  </p>
+                  <div class="cny-footer-row">
+                    <span class="banner-btn cny-btn">
+                      Рассчитать заказ →
+                    </span>
+                    <span class="cny-ice-note">1 BYN = 1 ICE</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          } else if (s.isDb && s.bannerUrl) {
+            return `
+              <div class="banner-slide" data-promotion-id="${s.id}" style="background-image: url('${s.bannerUrl}');">
+                <div class="banner-content">
+                  <span class="banner-badge">АКЦИЯ ICE LOGIX</span>
+                  <h3 class="banner-title">${s.title}</h3>
+                  <p class="banner-subtitle">${s.subtitle}</p>
+                  <span class="banner-btn">Применить скидку →</span>
+                </div>
+              </div>
+            `;
+          } else {
+            return `
+              <div class="banner-slide" data-promo-action="${s.action || 'catalog'}" style="background: ${s.bg};">
+                <div class="banner-content">
+                  <span class="banner-badge">${s.badge}</span>
+                  <h3 class="banner-title">${s.title}</h3>
+                  <p class="banner-subtitle">${s.subtitle}</p>
+                  <span class="banner-btn">${s.btnText} →</span>
+                </div>
+              </div>
+            `;
+          }
         }).join('');
       } catch (err) {
         console.error('Ошибка рендера баннеров:', err);
