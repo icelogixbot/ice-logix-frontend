@@ -52,39 +52,14 @@
       try { tg.ready(); } catch {}
       try { tg.expand(); } catch {}
       // Отключаем блокировку закрытия при взмахе вниз (разрешаем мгновенное сворачивание)
-      try { tg.disableClosingConfirmation?.(); } catch {}
+      // Включаем closing confirmation: в Telegram это предотвращает случайное закрытие и
+      // переводит свайп вниз в нативное сворачивание в нижнюю панель (Mini Apps Dock)
+      try { tg.enableClosingConfirmation?.(); } catch {}
       // Включаем вертикальный свайп для нативного закрытия/сворачивания
       try { tg.enableVerticalSwipes?.(); } catch {}
       try { tg.setHeaderColor?.('#090d16'); } catch {}
       try { tg.setBackgroundColor?.('#090d16'); } catch {}
       try { tg.setBottomBarColor?.('#090d16'); } catch {}
-
-      // Предотвращение остановки на половине экрана при свайпе вниз:
-      // Как только пользователь делает свайп вниз из полного экрана — закрываем сразу без зависания на половине
-      let hasBeenExpanded = false;
-      const initDeskTime = Date.now();
-
-      if (tg.isExpanded) {
-        hasBeenExpanded = true;
-      }
-
-      tg.onEvent?.('viewportChanged', () => {
-        // Первые 450мс даем на анимацию tg.expand() при старте
-        if (Date.now() - initDeskTime < 450) {
-          if (tg.isExpanded) hasBeenExpanded = true;
-          return;
-        }
-
-        if (tg.isExpanded) {
-          hasBeenExpanded = true;
-        } else if (hasBeenExpanded && !tg.isExpanded) {
-          // Зафиксирован переход из полноэкранного режима вниз (свайп вниз)
-          // Мгновенно закрываем Mini App, исключая половинный режим
-          try {
-            tg.close();
-          } catch {}
-        }
-      });
 
       // Поддержка нативной кнопки BackButton Telegram на мобильных устройствах
       if (tg.BackButton) {
@@ -93,40 +68,12 @@
           if (chatPanel && chatPanel.classList.contains('active')) {
             chatPanel.classList.remove('active');
             activeTicket = null;
+            try { localStorage.removeItem('ice_desk_active_ticket_id'); } catch {}
             renderTicketsList();
             try { tg.BackButton.hide(); } catch {}
           }
         });
       }
-
-      // Глобальный перехватчик свайпа вниз для мгновенного полного сворачивания
-      let globalTouchStartY = 0;
-      let globalTouchStartX = 0;
-      window.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 1) {
-          globalTouchStartY = e.touches[0].clientY;
-          globalTouchStartX = e.touches[0].clientX;
-        }
-      }, { passive: true });
-
-      window.addEventListener('touchmove', (e) => {
-        if (e.touches.length !== 1) return;
-        const deltaY = e.touches[0].clientY - globalTouchStartY;
-        const deltaX = Math.abs(e.touches[0].clientX - globalTouchStartX);
-
-        // Если жест направлен вниз с хорошей амплитудой
-        if (deltaY > 50 && deltaY > deltaX * 1.3) {
-          const ticketsList = document.getElementById('ticketsList');
-          const isAtTop = !ticketsList || ticketsList.scrollTop <= 0;
-          const isHeader = e.target.closest && e.target.closest('.desk-header');
-
-          if (isHeader || isAtTop || !tg.isExpanded) {
-            try {
-              tg.close();
-            } catch {}
-          }
-        }
-      }, { passive: true });
     }
 
     // Проверяем авторизацию
@@ -163,12 +110,22 @@
       return;
     }
 
+    // Восстанавливаем сохраненную вкладку
+    const savedTab = localStorage.getItem('ice_desk_active_tab');
+    if (savedTab && ['all', 'open', 'in_progress', 'closed'].includes(savedTab)) {
+      activeTab = savedTab;
+      document.querySelectorAll('.desk-tab').forEach((t) => {
+        if (t.getAttribute('data-tab') === activeTab) t.classList.add('active');
+        else t.classList.remove('active');
+      });
+    }
+
     bindEvents();
     await loadTickets();
     setupRealtime();
 
-    // Проверяем параметр url ?ticket=...
-    const initialTicketId = urlParams.get('ticket');
+    // Проверяем параметр url ?ticket=... или восстанавливаем открытый тикет из памяти
+    const initialTicketId = urlParams.get('ticket') || localStorage.getItem('ice_desk_active_ticket_id');
     if (initialTicketId) {
       const target = ticketsList.find((t) => t.id === initialTicketId);
       if (target) {
@@ -328,6 +285,7 @@
 
   async function selectTicket(ticket) {
     activeTicket = ticket;
+    try { localStorage.setItem('ice_desk_active_ticket_id', ticket.id); } catch {}
 
     // Подсветка в сайдбаре
     renderTicketsList();
@@ -603,6 +561,7 @@
       }
 
       activeTicket = null;
+      try { localStorage.removeItem('ice_desk_active_ticket_id'); } catch {}
       document.getElementById('chatEmptyState').style.display = 'flex';
       document.getElementById('chatActiveRoom').style.display = 'none';
 
@@ -656,6 +615,7 @@
         document.querySelectorAll('.desk-tab').forEach((t) => t.classList.remove('active'));
         tab.classList.add('active');
         activeTab = tab.getAttribute('data-tab');
+        try { localStorage.setItem('ice_desk_active_tab', activeTab); } catch {}
         renderTicketsList();
       });
     });
@@ -684,6 +644,7 @@
         const chatPanel = document.getElementById('chatPanel');
         if (chatPanel) chatPanel.classList.remove('active');
         activeTicket = null;
+        try { localStorage.removeItem('ice_desk_active_ticket_id'); } catch {}
         renderTicketsList();
         if (window.Telegram?.WebApp?.BackButton) {
           try { window.Telegram.WebApp.BackButton.hide(); } catch {}
