@@ -186,7 +186,7 @@
           labelSpan.textContent = tabLabels[tabName];
         }
       });
-      if (typeof renderCurrentScreen === 'function') {
+      if (window._appReady && currentTab && typeof renderCurrentScreen === 'function') {
         renderCurrentScreen();
       }
       // Translate the freshly rendered UI (and keep doing so for late async content)
@@ -1825,7 +1825,7 @@
     window.invalidateAdminCache = function() {
       window.adminCache = null;
     };
-    let currentTab = null, previousTab = null, currentSubScreen = null;
+    let currentTab = 'home', previousTab = null, currentSubScreen = null;
 
     // ==================== Telegram WebApp native helpers ====================
     // Wraps Telegram.WebApp APIs with graceful fallback to browser primitives.
@@ -2723,12 +2723,13 @@ let adminOrdersTotalPages = 1;
         // Safe boot without double-rendering or flickering navigation bars
         try {
           const _c = document.getElementById('content');
-          const _hasContent = _c && _c.innerHTML && _c.innerHTML.trim().length > 100;
-          if (!window._homeRenderedOnce || !_hasContent) {
-            currentTab = null;
+          const _hasValidContent = _c && _c.innerHTML && (_c.innerHTML.includes('marketplaces') || _c.innerHTML.includes('product-card')) && !_c.innerHTML.includes('Страница не найдена');
+          if (!window._homeRenderedOnce || !_hasValidContent) {
+            currentTab = 'home';
             switchTab('home');
             window._homeRenderedOnce = true;
           } else {
+            currentTab = 'home';
             attachHomeHandlers();
             if (!_tabCache['home:']) {
               if (_c && _c.innerHTML) _tabCache['home:'] = { html: _c.innerHTML, ts: Date.now() };
@@ -3456,7 +3457,7 @@ let adminOrdersTotalPages = 1;
             </div>
           </div>
           <div class="footer-links">
-            <span class="footer-link text-cyan-400 font-bold" data-link="support">Поддержка</span>
+            <span class="footer-link" data-link="support">Поддержка</span>
             <span class="footer-link" data-link="faq">Ответы на вопросы (FAQ)</span>
             <span class="footer-link" data-link="offer">Публичная оферта</span>
             <span class="footer-link" data-link="privacy">Политика конфиденциальности</span>

@@ -74,6 +74,8 @@
         ensureBackButtonForSubscreen();
       } else {
 
+      if (!currentTab) currentTab = 'home';
+
       if (currentTab !== 'calculator') {
         window.activePromotionId = null;
         window.currentPromotion = null;
@@ -82,10 +84,11 @@
       if (currentTab === 'home') {
         try {
           const homeHtml = await renderHome();
-          contentDiv.innerHTML = shadowBannerHtml + homeHtml;
+          contentDiv.innerHTML = shadowBannerHtml + (homeHtml || '<div class="glass-card p-6 text-center text-white my-8"><p class="font-bold text-sm mb-2">Главная страница загружается...</p><button class="btn-primary py-2 px-4 rounded-xl text-xs mt-2" onclick="window.switchTab(\'home\');">Обновить</button></div>');
           attachHomeHandlers();
         } catch (e) {
           console.error('Failed to render home tab:', e);
+          contentDiv.innerHTML = shadowBannerHtml + '<div class="glass-card p-6 text-center text-white my-8"><p class="font-bold text-sm mb-2">Главная страница загружается...</p><button class="btn-primary py-2 px-4 rounded-xl text-xs mt-2" onclick="window.switchTab(\'home\');">Обновить</button></div>';
         }
       } else if (currentTab === 'calculator') {
         contentDiv.innerHTML = shadowBannerHtml + await renderCalculator();
@@ -195,7 +198,15 @@
           if (typeof attachSettingsPageHandlers === 'function') attachSettingsPageHandlers(window._settingsInitialTab || 'security');
         }
       } else {
-        contentDiv.innerHTML = '<div class="text-center py-10">Страница не найдена</div>';
+        console.warn('[ICE LOGIX Router] Unknown tab:', currentTab, '— falling back to home');
+        currentTab = 'home';
+        try {
+          const homeHtml = await renderHome();
+          contentDiv.innerHTML = shadowBannerHtml + homeHtml;
+          attachHomeHandlers();
+        } catch (e) {
+          contentDiv.innerHTML = '<div class="text-center py-10 text-white"><p class="mb-4">Страница не найдена</p><button class="btn-primary py-2 px-4 rounded-xl text-xs" onclick="window.switchTab(\'home\')">На главную</button></div>';
+        }
       }
       }
       
@@ -214,7 +225,7 @@
       if (contentDiv && contentDiv.innerHTML) {
         _tabCache[_ck] = { html: contentDiv.innerHTML, ts: Date.now() };
         try {
-          if (currentTab === 'home' && !currentSubScreen) {
+          if (currentTab === 'home' && !currentSubScreen && !contentDiv.innerHTML.includes('Страница не найдена')) {
             localStorage.setItem('ice_tab_home_v2', contentDiv.innerHTML);
           }
           const _persistKeys = ['reports:', 'reviews:', 'promo:', 'academy:', 'legitcheck:', 'calculator:', 'catalogs:'];
@@ -233,10 +244,13 @@
       const footers = contentDiv.querySelectorAll('.app-footer');
       if (footers.length === 0) {
         contentDiv.insertAdjacentHTML('beforeend', renderFooter());
-      } else if (footers.length > 1) {
+      } else {
+        // Remove duplicate footers if any
         for (let i = 0; i < footers.length - 1; i++) {
           footers[i].remove();
         }
+        // Always refresh footer in place to update stale cached links/styles
+        footers[footers.length - 1].outerHTML = renderFooter();
       }
     }
     window.ensureGlobalFooter = ensureGlobalFooter;
