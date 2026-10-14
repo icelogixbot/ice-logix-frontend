@@ -829,76 +829,9 @@
         }
       };
 
-      window.openCurrencyInfoModal = (targetEl) => {
-        document.getElementById('currencyInfoPopover')?.remove();
-        tgUtil.haptic('light');
+      // Currency popover removed per user request: info moved to dedicated balance top-up view
+      window.openCurrencyInfoModal = () => {};
 
-        const rect = targetEl ? targetEl.getBoundingClientRect() : { top: 60, left: window.innerWidth / 2, width: 24, height: 24 };
-        const popWidth = Math.min(290, window.innerWidth - 32);
-        
-        let popLeft = Math.max(16, Math.min(window.innerWidth - popWidth - 16, rect.left + rect.width / 2 - popWidth / 2));
-        let popTop = rect.top + rect.height + 10;
-        let isBottom = true;
-
-        if (popTop + 200 > window.innerHeight) {
-          popTop = Math.max(16, rect.top - 200);
-          isBottom = false;
-        }
-
-        const arrowLeft = Math.max(12, Math.min(popWidth - 24, (rect.left + rect.width / 2) - popLeft - 6));
-        const arrowStyle = isBottom
-          ? `top: -7px; left: ${arrowLeft}px; border-t: 1px solid rgba(6,182,212,0.4); border-left: 1px solid rgba(6,182,212,0.4); background: #020617;`
-          : `bottom: -7px; left: ${arrowLeft}px; border-b: 1px solid rgba(6,182,212,0.4); border-right: 1px solid rgba(6,182,212,0.4); background: #020617;`;
-
-        const popoverHtml = `
-          <div id="currencyInfoPopover" class="fixed z-[9999] page-enter transition-all duration-200 shadow-[0_10px_35px_rgba(0,0,0,0.8),0_0_20px_rgba(6,182,212,0.3)] rounded-2xl p-3.5 text-left border border-cyan-500/40 bg-slate-950/95 backdrop-blur-xl space-y-2 text-white" style="left:${popLeft}px; top:${popTop}px; width:${popWidth}px;" onclick="event.stopPropagation();">
-            <div class="absolute w-3 h-3 rotate-45" style="${arrowStyle}"></div>
-
-            <div class="flex items-center gap-2 border-b border-white/10 pb-2">
-              <img src="./assets/icl_currency_icon.png" alt="ICL" class="w-5 h-5 object-contain flex-shrink-0 drop-shadow-[0_0_6px_rgba(91,191,235,0.8)]">
-              <div class="flex-1 min-w-0">
-                <h4 class="text-xs font-black text-white tracking-wide leading-none">ICE Coin (ICL)</h4>
-                <p class="text-[9px] font-semibold text-cyan-300 mt-0.5">1 ICL = 1 BYN • Внутренняя валюта</p>
-              </div>
-              <button type="button" onclick="document.getElementById('currencyInfoPopover')?.remove()" class="text-white/40 hover:text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full bg-white/5 cursor-pointer">✕</button>
-            </div>
-
-            <div class="space-y-1.5 text-[11px] text-white/80 leading-snug">
-              <div class="flex items-start gap-1.5">
-                <span class="text-xs">💎</span>
-                <span><strong>Для чего:</strong> выкуп товаров, доставка, скидки и покупка курсов.</span>
-              </div>
-              <div class="flex items-start gap-1.5">
-                <span class="text-xs">🎁</span>
-                <span><strong>Как копить:</strong> кэшбек за заказы, приглашение друзей и промокоды.</span>
-              </div>
-            </div>
-
-            <div class="pt-1.5 flex justify-end">
-              <button type="button" onclick="document.getElementById('currencyInfoPopover')?.remove()" class="btn-primary py-1 px-3 rounded-lg text-[10px] font-bold shadow-md shadow-cyan-500/20 active:scale-95 cursor-pointer border-0">
-                Понятно 👍
-              </button>
-            </div>
-          </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', popoverHtml);
-      };
-
-      if (!window._currencyModalListenerAdded) {
-        window._currencyModalListenerAdded = true;
-        document.addEventListener('click', (e) => {
-          const target = e.target.closest('.balance-icon, .brand-flake, [data-currency-info]');
-          if (target && !e.target.closest('.balance-add')) {
-            e.stopPropagation();
-            window.openCurrencyInfoModal(target);
-          } else {
-            const pop = document.getElementById('currencyInfoPopover');
-            if (pop && !e.target.closest('#currencyInfoPopover')) {
-              pop.remove();
-            }
-          }
-        });
-      }
 
       window.resetCalculatorCalculation = () => {
         tgUtil.haptic('light');

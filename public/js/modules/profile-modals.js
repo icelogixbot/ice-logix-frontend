@@ -41,7 +41,7 @@ async function showCommissionContractModal() {
   `;
   document.body.appendChild(modal);
 
-  modal.querySelector('#closeContractModalBtn').onclick = () => modal.remove();
+  modal.querySelector('#closeContractModalBtn').onclick = () => window.closeModalWithAnimation(modal);
 
   try {
     // Fetch customer profile
@@ -994,8 +994,8 @@ window.showLogisticsHistory = async (orderId) => {
   `;
   document.body.appendChild(modal);
 
-  modal.querySelector('#closeLogisticsModalBtn').onclick = () => modal.remove();
-  modal.addEventListener('click', e => { if(e.target === modal) modal.remove(); });
+  modal.querySelector('#closeLogisticsModalBtn').onclick = () => window.closeModalWithAnimation(modal);
+  modal.addEventListener('click', e => { if(e.target === modal) window.closeModalWithAnimation(modal); });
 
   try {
     const { data: events, error } = await supabaseClient
@@ -1390,7 +1390,7 @@ async function showMarketplaceWhitelistModal() {
   // Loading state
   overlay.innerHTML = `
     <div class="full-screen-modal-header">
-      <button type="button" class="global-back-btn" onclick="document.getElementById('marketplaceWhitelistModal')?.remove()">
+      <button type="button" class="global-back-btn" onclick="window.closeModalWithAnimation(document.getElementById('marketplaceWhitelistModal'))">
         <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
         <span>Назад</span>
       </button>
@@ -1562,7 +1562,7 @@ async function showRecoveryCodeModal() {
   `;
   document.body.appendChild(modal);
 
-  const close = () => modal.remove();
+  const close = () => window.closeModalWithAnimation(modal);
   modal.querySelector('#closeRecBtn').onclick = close;
   modal.onclick = (e) => { if (e.target === modal) close(); };
 
@@ -1857,7 +1857,7 @@ async function showPersonalDataForm() {
     glassToast('Не удалось загрузить данные', { kind: 'error' });
   }
 
-  const closeForm = () => modal.remove();
+  const closeForm = () => window.closeModalWithAnimation(modal);
   document.getElementById('closePersonalDataBtn').onclick = closeForm;
   document.getElementById('cancelPersonalDataBtn').onclick = closeForm;
   document.getElementById('openFamilyBudgetBtn')?.addEventListener('click', () => { modal.remove(); showFamilySettingsModal(); });
@@ -2087,7 +2087,7 @@ function showMeasurementsForm() {
   modal.id = 'measurementsModal';
   modal.innerHTML = `
     <div class="full-screen-modal-header">
-      <button type="button" class="global-back-btn" id="closeMeasBtn" onclick="document.getElementById('measurementsModal')?.remove()">
+      <button type="button" class="global-back-btn" id="closeMeasBtn" onclick="window.closeModalWithAnimation(document.getElementById('measurementsModal'))">
         <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
         <span>Назад</span>
       </button>
@@ -2139,7 +2139,7 @@ function showMeasurementsForm() {
     }
   })();
 
-  modal.querySelector('#cancelMeasBtn').onclick = () => modal.remove();
+  modal.querySelector('#cancelMeasBtn').onclick = () => window.closeModalWithAnimation(modal);
   modal.querySelector('#saveMeasBtn').onclick = async () => {
     const measurementsObj = {
       height: document.getElementById('measHeight').value,
@@ -2230,7 +2230,7 @@ function showFortuneWheel() {
   `;
   document.body.appendChild(modal);
   
-  modal.querySelector('#closeWheelBtn').onclick = () => modal.remove();
+  modal.querySelector('#closeWheelBtn').onclick = () => window.closeModalWithAnimation(modal);
   
   const spinBtn = modal.querySelector('#spinWheelBtn');
   const wheel = modal.querySelector('#wheel');

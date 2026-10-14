@@ -1004,21 +1004,12 @@
     }
     .scroll-x::-webkit-scrollbar { display: none; }
 
-    /* Scroll container with fade edges to hint scrollability */
+    /* Scroll container (fade shadow removed per UI request) */
     .scroll-hint-container {
       position: relative;
     }
     .scroll-hint-container::after {
-      content: '';
-      position: absolute;
-      right: 0;
-      top: 0;
-      bottom: 8px;
-      width: 48px;
-      background: linear-gradient(to right, transparent, var(--bg-gradient-end, #1A3A5C));
-      pointer-events: none;
-      z-index: 2;
-      border-radius: 0 16px 16px 0;
+      display: none !important;
     }
     /* Scroll dots indicator */
     .scroll-dots {

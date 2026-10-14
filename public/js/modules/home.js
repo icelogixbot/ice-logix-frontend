@@ -109,7 +109,7 @@ async function renderHome() {
     </div>
 
     <!-- Quick Actions - Story Cards (WB Squircle Style Line 1) -->
-    <div class="scroll-hint-container mb-4">
+    <div class="mb-4">
     <div class="scroll-x" style="padding: 2px 0 6px;">
       <div class="story-card" data-story="onboarding">
         <div class="story-icon" style="background: linear-gradient(145deg, rgba(99,202,253,0.25), rgba(59,130,246,0.12));">
@@ -164,7 +164,7 @@ async function renderHome() {
           </svg>
         </button>
       </div>
-      <div class="scroll-hint-container">
+      <div>
       <div class="scroll-x" style="padding: 2px 0 6px;">
         ${marketplaces.map(mp => `
           <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}">

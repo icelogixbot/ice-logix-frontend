@@ -32,6 +32,7 @@
     }
 
     async function renderCurrentScreen() {
+      const thisNavId = ++window._navEpoch;
       const contentDiv = document.getElementById('content');
       syncTelegramBackButton();
       
@@ -55,7 +56,7 @@
       } else if (currentSubScreen === 'myOrders') {
         contentDiv.innerHTML = shadowBannerHtml + await renderMyOrders();
         const backBtn = document.getElementById('backToProfileBtn');
-        if (backBtn) backBtn.onclick = () => { currentSubScreen = null; renderCurrentScreen(); };
+        if (backBtn) backBtn.onclick = () => { window.goBackGlobal(); };
         ensureBackButtonForSubscreen();
       } else if (currentSubScreen === 'marketplaces') {
         contentDiv.innerHTML = shadowBannerHtml + await renderMarketplaces();
@@ -214,7 +215,20 @@
 
       if (isShadowMode) attachShadowModeExit();
 
-      scrollToPageTop();
+      if (contentDiv) {
+        contentDiv.classList.remove('screen-fade-in');
+        void contentDiv.offsetWidth;
+        contentDiv.classList.add('screen-fade-in');
+      }
+
+      if (window._isNavigatingBack) {
+        const _targetKey = (currentTab || '') + ':' + (currentSubScreen || '');
+        const targetScroll = (window._scrollPositions && window._scrollPositions[_targetKey]) || 0;
+        window.scrollTo({ top: targetScroll, left: 0, behavior: 'instant' });
+        window._isNavigatingBack = false;
+      } else {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      }
 
       if (currentTab !== 'home' && currentTab !== 'catalogs' && currentTab !== 'reports' && currentTab !== 'reviews' && currentTab !== 'academy' && currentTab !== 'dropshipper' && currentTab !== 'products' && currentTab !== 'wishlist' && currentTab !== 'search' && currentTab !== 'notifications' && currentTab !== 'settings' && !currentSubScreen) {
         ensureBackButton();

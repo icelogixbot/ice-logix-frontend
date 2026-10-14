@@ -246,7 +246,7 @@
   const myOrdersBtn = document.getElementById('myOrdersBtn');
   if (myOrdersBtn) {
     console.log('myOrdersBtn found');
-    myOrdersBtn.onclick = () => { currentSubScreen = 'myOrders'; renderCurrentScreen(); };
+    myOrdersBtn.onclick = () => { switchTab('profile', 'myOrders'); };
   } else {
     console.error('myOrdersBtn NOT found');
   }
