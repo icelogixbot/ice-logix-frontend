@@ -502,8 +502,13 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: activeTicket.user_id,
-          text: `✅ <b>Ваше обращение закрыто оператором.</b>\n\nЕсли у вас возникнут новые вопросы — просто напишите нам в этот чат в любое время! Спасибо, что выбираете ICE LOGIX ❄️`,
+          text: `✅ <b>Ваш вопрос решен!</b>\n\nСпасибо, что обратились в службу заботы ICE LOGIX ❄️\nЕсли у вас возникнет новый вопрос — просто нажмите кнопку <b>«💬 Задать вопрос»</b> ниже.`,
           parse_mode: 'HTML',
+          reply_markup: {
+            keyboard: [[{ text: '💬 Задать вопрос' }]],
+            resize_keyboard: true,
+            is_persistent: true,
+          },
         }),
       }).catch(() => {});
 
