@@ -3135,27 +3135,25 @@ let adminOrdersTotalPages = 1;
     }
     window.animateClick = animateClick;
 
+    window.openBalanceTopup = function() {
+      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
+      window._financesSubTab = 'topup';
+      if (typeof switchTab === 'function') switchTab('finances');
+    };
+
     function attachEventListeners() {
-      document.getElementById('addBalanceBtn').onclick = (e) => {
-        if (e) e.stopPropagation();
-        tgUtil.haptic('medium');
-        const amount = prompt('Введите сумму пополнения (в ICE / BYN):', '50');
-        if (amount && !isNaN(amount) && Number(amount) > 0) {
-          tgUtil.alert(`Готовим счет на ${amount} Telegram Stars...`);
-          // Здесь будет вызов bot api для генерации инвойса Telegram Stars
-          // Временно симулируем пополнение для тестирования
-          setTimeout(async () => {
-            const addedIce = Number(amount);
-            const { data: u } = await supabaseClient.from('users').select('ices_balance').eq('user_id', userId).single();
-            const newBal = (u.ices_balance || 0) + addedIce;
-            await supabaseClient.from('users').update({ ices_balance: newBal }).eq('user_id', userId);
-            balance = newBal;
-            document.getElementById('headerBalance').innerText = balance;
-            tgUtil.haptic('success');
-            tgUtil.alert(`Баланс успешно пополнен на ${addedIce} ICE!`);
-          }, 1500);
-        }
-      };
+      const addBalBtn = document.getElementById('addBalanceBtn');
+      if (addBalBtn) {
+        addBalBtn.onclick = (e) => {
+          if (e) e.stopPropagation();
+          if (typeof window.openBalanceTopup === 'function') {
+            window.openBalanceTopup();
+          } else {
+            window._financesSubTab = 'topup';
+            if (typeof switchTab === 'function') switchTab('finances');
+          }
+        };
+      }
       document.querySelectorAll('.tab-item').forEach(tab => {
         tab.onclick = () => {
           const tabName = tab.getAttribute('data-tab');
@@ -3542,7 +3540,7 @@ let adminOrdersTotalPages = 1;
           </div>
           <div class="copyright">
             ИП Иванов И.И., УНП 123456789<br>
-            © 2025 ICE LOGIX. Доставка мечты из любой точки мира <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span>
+            © 2026 ICE LOGIX. Доставка мечты из любой точки мира
           </div>
         </div>
       `;
