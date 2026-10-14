@@ -53,12 +53,15 @@
 
         // ── STEP A: Country Selection Overlay (if no country selected yet) ──
         if (!window.orderCountry) {
+          const hasExistingItems = window.tempOrder && window.tempOrder.items && window.tempOrder.items.length > 0;
           return `
             <div class="space-y-4 page-enter pb-8">
-              <button type="button" class="global-back-btn" onclick="window.goBackGlobal()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-                Назад
-              </button>
+              ${hasExistingItems ? `
+                <button type="button" class="global-back-btn" onclick="window.orderAddMode = false; renderCurrentScreen();">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                  Назад к заказу
+                </button>
+              ` : ''}
               <div class="glass-card p-5 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
                 <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
                 <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
@@ -843,6 +846,9 @@
     }
 
     function attachNewOrderHandlers() {
+      if (typeof syncTelegramBackButton === 'function') {
+        syncTelegramBackButton();
+      }
       // Pre-lock currency for CN
       if (window.orderCountry === 'CN') {
         const currencySelect = document.getElementById('orderCurrency');

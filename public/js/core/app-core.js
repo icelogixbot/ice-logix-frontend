@@ -3184,8 +3184,11 @@ let adminOrdersTotalPages = 1;
     function switchTab(tabName, subScreen = null) {
       if (typeof scrollToPageTop === 'function') scrollToPageTop();
       tgUtil.hideMainButton();
-      if (tabName !== 'neworder') {
+      if (tabName !== 'neworder' && tabName !== 'new-order') {
         window.tempOrder = null;
+        window.orderCountry = null;
+        window.orderAddSubMode = null;
+        window.orderAddMode = false;
       }
       if (tabName === 'finances') {
         try { delete _tabCache['finances:']; } catch(_) {}
@@ -3283,15 +3286,21 @@ let adminOrdersTotalPages = 1;
             syncTelegramBackButton();
             return true;
           }
-          window.orderAddMode = false;
-          renderCurrentScreen();
-          syncTelegramBackButton();
-          return true;
+          if (window.tempOrder && window.tempOrder.items && window.tempOrder.items.length > 0) {
+            window.orderAddMode = false;
+            renderCurrentScreen();
+            syncTelegramBackButton();
+            return true;
+          }
+          // At root country selection with empty cart: do nothing!
+          return false;
         }
+        // At root cart review: do nothing!
+        return false;
       }
 
       // 4. If on secondary tab without a bottom bar icon (cart, wishlist, finances, history, dropshipper, academy, admin, etc.)
-      const rootTabs = ['home', 'calculator', 'neworder', 'catalogs', 'profile'];
+      const rootTabs = ['home', 'calculator', 'neworder', 'new-order', 'catalogs', 'profile'];
       if (!rootTabs.includes(currentTab)) {
         if (previousTab && previousTab !== currentTab) {
           switchTab(previousTab);
@@ -3307,9 +3316,11 @@ let adminOrdersTotalPages = 1;
 
     // Wires Telegram's native BackButton based on current tab/subscreen.
     function syncTelegramBackButton() {
-      const rootTabs = ['home', 'calculator', 'neworder', 'catalogs', 'profile'];
+      const rootTabs = ['home', 'calculator', 'neworder', 'new-order', 'catalogs', 'profile'];
       const isHomeSubmode = currentTab === 'home' && window._calcMode && window._calcMode !== 'menu';
-      const isOrderSubmode = (currentTab === 'neworder' || currentTab === 'new-order') && window.orderAddMode;
+      const hasOrderItems = Boolean(window.tempOrder && window.tempOrder.items && window.tempOrder.items.length > 0);
+      const isOrderSubmode = (currentTab === 'neworder' || currentTab === 'new-order') && 
+        (Boolean(window.orderCountry) || Boolean(window.orderAddSubMode) || (Boolean(window.orderAddMode) && hasOrderItems));
       const isRoot = rootTabs.includes(currentTab) && !currentSubScreen && !isHomeSubmode && !isOrderSubmode;
       const hasOverlay = !!document.querySelector('.full-screen-modal-overlay, #spotlightModal:not(.opacity-0), #settingsModal, #notificationsModal, #personalDataModal');
       
