@@ -77,6 +77,48 @@
           }
         });
       }
+
+      // Поддержка активного жеста свайпа вниз на шапке для мгновенного закрытия/сворачивания
+      const headerEl = document.querySelector('.desk-header');
+      if (headerEl) {
+        let startY = 0;
+        let startX = 0;
+        let isDragging = false;
+
+        headerEl.addEventListener('touchstart', (e) => {
+          if (e.touches.length === 1) {
+            startY = e.touches[0].clientY;
+            startX = e.touches[0].clientX;
+            isDragging = true;
+          }
+        }, { passive: true });
+
+        headerEl.addEventListener('touchmove', (e) => {
+          if (!isDragging || e.touches.length !== 1) return;
+          const currentY = e.touches[0].clientY;
+          const currentX = e.touches[0].clientX;
+          const deltaY = currentY - startY;
+          const deltaX = Math.abs(currentX - startX);
+
+          // Если пользователь смахнул вниз более чем на 45px
+          if (deltaY > 45 && deltaY > deltaX * 1.2) {
+            isDragging = false;
+            haptic('light');
+            try {
+              if (window.Telegram?.WebApp?.close) {
+                window.Telegram.WebApp.close();
+              }
+            } catch {}
+          }
+        }, { passive: true });
+
+        headerEl.addEventListener('touchend', () => {
+          isDragging = false;
+        }, { passive: true });
+        headerEl.addEventListener('touchcancel', () => {
+          isDragging = false;
+        }, { passive: true });
+      }
     }
 
     // Проверяем авторизацию

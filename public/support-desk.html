@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="/vendor/supabase.min.js"></script>
-  <link rel="stylesheet" href="/css/support-desk.css?v=20261014_15">
+  <link rel="stylesheet" href="/css/support-desk.css?v=20261014_17">
 </head>
 <body>
   <!-- Фоновое арктическое свечение -->
@@ -37,24 +37,27 @@
   <!-- Главный контейнер пульта -->
   <div id="deskContainer" class="desk-container">
     
-    <!-- Шапка пульта -->
+    <!-- Шапка пульта с индикатором быстрого сворачивания -->
     <header class="desk-header">
-      <div class="desk-header-brand">
-        <div class="desk-brand-logo">❄️</div>
-        <div>
-          <div class="desk-header-title">ICE LOGIX • Служба заботы</div>
-          <div class="desk-header-subtitle">
-            <span class="status-dot-pulse"></span>
-            <span id="operatorNameBadge">Оператор в сети</span>
+      <div class="desk-swipe-handle" id="deskSwipeHandle" title="Потяните вниз для сворачивания"></div>
+      <div class="desk-header-content">
+        <div class="desk-header-brand">
+          <div class="desk-brand-logo">❄️</div>
+          <div>
+            <div class="desk-header-title">ICE LOGIX • Служба заботы</div>
+            <div class="desk-header-subtitle">
+              <span class="status-dot-pulse"></span>
+              <span id="operatorNameBadge">Оператор в сети</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="desk-header-actions">
-        <button id="deskRefreshBtn" class="desk-btn-icon" title="Обновить список">
-          <span>🔄</span>
-          <span class="hidden sm:inline">Обновить</span>
-        </button>
+        <div class="desk-header-actions">
+          <button id="deskRefreshBtn" class="desk-btn-icon" title="Обновить список">
+            <span>🔄</span>
+            <span class="hidden sm:inline">Обновить</span>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -170,6 +173,6 @@
   </div>
 
   <!-- Подключение логики пульта -->
-  <script src="/js/modules/support-desk.js?v=20261014_15"></script>
+  <script src="/js/modules/support-desk.js?v=20261014_17"></script>
 </body>
 </html>
