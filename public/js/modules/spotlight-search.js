@@ -1,25 +1,19 @@
 // ============================================================
-// ICE LOGIX Module: Universal Spotlight Search (AI & Profile v3)
-// Personalized AI-Powered Search: User Profile Data, 
-// Natural Language AI Engine, Link Detector, and Live Tracking.
+// ICE LOGIX Module: Universal Spotlight Search (Pro Page v4)
+// High-performance intelligent search rendered directly inside
+// the main content view (header and footer remain visible).
 // ============================================================
 
 (function () {
   'use strict';
 
-  let spotlightModalEl = null;
   let searchInputEl = null;
   let contentEl = null;
   let clearBtnEl = null;
   let placeholderTimer = null;
   let currentPlaceholderIndex = 0;
   let debounceTimeout = null;
-  let isSearchActive = false;
   let searchRequestId = 0;
-
-  // Touch swipe to dismiss variables
-  let touchStartY = 0;
-  let touchMoveY = 0;
 
   const MAX_HISTORY_ITEMS = 6;
 
@@ -248,7 +242,6 @@
       subtitle: 'Управление банковскими картами, купонами и балансом',
       iconSvg: '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>',
       action: () => {
-        closeSpotlightSearch();
         if (typeof showUserFinances === 'function') {
           showUserFinances();
         } else if (typeof switchTab === 'function') {
@@ -263,7 +256,6 @@
       subtitle: 'Активация промокодов на выкуп и скидок на доставку',
       iconSvg: '<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
       action: () => {
-        closeSpotlightSearch();
         if (typeof showPromosModal === 'function') {
           showPromosModal();
         } else if (typeof switchTab === 'function') {
@@ -278,7 +270,6 @@
       subtitle: 'Точный расчет стоимости выкупа с учетом веса и доставки',
       iconSvg: '<rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="8" y2="10"/><line x1="12" y1="10" x2="12" y2="10"/><line x1="16" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="8" y2="14"/><line x1="12" y1="14" x2="12" y2="14"/><line x1="16" y1="14" x2="16" y2="14"/>',
       action: () => {
-        closeSpotlightSearch();
         if (typeof switchTab === 'function') switchTab('calculator');
       }
     },
@@ -289,7 +280,6 @@
       subtitle: 'Быстрое оформление выкупа с Poizon, Taobao и других маркетплейсов',
       iconSvg: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
       action: () => {
-        closeSpotlightSearch();
         if (typeof switchTab === 'function') switchTab('neworder');
       }
     },
@@ -300,7 +290,6 @@
       subtitle: 'Poizon, Taobao, Zalando, 1688 и каталог готовых товаров',
       iconSvg: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
       action: () => {
-        closeSpotlightSearch();
         if (typeof switchTab === 'function') switchTab('catalogs');
       }
     },
@@ -311,7 +300,6 @@
       subtitle: 'Живые фотографии выкупленных и доставленных посылок',
       iconSvg: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
       action: () => {
-        closeSpotlightSearch();
         if (typeof showReportsScreen === 'function') {
           showReportsScreen();
         } else if (typeof switchTab === 'function') {
@@ -326,7 +314,6 @@
       subtitle: 'Проверка подлинности ваших вещей профессиональными экспертами',
       iconSvg: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
       action: () => {
-        closeSpotlightSearch();
         if (typeof showLegitCheckScreen === 'function') {
           showLegitCheckScreen();
         } else if (typeof switchTab === 'function') {
@@ -341,7 +328,6 @@
       subtitle: 'Покупка и продажа оригинальных вещей с быстрой доставкой по РБ',
       iconSvg: '<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>',
       action: () => {
-        closeSpotlightSearch();
         if (typeof switchTab === 'function') switchTab('resale');
       }
     },
@@ -352,7 +338,6 @@
       subtitle: 'Официальный Telegram-бот поддержки @icelogix_support_bot',
       iconSvg: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
       action: () => {
-        closeSpotlightSearch();
         const tgLink = 'https://t.me/icelogix_support_bot';
         if (window.Telegram?.WebApp?.openTelegramLink) {
           window.Telegram.WebApp.openTelegramLink(tgLink);
@@ -382,66 +367,62 @@
   ];
 
   // ============================================================
-  // DOM CREATION & LIFECYCLE
+  // PAGE RENDERER (NATIVE TAB VIEW INSIDE #content)
   // ============================================================
 
-  function buildSpotlightDom() {
-    if (document.getElementById('spotlightModal')) return;
-
-    const overlay = document.createElement('div');
-    overlay.id = 'spotlightModal';
-    overlay.className = 'fixed inset-0 z-[120] flex flex-col bg-black/90 backdrop-blur-2xl opacity-0 pointer-events-none transition-all duration-200';
-    overlay.style.webkitBackdropFilter = 'blur(25px)';
-
-    overlay.innerHTML = `
-      <!-- Top Search Bar Container -->
-      <div id="spotlightHeader" class="p-3 border-b border-white/10 bg-[#0d121a]/95 flex flex-col gap-2 shadow-lg flex-shrink-0 select-none" style="padding-top: max(12px, env(safe-area-inset-top));">
-        
-        <!-- Pull to dismiss indicator (Mobile) -->
-        <div class="w-10 h-1 bg-white/20 rounded-full mx-auto mb-1"></div>
-
-        <div class="flex items-center gap-2.5">
-          <div class="relative flex-1 flex items-center">
-            <span class="absolute left-3.5 text-cyan-400 pointer-events-none flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"/>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-            </span>
-            <input type="text" id="spotlightSearchInput"
-              class="w-full bg-white/5 border border-white/15 focus:border-cyan-400 focus:bg-white/10 rounded-2xl py-2.5 pl-11 pr-9 text-white placeholder-white/40 text-sm font-semibold outline-none transition-all shadow-inner"
-              placeholder="Спроси ИИ или введи запрос... 🤖"
-              enterkeyhint="search"
-              autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-            <button id="spotlightClearBtn" class="absolute right-3 text-white/40 hover:text-white p-1 transition hidden" title="Очистить">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-            </button>
+  async function renderSpotlightPage() {
+    return `
+      <div class="page-enter px-4 pb-28 max-w-md mx-auto space-y-4">
+        <!-- Top Navigation Header -->
+        <div class="flex items-center gap-3 mb-2 mt-2">
+          <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <h2 class="text-xl font-bold text-white tracking-wide">Глобальный поиск</h2>
+              <span class="text-[9px] px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-300 font-bold border border-cyan-400/30">AI Active</span>
+            </div>
+            <p class="text-[11px] text-white/40 truncate">Заказы, бренды, товары, расчет цен и помощь ИИ</p>
           </div>
-          <button id="spotlightCloseBtn" class="text-white/70 hover:text-white text-sm font-bold px-2 py-2 transition active:scale-95 flex-shrink-0">
-            Отмена
+        </div>
+
+        <!-- Search Input Field Container -->
+        <div class="relative flex items-center group">
+          <span class="absolute left-4 text-cyan-400 pointer-events-none flex items-center justify-center transition-colors group-focus-within:text-cyan-300">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </span>
+          <input type="text" id="spotlightSearchInput"
+            class="w-full bg-slate-900/80 backdrop-blur-md border border-white/15 focus:border-cyan-400 focus:bg-slate-900/95 focus:ring-2 focus:ring-cyan-500/20 rounded-2xl py-3.5 pl-11 pr-11 text-white placeholder-white/35 text-sm font-semibold outline-none transition-all shadow-lg"
+            placeholder="Спроси ИИ или введи запрос... 🤖"
+            enterkeyhint="search"
+            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+          <button id="spotlightClearBtn" class="absolute right-3.5 text-white/40 hover:text-white p-1 rounded-lg hover:bg-white/10 transition hidden" title="Очистить">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
           </button>
         </div>
-      </div>
 
-      <!-- Main Scrollable Content Container -->
-      <div id="spotlightContent" class="flex-1 overflow-y-auto p-4 space-y-5 pb-28">
-        <!-- Injected dynamically -->
+        <!-- Dynamic Content Body (Home or Search Results) -->
+        <div id="spotlightContent" class="space-y-4"></div>
       </div>
     `;
+  }
 
-    document.body.appendChild(overlay);
+  function attachSpotlightPageHandlers() {
+    searchInputEl = document.getElementById('spotlightSearchInput');
+    contentEl = document.getElementById('spotlightContent');
+    clearBtnEl = document.getElementById('spotlightClearBtn');
 
-    spotlightModalEl = overlay;
-    searchInputEl = overlay.querySelector('#spotlightSearchInput');
-    contentEl = overlay.querySelector('#spotlightContent');
-    clearBtnEl = overlay.querySelector('#spotlightClearBtn');
+    if (!searchInputEl || !contentEl) return;
 
-    // Setup Event Listeners
-    overlay.querySelector('#spotlightCloseBtn').onclick = closeSpotlightSearch;
-    
     clearBtnEl.onclick = () => {
       searchInputEl.value = '';
       searchInputEl.focus();
@@ -463,7 +444,6 @@
       }, 140);
     });
 
-    // Enter key handling (blur mobile keyboard, save history)
     searchInputEl.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         const q = searchInputEl.value.trim();
@@ -471,8 +451,6 @@
           saveQueryToHistory(q);
           searchInputEl.blur();
         }
-      } else if (e.key === 'Escape') {
-        closeSpotlightSearch();
       }
     });
 
@@ -486,22 +464,17 @@
       }
     });
 
-    // Mobile Swipe Down to Dismiss Header
-    const headerEl = overlay.querySelector('#spotlightHeader');
-    headerEl.addEventListener('touchstart', (e) => {
-      touchStartY = e.touches[0].clientY;
-      touchMoveY = touchStartY;
-    }, { passive: true });
-
-    headerEl.addEventListener('touchmove', (e) => {
-      touchMoveY = e.touches[0].clientY;
-    }, { passive: true });
-
-    headerEl.addEventListener('touchend', () => {
-      if (touchMoveY - touchStartY > 65) {
-        closeSpotlightSearch();
-      }
-    });
+    // Handle pending initial query or start fresh
+    if (window._pendingSpotlightQuery) {
+      const initQ = window._pendingSpotlightQuery;
+      delete window._pendingSpotlightQuery;
+      searchInputEl.value = initQ;
+      clearBtnEl.classList.remove('hidden');
+      handleSearchQuery(initQ);
+    } else {
+      renderSpotlightHome();
+      startPlaceholderAnimation();
+    }
   }
 
   // ============================================================
@@ -551,24 +524,24 @@
     const history = getSearchHistory();
 
     contentEl.innerHTML = `
-      <div class="space-y-5 animate-fadeIn">
+      <div class="space-y-4 animate-fadeIn">
         
-        <!-- Personalized Welcome Pill -->
-        <div class="p-3.5 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-blue-950/30 to-purple-950/20 border border-cyan-500/25 flex items-center justify-between">
+        <!-- Personalized Welcome Banner -->
+        <div class="p-4 rounded-2xl bg-gradient-to-r from-cyan-950/50 via-slate-900 to-indigo-950/40 border border-cyan-500/25 flex items-center justify-between shadow-md">
           <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-lg flex-shrink-0">
+            <div class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-xl flex-shrink-0">
               ✨
             </div>
             <div>
               <p class="text-white text-xs font-bold leading-tight">
-                ${userCtx.isRegistered ? `Привет, ${userCtx.userName}! 👋` : 'Привет! Умный поиск ICE LOGIX'}
+                ${userCtx.isRegistered ? `Привет, ${userCtx.userName}! 👋` : 'Умный поиск ICE LOGIX'}
               </p>
               <p class="text-[11px] text-cyan-300/80 mt-0.5">
-                ${userCtx.isRegistered ? `Баланс: <span class="font-bold text-white">${userCtx.balance || 0} ICE</span> • Привязано карт: <span class="font-bold text-white">${userCtx.cards.length}</span>` : 'ИИ готов рассчитать доставку и найти товар'}
+                ${userCtx.isRegistered ? `Баланс: <span class="font-bold text-white">${userCtx.balance || 0} ICE</span> • Карт: <span class="font-bold text-white">${userCtx.cards.length}</span>` : 'ИИ готов рассчитать доставку и найти товар'}
               </p>
             </div>
           </div>
-          <span class="text-[10px] px-2 py-1 rounded-lg bg-cyan-400/15 text-cyan-300 font-bold border border-cyan-400/30">AI Active</span>
+          <span class="text-[10px] px-2.5 py-1 rounded-lg bg-cyan-400/15 text-cyan-300 font-bold border border-cyan-400/30">AI Ready</span>
         </div>
 
         <!-- Recent Searches Block (Personal for this User) -->
@@ -598,8 +571,8 @@
 
         <!-- 4 Quick Action Cards (2x2 Grid) -->
         <div class="grid grid-cols-2 gap-2.5">
-          <div class="spotlight-quick-card p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-400/40 cursor-pointer transition active:scale-[0.98]" data-search-trigger="где моя посылка">
-            <div class="w-8 h-8 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center mb-2">
+          <div class="spotlight-quick-card p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-400/40 cursor-pointer transition active:scale-[0.98]" data-search-trigger="где моя посылка">
+            <div class="w-9 h-9 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center mb-2">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
                 <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
@@ -610,16 +583,16 @@
             <p class="text-[11px] text-white/50 mt-0.5 leading-snug">Статусы и трек-номера</p>
           </div>
 
-          <div class="spotlight-quick-card p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-400/40 cursor-pointer transition active:scale-[0.98]" data-search-trigger="пуховик 700¥ 2 кг">
-            <div class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center mb-2 font-black text-sm">
+          <div class="spotlight-quick-card p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-400/40 cursor-pointer transition active:scale-[0.98]" data-search-trigger="пуховик 700¥ 2 кг">
+            <div class="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center mb-2 font-black text-sm">
               ✨
             </div>
             <p class="text-white text-xs font-bold leading-tight">ИИ Расчет веса</p>
             <p class="text-[11px] text-white/50 mt-0.5 leading-snug">"Пуховик 700¥ 2 кг"</p>
           </div>
 
-          <div class="spotlight-quick-card p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-400/40 cursor-pointer transition active:scale-[0.98]" data-search-trigger="мои карты">
-            <div class="w-8 h-8 rounded-xl bg-violet-500/15 text-violet-400 flex items-center justify-center mb-2">
+          <div class="spotlight-quick-card p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-400/40 cursor-pointer transition active:scale-[0.98]" data-search-trigger="мои карты">
+            <div class="w-9 h-9 rounded-xl bg-violet-500/15 text-violet-400 flex items-center justify-center mb-2">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="2" y="5" width="20" height="14" rx="2"/>
                 <line x1="2" y1="10" x2="22" y2="10"/>
@@ -629,8 +602,8 @@
             <p class="text-[11px] text-white/50 mt-0.5 leading-snug">Карты, баланс, купоны</p>
           </div>
 
-          <div class="spotlight-quick-card p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-400/40 cursor-pointer transition active:scale-[0.98]" data-search-trigger="когда приедет посылка в Минск">
-            <div class="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center mb-2">
+          <div class="spotlight-quick-card p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-400/40 cursor-pointer transition active:scale-[0.98]" data-search-trigger="когда приедет посылка в Минск">
+            <div class="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center mb-2">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"/>
                 <polyline points="12 6 12 12 16 14"/>
@@ -644,7 +617,7 @@
         <!-- AI Prompt Suggestions (Natural Language Chips) -->
         <div class="space-y-2">
           <p class="text-xs font-bold text-white/60 uppercase tracking-wide flex items-center gap-1.5">
-            <span>🤖</span> ИИ-вопросы на обычном языке
+            <span>🤖</span> Примеры запросов для ИИ
           </p>
           <div class="flex flex-wrap gap-2">
             ${[
@@ -654,10 +627,10 @@
               { label: '🧥 Куртка 650¥ вес 1.5 кг', q: 'куртка 650¥ 1.5 кг' },
               { label: '🇧🇾 Оплата картой Беларусбанка', q: 'оплата картой Беларусбанка' },
               { label: '⏱️ Сроки доставки в Минск', q: 'сроки доставки в Минск' },
-              { label: '⚖️ Как не платить пошлину 200€?', q: 'таможня 200 евро' },
+              { label: '⚖️ Таможня 200€', q: 'таможня 200 евро' },
               { label: '👟 Кроссовки Nike 450¥', q: 'кроссовки Nike 450¥' },
-              { label: '🛡️ Что если посылку потеряют?', q: 'страховка груза' },
-              { label: '📏 Как подобрать размер обуви?', q: 'как подобрать размер' }
+              { label: '🛡️ Страховка груза', q: 'страховка груза' },
+              { label: '📏 Как подобрать размер?', q: 'как подобрать размер' }
             ].map(tag => `
               <button class="spotlight-chip px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white text-xs font-medium transition active:scale-95" data-search-trigger="${tag.q}">
                 ${tag.label}
@@ -671,7 +644,7 @@
           <p class="text-xs font-bold text-white/60 uppercase tracking-wide">Популярные бренды</p>
           <div class="grid grid-cols-2 gap-2">
             ${POPULAR_BRANDS.slice(0, 4).map(b => `
-              <div class="p-2.5 rounded-xl bg-white/5 border border-white/10 hover:border-cyan-400/30 flex items-center justify-between cursor-pointer transition active:scale-98" data-search-trigger="${b.name}">
+              <div class="p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-400/30 flex items-center justify-between cursor-pointer transition active:scale-98" data-search-trigger="${b.name}">
                 <div>
                   <p class="text-white text-xs font-bold">${b.name}</p>
                   <p class="text-[10px] text-white/40">${b.category}</p>
@@ -773,13 +746,13 @@
       profileMatch,
       aiIntent,
       detectedUrl,
-      mathResult,
-      matchingShortcuts,
-      matchingFaq,
-      matchingBrands,
+      mathResult, 
+      matchingShortcuts, 
+      matchingFaq, 
+      matchingBrands, 
       matchingMarketplaces,
-      matchingOrders,
-      matchingProducts
+      matchingOrders, 
+      matchingProducts 
     });
   }
 
@@ -788,7 +761,6 @@
   // ============================================================
 
   function detectProfileIntent(cleanLower, userCtx) {
-    // 1. Balance Intent
     if (cleanLower.includes('баланс') || cleanLower.includes('мой счет') || cleanLower.includes('кошелек') || cleanLower === 'ice') {
       return {
         type: 'balance',
@@ -798,7 +770,6 @@
       };
     }
 
-    // 2. Saved Cards Intent
     if (cleanLower.includes('карт') || cleanLower.includes('пластик') || cleanLower.includes('bepaid') || cleanLower.includes('привяз')) {
       return {
         type: 'cards',
@@ -808,7 +779,6 @@
       };
     }
 
-    // 3. Delivery Address Intent
     if (cleanLower.includes('адрес') || cleanLower.includes('сдэк') || cleanLower.includes('европочт') || cleanLower.includes('куда достав')) {
       return {
         type: 'address',
@@ -825,7 +795,6 @@
   // ============================================================
 
   function detectAiIntent(rawQ, cleanLower, userCtx) {
-    // A. Complex calculation with Price AND Weight (e.g., "пуховик 800¥ 2 кг", "куртка 600 юаней 1.5 кг")
     const priceMatch = cleanLower.match(/(\d+[\.,]?\d*)\s*(¥|юаней|юань|ю|cny|rmb)/i) || cleanLower.match(/(\d{2,6})\s*¥/);
     const weightMatch = cleanLower.match(/(\d+[\.,]?\d*)\s*(кг|kg|кило|килограмм)/i) || cleanLower.match(/вес[а-я\s:]+(\d+[\.,]?\d*)/i);
 
@@ -849,7 +818,6 @@
         const totalByn = (buyCostByn + shippingCostByn).toFixed(1);
         const totalRub = Math.round(buyCostRub + shippingCostRub);
 
-        // Detect category name
         let itemName = 'Товар';
         if (cleanLower.includes('пуховик') || cleanLower.includes('куртка')) itemName = 'Куртка / Пуховик';
         else if (cleanLower.includes('кроссовк') || cleanLower.includes('обувь') || cleanLower.includes('кеды') || cleanLower.includes('ботинк')) itemName = 'Обувь';
@@ -871,8 +839,7 @@
       }
     }
 
-    // B. Semantic AI Answers for common user questions
-    // Question: Delivery to Belarus / Minsk
+    // Semantic AI Answers for common user questions
     if (cleanLower.includes('минск') || (cleanLower.includes('беларус') && cleanLower.includes('доставк'))) {
       return {
         type: 'ai_answer',
@@ -881,13 +848,11 @@
         text: 'Все посылки из Китая прибывают на центральный сортировочный хаб в Минске, проходят таможенную очистку и передаются в пункты выдачи Европочты или СДЭК по всей Беларуси. Срок экспресс-авиа: 8–12 дней, авто: 18–25 дней.',
         actionTitle: 'Рассчитать в калькуляторе →',
         action: () => {
-          closeSpotlightSearch();
           if (typeof switchTab === 'function') switchTab('calculator');
         }
       };
     }
 
-    // Question: Belarusian banks payment
     if (cleanLower.includes('беларусбанк') || cleanLower.includes('приорбанк') || cleanLower.includes('сбер') || cleanLower.includes('мтбанк') || cleanLower.includes('альфа')) {
       return {
         type: 'ai_answer',
@@ -896,14 +861,12 @@
         text: 'Да, наш сервис официально принимает карты всех 20 банков Беларуси (Белкарт, Visa, Mastercard, МИР) через платежный шлюз bePaid. Данные шифруются по стандарту PCI-DSS, 0% скрытых комиссий.',
         actionTitle: 'Перейти к моим картам →',
         action: () => {
-          closeSpotlightSearch();
           if (typeof showUserFinances === 'function') showUserFinances();
           else if (typeof switchTab === 'function') switchTab('finances');
         }
       };
     }
 
-    // Question: Shoe sizes guidance
     if (cleanLower.includes('размер') && (cleanLower.includes('обув') || cleanLower.includes('стельк') || cleanLower.includes('см'))) {
       return {
         type: 'ai_answer',
@@ -912,13 +875,11 @@
         text: 'Всегда ориентируйтесь на длину стельки в сантиметрах (CM/JP) или европейский размер (EUR). В карточке каждой пары на Poizon реальные покупатели голосуют за посадку: "True to size" (в размер) или "Маломерит на 0.5".',
         actionTitle: 'Открыть каталоги Poizon →',
         action: () => {
-          closeSpotlightSearch();
           if (typeof switchTab === 'function') switchTab('catalogs');
         }
       };
     }
 
-    // Question: Customs 200 EUR limit
     if (cleanLower.includes('пошлин') || cleanLower.includes('200') || cleanLower.includes('лимит')) {
       return {
         type: 'ai_answer',
@@ -927,7 +888,6 @@
         text: 'В Беларуси и РФ беспошлинный порог для одной посылки составляет 200 евро и 31 кг. Если стоимость превышает 200€, таможня начисляет 15% только на сумму превышения (например, при заказе на 250€ пошлина составит всего 7.5€).',
         actionTitle: 'Инструкция по выкупу →',
         action: () => {
-          closeSpotlightSearch();
           if (typeof switchTab === 'function') switchTab('calculator');
         }
       };
@@ -1001,7 +961,6 @@
   function detectMathOrCurrency(q) {
     const cleaned = q.replace(/\s+/g, '').toLowerCase();
 
-    // 1. Check for arithmetic formula like "400+120", "500*2", "1200/3", "450-50"
     const isMathExpr = /^(\d+[\.,]?\d*)([\+\-\*\/])(\d+[\.,]?\d*)$/.test(cleaned);
     if (isMathExpr) {
       try {
@@ -1026,7 +985,6 @@
       } catch (e) {}
     }
 
-    // 2. Check for Currency patterns
     const cnyMatch = cleaned.match(/^(\d+[\.,]?\d*)(¥|юаней|юань|ю|cny|rmb)$/i) ||
                      cleaned.match(/^(¥|cny|rmb)(\d+[\.,]?\d*)$/i);
     const usdMatch = cleaned.match(/^(\d+[\.,]?\d*)(\$|usd|долларов|доллар|бакс|баксов)$/i) ||
@@ -1150,18 +1108,15 @@
     const clean = q.trim();
     if (!clean || clean.length < 2) return [];
 
-    // Privacy & Security: Only query orders of the current user
     if (!userCtx.userId) return [];
 
     let orders = [];
     try {
-      // 1. Try user's personal cached orders
       const cached = localStorage.getItem('ice_cached_orders_' + userCtx.userId);
       if (cached) {
         orders = JSON.parse(cached) || [];
       }
 
-      // Filter locally first
       let matched = orders.filter(o => {
         const idStr = String(o.id || '');
         const numStr = String(o.order_number || '');
@@ -1169,7 +1124,6 @@
         const titleStr = String(o.title || o.product_name || '').toLowerCase();
         const qLower = clean.toLowerCase();
 
-        // Also match keywords like "заказ", "где посылка", "трек"
         const isIntent = qLower.includes('заказ') || qLower.includes('посылк') || qLower.includes('трек') || qLower.includes('где');
 
         return isIntent ||
@@ -1179,12 +1133,11 @@
                titleStr.includes(qLower);
       });
 
-      // 2. Query Supabase strictly filtered by user_id
       if (matched.length === 0 && window.supabaseClient && clean.length >= 3) {
         const { data } = await window.supabaseClient
           .from('orders')
           .select('id, order_number, track_number, tracking_number, status, title, price_byn, created_at')
-          .eq('user_id', userCtx.userId) // STRICT USER ISOLATION
+          .eq('user_id', userCtx.userId)
           .or(`order_number.ilike.%${clean}%,track_number.ilike.%${clean}%,title.ilike.%${clean}%`)
           .limit(4);
 
@@ -1279,7 +1232,6 @@
       `;
 
       contentEl.querySelector('#spotlightAskManagerBtn').onclick = () => {
-        closeSpotlightSearch();
         const tgLink = 'https://t.me/icelogix_support_bot';
         if (window.Telegram?.WebApp?.openTelegramLink) {
           window.Telegram.WebApp.openTelegramLink(tgLink);
@@ -1295,7 +1247,7 @@
       return;
     }
 
-    let html = `<div class="space-y-5 animate-fadeIn">`;
+    let html = `<div class="space-y-4 animate-fadeIn">`;
 
     // ── 1. PERSONAL PROFILE MATCH (BALANCE, CARDS, ADDRESS) ──
     if (profileMatch) {
@@ -1596,7 +1548,7 @@
           </p>
           <div class="space-y-2">
             ${matchingShortcuts.map(s => `
-              <div class="spotlight-shortcut-item p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-400/40 flex items-center gap-3.5 cursor-pointer transition active:scale-[0.99]" data-shortcut-id="${s.id}">
+              <div class="spotlight-shortcut-item p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-400/40 flex items-center gap-3.5 cursor-pointer transition active:scale-[0.99]" data-shortcut-id="${s.id}">
                 <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center flex-shrink-0">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     ${s.iconSvg}
@@ -1674,7 +1626,6 @@
     const topUpBtn = contentEl.querySelector('#spotlightTopUpBtn');
     if (topUpBtn) {
       topUpBtn.onclick = () => {
-        closeSpotlightSearch();
         if (typeof showUserFinances === 'function') showUserFinances();
         else if (typeof switchTab === 'function') switchTab('finances');
       };
@@ -1683,7 +1634,6 @@
     const manageCardsBtn = contentEl.querySelector('#spotlightManageCardsBtn');
     if (manageCardsBtn) {
       manageCardsBtn.onclick = () => {
-        closeSpotlightSearch();
         if (typeof showUserFinances === 'function') {
           window._financesManageMode = true;
           showUserFinances();
@@ -1696,7 +1646,6 @@
     const addCardBtn = contentEl.querySelector('#spotlightAddCardBtn');
     if (addCardBtn) {
       addCardBtn.onclick = () => {
-        closeSpotlightSearch();
         if (typeof window.openAddCardModal === 'function') {
           window.openAddCardModal();
         }
@@ -1709,7 +1658,6 @@
         const applyBtn = contentEl.querySelector('#spotlightAiApplyBtn');
         if (applyBtn) {
           applyBtn.onclick = () => {
-            closeSpotlightSearch();
             if (typeof switchTab === 'function') switchTab('calculator');
             setTimeout(() => {
               const priceInput = document.getElementById('itemPrice');
@@ -1738,7 +1686,6 @@
       const urlCalcBtn = contentEl.querySelector('#spotlightUrlCalcBtn');
       if (urlCalcBtn) {
         urlCalcBtn.onclick = () => {
-          closeSpotlightSearch();
           if (typeof switchTab === 'function') switchTab('calculator');
           setTimeout(() => {
             const urlInput = document.getElementById('itemUrl') || document.getElementById('productUrl');
@@ -1753,7 +1700,6 @@
       const urlOrderBtn = contentEl.querySelector('#spotlightUrlOrderBtn');
       if (urlOrderBtn) {
         urlOrderBtn.onclick = () => {
-          closeSpotlightSearch();
           if (typeof switchTab === 'function') switchTab('neworder');
           setTimeout(() => {
             const orderUrlInput = document.getElementById('orderItemUrl');
@@ -1791,66 +1737,26 @@
   }
 
   // ============================================================
-  // GLOBAL EXPORTS
+  // GLOBAL EXPORTS & ROUTING INTEGRATION
   // ============================================================
 
+  window.renderSpotlightPage = renderSpotlightPage;
+  window.attachSpotlightPageHandlers = attachSpotlightPageHandlers;
+
   window.openSpotlightSearch = function (initialQuery = '') {
-    buildSpotlightDom();
-    if (!spotlightModalEl) return;
-
-    if (typeof tgUtil !== 'undefined' && tgUtil.haptic) {
-      tgUtil.haptic('light');
+    window._pendingSpotlightQuery = initialQuery;
+    if (typeof switchTab === 'function') {
+      switchTab('search');
     }
-
-    isSearchActive = true;
-    spotlightModalEl.classList.remove('opacity-0', 'pointer-events-none');
-    spotlightModalEl.classList.add('opacity-100');
-    document.body.style.overflow = 'hidden';
-
-    // Hook Telegram native back button
-    if (typeof tgUtil !== 'undefined' && tgUtil.setBackButton) {
-      tgUtil.setBackButton(() => {
-        closeSpotlightSearch();
-      });
-    }
-
-    if (initialQuery) {
-      searchInputEl.value = initialQuery;
-      clearBtnEl?.classList.remove('hidden');
-      handleSearchQuery(initialQuery);
-    } else {
-      searchInputEl.value = '';
-      clearBtnEl?.classList.add('hidden');
-      renderSpotlightHome();
-      startPlaceholderAnimation();
-    }
-
-    setTimeout(() => {
-      searchInputEl?.focus();
-    }, 120);
   };
 
   window.closeSpotlightSearch = function () {
-    if (!spotlightModalEl || !isSearchActive) return;
-
-    isSearchActive = false;
-    stopPlaceholderAnimation();
-    spotlightModalEl.classList.remove('opacity-100');
-    spotlightModalEl.classList.add('opacity-0', 'pointer-events-none');
-    document.body.style.overflow = '';
-
-    if (searchInputEl) searchInputEl.blur();
-
-    // Restore telegram back button
-    if (typeof syncTelegramBackButton === 'function') {
-      syncTelegramBackButton();
-    } else if (typeof tgUtil !== 'undefined' && tgUtil.setBackButton) {
-      tgUtil.setBackButton(null);
+    if (typeof window.goBackGlobal === 'function') {
+      window.goBackGlobal();
     }
   };
 
   window.spotlightOpenOrder = function (orderId) {
-    closeSpotlightSearch();
     if (typeof openOrderDetailsModal === 'function') {
       openOrderDetailsModal(orderId);
     } else if (typeof switchTab === 'function') {
@@ -1859,7 +1765,6 @@
   };
 
   window.spotlightOpenBrand = function (brandName) {
-    closeSpotlightSearch();
     if (typeof window.productsFilter !== 'undefined') {
       window.productsFilter.brand = brandName;
     }
@@ -1873,7 +1778,6 @@
   };
 
   window.spotlightOpenMarketplace = function (name) {
-    closeSpotlightSearch();
     if (typeof switchTab === 'function') {
       switchTab('catalogs');
       setTimeout(() => {
@@ -1884,25 +1788,11 @@
   };
 
   window.spotlightOpenProduct = function (productId) {
-    closeSpotlightSearch();
     if (typeof showProductModal === 'function') {
       showProductModal(productId);
     } else if (typeof switchTab === 'function') {
       switchTab('catalogs');
     }
-  };
-
-  // Global back hook integration
-  const prevGoBack = window.goBackGlobal;
-  window.goBackGlobal = function () {
-    if (isSearchActive) {
-      closeSpotlightSearch();
-      return true;
-    }
-    if (typeof prevGoBack === 'function') {
-      return prevGoBack();
-    }
-    return false;
   };
 
 })();

@@ -2459,7 +2459,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-teal-950/60 ring-teal-400/20',
     badgeBg: 'bg-teal-500/20 text-teal-300 border border-teal-400/40',
     accentColor: '#00A88F',
-    binRegex: /^(401346|418701|434484|434485|434486|434487|452443|458291|472249|485017|510085|534769|547691|557749|557884|557885|671127|676663|911201|911233|986001|4187)/
+    binRegex: /^(220030|401346|418701|434484|434485|434486|434487|452443|458291|472249|485017|510085|534769|547691|557749|557884|557885|671127|676663|911201|911233|986001)/
   },
   belagroprom: {
     code: 'belagroprom',
@@ -2472,7 +2472,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-orange-950/60 ring-orange-400/20',
     badgeBg: 'bg-orange-500/20 text-orange-300 border border-orange-400/40',
     accentColor: '#FF7A00',
-    binRegex: /^(405877|416954|432036|432037|432038|432039|432040|432041|432067|437435|466171|471477|472848|520195|521405|522208|524430|532308|542275|544775|547232|670523|670691|911200|911211|986000|4058)/
+    binRegex: /^(220028|405877|416954|432036|432037|432038|432039|432040|432041|432067|437435|466171|471477|472848|520195|521405|522208|524430|532308|542275|544775|547232|670523|670691|911200|911211|986000)/
   },
   prior: {
     code: 'prior',
@@ -2485,7 +2485,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-yellow-950/60 ring-yellow-400/20',
     badgeBg: 'bg-amber-400/20 text-amber-300 border border-amber-400/40',
     accentColor: '#FFD200',
-    binRegex: /^(409428|416064|417770|430488|437458|445987|458285|471326|472950|480949|483451|491698|510049|532658|535109|536600|548952|676203|911202|911289|986002|4094|4304)/
+    binRegex: /^(220029|409428|416064|417770|430488|437458|445987|458285|471326|472950|480949|483451|491698|510049|532658|535109|536600|548952|676203|911202|911289|986002)/
   },
   sber: {
     code: 'sber',
@@ -2498,7 +2498,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-emerald-950/60 ring-emerald-400/20',
     badgeBg: 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40',
     accentColor: '#21A038',
-    binRegex: /^(220024|379901|379993|405255|408344|408345|410745|413856|413857|418868|427229|431803|431836|431837|431838|437449|449655|457434|457857|460257|463903|463908|463920|473126|510087|517359|527841|535063|540234|543553|544454|558682|559498|624497|626411|671146|671165|676850|911203|911222|986003|2202|4188|4276|4279|5469)/
+    binRegex: /^(220024|379901|379993|405255|408344|408345|410745|413856|413857|418868|427229|431803|431836|431837|431838|437449|449655|457434|457857|460257|463903|463908|463920|473126|510087|517359|527841|535063|540234|543553|544454|558682|559498|624497|626411|671146|671165|676850|911203|911222|986003)/
   },
   belveb: {
     code: 'belveb',
@@ -2511,7 +2511,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-slate-900/60 ring-slate-400/20',
     badgeBg: 'bg-slate-500/20 text-slate-200 border border-slate-400/40',
     accentColor: '#4A5568',
-    binRegex: /^(220023|412528|414088|422887|423504|424199|446390|446391|447514|447515|458288|484881|499835|516052|520658|526770|544578|545621|547747|548475|557070|670845|671131|671153|671163|676341|676997|986008|4169|4258|4314|5160|5208)/
+    binRegex: /^(220023|412528|414088|422887|423504|424199|446390|446391|447514|447515|458288|484881|499835|516052|520658|526770|544578|545621|547747|548475|557070|670845|671131|671153|671163|676341|676997|986008)/
   },
   vtb: {
     code: 'vtb',
@@ -2524,7 +2524,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-blue-950/60 ring-blue-400/20',
     badgeBg: 'bg-blue-500/20 text-blue-300 border border-blue-400/40',
     accentColor: '#002882',
-    binRegex: /^(220026|220429|403487|425516|425518|432080|432081|445451|445452|445453|445454|458779|471346|525694|535105|548777|986007|4034)/
+    binRegex: /^(220026|220429|403487|425516|425518|432080|432081|445451|445452|445453|445454|458779|471346|525694|535105|548777|986007)/
   },
   dabrabyt: {
     code: 'dabrabyt',
@@ -2537,7 +2537,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-rose-950/60 ring-rose-500/20',
     badgeBg: 'bg-rose-500/20 text-rose-300 border border-rose-400/40',
     accentColor: '#C41230',
-    binRegex: /^(220015|421487|425527|446505|535127|986015|4168|5168)/
+    binRegex: /^(220015|421487|425527|446505|535127|986015)/
   },
   paritet: {
     code: 'paritet',
@@ -2576,7 +2576,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-blue-950/60 ring-blue-400/20',
     badgeBg: 'bg-blue-500/20 text-blue-300 border border-blue-400/40',
     accentColor: '#2A3494',
-    binRegex: /^(220018|403282|403558|414297|414298|425514|470469|479753|489985|516014|520814|527797|529088|547174|671175|986014|5471)/
+    binRegex: /^(220018|403282|403558|414297|414298|425514|470469|479753|489985|516014|520814|527797|529088|547174|671175|986014)/
   },
   bsb: {
     code: 'bsb',
@@ -2615,7 +2615,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-sky-950/60 ring-sky-400/20',
     badgeBg: 'bg-sky-500/20 text-sky-300 border border-sky-400/40',
     accentColor: '#004785',
-    binRegex: /^(220012|405254|425515|428620|428621|428622|428623|428624|428625|437396|437455|464132|486818|510045|512722|518597|518707|521058|527826|529344|529922|530422|530914|535106|535705|544307|544979|626241|676821|911213|986012|4286)/
+    binRegex: /^(220012|405254|425515|428620|428621|428622|428623|428624|428625|437396|437455|464132|486818|510045|512722|518597|518707|521058|527826|529344|529922|530422|530914|535106|535705|544307|544979|626241|676821|911213|986012)/
   },
   alfa: {
     code: 'alfa',
@@ -2706,7 +2706,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-emerald-950/60 ring-emerald-400/20',
     badgeBg: 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40',
     accentColor: '#006A4E',
-    binRegex: /^(401803|409087|424641|425519|425520|425521|440512|448789|484894|512558|525714|543044|544598|547087|547091|547504|552979|553608|557075|557076|671129|671154|671176|671177|671197|676339|676579|677723|679036|911200|986018|986019|986020|986021|2200|2204|4255|6762|6769|6771|9860)/
+    binRegex: /^(220019|220020|220419|220420|220421|401803|409087|424641|425519|425521|440512|448789|484894|512558|525714|543044|544598|547087|547091|547504|552979|553608|557075|557076|671129|671154|671176|671177|671197|676210|676211|676339|676579|676900|677100|677723|679036|986018|986019|986020|986021)/
   }
 };
 window.BANK_CONFIGS = BANK_CONFIGS;
@@ -3018,6 +3018,23 @@ window.openAddCardModal = function(onSuccess) {
             <span>⚠️</span>
             <span>В номере карты опечатка — проверьте цифры</span>
           </div>
+
+          <!-- Предупреждение о зарубежной карте (Тинькофф, Сбер РФ и др.) -->
+          <div id="foreignCardNotice" class="hidden rounded-2xl p-3.5 mt-2.5 bg-gradient-to-r from-amber-500/15 to-orange-500/15 border border-amber-500/40 text-amber-200 text-xs flex items-start gap-2.5 shadow-lg shadow-amber-950/20 transition-all">
+            <span class="text-lg flex-shrink-0 leading-none">🌍</span>
+            <div class="space-y-1">
+              <div class="font-bold text-amber-300 text-xs flex items-center gap-1.5">
+                <span>Только для карт белорусских банков</span>
+                <span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-amber-400/20 text-amber-300 border border-amber-400/30">BY ONLY</span>
+              </div>
+              <p class="text-[11px] text-amber-200/90 leading-relaxed">
+                Сервис ICE LOGIX принимает к оплате и привязке только карты, выпущенные банками Республики Беларусь. Карты зарубежных банков (включая Тинькофф, Сбер РФ и другие банки РФ/мира) не поддерживаются эквайрингом bePaid.
+              </p>
+              <p class="text-[10px] text-amber-300/80 font-medium pt-0.5">
+                Пожалуйста, укажите карту любого банка РБ (Беларусбанк, Приорбанк, МТБанк, Белгазпромбанк, Альфа-Банк РБ и др.).
+              </p>
+            </div>
+          </div>
         </div>
 
         <!-- Ряд: Срок действия и CVV / CVC -->
@@ -3117,6 +3134,7 @@ window.openAddCardModal = function(onSuccess) {
   function updateBrandVisual(rawDigits) {
     const brand = detectCardType(rawDigits);
     const bank = detectBank(rawDigits);
+    const isForeign = rawDigits.length >= 6 && !bank;
 
     if (rawDigits.length >= 2 && brand && brand !== 'Банковская карта') {
       brandIcon.innerHTML = `<span class="inline-flex items-center justify-center bg-white/10 rounded-lg px-2 py-1 shadow-sm border border-white/15">${getCardBrandLogoHtml(brand, 'max-h-4 max-w-[38px]')}</span>`;
@@ -3124,9 +3142,21 @@ window.openAddCardModal = function(onSuccess) {
       brandIcon.innerText = '💳';
     }
 
+    const foreignNoticeEl = document.getElementById('foreignCardNotice');
+    if (foreignNoticeEl) {
+      if (isForeign) {
+        foreignNoticeEl.classList.remove('hidden');
+      } else {
+        foreignNoticeEl.classList.add('hidden');
+      }
+    }
+
     if (brandBadge) {
       if (bank) {
         brandBadge.innerHTML = `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${bank.badgeBg}">${getBankLogoHtml(bank.code, 'max-h-3 max-w-[50px]')} ${bank.shortName}</span>`;
+        brandBadge.classList.remove('hidden');
+      } else if (isForeign) {
+        brandBadge.innerHTML = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/40">🌍 Зарубежная карта</span>`;
         brandBadge.classList.remove('hidden');
       } else if (brand && brand !== 'Банковская карта') {
         brandBadge.innerHTML = `<span class="text-[11px] font-bold text-cyan-300">${brand}</span>`;
@@ -3148,6 +3178,11 @@ window.openAddCardModal = function(onSuccess) {
         liveCard.className = `relative w-full aspect-[1.586/1] max-w-[315px] mx-auto rounded-2xl p-4 sm:p-5 flex flex-col justify-between overflow-hidden select-none transition-all duration-500 shadow-2xl bg-gradient-to-br ${bank.cardGradient} border ${bank.cardBorder} ${bank.cardGlow}`;
         if (bankSlot) {
           bankSlot.innerHTML = getBankLogoHtml(bank.code, 'h-5 max-h-[22px] w-auto object-contain');
+        }
+      } else if (isForeign) {
+        liveCard.className = 'relative w-full aspect-[1.586/1] max-w-[315px] mx-auto rounded-2xl p-4 sm:p-5 flex flex-col justify-between overflow-hidden select-none transition-all duration-500 shadow-2xl bg-gradient-to-br from-[#1c130d] via-[#151010] to-[#2b170a] border border-amber-500/50 shadow-amber-950/40 ring-1 ring-amber-400/20';
+        if (bankSlot) {
+          bankSlot.innerHTML = '<span class="inline-flex items-center gap-1.5 text-[10px] font-black tracking-wider uppercase text-amber-400 font-sans"><span>🌍</span> <span>ЗАРУБЕЖНАЯ КАРТА</span></span>';
         }
       } else {
         liveCard.className = 'relative w-full aspect-[1.586/1] max-w-[315px] mx-auto rounded-2xl p-4 sm:p-5 flex flex-col justify-between overflow-hidden select-none transition-all duration-500 shadow-2xl bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 border border-white/15';
@@ -3236,12 +3271,21 @@ window.openAddCardModal = function(onSuccess) {
     }
     const isCvcValid = cvcVal.length === 3;
 
-    const canSubmit = isNumValid && isExpValid && isCvcValid;
+    const detectedBank = detectBank(rawNum);
+    const isForeignCard = rawNum.length === 16 && !detectedBank;
+
+    const canSubmit = isNumValid && isExpValid && isCvcValid && !isForeignCard;
     submitBtn.disabled = !canSubmit;
-    if (canSubmit) {
+
+    if (isForeignCard) {
+      submitBtn.className = 'w-full py-3.5 mt-2 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center justify-center gap-2 bg-amber-500/20 text-amber-300 border border-amber-500/40 cursor-not-allowed select-none shadow-inner';
+      submitBtn.innerHTML = '<span>🚫 Только карты банков Беларуси</span>';
+    } else if (canSubmit) {
       submitBtn.className = 'w-full py-3.5 mt-2 rounded-2xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/30 cursor-pointer active:scale-95 hover:opacity-95';
+      submitBtn.innerHTML = '<span>Привязать карту</span>';
     } else {
       submitBtn.className = 'w-full py-3.5 mt-2 rounded-2xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 bg-white/10 text-white/30 cursor-not-allowed select-none';
+      submitBtn.innerHTML = '<span>Привязать карту</span>';
     }
     return canSubmit;
   }
@@ -3300,6 +3344,16 @@ window.openAddCardModal = function(onSuccess) {
   submitBtn.onclick = async () => {
     if (!validateForm()) return;
 
+    const rawNum = numInput.value.replace(/\D/g, '');
+    const bankCheck = detectBank(rawNum);
+    if (!bankCheck) {
+      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('error');
+      if (typeof tgUtil !== 'undefined' && tgUtil.alert) {
+        tgUtil.alert('🚫 Доступ возможен только картам банков Беларуси.\n\nКарты зарубежных банков (включая Тинькофф, Сбер РФ и другие) не поддерживаются эквайрингом bePaid. Пожалуйста, привяжите карту любого белорусского банка.');
+      }
+      return;
+    }
+
     // Антифрод проверка лимита попыток
     const limitCheck = getCardRateLimitStatus();
     if (limitCheck.blocked) {
@@ -3312,7 +3366,7 @@ window.openAddCardModal = function(onSuccess) {
       return;
     }
 
-    const rawNum = numInput.value.replace(/\D/g, '');
+    // rawNum уже объявлен выше
     const expVal = expInput.value;
     const [mm, yy] = expVal.split('/');
 
