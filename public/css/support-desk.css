@@ -243,7 +243,7 @@ body, html {
 
 /* Ticket Item Card */
 .ticket-card {
-  padding: 12px;
+  padding: 10px 12px;
   background: var(--desk-card);
   border: 1px solid var(--desk-border);
   border-radius: 14px;
@@ -251,6 +251,9 @@ body, html {
   transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .ticket-card:hover {
@@ -265,11 +268,45 @@ body, html {
   box-shadow: 0 0 16px rgba(6, 182, 212, 0.15);
 }
 
+.ticket-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(59, 130, 246, 0.15));
+  border: 1px solid var(--desk-border-cyan);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 15px;
+  color: #fff;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.ticket-badge-unread-pulse {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  background: var(--desk-cyan);
+  box-shadow: 0 0 10px var(--desk-cyan);
+  border-radius: 50%;
+  border: 2px solid #090d16;
+  animation: pulseDot 2s infinite ease-in-out;
+}
+
+.ticket-content {
+  flex: 1;
+  min-width: 0;
+}
+
 .ticket-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .ticket-user-name {
@@ -279,11 +316,37 @@ body, html {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+}
+
+.ticket-user-name span:first-child {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ticket-handle-pill {
+  font-size: 10px;
+  color: var(--desk-cyan);
+  background: rgba(6, 182, 212, 0.1);
+  padding: 1px 5px;
+  border-radius: 6px;
+  white-space: nowrap;
 }
 
 .ticket-time {
   font-size: 10px;
   color: var(--desk-text-muted);
+  flex-shrink: 0;
+  margin-left: 6px;
+}
+
+.ticket-preview-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 2px;
 }
 
 .ticket-preview {
@@ -292,16 +355,33 @@ body, html {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-top: 3px;
+  flex: 1;
 }
 
-.ticket-badge-unread {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  background: var(--desk-cyan);
-  box-shadow: 0 0 8px var(--desk-cyan);
-  border-radius: 50%;
+.ticket-status-pill {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.ticket-status-pill.open {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.ticket-status-pill.in_progress {
+  background: rgba(234, 179, 8, 0.15);
+  color: #facc15;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.ticket-status-pill.closed {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.3);
 }
 
 /* Right Panel: Chat Room */

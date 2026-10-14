@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="/vendor/supabase.min.js"></script>
-  <link rel="stylesheet" href="/css/support-desk.css?v=20261014_01">
+  <link rel="stylesheet" href="/css/support-desk.css?v=20261014_04">
 </head>
 <body>
   <!-- Фоновое арктическое свечение -->
@@ -65,7 +65,11 @@
       <aside class="desk-sidebar">
         <!-- Табы фильтрации -->
         <div class="desk-tabs-bar">
-          <div class="desk-tab active" data-tab="open">
+          <div class="desk-tab active" data-tab="all">
+            <span>Все</span>
+            <span id="badgeAll" class="tab-badge" style="display: none; background: rgba(255,255,255,0.2);">0</span>
+          </div>
+          <div class="desk-tab" data-tab="open">
             <span>🔴 Новые</span>
             <span id="badgeOpen" class="tab-badge" style="display: none;">0</span>
           </div>
@@ -166,6 +170,6 @@
   </div>
 
   <!-- Подключение логики пульта -->
-  <script src="/js/modules/support-desk.js?v=20261014_01"></script>
+  <script src="/js/modules/support-desk.js?v=20261014_04"></script>
 </body>
 </html>

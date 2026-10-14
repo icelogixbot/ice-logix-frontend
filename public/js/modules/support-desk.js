@@ -16,7 +16,7 @@
 
   let supabaseClient = null;
   let currentUser = null;
-  let activeTab = 'open'; // 'open', 'in_progress', 'closed'
+  let activeTab = 'all'; // 'all', 'open', 'in_progress', 'closed'
   let activeTicket = null;
   let ticketsList = [];
   let messagesList = [];
@@ -63,22 +63,22 @@
     // Проверяем авторизацию
     const tgUser = tg?.initDataUnsafe?.user;
     const urlParams = new URLSearchParams(window.location.search);
-    const bypassId = urlParams.get('auth_bypass');
+    const bypassId = urlParams.get('auth_bypass') || urlParams.get('op');
+    const cachedId = localStorage.getItem('ice_operator_id');
 
-    let operatorId = tgUser?.id;
-    if (!operatorId && bypassId) {
-      operatorId = parseInt(bypassId, 10);
-    }
+    let operatorId = tgUser?.id || (bypassId ? parseInt(bypassId, 10) : null) || (cachedId ? parseInt(cachedId, 10) : null);
 
-    // Если оператор не из белого списка
-    if (!operatorId || !AUTHORIZED_OPERATORS.includes(Number(operatorId))) {
+    // Если оператор из белого списка
+    if (operatorId && AUTHORIZED_OPERATORS.includes(Number(operatorId))) {
+      localStorage.setItem('ice_operator_id', String(operatorId));
+    } else {
       showAccessDenied(operatorId);
       return;
     }
 
     currentUser = {
       id: Number(operatorId),
-      name: tgUser?.first_name || 'Кирилл',
+      name: tgUser?.first_name || 'Кирилл (Оператор)',
       username: tgUser?.username || 'admin',
     };
 
@@ -146,14 +146,20 @@
   }
 
   function updateTabCounters() {
+    const allCount = ticketsList.length;
     const openCount = ticketsList.filter((t) => t.status === 'open').length;
     const inProgCount = ticketsList.filter((t) => t.status === 'in_progress').length;
     const closedCount = ticketsList.filter((t) => t.status === 'closed').length;
 
+    const bAll = document.getElementById('badgeAll');
     const bOpen = document.getElementById('badgeOpen');
     const bInProg = document.getElementById('badgeInProgress');
     const bClosed = document.getElementById('badgeClosed');
 
+    if (bAll) {
+      bAll.textContent = allCount;
+      bAll.style.display = allCount > 0 ? 'inline-block' : 'none';
+    }
     if (bOpen) {
       bOpen.textContent = openCount;
       bOpen.style.display = openCount > 0 ? 'inline-block' : 'none';
@@ -177,7 +183,7 @@
 
     // Фильтрация по текущему табу и поиску
     const filtered = ticketsList.filter((t) => {
-      const matchesTab = t.status === activeTab;
+      const matchesTab = activeTab === 'all' || t.status === activeTab;
       if (!matchesTab) return false;
 
       if (!q) return true;
@@ -204,17 +210,34 @@
         const hasUnread = t.unread_by_operator;
         const initial = (t.user_name || 'U').charAt(0).toUpperCase();
 
+        let statusBadge = '';
+        if (t.status === 'open') {
+          statusBadge = '<span class="ticket-status-pill open">Новое</span>';
+        } else if (t.status === 'in_progress') {
+          statusBadge = '<span class="ticket-status-pill in_progress">В работе</span>';
+        } else {
+          statusBadge = '<span class="ticket-status-pill closed">Решено</span>';
+        }
+
         return `
           <div class="ticket-card ${isSelected ? 'selected' : ''}" data-ticket-id="${t.id}">
-            <div class="ticket-card-header">
-              <div class="ticket-user-name">
-                ${hasUnread ? '<span class="ticket-badge-unread"></span>' : ''}
-                <span>${esc(t.user_name || 'Клиент')}</span>
-                ${t.user_handle ? `<span style="font-size: 10px; color: var(--desk-cyan);">@${esc(t.user_handle)}</span>` : ''}
-              </div>
-              <span class="ticket-time">${formatTime(t.last_message_at)}</span>
+            <div class="ticket-avatar">
+              ${initial}
+              ${hasUnread ? '<span class="ticket-badge-unread-pulse"></span>' : ''}
             </div>
-            <div class="ticket-preview">${esc(t.last_message_text || 'Обращение создано')}</div>
+            <div class="ticket-content">
+              <div class="ticket-card-header">
+                <div class="ticket-user-name">
+                  <span>${esc(t.user_name || 'Клиент')}</span>
+                  ${t.user_handle ? `<span class="ticket-handle-pill">@${esc(t.user_handle)}</span>` : ''}
+                </div>
+                <span class="ticket-time">${formatTime(t.last_message_at)}</span>
+              </div>
+              <div class="ticket-preview-row">
+                <span class="ticket-preview">${esc(t.last_message_text || 'Обращение создано')}</span>
+                ${statusBadge}
+              </div>
+            </div>
           </div>
         `;
       })
