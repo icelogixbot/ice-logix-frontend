@@ -55,9 +55,28 @@
   async function initDesk() {
     const tg = window.Telegram?.WebApp;
     if (tg) {
-      tg.ready();
-      tg.expand();
-      tg.enableClosingConfirmation?.();
+      try { tg.ready(); } catch {}
+      try { tg.expand(); } catch {}
+      // Отключаем блокировку закрытия при взмахе вниз (разрешаем мгновенное сворачивание)
+      try { tg.disableClosingConfirmation?.(); } catch {}
+      // Включаем вертикальный свайп для нативного закрытия/сворачивания
+      try { tg.enableVerticalSwipes?.(); } catch {}
+      try { tg.setHeaderColor?.('#090d16'); } catch {}
+      try { tg.setBackgroundColor?.('#090d16'); } catch {}
+      try { tg.setBottomBarColor?.('#090d16'); } catch {}
+
+      // Поддержка нативной кнопки BackButton Telegram на мобильных устройствах
+      if (tg.BackButton) {
+        tg.BackButton.onClick(() => {
+          const chatPanel = document.getElementById('chatPanel');
+          if (chatPanel && chatPanel.classList.contains('active')) {
+            chatPanel.classList.remove('active');
+            activeTicket = null;
+            renderTicketsList();
+            try { tg.BackButton.hide(); } catch {}
+          }
+        });
+      }
     }
 
     // Проверяем авторизацию
@@ -267,6 +286,9 @@
     // Мобильный сдвиг экрана
     const chatPanel = document.getElementById('chatPanel');
     if (chatPanel) chatPanel.classList.add('active');
+    if (window.Telegram?.WebApp?.BackButton) {
+      try { window.Telegram.WebApp.BackButton.show(); } catch {}
+    }
 
     // Скрываем плейсхолдер пустого чата, показываем комнату
     const emptyChat = document.getElementById('chatEmptyState');
@@ -530,6 +552,9 @@
       // Возврат в список на мобилке
       const chatPanel = document.getElementById('chatPanel');
       if (chatPanel) chatPanel.classList.remove('active');
+      if (window.Telegram?.WebApp?.BackButton) {
+        try { window.Telegram.WebApp.BackButton.hide(); } catch {}
+      }
 
       activeTicket = null;
       document.getElementById('chatEmptyState').style.display = 'flex';
@@ -617,6 +642,9 @@
         if (chatPanel) chatPanel.classList.remove('active');
         activeTicket = null;
         renderTicketsList();
+        if (window.Telegram?.WebApp?.BackButton) {
+          try { window.Telegram.WebApp.BackButton.hide(); } catch {}
+        }
       });
     }
 

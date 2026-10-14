@@ -819,7 +819,271 @@
   }
 
   // ============================================================
-  // ENGINE 2: AI NATURAL LANGUAGE & WEIGHT DETECTOR
+  // COMPREHENSIVE AI KNOWLEDGE GRAPH (STEP 3)
+  // Slang, Sneaker Silhouettes, Streetwear, Delivery Cities,
+  // Payment Rationale, Legit-Check, Customs Limits & Security
+  // ============================================================
+
+  const AI_KNOWLEDGE_TOPICS = [
+    {
+      id: 'authenticity_slang',
+      keywords: ['паль', 'паленый', 'паленые', 'ориг', 'оригинал', 'реплика', 'реплики', 'легит', 'легитчек', 'подделка', 'подделки', 'люкс копия', 'люкс-копия', 'фейк', 'фейки', 'настоящие', 'пали'],
+      title: 'Гарантия подлинности: 100% оригинал (никаких реплик и пали)',
+      badge: '🛡️ Гарантия подлинности',
+      summary: 'ICE LOGIX выкупает товары исключительно с официальных платформ Poizon (Dewu), где действует строжайшая многоуровневая система легитчека. Мы принципиально не работаем с репликами, копиями и палью.',
+      bullets: [
+        '🔬 <span class="font-bold text-white">Двойная экспертиза:</span> Каждая пара исследуется в лаборатории Poizon на оптических спектрометрах, под ультрафиолетом и экспертами вручную.',
+        '🏷️ <span class="font-bold text-white">Фирменная пломба:</span> Товар запечатывается в защитную коробку с уникальной номерной пломбой и QR-сертификатом подлинности.',
+        '🤝 <span class="font-bold text-white">100% защита:</span> Если вещь не проходит экспертизу на складе в Китае, средства мгновенно возвращаются покупателю в полном объеме.'
+      ],
+      actionTitle: 'Узнать подробнее о легитчеке →',
+      actionType: 'legitcheck',
+      sources: ['🛡️ Лаборатория Poizon Verification', '📜 Официальная гарантия ICE LOGIX']
+    },
+    {
+      id: 'silhouette_dunk',
+      keywords: ['dunk', 'данки', 'данков', 'данках', 'dunk low', 'sb dunk', 'панда dunk', 'panda dunk', 'панда'],
+      title: 'Nike Dunk Low & High: подбор размера и особенности',
+      badge: '👟 Силуэт Dunk',
+      summary: 'Культовый силуэт Nike Dunk на Poizon доступен в сотнях оригинальных расцветок (Panda, Grey Fog, Olive) по ценам от 350–500 ¥ (существенно выгоднее европейского ритейла).',
+      bullets: [
+        '📏 <span class="font-bold text-white">Посадка Dunk Low:</span> Идут строго в размер (True to size). Ориентируйтесь на стандартный размер Nike EUR или длину стопы в CM.',
+        '🛹 <span class="font-bold text-white">Посадка SB Dunk:</span> Из-за утолщенного мягкого язычка и амортизирующей стельки Zoom Air рекомендуется брать на 0.5 размера больше.',
+        '💰 <span class="font-bold text-white">Выгода выкупа:</span> На Poizon расцветки Panda и популярные коллаборации стоят на 30–50% дешевле ритейла в СНГ.'
+      ],
+      actionTitle: 'Смотреть Nike в каталоге →',
+      actionType: 'brand_Nike',
+      sources: ['👟 Nike Heritage Archive', '📊 Статистика цен Poizon']
+    },
+    {
+      id: 'silhouette_jordan4',
+      keywords: ['jordan 4', 'aj4', 'джордан 4', 'четверки', 'четверок', 'четверках', 'black cat', 'military black', 'bred reimagined'],
+      title: 'Air Jordan 4 Retro: легендарная классика Тинкера Хэтфилда',
+      badge: '🏀 Силуэт Jordan 4',
+      summary: 'Одна из самых желанных моделей стритвира (Military Black, Pine Green, Bred Reimagined, Black Cat) доступна для официального выкупа с Poizon.',
+      bullets: [
+        '📏 <span class="font-bold text-white">Посадка и комфорт:</span> Модель имеет жесткий анатомический носок. Людям со стандартной или широкой стопой рекомендуется брать на 0.5 размера больше обычного Nike.',
+        '📦 <span class="font-bold text-white">Вес посылки:</span> Пара Jordan 4 с массивной фирменной коробкой весит в среднем 1.5–1.7 кг.',
+        '🛡️ <span class="font-bold text-white">Аутентификация:</span> На Jordan 4 приходится много подделок на рынке. На Poizon каждая пара проходит проверку геометрии сетки, швов и маркировок.'
+      ],
+      actionTitle: 'Смотреть Jordan в каталоге →',
+      actionType: 'brand_Jordan',
+      sources: ['🏀 Jordan Retro Catalog', '🛡️ Legit Check Verified']
+    },
+    {
+      id: 'silhouette_af1',
+      keywords: ['air force', 'af1', 'форсы', 'форсов', 'форсах', 'force 1', 'аир форс', 'белые форсы'],
+      title: 'Nike Air Force 1 \'07: базовая городская классика',
+      badge: '👟 Силуэт Air Force 1',
+      summary: 'Белые и черные Air Force 1 \'07 — главный бестселлер Poizon по самым выгодным ценам (от 500–650 ¥ за оригинальную пару из натуральной кожи).',
+      bullets: [
+        '📏 <span class="font-bold text-white">Посадка:</span> Air Force 1 традиционно слегка большемерят. Большинству покупателей подходит размер на 0.5 меньше привычного, либо ориентируйтесь строго по сантиметрам стельки (CM).',
+        '⚖️ <span class="font-bold text-white">Вес:</span> Классическая пара в коробке весит около 1.2–1.4 кг.',
+        '🌧️ <span class="font-bold text-white">Практичность:</span> Натуральная плотная кожа легко очищается и долго держит форму.'
+      ],
+      actionTitle: 'Рассчитать выкуп AF1 →',
+      actionType: 'calculator',
+      sources: ['👟 Nike Air Force 1 Index', '⚡ ICE LOGIX Calculator']
+    },
+    {
+      id: 'silhouette_nb',
+      keywords: ['1906', '1906r', '2002r', '530', 'new balance', 'нью беланс', 'нб 1906', 'нб 2002', 'nb 1906', 'nb 2002', 'nb 530'],
+      title: 'New Balance 1906R / 2002R / 530: максимальный комфорт',
+      badge: '👟 New Balance Lifestyle',
+      summary: 'Флагманские беговые ретро-силуэты New Balance с технологичной амортизацией N-ergy и подошвой Abzorb — абсолютные лидеры по удобству для города.',
+      bullets: [
+        '📏 <span class="font-bold text-white">Посадка 1906R и 2002R:</span> Идут размер в размер (TTS). Если стопа широкая — лучше взять на 0.5 размера больше.',
+        '📏 <span class="font-bold text-white">Посадка NB 530:</span> Дышащая легкая сетка, сидят свободно, ориентируйтесь строго на EUR размер.',
+        '💰 <span class="font-bold text-white">Выгода в Китае:</span> New Balance официально производится в Азии, поэтому цены на Poizon часто в 1.5–2 раза ниже ритейла в СНГ.'
+      ],
+      actionTitle: 'Смотреть New Balance →',
+      actionType: 'brand_New Balance',
+      sources: ['👟 NB Tech Specs (N-ergy)', '🏷️ Каталог Poizon']
+    },
+    {
+      id: 'silhouette_adidas_samba_campus',
+      keywords: ['самба', 'samba', 'campus', 'кампус', 'campus 00s', 'кампусы', 'газели', 'gazelle', 'самбы', 'самбах'],
+      title: 'Adidas Samba OG / Campus 00s / Gazelle: винтажный тренд',
+      badge: '👟 Adidas Originals',
+      summary: 'Главные хиты уличной моды: культовая низкая Samba OG и массивные дутые скейтерские Campus 00s по ценам от 380–550 ¥.',
+      bullets: [
+        '📏 <span class="font-bold text-white">Adidas Samba OG:</span> Модель достаточно узкая с низким подъемом — рекомендуется брать на 0.5 размера больше своего EUR.',
+        '🛹 <span class="font-bold text-white">Adidas Campus 00s:</span> Дутые скейтерские кеды с широкими шнурками. Идут размер в размер.',
+        '🌿 <span class="font-bold text-white">Материалы:</span> Натуральная замша, кожа и классический Т-образный носок (T-toe).'
+      ],
+      actionTitle: 'Смотреть Adidas в каталоге →',
+      actionType: 'brand_Adidas',
+      sources: ['👟 Adidas Originals Spec', '📊 Poizon Trends 2026']
+    },
+    {
+      id: 'silhouette_travis_yeezy',
+      keywords: ['трэвис', 'травис', 'travis', 'скотт', 'yeezy', 'изи', 'слайды', 'slides', 'foam runner', 'пены', '350 v2', 'бусты'],
+      title: 'Коллаборации Travis Scott & линейка Yeezy: премиум-сегмент',
+      badge: '🔥 Премиум & Лимитки',
+      summary: 'Редчайшие коллаборации Travis Scott x Jordan / Nike, а также оригинальные Yeezy Boost 350 v2, Slides и Foam Runner доступны для выкупа.',
+      bullets: [
+        '📏 <span class="font-bold text-white">Размеры Yeezy & Slides:</span> Yeezy маломерят минимум на 1 размер! Тапочки Slides и сабо Foam Runner обязательно берите на 1–2 размера больше своего обычного.',
+        '🛡️ <span class="font-bold text-white">Строжайшая аутентификация:</span> Все редкие пары проверяются по базам данных фабричных партий и защитным чипам Poizon.',
+        '✈️ <span class="font-bold text-white">100% страховка:</span> Дорогостоящие пары страхуются на полную стоимость на всех этапах доставки.'
+      ],
+      actionTitle: 'Открыть калькулятор цен →',
+      actionType: 'calculator',
+      sources: ['🔥 Poizon Limited Division', '🛡️ 100% Insurance Guarantee']
+    },
+    {
+      id: 'streetwear_trapstar_corteiz',
+      keywords: ['трапстар', 'trapstar', 'кортез', 'corteiz', 'crts', 'трапстара', 'кортеза', 'худи кортез', 'пуховик трапстар', 'hyperdrive'],
+      title: 'Британский дрилл и стритвир: Trapstar London & Corteiz RTW',
+      badge: '🇬🇧 UK Streetwear',
+      summary: 'Оригинальные пуховики Trapstar Hyperdrive / Decoded, сумки-мессенджеры, а также худи и штаны Corteiz Alcatraz.',
+      bullets: [
+        '📏 <span class="font-bold text-white">Пуховики Trapstar:</span> Плотный приталенный силуэт. Если планируете носить поверх толстого худи — берите на размер больше привычного.',
+        '👕 <span class="font-bold text-white">Corteiz худи и штаны:</span> Фирменный оверсайз крой из плотного тяжелого хлопка (400–450 GSM).',
+        '📦 <span class="font-bold text-white">Вес посылки:</span> Пуховик Trapstar весит около 1.5–1.9 кг, сумка 0.3 кг, комплект худи+штаны около 1.3 кг.'
+      ],
+      actionTitle: 'Смотреть бренды стритвира →',
+      actionType: 'brand_Trapstar',
+      sources: ['🇬🇧 London Streetwear Guide', '🏷️ Poizon Apparel']
+    },
+    {
+      id: 'outdoor_arcteryx_tnf',
+      keywords: ['арктерикс', 'arcteryx', 'куртка с птицей', 'тнф', 'нуптсе', 'nuptse', 'the north face', 'норт фейс', 'мембрана', 'gore-tex', 'гортекс'],
+      title: 'Аутдор: куртки Arc\'teryx и пуховики The North Face Nuptse 1996',
+      badge: '🏔️ Outdoor & GORE-TEX',
+      summary: 'Оригинальные мембранные куртки Arc\'teryx (Beta, Alpha) и культовые пуховики The North Face 1996 Retro Nuptse (натуральный пух 700 Fill Down).',
+      bullets: [
+        '🌧️ <span class="font-bold text-white">Arc\'teryx GORE-TEX:</span> Ветро- и влагозащита высочайшего уровня. Крой рассчитан на многослойность (термобелье + флис + мембрана).',
+        '❄️ <span class="font-bold text-white">The North Face Nuptse:</span> Классический объемный крой со складывающимся капюшоном. Вес пуховика около 0.9–1.1 кг.',
+        '🛡️ <span class="font-bold text-white">Аутентификация:</span> Подлинность голограмм, фурнитуры YKK Vislon и вышивки проверяется экспертами Poizon.'
+      ],
+      actionTitle: 'Смотреть Arc\'teryx в каталоге →',
+      actionType: 'brand_Arc\'teryx',
+      sources: ['🏔️ GORE-TEX Tech Lab', '🛡️ Legit Check Certified']
+    },
+    {
+      id: 'shoes_ugg',
+      keywords: ['угги', 'ugg', 'угг', 'тапочки ugg', 'tazz', 'tasman', 'ultra mini', 'ультра мини', 'тасман', 'тазз'],
+      title: 'UGG Australia: оригинальные Ultra Mini, Tasman и Tazz',
+      badge: '❄️ Зимняя обувь UGG',
+      summary: 'Натуральная овчина, теплая мягкая стелька UGGplush и фирменная подошва Treadlite. На Poizon доступны все популярные цвета (Chestnut, Black, Mustard Seed).',
+      bullets: [
+        '📏 <span class="font-bold text-white">Посадка:</span> Из-за густого меха внутри новая пара сидит очень плотно. В течение нескольких дней мех усаживается по стопе. Рекомендуется брать свой размер или на 0.5 больше.',
+        '⚖️ <span class="font-bold text-white">Вес посылки:</span> Тапочки Tasman около 0.7–0.9 кг, сапожки Ultra Mini около 1.0–1.2 кг.',
+        '🐑 <span class="font-bold text-white">100% натуральная замша:</span> Защита от холода до -25°C.'
+      ],
+      actionTitle: 'Смотреть UGG в каталоге →',
+      actionType: 'brand_UGG',
+      sources: ['❄️ UGG Authentic Materials', '🏷️ Poizon Catalog']
+    },
+    {
+      id: 'delivery_belarus_cities',
+      keywords: ['гомель', 'гомеле', 'брест', 'бресте', 'гродно', 'витебск', 'витебске', 'могилев', 'могилеве', 'полоцк', 'бобруйск', 'барановичи', 'беларусь', 'европочта', 'рб', 'минск', 'минске'],
+      title: 'Доставка по всем городам и регионам Беларуси',
+      badge: '🇧🇾 Доставка по Беларуси',
+      summary: 'Все посылки прибывают рейсом из Китая на центральный сортировочный хаб в Минске, проходят таможню и за 24–48 часов доставляются в любой пункт Европочты или СДЭК в вашем городе.',
+      bullets: [
+        '📦 <span class="font-bold text-white">Пункты выдачи:</span> Более 500 отделений Европочты и СДЭК по всей Беларуси — забирайте рядом с домом.',
+        '⏱️ <span class="font-bold text-white">Сроки:</span> Авиарейс из Китая 8–12 рабочих дней + 1–2 дня пересылка по Беларуси.',
+        '💳 <span class="font-bold text-white">Оплата:</span> Карты любых белорусских банков (Белкарт, Visa, Mastercard) в BYN без скрытых комиссий.'
+      ],
+      actionTitle: 'Рассчитать доставку в калькуляторе →',
+      actionType: 'calculator',
+      sources: ['🚚 Европочта & СДЭК Сеть', '🇧🇾 Таможня Минск-2']
+    },
+    {
+      id: 'delivery_russia_cities',
+      keywords: ['москва', 'москву', 'москве', 'питер', 'питере', 'спб', 'петербург', 'санкт-петербург', 'россия', 'россию', 'рф', 'екатеринбург', 'новосибирск', 'казань', 'краснодар', 'ростов'],
+      title: 'Доставка в Москву, Санкт-Петербург и любые города России',
+      badge: '🇷🇺 Доставка по РФ',
+      summary: 'ICE LOGIX организует бесперебойную доставку оригинальных товаров с Poizon в Российскую Федерацию с выдачей в пунктах СДЭК.',
+      bullets: [
+        '🚚 <span class="font-bold text-white">Пункты выдачи:</span> Любое удобное отделение СДЭК в вашем городе или курьерская доставка до двери.',
+        '⏱️ <span class="font-bold text-white">Сроки:</span> Авиадоставка 10–14 дней до Москвы и СПб, в регионы РФ 12–16 дней.',
+        '💳 <span class="font-bold text-white">Оплата:</span> Принимаем карты МИР через защищенный шлюз bePaid.'
+      ],
+      actionTitle: 'Рассчитать доставку в РФ →',
+      actionType: 'calculator',
+      sources: ['🚚 Логистическая сеть СДЭК', '💳 Платежи МИР']
+    },
+    {
+      id: 'process_two_steps',
+      keywords: ['2 этапа', 'два этапа', 'двухэтапная', 'второй платеж', 'почему отдельно', 'оплата веса', 'раздельно', 'почему 2', 'зачем два платежа', 'второй этап'],
+      title: 'Прозрачная двухэтапная оплата ICE LOGIX',
+      badge: '✌️ Система 2 этапов',
+      summary: 'Мы не берем приблизительные суммы за доставку заранее — вы платите строго за реальный вес посылки без переплат.',
+      bullets: [
+        '1️⃣ <span class="font-bold text-white">Этап 1 (Выкуп):</span> Оплата стоимости товара на Poizon + комиссия сервиса 20%. Товар сразу выкупается и направляется на склад.',
+        '2️⃣ <span class="font-bold text-white">Этап 2 (Доставка):</span> Когда посылка прибывает на китайский склад, она взвешивается на электронных весах. Вы оплачиваете фактический вес ($10/кг).',
+        '🛡️ <span class="font-bold text-white">Честность:</span> Никаких скрытых округлений — если посылка весит 1.25 кг, вы платите ровно за 1.25 кг.'
+      ],
+      actionTitle: 'Рассчитать тарифы →',
+      actionType: 'calculator',
+      sources: ['⚖️ Регламент тарификации', '🤝 Финансовая прозрачность']
+    },
+    {
+      id: 'poizon_blue_black_btn',
+      keywords: ['синяя кнопка', 'черная кнопка', 'синяя или черная', 'кнопки пойзон', 'кнопка poizon', 'быстрая доставка пойзон', 'синей кнопки', 'черной кнопки'],
+      title: 'Разница между кнопками на Poizon (Синяя vs Черная)',
+      badge: '🛍️ Poizon Экспресс vs Стандарт',
+      summary: 'На платформе Poizon у каждого размера есть несколько вариантов покупки от разных продавцов:',
+      bullets: [
+        '🔵 <span class="font-bold text-white">Синяя кнопка (Экспресс 95):</span> Товар уже находится на складе Poizon и прошел предварительную проверку. Отправляется на наш транзитный склад за 1–2 дня.',
+        '⚫ <span class="font-bold text-white">Черная кнопка (Стандарт):</span> Товар находится у частного продавца. Сначала отправляется в лабораторию Poizon на легитчек (2–4 дня), затем к нам.',
+        '💡 <span class="font-bold text-white">Совет:</span> Если разница в цене невелика, всегда выбирайте синюю кнопку для максимальной скорости.'
+      ],
+      actionTitle: 'Перейти в каталог Poizon →',
+      actionType: 'catalogs',
+      sources: ['🛍️ Poizon Dewu Guide', '⚡ ICE LOGIX Экспресс']
+    },
+    {
+      id: 'customs_limits',
+      keywords: ['таможня', 'пошлина', 'пошлины', 'лимит', '200', 'евро', 'налог', 'растаможка', 'превышение', '31 кг', 'пошлину'],
+      title: 'Таможенные лимиты ЕАЭС: 200€ и 31 кг на посылку',
+      badge: '⚖️ Таможенные правила',
+      summary: 'Для физических лиц в Беларуси и России действует беспошлинный порог в 200 евро и 31 кг на одно международное отправление.',
+      bullets: [
+        '📦 <span class="font-bold text-white">Без пошлины:</span> Любые товары до 200€ (≈ 1550–1600 ¥) ввозятся с нулевой пошлиной (0 BYN / 0 ₽).',
+        '📊 <span class="font-bold text-white">При превышении:</span> Пошлина составляет 15% только от суммы превышения (например, при заказе на 250€ пошлина 15% от 50€ = 7.5€).',
+        '🤝 <span class="font-bold text-white">Помощь сервиса:</span> Поможем грамотно распределить позиции на несколько посылок, если заказывается несколько дорогих вещей.'
+      ],
+      actionTitle: 'Рассчитать пошлину в калькуляторе →',
+      actionType: 'calculator',
+      sources: ['⚖️ Таможенный кодекс ЕАЭС', '📋 Нормы ввоза 2026']
+    },
+    {
+      id: 'security_bepaid',
+      keywords: ['bepaid', 'безопасность', 'беларусбанк', 'приорбанк', 'сбер', 'мтбанк', 'альфа', 'белкарт', 'карты', 'картами', 'платеж', 'защита карты'],
+      title: 'Безопасность банковских платежей через шлюз bePaid',
+      badge: '🔒 Финансовая безопасность',
+      summary: 'Все транзакции в ICE LOGIX обрабатываются национальным платежным провайдером bePaid в соответствии с законодательством Республики Беларусь.',
+      bullets: [
+        '🛡️ <span class="font-bold text-white">Стандарт PCI-DSS Level 1:</span> Данные банковских карт никогда не сохраняются на наших серверах и токенизируются на стороне банка.',
+        '🔐 <span class="font-bold text-white">Поддержка 3D-Secure:</span> Подтверждение каждой операции одноразовым СМС-кодом от вашего банка.',
+        '🇧🇾 <span class="font-bold text-white">Все банки Беларуси:</span> Беларусбанк, Приорбанк, Альфа-Банк, Сбер Банк, МТБанк и любые карты Белкарт.'
+      ],
+      actionTitle: 'Управление картами в профиле →',
+      actionType: 'finances',
+      sources: ['💳 Провайдер bePaid', '🔒 Стандарт PCI-DSS']
+    },
+    {
+      id: 'support_care_service',
+      keywords: ['поддержка', 'поддержку', 'менеджер', 'менеджера', 'оператор', 'оператора', 'помощь', 'связь', 'вопрос', 'чат', 'служба заботы', 'человек', 'живой'],
+      title: 'Служба заботы ICE LOGIX: живая поддержка 24/7',
+      badge: '🎧 Персональная забота',
+      summary: 'Если вам нужна помощь с поиском редкой пары, замерами стельки или расчетом — наши специалисты готовы помочь в Telegram.',
+      bullets: [
+        '🙋 <span class="font-bold text-white">Поиск по фото:</span> Пришлите скриншот модели из Instagram, TikTok или Pinterest — найдем лучшую цену на Poizon.',
+        '⚡ <span class="font-bold text-white">Быстрый ответ:</span> Среднее время ответа оператора — до 5–10 минут.',
+        '📍 <span class="font-bold text-white">Индивидуальное ведение:</span> Отслеживаем заказ до момента вручения в пункте выдачи.'
+      ],
+      actionTitle: 'Написать оператору в Telegram →',
+      actionType: 'support',
+      sources: ['🎧 @icelogix_support_bot', '👥 Команда заботы']
+    }
+  ];
+
+  // ============================================================
+  // ENGINE 2: AI NATURAL LANGUAGE & INTENT DETECTOR
   // ============================================================
 
   function detectAiIntent(rawQ, cleanLower, userCtx) {
@@ -867,57 +1131,45 @@
       }
     }
 
-    // Semantic AI Answers for common user questions
-    if (cleanLower.includes('минск') || (cleanLower.includes('беларус') && cleanLower.includes('доставк'))) {
-      return {
-        type: 'ai_answer',
-        title: 'Доставка в Беларусь (Минск и все регионы)',
-        badge: '✨ ИИ-Помощник',
-        text: 'Все посылки из Китая прибывают на центральный сортировочный хаб в Минске, проходят таможенную очистку и передаются в пункты выдачи Европочты или СДЭК по всей Беларуси. Срок экспресс-авиа: 8–12 дней, авто: 18–25 дней.',
-        actionTitle: 'Рассчитать в калькуляторе →',
-        action: () => {
-          if (typeof switchTab === 'function') switchTab('calculator');
+    // Scan Comprehensive AI Knowledge Topics (Slang, Silhouettes, Cities, Logistics, Security)
+    let bestTopic = null;
+    let highestScore = 0;
+
+    for (const topic of AI_KNOWLEDGE_TOPICS) {
+      let score = 0;
+      for (const kw of topic.keywords) {
+        const kwLower = kw.toLowerCase();
+        if (cleanLower === kwLower) {
+          score += 10; // Exact match
+        } else if (cleanLower.includes(kwLower)) {
+          // Substring match
+          score += (kwLower.length >= 4) ? 4 : 2;
+        } else {
+          // Word token match
+          const words = cleanLower.split(/\s+/);
+          if (words.includes(kwLower)) {
+            score += 3;
+          }
         }
-      };
+      }
+
+      if (score > highestScore && score >= 2) {
+        highestScore = score;
+        bestTopic = topic;
+      }
     }
 
-    if (cleanLower.includes('беларусбанк') || cleanLower.includes('приорбанк') || cleanLower.includes('сбер') || cleanLower.includes('мтбанк') || cleanLower.includes('альфа')) {
+    if (bestTopic) {
       return {
         type: 'ai_answer',
-        title: 'Оплата картами белорусских банков',
-        badge: '✨ ИИ-Финансы',
-        text: 'Да, наш сервис официально принимает карты всех 20 банков Беларуси (Белкарт, Visa, Mastercard, МИР) через платежный шлюз bePaid. Данные шифруются по стандарту PCI-DSS, 0% скрытых комиссий.',
-        actionTitle: 'Перейти к моим картам →',
-        action: () => {
-          if (typeof showUserFinances === 'function') showUserFinances();
-          else if (typeof switchTab === 'function') switchTab('finances');
-        }
-      };
-    }
-
-    if (cleanLower.includes('размер') && (cleanLower.includes('обув') || cleanLower.includes('стельк') || cleanLower.includes('см'))) {
-      return {
-        type: 'ai_answer',
-        title: 'Как выбрать правильный размер на Poizon',
-        badge: '✨ ИИ-Гид по размерам',
-        text: 'Всегда ориентируйтесь на длину стельки в сантиметрах (CM/JP) или европейский размер (EUR). В карточке каждой пары на Poizon реальные покупатели голосуют за посадку: "True to size" (в размер) или "Маломерит на 0.5".',
-        actionTitle: 'Открыть каталоги Poizon →',
-        action: () => {
-          if (typeof switchTab === 'function') switchTab('catalogs');
-        }
-      };
-    }
-
-    if (cleanLower.includes('пошлин') || cleanLower.includes('200') || cleanLower.includes('лимит')) {
-      return {
-        type: 'ai_answer',
-        title: 'Беспошлинный лимит 200€ и 31 кг',
-        badge: '✨ ИИ-Таможня',
-        text: 'В Беларуси и РФ беспошлинный порог для одной посылки составляет 200 евро и 31 кг. Если стоимость превышает 200€, таможня начисляет 15% только на сумму превышения (например, при заказе на 250€ пошлина составит всего 7.5€).',
-        actionTitle: 'Инструкция по выкупу →',
-        action: () => {
-          if (typeof switchTab === 'function') switchTab('calculator');
-        }
+        topicId: bestTopic.id,
+        title: bestTopic.title,
+        badge: bestTopic.badge,
+        summary: bestTopic.summary,
+        bullets: bestTopic.bullets,
+        actionTitle: bestTopic.actionTitle,
+        actionType: bestTopic.actionType,
+        sources: bestTopic.sources
       };
     }
 
@@ -1369,19 +1621,21 @@
     }
     // --- Scenario 6: Dedicated AI Semantic Q&A Intent ---
     else if (aiIntent && aiIntent.type === 'ai_answer') {
-      bodyHtml = `<span class="font-bold text-white text-[13px] block mb-1">${aiIntent.title}</span>${aiIntent.text}`;
-      bullets = [
-        `💡 <span class="font-bold text-white">Официальные условия:</span> ICE LOGIX работает по договору публичной оферты и является официальным зарегистрированным сервисом в Республике Беларусь.`,
-        `🤝 <span class="font-bold text-white">Гарантия качества:</span> Полная ответственность за сохранность груза и 100% оригинальность подтверждается двойной экспертизой.`
-      ];
+      bodyHtml = `<span class="font-bold text-white text-[13px] block mb-1">${aiIntent.title}</span>${aiIntent.summary || aiIntent.text}`;
+      bullets = (aiIntent.bullets && aiIntent.bullets.length > 0)
+        ? aiIntent.bullets
+        : [
+            `💡 <span class="font-bold text-white">Официальные условия:</span> ICE LOGIX работает по договору публичной оферты и является официальным зарегистрированным сервисом в Республике Беларусь.`,
+            `🤝 <span class="font-bold text-white">Гарантия качества:</span> Полная ответственность за сохранность груза и 100% оригинальность подтверждается двойной экспертизой.`
+          ];
       if (aiIntent.actionTitle) {
         actions = [
-          `<button id="aiOverviewSemanticActionBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md">
+          `<button id="aiOverviewSemanticActionBtn" data-action-type="${aiIntent.actionType || ''}" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md flex items-center gap-1.5">
             ${aiIntent.actionTitle}
           </button>`
         ];
       }
-      sources = [`💡 База знаний ICE LOGIX`, `🛡️ Юридическая оферта`];
+      sources = aiIntent.sources || [`💡 База знаний ICE LOGIX`, `🛡️ Юридическая оферта`];
     }
     // --- Scenario 7: Knowledge Base FAQ Match ---
     else if (matchingFaq.length > 0) {
@@ -1821,10 +2075,39 @@
       };
     }
 
-    // AI Overview Action: Semantic Action
+    // AI Overview Action: Semantic Action (Step 3 Action Router)
     const semanticBtn = contentEl.querySelector('#aiOverviewSemanticActionBtn');
-    if (semanticBtn && aiIntent?.action) {
-      semanticBtn.onclick = aiIntent.action;
+    if (semanticBtn) {
+      semanticBtn.onclick = () => {
+        const actionType = semanticBtn.getAttribute('data-action-type');
+        if (actionType === 'catalogs') {
+          if (typeof switchTab === 'function') switchTab('catalogs');
+        } else if (actionType === 'calculator') {
+          if (typeof switchTab === 'function') switchTab('calculator');
+        } else if (actionType === 'finances') {
+          if (typeof showUserFinances === 'function') showUserFinances();
+          else if (typeof switchTab === 'function') switchTab('finances');
+        } else if (actionType === 'legitcheck') {
+          if (typeof showLegitCheckScreen === 'function') showLegitCheckScreen();
+          else if (typeof switchTab === 'function') switchTab('profile');
+        } else if (actionType === 'support') {
+          const tgLink = 'https://t.me/icelogix_support_bot';
+          if (window.Telegram?.WebApp?.openTelegramLink) {
+            window.Telegram.WebApp.openTelegramLink(tgLink);
+          } else {
+            window.open(tgLink, '_blank');
+          }
+        } else if (actionType && actionType.startsWith('brand_')) {
+          const brandName = actionType.replace('brand_', '');
+          if (typeof window.spotlightOpenBrand === 'function') {
+            window.spotlightOpenBrand(brandName);
+          } else if (typeof switchTab === 'function') {
+            switchTab('catalogs');
+          }
+        } else if (aiIntent?.action) {
+          aiIntent.action();
+        }
+      };
     }
 
     // AI Overview Action: Open Catalogs
