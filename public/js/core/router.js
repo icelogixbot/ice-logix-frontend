@@ -195,6 +195,21 @@
         if (!adminAuthenticated) { switchTab('admin'); return; }
         contentDiv.innerHTML = await renderAdminFAQ();
         attachAdminFAQHandlers();
+      } else if (currentTab === 'search') {
+        if (typeof renderSpotlightPage === 'function') {
+          contentDiv.innerHTML = shadowBannerHtml + await renderSpotlightPage();
+          if (typeof attachSpotlightPageHandlers === 'function') attachSpotlightPageHandlers();
+        }
+      } else if (currentTab === 'notifications') {
+        if (typeof renderNotificationsPage === 'function') {
+          contentDiv.innerHTML = shadowBannerHtml + await renderNotificationsPage();
+          if (typeof attachNotificationsPageHandlers === 'function') attachNotificationsPageHandlers();
+        }
+      } else if (currentTab === 'settings') {
+        if (typeof renderSettingsPage === 'function') {
+          contentDiv.innerHTML = shadowBannerHtml + await renderSettingsPage(window._settingsInitialTab || 'security');
+          if (typeof attachSettingsPageHandlers === 'function') attachSettingsPageHandlers(window._settingsInitialTab || 'security');
+        }
       } else {
         contentDiv.innerHTML = '<div class="text-center py-10">Страница не найдена</div>';
       }
@@ -203,7 +218,7 @@
 
       scrollToPageTop();
 
-      if (currentTab !== 'home' && currentTab !== 'catalogs' && currentTab !== 'reports' && currentTab !== 'reviews' && currentTab !== 'academy' && currentTab !== 'dropshipper' && currentTab !== 'products' && currentTab !== 'wishlist' && !currentSubScreen) {
+      if (currentTab !== 'home' && currentTab !== 'catalogs' && currentTab !== 'reports' && currentTab !== 'reviews' && currentTab !== 'academy' && currentTab !== 'dropshipper' && currentTab !== 'products' && currentTab !== 'wishlist' && currentTab !== 'search' && currentTab !== 'notifications' && currentTab !== 'settings' && !currentSubScreen) {
         ensureBackButton();
       }
       initCardSliders();

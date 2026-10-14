@@ -2544,20 +2544,28 @@ let adminOrdersTotalPages = 1;
         const globalSearchBtn = document.getElementById('globalSearchBtn');
         if (globalSearchBtn) {
           globalSearchBtn.onclick = () => {
-            if (typeof openSpotlightSearch === 'function') openSpotlightSearch();
+            animateClick(globalSearchBtn);
+            switchTab('search');
           };
           const targetDisp = isRegistered ? '' : 'none';
           if (globalSearchBtn.style.display !== targetDisp) globalSearchBtn.style.display = targetDisp;
         }
         const settingsBtn = document.getElementById('settingsBtn');
         if (settingsBtn) {
-          settingsBtn.onclick = () => showAppSettings('security');
+          settingsBtn.onclick = () => {
+            animateClick(settingsBtn);
+            window._settingsInitialTab = 'security';
+            switchTab('settings');
+          };
           const targetDisp = isRegistered ? '' : 'none';
           if (settingsBtn.style.display !== targetDisp) settingsBtn.style.display = targetDisp;
         }
         const notificationsBtn = document.getElementById('notificationsBtn');
         if (notificationsBtn) {
-          notificationsBtn.onclick = () => showNotificationsPanel();
+          notificationsBtn.onclick = () => {
+            animateClick(notificationsBtn);
+            switchTab('notifications');
+          };
           const targetDisp = isRegistered ? '' : 'none';
           if (notificationsBtn.style.display !== targetDisp) notificationsBtn.style.display = targetDisp;
         }
@@ -3220,9 +3228,18 @@ let adminOrdersTotalPages = 1;
       }
       tgUtil.haptic('selection');
       
+      // Highlight header icon if active
+      const searchBtn = document.getElementById('globalSearchBtn');
+      const notifBtn = document.getElementById('notificationsBtn');
+      const settBtn = document.getElementById('settingsBtn');
+      if (searchBtn) searchBtn.classList.toggle('active-header-btn', tabName === 'search');
+      if (notifBtn) notifBtn.classList.toggle('active-header-btn', tabName === 'notifications');
+      if (settBtn) settBtn.classList.toggle('active-header-btn', tabName === 'settings');
+
       // Restore from HTML cache for instant screen switch (0ms delay, no flicker)
       const _ck = (tabName || '') + ':' + (subScreen || '');
-      if (tabName !== 'finances' && _tabCache[_ck] && Date.now() - _tabCache[_ck].ts < 600000) {
+      const dynamicTabs = ['finances', 'search', 'notifications', 'settings'];
+      if (!dynamicTabs.includes(tabName) && _tabCache[_ck] && Date.now() - _tabCache[_ck].ts < 600000) {
         const _cd = document.getElementById('content');
         if (_cd) {
           _cd.innerHTML = _tabCache[_ck].html;

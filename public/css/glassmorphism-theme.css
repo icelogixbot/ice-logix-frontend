@@ -312,6 +312,12 @@
       border-color: var(--glass-border-strong);
     }
     .icon-btn:active { transform: scale(0.9); }
+    .icon-btn.active-header-btn {
+      background: rgba(6, 182, 212, 0.2) !important;
+      border-color: rgba(6, 182, 212, 0.6) !important;
+      color: #22d3ee !important;
+      box-shadow: 0 0 12px rgba(6, 182, 212, 0.3) !important;
+    }
     
     /* User Card - Premium Rounded Rectangle Layout */
     .user-card {

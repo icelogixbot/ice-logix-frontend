@@ -528,18 +528,38 @@ async function showAccountRecovery() {
   };
 }
 
-// Kept for back-compat if called directly
-async function showNotificationSettings() { return showAppSettings('notifications'); }
+// ============================================================
+// ICE LOGIX: Settings & Notifications Native Page Components
+// Rendered directly inside #content (Header and Footer visible)
+// ============================================================
+
+window._settingsInitialTab = 'security';
+window._notifActiveFilter = 'all';
+
+async function showNotificationSettings() {
+  return showAppSettings('notifications');
+}
 
 async function showAppSettings(initialTab = 'security') {
+  window._settingsInitialTab = initialTab || 'security';
+  if (typeof switchTab === 'function') {
+    switchTab('settings');
+  }
+}
+
+async function renderSettingsPage(initialTab = 'security') {
   // Parallel fetch auth user and user profile
-  const [authUserDataRes, userProfileRes] = await Promise.all([
-    supabaseClient ? supabaseClient.auth.getUser() : Promise.resolve({ data: {} }),
-    (supabaseClient && userId) ? supabaseClient.from('users').select('notification_settings, app_settings, telegram_id, phone, username').eq('user_id', userId).single() : Promise.resolve({ data: {} })
-  ]);
-  const authUser = authUserDataRes?.data?.user;
-  const data = userProfileRes?.data;
-  
+  let authUser = null;
+  let data = null;
+  try {
+    const [authUserDataRes, userProfileRes] = await Promise.all([
+      supabaseClient ? supabaseClient.auth.getUser() : Promise.resolve({ data: {} }),
+      (supabaseClient && userId) ? supabaseClient.from('users').select('notification_settings, app_settings, telegram_id, phone, username').eq('user_id', userId).single() : Promise.resolve({ data: {} })
+    ]);
+    authUser = authUserDataRes?.data?.user;
+    data = userProfileRes?.data;
+  } catch (_) {}
+
   const localNotif = JSON.parse(localStorage.getItem('notification_settings') || '{"status_changes":true,"news":true,"promotions":true}');
   const notif = data?.notification_settings || localNotif;
   const appSettings = data?.app_settings || {};
@@ -558,79 +578,109 @@ async function showAppSettings(initialTab = 'security') {
   const toggle = (id, checked) => `
     <label class="relative inline-flex items-center cursor-pointer">
       <input type="checkbox" id="${id}" class="sr-only peer" ${checked ? 'checked' : ''}>
-      <div class="relative w-11 h-6 bg-white/20 rounded-full transition-colors peer-checked:bg-cyan-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+      <div class="relative w-11 h-6 bg-white/20 rounded-full transition-colors peer-checked:bg-cyan-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full shadow-inner"></div>
     </label>`;
 
-  // Build Security panel items dynamically
+  // Build Security panel items
   let identitiesHtml = '';
 
-  // Telegram Link (FIRST - per user request)
+  // Telegram Link (FIRST - priority)
   if (userTelegramId) {
     identitiesHtml += `
-      <div class="w-full py-3 px-4 rounded-xl flex items-center justify-between settings-row-bg" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);">
+      <div class="w-full py-3 px-4 rounded-2xl flex items-center justify-between bg-white/5 border border-white/10">
         <div class="flex items-center gap-3">
-          <span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.19 2.5a24.22 24.22 0 0 0-9 1.56 24.43 24.43 0 0 0-9-1.56c-.53 0-1 .47-1 1a24 24 0 0 0 3.25 12c1.72 2.7 4.19 4.7 7.21 6a.52.52 0 0 0 .39 0c3-.78 5.76-2.58 7.37-5.12A24.08 24.08 0 0 0 22.19 3.5c0-.53-.47-1-1-1z"/></svg></span>
-          <span class="font-semibold text-white/50 text-sm">Telegram привязан</span>
+          <span class="w-8 h-8 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.19 2.5a24.22 24.22 0 0 0-9 1.56 24.43 24.43 0 0 0-9-1.56c-.53 0-1 .47-1 1a24 24 0 0 0 3.25 12c1.72 2.7 4.19 4.7 7.21 6a.52.52 0 0 0 .39 0c3-.78 5.76-2.58 7.37-5.12A24.08 24.08 0 0 0 22.19 3.5c0-.53-.47-1-1-1z"/></svg>
+          </span>
+          <div>
+            <p class="font-bold text-white text-xs">Telegram аккаунт</p>
+            <p class="text-[10px] text-white/50">Привязан к боту ICE LOGIX</p>
+          </div>
         </div>
-        <span class="text-xs text-green-400 font-bold">Привязан ✓</span>
+        <span class="text-xs text-emerald-400 font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">Подключен ✓</span>
       </div>
     `;
   } else {
     identitiesHtml += `
       <div class="space-y-2">
-        <button id="linkTelegramBtn" class="w-full py-3 px-4 rounded-xl flex items-center justify-between transition animate-pulse-subtle" style="background: rgba(14,165,233,0.15); border: 1px solid rgba(14,165,233,0.3);">
+        <button id="linkTelegramBtn" class="w-full py-3 px-4 rounded-2xl flex items-center justify-between transition bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 active:scale-[0.99]">
           <div class="flex items-center gap-3">
-            <span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.19 2.5a24.22 24.22 0 0 0-9 1.56 24.43 24.43 0 0 0-9-1.56c-.53 0-1 .47-1 1a24 24 0 0 0 3.25 12c1.72 2.7 4.19 4.7 7.21 6a.52.52 0 0 0 .39 0c3-.78 5.76-2.58 7.37-5.12A24.08 24.08 0 0 0 22.19 3.5c0-.53-.47-1-1-1z"/></svg></span>
-            <span class="font-semibold text-white text-sm">Привязать Telegram</span>
+            <span class="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.19 2.5a24.22 24.22 0 0 0-9 1.56 24.43 24.43 0 0 0-9-1.56c-.53 0-1 .47-1 1a24 24 0 0 0 3.25 12c1.72 2.7 4.19 4.7 7.21 6a.52.52 0 0 0 .39 0c3-.78 5.76-2.58 7.37-5.12A24.08 24.08 0 0 0 22.19 3.5c0-.53-.47-1-1-1z"/></svg>
+            </span>
+            <div class="text-left">
+              <p class="font-bold text-white text-xs">Привязать Telegram</p>
+              <p class="text-[10px] text-cyan-300/70">Для мгновенных пуш-уведомлений</p>
+            </div>
           </div>
-          <span class="text-xs text-cyan-300 font-bold">Привязать</span>
+          <span class="text-xs text-cyan-300 font-bold px-2 py-1 rounded-xl bg-cyan-400/10">Привязать →</span>
         </button>
-        <div id="settingsTelegramWidgetContainer" class="hidden flex justify-center p-2 bg-slate-900/50 rounded-xl"></div>
+        <div id="settingsTelegramWidgetContainer" class="hidden flex justify-center p-3 bg-slate-900/60 rounded-2xl border border-white/10"></div>
       </div>
     `;
   }
 
   // Google Link
   identitiesHtml += `
-    <button id="linkGoogleBtn" class="w-full py-3 px-4 rounded-xl flex items-center justify-between transition" style="background: rgba(234,67,53,0.1); border: 1px solid rgba(234,67,53,0.25);">
+    <button id="linkGoogleBtn" class="w-full py-3 px-4 rounded-2xl flex items-center justify-between transition bg-white/5 hover:bg-white/10 border border-white/10 active:scale-[0.99]">
       <div class="flex items-center gap-3">
-        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-        <span class="font-semibold text-white text-sm">Google</span>
+        <div class="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
+          <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        </div>
+        <div class="text-left">
+          <p class="font-bold text-white text-xs">Google Account</p>
+          <p class="text-[10px] text-white/40">Быстрый вход через Gmail</p>
+        </div>
       </div>
-      <span class="text-xs ${isGoogleLinked ? 'text-green-400 font-bold' : 'text-white/50'}">${isGoogleLinked ? 'Привязан ✓' : 'Привязать'}</span>
+      <span class="text-xs ${isGoogleLinked ? 'text-emerald-400 font-bold' : 'text-white/50'}">${isGoogleLinked ? 'Подключен ✓' : 'Подключить →'}</span>
     </button>
   `;
 
   // Apple Link
   identitiesHtml += `
-    <button id="linkAppleBtn" class="w-full py-3 px-4 rounded-xl flex items-center justify-between settings-action-btn transition" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+    <button id="linkAppleBtn" class="w-full py-3 px-4 rounded-2xl flex items-center justify-between transition bg-white/5 hover:bg-white/10 border border-white/10 active:scale-[0.99]">
       <div class="flex items-center gap-3">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="color:#ffffff;"><path d="M16.365 21.444c-1.332 1.405-2.651 1.4-3.955.086-1.19-1.2-2.316-1.187-3.486 0-1.385 1.4-2.721 1.428-4.043.08-3.036-3.111-4.707-8.31-2.482-12.825 1.134-2.296 3.013-3.714 5.234-3.743 1.572-.016 3.031.975 4.02.975.986 0 2.833-1.182 4.793-1.01 1.637.067 3.125.77 4.148 2.106-3.415 2.115-2.88 6.772.634 8.163-.787 2.111-1.956 4.316-3.863 6.168zM15.426 5.518c-.85.98-2.126 1.611-3.266 1.516-.25-1.428.468-2.85 1.258-3.791.905-1.083 2.304-1.727 3.402-1.631.183 1.428-.48 2.838-1.394 3.906z"/></svg>
-        <span class="font-semibold text-white text-sm">Apple</span>
+        <div class="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-white">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16.365 21.444c-1.332 1.405-2.651 1.4-3.955.086-1.19-1.2-2.316-1.187-3.486 0-1.385 1.4-2.721 1.428-4.043.08-3.036-3.111-4.707-8.31-2.482-12.825 1.134-2.296 3.013-3.714 5.234-3.743 1.572-.016 3.031.975 4.02.975.986 0 2.833-1.182 4.793-1.01 1.637.067 3.125.77 4.148 2.106-3.415 2.115-2.88 6.772.634 8.163-.787 2.111-1.956 4.316-3.863 6.168zM15.426 5.518c-.85.98-2.126 1.611-3.266 1.516-.25-1.428.468-2.85 1.258-3.791.905-1.083 2.304-1.727 3.402-1.631.183 1.428-.48 2.838-1.394 3.906z"/></svg>
+        </div>
+        <div class="text-left">
+          <p class="font-bold text-white text-xs">Apple ID</p>
+          <p class="text-[10px] text-white/40">Sign in with Apple</p>
+        </div>
       </div>
-      <span class="text-xs ${isAppleLinked ? 'text-green-400 font-bold' : 'text-white/50'}">${isAppleLinked ? 'Привязан ✓' : 'Привязать'}</span>
+      <span class="text-xs ${isAppleLinked ? 'text-emerald-400 font-bold' : 'text-white/50'}">${isAppleLinked ? 'Подключен ✓' : 'Подключить →'}</span>
     </button>
   `;
 
   // Email Link
   if (isDummyEmail) {
     identitiesHtml += `
-      <button id="linkEmailBtn" class="w-full py-3 px-4 rounded-xl flex items-center justify-between transition" style="background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3);">
+      <button id="linkEmailBtn" class="w-full py-3 px-4 rounded-2xl flex items-center justify-between transition bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 active:scale-[0.99]">
         <div class="flex items-center gap-3">
-          <span class="ix text-purple-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
-          <span class="font-semibold text-white text-sm">Привязать Email</span>
+          <span class="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </span>
+          <div class="text-left">
+            <p class="font-bold text-white text-xs">Привязать Email</p>
+            <p class="text-[10px] text-indigo-300/70">Для входа с паролем с любого устройства</p>
+          </div>
         </div>
-        <span class="text-xs text-purple-300 font-bold">Привязать</span>
+        <span class="text-xs text-indigo-300 font-bold px-2 py-1 rounded-xl bg-indigo-400/10">Привязать →</span>
       </button>
     `;
   } else {
     identitiesHtml += `
-      <div class="w-full py-3 px-4 rounded-xl flex items-center justify-between settings-row-bg" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);">
-        <div class="flex items-center gap-3">
-          <span class="ix text-white/40"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
-          <span class="font-semibold text-white/50 text-sm">Email привязан</span>
+      <div class="w-full py-3 px-4 rounded-2xl flex items-center justify-between bg-white/5 border border-white/10">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="w-8 h-8 rounded-xl bg-white/10 text-white/60 flex items-center justify-center flex-shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </span>
+          <div class="min-w-0">
+            <p class="font-bold text-white text-xs">Email</p>
+            <p class="text-[10px] text-white/50 truncate">${userEmail}</p>
+          </div>
         </div>
-        <span class="text-xs text-white/40 max-w-[120px] truncate">${userEmail}</span>
+        <span class="text-xs text-emerald-400 font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex-shrink-0">Привязан ✓</span>
       </div>
     `;
   }
@@ -638,246 +688,326 @@ async function showAppSettings(initialTab = 'security') {
   // Phone Link
   if (userPhone) {
     identitiesHtml += `
-      <div class="w-full py-3 px-4 rounded-xl flex items-center justify-between settings-row-bg" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);">
+      <div class="w-full py-3 px-4 rounded-2xl flex items-center justify-between bg-white/5 border border-white/10">
         <div class="flex items-center gap-3">
-          <span class="ix text-white/40"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
-          <span class="font-semibold text-white/50 text-sm">Телефон привязан</span>
+          <span class="w-8 h-8 rounded-xl bg-white/10 text-white/60 flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </span>
+          <div>
+            <p class="font-bold text-white text-xs">Телефон</p>
+            <p class="text-[10px] text-white/50">${userPhone}</p>
+          </div>
         </div>
-        <span class="text-xs text-white/40">${userPhone}</span>
+        <span class="text-xs text-emerald-400 font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">Подтвержден ✓</span>
       </div>
-    `;
-  } else {
-    identitiesHtml += `
-      <button id="linkPhoneBtn" class="w-full py-3 px-4 rounded-xl flex items-center justify-between settings-action-btn transition" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
-        <div class="flex items-center gap-3">
-          <span class="ix text-white/40"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
-          <span class="font-semibold text-white text-sm">Привязать Телефон</span>
-        </div>
-        <span class="text-xs text-white/50">Привязать</span>
-      </button>
     `;
   }
 
-  const modal = document.createElement('div');
-  modal.id = 'settingsModal';
-  modal.className = 'full-screen-modal-overlay page-enter';
-  modal.innerHTML = `
-    <div class="full-screen-modal-header">
-      <button id="closeSettingsModal" class="global-back-btn !mb-0 py-1.5 px-3 text-xs">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-        Назад
-      </button>
-      <h3 class="text-white font-bold text-base flex items-center gap-2">
-        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
-        ${t('settings_title', 'Настройки')}
-      </h3>
-      <div class="w-16"></div>
-    </div>
-      <!-- Tabs (Reordered per user request: Security, Notifications, Language, Theme) -->
-      <div class="flex border-b border-white/10 bg-slate-900/40">
-        <button class="settings-tab flex-1 py-2.5 text-[10px] sm:text-xs font-medium transition flex flex-col items-center gap-1 ${initialTab==='security'?'text-cyan-400 border-b-2 border-cyan-400':'text-white/50'}"
-          data-tab="security">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          <span>${t('settings_security', 'Безопасность')}</span>
+  const activeTab = initialTab || window._settingsInitialTab || 'security';
+
+  return `
+    <div class="page-enter px-4 pb-28 max-w-md mx-auto space-y-4">
+      <!-- Top Navigation Header -->
+      <div class="flex items-center gap-3 mb-2 mt-2">
+        <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
         </button>
-        <button class="settings-tab flex-1 py-2.5 text-[10px] sm:text-xs font-medium transition flex flex-col items-center gap-1 ${initialTab==='notifications'?'text-cyan-400 border-b-2 border-cyan-400':'text-white/50'}"
-          data-tab="notifications">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          <span>${t('settings_notifications', 'Уведомления')}</span>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-xl font-bold text-white tracking-wide">Настройки</h2>
+          <p class="text-[11px] text-white/40">Безопасность, уведомления и персонализация</p>
+        </div>
+      </div>
+
+      <!-- Segmented Navigation (4 tabs) -->
+      <div class="grid grid-cols-4 gap-1 p-1 rounded-2xl bg-slate-900/90 border border-white/10 shadow-lg backdrop-blur-md mb-2">
+        <button class="settings-page-tab py-2.5 px-1 text-[11px] font-bold rounded-xl transition-all duration-200 flex flex-col items-center gap-1 ${activeTab==='security'?'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20':'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'}" data-tab="security">
+          <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span class="truncate">Защита</span>
         </button>
-        <button class="settings-tab flex-1 py-2.5 text-[10px] sm:text-xs font-medium transition flex flex-col items-center gap-1 ${initialTab==='language'?'text-cyan-400 border-b-2 border-cyan-400':'text-white/50'}"
-          data-tab="language">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-          <span>${t('settings_lang', 'Язык')}</span>
+        <button class="settings-page-tab py-2.5 px-1 text-[11px] font-bold rounded-xl transition-all duration-200 flex flex-col items-center gap-1 ${activeTab==='notifications'?'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20':'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'}" data-tab="notifications">
+          <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="truncate">Сигналы</span>
         </button>
-        <button class="settings-tab flex-1 py-2.5 text-[10px] sm:text-xs font-medium transition flex flex-col items-center gap-1 ${initialTab==='theme'?'text-cyan-400 border-b-2 border-cyan-400':'text-white/50'}"
-          data-tab="theme">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="2"/></svg>
-          <span>${t('settings_theme', 'Тема')}</span>
+        <button class="settings-page-tab py-2.5 px-1 text-[11px] font-bold rounded-xl transition-all duration-200 flex flex-col items-center gap-1 ${activeTab==='language'?'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20':'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'}" data-tab="language">
+          <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          <span class="truncate">Язык</span>
+        </button>
+        <button class="settings-page-tab py-2.5 px-1 text-[11px] font-bold rounded-xl transition-all duration-200 flex flex-col items-center gap-1 ${activeTab==='theme'?'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20':'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'}" data-tab="theme">
+          <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <span class="truncate">Тема</span>
         </button>
       </div>
-      <!-- Settings Full Screen Body -->
-      <div class="full-screen-modal-body" id="settingsModalCard">
-        <!-- Notifications panel -->
-        <div id="settingsPanel-notifications" class="max-w-md mx-auto space-y-4 ${initialTab!=='notifications'?'hidden':''}">
-          <div class="flex items-center justify-between"><span class="text-white text-sm">Изменение статуса заказа</span>${toggle('notifyStatusChanges', notif.status_changes)}</div>
-          <div class="flex items-center justify-between"><span class="text-white text-sm">Новости и обновления</span>${toggle('notifyNews', notif.news)}</div>
-          <div class="flex items-center justify-between"><span class="text-white text-sm">Акции и предложения</span>${toggle('notifyPromotions', notif.promotions)}</div>
-        </div>
-        <!-- Theme panel -->
-        <div id="settingsPanel-theme" class="max-w-md mx-auto space-y-4 ${initialTab!=='theme'?'hidden':''}">
-          <p class="text-white/60 text-xs mb-3">Выберите оформление интерфейса</p>
-          <div class="grid grid-cols-2 gap-3">
-            <button class="theme-btn rounded-xl p-4 border-2 transition ${currentTheme==='dark'?'border-cyan-500 bg-slate-800':'border-white/20 bg-white/5'}" data-theme="dark">
-              <p class="text-2xl mb-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span></p>
-              <p class="text-white text-sm font-bold">Тёмная</p>
-              <p class="text-white/50 text-xs">По умолчанию</p>
-            </button>
-            <button class="theme-btn rounded-xl p-4 border-2 transition ${currentTheme==='light'?'border-cyan-500 bg-slate-200':'border-white/20 bg-white/5'}" data-theme="light">
-              <p class="text-2xl mb-2"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></span></p>
-              <p class="text-white text-sm font-bold">Светлая</p>
-              <p class="text-white/50 text-xs">Эксперимент</p>
-            </button>
-          </div>
-          <button id="resetSettingsBtn" class="mt-4 w-full text-white/40 text-xs py-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></span> Сбросить по умолчанию</button>
-        </div>
-        <!-- Language panel -->
-        <div id="settingsPanel-language" class="max-w-md mx-auto space-y-4 ${initialTab!=='language'?'hidden':''}">
-          <p class="text-white/60 text-xs mb-3">Выберите язык интерфейса / Выберыце мову інтэрфейсу / Choose interface language</p>
+
+      <!-- Panels Container -->
+      <div id="settingsPageCard">
+        <!-- 1. Security panel -->
+        <div id="settingsPanel-security" class="space-y-3 ${activeTab!=='security'?'hidden':''}">
+          <p class="text-white/60 text-xs">Способы авторизации и безопасность личного кабинета</p>
           <div class="space-y-2">
-            <button class="lang-btn w-full rounded-xl p-3 border-2 transition text-left flex items-center justify-between ${currentLang==='ru'?'border-cyan-500 bg-slate-800':'border-white/20 bg-white/5'}" data-lang="ru">
-              <span class="text-white text-sm font-bold">Русский</span>
-              <span class="text-xs text-white/50">По умолчанию</span>
-            </button>
-            <button class="lang-btn w-full rounded-xl p-3 border-2 transition text-left flex items-center justify-between ${currentLang==='be'?'border-cyan-500 bg-slate-800':'border-white/20 bg-white/5'}" data-lang="be">
-              <span class="text-white text-sm font-bold">Беларуская</span>
-              <span class="text-xs text-white/50">Зробена з любоўю</span>
-            </button>
-            <button class="lang-btn w-full rounded-xl p-3 border-2 transition text-left flex items-center justify-between ${currentLang==='en'?'border-cyan-500 bg-slate-800':'border-white/20 bg-white/5'}" data-lang="en">
-              <span class="text-white text-sm font-bold">English</span>
-              <span class="text-xs text-white/50">International</span>
-            </button>
-          </div>
-        </div>
-        <!-- Security panel -->
-        <div id="settingsPanel-security" class="max-w-md mx-auto space-y-3 ${initialTab!=='security'?'hidden':''}">
-          <p class="text-white/60 text-xs">Управление способами входа и безопасностью.</p>
-          
-          <div class="bg-white/5 border border-white/10 rounded-xl p-3 space-y-2">
-            <p class="text-white text-xs font-semibold uppercase tracking-wider text-white/50 pb-1">Привязка аккаунтов</p>
             ${identitiesHtml}
           </div>
 
           ${!isDummyEmail ? `
-          <button id="changePasswordBtn" class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-left transition" style="background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3);">
-            <span class="ix text-purple-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
-            <div class="flex-1 min-w-0">
-              <p class="font-semibold text-white text-sm">Изменить пароль</p>
-              <p class="text-xs text-white/50">Обновить пароль аккаунта</p>
-            </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:rgba(255,255,255,0.4);flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
+            <button id="changePasswordBtn" class="w-full py-3.5 px-4 rounded-2xl flex items-center gap-3 text-left transition bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 active:scale-[0.99]">
+              <span class="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center flex-shrink-0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </span>
+              <div class="flex-1 min-w-0">
+                <p class="font-bold text-white text-xs">Изменить пароль</p>
+                <p class="text-[10px] text-white/50">Обновить постоянный пароль</p>
+              </div>
+              <span class="text-white/40 text-xs">→</span>
+            </button>
           ` : ''}
 
-          <button id="securityRecoveryBtn" class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-left transition" style="background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3);">
-            <span class="ix text-indigo-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+          <button id="securityRecoveryBtn" class="w-full py-3.5 px-4 rounded-2xl flex items-center gap-3 text-left transition bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 active:scale-[0.99]">
+            <span class="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center flex-shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </span>
             <div class="flex-1 min-w-0">
-              <p class="font-semibold text-white text-sm">Сброс аккаунта</p>
-              <p class="text-xs text-white/50">Полный выход со всех устройств</p>
+              <p class="font-bold text-white text-xs">Код восстановления аккаунта</p>
+              <p class="text-[10px] text-white/50">Запасной ключ доступа</p>
             </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:rgba(255,255,255,0.4);flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
+            <span class="text-rose-400 text-xs">→</span>
           </button>
         </div>
-        <div class="pt-6 pb-6 flex gap-3 max-w-md mx-auto w-full">
-          <button id="closeAppSettings" class="btn-secondary flex-1 py-3 rounded-xl font-bold">${currentLang === 'be' ? 'Закрыць' : currentLang === 'en' ? 'Close' : 'Закрыть'}</button>
-          <button id="saveAppSettings" class="btn-primary flex-1 py-3 rounded-xl font-bold">${t('settings_save', 'Сохранить')}</button>
+
+        <!-- 2. Notifications panel -->
+        <div id="settingsPanel-notifications" class="space-y-3 ${activeTab!=='notifications'?'hidden':''}">
+          <p class="text-white/60 text-xs">Настройка системных оповещений и пуш-уведомлений</p>
+          <div class="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-white text-xs font-bold">Статусы заказов</p>
+                <p class="text-[10px] text-white/40">Выкуп, склад в Китае, доставка в РБ</p>
+              </div>
+              ${toggle('notifyStatusChanges', notif.status_changes)}
+            </div>
+            <div class="border-t border-white/5 pt-3 flex items-center justify-between">
+              <div>
+                <p class="text-white text-xs font-bold">Новости и обновления</p>
+                <p class="text-[10px] text-white/40">Новые функции, тарифы и расписание</p>
+              </div>
+              ${toggle('notifyNews', notif.news)}
+            </div>
+            <div class="border-t border-white/5 pt-3 flex items-center justify-between">
+              <div>
+                <p class="text-white text-xs font-bold">Акции и промокоды</p>
+                <p class="text-[10px] text-white/40">Персональные скидки на доставку</p>
+              </div>
+              ${toggle('notifyPromotions', notif.promotions)}
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Language panel -->
+        <div id="settingsPanel-language" class="space-y-3 ${activeTab!=='language'?'hidden':''}">
+          <p class="text-white/60 text-xs">Выберите удобный язык интерфейса приложения</p>
+          <div class="space-y-2">
+            <button class="lang-btn w-full rounded-2xl p-3.5 border-2 transition text-left flex items-center justify-between ${currentLang==='ru'?'border-cyan-400 bg-cyan-950/30 shadow-md shadow-cyan-500/10':'border-white/10 bg-white/5'}" data-lang="ru">
+              <div class="flex items-center gap-3">
+                <span class="text-xl">🇷🇺</span>
+                <div>
+                  <p class="text-white text-xs font-bold">Русский</p>
+                  <p class="text-[10px] text-white/40">Основной язык</p>
+                </div>
+              </div>
+              <span class="text-xs ${currentLang==='ru'?'text-cyan-400 font-bold':'text-white/30'}">${currentLang==='ru'?'✓ Выбран':''}</span>
+            </button>
+
+            <button class="lang-btn w-full rounded-2xl p-3.5 border-2 transition text-left flex items-center justify-between ${currentLang==='be'?'border-cyan-400 bg-cyan-950/30 shadow-md shadow-cyan-500/10':'border-white/10 bg-white/5'}" data-lang="be">
+              <div class="flex items-center gap-3">
+                <span class="text-xl">🇧🇾</span>
+                <div>
+                  <p class="text-white text-xs font-bold">Беларуская</p>
+                  <p class="text-[10px] text-white/40">Зроблена з любоўю</p>
+                </div>
+              </div>
+              <span class="text-xs ${currentLang==='be'?'text-cyan-400 font-bold':'text-white/30'}">${currentLang==='be'?'✓ Выбран':''}</span>
+            </button>
+
+            <button class="lang-btn w-full rounded-2xl p-3.5 border-2 transition text-left flex items-center justify-between ${currentLang==='en'?'border-cyan-400 bg-cyan-950/30 shadow-md shadow-cyan-500/10':'border-white/10 bg-white/5'}" data-lang="en">
+              <div class="flex items-center gap-3">
+                <span class="text-xl">🇬🇧</span>
+                <div>
+                  <p class="text-white text-xs font-bold">English</p>
+                  <p class="text-[10px] text-white/40">International</p>
+                </div>
+              </div>
+              <span class="text-xs ${currentLang==='en'?'text-cyan-400 font-bold':'text-white/30'}">${currentLang==='en'?'✓ Выбран':''}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 4. Theme panel -->
+        <div id="settingsPanel-theme" class="space-y-3 ${activeTab!=='theme'?'hidden':''}">
+          <p class="text-white/60 text-xs">Цветовая схема оформления интерфейса</p>
+          <div class="grid grid-cols-2 gap-3">
+            <button class="theme-btn rounded-2xl p-4 border-2 transition text-center ${currentTheme==='dark'?'border-cyan-400 bg-slate-900 shadow-md shadow-cyan-500/15':'border-white/10 bg-white/5'}" data-theme="dark">
+              <div class="w-10 h-10 mx-auto rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center mb-2 text-xl">
+                🌙
+              </div>
+              <p class="text-white text-xs font-bold">Тёмная (Arctic)</p>
+              <p class="text-[10px] text-cyan-300/80 mt-0.5">По умолчанию</p>
+            </button>
+
+            <button class="theme-btn rounded-2xl p-4 border-2 transition text-center ${currentTheme==='light'?'border-cyan-400 bg-slate-800 shadow-md shadow-cyan-500/15':'border-white/10 bg-white/5'}" data-theme="light">
+              <div class="w-10 h-10 mx-auto rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center mb-2 text-xl">
+                ☀️
+              </div>
+              <p class="text-white text-xs font-bold">Светлая</p>
+              <p class="text-[10px] text-white/40 mt-0.5">Контрастная</p>
+            </button>
+          </div>
+          <button id="resetSettingsBtn" class="mt-3 w-full text-white/40 hover:text-white/70 text-xs py-2 transition flex items-center justify-center gap-1.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            Сбросить настройки к заводским
+          </button>
         </div>
       </div>
-    </div>`;
-  document.body.appendChild(modal);
-  if (typeof syncTelegramBackButton === 'function') syncTelegramBackButton();
-  modal.querySelector('#closeSettingsModal')?.addEventListener('click', () => { modal.remove(); if (typeof syncTelegramBackButton === 'function') syncTelegramBackButton(); });
-  modal.querySelector('#closeAppSettings')?.addEventListener('click', () => { modal.remove(); if (typeof syncTelegramBackButton === 'function') syncTelegramBackButton(); });
 
-  // Tab switching
-  let initialTheme = currentTheme;
-  let initialLang = currentLang;
-  let savedTheme = currentTheme;
-  let savedLang = currentLang;
+      <!-- Bottom Action Save Bar -->
+      <div class="pt-4 flex gap-3">
+        <button id="closeAppSettings" class="btn-secondary flex-1 py-3.5 rounded-2xl font-bold text-xs">
+          Назад
+        </button>
+        <button id="saveAppSettings" class="btn-primary flex-1 py-3.5 rounded-2xl font-bold text-xs shadow-lg shadow-cyan-500/20">
+          Сохранить
+        </button>
+      </div>
+    </div>
+  `;
+}
 
-  let selectedTheme = currentTheme;
-  let selectedLang = currentLang;
-  const settingsCard = modal.querySelector('#settingsModalCard');
-  modal.querySelectorAll('.settings-tab').forEach(tab => {
+function attachSettingsPageHandlers(initialTab = 'security') {
+  let selectedTheme = localStorage.getItem('theme') || 'dark';
+  let selectedLang = localStorage.getItem('lang') || 'ru';
+  let savedTheme = selectedTheme;
+  let savedLang = selectedLang;
+
+  // Segmented tab switching
+  document.querySelectorAll('.settings-page-tab').forEach(tab => {
     tab.onclick = () => {
-      modal.querySelectorAll('.settings-tab').forEach(t => { t.classList.remove('text-cyan-400','border-b-2','border-cyan-400'); t.classList.add('text-white/50'); });
-      tab.classList.add('text-cyan-400','border-b-2','border-cyan-400'); tab.classList.remove('text-white/50');
-      ['notifications','theme','security','language'].forEach(name => {
-        modal.querySelector(`#settingsPanel-${name}`)?.classList.toggle('hidden', name !== tab.dataset.tab);
+      document.querySelectorAll('.settings-page-tab').forEach(t => {
+        t.className = 'settings-page-tab py-2.5 px-1 text-[11px] font-bold rounded-xl transition-all duration-200 flex flex-col items-center gap-1 text-white/60 hover:text-white hover:bg-white/5 active:scale-95';
       });
-      // Resize card: Security/Language = fixed height, others = auto
-      if (settingsCard) {
-        if (tab.dataset.tab === 'security' || tab.dataset.tab === 'language') {
-          settingsCard.style.height = 'min(92vh, 600px)';
-          settingsCard.style.maxHeight = '';
-        } else {
-          settingsCard.style.height = 'auto';
-          settingsCard.style.maxHeight = '90vh';
-        }
-      }
+      tab.className = 'settings-page-tab py-2.5 px-1 text-[11px] font-bold rounded-xl transition-all duration-200 flex flex-col items-center gap-1 bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20';
+      
+      const target = tab.dataset.tab;
+      window._settingsInitialTab = target;
+      ['security', 'notifications', 'language', 'theme'].forEach(name => {
+        const p = document.getElementById(`settingsPanel-${name}`);
+        if (p) p.classList.toggle('hidden', name !== target);
+      });
+      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
     };
   });
 
-  // Theme buttons
-  modal.querySelectorAll('.theme-btn').forEach(btn => {
+  // Theme selection
+  document.querySelectorAll('.theme-btn').forEach(btn => {
     btn.onclick = () => {
       selectedTheme = btn.dataset.theme;
-      modal.querySelectorAll('.theme-btn').forEach(b => { b.classList.remove('border-cyan-500'); b.classList.add('border-white/20'); });
-      btn.classList.add('border-cyan-500'); btn.classList.remove('border-white/20');
-      applyTheme(selectedTheme); // live preview
+      document.querySelectorAll('.theme-btn').forEach(b => {
+        b.classList.remove('border-cyan-400', 'shadow-md', 'shadow-cyan-500/15');
+        b.classList.add('border-white/10');
+      });
+      btn.classList.remove('border-white/10');
+      btn.classList.add('border-cyan-400', 'shadow-md', 'shadow-cyan-500/15');
+      if (typeof applyTheme === 'function') applyTheme(selectedTheme);
+      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
     };
   });
 
-  // Language buttons click handling
-  modal.querySelectorAll('.lang-btn').forEach(btn => {
+  // Language selection
+  document.querySelectorAll('.lang-btn').forEach(btn => {
     btn.onclick = () => {
       selectedLang = btn.dataset.lang;
-      modal.querySelectorAll('.lang-btn').forEach(b => { b.classList.remove('border-cyan-500'); b.classList.add('border-white/20'); });
-      btn.classList.add('border-cyan-500'); btn.classList.remove('border-white/20');
+      document.querySelectorAll('.lang-btn').forEach(b => {
+        b.classList.remove('border-cyan-400', 'bg-cyan-950/30', 'shadow-md', 'shadow-cyan-500/10');
+        b.classList.add('border-white/10', 'bg-white/5');
+        const badge = b.querySelector('span:last-child');
+        if (badge) { badge.textContent = ''; badge.className = 'text-xs text-white/30'; }
+      });
+      btn.classList.remove('border-white/10', 'bg-white/5');
+      btn.classList.add('border-cyan-400', 'bg-cyan-950/30', 'shadow-md', 'shadow-cyan-500/10');
+      const curBadge = btn.querySelector('span:last-child');
+      if (curBadge) { curBadge.textContent = '✓ Выбран'; curBadge.className = 'text-xs text-cyan-400 font-bold'; }
+      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
     };
   });
 
-  modal.querySelector('#resetSettingsBtn').onclick = () => {
-    selectedTheme = 'dark'; applyTheme('dark');
-    modal.querySelectorAll('.theme-btn').forEach(b => { b.classList.toggle('border-cyan-500', b.dataset.theme === 'dark'); b.classList.toggle('border-white/20', b.dataset.theme !== 'dark'); });
-    modal.querySelector('#notifyStatusChanges').checked = true;
-    modal.querySelector('#notifyNews').checked = true;
-    modal.querySelector('#notifyPromotions').checked = true;
-  };
+  // Reset defaults
+  const resetBtn = document.getElementById('resetSettingsBtn');
+  if (resetBtn) {
+    resetBtn.onclick = () => {
+      selectedTheme = 'dark';
+      if (typeof applyTheme === 'function') applyTheme('dark');
+      document.querySelectorAll('.theme-btn').forEach(b => {
+        b.classList.toggle('border-cyan-400', b.dataset.theme === 'dark');
+        b.classList.toggle('border-white/10', b.dataset.theme !== 'dark');
+      });
+      const sc = document.getElementById('notifyStatusChanges');
+      const sn = document.getElementById('notifyNews');
+      const sp = document.getElementById('notifyPromotions');
+      if (sc) sc.checked = true;
+      if (sn) sn.checked = true;
+      if (sp) sp.checked = true;
+      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('medium');
+    };
+  }
 
-  const linkGoogle = modal.querySelector('#linkGoogleBtn');
+  // Link Google
+  const linkGoogle = document.getElementById('linkGoogleBtn');
   if (linkGoogle) {
     linkGoogle.onclick = async () => {
       try {
+        if (!supabaseClient) return;
         const { error } = await supabaseClient.auth.linkIdentity({ provider: 'google' });
         if (error) throw error;
-      } catch(e) { tgUtil.alert('Ошибка привязки Google: ' + e.message); }
+      } catch (e) {
+        if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Ошибка привязки Google: ' + e.message);
+      }
     };
   }
 
-  const linkApple = modal.querySelector('#linkAppleBtn');
+  // Link Apple
+  const linkApple = document.getElementById('linkAppleBtn');
   if (linkApple) {
     linkApple.onclick = () => {
-      tgUtil.alert('Привязка Apple временно отключена.');
+      if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Привязка Apple ID будет доступна в следующем обновлении.');
     };
   }
 
-  const linkEmail = modal.querySelector('#linkEmailBtn');
+  // Link Email
+  const linkEmail = document.getElementById('linkEmailBtn');
   if (linkEmail) {
     linkEmail.onclick = async () => {
       const email = prompt('Введите ваш Email для привязки:');
       if (!email) return;
       const password = prompt('Придумайте пароль для входа (минимум 6 символов):');
       if (!password || password.length < 6) {
-        if (password) tgUtil.alert('Пароль слишком короткий.');
+        if (password && typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Пароль слишком короткий.');
         return;
       }
       try {
+        if (!supabaseClient) return;
         const { error } = await supabaseClient.auth.updateUser({ email, password });
         if (error) throw error;
-        tgUtil.alert('Email для подтверждения отправлен. Пожалуйста, подтвердите его.');
-        modal.remove();
+        if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Email для подтверждения отправлен. Пожалуйста, подтвердите его.');
         location.reload();
       } catch (e) {
-        tgUtil.alert('Ошибка привязки Email: ' + e.message);
+        if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Ошибка привязки Email: ' + e.message);
       }
     };
   }
 
-  const linkTelegram = modal.querySelector('#linkTelegramBtn');
+  // Link Telegram
+  const linkTelegram = document.getElementById('linkTelegramBtn');
   if (linkTelegram) {
     linkTelegram.onclick = () => {
-      const widgetContainer = modal.querySelector('#settingsTelegramWidgetContainer');
+      const widgetContainer = document.getElementById('settingsTelegramWidgetContainer');
       if (!widgetContainer) return;
       
       if (widgetContainer.classList.contains('hidden')) {
@@ -886,13 +1016,14 @@ async function showAppSettings(initialTab = 'security') {
         
         window.onTelegramSettingsAuth = async function(user) {
           try {
+            if (!supabaseClient) return;
             const { data: existing } = await supabaseClient.from('users')
               .select('user_id')
               .eq('telegram_id', user.id)
               .maybeSingle();
               
             if (existing) {
-              tgUtil.alert('Этот Telegram-аккаунт уже привязан к другому профилю.');
+              if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Этот Telegram-аккаунт уже привязан к другому профилю.');
               return;
             }
             
@@ -903,12 +1034,10 @@ async function showAppSettings(initialTab = 'security') {
             }).eq('user_id', userId);
             
             if (error) throw error;
-            
-            tgUtil.alert('Telegram успешно привязан!');
-            modal.remove();
-            showAppSettings('security');
+            if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Telegram успешно привязан!');
+            if (typeof switchTab === 'function') switchTab('settings');
           } catch(e) {
-            tgUtil.alert('Ошибка привязки Telegram: ' + e.message);
+            if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Ошибка привязки Telegram: ' + e.message);
           }
         };
         
@@ -919,12 +1048,10 @@ async function showAppSettings(initialTab = 'security') {
         script.setAttribute('data-size', 'medium');
         script.setAttribute('data-onauth', 'onTelegramSettingsAuth(user)');
         script.setAttribute('data-request-access', 'write');
-        
         script.onload = () => {
           const loadingText = widgetContainer.querySelector('p');
           if (loadingText) loadingText.remove();
         };
-        
         widgetContainer.appendChild(script);
       } else {
         widgetContainer.classList.add('hidden');
@@ -933,140 +1060,308 @@ async function showAppSettings(initialTab = 'security') {
     };
   }
 
-  const linkPhone = modal.querySelector('#linkPhoneBtn');
-  if (linkPhone) {
-    linkPhone.onclick = () => {
-      tgUtil.alert('Привязка телефона временно недоступна (СМС-шлюз отключен).');
-    };
-  }
-
-  const changePasswordBtn = modal.querySelector('#changePasswordBtn');
+  // Change Password
+  const changePasswordBtn = document.getElementById('changePasswordBtn');
   if (changePasswordBtn) {
     changePasswordBtn.onclick = async () => {
       const newPassword = prompt('Введите новый пароль (минимум 6 символов):');
       if (!newPassword) return;
-      if (newPassword.length < 6) { tgUtil.alert('Пароль слишком короткий. Минимум 6 символов.'); return; }
+      if (newPassword.length < 6) {
+        if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Пароль слишком короткий. Минимум 6 символов.');
+        return;
+      }
       const confirmPassword = prompt('Повторите новый пароль:');
       if (!confirmPassword) return;
-      if (newPassword !== confirmPassword) { tgUtil.alert('Пароли не совпадают.'); return; }
+      if (newPassword !== confirmPassword) {
+        if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Пароли не совпадают.');
+        return;
+      }
       try {
+        if (!supabaseClient) return;
         const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
         if (error) throw error;
-        tgUtil.haptic('success');
-        tgUtil.alert('✅ Пароль успешно изменён!');
+        if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
+        if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('✅ Пароль успешно изменён!');
       } catch(e) {
-        tgUtil.haptic('error');
-        tgUtil.alert('Ошибка смены пароля: ' + e.message);
+        if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('error');
+        if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Ошибка смены пароля: ' + e.message);
       }
     };
   }
 
-  modal.querySelector('#securityRecoveryBtn')?.addEventListener('click', () => { modal.remove(); showRecoveryCodeModal(); });
-
-  const handleClose = () => {
-    applyTheme(savedTheme);
-    applyLanguage(savedLang);
-    modal.remove();
-  };
-
-  modal.querySelector('#closeAppSettings').onclick = handleClose;
-  
-  modal.querySelector('#saveAppSettings').onclick = async () => {
-    const newNotif = {
-      status_changes: modal.querySelector('#notifyStatusChanges').checked,
-      news: modal.querySelector('#notifyNews').checked,
-      promotions: modal.querySelector('#notifyPromotions').checked
+  // Account Recovery
+  const recoveryBtn = document.getElementById('securityRecoveryBtn');
+  if (recoveryBtn) {
+    recoveryBtn.onclick = () => {
+      if (typeof showRecoveryCodeModal === 'function') showRecoveryCodeModal();
     };
-    const newApp = { theme: selectedTheme, lang: selectedLang };
-    
-    // Save to localStorage immediately
-    localStorage.setItem('notification_settings', JSON.stringify(newNotif));
-    localStorage.setItem('theme', selectedTheme);
-    localStorage.setItem('lang', selectedLang);
+  }
 
-    if (supabaseClient && userId) {
-      try {
-        await supabaseClient.from('users').update({ notification_settings: newNotif, app_settings: newApp }).eq('user_id', userId);
-      } catch (e) {
-        console.error('Failed to save settings to database:', e);
+  // Close / Back button
+  const closeBtn = document.getElementById('closeAppSettings');
+  if (closeBtn) {
+    closeBtn.onclick = () => {
+      if (typeof applyTheme === 'function') applyTheme(savedTheme);
+      if (typeof applyLanguage === 'function') applyLanguage(savedLang);
+      if (typeof window.goBackGlobal === 'function') window.goBackGlobal();
+    };
+  }
+
+  // Save button
+  const saveBtn = document.getElementById('saveAppSettings');
+  if (saveBtn) {
+    saveBtn.onclick = async () => {
+      const statusChangesEl = document.getElementById('notifyStatusChanges');
+      const newsEl = document.getElementById('notifyNews');
+      const promosEl = document.getElementById('notifyPromotions');
+
+      const newNotif = {
+        status_changes: statusChangesEl ? statusChangesEl.checked : true,
+        news: newsEl ? newsEl.checked : true,
+        promotions: promosEl ? promosEl.checked : true
+      };
+      const newApp = { theme: selectedTheme, lang: selectedLang };
+
+      localStorage.setItem('notification_settings', JSON.stringify(newNotif));
+      localStorage.setItem('theme', selectedTheme);
+      localStorage.setItem('lang', selectedLang);
+
+      if (supabaseClient && userId) {
+        try {
+          await supabaseClient.from('users').update({ notification_settings: newNotif, app_settings: newApp }).eq('user_id', userId);
+        } catch (e) {
+          console.error('Failed to save settings to DB:', e);
+        }
       }
-    }
-    
-    savedTheme = selectedTheme;
-    savedLang = selectedLang;
-    
-    applyTheme(selectedTheme);
-    applyLanguage(selectedLang);
-    
-    // Smooth inline save button feedback — just colour change, no size shift
-    const saveBtn = modal.querySelector('#saveAppSettings');
-    saveBtn.style.transition = 'background 0.3s';
-    // setProperty/important so the green wins over .btn-primary (incl. light-theme overrides)
-    saveBtn.style.setProperty('background', 'linear-gradient(135deg, #22c55e, #16a34a)', 'important');
-    tgUtil.haptic('success');
-    
-    // Dynamic close button label update based on active language
-    const closeBtn = modal.querySelector('#closeAppSettings');
-    if (closeBtn) {
-      closeBtn.innerText = savedLang === 'be' ? 'Закрыць' : savedLang === 'en' ? 'Close' : 'Закрыть';
-    }
 
-    setTimeout(() => {
-      saveBtn.style.removeProperty('background');
-    }, 1500);
-  };
+      savedTheme = selectedTheme;
+      savedLang = selectedLang;
+
+      if (typeof applyTheme === 'function') applyTheme(selectedTheme);
+      if (typeof applyLanguage === 'function') applyLanguage(selectedLang);
+
+      saveBtn.style.setProperty('background', 'linear-gradient(135deg, #10b981, #059669)', 'important');
+      saveBtn.innerHTML = 'Сохранено ✓';
+      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
+
+      setTimeout(() => {
+        saveBtn.style.removeProperty('background');
+        saveBtn.innerHTML = 'Сохранить';
+      }, 1500);
+    };
+  }
 }
 
-async function showNotificationsPanel() {
-  const modal = document.createElement('div');
-  modal.id = 'notificationsModal';
-  modal.className = 'full-screen-modal-overlay page-enter';
+// ============================================================
+// NOTIFICATIONS PAGE RENDERER (Native Tab inside #content)
+// ============================================================
 
+async function showNotificationsPanel() {
+  if (typeof switchTab === 'function') {
+    switchTab('notifications');
+  }
+}
+
+async function renderNotificationsPage() {
   let notifications = [];
   try {
     const cached = localStorage.getItem('ice_cached_notifs_' + (userId || 'guest'));
     if (cached) notifications = JSON.parse(cached) || [];
   } catch(e) {}
 
-  const renderNotifsList = (items, error) => {
-    if (error) return '<p class="text-red-400 text-sm text-center py-6">Ошибка загрузки уведомлений</p>';
-    if (!items || items.length === 0) return '<p class="text-white/50 text-center py-8">Уведомлений пока нет</p>';
-    return items.map(n => `
-      <div class="p-3.5 rounded-2xl mb-3 ${n.is_read ? 'bg-white/5 border border-white/5' : 'bg-cyan-500/10 border border-cyan-500/25'}">
-        <div class="flex items-start justify-between gap-2">
-          <div class="flex-1">
-            <p class="text-white text-sm font-semibold">${n.title || 'Уведомление'}</p>
-            ${n.body ? `<p class="text-white/70 text-xs mt-1 leading-relaxed">${n.body}</p>` : ''}
-            <p class="text-white/30 text-[10px] mt-1.5 font-mono">${new Date(n.created_at).toLocaleString('ru-RU')}</p>
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+  const activeFilter = window._notifActiveFilter || 'all';
+
+  return `
+    <div class="page-enter px-4 pb-28 max-w-md mx-auto space-y-4">
+      <!-- Top Navigation Header -->
+      <div class="flex items-center justify-between mb-2 mt-2">
+        <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+        <div class="text-center flex-1 px-2 min-w-0">
+          <h2 class="text-xl font-bold text-white tracking-wide flex items-center justify-center gap-1.5 truncate">
+            Уведомления
+            <span id="notifBadgeCounter" class="${unreadCount > 0 ? '' : 'hidden'} ml-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500 text-white shadow-sm">${unreadCount}</span>
+          </h2>
+          <p class="text-[11px] text-white/40 truncate">Статусы заказов, новости и бонусы</p>
+        </div>
+        <button id="markAllNotifsReadBtn" class="text-xs font-bold text-cyan-400 hover:text-cyan-300 py-1.5 px-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 active:scale-95 transition flex-shrink-0">
+          Все прочтены
+        </button>
+      </div>
+
+      <!-- Segmented Category Filters -->
+      <div class="grid grid-cols-4 gap-1 p-1 rounded-2xl bg-slate-900/90 border border-white/10 shadow-lg backdrop-blur-md mb-2">
+        <button class="notif-filter-tab py-2 px-1 text-[11px] font-bold rounded-xl transition-all duration-200 text-center ${activeFilter==='all'?'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20':'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'}" data-filter="all">Все</button>
+        <button class="notif-filter-tab py-2 px-1 text-[11px] font-bold rounded-xl transition-all duration-200 text-center ${activeFilter==='orders'?'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20':'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'}" data-filter="orders">Заказы 📦</button>
+        <button class="notif-filter-tab py-2 px-1 text-[11px] font-bold rounded-xl transition-all duration-200 text-center ${activeFilter==='news'?'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20':'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'}" data-filter="news">Новости 📢</button>
+        <button class="notif-filter-tab py-2 px-1 text-[11px] font-bold rounded-xl transition-all duration-200 text-center ${activeFilter==='promos'?'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20':'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'}" data-filter="promos">Акции 🎁</button>
+      </div>
+
+      <!-- Notification List Container -->
+      <div id="notifsContainer" class="space-y-2.5">
+        ${renderNotifsItemsHtml(notifications, activeFilter)}
+      </div>
+    </div>
+  `;
+}
+
+function renderNotifsItemsHtml(items, filter = 'all') {
+  if (!items || items.length === 0) {
+    return `
+      <div class="text-center py-12 px-4 rounded-3xl bg-slate-900/60 border border-white/5 space-y-3">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 text-2xl select-none">
+          🔔
+        </div>
+        <p class="text-sm font-bold text-white">Уведомлений пока нет</p>
+        <p class="text-xs text-white/40 max-w-xs mx-auto leading-relaxed">
+          Здесь будут отображаться этапы доставки ваших заказов, персональные скидки и важные новости сервиса.
+        </p>
+      </div>
+    `;
+  }
+
+  let filtered = items;
+  if (filter === 'orders') {
+    filtered = items.filter(n => {
+      const txt = ((n.title || '') + ' ' + (n.body || '')).toLowerCase();
+      return txt.includes('заказ') || txt.includes('посылк') || txt.includes('трек') || txt.includes('выкуп') || txt.includes('склад');
+    });
+  } else if (filter === 'news') {
+    filtered = items.filter(n => {
+      const txt = ((n.title || '') + ' ' + (n.body || '')).toLowerCase();
+      return txt.includes('новост') || txt.includes('обновлен') || txt.includes('режим') || txt.includes('тариф');
+    });
+  } else if (filter === 'promos') {
+    filtered = items.filter(n => {
+      const txt = ((n.title || '') + ' ' + (n.body || '')).toLowerCase();
+      return txt.includes('промо') || txt.includes('скидк') || txt.includes('бонус') || txt.includes('акци') || txt.includes('купон');
+    });
+  }
+
+  if (filtered.length === 0) {
+    return `
+      <div class="text-center py-10 px-4 rounded-2xl bg-white/5 border border-white/5 space-y-2">
+        <p class="text-xs font-bold text-white/60">В этом разделе нет уведомлений</p>
+      </div>
+    `;
+  }
+
+  return filtered.map(n => {
+    const isUnread = !n.is_read;
+    const bodyText = n.body || '';
+    const titleText = n.title || 'Уведомление';
+    const lower = (titleText + ' ' + bodyText).toLowerCase();
+    
+    let icon = '🔔';
+    let iconBg = 'bg-cyan-500/15 text-cyan-400';
+    if (lower.includes('заказ') || lower.includes('посылк') || lower.includes('трек')) {
+      icon = '📦';
+      iconBg = 'bg-blue-500/15 text-blue-400';
+    } else if (lower.includes('промо') || lower.includes('скидк') || lower.includes('бонус')) {
+      icon = '🎁';
+      iconBg = 'bg-amber-500/15 text-amber-400';
+    } else if (lower.includes('оплат') || lower.includes('баланс') || lower.includes('карт')) {
+      icon = '💳';
+      iconBg = 'bg-emerald-500/15 text-emerald-400';
+    }
+
+    let dateStr = '';
+    try {
+      dateStr = new Date(n.created_at).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    } catch (_) {}
+
+    return `
+      <div class="p-3.5 rounded-2xl transition-all duration-200 ${
+        isUnread
+          ? 'bg-gradient-to-r from-cyan-950/40 via-slate-900 to-slate-900 border border-cyan-500/30 shadow-md shadow-cyan-500/10'
+          : 'bg-white/5 border border-white/5 hover:border-white/10'
+      }">
+        <div class="flex items-start gap-3">
+          <div class="w-9 h-9 rounded-xl ${iconBg} flex items-center justify-center text-lg flex-shrink-0 mt-0.5">
+            ${icon}
           </div>
-          ${!n.is_read ? '<span class="w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0" style="background:#22d3ee;"></span>' : ''}
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2 mb-0.5">
+              <p class="text-white text-xs font-bold truncate">${titleText}</p>
+              ${isUnread ? '<span class="w-2 h-2 rounded-full bg-cyan-400 flex-shrink-0 shadow-sm shadow-cyan-400"></span>' : ''}
+            </div>
+            ${bodyText ? `<p class="text-white/70 text-xs leading-relaxed break-words">${bodyText}</p>` : ''}
+            <div class="flex items-center justify-between mt-2 pt-1 border-t border-white/5">
+              <p class="text-white/35 text-[10px] font-mono">${dateStr}</p>
+              ${lower.includes('заказ') ? `
+                <button class="text-[10px] font-bold text-cyan-400 hover:text-cyan-300" onclick="if(typeof switchTab==='function')switchTab('profile');">
+                  Перейти к заказам →
+                </button>
+              ` : ''}
+            </div>
+          </div>
         </div>
       </div>
-    `).join('');
-  };
+    `;
+  }).join('');
+}
 
-  const unread = notifications.filter(n => !n.is_read);
+function attachNotificationsPageHandlers() {
+  const container = document.getElementById('notifsContainer');
+  let currentNotifs = [];
+  try {
+    const cached = localStorage.getItem('ice_cached_notifs_' + (userId || 'guest'));
+    if (cached) currentNotifs = JSON.parse(cached) || [];
+  } catch (_) {}
 
-  modal.innerHTML = `
-    <div class="full-screen-modal-header">
-      <button id="closeNotifPanel" class="global-back-btn !mb-0 py-1.5 px-3 text-xs">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-        Назад
-      </button>
-      <h3 class="text-white font-bold text-base flex items-center gap-2">
-        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
-        Уведомления
-        <span id="notifBadgeCounter" class="${unread.length > 0 ? '' : 'hidden'} ml-1 px-2 py-0.5 rounded-full text-[10px] font-bold" style="background:#ef4444;color:#fff;">${unread.length}</span>
-      </h3>
-      <div class="w-16"></div>
-    </div>
-    <div class="full-screen-modal-body max-w-md mx-auto w-full" id="notifsContainer">
-      ${renderNotifsList(notifications, null)}
-    </div>`;
+  // Filter switching
+  document.querySelectorAll('.notif-filter-tab').forEach(btn => {
+    btn.onclick = () => {
+      const filter = btn.dataset.filter || 'all';
+      window._notifActiveFilter = filter;
+      document.querySelectorAll('.notif-filter-tab').forEach(b => {
+        b.className = 'notif-filter-tab py-2 px-1 text-[11px] font-bold rounded-xl transition-all duration-200 text-center text-white/60 hover:text-white hover:bg-white/5 active:scale-95';
+      });
+      btn.className = 'notif-filter-tab py-2 px-1 text-[11px] font-bold rounded-xl transition-all duration-200 text-center bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20';
+      if (container) {
+        container.innerHTML = renderNotifsItemsHtml(currentNotifs, filter);
+      }
+      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
+    };
+  });
 
-  document.body.appendChild(modal);
-  if (typeof syncTelegramBackButton === 'function') syncTelegramBackButton();
-  modal.querySelector('#closeNotifPanel')?.addEventListener('click', () => { modal.remove(); if (typeof syncTelegramBackButton === 'function') syncTelegramBackButton(); });
+  // Mark all as read button
+  const markAllBtn = document.getElementById('markAllNotifsReadBtn');
+  if (markAllBtn) {
+    markAllBtn.onclick = () => {
+      currentNotifs = currentNotifs.map(n => ({ ...n, is_read: true }));
+      try {
+        localStorage.setItem('ice_cached_notifs_' + (userId || 'guest'), JSON.stringify(currentNotifs));
+      } catch (_) {}
+
+      if (container) {
+        container.innerHTML = renderNotifsItemsHtml(currentNotifs, window._notifActiveFilter || 'all');
+      }
+
+      const counter = document.getElementById('notifBadgeCounter');
+      if (counter) counter.classList.add('hidden');
+
+      const headerBadge = document.getElementById('notifBadge');
+      if (headerBadge) {
+        headerBadge.classList.add('hidden');
+        headerBadge.textContent = '0';
+      }
+
+      if (supabaseClient && userId) {
+        supabaseClient.from('user_notifications')
+          .update({ is_read: true })
+          .eq('user_id', userId)
+          .eq('is_read', false)
+          .then(() => {});
+      }
+
+      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+    };
+  }
 
   // Background fetch fresh notifications
   if (supabaseClient && userId) {
@@ -1074,25 +1369,30 @@ async function showNotificationsPanel() {
       .select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(50)
       .then(({ data, error }) => {
         if (!error && data) {
-          try { localStorage.setItem('ice_cached_notifs_' + userId, JSON.stringify(data)); } catch(e) {}
-          const container = modal.querySelector('#notifsContainer');
-          if (container) container.innerHTML = renderNotifsList(data, null);
+          currentNotifs = data;
+          try {
+            localStorage.setItem('ice_cached_notifs_' + userId, JSON.stringify(data));
+          } catch(e) {}
+          if (container) {
+            container.innerHTML = renderNotifsItemsHtml(data, window._notifActiveFilter || 'all');
+          }
           const freshUnread = data.filter(n => !n.is_read);
-          const badge = modal.querySelector('#notifBadgeCounter');
+          const badge = document.getElementById('notifBadgeCounter');
           if (badge) {
             badge.innerText = freshUnread.length;
-            badge.className = (freshUnread.length > 0 ? '' : 'hidden') + ' ml-1 px-2 py-0.5 rounded-full text-xs font-bold';
-          }
-          if (freshUnread.length > 0) {
-            const ids = freshUnread.map(n => n.id);
-            supabaseClient.from('user_notifications').update({ is_read: true }).in('id', ids).then(() => {});
+            badge.className = (freshUnread.length > 0 ? '' : 'hidden') + ' ml-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500 text-white shadow-sm';
           }
         }
       });
   }
-  const badge = document.getElementById('notifBadge');
-  if (badge) { badge.classList.add('hidden'); badge.textContent = '0'; }
+
+  const headerBadge = document.getElementById('notifBadge');
+  if (headerBadge) {
+    headerBadge.classList.add('hidden');
+    headerBadge.textContent = '0';
+  }
 }
+
 
 window.requireAuth = function(message) {
   tgUtil.popup({
@@ -1783,6 +2083,10 @@ if (typeof showAllTransactions === 'function') window.showAllTransactions = show
 if (typeof showAccountRecovery === 'function') window.showAccountRecovery = showAccountRecovery;
 if (typeof showNotificationSettings === 'function') window.showNotificationSettings = showNotificationSettings;
 if (typeof showAppSettings === 'function') window.showAppSettings = showAppSettings;
+if (typeof renderSettingsPage === 'function') window.renderSettingsPage = renderSettingsPage;
+if (typeof attachSettingsPageHandlers === 'function') window.attachSettingsPageHandlers = attachSettingsPageHandlers;
+if (typeof renderNotificationsPage === 'function') window.renderNotificationsPage = renderNotificationsPage;
+if (typeof attachNotificationsPageHandlers === 'function') window.attachNotificationsPageHandlers = attachNotificationsPageHandlers;
 if (typeof showNotificationsPanel === 'function') window.showNotificationsPanel = showNotificationsPanel;
 if (typeof handleAuthSuccess === 'function') window.handleAuthSuccess = handleAuthSuccess;
 if (typeof showAuthPage === 'function') window.showAuthPage = showAuthPage;

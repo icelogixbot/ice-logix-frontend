@@ -1471,9 +1471,14 @@
                       ${formatOrderStatus(o.status)}
                     </span>
                   </div>
-                  <p class="text-xs text-white/70 truncate">${highlightMatches(o.title || 'Товар с Poizon', query)}</p>
-                  ${o.track_number ? `<p class="text-[10px] text-white/40 mt-0.5 font-mono">Трек: ${highlightMatches(o.track_number, query)}</p>` : ''}
-                </div>
+                  ${o.track_number ? `
+                    <div class="flex items-center gap-2 mt-1">
+                      <span class="text-[10px] text-white/50 font-mono">Трек: ${highlightMatches(o.track_number, query)}</span>
+                      <button type="button" class="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold px-1.5 py-0.5 rounded bg-cyan-400/10 active:scale-95 transition" onclick="event.stopPropagation(); if (navigator.clipboard) navigator.clipboard.writeText('${o.track_number}'); if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light'); if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Трек-номер скопирован: ${o.track_number}');">
+                        Копировать
+                      </button>
+                    </div>
+                  ` : ''}
                 <button class="px-2.5 py-1.5 rounded-xl bg-white/10 text-white text-xs font-bold hover:bg-white/20 transition flex-shrink-0">
                   Детали
                 </button>
