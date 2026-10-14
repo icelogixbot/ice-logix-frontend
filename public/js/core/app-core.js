@@ -3290,7 +3290,7 @@ let adminOrdersTotalPages = 1;
         }
       }
 
-      // 4. If on secondary tab (cart, wishlist, finances, history, dropshipper, academy, admin, etc.)
+      // 4. If on secondary tab without a bottom bar icon (cart, wishlist, finances, history, dropshipper, academy, admin, etc.)
       const rootTabs = ['home', 'calculator', 'neworder', 'catalogs', 'profile'];
       if (!rootTabs.includes(currentTab)) {
         if (previousTab && previousTab !== currentTab) {
@@ -3301,23 +3301,16 @@ let adminOrdersTotalPages = 1;
         return true;
       }
 
-      // 5. If on root tab other than home
-      if (currentTab !== 'home') {
-        if (previousTab && previousTab !== currentTab && rootTabs.includes(previousTab)) {
-          switchTab(previousTab);
-        } else {
-          switchTab('home');
-        }
-        return true;
-      }
-
+      // Root tabs of bottom navigation bar are primary destinations — no back action to home
       return false;
     };
 
     // Wires Telegram's native BackButton based on current tab/subscreen.
     function syncTelegramBackButton() {
+      const rootTabs = ['home', 'calculator', 'neworder', 'catalogs', 'profile'];
       const isHomeSubmode = currentTab === 'home' && window._calcMode && window._calcMode !== 'menu';
-      const isRoot = currentTab === 'home' && !currentSubScreen && !window.orderCountry && !window.orderAddSubMode && !isHomeSubmode;
+      const isOrderSubmode = (currentTab === 'neworder' || currentTab === 'new-order') && window.orderAddMode;
+      const isRoot = rootTabs.includes(currentTab) && !currentSubScreen && !isHomeSubmode && !isOrderSubmode;
       const hasOverlay = !!document.querySelector('.full-screen-modal-overlay, #spotlightModal:not(.opacity-0), #settingsModal, #notificationsModal, #personalDataModal');
       
       if (isRoot && !hasOverlay) {

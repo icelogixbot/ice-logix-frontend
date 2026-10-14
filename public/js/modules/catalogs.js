@@ -4,12 +4,6 @@
     // ==================== РЕНДЕР КАТАЛОГОВ (ВЫБОР) ====================
 async function renderCatalogs() {
   return `
-  <button id="backFromCatalogsBtn" class="global-back-btn">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="15 18 9 12 15 6"/>
-    </svg>
-    Назад
-  </button>
     <div class="space-y-4 page-enter">
       <h2 class="text-white text-xl font-bold mb-5 flex items-center gap-3">
         <span class="text-2xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span></span>
@@ -72,9 +66,6 @@ function attachCatalogsHandlers() {
   if (marketplacesBtn) marketplacesBtn.onclick = () => { currentSubScreen = 'marketplaces'; renderCurrentScreen(); };
   if (productsBtn) productsBtn.onclick = () => { currentSubScreen = 'productsCatalog'; renderCurrentScreen(); };
   if (resaleBtn) resaleBtn.onclick = () => switchTab('resale');
-
-  const backBtn = document.getElementById('backFromCatalogsBtn');
-  if (backBtn) backBtn.onclick = () => switchTab('home');
 }
 
 // ==================== РЕНДЕР ПОДКАТАЛОГА ПЛОЩАДОК ====================
