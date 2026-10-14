@@ -650,6 +650,7 @@ async function renderFinances() {
       </div>
 
     </div>
+    ${typeof renderFooter === 'function' ? renderFooter() : ''}
   `;
 }
 

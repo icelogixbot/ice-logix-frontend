@@ -2183,7 +2183,7 @@ function getDeliveryCountdownText(order) {
 }
 
 async function renderMyOrders() {
-  if (!userId) return '<p class="text-center mt-10 text-white/70">Авторизуйтесь</p>';
+  if (!userId) return `<p class="text-center mt-10 text-white/70">Авторизуйтесь</p>${typeof renderFooter === 'function' ? renderFooter() : ''}`;
   try {
     const [ordersRes, claimsRes] = await Promise.all([
       supabaseClient.from('orders').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
@@ -2193,7 +2193,11 @@ async function renderMyOrders() {
     if (ordersRes.error) throw ordersRes.error;
     const data = ordersRes.data || [];
     if (!data || data.length === 0) {
-      return '<p class="text-center mt-10 text-white/70">У вас пока нет заказов</p>';
+      return `
+        <button id="backToProfileBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
+        <p class="text-center mt-10 text-white/70">У вас пока нет заказов</p>
+        ${typeof renderFooter === 'function' ? renderFooter() : ''}
+      `;
     }
 
     const claims = claimsRes.data || [];
@@ -2400,7 +2404,7 @@ async function renderMyOrders() {
     `;
   } catch (err) {
     console.error('Ошибка в renderMyOrders:', err);
-    return '<p class="text-center mt-10 text-red-400">Ошибка загрузки заказов</p>';
+    return `<p class="text-center mt-10 text-red-400">Ошибка загрузки заказов</p>${typeof renderFooter === 'function' ? renderFooter() : ''}`;
   }
 }
 

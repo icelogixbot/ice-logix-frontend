@@ -69,6 +69,7 @@ async function renderAboutUs() {
       ICE LOGIX © 2026<br>Создано с 🧊 в Беларуси
     </p>
   </div>
+  ${typeof renderFooter === 'function' ? renderFooter() : ''}
   `;
 }
 

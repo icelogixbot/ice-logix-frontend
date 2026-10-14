@@ -878,6 +878,7 @@ async function renderSettingsPage(initialTab = 'security') {
         </button>
       </div>
     </div>
+    ${typeof renderFooter === 'function' ? renderFooter() : ''}
   `;
 }
 
@@ -1206,6 +1207,7 @@ async function renderNotificationsPage() {
         ${renderNotifsItemsHtml(notifications, activeFilter)}
       </div>
     </div>
+    ${typeof renderFooter === 'function' ? renderFooter() : ''}
   `;
 }
 

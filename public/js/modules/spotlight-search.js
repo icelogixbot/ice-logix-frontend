@@ -413,6 +413,7 @@
         <!-- Dynamic Content Body (Home or Search Results) -->
         <div id="spotlightContent" class="space-y-4"></div>
       </div>
+      ${typeof renderFooter === 'function' ? renderFooter() : ''}
     `;
   }
 

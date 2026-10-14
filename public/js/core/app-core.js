@@ -3244,6 +3244,7 @@ let adminOrdersTotalPages = 1;
         if (_cd) {
           _cd.innerHTML = _tabCache[_ck].html;
           scrollToPageTop();
+          if (typeof window.ensureGlobalFooter === 'function') window.ensureGlobalFooter();
           _silentRefreshHandlers(tabName);
           return;
         }
@@ -3468,6 +3469,7 @@ let adminOrdersTotalPages = 1;
         </div>
       `;
     }
+    window.renderFooter = renderFooter;
 
     async function renderPromoBanners() {
       try {

@@ -40,7 +40,7 @@ window.publishToResale = async (orderId, orderTitle) => {
 
 async function renderResale() {
   tgUtil.haptic('light');
-  if (!userId) return '<p class="text-center mt-10 text-red-400">Авторизуйтесь</p>';
+  if (!userId) return `<p class="text-center mt-10 text-red-400">Авторизуйтесь</p>${typeof renderFooter === 'function' ? renderFooter() : ''}`;
   
   try {
     const { data, error } = await supabaseClient.from('resale_items').select('*, users(username, full_name)').eq('status', 'approved').order('created_at', { ascending: false });
@@ -97,9 +97,10 @@ async function renderResale() {
       `).join('');
       html += '</div>';
     }
+    html += typeof renderFooter === 'function' ? renderFooter() : '';
     return html;
   } catch (e) {
-    return `<p class="text-red-400 text-center mt-5">Ошибка загрузки: ${e.message}</p>`;
+    return `<p class="text-red-400 text-center mt-5">Ошибка загрузки: ${e.message}</p>${typeof renderFooter === 'function' ? renderFooter() : ''}`;
   }
 }
 

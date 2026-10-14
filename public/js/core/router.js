@@ -52,43 +52,27 @@
         contentDiv.innerHTML = shadowBannerHtml + await renderAboutUs();
         attachAboutUsHandlers();
         ensureBackButtonForSubscreen();
-        if (isShadowMode) attachShadowModeExit();
-        return;
-      }
-      if (currentSubScreen === 'myOrders') {
+      } else if (currentSubScreen === 'myOrders') {
         contentDiv.innerHTML = shadowBannerHtml + await renderMyOrders();
         const backBtn = document.getElementById('backToProfileBtn');
         if (backBtn) backBtn.onclick = () => { currentSubScreen = null; renderCurrentScreen(); };
-        if (isShadowMode) attachShadowModeExit();
-        return;
-      }
-      if (currentSubScreen === 'marketplaces') {
+        ensureBackButtonForSubscreen();
+      } else if (currentSubScreen === 'marketplaces') {
         contentDiv.innerHTML = shadowBannerHtml + await renderMarketplaces();
         attachMarketplacesHandlers();
         ensureBackButtonForSubscreen();
-        if (isShadowMode) attachShadowModeExit();
-        return;
-      }
-      if (currentSubScreen === 'sizeGuides') {
+      } else if (currentSubScreen === 'sizeGuides') {
         contentDiv.innerHTML = shadowBannerHtml + await renderSizeGuides();
         ensureBackButtonForSubscreen();
-        if (isShadowMode) attachShadowModeExit();
-        return;
-      }
-      if (currentSubScreen === 'productsCatalog') {
+      } else if (currentSubScreen === 'productsCatalog') {
         contentDiv.innerHTML = shadowBannerHtml + await renderProductsCatalog();
         attachProductsCatalogHandlers();
         ensureBackButtonForSubscreen();
-        if (isShadowMode) attachShadowModeExit();
-        return;
-      }
-      if (currentSubScreen === 'faq') {
+      } else if (currentSubScreen === 'faq') {
         contentDiv.innerHTML = shadowBannerHtml + await renderFAQ();
         attachFAQHandlers();
         ensureBackButtonForSubscreen();
-        if (isShadowMode) attachShadowModeExit();
-        return;
-      }
+      } else {
 
       if (currentTab !== 'calculator') {
         window.activePromotionId = null;
@@ -213,7 +197,10 @@
       } else {
         contentDiv.innerHTML = '<div class="text-center py-10">Страница не найдена</div>';
       }
+      }
       
+      ensureGlobalFooter();
+
       if (isShadowMode) attachShadowModeExit();
 
       scrollToPageTop();
@@ -239,6 +226,20 @@
         } catch(e) {}
       }
     }
+
+    function ensureGlobalFooter() {
+      const contentDiv = document.getElementById('content');
+      if (!contentDiv || typeof renderFooter !== 'function') return;
+      const footers = contentDiv.querySelectorAll('.app-footer');
+      if (footers.length === 0) {
+        contentDiv.insertAdjacentHTML('beforeend', renderFooter());
+      } else if (footers.length > 1) {
+        for (let i = 0; i < footers.length - 1; i++) {
+          footers[i].remove();
+        }
+      }
+    }
+    window.ensureGlobalFooter = ensureGlobalFooter;
 
     function attachShadowModeExit() {
       const btn = document.getElementById('exitShadowModeBtn');

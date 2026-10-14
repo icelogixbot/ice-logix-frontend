@@ -739,7 +739,7 @@ async function renderAcademy() {
     }
 
     async function renderWishlist() {
-  if (!userId) return '<p class="text-center mt-10 text-white/70">Авторизуйтесь</p>';
+  if (!userId) return `<p class="text-center mt-10 text-white/70">Авторизуйтесь</p>${typeof renderFooter === 'function' ? renderFooter() : ''}`;
   try {
     const { data: wishlistItems, error } = await supabaseClient.from('wishlist').select('product_id, products(*)').eq('user_id', userId);
     if (error) throw error;
@@ -781,7 +781,7 @@ async function renderAcademy() {
       </div>
       ${renderFooter()}
     `;
-  } catch (err) { return '<p class="text-center mt-10 text-red-400">Ошибка загрузки избранного</p>'; }
+  } catch (err) { return `<p class="text-center mt-10 text-red-400">Ошибка загрузки избранного</p>${typeof renderFooter === 'function' ? renderFooter() : ''}`; }
 }
 
 function attachWishlistHandlers() {
