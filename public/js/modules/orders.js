@@ -282,13 +282,18 @@
           : (window.orderCountry || '');
 
         return `
-          <div class="glass-card page-enter relative">
-            <button class="absolute top-4 left-4 text-xs text-white/50 hover:text-white transition cursor-pointer flex items-center gap-1" onclick="window.stopOrderAddMode()">
-              ← К списку
+          <div class="space-y-4 page-enter pb-8">
+            <button type="button" class="global-back-btn" onclick="window.goBackGlobal()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              Назад
             </button>
 
-            <!-- Mode & Country Indicators -->
-            <div class="grid grid-cols-2 gap-3 mb-4 bg-white/5 p-3 rounded-2xl border border-white/5 mt-6">
+            <div class="glass-card p-5 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
+              <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
+              <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
+
+              <!-- Mode & Country Indicators -->
+              <div class="grid grid-cols-2 gap-3 mb-4 bg-white/5 p-3 rounded-2xl border border-white/5">
               <div class="flex justify-between items-center bg-white/5 p-2.5 rounded-xl border border-white/5">
                 <div class="text-left">
                   <span class="text-[10px] text-white/40 block">Режим</span>
@@ -479,7 +484,8 @@
               </div>
             </div>
           </div>
-          ${renderFooter()}
+        </div>
+        ${renderFooter()}
         `;
       }
 
@@ -2442,7 +2448,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-teal-950/60 ring-teal-400/20',
     badgeBg: 'bg-teal-500/20 text-teal-300 border border-teal-400/40',
     accentColor: '#00A88F',
-    binRegex: /^(418701|4187|510076|520261|544837|911206|986006|405786)/
+    binRegex: /^(401346|418701|434484|434485|434486|434487|452443|458291|472249|485017|510085|534769|547691|557749|557884|557885|671127|676663|911201|911233|986001|4187)/
   },
   belagroprom: {
     code: 'belagroprom',
@@ -2455,7 +2461,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-orange-950/60 ring-orange-400/20',
     badgeBg: 'bg-orange-500/20 text-orange-300 border border-orange-400/40',
     accentColor: '#FF7A00',
-    binRegex: /^(405877|4058|437435|521405|524430|911200|986000|544775|416954)/
+    binRegex: /^(405877|416954|432036|432037|432038|432039|432040|432041|432067|437435|466171|471477|472848|520195|521405|522208|524430|532308|542275|544775|547232|670523|670691|911200|911211|986000|4058)/
   },
   prior: {
     code: 'prior',
@@ -2468,7 +2474,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-yellow-950/60 ring-yellow-400/20',
     badgeBg: 'bg-amber-400/20 text-amber-300 border border-amber-400/40',
     accentColor: '#FFD200',
-    binRegex: /^(409428|4094|430488|4304|510049|535109|911202|986002)/
+    binRegex: /^(409428|416064|417770|430488|437458|445987|458285|471326|472950|480949|483451|491698|510049|532658|535109|536600|548952|676203|911202|911289|986002|4094|4304)/
   },
   sber: {
     code: 'sber',
@@ -2481,7 +2487,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-emerald-950/60 ring-emerald-400/20',
     badgeBg: 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40',
     accentColor: '#21A038',
-    binRegex: /^(418868|4188|510087|911203|986003|405255|427229|220024|4276|4279|5469|2202)/
+    binRegex: /^(220024|379901|379993|405255|408344|408345|410745|413856|413857|418868|427229|431803|431836|431837|431838|437449|449655|457434|457857|460257|463903|463908|463920|473126|510087|517359|527841|535063|540234|543553|544454|558682|559498|624497|626411|671146|671165|676850|911203|911222|986003|2202|4188|4276|4279|5469)/
   },
   belveb: {
     code: 'belveb',
@@ -2494,7 +2500,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-slate-900/60 ring-slate-400/20',
     badgeBg: 'bg-slate-500/20 text-slate-200 border border-slate-400/40',
     accentColor: '#4A5568',
-    binRegex: /^(4169|5160|5208|4258|4314|986008|220023)/
+    binRegex: /^(220023|412528|414088|422887|423504|424199|446390|446391|447514|447515|458288|484881|499835|516052|520658|526770|544578|545621|547747|548475|557070|670845|671131|671153|671163|676341|676997|986008|4169|4258|4314|5160|5208)/
   },
   vtb: {
     code: 'vtb',
@@ -2507,7 +2513,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-blue-950/60 ring-blue-400/20',
     badgeBg: 'bg-blue-500/20 text-blue-300 border border-blue-400/40',
     accentColor: '#002882',
-    binRegex: /^(425518|425516|535105|548777|220026|986007|403487|4034)/
+    binRegex: /^(220026|220429|403487|425516|425518|432080|432081|445451|445452|445453|445454|458779|471346|525694|535105|548777|986007|4034)/
   },
   dabrabyt: {
     code: 'dabrabyt',
@@ -2520,7 +2526,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-rose-950/60 ring-rose-500/20',
     badgeBg: 'bg-rose-500/20 text-rose-300 border border-rose-400/40',
     accentColor: '#C41230',
-    binRegex: /^(4168|5168|986015|220015|425527|535127)/
+    binRegex: /^(220015|421487|425527|446505|535127|986015|4168|5168)/
   },
   paritet: {
     code: 'paritet',
@@ -2533,7 +2539,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-sky-950/60 ring-sky-400/20',
     badgeBg: 'bg-sky-500/20 text-sky-300 border border-sky-400/40',
     accentColor: '#004B9B',
-    binRegex: /^(405256|405258|425523|535123|986004|220014)/
+    binRegex: /^(220014|405256|405258|416676|416677|425523|427870|429737|437391|458786|459056|530420|535123|556884|911266|986004)/
   },
   mtbank: {
     code: 'mtbank',
@@ -2546,7 +2552,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-indigo-950/60 ring-indigo-400/20',
     badgeBg: 'bg-indigo-500/20 text-indigo-300 border border-indigo-400/40',
     accentColor: '#0F3E99',
-    binRegex: /^(405257|425517|437457|510047|535107|986005|220017|418837)/
+    binRegex: /^(220017|405257|417494|417495|417753|417754|417755|418837|425517|437457|464990|475787|475788|475789|510047|527782|535104|535107|542645|554832|677008|986005)/
   },
   technobank: {
     code: 'technobank',
@@ -2559,7 +2565,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-blue-950/60 ring-blue-400/20',
     badgeBg: 'bg-blue-500/20 text-blue-300 border border-blue-400/40',
     accentColor: '#2A3494',
-    binRegex: /^(547174|5471|425514|516014|520814|986014|220018)/
+    binRegex: /^(220018|403282|403558|414297|414298|425514|470469|479753|489985|516014|520814|527797|529088|547174|671175|986014|5471)/
   },
   bsb: {
     code: 'bsb',
@@ -2572,7 +2578,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-red-950/60 ring-red-500/20',
     badgeBg: 'bg-red-500/20 text-red-300 border border-red-400/40',
     accentColor: '#FF0B18',
-    binRegex: /^(425524|425525|535124|520824|986016|220016)/
+    binRegex: /^(220016|410445|410454|410481|410746|417004|425524|425525|458283|458284|460099|460122|460124|460126|467939|513355|513461|514421|520824|534452|535124|539272|671168|986016)/
   },
   bnb: {
     code: 'bnb',
@@ -2585,7 +2591,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-amber-950/60 ring-amber-500/20',
     badgeBg: 'bg-amber-500/20 text-amber-300 border border-amber-400/40',
     accentColor: '#FF6617',
-    binRegex: /^(437456|425526|535126|510046|986011|220011|418836)/
+    binRegex: /^(220011|400553|418836|425526|437456|450040|450041|450042|460101|460104|475096|489062|510046|526552|535126|536582|559268|986011)/
   },
   belgazprom: {
     code: 'belgazprom',
@@ -2598,7 +2604,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-sky-950/60 ring-sky-400/20',
     badgeBg: 'bg-sky-500/20 text-sky-300 border border-sky-400/40',
     accentColor: '#004785',
-    binRegex: /^(425515|437455|535106|510045|986012|220012|405254)/
+    binRegex: /^(220012|405254|425515|428620|428621|428622|428623|428624|428625|437396|437455|464132|486818|510045|512722|518597|518707|521058|527826|529344|529922|530422|530914|535106|535705|544307|544979|626241|676821|911213|986012|4286)/
   },
   alfa: {
     code: 'alfa',
@@ -2611,7 +2617,72 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-red-950/60 ring-red-500/20',
     badgeBg: 'bg-red-500/20 text-red-300 border border-red-400/40',
     accentColor: '#EF3124',
-    binRegex: /^(425520|405252|535120|510048|986010|220013|418838|548778)/
+    binRegex: /^(220013|405252|406127|415259|418838|424523|425520|437350|451727|458520|458521|458522|458523|477391|510048|519595|520813|529340|534449|535120|537000|539214|544206|544650|547532|548778|556843|676698|911212|986010)/
+  },
+  rrb: {
+    code: 'rrb',
+    name: 'ЗАО «РРБ-Банк»',
+    shortName: 'Банк РРБ',
+    logo: '/assets/banks/rrb.webp',
+    icon: '🔴',
+    cardGradient: 'from-[#2d090d] via-[#1a080b] to-[#3a0d13]',
+    cardBorder: 'border-rose-500/40',
+    cardGlow: 'shadow-rose-950/60 ring-rose-500/20',
+    badgeBg: 'bg-rose-500/20 text-rose-300 border border-rose-400/40',
+    accentColor: '#E31E24',
+    binRegex: /^(220027|400827|402713|482801|482802|482803|986027)/
+  },
+  neo: {
+    code: 'neo',
+    name: 'neo (ЗАО «Цептер Банк»)',
+    shortName: 'neo',
+    logo: '/assets/banks/neo.webp',
+    icon: '🟣',
+    cardGradient: 'from-[#1b0836] via-[#120824] to-[#2e0e5c]',
+    cardBorder: 'border-purple-400/40',
+    cardGlow: 'shadow-purple-950/60 ring-purple-400/20',
+    badgeBg: 'bg-purple-500/20 text-purple-300 border border-purple-400/40',
+    accentColor: '#4B1280',
+    binRegex: /^(220025|413059|413297|422484|437488|437489|437490|440511|440513|446142|446143|447561|476396|986025)/
+  },
+  reshenie: {
+    code: 'reshenie',
+    name: 'ЗАО «Банк Решение»',
+    shortName: 'Банк Решение',
+    logo: '/assets/banks/reshenie.webp',
+    icon: '🔷',
+    cardGradient: 'from-[#120836] via-[#0d0724] to-[#250d4d]',
+    cardBorder: 'border-indigo-400/40',
+    cardGlow: 'shadow-indigo-950/60 ring-indigo-400/20',
+    badgeBg: 'bg-indigo-500/20 text-indigo-300 border border-indigo-400/40',
+    accentColor: '#1A0D66',
+    binRegex: /^(220022|411856|432201|432231|432232|432233|472752|484743|484744|484745|484746|484879|484880|911277|986022)/
+  },
+  tkbank: {
+    code: 'tkbank',
+    name: 'ЗАО «ТК Банк»',
+    shortName: 'ТК Банк',
+    logo: '/assets/banks/tkbank.webp',
+    icon: '🪙',
+    cardGradient: 'from-[#261c10] via-[#18130d] to-[#362716]',
+    cardBorder: 'border-amber-400/40',
+    cardGlow: 'shadow-amber-950/60 ring-amber-400/20',
+    badgeBg: 'bg-amber-500/20 text-amber-300 border border-amber-400/40',
+    accentColor: '#9C7C38',
+    binRegex: /^(220099|425599|535199|986099)/
+  },
+  statusbank: {
+    code: 'statusbank',
+    name: 'ОАО «Статусбанк»',
+    shortName: 'Статусбанк',
+    logo: '/assets/banks/statusbank.webp',
+    icon: '🟢',
+    cardGradient: 'from-[#0d2616] via-[#09170e] to-[#163b22]',
+    cardBorder: 'border-emerald-400/40',
+    cardGlow: 'shadow-emerald-950/60 ring-emerald-400/20',
+    badgeBg: 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40',
+    accentColor: '#78BE20',
+    binRegex: /^(220021|425536|472209|535136|911235|911236|986026)/
   },
   belarusbank: {
     code: 'belarusbank',
@@ -2624,7 +2695,7 @@ const BANK_CONFIGS = {
     cardGlow: 'shadow-emerald-950/60 ring-emerald-400/20',
     badgeBg: 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40',
     accentColor: '#006A4E',
-    binRegex: /^(4255|405787|4057|5456|5163|535108|6762|6769|6771|911201|91122|9112|9860|2204|2200)/
+    binRegex: /^(401803|409087|424641|425519|425520|425521|440512|448789|484894|512558|525714|543044|544598|547087|547091|547504|552979|553608|557075|557076|671129|671154|671176|671177|671197|676339|676579|677723|679036|911200|986018|986019|986020|986021|2200|2204|4255|6762|9860)/
   }
 };
 window.BANK_CONFIGS = BANK_CONFIGS;

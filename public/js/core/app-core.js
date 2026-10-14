@@ -3241,7 +3241,7 @@ let adminOrdersTotalPages = 1;
       // 1. Check if any active overlay / modal is open in the DOM
       const openOverlay = document.querySelector('.full-screen-modal-overlay, #spotlightModal:not(.opacity-0), #settingsModal, #notificationsModal, #personalDataModal, #commissionContractModal, #fortuneWheelModal, #allTransactionsModal, #reviewActionModal, #familySettingsModal, #marketplaceWhitelistModal, #recoveryCodeModal');
       if (openOverlay) {
-        const closeBtn = openOverlay.querySelector('#spotlightCloseBtn, #closeSettingsModal, #closeNotifPanel, #closePersonalDataBtn, #closeContractModalBtn, #closeFortuneWheelBtn, #closeTransactionsModal, #closeReviewModalBtn, #closeFamilyModalBtn, #closeWhitelistModalBtn, #closeRecoveryModalBtn, [data-action="close"]');
+        const closeBtn = openOverlay.querySelector('.full-screen-modal-header .global-back-btn, .full-screen-modal-header button, #spotlightCloseBtn, #closeSettingsModal, #closeNotifPanel, #closePersonalDataBtn, #closeContractModalBtn, #closeFortuneWheelBtn, #closeTransactionsModal, #closeReviewModalBtn, #closeFamilyModalBtn, #closeWhitelistModalBtn, #closeRecoveryModalBtn, [data-action="close"], button[id^="close"], button[id^="back"]');
         if (closeBtn) {
           closeBtn.click();
         } else {
@@ -3254,6 +3254,14 @@ let adminOrdersTotalPages = 1;
       // 2. If subscreen is open
       if (currentSubScreen) {
         currentSubScreen = null;
+        renderCurrentScreen();
+        syncTelegramBackButton();
+        return true;
+      }
+
+      // 2b. If on Home tab inside a calculator / AI search submode
+      if (currentTab === 'home' && window._calcMode && window._calcMode !== 'menu') {
+        window._calcMode = 'menu';
         renderCurrentScreen();
         syncTelegramBackButton();
         return true;
@@ -3308,7 +3316,8 @@ let adminOrdersTotalPages = 1;
 
     // Wires Telegram's native BackButton based on current tab/subscreen.
     function syncTelegramBackButton() {
-      const isRoot = currentTab === 'home' && !currentSubScreen && !window.orderCountry && !window.orderAddSubMode;
+      const isHomeSubmode = currentTab === 'home' && window._calcMode && window._calcMode !== 'menu';
+      const isRoot = currentTab === 'home' && !currentSubScreen && !window.orderCountry && !window.orderAddSubMode && !isHomeSubmode;
       const hasOverlay = !!document.querySelector('.full-screen-modal-overlay, #spotlightModal:not(.opacity-0), #settingsModal, #notificationsModal, #personalDataModal');
       
       if (isRoot && !hasOverlay) {
