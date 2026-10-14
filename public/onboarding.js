@@ -12,19 +12,26 @@
   const STYLES = `
 .ice-stories-overlay {
   position: fixed; inset: 0; z-index: 9999;
-  background: rgba(10, 22, 40, 0.95);
+  background: rgba(5, 11, 20, 0.96);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   display: flex; align-items: center; justify-content: center;
   animation: iceFadeIn 0.3s ease-out;
+  -webkit-tap-highlight-color: transparent !important;
+  user-select: none;
+  -webkit-user-select: none;
 }
 @keyframes iceFadeIn { from { opacity: 0; } to { opacity: 1; } }
 .ice-story-frame {
   position: relative;
   width: 100%; max-width: 420px; height: 100%; max-height: 100vh;
-  background: linear-gradient(165deg, #0A1628 0%, #0F2847 50%, #1A3A5C 100%);
+  background: #060d17 !important;
   overflow: hidden;
   display: flex; flex-direction: column;
+  -webkit-tap-highlight-color: transparent !important;
+  outline: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
 }
 @media (min-width: 768px) {
   .ice-story-frame { 
@@ -62,6 +69,7 @@
   font-size: 18px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: all 0.3s ease;
+  -webkit-tap-highlight-color: transparent !important;
 }
 .ice-close-btn:hover {
   background: rgba(255,255,255,0.2);
@@ -69,6 +77,10 @@
 }
 .ice-tap-zone-left, .ice-tap-zone-right {
   position: absolute; top: 0; bottom: 0; width: 35%; z-index: 5;
+  -webkit-tap-highlight-color: transparent !important;
+  outline: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
 }
 .ice-tap-zone-left { left: 0; }
 .ice-tap-zone-right { right: 0; }
@@ -78,13 +90,16 @@
   padding: 70px 28px 110px;
   text-align: center;
   opacity: 0; pointer-events: none;
-  transition: opacity 0.4s ease, transform 0.4s ease;
-  transform: scale(0.95);
+  transition: opacity 0.25s ease;
+  transform: none;
+  background: #060d17 !important;
+  -webkit-tap-highlight-color: transparent !important;
+  outline: none !important;
 }
 .ice-slide.active { 
   opacity: 1; 
   pointer-events: auto;
-  transform: scale(1);
+  transform: none;
 }
 .ice-slide-emoji { 
   font-size: 72px; 
@@ -401,7 +416,7 @@
     const subtitleHtml = s.subtitle ? `<p class="ice-slide-subtitle">${s.subtitle}</p>` : '';
 
     return `
-      <div class="ice-slide" data-slide="${idx}" style="background: #000000;">
+      <div class="ice-slide" data-slide="${idx}" style="background: #060d17;">
         <div class="ice-slide-emoji">${s.emoji}</div>
         <h2 class="ice-slide-title">${s.title}</h2>
         ${subtitleHtml}

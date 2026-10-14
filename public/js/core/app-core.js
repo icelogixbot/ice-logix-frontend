@@ -395,14 +395,14 @@
       if (images.length <= 1) {
         const imgUrl = images[0];
         return `
-          <div class="card-photo-container cursor-pointer" data-preview-urls="${escapedImages}" data-preview-index="0" onclick="event.stopPropagation(); window.showImagePreview(['${imgUrl}'], 0)">
+          <div class="card-photo-container cursor-pointer" data-preview-urls="${escapedImages}" data-preview-index="0">
             <img src="${imgUrl}" class="w-full h-full object-cover cursor-zoom-in" alt="${cardTitle}">
           </div>
         `;
       }
 
       return `
-        <div class="card-photo-container cursor-pointer">
+        <div class="card-photo-container cursor-pointer" data-preview-urls="${escapedImages}">
           <div class="card-slider">
             ${images.map((url, idx) => `
               <div class="card-slide cursor-pointer" data-preview-urls="${escapedImages}" data-preview-index="${idx}">
@@ -412,20 +412,25 @@
           </div>
           <div class="card-dots">
             ${images.map((_, idx) => `
-              <div class="card-dot ${idx === 0 ? 'active' : ''}"></div>
+              <div class="card-dot ${idx === 0 ? 'active' : ''}" data-dot-index="${idx}"></div>
             `).join('')}
           </div>
         </div>
       `;
     }
 
+    const _initializedCardSliders = new WeakSet();
+    const _initializedCardContainers = new WeakSet();
+
     function initCardSliders() {
       // 1. Single photo containers tap
       document.querySelectorAll('.card-photo-container').forEach(container => {
-        if (container.dataset.tapInitialized) return;
-        container.dataset.tapInitialized = 'true';
+        if (_initializedCardContainers.has(container)) return;
+        _initializedCardContainers.add(container);
+
         if (!container.querySelector('.card-slider')) {
           container.addEventListener('click', (e) => {
+            if (e.target.closest('.wishlist-heart') || e.target.closest('button')) return;
             e.stopPropagation();
             const rawUrls = container.dataset.previewUrls;
             if (rawUrls) {
@@ -440,18 +445,18 @@
 
       // 2. Multi-photo sliders
       document.querySelectorAll('.card-slider').forEach(slider => {
-        if (slider.dataset.sliderInitialized) return;
-        slider.dataset.sliderInitialized = 'true';
+        if (_initializedCardSliders.has(slider)) return;
+        _initializedCardSliders.add(slider);
 
         let touchStartX = 0;
         let touchStartY = 0;
-        let hasMoved = false;
+        let hasMovedFar = false;
 
         slider.addEventListener('touchstart', (e) => {
           if (e.touches.length === 1) {
             touchStartX = e.touches[0].clientX;
             touchStartY = e.touches[0].clientY;
-            hasMoved = false;
+            hasMovedFar = false;
           }
         }, { passive: true });
 
@@ -459,18 +464,46 @@
           if (e.touches.length === 1) {
             const dx = Math.abs(e.touches[0].clientX - touchStartX);
             const dy = Math.abs(e.touches[0].clientY - touchStartY);
-            if (dx > 7 || dy > 7) {
-              hasMoved = true;
+            if (dx > 14 || dy > 14) {
+              hasMovedFar = true;
             }
           }
         }, { passive: true });
 
+        const dots = slider.parentElement ? slider.parentElement.querySelectorAll('.card-dot') : [];
+
+        // Smooth real-time synchronization of dots via requestAnimationFrame
+        let isScrollTicking = false;
+        slider.addEventListener('scroll', () => {
+          if (!isScrollTicking) {
+            isScrollTicking = true;
+            window.requestAnimationFrame(() => {
+              const width = slider.clientWidth;
+              if (width > 0 && dots.length > 0) {
+                const index = Math.min(dots.length - 1, Math.max(0, Math.round(slider.scrollLeft / width)));
+                dots.forEach((dot, idx) => dot.classList.toggle('active', idx === index));
+              }
+              isScrollTicking = false;
+            });
+          }
+        }, { passive: true });
+
+        // Click on dots to scroll to that photo
+        dots.forEach((dot, dotIdx) => {
+          dot.style.cursor = 'pointer';
+          dot.addEventListener('click', (e) => {
+            e.stopPropagation();
+            slider.scrollTo({ left: dotIdx * slider.clientWidth, behavior: 'smooth' });
+          });
+        });
+
+        // Click / tap on slide to open full-screen preview
         slider.querySelectorAll('.card-slide').forEach((slide) => {
           slide.addEventListener('click', (e) => {
-            if (hasMoved) return;
+            if (hasMovedFar) return;
             e.stopPropagation();
             try {
-              const rawUrls = slide.dataset.previewUrls;
+              const rawUrls = slide.dataset.previewUrls || slide.closest('.card-photo-container')?.dataset.previewUrls;
               const idx = parseInt(slide.dataset.previewIndex || '0', 10);
               const urls = rawUrls ? JSON.parse(decodeURIComponent(rawUrls)) : [];
               if (urls.length > 0) {
@@ -481,14 +514,32 @@
             }
           });
         });
+      });
+    }
 
-        slider.addEventListener('scroll', () => {
-          const width = slider.clientWidth;
-          if (width <= 0) return;
-          const index = Math.round(slider.scrollLeft / width);
-          const dots = slider.parentElement.querySelectorAll('.card-dot');
-          dots.forEach((dot, idx) => dot.classList.toggle('active', idx === index));
-        }, { passive: true });
+    if (typeof window !== 'undefined' && !window._cardPhotoGlobalTapDelegated) {
+      window._cardPhotoGlobalTapDelegated = true;
+      document.addEventListener('click', (e) => {
+        const photoCont = e.target.closest('.card-photo-container');
+        if (!photoCont) return;
+        if (e.target.closest('.card-dot') || e.target.closest('.wishlist-heart') || e.target.closest('button')) return;
+        const rawUrls = photoCont.dataset.previewUrls || e.target.closest('.card-slide')?.dataset.previewUrls;
+        if (!rawUrls) return;
+        try {
+          const urls = JSON.parse(decodeURIComponent(rawUrls));
+          const slide = e.target.closest('.card-slide');
+          const slider = photoCont.querySelector('.card-slider');
+          let idx = 0;
+          if (slide && slide.dataset.previewIndex != null) {
+            idx = parseInt(slide.dataset.previewIndex, 10) || 0;
+          } else if (slider && slider.clientWidth > 0) {
+            idx = Math.min(urls.length - 1, Math.max(0, Math.round(slider.scrollLeft / slider.clientWidth)));
+          }
+          if (urls.length > 0) {
+            e.stopPropagation();
+            window.showImagePreview(urls, idx);
+          }
+        } catch(err) {}
       });
     }
 
@@ -3783,18 +3834,26 @@ let adminOrdersTotalPages = 1;
         }
       }
 
-      let scrollTimeout;
+      let isBannerScrollTicking = false;
+      function syncBannerDotsOnScroll() {
+        if (!container) return;
+        const scrollPos = container.scrollLeft;
+        const w = container.clientWidth || 1;
+        const newIdx = Math.min(count - 1, Math.max(0, Math.round(scrollPos / w)));
+        if (newIdx !== currentIndex) {
+          currentIndex = newIdx;
+          updateDots(currentIndex);
+        }
+      }
+
       container.addEventListener('scroll', () => {
-        clearTimeout(scrollTimeout);
-        scrollTimeout = setTimeout(() => {
-          const scrollPos = container.scrollLeft;
-          const w = container.clientWidth || 1;
-          const newIdx = Math.round(scrollPos / w);
-          if (newIdx >= 0 && newIdx < count && newIdx !== currentIndex) {
-            currentIndex = newIdx;
-            updateDots(currentIndex);
-          }
-        }, 50);
+        if (!isBannerScrollTicking) {
+          isBannerScrollTicking = true;
+          window.requestAnimationFrame(() => {
+            syncBannerDotsOnScroll();
+            isBannerScrollTicking = false;
+          });
+        }
       }, { passive: true });
 
       const onStart = () => {

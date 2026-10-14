@@ -253,6 +253,7 @@ function attachHomeHandlers() {
         });
       });
 
+      initCardSliders();
       loadHomeProducts();
 
       document.querySelectorAll('.addToCartBtn').forEach(btn => {
