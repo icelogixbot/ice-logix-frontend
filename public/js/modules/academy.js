@@ -29,7 +29,6 @@ async function renderAcademy() {
 
     if (!courses || courses.length === 0) {
       return `
-        <button id="backFromAcademyBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
         <div class="text-center py-10">
           <p class="text-white/70">Курсы пока не добавлены</p>
           ${isOwner ? '<button id="addCourseBtn" class="btn-primary mt-4"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить курс</button>' : ''}
@@ -96,7 +95,6 @@ async function renderAcademy() {
 
     return `
       <div class="space-y-4">
-        <button id="backFromAcademyBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
         ${isOwner ? '<button id="addCourseBtn" class="global-back-btn mb-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить курс</button>' : ''}
         ${coursesWithLessons.map(course => `
           <div class="course-card glass-card" data-course-id="${course.id}" data-is-purchased="${course.isPurchased}" data-price-ice="${course.price_ice}">
@@ -150,9 +148,6 @@ async function renderAcademy() {
 }
 
     function attachAcademyHandlers() {
-      const backBtn = document.getElementById('backFromAcademyBtn');
-      if (backBtn) backBtn.addEventListener('click', () => switchTab('profile'));
-
       // ── completeLesson ──────────────────────────────────────────────
       async function completeLesson(lessonId, courseId) {
         if (!userId) return;
