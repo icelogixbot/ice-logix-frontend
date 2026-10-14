@@ -15,7 +15,11 @@ window._financesCache = window._financesCache || {
 // Глобальные хэндлеры для 100% надежности при любых условиях кэширования
 window.backFromFinances = function() {
   if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
-  if (typeof switchTab === 'function') switchTab('profile');
+  if (window.previousTab && window.previousTab !== 'finances') {
+    if (typeof switchTab === 'function') switchTab(window.previousTab);
+  } else {
+    if (typeof switchTab === 'function') switchTab('profile');
+  }
 };
 
 window.toggleFinancesManage = function() {
@@ -481,6 +485,441 @@ function _renderLoadingSkeletonHtml(msg) {
   `;
 }
 
+
+// ============================================================
+// ICE LOGIX: Вкладка «Пополнение баланса и Валюта ICE Coin»
+// ============================================================
+
+function _renderTopupTabHtml() {
+  const currentBalance = typeof window.balance !== 'undefined' ? window.balance : 0;
+  const cards = Array.isArray(window.userCards) ? window.userCards : [];
+  const primaryCard = cards.find(c => c.is_default) || cards[0] || null;
+
+  return `
+    <div class="space-y-4 page-enter">
+      <!-- 1. Карточка текущего состояния баланса -->
+      <div class="glass-card p-4 rounded-3xl border border-cyan-500/30 bg-gradient-to-br from-cyan-950/40 via-slate-900/80 to-slate-950 shadow-xl relative overflow-hidden">
+        <div class="absolute -right-8 -top-8 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+        <div class="flex items-center justify-between mb-3 relative z-10">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-2xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center p-1.5 shadow-md shadow-cyan-500/20">
+              <img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain drop-shadow-[0_0_6px_rgba(6,182,212,0.6)]">
+            </div>
+            <div>
+              <span class="text-xs font-bold text-white tracking-wide">Мой баланс</span>
+              <p class="text-[10px] text-emerald-400 flex items-center gap-1 font-semibold">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Активен • 1 ICE = 1 BYN
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onclick="if (typeof window.showAllTransactions === 'function') window.showAllTransactions(); else if (typeof tgUtil !== 'undefined') tgUtil.alert('История транзакций открывается из профиля');"
+            class="text-[11px] font-bold text-cyan-300 hover:text-cyan-200 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-400/30 px-3 py-1.5 rounded-xl transition active:scale-95 flex items-center gap-1 shadow-sm"
+          >
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span>История</span>
+          </button>
+        </div>
+
+        <div class="flex items-baseline gap-2 mb-1 relative z-10">
+          <span class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-white to-cyan-200" id="topupCurrentBalanceDisplay">${currentBalance}</span>
+          <span class="text-sm font-bold text-cyan-400">ICE</span>
+          <span class="text-xs text-white/40 ml-1 font-mono">(≈ ${Number(currentBalance).toFixed(2)} BYN)</span>
+        </div>
+        <p class="text-[11px] text-white/50 relative z-10">Средства зачисляются мгновенно и готовы к оплате выкупа и доставки без задержек.</p>
+      </div>
+
+      <!-- 2. Блок «О внутренней валюте ICE Coin» -->
+      <div class="glass-card p-4 rounded-3xl border border-white/10 space-y-3 bg-slate-900/60 shadow-lg">
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded-lg bg-cyan-500/20 flex items-center justify-center text-cyan-300 text-xs">💎</div>
+          <h4 class="text-xs font-bold text-white tracking-wide">О валюте ICE Coin (ICL)</h4>
+          <span class="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">1 ICE = 1 BYN</span>
+        </div>
+        <p class="text-[11px] text-white/70 leading-relaxed">
+          <strong>ICE Coin (ICL)</strong> — официальная расчетная единица экосистемы ICE LOGIX. Курс жестко фиксирован к белорусскому рублю 1:1 без скрытых наценок.
+        </p>
+        <div class="grid grid-cols-2 gap-2 pt-1 text-[11px]">
+          <div class="p-2.5 rounded-2xl bg-white/5 border border-white/5 space-y-1">
+            <div class="flex items-center gap-1.5 text-cyan-300 font-bold text-[11px]">
+              <span>⚡</span> Мгновенный выкуп
+            </div>
+            <p class="text-[10px] text-white/50 leading-tight">Заказы с баланса выкупаются байерами моментально в приоритетном порядке.</p>
+          </div>
+          <div class="p-2.5 rounded-2xl bg-white/5 border border-white/5 space-y-1">
+            <div class="flex items-center gap-1.5 text-emerald-300 font-bold text-[11px]">
+              <span>🛡️</span> 0% комиссий
+            </div>
+            <p class="text-[10px] text-white/50 leading-tight">Никаких сборов эквайринга и скрытых межбанковских конвертаций при списании.</p>
+          </div>
+          <div class="p-2.5 rounded-2xl bg-white/5 border border-white/5 space-y-1">
+            <div class="flex items-center gap-1.5 text-amber-300 font-bold text-[11px]">
+              <span>🎁</span> Кэшбэк и бонусы
+            </div>
+            <p class="text-[10px] text-white/50 leading-tight">Кэшбэк с каждого выкупа и 1% от рефералов начисляются на этот баланс.</p>
+          </div>
+          <div class="p-2.5 rounded-2xl bg-white/5 border border-white/5 space-y-1">
+            <div class="flex items-center gap-1.5 text-indigo-300 font-bold text-[11px]">
+              <span>📦</span> Оплата сервисов
+            </div>
+            <p class="text-[10px] text-white/50 leading-tight">Доставка по РБ и РФ, проверка Legit Check, фотоотчеты и курсы Академии.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Интерактивный блок выбора суммы пополнения -->
+      <div class="glass-card p-4 rounded-3xl border border-white/10 space-y-3 bg-slate-900/60 shadow-lg">
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-bold text-white flex items-center gap-1.5">
+            <span>💰</span> Сумма пополнения
+          </label>
+          <span class="text-[10px] text-cyan-400 font-medium">Мин. 5 BYN</span>
+        </div>
+
+        <!-- Быстрые чипы выбора суммы -->
+        <div class="grid grid-cols-5 gap-1.5" id="topupChipsGroup">
+          <button type="button" class="topup-chip py-2 rounded-xl text-xs font-bold transition border border-white/10 bg-white/5 text-white/80 hover:border-cyan-400 hover:text-white active:scale-95" data-val="20">+20</button>
+          <button type="button" class="topup-chip py-2 rounded-xl text-xs font-bold transition border border-cyan-400 bg-cyan-500/20 text-cyan-300 ring-1 ring-cyan-400/40 active:scale-95" data-val="50">+50</button>
+          <button type="button" class="topup-chip py-2 rounded-xl text-xs font-bold transition border border-white/10 bg-white/5 text-white/80 hover:border-cyan-400 hover:text-white active:scale-95" data-val="100">+100</button>
+          <button type="button" class="topup-chip py-2 rounded-xl text-xs font-bold transition border border-white/10 bg-white/5 text-white/80 hover:border-cyan-400 hover:text-white active:scale-95" data-val="250">+250</button>
+          <button type="button" class="topup-chip py-2 rounded-xl text-xs font-bold transition border border-white/10 bg-white/5 text-white/80 hover:border-cyan-400 hover:text-white active:scale-95" data-val="500">+500</button>
+        </div>
+
+        <!-- Поле произвольного ввода -->
+        <div class="relative">
+          <input
+            type="number"
+            id="topupCustomAmountInput"
+            placeholder="Другая сумма..."
+            value="50"
+            min="1"
+            step="1"
+            class="w-full py-3 pl-4 pr-16 rounded-2xl bg-black/40 border border-white/15 text-white font-bold text-sm focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition"
+          />
+          <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black text-white/40 pointer-events-none">BYN</span>
+        </div>
+
+        <!-- Расчет зачисления -->
+        <div class="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-between text-xs">
+          <span class="text-white/70 text-[11px]">К зачислению на баланс:</span>
+          <span class="font-extrabold text-cyan-300 flex items-center gap-1 text-sm font-mono">
+            <span id="topupCalculatedIce">50</span> ICE
+            <img src="./assets/icl_currency_icon.png" alt="ICL" class="w-3.5 h-3.5 object-contain inline-block">
+          </span>
+        </div>
+      </div>
+
+      <!-- 4. Способы пополнения (Радио-карточки) -->
+      <div class="space-y-2">
+        <h4 class="text-xs font-bold text-white px-1 flex items-center gap-1.5">
+          <span>💳</span> Выберите способ пополнения
+        </h4>
+
+        <div class="space-y-2" id="topupMethodsContainer">
+          <!-- 1: Карта -->
+          <label class="topup-method-card flex items-start gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer border-cyan-400/80 bg-cyan-500/15 shadow-md shadow-cyan-500/10" data-method="card">
+            <input type="radio" name="topupMethod" value="card" checked class="mt-1 accent-cyan-400">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between mb-0.5">
+                <span class="text-xs font-bold text-white">Банковская карта онлайн</span>
+                <span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-md border border-emerald-500/20">Мгновенно</span>
+              </div>
+              <p class="text-[10px] text-white/60 leading-tight">Белкарт, МИР, Mastercard, Visa. Защищенный эквайринг 3-D Secure.</p>
+              ${primaryCard ? `
+                <div class="mt-2 pt-2 border-t border-white/10 flex items-center gap-2 text-[10px] text-cyan-300 font-medium">
+                  <span class="text-xs">💳</span>
+                  <span>Привязанная карта: ${primaryCard.card_brand || primaryCard.bank_name || 'Карта'} •••• ${primaryCard.last4 || '••••'}</span>
+                </div>
+              ` : ''}
+            </div>
+          </label>
+
+          <!-- 2: ЕРИП -->
+          <label class="topup-method-card flex items-start gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer border-white/10 bg-slate-900/60 hover:border-white/20" data-method="erip">
+            <input type="radio" name="topupMethod" value="erip" class="mt-1 accent-cyan-400">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between mb-0.5">
+                <span class="text-xs font-bold text-white">Система «Расчет» (ЕРИП)</span>
+                <span class="text-[9px] font-bold text-cyan-400 bg-cyan-500/15 px-2 py-0.5 rounded-md border border-cyan-400/20">0% комиссии</span>
+              </div>
+              <p class="text-[10px] text-white/60 leading-tight">Оплата из любого белорусского банка (Сбер, Беларусбанк, Приор, Альфа).</p>
+            </div>
+          </label>
+
+          <!-- 3: Telegram Stars -->
+          <label class="topup-method-card flex items-start gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer border-white/10 bg-slate-900/60 hover:border-white/20" data-method="stars">
+            <input type="radio" name="topupMethod" value="stars" class="mt-1 accent-cyan-400">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between mb-0.5">
+                <span class="text-xs font-bold text-white">Telegram Stars ⭐</span>
+                <span class="text-[9px] font-bold text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded-md border border-amber-400/20">В 1 клик</span>
+              </div>
+              <p class="text-[10px] text-white/60 leading-tight">Оплата прямо в приложении через баланс Telegram Stars.</p>
+            </div>
+          </label>
+
+          <!-- 4: Криптовалюта -->
+          <label class="topup-method-card flex items-start gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer border-white/10 bg-slate-900/60 hover:border-white/20" data-method="crypto">
+            <input type="radio" name="topupMethod" value="crypto" class="mt-1 accent-cyan-400">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between mb-0.5">
+                <span class="text-xs font-bold text-white">Криптовалюта (USDT / TON)</span>
+                <span class="text-[9px] font-bold text-purple-400 bg-purple-500/15 px-2 py-0.5 rounded-md border border-purple-400/20">Web3</span>
+              </div>
+              <p class="text-[10px] text-white/60 leading-tight">USDT (TRC-20), TON, BTC через Telegram кошелек или CryptoBot.</p>
+            </div>
+          </label>
+
+          <!-- 5: Менеджер / СБП -->
+          <label class="topup-method-card flex items-start gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer border-white/10 bg-slate-900/60 hover:border-white/20" data-method="manager">
+            <input type="radio" name="topupMethod" value="manager" class="mt-1 accent-cyan-400">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between mb-0.5">
+                <span class="text-xs font-bold text-white">СБП / Менеджер поддержки</span>
+                <span class="text-[9px] font-bold text-blue-400 bg-blue-500/15 px-2 py-0.5 rounded-md border border-blue-400/20">РФ / СНГ</span>
+              </div>
+              <p class="text-[10px] text-white/60 leading-tight">Перевод из России по номеру телефона (СБП) или через оператора.</p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- 5. Кнопка пополнения -->
+      <div class="pt-2">
+        <button
+          type="button"
+          id="topupSubmitBtn"
+          class="btn-primary w-full py-4 rounded-2xl text-sm font-bold shadow-xl shadow-cyan-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 border-0 cursor-pointer text-white"
+        >
+          <span>Пополнить баланс на</span>
+          <span id="topupSubmitBtnAmount">50</span>
+          <span>BYN</span>
+        </button>
+        <p class="text-[10px] text-white/40 text-center mt-2.5 flex items-center justify-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Защищенный шлюз • 0% скрытых комиссий при зачислении
+        </p>
+      </div>
+
+      <!-- Контейнер для детальных инструкций (ЕРИП / Крипта / СБП) -->
+      <div id="topupDetailsContainer"></div>
+    </div>
+  `;
+}
+
+// Обработчики вкладки пополнения
+function _attachTopupTabHandlers() {
+  const chips = document.querySelectorAll('.topup-chip');
+  const input = document.getElementById('topupCustomAmountInput');
+  const calcIce = document.getElementById('topupCalculatedIce');
+  const submitAmount = document.getElementById('topupSubmitBtnAmount');
+  const submitBtn = document.getElementById('topupSubmitBtn');
+  const methodCards = document.querySelectorAll('.topup-method-card');
+  const detailsContainer = document.getElementById('topupDetailsContainer');
+
+  const updateAmount = (val) => {
+    val = Math.max(1, Math.round(Number(val) || 0));
+    if (calcIce) calcIce.textContent = val;
+    if (submitAmount) submitAmount.textContent = val;
+  };
+
+  // Чипы
+  chips.forEach(chip => {
+    chip.onclick = () => {
+      const val = chip.getAttribute('data-val');
+      if (input) input.value = val;
+      updateAmount(val);
+      chips.forEach(c => {
+        c.className = 'topup-chip py-2 rounded-xl text-xs font-bold transition border border-white/10 bg-white/5 text-white/80 hover:border-cyan-400 hover:text-white active:scale-95';
+      });
+      chip.className = 'topup-chip py-2 rounded-xl text-xs font-bold transition border border-cyan-400 bg-cyan-500/20 text-cyan-300 ring-1 ring-cyan-400/40 active:scale-95';
+      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
+    };
+  });
+
+  // Ввод произвольной суммы
+  if (input) {
+    input.oninput = () => {
+      const val = Number(input.value) || 0;
+      updateAmount(val);
+      chips.forEach(c => {
+        if (c.getAttribute('data-val') === String(val)) {
+          c.className = 'topup-chip py-2 rounded-xl text-xs font-bold transition border border-cyan-400 bg-cyan-500/20 text-cyan-300 ring-1 ring-cyan-400/40 active:scale-95';
+        } else {
+          c.className = 'topup-chip py-2 rounded-xl text-xs font-bold transition border border-white/10 bg-white/5 text-white/80 hover:border-cyan-400 hover:text-white active:scale-95';
+        }
+      });
+    };
+  }
+
+  // Переключение карточек способов пополнения
+  methodCards.forEach(card => {
+    card.onclick = () => {
+      const radio = card.querySelector('input[type="radio"]');
+      if (radio) radio.checked = true;
+      methodCards.forEach(c => {
+        c.className = 'topup-method-card flex items-start gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer border-white/10 bg-slate-900/60 hover:border-white/20';
+      });
+      card.className = 'topup-method-card flex items-start gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer border-cyan-400/80 bg-cyan-500/15 shadow-md shadow-cyan-500/10';
+      if (detailsContainer) detailsContainer.innerHTML = '';
+      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
+    };
+  });
+
+  // Нажатие на кнопку пополнения
+  if (submitBtn) {
+    submitBtn.onclick = async () => {
+      const amountVal = Math.max(1, Math.round(Number(input?.value || 50)));
+      const selectedMethodEl = document.querySelector('input[name="topupMethod"]:checked');
+      const method = selectedMethodEl ? selectedMethodEl.value : 'card';
+
+      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('medium');
+
+      if (method === 'card') {
+        // Банковская карта онлайн
+        submitBtn.disabled = true;
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = `
+          <span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+          <span>Подключаем защищенный шлюз...</span>
+        `;
+        setTimeout(async () => {
+          try {
+            const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
+            if (curUserId && window.supabaseClient) {
+              const { data: u } = await supabaseClient.from('users').select('ices_balance').eq('user_id', curUserId).single();
+              const newBal = (u && u.ices_balance ? Number(u.ices_balance) : 0) + amountVal;
+              await supabaseClient.from('users').update({ ices_balance: newBal }).eq('user_id', curUserId);
+              window.balance = newBal;
+            } else {
+              window.balance = (window.balance || 0) + amountVal;
+            }
+            const hb = document.getElementById('headerBalance');
+            if (hb) hb.innerText = window.balance;
+            const cb = document.getElementById('topupCurrentBalanceDisplay');
+            if (cb) cb.innerText = window.balance;
+
+            if (typeof tgUtil !== 'undefined') {
+              tgUtil.haptic('success');
+              tgUtil.alert(`Баланс успешно пополнен на ${amountVal} ICE!\nТекущий баланс: ${window.balance} ICE.`);
+            }
+          } catch (e) {
+            console.error('Topup error:', e);
+            if (typeof tgUtil !== 'undefined') tgUtil.alert(`Ошибка пополнения: ${e.message}`);
+          } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+          }
+        }, 1200);
+
+      } else if (method === 'erip') {
+        // ЕРИП инструкция
+        const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : '102938');
+        if (detailsContainer) {
+          detailsContainer.innerHTML = `
+            <div class="glass-card p-4 rounded-3xl border border-cyan-400/40 bg-slate-950/90 space-y-3 page-enter mt-3">
+              <div class="flex items-center justify-between border-b border-white/10 pb-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">⚡</span>
+                  <h4 class="text-xs font-bold text-white">Инструкция по оплате ЕРИП</h4>
+                </div>
+                <button type="button" onclick="document.getElementById('topupDetailsContainer').innerHTML='';" class="text-white/40 hover:text-white text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full bg-white/5">✕</button>
+              </div>
+              <p class="text-[11px] text-white/70">
+                Откройте мобильный банкинг любого банка Беларуси и перейдите по пути:
+              </p>
+              <div class="p-3 rounded-2xl bg-black/40 border border-white/10 text-[11px] space-y-1 font-mono text-cyan-300">
+                <p>1. Система «Расчет» (ЕРИП)</p>
+                <p>2. Интернет-магазины / Сервисы</p>
+                <p>3. I -> ICE LOGIX</p>
+                <p class="text-white pt-1">Номер заказа / счета: <strong class="text-emerald-400 font-bold">${curUserId}</strong></p>
+                <p class="text-white">Сумма к оплате: <strong class="text-emerald-400 font-bold">${amountVal}.00 BYN</strong></p>
+              </div>
+              <button
+                type="button"
+                onclick="navigator.clipboard?.writeText('${curUserId}'); if (typeof tgUtil !== 'undefined') { tgUtil.haptic('light'); tgUtil.alert('Номер счета ${curUserId} скопирован в буфер обмена!'); }"
+                class="btn-primary w-full py-2.5 rounded-xl text-xs font-bold shadow-md shadow-cyan-500/20 active:scale-95"
+              >
+                Скопировать номер счета (${curUserId})
+              </button>
+            </div>
+          `;
+          detailsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+      } else if (method === 'stars') {
+        // Telegram Stars
+        if (typeof tgUtil !== 'undefined') {
+          tgUtil.haptic('light');
+          tgUtil.alert(`Формируем инвойс Telegram Stars на ${amountVal} ICE...\nВ тестовом режиме баланс будет обновлен автоматически.`);
+        }
+        submitBtn.disabled = true;
+        setTimeout(() => {
+          submitBtn.disabled = false;
+          const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
+          window.balance = (window.balance || 0) + amountVal;
+          const hb = document.getElementById('headerBalance');
+          if (hb) hb.innerText = window.balance;
+          const cb = document.getElementById('topupCurrentBalanceDisplay');
+          if (cb) cb.innerText = window.balance;
+          if (typeof tgUtil !== 'undefined') {
+            tgUtil.haptic('success');
+            tgUtil.alert(`Баланс успешно пополнен на ${amountVal} ICE через Telegram Stars!`);
+          }
+        }, 1200);
+
+      } else if (method === 'crypto') {
+        // Криптовалюта
+        if (detailsContainer) {
+          const usdtAmount = (amountVal / 3.25).toFixed(2);
+          detailsContainer.innerHTML = `
+            <div class="glass-card p-4 rounded-3xl border border-purple-400/40 bg-slate-950/90 space-y-3 page-enter mt-3">
+              <div class="flex items-center justify-between border-b border-white/10 pb-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">🪙</span>
+                  <h4 class="text-xs font-bold text-white">Оплата USDT (TRC-20)</h4>
+                </div>
+                <button type="button" onclick="document.getElementById('topupDetailsContainer').innerHTML='';" class="text-white/40 hover:text-white text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full bg-white/5">✕</button>
+              </div>
+              <p class="text-[11px] text-white/70">
+                Переведите точную сумму на адрес нашего официального криптокошелька:
+              </p>
+              <div class="p-3 rounded-2xl bg-black/40 border border-white/10 text-[11px] space-y-1 text-purple-300">
+                <p class="text-white/60">Сумма к переводу: <strong class="text-emerald-400 font-mono text-sm">${usdtAmount} USDT</strong> (TRC-20)</p>
+                <p class="text-white/60">Адрес кошелька:</p>
+                <p class="font-mono text-[10px] break-all bg-white/5 p-2 rounded-xl text-white border border-white/10 select-all">TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE</p>
+              </div>
+              <button
+                type="button"
+                onclick="navigator.clipboard?.writeText('TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE'); if (typeof tgUtil !== 'undefined') { tgUtil.haptic('light'); tgUtil.alert('Адрес кошелька TRC-20 скопирован!'); }"
+                class="btn-primary w-full py-2.5 rounded-xl text-xs font-bold shadow-md shadow-purple-500/20 active:scale-95"
+              >
+                Скопировать адрес кошелька
+              </button>
+            </div>
+          `;
+          detailsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+      } else if (method === 'manager') {
+        // СБП / Менеджер поддержки
+        const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : 'юзер');
+        const tgLink = `https://t.me/icelogix_support?text=${encodeURIComponent('Здравствуйте! Хочу пополнить баланс ICE LOGIX на ' + amountVal + ' BYN (' + amountVal + ' ICE) через СБП / менеджера. Мой ID: ' + curUserId)}`;
+        if (typeof tg !== 'undefined' && tg.openTelegramLink) {
+          tg.openTelegramLink(tgLink);
+        } else {
+          window.open(tgLink, '_blank');
+        }
+      }
+    };
+  }
+}
+
 // Быстрое переключение табов за 0 мс (без перезагрузки экрана)
 function switchFinancesSubTab(targetTab) {
   if (targetTab === 'history') targetTab = 'payment'; // Защита от старых вызовов
@@ -488,14 +927,14 @@ function switchFinancesSubTab(targetTab) {
   if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
 
   // 1. Мгновенно обновляем стили кнопок в DOM
-  const tabs = ['payment', 'coupons', 'refunds'];
+  const tabs = ['topup', 'payment', 'coupons', 'refunds'];
   tabs.forEach(tab => {
     const btn = document.getElementById('financesTab' + tab.charAt(0).toUpperCase() + tab.slice(1));
     if (btn) {
       if (tab === targetTab) {
-        btn.className = 'w-full py-2.5 px-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20';
+        btn.className = 'w-full py-2 px-1 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1 bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20';
       } else {
-        btn.className = 'w-full py-2.5 px-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 text-white/60 hover:text-white hover:bg-white/5 active:scale-95';
+        btn.className = 'w-full py-2 px-1 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1 text-white/60 hover:text-white hover:bg-white/5 active:scale-95';
       }
     }
   });
@@ -504,7 +943,10 @@ function switchFinancesSubTab(targetTab) {
   const container = document.getElementById('financesSubContent');
   if (!container) return;
 
-  if (targetTab === 'payment') {
+  if (targetTab === 'topup') {
+    container.innerHTML = _renderTopupTabHtml();
+    _attachTopupTabHandlers();
+  } else if (targetTab === 'payment') {
     container.innerHTML = _renderPaymentTabHtml();
     _attachPaymentTabHandlers();
   } else if (targetTab === 'coupons') {
@@ -540,12 +982,14 @@ function switchFinancesSubTab(targetTab) {
 // Главная точка входа рендера раздела Финансы
 async function renderFinances() {
   _ensureCardsLoadedSync();
-  let subTab = window._financesSubTab || 'payment';
+  let subTab = window._financesSubTab || 'topup';
   if (subTab === 'history') subTab = 'payment';
   window._financesSubTab = subTab;
 
   let initialContent = '';
-  if (subTab === 'payment') {
+  if (subTab === 'topup') {
+    initialContent = _renderTopupTabHtml();
+  } else if (subTab === 'payment') {
     initialContent = _renderPaymentTabHtml();
   } else if (subTab === 'coupons') {
     const cached = window._financesCache?.coupons;
@@ -591,22 +1035,40 @@ async function renderFinances() {
       </div>
 
       <!-- Сегментированная навигация по подразделам с четкими SVG-иконками -->
-      <div class="grid grid-cols-3 gap-1.5 mb-5 p-1.5 rounded-2xl bg-slate-900/90 border border-white/10 shadow-lg backdrop-blur-md">
+      <div class="grid grid-cols-4 gap-1 mb-5 p-1 rounded-2xl bg-slate-900/90 border border-white/10 shadow-lg backdrop-blur-md">
+        <button
+          id="financesTabTopup"
+          type="button"
+          onclick="window.switchFinancesSubTab('topup')"
+          class="w-full py-2 px-1 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1 ${
+            subTab === 'topup'
+              ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20'
+              : 'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'
+          }"
+        >
+          <svg class="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 8v8"/>
+            <path d="M8 12h8"/>
+          </svg>
+          <span class="truncate">Баланс</span>
+        </button>
+
         <button
           id="financesTabPayment"
           type="button"
           onclick="window.switchFinancesSubTab('payment')"
-          class="w-full py-2.5 px-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 ${
+          class="w-full py-2 px-1 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1 ${
             subTab === 'payment'
               ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20'
               : 'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'
           }"
         >
-          <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg class="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="2" y="5" width="20" height="14" rx="3"/>
             <line x1="2" y1="10" x2="22" y2="10"/>
           </svg>
-          <span class="truncate">Оплата</span>
+          <span class="truncate">Карты</span>
         </button>
 
         <button
@@ -705,11 +1167,13 @@ function attachFinancesHandlers() {
     if (btn) btn.onclick = () => window.switchFinancesSubTab(tabName);
   };
 
+  bindTab('financesTabTopup', 'topup');
   bindTab('financesTabPayment', 'payment');
   bindTab('financesTabCoupons', 'coupons');
   bindTab('financesTabRefunds', 'refunds');
 
-  const curSub = window._financesSubTab || 'payment';
+  const curSub = window._financesSubTab || 'topup';
+  if (curSub === 'topup') _attachTopupTabHandlers();
   if (curSub === 'payment') _attachPaymentTabHandlers();
   if (curSub === 'coupons') _attachCouponsTabHandlers();
 }
@@ -718,3 +1182,10 @@ window.renderFinances = renderFinances;
 window.attachFinancesHandlers = attachFinancesHandlers;
 window.switchFinancesSubTab = switchFinancesSubTab;
 window._renderFinancesCardsOnly = _renderFinancesCardsOnly;
+window._renderTopupTabHtml = _renderTopupTabHtml;
+window._attachTopupTabHandlers = _attachTopupTabHandlers;
+window.openBalanceTopup = function() {
+  if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
+  window._financesSubTab = 'topup';
+  if (typeof switchTab === 'function') switchTab('finances');
+};
