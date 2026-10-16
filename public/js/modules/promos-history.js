@@ -293,8 +293,8 @@ async function renderHistory() {
   }
 
   return `
-    <div class="page-enter px-4 pb-8">
-      <div class="flex items-center gap-3 mb-5 mt-2">
+    <div class="page-enter px-4">
+      <div class="flex items-center gap-3 mb-5">
         <button id="backFromHistoryBtn" class="global-back-btn">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
@@ -716,9 +716,9 @@ async function renderSettingsPage(initialTab = 'account') {
   const activeTab = initialTab || window._settingsInitialTab || 'account';
 
   return `
-    <div class="page-enter px-4 pb-28 max-w-md mx-auto space-y-4">
+    <div class="page-enter px-4 max-w-md mx-auto space-y-4">
       <!-- Top Navigation Header -->
-      <div class="flex items-center gap-3 mb-2 mt-2">
+      <div class="flex items-center gap-3 mb-4">
         <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="15 18 9 12 15 6"/>
@@ -1356,9 +1356,9 @@ async function renderNotificationsPage() {
   const activeFilter = window._notifActiveFilter || 'all';
 
   return `
-    <div class="page-enter px-4 pb-28 max-w-md mx-auto space-y-4">
+    <div class="page-enter px-4 max-w-md mx-auto space-y-4">
       <!-- Top Navigation Header -->
-      <div class="flex items-center justify-between mb-2 mt-2">
+      <div class="flex items-center justify-between mb-4">
         <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="15 18 9 12 15 6"/>

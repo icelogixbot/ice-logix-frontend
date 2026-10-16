@@ -580,10 +580,10 @@ async function renderFinances() {
   }
 
   return `
-    <div class="page-enter px-4 pb-8 max-w-md mx-auto">
+    <div class="page-enter px-4 max-w-md mx-auto">
       
       <!-- Шапка: Кнопка Назад и Заголовок -->
-      <div class="flex items-center gap-3 mb-4 mt-2">
+      <div class="flex items-center gap-3 mb-4">
         <button id="backFromFinancesBtn" onclick="window.backFromFinances()" class="global-back-btn" title="Назад в профиль">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="15 18 9 12 15 6"/>

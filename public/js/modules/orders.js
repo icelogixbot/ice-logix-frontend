@@ -238,7 +238,7 @@ window.applySmartShareLink = applySmartShareLink;
         if (!window.orderCountry) {
           const hasExistingItems = window.tempOrder && window.tempOrder.items && window.tempOrder.items.length > 0;
           return `
-            <div class="space-y-4 page-enter pb-8">
+            <div class="space-y-4 page-enter">
               ${hasExistingItems ? `
                 <button type="button" class="global-back-btn" onclick="window.orderAddMode = false; renderCurrentScreen();">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
@@ -310,7 +310,7 @@ window.applySmartShareLink = applySmartShareLink;
               }
             </style>
 
-            <div class="space-y-4 page-enter pb-8">
+            <div class="space-y-4 page-enter">
               <button type="button" class="global-back-btn" onclick="window.orderCountry=null; renderCurrentScreen();">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
                 Назад
@@ -468,7 +468,7 @@ window.applySmartShareLink = applySmartShareLink;
           : (window.orderCountry || '');
 
         return `
-          <div class="space-y-4 page-enter pb-8">
+          <div class="space-y-4 page-enter">
             <button type="button" class="global-back-btn" onclick="window.goBackGlobal()">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
               Назад

@@ -444,7 +444,7 @@ function attachHomeHandlers() {
       }
 
       return `
-        <div class="space-y-4 page-enter pb-8">
+        <div class="space-y-4 page-enter">
           <div class="glass-card text-left p-5 space-y-4 shadow-2xl border border-white/10 rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
             <h2 class="text-xl font-extrabold text-white text-center mb-6">Калькулятор доставки</h2>
 

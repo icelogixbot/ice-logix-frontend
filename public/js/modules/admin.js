@@ -23,7 +23,7 @@ async function renderAdminReviewsConfig() {
   const topics = config.topic_ids || {};
 
   return `
-    <div class="space-y-6 page-enter pb-8 text-left">
+    <div class="space-y-6 page-enter text-left">
       <div class="flex items-center gap-3">
         <button id="adminConfigBackBtn" class="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
           <span class="text-white text-lg">➔</span>

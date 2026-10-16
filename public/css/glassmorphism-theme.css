@@ -593,6 +593,24 @@
       position: relative;
       z-index: 1;
     }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       STANDARDIZED VERTICAL RHYTHM (Top & Footer Spacing Across All Screens)
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .main-content > *:first-child,
+    .main-content > div:first-child > *:first-child {
+      margin-top: 0 !important;
+    }
+
+    .main-content > .page-enter,
+    .main-content > div:not(.app-footer) {
+      padding-bottom: 0 !important;
+    }
+
+    .main-content > div:not(.app-footer) > *:last-child,
+    .main-content > .page-enter > *:last-child {
+      margin-bottom: 0 !important;
+    }
     
     /* ═══════════════════════════════════════════════════════════════════════════
        GLASS CARDS
@@ -1089,7 +1107,8 @@
        ═══════════════════════════════════════════════════════════════════════════ */
     
     .app-footer {
-      margin: 20px 12px 8px;
+      margin: 24px 12px 12px !important;
+      clear: both;
       padding: 20px;
       background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%);
       backdrop-filter: blur(var(--glass-blur));
@@ -1371,7 +1390,8 @@
       align-items: center;
       gap: 6px;
       transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-      margin-bottom: 14px;
+      margin-top: 0 !important;
+      margin-bottom: 16px !important;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);

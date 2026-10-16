@@ -230,7 +230,7 @@ html.light-theme .app-footer { background: rgba(255,255,255,.88) !important; }
 .order-card .btn-secondary { min-height: 40px; font-weight: 700; }
 .order-card .bg-white\\/5 { background: rgba(130,199,241,.055) !important; border-color: rgba(130,199,241,.12) !important; }
 .order-card .text-cyan-400 { color: var(--ui-blue) !important; }
-.global-back-btn { margin-bottom: 12px !important; }
+.global-back-btn { margin-top: 0 !important; margin-bottom: 16px !important; }
 
 @media (max-width: 420px) {
   .profile-shell { padding: 18px 14px !important; }

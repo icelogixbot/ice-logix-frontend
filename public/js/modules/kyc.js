@@ -344,7 +344,7 @@
 
     // Вёрстка экрана
     content.innerHTML = `
-      <div class="px-4 py-3 page-enter pb-24 max-w-lg mx-auto">
+      <div class="px-4 page-enter max-w-lg mx-auto">
         
         <!-- Header экрана с кнопкой Назад -->
         <div class="flex items-center justify-between mb-4">

@@ -438,10 +438,10 @@
     const primaryCard = cards.find(c => c.is_default) || cards[0] || null;
 
     return `
-      <div class="page-enter px-4 pb-12 max-w-md mx-auto space-y-4">
+      <div class="page-enter px-4 max-w-md mx-auto space-y-4">
 
         <!-- Шапка раздела с кнопкой Назад -->
-        <div class="flex items-center gap-3 mb-4 mt-2">
+        <div class="flex items-center gap-3 mb-4">
           <button id="backFromTopupBtn" onclick="window.goBackGlobal()" class="global-back-btn" title="Назад">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="15 18 9 12 15 6"/>
