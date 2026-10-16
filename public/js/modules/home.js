@@ -240,6 +240,19 @@ function attachHomeHandlers() {
             switchTab('legitcheck');
           } else if (action === 'calculator') {
             switchTab('calculator');
+          } else if (action === 'referral') {
+            if (window.tgUtil && window.tgUtil.haptic) {
+              window.tgUtil.haptic('light');
+            }
+            switchTab('profile');
+            setTimeout(() => {
+              const refEl = document.getElementById('referralSection');
+              if (refEl) {
+                refEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                refEl.style.boxShadow = '0 0 25px rgba(52, 211, 153, 0.4)';
+                setTimeout(() => { refEl.style.boxShadow = ''; }, 2000);
+              }
+            }, 300);
           }
         });
       });

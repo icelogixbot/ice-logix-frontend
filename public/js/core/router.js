@@ -171,6 +171,11 @@
       } else if (currentTab === 'reftree') {
         contentDiv.innerHTML = shadowBannerHtml + await renderReferralTree();
         attachReferralTreeHandlers();
+      } else if (currentTab === 'bonus_shop') {
+        if (typeof renderBonusShop === 'function') {
+          contentDiv.innerHTML = shadowBannerHtml + await renderBonusShop();
+          if (typeof attachBonusShopHandlers === 'function') attachBonusShopHandlers();
+        }
       } else if (currentTab === 'admin_marketing' && isOwner) {
         if (!adminAuthenticated) { switchTab('admin'); return; }
         contentDiv.innerHTML = await renderAdminMarketing();

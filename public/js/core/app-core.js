@@ -3687,7 +3687,13 @@ let adminOrdersTotalPages = 1;
           }
         ];
 
-        let slides = [rateSlide];
+        const referral3dSlide = {
+          id: 'promo-referral-3d',
+          isReferralSlide: true,
+          action: 'referral'
+        };
+
+        let slides = [rateSlide, referral3dSlide];
         if (dbPromos.length > 0) {
           dbPromos.forEach(p => {
             slides.push({
@@ -3729,6 +3735,26 @@ let adminOrdersTotalPages = 1;
                       Рассчитать заказ →
                     </span>
                     <span class="cny-ice-note">1 BYN = 1 ICE</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          } else if (s.isReferralSlide) {
+            return `
+              <div class="banner-slide banner-slide-referral" data-promo-action="referral">
+                <div class="referral-3d-visual" aria-hidden="true"></div>
+                <div class="banner-content referral-content">
+                  <div class="referral-badge">
+                    <span>✨</span> ПРИВЕДИ ДРУГА • 1%
+                  </div>
+                  <h3 class="banner-title referral-title">ДО 1% С КАЖДОГО ЗАКАЗА</h3>
+                  <p class="banner-subtitle referral-subtitle">
+                    Пожизненный пассивный доход на баланс ICE с покупок твоих друзей
+                  </p>
+                  <div class="referral-footer-row">
+                    <span class="banner-btn referral-btn">
+                      Пригласить друзей →
+                    </span>
                   </div>
                 </div>
               </div>

@@ -28,7 +28,7 @@
         }, 300000)
       ]);
       
-      const shareLink = userReferralCode ? `https://t.me/${tg.initDataUnsafe?.user?.username ? tg.initDataUnsafe.user.username : 'icelogix_bot'}?startapp=ref_${userReferralCode}` : '';
+      const shareLink = userReferralCode ? `https://t.me/icelogix_bot?start=ref_${userReferralCode}` : '';
       
       let displayedBalance = balance;
       const fam = window.userSettings?.family || {};
@@ -107,15 +107,15 @@
     `}
     
     <!-- Referral Program -->
-    <div class="p-4 rounded-2xl mb-4" style="background: linear-gradient(135deg, rgba(52,211,153,0.15), rgba(16,185,129,0.08)); border: 1px solid rgba(52,211,153,0.25);">
+    <div id="referralSection" class="p-4 rounded-2xl mb-4 transition-all duration-300" style="background: linear-gradient(135deg, rgba(52,211,153,0.15), rgba(16,185,129,0.08)); border: 1px solid rgba(52,211,153,0.25);">
       <div class="flex items-center justify-between mb-3">
         <p class="font-bold flex items-center gap-2 text-white">
           <span class="text-lg"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span></span>
           Приведи друга
         </p>
-        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">1% ПОЖИЗНЕННО</span>
+        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">7% ВАМ + 3% ДРУГУ</span>
       </div>
-      <p class="text-white/60 text-xs mb-3 text-left">Делитесь ссылкой и получайте 1% от комиссии с каждого заказа вашего друга прямо на баланс ICE!</p>
+      <p class="text-white/60 text-xs mb-3 text-left">Делитесь ссылкой с друзьями: вы получаете 7% от комиссии за их первый заказ, а друг — приветственный кэшбэк 3% на баланс ICE!</p>
       <div class="grid grid-cols-2 gap-3 mb-3">
         <div class="p-3 rounded-xl text-center" style="background: var(--glass-bg);">
           <p class="text-2xl font-bold" style="color: var(--ice-primary);">${referralStats.count}</p>
@@ -135,7 +135,20 @@
           Скопировать ссылку
         </button>
       ` : ''}
-      <div class="grid grid-cols-2 gap-2 mt-3">
+
+      <!-- Кнопка перехода в Магазин Бонусов -->
+      <button onclick="switchTab('bonus_shop')" class="w-full mt-2.5 py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-between transition-all active:scale-95" style="background: linear-gradient(135deg, rgba(6,182,212,0.25), rgba(59,130,246,0.18)); border: 1px solid rgba(6,182,212,0.4); color: #ffffff; box-shadow: 0 0 14px rgba(6,182,212,0.25);">
+        <span class="flex items-center gap-2">
+          <span class="text-base">🎁</span>
+          <span>Магазин бонусов ICE</span>
+        </span>
+        <span class="text-[11px] text-cyan-300 font-bold flex items-center gap-1">
+          Обменять баллы
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </span>
+      </button>
+
+      <div class="grid grid-cols-2 gap-2 mt-2.5">
         <button onclick="switchTab('reftree')" class="py-2.5 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition-all hover:bg-white/10 active:scale-95" style="background: var(--glass-bg-strong); border: 1px solid var(--glass-border);">🌳<span>Моя сеть</span></button>
         <button onclick="switchTab('ugc')" class="py-2.5 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition-all hover:bg-white/10 active:scale-95" style="background: var(--glass-bg-strong); border: 1px solid var(--glass-border);">🎬<span>Распаковка</span></button>
       </div>
