@@ -1,6 +1,189 @@
 // ============================================================
 // ICE LOGIX Module: Orders & Payments
 // ============================================================
+
+// ==================== УМНЫЙ ПАРСИНГ ССЫЛОК И ТЕКСТА КИТАЙСКИХ ПЛОЩАДОК ====================
+const KNOWN_MARKETPLACE_BRANDS = [
+  'Nike', 'Jordan', 'Adidas', 'New Balance', 'Yeezy', 'Asics', 'Puma',
+  'Converse', 'Vans', 'Salomon', "Arc'teryx", 'Arcteryx', 'Supreme',
+  'Stussy', 'Bape', 'A Bathing Ape', 'UGG', 'Balenciaga', 'Gucci', 'Prada',
+  'Louis Vuitton', 'Dior', 'Fear of God', 'Essentials', 'Corteiz', 'Trapstar',
+  'Timberland', 'Crocs', 'The North Face', 'Stone Island', 'Mihara Yasuhiro',
+  'Maison Margiela', 'Off-White', 'Rick Owens', 'Carhartt', 'Zara', 'Uniqlo',
+  'MLB', 'Champion', 'Under Armour', 'Reebok', 'Hoka', 'On Running', 'Casio'
+];
+
+function parseMarketplaceShare(rawText) {
+  if (!rawText || typeof rawText !== 'string') return null;
+  const raw = rawText.trim();
+  if (!raw) return null;
+
+  // 1. Extract URL (http or https)
+  const urlRegex = /(https?:\/\/[^\s<>"'{}|\\^`「」【】《》()（）\u4e00-\u9fa5]+)/i;
+  const match = raw.match(urlRegex);
+  let cleanUrl = match ? match[1] : '';
+  if (cleanUrl) {
+    cleanUrl = cleanUrl.replace(/[.,!?:;，。！？]+$/, '');
+  }
+
+  // 2. Extract brand
+  let detectedBrand = '';
+  for (const b of KNOWN_MARKETPLACE_BRANDS) {
+    const rx = new RegExp(`(^|[^a-zA-Z0-9])${b.replace("'", "['’]?")}([^a-zA-Z0-9]|$)`, 'i');
+    if (rx.test(raw)) {
+      detectedBrand = b;
+      break;
+    }
+  }
+
+  // 3. Extract Category
+  let detectedCategory = '';
+  const catKeywords = [
+    { cat: 'Кроссовки', rx: /(?:кроссовк|кед|sneaker|dunk|jordan|air force|yeezy|samba|gazelle|550|2002r|鞋|板鞋|跑鞋)/i },
+    { cat: 'Ботинки', rx: /(?:ботинк|сапог|лофер|угг|boot|ugg|timberland|靴)/i },
+    { cat: 'Футболка', rx: /(?:футболк|лонгслив|tee|t-shirt|短袖|T恤)/i },
+    { cat: 'Худи', rx: /(?:худи|толстовк|свитшот|hoodie|sweatshirt|卫衣)/i },
+    { cat: 'Куртка', rx: /(?:куртк|ветровк|бомбер|jacket|外套|夹克)/i },
+    { cat: 'Пуховик', rx: /(?:пуховик|down jacket|羽绒服)/i },
+    { cat: 'Джинсы', rx: /(?:джинс|jeans|牛仔裤)/i },
+    { cat: 'Брюки', rx: /(?:брюк|штаны|pants|sweatpants|长裤|休闲裤)/i },
+    { cat: 'Шорты', rx: /(?:шорт|shorts|短裤)/i },
+    { cat: 'Рюкзак', rx: /(?:рюкзак|backpack|双肩包)/i },
+    { cat: 'Сумка', rx: /(?:сумк|bag|tote|crossbody|单肩包|手提包)/i },
+    { cat: 'Шапка', rx: /(?:шапк|кепк|панам|cap|beanie|hat|帽子)/i },
+    { cat: 'Часы', rx: /(?:час[ыо]|watch|手表)/i },
+    { cat: 'Очки', rx: /(?:очк|sunglasses|glasses|墨镜|眼镜)/i },
+    { cat: 'Парфюм', rx: /(?:парфюм|духи|perfume|fragrance|香水)/i }
+  ];
+
+  for (const ck of catKeywords) {
+    if (ck.rx.test(raw)) {
+      detectedCategory = ck.cat;
+      break;
+    }
+  }
+
+  // 4. Extract title / model
+  let detectedTitle = '';
+  const quoteMatch = raw.match(/「([^」]+)」/);
+  if (quoteMatch && quoteMatch[1] && !['得物', '淘宝', '天猫', '京东', '闲鱼', '1688', 'Poizon'].includes(quoteMatch[1].trim())) {
+    detectedTitle = quoteMatch[1].trim();
+  }
+
+  if (!detectedTitle) {
+    let t = raw;
+    if (cleanUrl) t = t.replace(cleanUrl, ' ');
+    // Remove boilerplate Chinese phrases
+    t = t.replace(/【(?:得物|淘宝|天猫|京东|闲鱼|1688|Poizon)】/gi, ' ');
+    t = t.replace(/点击链接直接打开.*$/gi, ' ');
+    t = t.replace(/或复制该信息打开.*$/gi, ' ');
+    t = t.replace(/复制这条信息后打开.*$/gi, ' ');
+    t = t.replace(/复制本条信息打开.*$/gi, ' ');
+    t = t.replace(/得物App专注于.*?社区/gi, ' ');
+    t = t.replace(/得物App/gi, ' ');
+    t = t.replace(/[0-9]+￥\s*[A-Z0-9]+\s*[0-9]:\/！/gi, ' ');
+    t = t.replace(/CZ[0-9]{4}/gi, ' ');
+    t = t.replace(/[\n\r\t]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+    // Remove leading numbers or short codes like "99 9999"
+    t = t.replace(/^[0-9\s#.,，。…]+/, '').trim();
+    // Remove trailing punctuation/ellipsis
+    t = t.replace(/[.,!?:;，。！？…]+$/, '').trim();
+
+    if (t.length > 2 && t.length < 120 && !/^[\s.,，。…]+$/.test(t)) {
+      detectedTitle = t;
+    }
+  }
+
+  // Model cleanup:
+  let detectedModel = detectedTitle;
+  if (detectedBrand && detectedModel) {
+    const bRx = new RegExp(`(^|[^a-zA-Z0-9])${detectedBrand}(?:耐克|阿迪达斯|彪马|亚瑟士)?(?:官方旗舰店|官方店|官方)?([^a-zA-Z0-9]|$)`, 'i');
+    detectedModel = detectedModel.replace(bRx, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  // 5. Extract Size
+  let detectedSize = '';
+  const sizeMatch = raw.match(/(?:EUR|EU|US|UK)?\s*([345][0-9](?:\.5|\.0)?|[6-9]\.5|[6-9])\s*(?:码|EUR|EU|US|UK)/i) 
+                 || raw.match(/(?:размер|size|码数|尺码)\s*:?\s*([345][0-9](?:\.5|\.0)?|[6-9]\.5|[6-9]|S|M|L|XL|XXL)/i);
+  if (sizeMatch && sizeMatch[1]) {
+    detectedSize = sizeMatch[1].toUpperCase();
+  }
+
+  return {
+    raw,
+    url: cleanUrl || (raw.startsWith('http') ? raw : ''),
+    brand: detectedBrand,
+    title: detectedTitle,
+    model: detectedModel || detectedTitle,
+    category: detectedCategory,
+    size: detectedSize
+  };
+}
+window.parseMarketplaceShare = parseMarketplaceShare;
+
+function applySmartShareLink(targetInput, rawText, isManual = false) {
+  if (!rawText || typeof rawText !== 'string') return false;
+  const parsed = parseMarketplaceShare(rawText);
+  if (!parsed || (!parsed.url && !parsed.model && !parsed.brand)) {
+    return false;
+  }
+
+  const url = parsed.url;
+  if (url && targetInput) {
+    targetInput.value = url;
+    targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+  } else if (!url && targetInput && parsed.model) {
+    targetInput.value = parsed.model;
+    targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  const filled = [];
+
+  const brandEl = document.getElementById('orderBrand');
+  if (brandEl && !brandEl.value.trim() && parsed.brand) {
+    brandEl.value = parsed.brand;
+    brandEl.dispatchEvent(new Event('input', { bubbles: true }));
+    filled.push('бренд');
+  }
+
+  const modelEl = document.getElementById('orderModel');
+  if (modelEl && !modelEl.value.trim() && parsed.model) {
+    modelEl.value = parsed.model;
+    modelEl.dispatchEvent(new Event('input', { bubbles: true }));
+    filled.push('модель');
+  }
+
+  const sizeEl = document.getElementById('orderSize');
+  if (sizeEl && !sizeEl.value.trim() && parsed.size) {
+    sizeEl.value = parsed.size;
+    sizeEl.dispatchEvent(new Event('input', { bubbles: true }));
+    filled.push('размер');
+  }
+
+  const categoryEl = document.getElementById('orderCategory');
+  if (categoryEl && (!categoryEl.value || categoryEl.value === '') && parsed.category) {
+    categoryEl.value = parsed.category;
+    categoryEl.dispatchEvent(new Event('change', { bubbles: true }));
+    filled.push('категорию');
+  }
+
+  if (window.tgUtil && typeof window.tgUtil.haptic === 'function') window.tgUtil.haptic('success');
+
+  if (filled.length > 0) {
+    if (typeof glassToast === 'function') {
+      glassToast(`✨ Ссылка очищена! Заполнено: ${filled.join(', ')}`, { kind: 'success' });
+    }
+  } else if (url) {
+    if (typeof glassToast === 'function') {
+      glassToast('✨ Ссылка очищена от иероглифов и вставлена!', { kind: 'success' });
+    }
+  }
+
+  return true;
+}
+window.applySmartShareLink = applySmartShareLink;
+
     // ==================== РЕНДЕР НОВОГО ЗАКАЗА ====================
         async function renderNewOrder() {
       // Fetch recipients for customs split
@@ -370,8 +553,18 @@
             <!-- Fields -->
             <div id="orderManualForm" class="${showFormFields ? '' : 'hidden'} mt-4 border-t border-white/10 pt-4">
               <div class="mb-3">
-                <label class="text-white/70 text-sm block mb-1">Ссылка на товар (необязательно)</label>
-                <input type="text" id="orderUrlManual" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="https://poizon.com/...">
+                <div class="flex justify-between items-center mb-1">
+                  <label class="text-white/70 text-sm">Ссылка на товар <span class="text-white/40 text-xs font-normal">(необязательно)</span></label>
+                  <span class="text-[10px] text-cyan-400 font-medium flex items-center gap-1">✨ Автоочистка</span>
+                </div>
+                <div class="flex gap-1 bg-white/5 border border-white/30 rounded-xl overflow-hidden px-1.5 py-1">
+                  <input type="text" id="orderUrlManual" class="bg-transparent flex-1 border-0 outline-none p-2 text-sm text-white" placeholder="Вставьте ссылку на Poizon, Taobao, 1688...">
+                  <button type="button" id="orderUrlManualPasteBtn" class="bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg px-3.5 transition flex items-center justify-center text-cyan-400 gap-1.5 text-xs font-bold" title="Вставить и очистить ссылку">
+                    ${ix('clipboard', { size: '14px' })}
+                    <span>Вставить</span>
+                  </button>
+                </div>
+                <p class="text-white/40 text-[11px] mt-1.5">Вставьте текст или ссылку из Poizon — приложение уберёт иероглифы и подставит бренд, модель и размер.</p>
               </div>
               
               <div class="mb-3">
@@ -1543,33 +1736,82 @@
         updateAiSizeAdvice();
 
         const urlInp = document.getElementById('orderUrl');
+        const manualUrlInp = document.getElementById('orderUrlManual');
         const orderPasteBtn = document.getElementById('orderPasteBtn');
+        const orderUrlManualPasteBtn = document.getElementById('orderUrlManualPasteBtn');
         const analyzeOrderBtn = document.getElementById('analyzeOrderLinkBtn');
 
+        // Smart link paste for main Link pane
         if (orderPasteBtn) {
           orderPasteBtn.onclick = async () => {
-            tgUtil.haptic('light');
+            if (window.tgUtil && typeof window.tgUtil.haptic === 'function') window.tgUtil.haptic('light');
             try {
               const text = await navigator.clipboard.readText();
               const cleaned = text?.trim();
-              if (cleaned && (cleaned.startsWith('http://') || cleaned.startsWith('https://') || cleaned.includes('dewu.com') || cleaned.includes('taobao.com') || cleaned.includes('tmall.com') || cleaned.includes('jd.com') || cleaned.includes('pinduoduo.com') || cleaned.includes('yangkeduo.com') || cleaned.includes('goofish.com') || cleaned.includes('95fen.com') || cleaned.includes('poizon'))) {
-                if (urlInp) {
+              if (cleaned) {
+                const applied = applySmartShareLink(urlInp, cleaned, false);
+                if (!applied && urlInp) {
                   urlInp.value = cleaned;
-                  glassToast('Ссылка успешно вставлена!', { kind: 'success' });
-                  if (analyzeOrderBtn) analyzeOrderBtn.click();
+                  if (typeof glassToast === 'function') glassToast('Текст вставлен! Проверьте формат ссылки.', { kind: 'info' });
                 }
-              } else if (cleaned) {
-                if (urlInp) urlInp.value = cleaned;
-                glassToast('Текст вставлен! Проверьте формат ссылки.', { kind: 'info' });
               } else {
-                glassToast('Буфер обмена пуст!', { kind: 'info' });
+                if (typeof glassToast === 'function') glassToast('Буфер обмена пуст!', { kind: 'info' });
               }
             } catch (err) {
               console.error('Clipboard paste failed:', err);
-              glassToast('Нет доступа к буферу. Вставьте вручную.', { kind: 'error' });
+              if (typeof glassToast === 'function') glassToast('Нет доступа к буферу. Вставьте вручную.', { kind: 'error' });
             }
           };
         }
+
+        // Smart link paste for Manual order form
+        if (orderUrlManualPasteBtn) {
+          orderUrlManualPasteBtn.onclick = async () => {
+            if (window.tgUtil && typeof window.tgUtil.haptic === 'function') window.tgUtil.haptic('light');
+            try {
+              const text = await navigator.clipboard.readText();
+              const cleaned = text?.trim();
+              if (cleaned) {
+                const applied = applySmartShareLink(manualUrlInp, cleaned, true);
+                if (!applied && manualUrlInp) {
+                  manualUrlInp.value = cleaned;
+                  if (typeof glassToast === 'function') glassToast('Текст вставлен! Проверьте формат ссылки.', { kind: 'info' });
+                }
+              } else {
+                if (typeof glassToast === 'function') glassToast('Буфер обмена пуст!', { kind: 'info' });
+              }
+            } catch (err) {
+              console.error('Clipboard paste failed:', err);
+              if (typeof glassToast === 'function') glassToast('Нет доступа к буферу. Вставьте вручную.', { kind: 'error' });
+            }
+          };
+        }
+
+        // Intercept native mobile paste on inputs to auto-clean Poizon/Taobao text
+        [urlInp, manualUrlInp].forEach(inp => {
+          if (!inp) return;
+          inp.addEventListener('paste', (e) => {
+            const pasteText = (e.clipboardData || window.clipboardData)?.getData('text');
+            if (pasteText && (pasteText.includes('http') || /[\u4e00-\u9fa5]/.test(pasteText))) {
+              e.preventDefault();
+              applySmartShareLink(inp, pasteText, inp === manualUrlInp);
+            }
+          });
+        });
+
+        // If user accidentally pastes whole share snippet into brand or model
+        const brandInp = document.getElementById('orderBrand');
+        const modelInp = document.getElementById('orderModel');
+        [brandInp, modelInp].forEach(inp => {
+          if (!inp) return;
+          inp.addEventListener('paste', (e) => {
+            const pasteText = (e.clipboardData || window.clipboardData)?.getData('text');
+            if (pasteText && (pasteText.includes('http') || /[\u4e00-\u9fa5]/.test(pasteText))) {
+              e.preventDefault();
+              applySmartShareLink(manualUrlInp || urlInp, pasteText, true);
+            }
+          });
+        });
 
         if (analyzeOrderBtn) {
           analyzeOrderBtn.addEventListener('click', async () => {
