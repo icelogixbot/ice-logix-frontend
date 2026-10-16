@@ -4,12 +4,17 @@
 // ==================== О НАС (ABOUT US) ====================
 async function renderAboutUs() {
   return `
-  <button id="backFromAboutBtn" class="global-back-btn">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="15 18 9 12 15 6"/>
-    </svg>
-    Назад
-  </button>
+    <div class="flex items-center gap-3 mb-4 mt-2">
+      <button id="backFromAboutBtn" type="button" class="global-back-btn !mb-0" title="Назад">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <div>
+        <h2 class="text-xl font-bold text-white tracking-wide">О сервисе</h2>
+        <p class="text-[11px] text-white/40">ICE LOGIX — твой проводник в мир шоппинга</p>
+      </div>
+    </div>
   
   <div class="space-y-4 page-enter">
     <div class="glass-card text-center relative overflow-hidden">
@@ -348,10 +353,18 @@ async function renderFAQ() {
     }
 
     return `
-      <button id="backFromFaqBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
+      <div class="flex items-center gap-3 mb-4 mt-2">
+        <button id="backFromFaqBtn" type="button" class="global-back-btn !mb-0" title="Назад">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+        <div>
+          <h2 class="text-xl font-bold text-white tracking-wide">Частые вопросы (FAQ)</h2>
+          <p class="text-[11px] text-white/40">Ответы по заказам, доставке и финансам</p>
+        </div>
+      </div>
       <div class="glass-card page-enter">
-        <h2 class="text-xl font-bold mb-4 text-white">Частые вопросы (FAQ)</h2>
-        <p class="text-white/50 text-xs mb-4">Здесь собраны ответы на самые популярные вопросы по заказам, доставке и финансам.</p>
         <div class="relative mb-6">
           <span class="ix absolute left-3 top-1/2 -translate-y-1/2 text-white/40"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
           <input type="text" id="faqSearchInput" class="w-full bg-white/5 border border-white/15 rounded-xl py-2.5 pl-9 pr-3 text-white text-sm focus:border-cyan-400/50 focus:outline-none transition" placeholder="Поиск по вопросам и ответам...">

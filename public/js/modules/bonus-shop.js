@@ -250,10 +250,17 @@
 
     return `
       <!-- Стандартная кнопка возврата -->
-      <button id="bonusShopBackBtn" class="global-back-btn mb-3">
-        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span>
-        Назад в профиль
-      </button>
+      <div class="flex items-center gap-3 mb-4 mt-2">
+        <button id="bonusShopBackBtn" type="button" class="global-back-btn !mb-0" title="Назад">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+        <div>
+          <h2 class="text-xl font-bold text-white tracking-wide">Магазин бонусов ICE</h2>
+          <p class="text-[11px] text-white/40">Обменивайте баллы на реальные награды</p>
+        </div>
+      </div>
 
       <!-- Главный баннер магазина бонусов -->
       <div class="relative overflow-hidden p-4 mb-4 rounded-2xl" style="background: linear-gradient(135deg, rgba(6,182,212,0.18), rgba(59,130,246,0.12)); border: 1px solid rgba(6,182,212,0.35);">

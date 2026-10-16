@@ -156,9 +156,10 @@
 
     eripModal.innerHTML = `
       <div class="full-screen-modal-header">
-        <button id="closeEripModalBtn" type="button" class="global-back-btn">
-          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-          <span>Назад</span>
+        <button id="closeEripModalBtn" type="button" class="global-back-btn !mb-0" title="Назад">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
         </button>
         <div class="text-center font-bold text-sm text-white flex items-center justify-center gap-1.5">
           <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
@@ -305,9 +306,10 @@
 
     oplatiModal.innerHTML = `
       <div class="full-screen-modal-header">
-        <button id="closeOplatiModalBtn" type="button" class="global-back-btn">
-          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-          <span>Назад</span>
+        <button id="closeOplatiModalBtn" type="button" class="global-back-btn !mb-0" title="Назад">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
         </button>
         <div class="text-center font-bold text-sm text-white flex items-center justify-center gap-1.5">
           <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -442,7 +444,7 @@
 
         <!-- Шапка раздела с кнопкой Назад -->
         <div class="flex items-center gap-3 mb-4">
-          <button id="backFromTopupBtn" onclick="window.goBackGlobal()" class="global-back-btn" title="Назад">
+          <button id="backFromTopupBtn" onclick="window.goBackGlobal()" class="global-back-btn !mb-0" title="Назад">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="15 18 9 12 15 6"/>
             </svg>

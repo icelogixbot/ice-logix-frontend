@@ -26,12 +26,44 @@
         const statsHtml = `<div class="glass-card mb-4 p-3 flex justify-around items-center text-center"><div class="flex-1 border-r border-white/10"><p class="text-white/50 text-[10px] uppercase">Выкуплено</p><p class="text-white font-bold text-lg">${data.length}</p></div><div class="flex-1"><p class="text-white/50 text-[10px] uppercase">Доставлено</p><p class="text-cyan-400 font-bold text-lg">${count}</p></div></div>`;
         
         if (data.length === 0) {
-          return `${statsHtml}<div class="text-center py-10"><p class="text-white/70">Пока нет публичных отчётов</p>${isOwner ? '<button id="addReportBtn" class="btn-primary mt-4"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить первый отчёт</button>' : ''}</div>${renderFooter()}`;
+          return `
+            <div class="page-enter px-4 pb-8 max-w-md mx-auto space-y-4">
+              <div class="flex items-center gap-3 mb-2 mt-2">
+                <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"/>
+                  </svg>
+                </button>
+                <div class="flex-1 min-w-0">
+                  <h2 class="text-xl font-bold text-white tracking-wide">Публичные отчёты</h2>
+                  <p class="text-[11px] text-white/40">Фото и видео доставленных заказов</p>
+                </div>
+              </div>
+              ${statsHtml}
+              <div class="text-center py-10">
+                <p class="text-white/70">Пока нет публичных отчётов</p>
+                ${isOwner ? '<button id="addReportBtn" class="btn-primary mt-4 py-2 px-4 rounded-xl text-xs font-bold inline-flex items-center gap-1.5"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить первый отчёт</button>' : ''}
+              </div>
+            </div>
+            ${renderFooter()}
+          `;
         }
         return `
-          <div class="space-y-4">
+          <div class="page-enter px-4 pb-8 max-w-md mx-auto space-y-4">
+            <div class="flex items-center gap-3 mb-2 mt-2">
+              <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+              </button>
+              <div class="flex-1 min-w-0">
+                <h2 class="text-xl font-bold text-white tracking-wide">Публичные отчёты</h2>
+                <p class="text-[11px] text-white/40">Фото и видео доставленных заказов</p>
+              </div>
+              ${isOwner ? '<button id="addReportBtn" class="btn-primary py-1.5 px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 flex-shrink-0"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить</button>' : ''}
+            </div>
             ${statsHtml}
-            ${isOwner ? '<button id="addReportBtn" class="global-back-btn mb-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить отчёт</button>' : ''}
+            <div class="space-y-4">
             ${data.map(report => {
               let mediaUrls = [];
               try { mediaUrls = JSON.parse(report.image_url); } catch(e) { mediaUrls = [report.image_url]; }
@@ -65,6 +97,7 @@
               </div>
             `}).join('')}
           </div>
+          </div>
           ${renderFooter()}
         `;
       } catch (err) { return '<p class="text-center mt-10 text-red-400">Ошибка загрузки отчётов</p>'; }
@@ -79,9 +112,10 @@
           modal.id = 'addReportModal';
           modal.innerHTML = `
             <div class="full-screen-modal-header">
-              <button type="button" class="global-back-btn" id="cancelReportBtn">
-                <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-                <span>Назад</span>
+              <button type="button" class="global-back-btn !mb-0" id="cancelReportBtn" title="Назад">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
               </button>
               <div class="text-center">
                 <h3 class="text-white font-bold text-sm truncate">Новый отчёт</h3>
@@ -339,7 +373,20 @@
           ];
 
           return `
-            <div class="space-y-6 text-left mb-6">
+            <div class="page-enter px-4 pb-8 max-w-md mx-auto space-y-4">
+              <!-- Top Navigation Header -->
+              <div class="flex items-center gap-3 mb-2 mt-2">
+                <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"/>
+                  </svg>
+                </button>
+                <div class="flex-1 min-w-0">
+                  <h2 class="text-xl font-bold text-white tracking-wide">Отзывы клиентов</h2>
+                  <p class="text-[11px] text-white/40">Оценки сервиса, отзывы по категориям</p>
+                </div>
+              </div>
+              <div class="space-y-6 text-left mb-6">
               <!-- Визуальная досочка (Инфо-плашка) -->
               <div class="reviews-board p-5 border border-white/10 text-center relative overflow-hidden">
                 <div class="absolute -right-10 -top-10 w-28 h-28 bg-cyan-500/10 rounded-full blur-2xl"></div>
@@ -410,6 +457,7 @@
                   `).join('')}
                 </div>
               </div>
+            </div>
             </div>
             ${renderFooter()}
           `;
@@ -532,8 +580,10 @@
           return `
             <div class="space-y-4 page-enter text-left mb-6">
               <div class="flex items-center gap-3">
-                <button id="feedBackToHubBtn" class="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
-                  <span class="text-white text-lg">➔</span>
+                <button id="feedBackToHubBtn" type="button" class="global-back-btn !mb-0" title="Назад к хабу отзывов">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"/>
+                  </svg>
                 </button>
                 <div>
                   <h2 class="text-white text-xl font-bold leading-tight">Лента отзывов</h2>
@@ -795,9 +845,10 @@
             if (actions.length === 0) {
               modal.innerHTML = `
                 <div class="full-screen-modal-header">
-                  <button type="button" class="global-back-btn" id="closeReviewModalBtn">
-                    <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-                    <span>Назад</span>
+                  <button type="button" class="global-back-btn !mb-0" id="closeReviewModalBtn" title="Назад">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="15 18 9 12 15 6"/>
+                    </svg>
                   </button>
                   <div class="text-center">
                     <h3 class="text-white font-bold text-sm truncate">Отзывы</h3>
@@ -827,9 +878,10 @@
             if (actions.length >= 2) {
               modal.innerHTML = `
                 <div class="full-screen-modal-header">
-                  <button type="button" class="global-back-btn" id="closeReviewModalBtn">
-                    <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-                    <span>Назад</span>
+                  <button type="button" class="global-back-btn !mb-0" id="closeReviewModalBtn" title="Назад">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="15 18 9 12 15 6"/>
+                    </svg>
                   </button>
                   <div class="text-center">
                     <h3 class="text-white font-bold text-sm truncate">Доступные действия</h3>
@@ -878,9 +930,10 @@
 
             modal.innerHTML = `
               <div class="full-screen-modal-header">
-                <button type="button" class="global-back-btn" id="backToActionsBtn">
-                  <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-                  <span>Назад</span>
+                <button type="button" class="global-back-btn !mb-0" id="backToActionsBtn" title="Назад">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"/>
+                  </svg>
                 </button>
                 <div class="text-center">
                   <h3 class="text-white font-bold text-sm truncate">Оставить отзыв</h3>

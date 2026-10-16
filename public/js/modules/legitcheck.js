@@ -8,7 +8,19 @@ async function renderLegitCheck() {
 
   if (!disclaimerAccepted) {
     return `
-      <div class="glass-card font-sans">
+      <div class="page-enter px-4 pb-8 max-w-md mx-auto space-y-4">
+        <div class="flex items-center gap-3 mb-2 mt-2">
+          <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-xl font-bold text-white tracking-wide">Legit-Check</h2>
+            <p class="text-[11px] text-white/40">Проверка подлинности брендовых вещей</p>
+          </div>
+        </div>
+        <div class="glass-card font-sans">
         <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
           <span>🔍 Экспертный Legit-Check</span>
         </h2>
@@ -29,6 +41,7 @@ async function renderLegitCheck() {
         <button id="acceptDisclaimerBtn" class="btn-primary w-full py-3 rounded-xl font-bold transition uppercase tracking-wider text-xs font-sans">
           Принять и продолжить
         </button>
+      </div>
       </div>
       ${renderFooter()}
     `;
@@ -109,6 +122,19 @@ async function renderLegitCheck() {
 
   return `
 
+    <div class="page-enter px-4 pb-8 max-w-md mx-auto space-y-4">
+      <div class="flex items-center gap-3 mb-2 mt-2">
+        <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-xl font-bold text-white tracking-wide">Legit-Check</h2>
+          <p class="text-[11px] text-white/40">Экспертная проверка оригинальности</p>
+        </div>
+      </div>
+
     ${requestsListHtml}
 
     <div class="glass-card font-sans">
@@ -148,6 +174,7 @@ async function renderLegitCheck() {
         </button>
       </div>
     </div>
+    </div>
     ${renderFooter()}
   `;
 }

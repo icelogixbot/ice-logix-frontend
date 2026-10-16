@@ -27,9 +27,10 @@ async function showCommissionContractModal() {
   // Render loading state initially
   modal.innerHTML = `
     <div class="full-screen-modal-header">
-      <button type="button" class="global-back-btn" id="closeContractModalBtn">
-        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-        <span>Назад</span>
+      <button type="button" class="global-back-btn !mb-0" id="closeContractModalBtn" title="Назад">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
       </button>
       <h3 class="text-white font-bold text-sm">Договор комиссии байера</h3>
       <div style="width: 48px;"></div>
@@ -73,9 +74,10 @@ async function showCommissionContractModal() {
 
     modal.innerHTML = `
       <div class="full-screen-modal-header">
-        <button type="button" class="global-back-btn" id="closeContractModalBtn">
-          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-          <span>Назад</span>
+        <button type="button" class="global-back-btn !mb-0" id="closeContractModalBtn" title="Назад">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
         </button>
         <div class="text-center">
           <h3 class="text-white font-bold text-sm truncate">Договор комиссии</h3>
@@ -459,9 +461,10 @@ async function showFamilySettingsModal() {
   const updateModalHTML = async () => {
     modal.innerHTML = `
       <div class="full-screen-modal-header">
-        <button type="button" class="global-back-btn" id="closeFamilyModalBtn">
-          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-          <span>Назад</span>
+        <button type="button" class="global-back-btn !mb-0" id="closeFamilyModalBtn" title="Назад">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
         </button>
         <div class="text-center">
           <h3 class="text-white font-bold text-sm truncate">Семейный бюджет</h3>
@@ -853,9 +856,10 @@ async function showCurrencyAlertsModal() {
   const updateModalHTML = () => {
     modal.innerHTML = `
       <div class="full-screen-modal-header">
-        <button type="button" class="global-back-btn" id="closeAlertsModalBtn">
-          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-          <span>Назад</span>
+        <button type="button" class="global-back-btn !mb-0" id="closeAlertsModalBtn" title="Назад">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
         </button>
         <div class="text-center">
           <h3 class="text-white font-bold text-sm truncate">Трекер курсов</h3>
@@ -977,9 +981,10 @@ window.showLogisticsHistory = async (orderId) => {
 
   modal.innerHTML = `
     <div class="full-screen-modal-header">
-      <button type="button" class="global-back-btn" id="closeLogisticsModalBtn">
-        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-        <span>Назад</span>
+      <button type="button" class="global-back-btn !mb-0" id="closeLogisticsModalBtn" title="Назад">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
       </button>
       <div class="text-center">
         <h3 class="text-white font-bold text-sm truncate">История перемещений</h3>
@@ -1101,9 +1106,10 @@ window.openSupportChat = (orderId, isAdmin = false) => {
 
   modal.innerHTML = `
     <div class="full-screen-modal-header">
-      <button type="button" class="global-back-btn" id="closeChatModalBtn">
-        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-        <span>Назад</span>
+      <button type="button" class="global-back-btn !mb-0" id="closeChatModalBtn" title="Назад">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
       </button>
       <div class="text-center min-w-0 flex-1 px-2">
         <h3 class="text-white font-bold text-sm truncate">Чат по заказу #${orderId.slice(0, 8)}</h3>
@@ -1290,9 +1296,10 @@ window.showVipSectionModal = () => {
 
   modal.innerHTML = `
     <div class="full-screen-modal-header">
-      <button type="button" class="global-back-btn" id="closeVipModalBtn">
-        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-        <span>Назад</span>
+      <button type="button" class="global-back-btn !mb-0" id="closeVipModalBtn" title="Назад">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
       </button>
       <div class="text-center">
         <h3 class="text-amber-400 font-extrabold text-sm truncate">🔥 VIP-Горящие товары</h3>
@@ -1390,9 +1397,10 @@ async function showMarketplaceWhitelistModal() {
   // Loading state
   overlay.innerHTML = `
     <div class="full-screen-modal-header">
-      <button type="button" class="global-back-btn" onclick="window.closeModalWithAnimation(document.getElementById('marketplaceWhitelistModal'))">
-        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-        <span>Назад</span>
+      <button type="button" class="global-back-btn !mb-0" onclick="window.closeModalWithAnimation(document.getElementById('marketplaceWhitelistModal'))" title="Назад">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
       </button>
       <h3 class="text-white font-bold text-sm">Маркетплейсы</h3>
       <div style="width: 48px;"></div>
@@ -1439,9 +1447,10 @@ async function showMarketplaceWhitelistModal() {
 
     overlay.innerHTML = `
       <div class="full-screen-modal-header">
-        <button type="button" class="global-back-btn" id="closeWlBtn">
-          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-          <span>Назад</span>
+        <button type="button" class="global-back-btn !mb-0" id="closeWlBtn" title="Назад">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
         </button>
         <div class="text-center">
           <h3 class="text-white font-bold text-sm truncate">Маркетплейсы</h3>
@@ -1537,9 +1546,10 @@ async function showRecoveryCodeModal() {
   modal.id = 'recoveryCodeModal';
   modal.innerHTML = `
     <div class="full-screen-modal-header">
-      <button type="button" class="global-back-btn" id="closeRecBtn">
-        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-        <span>Назад</span>
+      <button type="button" class="global-back-btn !mb-0" id="closeRecBtn" title="Назад">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
       </button>
       <div class="text-center">
         <h3 class="text-white font-bold text-sm truncate">Восстановление аккаунта</h3>
@@ -1607,9 +1617,10 @@ async function showPersonalDataForm() {
   modal.id = 'personalDataModal';
   modal.innerHTML = `
     <div class="full-screen-modal-header">
-      <button type="button" class="global-back-btn" id="closePersonalDataBtn">
-        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-        <span>Назад</span>
+      <button type="button" class="global-back-btn !mb-0" id="closePersonalDataBtn" title="Назад">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
       </button>
       <div class="text-center">
         <h3 class="text-white font-bold text-sm truncate">Мои данные</h3>
@@ -1805,9 +1816,10 @@ async function showPersonalDataForm() {
               subModal.className = 'full-screen-modal-overlay page-enter';
               subModal.innerHTML = `
                   <div class="full-screen-modal-header">
-                      <button type="button" class="global-back-btn" id="cancelRecBtn">
-                          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-                          <span>Назад</span>
+                      <button type="button" class="global-back-btn !mb-0" id="cancelRecBtn" title="Назад">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="15 18 9 12 15 6"/>
+                        </svg>
                       </button>
                       <h3 class="text-white font-bold text-sm">Добавить получателя</h3>
                       <div style="width: 48px;"></div>
@@ -1964,9 +1976,10 @@ async function showOwnerControlsForm() {
   modal.id = 'ownerControlsModal';
   modal.innerHTML = `
     <div class="full-screen-modal-header">
-      <button type="button" class="global-back-btn" id="closeOwnerControlsBtn">
-        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-        <span>Назад</span>
+      <button type="button" class="global-back-btn !mb-0" id="closeOwnerControlsBtn" title="Назад">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
       </button>
       <div class="text-center">
         <h3 class="text-white font-bold text-sm truncate">Управление тарифами</h3>
@@ -2087,9 +2100,10 @@ function showMeasurementsForm() {
   modal.id = 'measurementsModal';
   modal.innerHTML = `
     <div class="full-screen-modal-header">
-      <button type="button" class="global-back-btn" id="closeMeasBtn" onclick="window.closeModalWithAnimation(document.getElementById('measurementsModal'))">
-        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-        <span>Назад</span>
+      <button type="button" class="global-back-btn !mb-0" id="closeMeasBtn" onclick="window.closeModalWithAnimation(document.getElementById('measurementsModal'))" title="Назад">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
       </button>
       <div class="text-center">
         <h3 class="text-white font-bold text-sm truncate">📏 Мои размеры</h3>
@@ -2208,9 +2222,10 @@ function showFortuneWheel() {
   modal.id = 'fortuneWheelModal';
   modal.innerHTML = `
     <div class="full-screen-modal-header">
-      <button type="button" class="global-back-btn" id="closeWheelBtn">
-        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-        <span>Назад</span>
+      <button type="button" class="global-back-btn !mb-0" id="closeWheelBtn" title="Назад">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
       </button>
       <div class="text-center">
         <h3 class="text-white font-bold text-sm">🎡 Колесо Фортуны</h3>

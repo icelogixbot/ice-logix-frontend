@@ -3482,8 +3482,8 @@ let adminOrdersTotalPages = 1;
 
     // Wires Telegram's native BackButton based on current tab/subscreen.
     function syncTelegramBackButton() {
-      // Bottom tabs and standalone service tabs that rely purely on swipe-back (no on-screen or Telegram header buttons)
-      const noHeaderBackTabs = ['home', 'calculator', 'neworder', 'new-order', 'catalogs', 'profile', 'reports', 'reviews', 'academy', 'promo', 'legitcheck'];
+      // Bottom tabs that do not have on-screen back button
+      const noHeaderBackTabs = ['home', 'calculator', 'neworder', 'new-order', 'catalogs', 'profile'];
       const isHomeSubmode = currentTab === 'home' && window._calcMode && window._calcMode !== 'menu';
       const hasOrderItems = Boolean(window.tempOrder && window.tempOrder.items && window.tempOrder.items.length > 0);
       const isOrderSubmode = (currentTab === 'neworder' || currentTab === 'new-order') && 

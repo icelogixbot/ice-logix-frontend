@@ -75,7 +75,17 @@
           }).join('');
 
       return `
-        <button id="backToProfileBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
+        <div class="flex items-center gap-3 mb-4 mt-2">
+          <button id="backToProfileBtn" type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-xl font-bold text-white tracking-wide">Дропшиппинг</h2>
+            <p class="text-[11px] text-white/40">Партнёрская программа и статистика</p>
+          </div>
+        </div>
         <div class="space-y-4">
           <div class="glass-card">
             <h3 class="text-white font-bold text-lg mb-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span> Ваша реферальная ссылка</h3>

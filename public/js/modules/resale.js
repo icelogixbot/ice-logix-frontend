@@ -18,10 +18,17 @@ async function renderResale() {
 
   return `
     <div class="space-y-4 page-enter">
-      <button class="global-back-btn m-0" onclick="switchTab('catalogs')">
-        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span>
-        Назад к каталогам
-      </button>
+      <div class="flex items-center gap-3 mb-4 mt-2">
+        <button type="button" class="global-back-btn !mb-0" onclick="switchTab('catalogs')" title="Назад">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+        <div>
+          <h2 class="text-xl font-bold text-white tracking-wide">ICE Resale</h2>
+          <p class="text-[11px] text-white/40">Товары в наличии и совместная доставка</p>
+        </div>
+      </div>
 
       <div class="glass-card p-6 text-center flex flex-col items-center relative overflow-hidden my-3 border border-pink-500/25">
         <div class="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-pink-500/10 blur-3xl pointer-events-none"></div>

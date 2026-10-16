@@ -679,9 +679,10 @@
         const modalHtml = `
           <div id="calcWeightModal" class="full-screen-modal-overlay page-enter">
             <div class="full-screen-modal-header">
-              <button type="button" class="global-back-btn" onclick="document.getElementById('calcWeightModal')?.remove()">
-                <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-                <span>Назад</span>
+              <button type="button" class="global-back-btn !mb-0" onclick="document.getElementById('calcWeightModal')?.remove()" title="Назад">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
               </button>
               <div class="text-center">
                 <h3 class="text-white font-bold text-sm truncate">⚖️ Примерный вес товара</h3>

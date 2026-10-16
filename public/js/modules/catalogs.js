@@ -220,7 +220,17 @@ async function renderMarketplaces() {
     
     return `
       <div class="flex items-center justify-between mb-4 mt-2">
-        <button id="backFromMarketplacesBtn" class="global-back-btn m-0"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
+        <div class="flex items-center gap-3">
+          <button id="backFromMarketplacesBtn" type="button" class="global-back-btn !mb-0" title="Назад">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <div class="min-w-0">
+            <h2 class="text-xl font-bold text-white tracking-wide">Маркетплейсы</h2>
+            <p class="text-[11px] text-white/40">Площадки Китая</p>
+          </div>
+        </div>
         <button id="openMarketplaceFiltersBtn" class="btn-secondary py-1.5 px-4 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-white/20">
           <span class="ix" style="width: 14px; height: 14px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></span> Фильтр
           <span id="activeFiltersBadge" class="hidden bg-cyan-500 text-white text-[9.5px] w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold ml-1">0</span>
@@ -499,9 +509,10 @@ function attachMarketplacesHandlers() {
     modal.id = 'catalogInstructionModal';
     modal.innerHTML = `
       <div class="full-screen-modal-header">
-        <button type="button" class="global-back-btn close-modal">
-          <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-          <span>Назад</span>
+        <button type="button" class="global-back-btn close-modal !mb-0" title="Назад">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
         </button>
         <div class="text-center">
           <h3 class="text-white font-bold text-sm truncate">${name}</h3>

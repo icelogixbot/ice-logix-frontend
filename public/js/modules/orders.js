@@ -240,10 +240,14 @@ window.applySmartShareLink = applySmartShareLink;
           return `
             <div class="space-y-4 page-enter">
               ${hasExistingItems ? `
-                <button type="button" class="global-back-btn" onclick="window.orderAddMode = false; renderCurrentScreen();">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-                  Назад к заказу
-                </button>
+                <div class="flex items-center gap-3 mb-2">
+                  <button type="button" class="global-back-btn !mb-0" onclick="window.orderAddMode = false; renderCurrentScreen();" title="Назад к заказу">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="15 18 9 12 15 6"/>
+                    </svg>
+                  </button>
+                  <p class="text-xs text-white/60">Вернуться к заказу</p>
+                </div>
               ` : ''}
               <div class="glass-card p-5 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
                 <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
@@ -311,10 +315,14 @@ window.applySmartShareLink = applySmartShareLink;
             </style>
 
             <div class="space-y-4 page-enter">
-              <button type="button" class="global-back-btn" onclick="window.orderCountry=null; renderCurrentScreen();">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-                Назад
-              </button>
+              <div class="flex items-center gap-3 mb-2">
+                <button type="button" class="global-back-btn !mb-0" onclick="window.orderCountry=null; renderCurrentScreen();" title="Назад к выбору страны">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"/>
+                  </svg>
+                </button>
+                <p class="text-xs text-white/60">К выбору страны</p>
+              </div>
 
               <div class="glass-card p-5 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
                 <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
@@ -469,10 +477,14 @@ window.applySmartShareLink = applySmartShareLink;
 
         return `
           <div class="space-y-4 page-enter">
-            <button type="button" class="global-back-btn" onclick="window.goBackGlobal()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-              Назад
-            </button>
+            <div class="flex items-center gap-3 mb-2">
+              <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад к выбору способа">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+              </button>
+              <p class="text-xs text-white/60">К выбору способа</p>
+            </div>
 
             <div class="glass-card p-5 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
               <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
@@ -2483,7 +2495,17 @@ async function renderMyOrders() {
     const data = ordersRes.data || [];
     if (!data || data.length === 0) {
       return `
-        <button id="backToProfileBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
+        <div class="flex items-center gap-3 mb-4 mt-2">
+          <button id="backToProfileBtn" type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <div>
+            <h2 class="text-xl font-bold text-white tracking-wide">Мои заказы</h2>
+            <p class="text-[11px] text-white/40">Отслеживайте путь каждой посылки</p>
+          </div>
+        </div>
         <p class="text-center mt-10 text-white/70">У вас пока нет заказов</p>
         ${typeof renderFooter === 'function' ? renderFooter() : ''}
       `;
@@ -2496,10 +2518,20 @@ async function renderMyOrders() {
     });
     
     return `
-      <button id="backToProfileBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
       <div class="space-y-3 orders-list">
-        <div class="orders-toolbar">
-          <div><p class="orders-eyebrow">ЛИЧНЫЙ КАБИНЕТ</p><h2 class="orders-title">Мои заказы</h2><p class="orders-subtitle">Отслеживайте путь каждой посылки в одном месте</p></div>
+        <div class="orders-toolbar items-center">
+          <div class="flex items-center gap-3">
+            <button id="backToProfileBtn" type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+            </button>
+            <div>
+              <p class="orders-eyebrow">ЛИЧНЫЙ КАБИНЕТ</p>
+              <h2 class="orders-title">Мои заказы</h2>
+              <p class="orders-subtitle">Отслеживайте путь каждой посылки в одном месте</p>
+            </div>
+          </div>
           <span class="orders-count">${data.length}</span>
         </div>
         ${data.map(order => `
@@ -3293,9 +3325,10 @@ window.openAddCardModal = function(onSuccess) {
 
   modal.innerHTML = `
     <div class="full-screen-modal-header">
-      <button id="closeAddCardBtn" type="button" class="global-back-btn">
-        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-        <span>Назад</span>
+      <button id="closeAddCardBtn" type="button" class="global-back-btn !mb-0" title="Назад">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
       </button>
       <div class="text-center font-bold text-sm text-white">Привязать карту</div>
       <div style="width: 48px;"></div>
@@ -3848,9 +3881,10 @@ window.openCardsManagementModal = async function() {
 
   modal.innerHTML = `
     <div class="full-screen-modal-header">
-      <button id="closeCardsManageBtn" type="button" class="global-back-btn">
-        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-        <span>Назад</span>
+      <button id="closeCardsManageBtn" type="button" class="global-back-btn !mb-0" title="Назад">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
       </button>
       <div class="text-center font-bold text-sm text-white">Способы оплаты</div>
       <div style="width: 48px;"></div>
@@ -4006,9 +4040,10 @@ window.openSecondPaymentModal = function(orderId, amount) {
 
   modal.innerHTML = `
     <div class="full-screen-modal-header">
-      <button id="closeSecondPayBtn" type="button" class="global-back-btn">
-        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-        <span>Назад</span>
+      <button id="closeSecondPayBtn" type="button" class="global-back-btn !mb-0" title="Назад">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
       </button>
       <div class="text-center font-bold text-sm text-white">Оплата 2-го этапа</div>
       <div style="width: 48px;"></div>
@@ -4173,9 +4208,10 @@ window.openInvoiceModal = (orderId, originalPrice) => {
   
   modal.innerHTML = `
     <div class="full-screen-modal-header">
-      <button id="closeInvModalBtn" type="button" class="global-back-btn">
-        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-        <span>Назад</span>
+      <button id="closeInvModalBtn" type="button" class="global-back-btn !mb-0" title="Назад">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
       </button>
       <div class="text-center font-bold text-sm text-white">Создание инвойса</div>
       <div style="width: 48px;"></div>
@@ -4254,8 +4290,10 @@ window.openYandexMapStub = () => {
   
   modal.innerHTML = `
     <div class="full-screen-modal-header">
-      <button id="closeYMapModalBtn" type="button" class="global-back-btn">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      <button id="closeYMapModalBtn" type="button" class="global-back-btn !mb-0" title="Назад">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
       </button>
       <div class="flex-1 min-w-0">
         <h3 class="text-white font-bold text-base truncate">Выбор на карте</h3>
@@ -4550,8 +4588,10 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
   
   modal.innerHTML = `
     <div class="full-screen-modal-header">
-      <button id="closeClaimModalBtn" type="button" class="global-back-btn">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      <button id="closeClaimModalBtn" type="button" class="global-back-btn !mb-0" title="Назад">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
       </button>
       <div class="flex-1 min-w-0">
         <h3 class="text-white font-bold text-base truncate">Страховой случай</h3>

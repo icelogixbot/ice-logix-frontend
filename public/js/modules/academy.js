@@ -29,9 +29,22 @@ async function renderAcademy() {
 
     if (!courses || courses.length === 0) {
       return `
-        <div class="text-center py-10">
-          <p class="text-white/70">Курсы пока не добавлены</p>
-          ${isOwner ? '<button id="addCourseBtn" class="btn-primary mt-4"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить курс</button>' : ''}
+        <div class="page-enter px-4 pb-8 max-w-md mx-auto space-y-4">
+          <div class="flex items-center gap-3 mb-2 mt-2">
+            <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+            </button>
+            <div class="flex-1 min-w-0">
+              <h2 class="text-xl font-bold text-white tracking-wide">Гайд и обучение</h2>
+              <p class="text-[11px] text-white/40">Академия ICE LOGIX</p>
+            </div>
+          </div>
+          <div class="text-center py-10">
+            <p class="text-white/70">Курсы пока не добавлены</p>
+            ${isOwner ? '<button id="addCourseBtn" class="btn-primary mt-4 py-2 px-4 rounded-xl text-xs font-bold inline-flex items-center gap-1.5"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить курс</button>' : ''}
+          </div>
         </div>
         ${renderFooter()}
       `;
@@ -94,8 +107,21 @@ async function renderAcademy() {
     };
 
     return `
-      <div class="space-y-4">
-        ${isOwner ? '<button id="addCourseBtn" class="global-back-btn mb-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить курс</button>' : ''}
+      <div class="page-enter px-4 pb-8 max-w-md mx-auto space-y-4">
+        <!-- Top Navigation Header -->
+        <div class="flex items-center gap-3 mb-2 mt-2">
+          <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-xl font-bold text-white tracking-wide">Гайд и обучение</h2>
+            <p class="text-[11px] text-white/40">Академия ICE LOGIX и курсы по выкупу</p>
+          </div>
+          ${isOwner ? '<button id="addCourseBtn" class="btn-primary py-1.5 px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 flex-shrink-0"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить курс</button>' : ''}
+        </div>
+        <div class="space-y-4">
         ${coursesWithLessons.map(course => `
           <div class="course-card glass-card" data-course-id="${course.id}" data-is-purchased="${course.isPurchased}" data-price-ice="${course.price_ice}">
             <div class="flex justify-between items-start">
@@ -138,6 +164,7 @@ async function renderAcademy() {
             </div>
           </div>
         `).join('')}
+      </div>
       </div>
       ${renderFooter()}
     `;
@@ -740,14 +767,37 @@ async function renderAcademy() {
     if (error) throw error;
     if (!wishlistItems || wishlistItems.length === 0) {
       return `
-        <button id="backFromWishlistBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
-        <div class="flex-1"><p class="text-center mt-10 text-white/70">У вас пока нет избранных товаров</p></div>
+        <div class="page-enter px-4 pb-8 max-w-md mx-auto space-y-4">
+          <div class="flex items-center gap-3 mb-2 mt-2">
+            <button id="backFromWishlistBtn" type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+            </button>
+            <div class="flex-1 min-w-0">
+              <h2 class="text-xl font-bold text-white tracking-wide">Избранное</h2>
+              <p class="text-[11px] text-white/40">Сохранённые товары</p>
+            </div>
+          </div>
+          <div class="text-center py-10"><p class="text-white/70">У вас пока нет избранных товаров</p></div>
+        </div>
         ${renderFooter()}
       `;
     }
     return `
-      <button id="backFromWishlistBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
-      <div class="grid grid-cols-2 gap-2" id="wishlistProductsGrid" style="margin-left: -6px; margin-right: -6px;">
+      <div class="page-enter px-4 pb-8 max-w-md mx-auto space-y-4">
+        <div class="flex items-center gap-3 mb-2 mt-2">
+          <button id="backFromWishlistBtn" type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-xl font-bold text-white tracking-wide">Избранное</h2>
+            <p class="text-[11px] text-white/40">Сохранённые товары (${wishlistItems.length})</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2" id="wishlistProductsGrid" style="margin-left: -6px; margin-right: -6px;">
         ${wishlistItems.map(item => {
           let p = item.products;
           if (!p) return '';
@@ -773,6 +823,7 @@ async function renderAcademy() {
             </div>
           `;
         }).join('')}
+      </div>
       </div>
       ${renderFooter()}
     `;

@@ -26,11 +26,19 @@ async function renderPromoPage() {
     : '<p class="text-white/50 text-center py-6">Акций пока нет. Следите за обновлениями!</p>';
 
   return `
-    <div>
-      <div class="px-4">
-        <div class="mb-5 mt-2">
-          <h2 class="text-xl font-bold text-white">Акции</h2>
+    <div class="page-enter px-4 pb-8 max-w-md mx-auto space-y-4">
+      <div class="flex items-center gap-3 mb-2 mt-2">
+        <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-xl font-bold text-white tracking-wide">Акции и бонусы</h2>
+          <p class="text-[11px] text-white/40">Скидки, розыгрыши и Колесо Фортуны</p>
         </div>
+      </div>
+      <div>
 
         <!-- Колесо Фортуны -->
         <div class="glass-card mb-5 overflow-hidden relative cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-transform" id="promoFortuneBtn" style="background: linear-gradient(135deg, rgba(91,191,235,0.15), rgba(139,92,246,0.15)); border: 1px solid rgba(139,92,246,0.25);">
@@ -294,11 +302,16 @@ async function renderHistory() {
 
   return `
     <div class="page-enter px-4">
-      <div class="flex items-center gap-3 mb-5">
-        <button id="backFromHistoryBtn" class="global-back-btn">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      <div class="flex items-center gap-3 mb-4 mt-2">
+        <button id="backFromHistoryBtn" type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
         </button>
-        <h2 class="text-xl font-bold text-white">История</h2>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-xl font-bold text-white tracking-wide">История</h2>
+          <p class="text-[11px] text-white/40">Архив заказов и транзакций</p>
+        </div>
       </div>
       <div class="flex gap-2 mb-5 flex-wrap">
         <button id="historyTabOrders" class="flex-grow py-2 rounded-xl text-xs font-bold transition-all ${subScreen === 'orders' ? 'btn-primary' : 'glass-card'}" style="${subScreen === 'orders' ? '' : 'border: 1px solid var(--glass-border);'}">
@@ -374,9 +387,10 @@ async function showAllTransactions() {
   modal.className = 'full-screen-modal-overlay page-enter';
   modal.innerHTML = `
     <div class="full-screen-modal-header">
-      <button id="closeTransactionsModal" class="global-back-btn !mb-0 py-1.5 px-3.5 text-xs">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-        Назад
+      <button id="closeTransactionsModal" type="button" class="global-back-btn !mb-0" title="Назад">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
       </button>
       <h3 class="text-white font-bold text-base flex items-center gap-2">
         <span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18M7 6h1v4M16.71 13.88l.7.71-2.82 2.82"/></svg></span>
@@ -408,9 +422,10 @@ async function showAccountRecovery() {
   modal.className = 'full-screen-modal-overlay page-enter';
   modal.innerHTML = `
     <div class="full-screen-modal-header">
-      <button id="closeRecoveryModalBtn" class="global-back-btn !mb-0 py-1.5 px-3.5 text-xs">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-        Назад
+      <button id="closeRecoveryModalBtn" type="button" class="global-back-btn !mb-0" title="Назад">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
       </button>
       <h3 class="text-white font-bold text-base flex items-center gap-2">
         <span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg></span>
@@ -1944,13 +1959,22 @@ async function renderCart() {
     
     if (!data || data.length === 0) {
       return `
-        <button class="global-back-btn mb-4">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-          Назад
-        </button>
-        <div class="text-center py-10">
-          <p class="text-white/70 mb-4"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span> Ваша корзина пуста</p>
-          <button id="goToCatalogBtn" class="btn-primary">Перейти в каталог</button>
+        <div class="page-enter px-4 pb-8 max-w-md mx-auto space-y-4">
+          <div class="flex items-center gap-3 mb-2 mt-2">
+            <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+            </button>
+            <div class="flex-1 min-w-0">
+              <h2 class="text-xl font-bold text-white tracking-wide">Корзина</h2>
+              <p class="text-[11px] text-white/40">Выбранные товары для оформления</p>
+            </div>
+          </div>
+          <div class="text-center py-10">
+            <p class="text-white/70 mb-4"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span> Ваша корзина пуста</p>
+            <button id="goToCatalogBtn" class="btn-primary">Перейти в каталог</button>
+          </div>
         </div>
         ${renderFooter()}
       `;
@@ -1989,11 +2013,19 @@ async function renderCart() {
     }).join('');
     
     return `
-      <button class="global-back-btn mb-4">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-        Назад
-      </button>
-      <div class="space-y-3">
+      <div class="page-enter px-4 pb-8 max-w-md mx-auto space-y-4">
+        <div class="flex items-center gap-3 mb-2 mt-2">
+          <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-xl font-bold text-white tracking-wide">Корзина</h2>
+            <p class="text-[11px] text-white/40">Выбранные товары (${data.length})</p>
+          </div>
+        </div>
+        <div class="space-y-3">
         ${itemsHtml}
         <div class="glass-card mt-4">
           <div class="flex justify-between items-center">
@@ -2004,6 +2036,7 @@ async function renderCart() {
           <button id="clearCartBtn" class="w-full mt-3 bg-red-500/20 hover:bg-red-500/30 py-2 rounded-full text-sm"><span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></span> Очистить корзину</button>
           <button id="checkoutCartBtn" class="w-full mt-2 bg-green-500 hover:bg-green-600 py-3 rounded-full font-bold"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="2"/></svg></span> Оформить заказ</button>
         </div>
+      </div>
       </div>
       ${renderFooter()}
     `;

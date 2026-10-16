@@ -347,11 +347,18 @@
       <div class="px-4 page-enter max-w-lg mx-auto">
         
         <!-- Header экрана с кнопкой Назад -->
-        <div class="flex items-center justify-between mb-4">
-          <button type="button" class="global-back-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 active:scale-95 transition text-xs font-semibold" onclick="window.goBackGlobal ? window.goBackGlobal() : switchTab('profile')">
-            <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5"><path d="m15 18-6-6 6-6"/></svg></span>
-            <span>Назад</span>
-          </button>
+        <div class="flex items-center justify-between mb-4 mt-2">
+          <div class="flex items-center gap-3">
+            <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal ? window.goBackGlobal() : switchTab('profile')" title="Назад">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+            </button>
+            <div>
+              <h2 class="text-xl font-bold text-white tracking-wide">Паспортные данные</h2>
+              <p class="text-[11px] text-white/40">Таможенное оформление посылок</p>
+            </div>
+          </div>
           <div class="flex items-center gap-1.5">
             <span class="w-2 h-2 rounded-full ${
               status === 'verified' ? 'bg-emerald-400 animate-pulse' :

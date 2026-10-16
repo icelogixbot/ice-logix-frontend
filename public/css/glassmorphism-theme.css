@@ -1383,7 +1383,8 @@
       color: var(--text-primary, #ffffff);
       font-size: 13px;
       font-weight: 700;
-      padding: 8px 16px;
+      padding: 8px 14px;
+      justify-content: center;
       border-radius: 9999px;
       cursor: pointer;
       display: inline-flex;
@@ -1411,6 +1412,11 @@
       }
     }
     body.tg-native-back .global-back-btn { display: inline-flex !important; }
+    .global-back-btn.\!mb-0,
+    .flex > .global-back-btn,
+    .full-screen-modal-header .global-back-btn {
+      margin-bottom: 0 !important;
+    }
 
     /* Full-Screen Modals & Sections (No center floating dialogs) */
     .full-screen-modal-overlay {
