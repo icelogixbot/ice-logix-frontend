@@ -1206,6 +1206,18 @@
               return;
             }
 
+            // Мягкая проверка KYC для таможни РБ
+            if (typeof window.checkUserKycStatus === 'function') {
+              const kycInfo = await window.checkUserKycStatus(userId);
+              if (!kycInfo.isVerified && kycInfo.status !== 'pending') {
+                const shouldVerify = confirm('📦 Для прохождения таможни РБ требуются паспортные данные получателя.\n\nХотите пройти быструю верификацию сейчас?');
+                if (shouldVerify) {
+                  switchTab('kyc');
+                  return;
+                }
+              }
+            }
+
             const consolidatedOrder = {
               price: window.tempOrder.price || 0,
               currency: window.tempOrder.items?.[0]?.currency || 'CNY',

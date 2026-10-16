@@ -208,6 +208,10 @@
           contentDiv.innerHTML = shadowBannerHtml + await renderBalanceTopupPage();
           if (typeof attachBalanceTopupPageHandlers === 'function') attachBalanceTopupPageHandlers();
         }
+      } else if (currentTab === 'kyc') {
+        if (typeof openKycScreen === 'function') {
+          await openKycScreen();
+        }
       } else {
         console.warn('[ICE LOGIX Router] Unknown tab:', currentTab, '— falling back to home');
         currentTab = 'home';
