@@ -323,7 +323,7 @@
       if (curUserId && typeof supabaseClient !== 'undefined' && supabaseClient) {
         const { data: u } = await supabaseClient
           .from('users')
-          .select('full_name, kyc_status, kyc_rejection_reason, kyc_data, kyc_doc_photo_url')
+          .select('full_name, kyc_status, kyc_rejection_reason, kyc_data, kyc_doc_photo_url, settings')
           .eq('user_id', curUserId)
           .single();
         if (u) {
@@ -332,7 +332,8 @@
             kyc_rejection_reason: u.kyc_rejection_reason || '',
             kyc_data: u.kyc_data || null,
             kyc_photo_url: u.kyc_doc_photo_url || null,
-            full_name: u.full_name || ''
+            full_name: u.full_name || '',
+            settings: u.settings || {}
           };
         }
       }
@@ -355,17 +356,19 @@
               </svg>
             </button>
             <div>
-              <h2 class="text-xl font-bold text-white tracking-wide">Паспортные данные</h2>
-              <p class="text-[11px] text-white/40">Таможенное оформление посылок</p>
+              <h2 class="text-xl font-bold text-white tracking-wide">Мои данные</h2>
+              <p class="text-[11px] text-white/40">Паспортные данные, получатели и размеры</p>
             </div>
           </div>
           <div class="flex items-center gap-1.5">
             <span class="w-2 h-2 rounded-full ${
               status === 'verified' ? 'bg-emerald-400 animate-pulse' :
               status === 'pending' ? 'bg-amber-400 animate-pulse' :
-              status === 'rejected' ? 'bg-rose-500' : 'bg-cyan-400'
+              status === 'rejected' ? 'bg-rose-500' : 'bg-rose-400'
             }"></span>
-            <span class="text-xs font-bold uppercase tracking-wider text-white/60">Таможня РБ</span>
+            <span class="text-xs font-bold uppercase tracking-wider text-white/60">
+              ${status === 'verified' ? 'Подтверждено' : (status === 'pending' ? 'На проверке' : 'Мои данные')}
+            </span>
           </div>
         </div>
 
@@ -395,7 +398,7 @@
             <div class="flex-1">
               <h1 class="text-base font-extrabold text-white leading-tight mb-1">
                 ${
-                  status === 'verified' ? 'Паспорт подтверждён для таможни' :
+                  status === 'verified' ? 'Данные подтверждены для таможни' :
                   status === 'pending' ? 'Данные находятся на проверке' :
                   status === 'rejected' ? 'Требуется исправление данных' :
                   'Верификация получателя (KYC)'
@@ -404,7 +407,7 @@
               <p class="text-xs text-white/70 leading-relaxed">
                 ${
                   status === 'verified'
-                    ? 'Ваш аккаунт полностью верифицирован. Все посылки из Китая будут проходить белорусскую таможню без задержек.'
+                    ? 'Ваш аккаунт полностью верифицирован. Добавляйте дополнительных получателей для распределения беспошлинных лимитов и управляйте размерами.'
                     : status === 'pending'
                     ? 'Администратор сверяет данные документа. Обычно подтверждение занимает от 5 до 15 минут.'
                     : status === 'rejected'
@@ -438,9 +441,11 @@
       window.ensureGlobalFooter();
     }
 
-    // Привязываем обработчики формы (если статус not_submitted или rejected)
+    // Привязываем обработчики
     if (status === 'not_submitted' || status === 'rejected') {
       attachKycFormHandlers();
+    } else if (status === 'verified') {
+      attachVerifiedKycHandlers(userKyc, curUserId);
     }
   };
 
@@ -448,10 +453,13 @@
   function renderVerifiedState(userKyc) {
     const d = userKyc.kyc_data || {};
     const maskedId = d.id_number ? d.id_number.slice(0, 7) + '***' + d.id_number.slice(-3) : 'Защищено';
+    const sizing = userKyc.settings?.sizing || {};
+
     return `
+      <!-- Карточка 1: Основной верифицированный получатель -->
       <div class="glass-card p-4 rounded-2xl space-y-3 border border-emerald-500/20 bg-emerald-950/10">
         <div class="flex items-center justify-between pb-2 border-b border-white/10">
-          <span class="text-xs text-white/50">Статус аккаунта</span>
+          <span class="text-xs text-white/50">Основной получатель (Вы)</span>
           <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
             <span>●</span> Одобрено таможней
           </span>
@@ -480,8 +488,438 @@
           </button>
         </div>
       </div>
+
+      <!-- Карточка 2: Дополнительные получатели (лимиты 200€) -->
+      <div class="glass-card p-4 rounded-2xl space-y-3 border border-white/10 mt-4">
+        <div class="flex items-center justify-between pb-2 border-b border-white/10">
+          <div class="flex items-center gap-2">
+            <span class="text-base">👥</span>
+            <h3 class="text-sm font-bold text-white">Дополнительные получатели</h3>
+          </div>
+          <span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">ЛИМИТ 200 €</span>
+        </div>
+        <p class="text-[11px] text-white/50 leading-relaxed">
+          Добавляйте родственников или доверенных лиц, чтобы оформлять посылки на разных людей и соблюдать беспошлинный лимит ЕАЭС (200 € и 31 кг) без уплаты таможенной пошлины.
+        </p>
+
+        <!-- Список получателей -->
+        <div id="kycRecipientsList" class="space-y-2 pt-1">
+          <div class="text-center py-4 text-white/40 text-xs">
+            <div class="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+            Загрузка получателей...
+          </div>
+        </div>
+
+        <button
+          type="button"
+          id="openAddRecipientModalBtn"
+          class="btn-primary w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 active:scale-95 transition mt-2"
+        >
+          <span>+ Добавить получателя</span>
+        </button>
+      </div>
+
+      <!-- Карточка 3: Мои размеры для автоподбора -->
+      <div class="glass-card p-4 rounded-2xl space-y-3 border border-white/10 mt-4">
+        <div class="flex items-center justify-between pb-2 border-b border-white/10">
+          <div class="flex items-center gap-2">
+            <span class="text-base">📏</span>
+            <h3 class="text-sm font-bold text-white">Мои размеры</h3>
+          </div>
+          <span class="text-[10px] text-cyan-400 font-medium">Для автоподбора</span>
+        </div>
+        <p class="text-[11px] text-white/50 leading-relaxed">
+          Эти параметры автоматически подставляются в калькулятор и заказы с Poizon/Dewu для точного подбора размера одежды и обуви.
+        </p>
+        
+        <div class="grid grid-cols-2 gap-2.5 pt-1">
+          <div>
+            <label class="block text-[11px] text-white/60 mb-1">Рост (см)</label>
+            <input type="number" id="sizingHeight" class="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs focus:border-cyan-400 focus:outline-none" placeholder="180" value="${sizing.height || ''}">
+          </div>
+          <div>
+            <label class="block text-[11px] text-white/60 mb-1">Вес (кг)</label>
+            <input type="number" id="sizingWeight" class="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs focus:border-cyan-400 focus:outline-none" placeholder="75" value="${sizing.weight || ''}">
+          </div>
+          <div>
+            <label class="block text-[11px] text-white/60 mb-1">Размер обуви (EUR)</label>
+            <input type="text" id="sizingShoeEur" class="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs focus:border-cyan-400 focus:outline-none" placeholder="42.5" value="${sizing.shoeEur || ''}">
+          </div>
+          <div>
+            <label class="block text-[11px] text-white/60 mb-1">Замеры (ОГ/ОТ/ОБ)</label>
+            <input type="text" id="sizingMeasurements" class="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs focus:border-cyan-400 focus:outline-none" placeholder="100-80-98" value="${sizing.measure || ''}">
+          </div>
+        </div>
+
+        <button type="button" id="saveSizingBtn" class="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs transition active:scale-95 flex items-center justify-center gap-1.5 mt-2">
+          <span>Сохранить замеры</span>
+        </button>
+      </div>
     `;
   }
+
+  // --- Загрузка и привязка обработчиков верифицированного экрана ---
+  async function attachVerifiedKycHandlers(userKyc, userId) {
+    if (!userId) return;
+
+    // 1. Загрузка списка получателей
+    const loadRecipientsList = async () => {
+      const container = document.getElementById('kycRecipientsList');
+      if (!container) return;
+      try {
+        const { data, error } = await supabaseClient
+          .from('recipients')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+        window.userRecipients = data || [];
+
+        if (!data || data.length === 0) {
+          container.innerHTML = `
+            <div class="p-4 rounded-xl bg-white/[0.02] border border-white/5 text-center text-xs text-white/40">
+              Вы пока не добавили дополнительных получателей.<br>Нажмите кнопку ниже, чтобы добавить доверенное лицо.
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = data.map(r => {
+          const maskedPassport = r.passport ? (r.passport.length > 4 ? `••• ${r.passport.slice(-4)}` : r.passport) : '•• •••••••';
+          const maskedIdNum = r.id_number ? (r.id_number.length > 6 ? `${r.id_number.slice(0, 4)}***${r.id_number.slice(-3)}` : r.id_number) : null;
+          return `
+            <div class="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 hover:border-white/20 transition flex items-center justify-between gap-3">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold text-white text-xs truncate">${r.full_name}</span>
+                  <span class="text-[9px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-mono">Доп. получатель</span>
+                </div>
+                <div class="text-[11px] text-white/60 space-y-0.5">
+                  <p class="font-mono text-white/80">Паспорт: <span class="text-white">${maskedPassport}</span></p>
+                  ${maskedIdNum ? `<p class="font-mono text-white/50">Личный номер: ${maskedIdNum}</p>` : ''}
+                  ${r.phone ? `<p class="text-white/50">Тел: ${r.phone}</p>` : ''}
+                </div>
+              </div>
+              <button
+                type="button"
+                class="delete-recipient-btn p-2 rounded-xl text-white/30 hover:text-rose-400 hover:bg-rose-500/10 transition flex-shrink-0 active:scale-90"
+                data-id="${r.id}"
+                data-name="${r.full_name}"
+                title="Удалить"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+              </button>
+            </div>
+          `;
+        }).join('');
+
+        // Удаление получателя
+        container.querySelectorAll('.delete-recipient-btn').forEach(btn => {
+          btn.onclick = async (e) => {
+            e.stopPropagation();
+            const recId = btn.getAttribute('data-id');
+            const recName = btn.getAttribute('data-name') || 'получателя';
+            if (!confirm(`Удалить получателя «${recName}»?`)) return;
+
+            try {
+              const { error: delErr } = await supabaseClient.from('recipients').delete().eq('id', recId);
+              if (delErr) throw delErr;
+              if (window.userRecipients) {
+                window.userRecipients = window.userRecipients.filter(x => x.id !== recId);
+              }
+              if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
+              if (typeof glassToast === 'function') {
+                glassToast('Получатель удалён', { kind: 'success' });
+              }
+              loadRecipientsList();
+            } catch (delError) {
+              console.error('Ошибка удаления получателя:', delError);
+              alert('Не удалось удалить получателя');
+            }
+          };
+        });
+
+      } catch (err) {
+        console.error('Ошибка загрузки получателей:', err);
+        container.innerHTML = `
+          <div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-center text-xs text-rose-300">
+            Не удалось загрузить список получателей
+          </div>
+        `;
+      }
+    };
+
+    loadRecipientsList();
+
+    // 2. Открытие окна добавления получателя
+    const addBtn = document.getElementById('openAddRecipientModalBtn');
+    if (addBtn) {
+      addBtn.onclick = () => showAddRecipientModal(userId, loadRecipientsList);
+    }
+
+    // 3. Сохранение замеров
+    const saveSizingBtn = document.getElementById('saveSizingBtn');
+    if (saveSizingBtn) {
+      saveSizingBtn.onclick = async () => {
+        const heightVal = parseInt(document.getElementById('sizingHeight')?.value) || null;
+        const weightVal = parseFloat(document.getElementById('sizingWeight')?.value) || null;
+        const shoeVal = document.getElementById('sizingShoeEur')?.value.trim() || null;
+        const measureVal = document.getElementById('sizingMeasurements')?.value.trim() || null;
+
+        saveSizingBtn.disabled = true;
+        saveSizingBtn.innerHTML = `
+          <div class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          <span>Сохранение...</span>
+        `;
+
+        try {
+          const { data: userRow } = await supabaseClient.from('users').select('settings').eq('user_id', userId).single();
+          const currentSettings = userRow?.settings || {};
+          const updatedSettings = {
+            ...currentSettings,
+            sizing: {
+              height: heightVal,
+              weight: weightVal,
+              shoeEur: shoeVal,
+              measure: measureVal
+            }
+          };
+
+          const { error } = await supabaseClient.from('users').update({ settings: updatedSettings }).eq('user_id', userId);
+          if (error) throw error;
+          if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
+          if (typeof glassToast === 'function') {
+            glassToast('Замеры успешно сохранены!', { kind: 'success' });
+          } else {
+            alert('Замеры успешно сохранены!');
+          }
+        } catch (sizingErr) {
+          console.error('Ошибка сохранения замеров:', sizingErr);
+          if (typeof glassToast === 'function') {
+            glassToast('Не удалось сохранить замеры', { kind: 'error' });
+          } else {
+            alert('Не удалось сохранить замеры');
+          }
+        } finally {
+          saveSizingBtn.disabled = false;
+          saveSizingBtn.innerHTML = `<span>Сохранить замеры</span>`;
+        }
+      };
+    }
+  }
+
+  // --- Диалог добавления получателя ---
+  function showAddRecipientModal(userId, onSuccess) {
+    const existing = document.getElementById('addRecipientModal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'addRecipientModal';
+    modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center z-[130] p-0 sm:p-4 page-enter';
+    modal.innerHTML = `
+      <div class="glass-card w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 border border-white/15 bg-slate-900/95 max-h-[90vh] flex flex-col shadow-2xl">
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-3 border-b border-white/10 flex-shrink-0">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-base">
+              👤
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white">Новый получатель</h3>
+              <p class="text-[10px] text-white/50">Для распределения лимитов 200 €</p>
+            </div>
+          </div>
+          <button type="button" id="closeAddRecipientModalBtn" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition">
+            ✕
+          </button>
+        </div>
+
+        <!-- Body -->
+        <div class="overflow-y-auto py-4 space-y-3.5 flex-1 pr-1" style="-webkit-overflow-scrolling: touch;">
+          <div>
+            <label class="block text-xs font-semibold text-white/80 mb-1">ФИО полностью (по паспорту)</label>
+            <input type="text" id="recAddFullName" class="w-full p-3 rounded-xl bg-white/5 border border-white/15 text-white text-xs focus:border-cyan-400 focus:outline-none" placeholder="Иванов Иван Иванович" required>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-xs font-semibold text-white/80 mb-1">Серия и номер паспорта</label>
+              <input type="text" id="recAddPassport" class="w-full p-3 rounded-xl bg-white/5 border border-white/15 text-white font-mono uppercase text-xs focus:border-cyan-400 focus:outline-none" placeholder="MP1234567" maxlength="10" required>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-white/80 mb-1">Телефон получателя</label>
+              <input type="tel" id="recAddPhone" class="w-full p-3 rounded-xl bg-white/5 border border-white/15 text-white text-xs focus:border-cyan-400 focus:outline-none" placeholder="+375XXXXXXXXX" required>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-white/80 mb-1 flex items-center justify-between">
+              <span>Личный (идентификационный) номер</span>
+              <span class="text-[10px] text-cyan-400">14 знаков</span>
+            </label>
+            <input type="text" id="recAddIdNumber" class="w-full p-3 rounded-xl bg-white/5 border border-white/15 text-white font-mono uppercase text-xs focus:border-cyan-400 focus:outline-none" placeholder="3010195A012PB3" maxlength="14" required>
+            <div id="recAddIdPreview" class="mt-1.5 hidden p-2 rounded-xl text-[11px]"></div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-xs font-semibold text-white/80 mb-1">Дата выдачи</label>
+              <input type="date" id="recAddIssueDate" class="w-full p-2.5 rounded-xl bg-white/5 border border-white/15 text-white text-xs focus:border-cyan-400 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-white/80 mb-1">Кем выдан</label>
+              <input type="text" id="recAddIssuedBy" class="w-full p-3 rounded-xl bg-white/5 border border-white/15 text-white text-xs focus:border-cyan-400 focus:outline-none" placeholder="РУВД г. Минска">
+            </div>
+          </div>
+
+          <!-- Чекбокс согласия (Закон РБ № 99-З) -->
+          <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/10">
+            <label class="flex items-start gap-2.5 cursor-pointer">
+              <input type="checkbox" id="recAddConsent" class="accent-cyan-400 w-4 h-4 mt-0.5 rounded cursor-pointer">
+              <span class="text-[11px] text-white/80 leading-snug">
+                Я подтверждаю, что получил согласие третьего лица на передачу и обработку его персональных данных в соответствии с <b>Законом РБ № 99-З «О защите персональных данных»</b>.
+              </span>
+            </label>
+          </div>
+
+          <!-- Предупреждение о ПВЗ -->
+          <div class="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-200/90 flex items-start gap-2 leading-relaxed">
+            <span class="text-sm flex-shrink-0">⚠️</span>
+            <span><b>Важно:</b> получить посылку на ПВЗ (Европочта, Белпочта, СДЭК) сможет только данный получатель лично при предъявлении паспорта.</span>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="pt-3 border-t border-white/10 flex gap-2.5 flex-shrink-0">
+          <button type="button" id="saveRecipientActionBtn" class="btn-primary flex-1 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-cyan-500/20 active:scale-95 transition">
+            <span>Сохранить получателя</span>
+          </button>
+          <button type="button" id="cancelRecipientActionBtn" class="btn-secondary px-4 py-3 rounded-xl font-bold text-xs active:scale-95 transition">
+            Отмена
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const closeModal = () => modal.remove();
+    document.getElementById('closeAddRecipientModalBtn').onclick = closeModal;
+    document.getElementById('cancelRecipientActionBtn').onclick = closeModal;
+
+    const idInput = modal.querySelector('#recAddIdNumber');
+    const previewDiv = modal.querySelector('#recAddIdPreview');
+
+    idInput.oninput = () => {
+      const val = idInput.value.trim().toUpperCase();
+      if (!val) {
+        previewDiv.classList.add('hidden');
+        return;
+      }
+      if (val.length < 14) {
+        previewDiv.className = 'mt-1.5 p-2 rounded-xl border border-white/10 bg-white/5 text-[11px] text-white/50';
+        previewDiv.textContent = `Введено знаков: ${val.length} из 14`;
+        previewDiv.classList.remove('hidden');
+        return;
+      }
+      const check = parseAndValidateBelId(val);
+      if (check.isValid) {
+        previewDiv.className = 'mt-1.5 p-2 rounded-xl border border-emerald-500/30 bg-emerald-950/20 text-[11px] text-emerald-300';
+        previewDiv.textContent = `✓ Личный номер РБ корректен (${check.details.birthDateStr}, ${check.details.region})`;
+      } else {
+        previewDiv.className = 'mt-1.5 p-2 rounded-xl border border-rose-500/30 bg-rose-950/20 text-[11px] text-rose-300';
+        previewDiv.textContent = `⚠️ ${check.error}`;
+      }
+      previewDiv.classList.remove('hidden');
+    };
+
+    const saveBtn = modal.querySelector('#saveRecipientActionBtn');
+    saveBtn.onclick = async () => {
+      const fullName = modal.querySelector('#recAddFullName').value.trim();
+      const passport = modal.querySelector('#recAddPassport').value.trim().toUpperCase();
+      const phone = modal.querySelector('#recAddPhone').value.trim();
+      const idNumber = modal.querySelector('#recAddIdNumber').value.trim().toUpperCase();
+      const issueDate = modal.querySelector('#recAddIssueDate').value;
+      const issuedBy = modal.querySelector('#recAddIssuedBy').value.trim();
+      const consent = modal.querySelector('#recAddConsent').checked;
+
+      if (!fullName) {
+        alert('Пожалуйста, укажите ФИО получателя');
+        return;
+      }
+      if (!passport) {
+        alert('Пожалуйста, укажите серию и номер паспорта');
+        return;
+      }
+      const passportCheck = validatePassportSeriesNumber(passport);
+      if (!passportCheck.isValid) {
+        alert(passportCheck.error);
+        return;
+      }
+      if (!phone) {
+        alert('Пожалуйста, укажите номер телефона получателя для доставки');
+        return;
+      }
+      if (!idNumber) {
+        alert('Пожалуйста, укажите 14-значный личный номер паспорта');
+        return;
+      }
+      const idCheck = parseAndValidateBelId(idNumber);
+      if (!idCheck.isValid) {
+        alert(idCheck.error);
+        return;
+      }
+      if (!consent) {
+        alert('Необходимо подтвердить согласие третьего лица на передачу и обработку персональных данных (Закон РБ № 99-З).');
+        return;
+      }
+
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = `
+        <div class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+        <span>Сохранение...</span>
+      `;
+
+      try {
+        const { data, error } = await supabaseClient.from('recipients').insert({
+          user_id: userId,
+          full_name: fullName,
+          passport: passport,
+          id_number: idNumber,
+          issue_date: issueDate || null,
+          issued_by: issuedBy || null,
+          phone: phone,
+          third_party_consent: true,
+          created_at: new Date().toISOString()
+        }).select();
+
+        if (error) throw error;
+
+        if (data && data[0]) {
+          if (!window.userRecipients) window.userRecipients = [];
+          window.userRecipients.push(data[0]);
+        }
+
+        if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
+        if (typeof glassToast === 'function') {
+          glassToast('Получатель успешно добавлен!', { kind: 'success' });
+        } else {
+          alert('Получатель успешно добавлен!');
+        }
+
+        closeModal();
+        if (typeof onSuccess === 'function') onSuccess();
+      } catch (err) {
+        console.error('Ошибка добавления получателя:', err);
+        alert(err.message || 'Ошибка сохранения получателя');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = `<span>Сохранить получателя</span>`;
+      }
+    };
+  }
+
 
   // --- 9. Состояние: На проверке ---
   function renderPendingState(userKyc) {
@@ -627,6 +1065,17 @@
         </div>
 
       </form>
+
+      <!-- Блок дополнительных функций (доступны после подтверждения) -->
+      <div class="p-4 rounded-2xl border border-white/10 bg-white/[0.02] text-center space-y-1.5 opacity-80 mt-4">
+        <div class="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-base mx-auto text-white/50">
+          🔒
+        </div>
+        <h4 class="text-xs font-bold text-white">Дополнительные получатели и замеры</h4>
+        <p class="text-[11px] text-white/50 leading-relaxed max-w-xs mx-auto">
+          Добавление доверенных лиц для разделения беспошлинных лимитов (200 € / 31 кг) и параметры подбора одежды откроются сразу после подтверждения ваших основных данных.
+        </p>
+      </div>
     `;
   }
 

@@ -218,26 +218,18 @@
         </span>
         <div class="flex-1">
           <div class="flex items-center gap-2">
-            <p class="font-semibold text-white text-sm">Таможня РБ (KYC)</p>
-            ${kycStatus === 'verified' ? '<span class="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ПРОВЕРЕНО</span>' :
+            <p class="font-semibold text-white text-sm">Мои данные</p>
+            ${kycStatus === 'verified' ? '' :
               kycStatus === 'pending' ? '<span class="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">НА ПРОВЕРКЕ</span>' :
               kycStatus === 'rejected' ? '<span class="text-[9px] font-black px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30">ОТКЛОНЕНО</span>' :
-              '<span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">НЕОБХОДИМО</span>'}
+              '<span class="text-[9px] font-bold px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse">Пройти верификацию!</span>'}
           </div>
           <p class="text-xs" style="color: var(--text-muted);">
-            ${kycStatus === 'verified' ? 'Паспорт подтверждён для посылок' :
+            ${kycStatus === 'verified' ? 'Паспортные данные, получатели и размеры' :
               kycStatus === 'pending' ? 'Сверка данных администратором' :
               kycStatus === 'rejected' ? 'Нажмите, чтобы исправить данные' :
               'Паспортные данные получателя посылок'}
           </p>
-        </div>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-      <button id="myPersonalDataBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition border-t border-white/5">
-        <span class="text-xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span></span>
-        <div class="flex-1">
-          <p class="font-semibold text-white text-sm">${t('my_data', 'Мои данные')}</p>
-          <p class="text-xs" style="color: var(--text-muted);">${t('my_data_sub', 'ФИО, телефон, паспорт и замеры')}</p>
         </div>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
@@ -441,9 +433,6 @@
       }
     };
   }
-  // Мои данные (единый профиль)
-  const myPersonalDataBtn = document.getElementById('myPersonalDataBtn');
-  if (myPersonalDataBtn) myPersonalDataBtn.onclick = () => showPersonalDataForm();
 
   const recoverySecurityBtn = document.getElementById('recoverySecurityBtn');
   if (recoverySecurityBtn) recoverySecurityBtn.onclick = () => showRecoveryCodeModal();
