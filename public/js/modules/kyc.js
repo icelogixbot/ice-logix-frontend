@@ -221,8 +221,64 @@
     return urlData.publicUrl;
   }
 
+  // --- Вспомогательный автокомплит органов МВД Беларуси ---
+  function attachOrganAutocomplete(inputElem, dropdownElem) {
+    if (!inputElem || !dropdownElem) return;
+
+    const renderMatches = (q) => {
+      const val = (q || '').trim();
+      if (val.length < 2) {
+        dropdownElem.innerHTML = '';
+        dropdownElem.classList.add('hidden');
+        return;
+      }
+      const searchFn = window.searchBelarusOrgans;
+      const matches = typeof searchFn === 'function' ? searchFn(val, 6) : [];
+      if (!matches || matches.length === 0) {
+        dropdownElem.innerHTML = '<div class="p-2 text-[11px] text-white/40 text-center">Орган не найден в справочнике (можно ввести вручную)</div>';
+        dropdownElem.classList.remove('hidden');
+        return;
+      }
+
+      dropdownElem.innerHTML = matches.map(name => `
+        <div class="organ-option px-3 py-2 rounded-xl hover:bg-cyan-500/20 text-white/90 hover:text-white cursor-pointer transition text-xs flex items-center justify-between">
+          <span class="truncate">${name}</span>
+          <span class="text-[10px] text-cyan-400 opacity-60 flex-shrink-0 ml-2">выбрать</span>
+        </div>
+      `).join('');
+      dropdownElem.classList.remove('hidden');
+
+      dropdownElem.querySelectorAll('.organ-option').forEach((el, idx) => {
+        el.onmousedown = (e) => {
+          e.preventDefault();
+          inputElem.value = matches[idx];
+          dropdownElem.classList.add('hidden');
+          if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
+        };
+      });
+    };
+
+    inputElem.addEventListener('input', () => renderMatches(inputElem.value));
+    inputElem.addEventListener('focus', () => {
+      if (inputElem.value.trim().length >= 2) renderMatches(inputElem.value);
+    });
+    inputElem.addEventListener('blur', () => {
+      setTimeout(() => dropdownElem.classList.add('hidden'), 200);
+    });
+  }
+
   // --- 6. Сохранение заявки и отправка на модерацию в Telegram-бот ---
-  async function submitKycVerification({ fullName, seriesNumber, idNumber, photoFile, parentalConsent }) {
+  async function submitKycVerification({
+    fullName,
+    seriesNumber,
+    idNumber,
+    phone,
+    issueDate,
+    issuedBy,
+    address,
+    photoFile,
+    parentalConsent
+  }) {
     const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
     if (!curUserId) throw new Error('Пользователь не авторизован');
 
@@ -241,17 +297,27 @@
       throw new Error('Для пользователей от 14 до 17 лет требуется согласие родителей/законных представителей.');
     }
 
-    // Загрузка фото
+    // Фото необязательно для таможни РБ (электронный текстовый реестр ПТДЭГ)
     let photoUrl = null;
     if (photoFile) {
       photoUrl = await uploadKycPhoto(photoFile, curUserId);
     }
 
+    const addressFull = address ? [
+      address.region,
+      address.city,
+      address.street ? `ул. ${address.street}` : '',
+      address.house ? `д. ${address.house}` : '',
+      address.corpus ? `корп. ${address.corpus}` : '',
+      address.room ? `кв. ${address.room}` : '',
+      address.zip_code ? `инд. ${address.zip_code}` : ''
+    ].filter(Boolean).join(', ') : '';
+
     // Запись в таблицу kyc_verifications
     const { data: kycRow, error: kycErr } = await supabaseClient.from('kyc_verifications').insert({
       user_id: curUserId,
       status: 'pending',
-      id_number: meta ? stage1.extracted_meta ? idNumber.toUpperCase().trim() : idNumber : idNumber,
+      id_number: idNumber.toUpperCase().trim(),
       series_number: seriesNumber.toUpperCase().trim(),
       full_name: fullName.trim(),
       birth_date: meta.birthDateIso,
@@ -260,7 +326,14 @@
       is_adult: meta.isAdult,
       parental_consent: Boolean(parentalConsent),
       photo_url: photoUrl,
-      validation_stage1_result: stage1
+      validation_stage1_result: {
+        ...stage1,
+        phone: phone || null,
+        issue_date: issueDate || null,
+        issued_by: issuedBy || null,
+        address: address || null,
+        address_full: addressFull || null
+      }
     }).select().single();
 
     if (kycErr) {
@@ -277,13 +350,23 @@
         full_name: fullName.trim(),
         series_number: seriesNumber.toUpperCase().trim(),
         id_number: idNumber.toUpperCase().trim(),
+        phone: phone || '',
+        issue_date: issueDate || '',
+        issued_by: issuedBy || '',
+        address: address || null,
+        address_full: addressFull || '',
         birth_date: meta.birthDateStr,
         age: meta.age,
         gender: meta.gender,
         is_adult: meta.isAdult,
+        region: meta.region,
         parental_consent: Boolean(parentalConsent)
       }
     };
+
+    if (phone) {
+      updatePayload.phone = phone;
+    }
 
     const { error: userErr } = await supabaseClient.from('users').update(updatePayload).eq('user_id', curUserId);
     if (userErr) throw userErr;
@@ -323,7 +406,7 @@
       if (curUserId && typeof supabaseClient !== 'undefined' && supabaseClient) {
         const { data: u } = await supabaseClient
           .from('users')
-          .select('full_name, kyc_status, kyc_rejection_reason, kyc_data, kyc_doc_photo_url, settings')
+          .select('full_name, phone, kyc_status, kyc_rejection_reason, kyc_data, kyc_doc_photo_url, settings')
           .eq('user_id', curUserId)
           .single();
         if (u) {
@@ -333,6 +416,7 @@
             kyc_data: u.kyc_data || null,
             kyc_photo_url: u.kyc_doc_photo_url || null,
             full_name: u.full_name || '',
+            phone: u.phone || '',
             settings: u.settings || {}
           };
         }
@@ -481,6 +565,16 @@
             <span class="text-white/40 block text-[10px] uppercase">Возраст</span>
             <span class="text-white font-bold">${d.age ? d.age + ' лет' : 'Совершеннолетний'}</span>
           </div>
+          ${d.issued_by ? `
+          <div class="col-span-2">
+            <span class="text-white/40 block text-[10px] uppercase">Кем выдан</span>
+            <span class="text-white font-medium">${d.issued_by}${d.issue_date ? ' (выдан ' + d.issue_date + ')' : ''}</span>
+          </div>` : ''}
+          ${(d.address_full || (d.address && d.address.city)) ? `
+          <div class="col-span-2">
+            <span class="text-white/40 block text-[10px] uppercase">Адрес регистрации</span>
+            <span class="text-white/90 text-[11px] leading-snug">${d.address_full || `${d.address.region || ''}, ${d.address.city}, ул. ${d.address.street}, д. ${d.address.house}`}</span>
+          </div>` : ''}
         </div>
         <div class="pt-2">
           <button type="button" id="reSubmitKycBtn" class="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 text-xs font-semibold active:scale-95 transition" onclick="window.forceReSubmitKyc()">
@@ -767,9 +861,10 @@
               <label class="block text-xs font-semibold text-white/80 mb-1">Дата выдачи</label>
               <input type="date" id="recAddIssueDate" class="w-full p-2.5 rounded-xl bg-white/5 border border-white/15 text-white text-xs focus:border-cyan-400 focus:outline-none">
             </div>
-            <div>
+            <div class="relative">
               <label class="block text-xs font-semibold text-white/80 mb-1">Кем выдан</label>
-              <input type="text" id="recAddIssuedBy" class="w-full p-3 rounded-xl bg-white/5 border border-white/15 text-white text-xs focus:border-cyan-400 focus:outline-none" placeholder="РУВД г. Минска">
+              <input type="text" id="recAddIssuedBy" autocomplete="off" class="w-full p-3 rounded-xl bg-white/5 border border-white/15 text-white text-xs focus:border-cyan-400 focus:outline-none" placeholder="РУВД / РОВД">
+              <div id="recAddIssuedByDropdown" class="hidden absolute top-full left-0 right-0 z-[150] mt-1 max-h-44 overflow-y-auto bg-slate-900/98 backdrop-blur-xl border border-cyan-400/30 rounded-xl shadow-2xl p-1 text-xs"></div>
             </div>
           </div>
 
@@ -833,6 +928,12 @@
       }
       previewDiv.classList.remove('hidden');
     };
+
+    // Подключение автокомплита органов для получателя
+    attachOrganAutocomplete(
+      modal.querySelector('#recAddIssuedBy'),
+      modal.querySelector('#recAddIssuedByDropdown')
+    );
 
     const saveBtn = modal.querySelector('#saveRecipientActionBtn');
     saveBtn.onclick = async () => {
@@ -932,12 +1033,12 @@
         <div>
           <h3 class="text-sm font-bold text-white mb-1">Заявка находится на рассмотрении</h3>
           <p class="text-xs text-white/60 max-w-xs mx-auto">
-            Администратор проверяет фото разворота и корректность указанного личного номера: <b class="text-amber-300 font-mono">${d.id_number || 'РБ'}</b>.
+            Администратор сверяет данные таможенной декларации для получателя: <b class="text-amber-300 font-mono">${d.full_name || 'Клиент'}</b> (ИН: <span class="font-mono">${d.id_number || 'РБ'}</span>).
           </p>
         </div>
         <div class="p-3 rounded-xl bg-white/5 border border-white/5 text-left text-xs space-y-1 text-white/70">
-          <p>• Этап 1: Формат и контрольная сумма — <span class="text-emerald-400 font-bold">Успешно пройдено</span></p>
-          <p>• Этап 2: Сверка фото и возраста администратором — <span class="text-amber-400 font-bold">В процессе...</span></p>
+          <p>• Этап 1: Формат и контрольная сумма 14 знаков — <span class="text-emerald-400 font-bold">Успешно пройдено ✓</span></p>
+          <p>• Этап 2: Проверка паспортных данных и адреса — <span class="text-amber-400 font-bold">В процессе...</span></p>
         </div>
         <button type="button" class="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 text-xs font-bold active:scale-95 transition" onclick="window.openKycScreen()">
           Обновить статус проверки
@@ -946,161 +1047,463 @@
     `;
   }
 
-  // --- 10. Состояние: Форма ввода данных ---
+  // --- 10. Состояние: Форма ввода данных (3-шаговый Мастер / Wizard) ---
   function renderFormState(userKyc) {
     const d = userKyc.kyc_data || {};
     return `
-      <form id="kycSubmitForm" class="space-y-4">
+      <div id="kycWizardContainer" class="space-y-4">
         
-        <!-- Поясняющая плашка этапов -->
-        <div class="p-3 rounded-2xl bg-white/[0.04] border border-white/10 text-xs text-white/70 space-y-1">
-          <div class="flex items-center gap-2 font-bold text-cyan-300">
-            <span>✨</span>
-            <span>Как проходит проверка (2 простых шага):</span>
-          </div>
-          <p class="text-[11px] text-white/60">
-            <b>1. Проверка формата:</b> система мгновенно проверяет 14 знаков белорусского номера.<br>
-            <b>2. Фото разворота:</b> прикрепите разворот с фотографией для сверки оператором.
-          </p>
-        </div>
-
-        <!-- Поле: ФИО -->
-        <div>
-          <label class="block text-xs font-bold text-white/80 mb-1.5">ФИО владельца полностью (как в паспорте)</label>
-          <input
-            type="text"
-            id="kycFullName"
-            class="w-full p-3.5 rounded-2xl bg-white/5 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
-            placeholder="Иванов Иван Иванович"
-            value="${d.full_name || userKyc.full_name || ''}"
-            required
-          >
-        </div>
-
-        <!-- Поле: Серия и номер паспорта -->
-        <div>
-          <label class="block text-xs font-bold text-white/80 mb-1.5">Серия и номер паспорта / ID-карты</label>
-          <input
-            type="text"
-            id="kycSeriesNumber"
-            class="w-full p-3.5 rounded-2xl bg-white/5 border border-white/15 text-white font-mono text-sm uppercase focus:border-cyan-400 focus:outline-none transition"
-            placeholder="MP1234567"
-            maxlength="10"
-            value="${d.series_number || ''}"
-            required
-          >
-          <p class="text-[10px] text-white/40 mt-1">Для паспорта РБ: 2 буквы + 7 цифр. Для ID-карты: 9 цифр.</p>
-        </div>
-
-        <!-- Поле: Идентификационный (личный) номер РБ -->
-        <div>
-          <label class="block text-xs font-bold text-white/80 mb-1.5 flex items-center justify-between">
-            <span>Идентификационный (личный) номер</span>
-            <span class="text-[10px] font-normal text-cyan-400">14 знаков</span>
-          </label>
-          <input
-            type="text"
-            id="kycIdNumber"
-            class="w-full p-3.5 rounded-2xl bg-white/5 border border-white/15 text-white font-mono text-sm uppercase tracking-wider focus:border-cyan-400 focus:outline-none transition"
-            placeholder="3010195A012PB3"
-            maxlength="14"
-            value="${d.id_number || ''}"
-            required
-          >
-          <!-- Живая карточка предпросмотра данных -->
-          <div id="kycIdPreviewCard" class="mt-2 hidden p-3 rounded-xl border transition-all text-xs"></div>
-        </div>
-
-        <!-- Согласие родителей для несовершеннолетних (динамическое) -->
-        <div id="kycParentalConsentBlock" class="hidden p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30">
-          <label class="flex items-start gap-2.5 cursor-pointer">
-            <input type="checkbox" id="kycParentalConsent" class="accent-cyan-400 w-4 h-4 mt-0.5 rounded">
-            <span class="text-xs text-amber-200/90 leading-tight">
-              Мне от 14 до 17 лет. Подтверждаю, что совершаю покупки с согласия родителей или законных представителей (ст. 25 Гражданского кодекса РБ).
+        <!-- Верхний индикатор шагов мастера -->
+        <div class="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 space-y-2.5">
+          <div class="flex items-center justify-between text-xs">
+            <span id="kycWizardStepTitle" class="font-bold text-white flex items-center gap-1.5">
+              <span class="w-5 h-5 rounded-full bg-cyan-400/20 text-cyan-300 flex items-center justify-center text-[10px] font-black border border-cyan-400/40">1</span>
+              <span>Шаг 1 из 3: Личные данные</span>
             </span>
-          </label>
+            <span id="kycWizardStepPercent" class="text-[11px] font-mono text-cyan-400 font-bold">33%</span>
+          </div>
+
+          <!-- Индикаторная полоска -->
+          <div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+            <div id="kycWizardProgressBar" class="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full transition-all duration-300" style="width: 33.3%;"></div>
+          </div>
+
+          <!-- Названия 3 шагов -->
+          <div class="grid grid-cols-3 gap-1 text-[10px] text-center pt-0.5">
+            <div id="kycStepNav1" class="text-cyan-300 font-bold transition">1. Личные данные</div>
+            <div id="kycStepNav2" class="text-white/40 transition">2. Документ</div>
+            <div id="kycStepNav3" class="text-white/40 transition">3. Прописка</div>
+          </div>
         </div>
 
-        <!-- Загрузка фото разворота паспорта -->
-        <div>
-          <label class="block text-xs font-bold text-white/80 mb-1.5">
-            Фото разворота паспорта (стр. 31–33 или обе стороны ID-карты)
-          </label>
+        <form id="kycSubmitForm" class="space-y-4" novalidate>
           
-          <div
-            id="kycPhotoDropzone"
-            class="relative border-2 border-dashed border-white/20 hover:border-cyan-400/50 rounded-2xl p-4 text-center cursor-pointer transition bg-white/[0.02]"
-          >
-            <input type="file" id="kycPhotoInput" accept="image/*" class="hidden">
+          <!-- ================= ШАГ 1: ЛИЧНЫЕ ДАННЫЕ ================= -->
+          <div id="kycWizardStep1" class="space-y-4">
             
-            <div id="kycPhotoEmptyState" class="space-y-2 py-3">
-              <div class="w-10 h-10 rounded-full bg-cyan-500/15 border border-cyan-400/30 text-cyan-400 flex items-center justify-center mx-auto text-lg">
-                📸
-              </div>
-              <p class="text-xs font-bold text-white">Нажмите для выбора фото</p>
-              <p class="text-[10px] text-white/40 max-w-xs mx-auto">
-                Четкое фото без бликов, все 14 знаков личного номера должны легко читаться
+            <div class="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-400/20 text-xs text-white/80 flex items-start gap-2.5">
+              <span class="text-cyan-400 text-sm mt-0.5">ℹ️</span>
+              <p class="text-[11px] leading-relaxed text-white/70">
+                Заполняется строго <b>как в паспорте</b> гражданина Республики Беларусь или виде на жительство (ВНЖ РБ). Данные требуются для таможенного оформления посылок (декларация ПТДЭГ).
               </p>
             </div>
 
-            <div id="kycPhotoPreviewState" class="hidden space-y-2">
-              <img id="kycPreviewImg" src="" alt="Разворот паспорта" class="w-full max-h-48 object-contain rounded-xl border border-white/10 mx-auto">
-              <button type="button" id="kycRemovePhotoBtn" class="text-rose-400 text-xs hover:underline flex items-center justify-center gap-1 mx-auto pt-1">
-                <span>✕</span> <span>Выбрать другое фото</span>
+            <!-- ФИО -->
+            <div>
+              <label class="block text-xs font-bold text-white/80 mb-1.5">
+                ФИО получателя полностью <span class="text-rose-400">*</span>
+              </label>
+              <input
+                type="text"
+                id="kycFullName"
+                class="w-full p-3.5 rounded-2xl bg-white/5 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
+                placeholder="Иванов Иван Иванович"
+                value="${d.full_name || userKyc.full_name || ''}"
+                autocomplete="name"
+                required
+              >
+            </div>
+
+            <!-- Идентификационный (личный) номер РБ -->
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="block text-xs font-bold text-white/80">
+                  Идентификационный (личный) номер <span class="text-rose-400">*</span>
+                </label>
+                <span class="text-[10px] text-cyan-400 font-mono">14 знаков</span>
+              </div>
+              <input
+                type="text"
+                id="kycIdNumber"
+                class="w-full p-3.5 rounded-2xl bg-white/5 border border-white/15 text-white font-mono text-sm uppercase tracking-wider focus:border-cyan-400 focus:outline-none transition"
+                placeholder="3010195A012PB3"
+                maxlength="14"
+                value="${d.id_number || ''}"
+                autocomplete="off"
+                required
+              >
+              <!-- Карточка предпросмотра данных из 14 знаков -->
+              <div id="kycIdPreviewCard" class="mt-2 hidden p-3 rounded-xl border transition-all text-xs"></div>
+            </div>
+
+            <!-- Телефон получателя -->
+            <div>
+              <label class="block text-xs font-bold text-white/80 mb-1.5">
+                Контактный телефон в РБ <span class="text-rose-400">*</span>
+              </label>
+              <input
+                type="tel"
+                id="kycPhone"
+                class="w-full p-3.5 rounded-2xl bg-white/5 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
+                placeholder="+375 29 123-45-67"
+                value="${d.phone || userKyc.phone || '+375'}"
+                autocomplete="tel"
+                required
+              >
+              <p class="text-[10px] text-white/40 mt-1">На этот номер придет SMS с кодом получения посылки в ПВЗ (Европочта / Белпочта / СДЭК).</p>
+            </div>
+
+            <!-- Согласие родителей (если 14-17 лет) -->
+            <div id="kycParentalConsentBlock" class="hidden p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30">
+              <label class="flex items-start gap-2.5 cursor-pointer">
+                <input type="checkbox" id="kycParentalConsent" class="accent-cyan-400 w-4 h-4 mt-0.5 rounded">
+                <span class="text-xs text-amber-200/90 leading-tight">
+                  Мне от 14 до 17 лет. Подтверждаю, что совершаю покупки с согласия родителей или законных представителей (ст. 25 Гражданского кодекса РБ).
+                </span>
+              </label>
+            </div>
+
+            <!-- Кнопка перехода к шагу 2 -->
+            <div class="pt-2">
+              <button
+                type="button"
+                id="kycGoToStep2Btn"
+                class="btn-primary w-full py-4 rounded-2xl font-bold text-sm shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2 active:scale-95 transition"
+              >
+                <span>Далее: Данные паспорта</span>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
               </button>
             </div>
+
           </div>
+
+          <!-- ================= ШАГ 2: ДОКУМЕНТ ================= -->
+          <div id="kycWizardStep2" class="space-y-4 hidden">
+            
+            <div class="p-3 rounded-2xl bg-white/[0.04] border border-white/10 text-xs text-white/70">
+              <span class="font-bold text-cyan-300">Паспорт или ID-карта РБ</span>
+              <p class="text-[11px] text-white/50 mt-0.5">Укажите реквизиты документа для идентификации таможенным органом.</p>
+            </div>
+
+            <!-- Серия и номер -->
+            <div>
+              <label class="block text-xs font-bold text-white/80 mb-1.5">
+                Серия и номер документа <span class="text-rose-400">*</span>
+              </label>
+              <input
+                type="text"
+                id="kycSeriesNumber"
+                class="w-full p-3.5 rounded-2xl bg-white/5 border border-white/15 text-white font-mono text-sm uppercase focus:border-cyan-400 focus:outline-none transition"
+                placeholder="MP1234567"
+                maxlength="10"
+                value="${d.series_number || ''}"
+                autocomplete="off"
+                required
+              >
+              <p class="text-[10px] text-white/40 mt-1">Паспорт РБ: 2 буквы серии (AB, BM, HB, KH, MP, MC, KB, PP, SP, DP) + 7 цифр. Для ID-карты: 9 цифр.</p>
+            </div>
+
+            <!-- Дата выдачи -->
+            <div>
+              <label class="block text-xs font-bold text-white/80 mb-1.5">
+                Дата выдачи документа <span class="text-rose-400">*</span>
+              </label>
+              <input
+                type="date"
+                id="kycIssueDate"
+                class="w-full p-3.5 rounded-2xl bg-white/5 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
+                value="${d.issue_date || ''}"
+                required
+              >
+            </div>
+
+            <!-- Кем выдан (с автокомплитом РУВД/РОВД) -->
+            <div class="relative">
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="block text-xs font-bold text-white/80">
+                  Кем выдан (орган МВД) <span class="text-rose-400">*</span>
+                </label>
+                <span class="text-[10px] text-cyan-400">Умный поиск РУВД/РОВД</span>
+              </div>
+              <input
+                type="text"
+                id="kycIssuedBy"
+                class="w-full p-3.5 rounded-2xl bg-white/5 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
+                placeholder="Начните вводить (напр: Советское, Борисов, Ленинский...)"
+                value="${d.issued_by || ''}"
+                autocomplete="off"
+                required
+              >
+              
+              <!-- Выпадающий список автокомплита -->
+              <div id="kycOrgansDropdown" class="hidden absolute top-full left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto bg-slate-900/98 backdrop-blur-xl border border-cyan-400/30 rounded-2xl shadow-2xl p-1.5 text-xs"></div>
+
+              <!-- Быстрые чипсы популярных органов -->
+              <div class="pt-2">
+                <p class="text-[10px] text-white/40 mb-1">Популярные:</p>
+                <div class="flex flex-wrap gap-1.5" id="kycQuickOrgansChips">
+                  <button type="button" class="kyc-organ-chip text-[10px] px-2.5 py-1 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300 border border-white/10 transition active:scale-95">Заводское РУВД г. Минска</button>
+                  <button type="button" class="kyc-organ-chip text-[10px] px-2.5 py-1 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300 border border-white/10 transition active:scale-95">Московское РУВД г. Минска</button>
+                  <button type="button" class="kyc-organ-chip text-[10px] px-2.5 py-1 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300 border border-white/10 transition active:scale-95">Фрунзенское РУВД г. Минска</button>
+                  <button type="button" class="kyc-organ-chip text-[10px] px-2.5 py-1 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300 border border-white/10 transition active:scale-95">Борисовское РУВД</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Навигация Шага 2 -->
+            <div class="pt-2 flex items-center gap-2.5">
+              <button
+                type="button"
+                id="kycBackToStep1Btn"
+                class="btn-secondary px-5 py-4 rounded-2xl font-bold text-sm active:scale-95 transition"
+              >
+                ← Назад
+              </button>
+              <button
+                type="button"
+                id="kycGoToStep3Btn"
+                class="btn-primary flex-1 py-4 rounded-2xl font-bold text-sm shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2 active:scale-95 transition"
+              >
+                <span>Далее: Прописка</span>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+
+          </div>
+
+          <!-- ================= ШАГ 3: ПРОПИСКА ================= -->
+          <div id="kycWizardStep3" class="space-y-4 hidden">
+            
+            <div class="p-3 rounded-2xl bg-white/[0.04] border border-white/10 text-xs text-white/70">
+              <span class="font-bold text-cyan-300">Адрес регистрации (прописки)</span>
+              <p class="text-[11px] text-white/50 mt-0.5">Указывается в точности по штампу в паспорте или выписке из регистра населения.</p>
+            </div>
+
+            <!-- Область -->
+            <div>
+              <label class="block text-xs font-bold text-white/80 mb-1.5">
+                Область / регион РБ <span class="text-rose-400">*</span>
+              </label>
+              <select
+                id="kycAddressRegion"
+                class="w-full p-3.5 rounded-2xl bg-slate-900 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition cursor-pointer"
+                required
+              >
+                <option value="">Выберите область</option>
+                <option value="г. Минск" ${(d.address?.region === 'г. Минск' || d.region === 'г. Минск') ? 'selected' : ''}>г. Минск</option>
+                <option value="Минская область" ${(d.address?.region === 'Минская область' || d.region === 'Минская область') ? 'selected' : ''}>Минская область</option>
+                <option value="Брестская область" ${(d.address?.region === 'Брестская область' || d.region === 'Брестская область') ? 'selected' : ''}>Брестская область</option>
+                <option value="Витебская область" ${(d.address?.region === 'Витебская область' || d.region === 'Витебская область') ? 'selected' : ''}>Витебская область</option>
+                <option value="Гомельская область" ${(d.address?.region === 'Гомельская область' || d.region === 'Гомельская область') ? 'selected' : ''}>Гомельская область</option>
+                <option value="Гродненская область" ${(d.address?.region === 'Гродненская область' || d.region === 'Гродненская область') ? 'selected' : ''}>Гродненская область</option>
+                <option value="Могилевская область" ${(d.address?.region === 'Могилевская область' || d.region === 'Могилевская область') ? 'selected' : ''}>Могилевская область</option>
+              </select>
+            </div>
+
+            <!-- Город -->
+            <div>
+              <label class="block text-xs font-bold text-white/80 mb-1.5">
+                Город / населенный пункт <span class="text-rose-400">*</span>
+              </label>
+              <input
+                type="text"
+                id="kycAddressCity"
+                class="w-full p-3.5 rounded-2xl bg-white/5 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
+                placeholder="г. Минск"
+                value="${d.address?.city || ''}"
+                required
+              >
+              <!-- Быстрые города -->
+              <div class="flex flex-wrap gap-1.5 mt-2" id="kycQuickCityChips">
+                <button type="button" class="kyc-city-chip text-[10px] px-2 py-0.5 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300 border border-white/10 transition">г. Минск</button>
+                <button type="button" class="kyc-city-chip text-[10px] px-2 py-0.5 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300 border border-white/10 transition">г. Брест</button>
+                <button type="button" class="kyc-city-chip text-[10px] px-2 py-0.5 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300 border border-white/10 transition">г. Гродно</button>
+                <button type="button" class="kyc-city-chip text-[10px] px-2 py-0.5 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300 border border-white/10 transition">г. Гомель</button>
+                <button type="button" class="kyc-city-chip text-[10px] px-2 py-0.5 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300 border border-white/10 transition">г. Витебск</button>
+                <button type="button" class="kyc-city-chip text-[10px] px-2 py-0.5 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300 border border-white/10 transition">г. Могилев</button>
+                <button type="button" class="kyc-city-chip text-[10px] px-2 py-0.5 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300 border border-white/10 transition">г. Борисов</button>
+              </div>
+            </div>
+
+            <!-- Улица -->
+            <div>
+              <label class="block text-xs font-bold text-white/80 mb-1.5">
+                Улица / проспект / переулок <span class="text-rose-400">*</span>
+              </label>
+              <input
+                type="text"
+                id="kycAddressStreet"
+                class="w-full p-3.5 rounded-2xl bg-white/5 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
+                placeholder="ул. Притыцкого"
+                value="${d.address?.street || ''}"
+                required
+              >
+            </div>
+
+            <!-- Дом, Корпус, Квартира -->
+            <div class="grid grid-cols-3 gap-2.5">
+              <div>
+                <label class="block text-xs font-bold text-white/80 mb-1.5">
+                  Дом <span class="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="kycAddressHouse"
+                  class="w-full p-3 rounded-2xl bg-white/5 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
+                  placeholder="12"
+                  value="${d.address?.house || ''}"
+                  required
+                >
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-white/80 mb-1.5">Корпус</label>
+                <input
+                  type="text"
+                  id="kycAddressCorpus"
+                  class="w-full p-3 rounded-2xl bg-white/5 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
+                  placeholder="1"
+                  value="${d.address?.corpus || ''}"
+                >
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-white/80 mb-1.5">Кв. / комн.</label>
+                <input
+                  type="text"
+                  id="kycAddressRoom"
+                  class="w-full p-3 rounded-2xl bg-white/5 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
+                  placeholder="45"
+                  value="${d.address?.room || ''}"
+                >
+              </div>
+            </div>
+
+            <!-- Почтовый индекс -->
+            <div>
+              <label class="block text-xs font-bold text-white/80 mb-1.5 flex items-center justify-between">
+                <span>Почтовый индекс</span>
+                <span class="text-[10px] text-white/40">6 цифр</span>
+              </label>
+              <input
+                type="text"
+                id="kycAddressZip"
+                class="w-full p-3.5 rounded-2xl bg-white/5 border border-white/15 text-white font-mono text-sm focus:border-cyan-400 focus:outline-none transition"
+                placeholder="220000"
+                maxlength="6"
+                value="${d.address?.zip_code || ''}"
+              >
+            </div>
+
+            <!-- Навигация Шага 3 (Сохранение) -->
+            <div class="pt-2 flex items-center gap-2.5">
+              <button
+                type="button"
+                id="kycBackToStep2Btn"
+                class="btn-secondary px-5 py-4 rounded-2xl font-bold text-sm active:scale-95 transition"
+              >
+                ← Назад
+              </button>
+              <button
+                type="submit"
+                id="kycSubmitBtn"
+                class="btn-primary flex-1 py-4 rounded-2xl font-bold text-sm shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2 active:scale-95 transition"
+              >
+                <span>Сохранить данные ✓</span>
+              </button>
+            </div>
+
+          </div>
+
+        </form>
+
+        <!-- Блок дополнительных получателей (пояснение) -->
+        <div class="p-4 rounded-2xl border border-white/10 bg-white/[0.02] text-center space-y-1.5 opacity-80 mt-4">
+          <div class="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-base mx-auto text-white/50">
+            👥
+          </div>
+          <h4 class="text-xs font-bold text-white">Дополнительные получатели и замеры</h4>
+          <p class="text-[11px] text-white/50 leading-relaxed max-w-xs mx-auto">
+            Добавление доверенных лиц для разделения беспошлинных лимитов (200 € / 31 кг) и параметры подбора одежды откроются сразу после сохранения ваших основных данных.
+          </p>
         </div>
 
-        <!-- Кнопка отправки -->
-        <div class="pt-2">
-          <button
-            type="submit"
-            id="kycSubmitBtn"
-            class="btn-primary w-full py-4 rounded-2xl font-bold text-sm shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2 active:scale-95 transition"
-          >
-            <span>Отправить на верификацию</span>
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
-        </div>
-
-      </form>
-
-      <!-- Блок дополнительных функций (доступны после подтверждения) -->
-      <div class="p-4 rounded-2xl border border-white/10 bg-white/[0.02] text-center space-y-1.5 opacity-80 mt-4">
-        <div class="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-base mx-auto text-white/50">
-          🔒
-        </div>
-        <h4 class="text-xs font-bold text-white">Дополнительные получатели и замеры</h4>
-        <p class="text-[11px] text-white/50 leading-relaxed max-w-xs mx-auto">
-          Добавление доверенных лиц для разделения беспошлинных лимитов (200 € / 31 кг) и параметры подбора одежды откроются сразу после подтверждения ваших основных данных.
-        </p>
       </div>
     `;
   }
 
-  // --- 11. Обработчики формы KYC ---
+  // --- 11. Обработчики мастера KYC (Wizard) ---
   function attachKycFormHandlers() {
+    const wizardStep1 = document.getElementById('kycWizardStep1');
+    const wizardStep2 = document.getElementById('kycWizardStep2');
+    const wizardStep3 = document.getElementById('kycWizardStep3');
+
+    const stepTitle = document.getElementById('kycWizardStepTitle');
+    const stepPercent = document.getElementById('kycWizardStepPercent');
+    const progressBar = document.getElementById('kycWizardProgressBar');
+    const nav1 = document.getElementById('kycStepNav1');
+    const nav2 = document.getElementById('kycStepNav2');
+    const nav3 = document.getElementById('kycStepNav3');
+
     const idInput = document.getElementById('kycIdNumber');
     const previewCard = document.getElementById('kycIdPreviewCard');
     const consentBlock = document.getElementById('kycParentalConsentBlock');
-    const photoInput = document.getElementById('kycPhotoInput');
-    const dropzone = document.getElementById('kycPhotoDropzone');
-    const emptyState = document.getElementById('kycPhotoEmptyState');
-    const previewState = document.getElementById('kycPhotoPreviewState');
-    const previewImg = document.getElementById('kycPreviewImg');
-    const removePhotoBtn = document.getElementById('kycRemovePhotoBtn');
+    const parentalConsent = document.getElementById('kycParentalConsent');
+
+    const fullNameInput = document.getElementById('kycFullName');
+    const phoneInput = document.getElementById('kycPhone');
+
+    const seriesNumberInput = document.getElementById('kycSeriesNumber');
+    const issueDateInput = document.getElementById('kycIssueDate');
+    const issuedByInput = document.getElementById('kycIssuedBy');
+    const organsDropdown = document.getElementById('kycOrgansDropdown');
+
+    const regionSelect = document.getElementById('kycAddressRegion');
+    const cityInput = document.getElementById('kycAddressCity');
+    const streetInput = document.getElementById('kycAddressStreet');
+    const houseInput = document.getElementById('kycAddressHouse');
+    const corpusInput = document.getElementById('kycAddressCorpus');
+    const roomInput = document.getElementById('kycAddressRoom');
+    const zipInput = document.getElementById('kycAddressZip');
+
     const form = document.getElementById('kycSubmitForm');
     const submitBtn = document.getElementById('kycSubmitBtn');
 
-    let selectedFile = null;
+    let currentStep = 1;
 
-    // «Живой» парсер личного номера при вводе
+    // Переключение шага мастера
+    function setStep(step) {
+      currentStep = step;
+      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
+
+      if (wizardStep1) wizardStep1.classList.toggle('hidden', step !== 1);
+      if (wizardStep2) wizardStep2.classList.toggle('hidden', step !== 2);
+      if (wizardStep3) wizardStep3.classList.toggle('hidden', step !== 3);
+
+      if (step === 1) {
+        if (stepTitle) stepTitle.innerHTML = `<span class="w-5 h-5 rounded-full bg-cyan-400/20 text-cyan-300 flex items-center justify-center text-[10px] font-black border border-cyan-400/40">1</span><span>Шаг 1 из 3: Личные данные</span>`;
+        if (stepPercent) stepPercent.textContent = '33%';
+        if (progressBar) progressBar.style.width = '33.3%';
+        if (nav1) nav1.className = 'text-cyan-300 font-bold transition';
+        if (nav2) nav2.className = 'text-white/40 transition';
+        if (nav3) nav3.className = 'text-white/40 transition';
+      } else if (step === 2) {
+        if (stepTitle) stepTitle.innerHTML = `<span class="w-5 h-5 rounded-full bg-cyan-400/20 text-cyan-300 flex items-center justify-center text-[10px] font-black border border-cyan-400/40">2</span><span>Шаг 2 из 3: Данные документа</span>`;
+        if (stepPercent) stepPercent.textContent = '66%';
+        if (progressBar) progressBar.style.width = '66.6%';
+        if (nav1) nav1.className = 'text-emerald-400 font-bold transition';
+        if (nav2) nav2.className = 'text-cyan-300 font-bold transition';
+        if (nav3) nav3.className = 'text-white/40 transition';
+      } else if (step === 3) {
+        if (stepTitle) stepTitle.innerHTML = `<span class="w-5 h-5 rounded-full bg-cyan-400/20 text-cyan-300 flex items-center justify-center text-[10px] font-black border border-cyan-400/40">3</span><span>Шаг 3 из 3: Адрес регистрации</span>`;
+        if (stepPercent) stepPercent.textContent = '100%';
+        if (progressBar) progressBar.style.width = '100%';
+        if (nav1) nav1.className = 'text-emerald-400 font-bold transition';
+        if (nav2) nav2.className = 'text-emerald-400 font-bold transition';
+        if (nav3) nav3.className = 'text-cyan-300 font-bold transition';
+      }
+
+      const container = document.getElementById('kycWizardContainer');
+      if (container) {
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    // Живой валидатор 14 знаков личного номера
     const handleIdInput = () => {
+      if (!idInput || !previewCard) return;
       const val = idInput.value.trim().toUpperCase();
       if (!val) {
         previewCard.classList.add('hidden');
-        consentBlock.classList.add('hidden');
+        if (consentBlock) consentBlock.classList.add('hidden');
         return;
       }
 
@@ -1108,7 +1511,7 @@
         previewCard.className = 'mt-2 p-2.5 rounded-xl border border-white/10 bg-white/5 text-[11px] text-white/50';
         previewCard.innerHTML = `Введено знаков: ${val.length} из 14`;
         previewCard.classList.remove('hidden');
-        consentBlock.classList.add('hidden');
+        if (consentBlock) consentBlock.classList.add('hidden');
         return;
       }
 
@@ -1118,7 +1521,7 @@
         previewCard.className = 'mt-2 p-3 rounded-xl border border-emerald-500/40 bg-emerald-950/20 text-xs text-white space-y-1';
         previewCard.innerHTML = `
           <div class="flex items-center justify-between text-emerald-400 font-bold">
-            <span class="flex items-center gap-1">✓ Формат номера корректен</span>
+            <span class="flex items-center gap-1">✓ Номер РБ корректен</span>
             <span>${d.age} лет</span>
           </div>
           <div class="grid grid-cols-2 gap-1 text-[11px] text-white/70 pt-1 border-t border-white/10">
@@ -1129,16 +1532,28 @@
         `;
         previewCard.classList.remove('hidden');
 
-        if (d.isMinorWithConsent) {
-          consentBlock.classList.remove('hidden');
-        } else {
-          consentBlock.classList.add('hidden');
+        // Авто-подстановка региона в селект прописки (если еще не выбран)
+        if (regionSelect && !regionSelect.value && d.region) {
+          for (let i = 0; i < regionSelect.options.length; i++) {
+            if (regionSelect.options[i].value === d.region) {
+              regionSelect.selectedIndex = i;
+              break;
+            }
+          }
+        }
+
+        if (consentBlock) {
+          if (d.isMinorWithConsent) {
+            consentBlock.classList.remove('hidden');
+          } else {
+            consentBlock.classList.add('hidden');
+          }
         }
       } else {
         previewCard.className = 'mt-2 p-3 rounded-xl border border-rose-500/40 bg-rose-950/20 text-xs text-rose-300';
         previewCard.innerHTML = `⚠️ ${res.error}`;
         previewCard.classList.remove('hidden');
-        consentBlock.classList.add('hidden');
+        if (consentBlock) consentBlock.classList.add('hidden');
       }
     };
 
@@ -1147,67 +1562,163 @@
       if (idInput.value) handleIdInput();
     }
 
-    // Обработка загрузки фото
-    if (dropzone && photoInput) {
-      dropzone.onclick = (e) => {
-        if (e.target.id === 'kycRemovePhotoBtn' || e.target.closest('#kycRemovePhotoBtn')) return;
-        photoInput.click();
+    // Автокомплит органа выдачи
+    if (issuedByInput && organsDropdown) {
+      attachOrganAutocomplete(issuedByInput, organsDropdown);
+    }
+
+    // Быстрые чипсы популярных органов
+    document.querySelectorAll('.kyc-organ-chip').forEach(chip => {
+      chip.onclick = () => {
+        if (issuedByInput) {
+          issuedByInput.value = chip.textContent.trim();
+          if (organsDropdown) organsDropdown.classList.add('hidden');
+          if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+        }
       };
+    });
 
-      photoInput.onchange = (e) => {
-        const file = e.target.files && e.target.files[0];
-        if (!file) return;
-        selectedFile = file;
+    // Быстрые чипсы городов
+    document.querySelectorAll('.kyc-city-chip').forEach(chip => {
+      chip.onclick = () => {
+        if (cityInput) {
+          cityInput.value = chip.textContent.trim();
+          if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+        }
+      };
+    });
 
-        // Используем memory-safe trackBlobUrl из skill photo-previews
-        let blobUrl = '';
-        if (typeof window.trackBlobUrl === 'function') {
-          blobUrl = window.trackBlobUrl('kyc:photo', file);
-        } else {
-          blobUrl = URL.createObjectURL(file);
+    // Навигация Шаг 1 -> Шаг 2
+    const goToStep2Btn = document.getElementById('kycGoToStep2Btn');
+    if (goToStep2Btn) {
+      goToStep2Btn.onclick = () => {
+        const fullName = fullNameInput ? fullNameInput.value.trim() : '';
+        const idNumber = idInput ? idInput.value.trim().toUpperCase() : '';
+        const phone = phoneInput ? phoneInput.value.trim() : '';
+
+        if (!fullName || fullName.split(/\s+/).length < 2) {
+          alert('Пожалуйста, укажите ФИО полностью (Фамилию и Имя).');
+          if (fullNameInput) fullNameInput.focus();
+          return;
         }
 
-        previewImg.src = blobUrl;
-        emptyState.classList.add('hidden');
-        previewState.classList.remove('hidden');
-        if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+        const idCheck = parseAndValidateBelId(idNumber);
+        if (!idCheck.isValid) {
+          alert(idCheck.error || 'Пожалуйста, введите корректный 14-значный личный номер.');
+          if (idInput) idInput.focus();
+          return;
+        }
+
+        if (idCheck.details.isUnder14) {
+          alert('Оформление на граждан младше 14 лет запрещено таможенными правилами РБ. Укажите данные родителя.');
+          return;
+        }
+
+        if (idCheck.details.isMinorWithConsent && (!parentalConsent || !parentalConsent.checked)) {
+          alert('Для лиц от 14 до 17 лет требуется подтвердить согласие родителей (отметьте галочку).');
+          return;
+        }
+
+        const cleanPhone = phone.replace(/[^\d+]/g, '');
+        if (!cleanPhone || cleanPhone.length < 9) {
+          alert('Пожалуйста, укажите корректный контактный номер телефона.');
+          if (phoneInput) phoneInput.focus();
+          return;
+        }
+
+        setStep(2);
       };
     }
 
-    if (removePhotoBtn) {
-      removePhotoBtn.onclick = (e) => {
-        e.stopPropagation();
-        selectedFile = null;
-        photoInput.value = '';
-        previewImg.src = '';
-        previewState.classList.add('hidden');
-        emptyState.classList.remove('hidden');
+    // Навигация Шаг 2 -> Шаг 1
+    const backToStep1Btn = document.getElementById('kycBackToStep1Btn');
+    if (backToStep1Btn) {
+      backToStep1Btn.onclick = () => setStep(1);
+    }
+
+    // Навигация Шаг 2 -> Шаг 3
+    const goToStep3Btn = document.getElementById('kycGoToStep3Btn');
+    if (goToStep3Btn) {
+      goToStep3Btn.onclick = () => {
+        const seriesNumber = seriesNumberInput ? seriesNumberInput.value.trim().toUpperCase() : '';
+        const issueDate = issueDateInput ? issueDateInput.value.trim() : '';
+        const issuedBy = issuedByInput ? issuedByInput.value.trim() : '';
+
+        const seriesCheck = validatePassportSeriesNumber(seriesNumber);
+        if (!seriesCheck.isValid) {
+          alert(seriesCheck.error || 'Пожалуйста, укажите верную серию и номер паспорта (напр. MP1234567) или ID-карты.');
+          if (seriesNumberInput) seriesNumberInput.focus();
+          return;
+        }
+
+        if (!issueDate) {
+          alert('Пожалуйста, укажите дату выдачи документа.');
+          if (issueDateInput) issueDateInput.focus();
+          return;
+        }
+
+        if (!issuedBy || issuedBy.length < 3) {
+          alert('Пожалуйста, укажите орган, выдавший паспорт (выберите из подсказок или введите вручную).');
+          if (issuedByInput) issuedByInput.focus();
+          return;
+        }
+
+        setStep(3);
       };
     }
 
-    // Отправка формы
+    // Навигация Шаг 3 -> Шаг 2
+    const backToStep2Btn = document.getElementById('kycBackToStep2Btn');
+    if (backToStep2Btn) {
+      backToStep2Btn.onclick = () => setStep(2);
+    }
+
+    // Отправка формы (Шаг 3)
     if (form) {
       form.onsubmit = async (e) => {
         e.preventDefault();
 
-        const fullName = document.getElementById('kycFullName').value.trim();
-        const seriesNumber = document.getElementById('kycSeriesNumber').value.trim();
-        const idNumber = document.getElementById('kycIdNumber').value.trim();
-        const parentalConsent = document.getElementById('kycParentalConsent')?.checked;
+        const region = regionSelect ? regionSelect.value.trim() : '';
+        const city = cityInput ? cityInput.value.trim() : '';
+        const street = streetInput ? streetInput.value.trim() : '';
+        const house = houseInput ? houseInput.value.trim() : '';
+        const corpus = corpusInput ? corpusInput.value.trim() : '';
+        const room = roomInput ? roomInput.value.trim() : '';
+        const zipCode = zipInput ? zipInput.value.trim() : '';
 
-        if (!selectedFile) {
-          if (typeof tgUtil !== 'undefined') {
-            tgUtil.alert('Пожалуйста, прикрепите фото разворота паспорта для таможни.');
-          } else {
-            alert('Пожалуйста, прикрепите фото разворота паспорта для таможни.');
-          }
+        if (!region) {
+          alert('Пожалуйста, выберите область регистрации.');
+          if (regionSelect) regionSelect.focus();
           return;
         }
+        if (!city) {
+          alert('Пожалуйста, укажите город или населенный пункт.');
+          if (cityInput) cityInput.focus();
+          return;
+        }
+        if (!street) {
+          alert('Пожалуйста, укажите улицу.');
+          if (streetInput) streetInput.focus();
+          return;
+        }
+        if (!house) {
+          alert('Пожалуйста, укажите номер дома.');
+          if (houseInput) houseInput.focus();
+          return;
+        }
+
+        const fullName = fullNameInput ? fullNameInput.value.trim() : '';
+        const seriesNumber = seriesNumberInput ? seriesNumberInput.value.trim().toUpperCase() : '';
+        const idNumber = idInput ? idInput.value.trim().toUpperCase() : '';
+        const phone = phoneInput ? phoneInput.value.trim() : '';
+        const issueDate = issueDateInput ? issueDateInput.value.trim() : '';
+        const issuedBy = issuedByInput ? issuedByInput.value.trim() : '';
+        const consent = parentalConsent ? parentalConsent.checked : false;
 
         submitBtn.disabled = true;
         submitBtn.innerHTML = `
           <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-          <span>Проверка данных...</span>
+          <span>Сохранение данных...</span>
         `;
 
         try {
@@ -1215,27 +1726,37 @@
             fullName,
             seriesNumber,
             idNumber,
-            photoFile: selectedFile,
-            parentalConsent
+            phone,
+            issueDate,
+            issuedBy,
+            address: {
+              region,
+              city,
+              street,
+              house,
+              corpus,
+              room,
+              zip_code: zipCode
+            },
+            parentalConsent: consent
           });
 
           if (typeof tgUtil !== 'undefined') {
             if (tgUtil.haptic) tgUtil.haptic('success');
-            tgUtil.alert('Данные успешно отправлены на проверку!');
+            tgUtil.alert('Ваши данные успешно сохранены!');
+          } else {
+            alert('Ваши данные успешно сохранены!');
           }
           window.openKycScreen();
         } catch (err) {
           console.error('KYC submission error:', err);
           submitBtn.disabled = false;
-          submitBtn.innerHTML = `
-            <span>Отправить на верификацию</span>
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-          `;
+          submitBtn.innerHTML = `<span>Сохранить данные ✓</span>`;
           if (typeof tgUtil !== 'undefined') {
             if (tgUtil.haptic) tgUtil.haptic('error');
-            tgUtil.alert(err.message || 'Ошибка отправки данных. Проверьте правильность полей.');
+            tgUtil.alert(err.message || 'Ошибка сохранения данных.');
           } else {
-            alert(err.message || 'Ошибка отправки данных.');
+            alert(err.message || 'Ошибка сохранения данных.');
           }
         }
       };
