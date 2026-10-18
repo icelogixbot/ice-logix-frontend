@@ -1200,22 +1200,22 @@
               <!-- Карточка предпросмотра данных из 14 знаков -->
               <div id="kycIdPreviewCard" class="mt-2 hidden p-3 rounded-xl border transition-all text-xs"></div>
 
-              <!-- Блок ручного указания даты рождения (показывается, если дата не определена автоматически из ИН) -->
+              <!-- Блок ручного/проверочного указания даты рождения (всегда можно скорректировать) -->
               <div id="kycManualBirthDateBlock" class="hidden mt-2.5 p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 space-y-1.5">
                 <div class="flex items-center justify-between">
                   <label class="block text-xs font-bold text-white/90">
                     Дата рождения получателя <span class="text-rose-400">*</span>
                   </label>
-                  <span class="text-[10px] text-cyan-400">Таможенное требование</span>
+                  <span id="kycBirthDateAutoBadge" class="text-[10px] text-cyan-400">Таможенное требование</span>
                 </div>
                 <input
                   type="date"
                   id="kycBirthDate"
-                  class="w-full p-3 rounded-xl bg-slate-900 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
+                  class="w-full p-3 rounded-xl bg-slate-900 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition cursor-pointer"
                   value="${d.birth_date_iso || ''}"
                 >
-                <p class="text-[10px] text-white/50 leading-relaxed">
-                  Укажите вашу дату рождения для корректного расчета возраста и прохождения таможенного контроля.
+                <p id="kycBirthDateHelpText" class="text-[10px] text-white/50 leading-relaxed">
+                  Дата рождения сверяется таможенными органами при декларировании посылок.
                 </p>
               </div>
             </div>
@@ -1614,79 +1614,80 @@
         const d = res.details;
         const manualBirthBlock = document.getElementById('kycManualBirthDateBlock');
         const birthInput = document.getElementById('kycBirthDate');
+        const badgeElem = document.getElementById('kycBirthDateAutoBadge');
+        const helpElem = document.getElementById('kycBirthDateHelpText');
 
-        if (d.birthDateIso) {
-          if (manualBirthBlock) manualBirthBlock.classList.add('hidden');
+        if (manualBirthBlock) manualBirthBlock.classList.remove('hidden');
+
+        // Авто-подстановка даты, если она зашифрована в ИН (серии 1..6)
+        if (d.birthDateIso && birthInput) {
+          if (!birthInput.value || birthInput.getAttribute('data-autofilled') === 'true') {
+            birthInput.value = d.birthDateIso;
+            birthInput.setAttribute('data-autofilled', 'true');
+          }
+          if (badgeElem) badgeElem.textContent = '✓ Определено из ИН';
+          if (helpElem) helpElem.textContent = 'Дата считана из личного номера. При необходимости можете скорректировать.';
+        } else {
+          // Серии 7, 8, 9, 0 или спецсерии
+          if (badgeElem) badgeElem.textContent = 'Укажите дату';
+          if (helpElem) helpElem.textContent = 'Для вашей серии документа укажите дату рождения вручную по паспорту.';
+        }
+
+        const updateAgeAndCard = () => {
+          const bVal = birthInput ? birthInput.value : (d.birthDateIso || '');
+          let calcAge = d.age;
+          let isMinor = d.isMinorWithConsent;
+          let isUnder14 = d.isUnder14;
+          let formattedBirth = d.birthDateStr;
+
+          if (bVal) {
+            const bDate = new Date(bVal);
+            if (!isNaN(bDate.getTime())) {
+              const today = new Date();
+              calcAge = today.getFullYear() - bDate.getFullYear();
+              const mDiff = today.getMonth() - bDate.getMonth();
+              if (mDiff < 0 || (mDiff === 0 && today.getDate() < bDate.getDate())) calcAge--;
+              isMinor = calcAge >= 14 && calcAge < 18;
+              isUnder14 = calcAge < 14;
+              const [by, bm, bd] = bVal.split('-');
+              formattedBirth = `${bd}.${bm}.${by}`;
+            }
+          }
+
           previewCard.className = 'mt-2 p-3 rounded-xl border border-emerald-500/40 bg-emerald-950/20 text-xs text-white space-y-1';
           previewCard.innerHTML = `
             <div class="flex items-center justify-between text-emerald-400 font-bold">
-              <span class="flex items-center gap-1">✓ Номер РБ подтверждён</span>
-              <span>${d.age} лет</span>
+              <span class="flex items-center gap-1">✓ Личный номер РБ подтверждён</span>
+              <span>${calcAge !== null && calcAge !== undefined && bVal ? `${calcAge} лет` : '14 знаков'}</span>
             </div>
             <div class="grid grid-cols-2 gap-1 text-[11px] text-white/70 pt-1 border-t border-white/10">
+              <div>Рождение: <b>${formattedBirth && bVal ? formattedBirth : 'Укажите дату ↓'}</b></div>
               <div>Пол: <b>${d.gender}</b></div>
-              <div>Рождение: <b>${d.birthDateStr}</b></div>
               <div class="col-span-2">Документ: <b>${d.citizenship}</b></div>
+              ${bVal ? `<div class="col-span-2 text-white/60">Статус возраста: <b>${calcAge} лет</b> ${isMinor ? '(14–17 лет: нужно согласие родителей)' : (isUnder14 ? '(до 14 лет: запрещено правилами таможни)' : '(совершеннолетний)')}</div>` : ''}
             </div>
           `;
+
           if (consentBlock) {
-            if (d.isMinorWithConsent) consentBlock.classList.remove('hidden');
+            if (isMinor) consentBlock.classList.remove('hidden');
             else consentBlock.classList.add('hidden');
           }
-        } else {
-          // Дата рождения не вычисляется из 14 знаков (серия 7 или спецсерия)
-          if (manualBirthBlock) manualBirthBlock.classList.remove('hidden');
+        };
 
-          const updateManualAge = () => {
-            const bVal = birthInput ? birthInput.value : '';
-            if (bVal) {
-              const bDate = new Date(bVal);
-              const today = new Date();
-              let calcAge = today.getFullYear() - bDate.getFullYear();
-              const mDiff = today.getMonth() - bDate.getMonth();
-              if (mDiff < 0 || (mDiff === 0 && today.getDate() < bDate.getDate())) calcAge--;
-
-              const isMinor = calcAge >= 14 && calcAge < 18;
-              const isUnder14 = calcAge < 14;
-
-              previewCard.className = 'mt-2 p-3 rounded-xl border border-emerald-500/40 bg-emerald-950/20 text-xs text-white space-y-1';
-              previewCard.innerHTML = `
-                <div class="flex items-center justify-between text-emerald-400 font-bold">
-                  <span class="flex items-center gap-1">✓ Личный номер РБ принят</span>
-                  <span>${calcAge} лет</span>
-                </div>
-                <div class="grid grid-cols-2 gap-1 text-[11px] text-white/70 pt-1 border-t border-white/10">
-                  <div class="col-span-2">Документ: <b>${d.citizenship}</b></div>
-                  <div class="col-span-2 text-white/60">Возраст: <b>${calcAge} лет</b> ${isMinor ? '(несовершеннолетний)' : (isUnder14 ? '(до 14 лет)' : '(совершеннолетний)')}</div>
-                </div>
-              `;
-
-              if (consentBlock) {
-                if (isMinor) consentBlock.classList.remove('hidden');
-                else consentBlock.classList.add('hidden');
-              }
-            } else {
-              previewCard.className = 'mt-2 p-3 rounded-xl border border-emerald-500/40 bg-emerald-950/20 text-xs text-white space-y-1';
-              previewCard.innerHTML = `
-                <div class="flex items-center justify-between text-emerald-400 font-bold">
-                  <span class="flex items-center gap-1">✓ Личный номер РБ принят</span>
-                  <span class="text-xs text-emerald-300 font-normal">14 знаков</span>
-                </div>
-                <div class="grid grid-cols-2 gap-1 text-[11px] text-white/70 pt-1 border-t border-white/10">
-                  <div class="col-span-2">Документ: <b>${d.citizenship}</b></div>
-                  <div class="col-span-2 text-cyan-300">Укажите дату рождения ниже ↓</div>
-                </div>
-              `;
-              if (consentBlock) consentBlock.classList.add('hidden');
-            }
+        if (birthInput) {
+          birthInput.onchange = () => {
+            birthInput.removeAttribute('data-autofilled');
+            if (badgeElem) badgeElem.textContent = 'Указано вручную';
+            updateAgeAndCard();
           };
-
-          if (birthInput) {
-            birthInput.onchange = updateManualAge;
-            birthInput.oninput = updateManualAge;
-            updateManualAge();
-          }
+          birthInput.oninput = () => {
+            birthInput.removeAttribute('data-autofilled');
+            if (badgeElem) badgeElem.textContent = 'Указано вручную';
+            updateAgeAndCard();
+          };
         }
+
+        updateAgeAndCard();
         previewCard.classList.remove('hidden');
       } else {
         previewCard.className = 'mt-2 p-3 rounded-xl border border-rose-500/40 bg-rose-950/20 text-xs text-rose-300';
@@ -1751,32 +1752,24 @@
           return;
         }
 
-        let userAge = idCheck.details.age;
-        let isMinor = idCheck.details.isMinorWithConsent;
-        let isUnder14 = idCheck.details.isUnder14;
-
-        if (!idCheck.details.birthDateIso) {
-          if (!manualBirth) {
-            alert('Пожалуйста, укажите дату вашего рождения.');
-            if (birthInput) birthInput.focus();
-            return;
-          }
-          const bDate = new Date(manualBirth);
-          const today = new Date();
-          let calcAge = today.getFullYear() - bDate.getFullYear();
-          const mDiff = today.getMonth() - bDate.getMonth();
-          if (mDiff < 0 || (mDiff === 0 && today.getDate() < bDate.getDate())) calcAge--;
-          userAge = calcAge;
-          isMinor = calcAge >= 14 && calcAge < 18;
-          isUnder14 = calcAge < 14;
+        if (!manualBirth) {
+          alert('Пожалуйста, укажите вашу дату рождения (день, месяц, год).');
+          if (birthInput) birthInput.focus();
+          return;
         }
 
-        if (isUnder14) {
+        const bDate = new Date(manualBirth);
+        const today = new Date();
+        let userAge = today.getFullYear() - bDate.getFullYear();
+        const mDiff = today.getMonth() - bDate.getMonth();
+        if (mDiff < 0 || (mDiff === 0 && today.getDate() < bDate.getDate())) userAge--;
+
+        if (userAge < 14) {
           alert('Оформление на граждан младше 14 лет запрещено таможенными правилами РБ. Укажите данные родителя.');
           return;
         }
 
-        if (isMinor && (!parentalConsent || !parentalConsent.checked)) {
+        if (userAge >= 14 && userAge < 18 && (!parentalConsent || !parentalConsent.checked)) {
           alert('Для лиц от 14 до 17 лет требуется подтвердить согласие родителей (отметьте галочку).');
           return;
         }
