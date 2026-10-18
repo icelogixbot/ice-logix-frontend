@@ -130,6 +130,8 @@
   font-size: 11px;
   font-family: monospace;
   letter-spacing: 0.5px;
+  pointer-events: none;
+  user-select: none;
 }
 
 .kyc-target-box-name {
@@ -140,6 +142,8 @@
   text-align: center;
   color: rgba(255, 255, 255, 0.85);
   font-size: 11px;
+  pointer-events: none;
+  user-select: none;
 }
 
 /* Shutter flash animation */
@@ -225,31 +229,35 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 6px 14px;
+  padding: 8px 16px;
   border-radius: 9999px;
-  background: rgba(15, 23, 42, 0.82);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: #fff;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.2px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-  transition: all 0.25s ease;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+  pointer-events: none;
+  user-select: none;
 }
 
 .kyc-live-pill.is-locked {
-  background: rgba(6, 78, 59, 0.92);
-  border-color: rgba(52, 211, 153, 0.7);
-  color: #6ee7b7;
-  box-shadow: 0 0 18px rgba(16, 185, 129, 0.45);
+  background: rgba(6, 78, 59, 0.95);
+  border-color: rgba(52, 211, 153, 0.8);
+  color: #a7f3d0;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+  transform: scale(1.03);
 }
 
 .kyc-live-pill.is-warning {
-  background: rgba(120, 53, 15, 0.92);
-  border-color: rgba(251, 191, 36, 0.7);
-  color: #fde68a;
+  background: rgba(120, 53, 15, 0.95);
+  border-color: rgba(251, 191, 36, 0.8);
+  color: #fef08a;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.4);
 }
 
 /* Progress bar inside viewfinder for auto-capture */
@@ -257,11 +265,11 @@
   position: absolute;
   bottom: 0;
   left: 0;
-  height: 4px;
+  height: 5px;
   width: 0%;
-  background: linear-gradient(90deg, #10b981, #34d399);
-  box-shadow: 0 0 10px #10b981;
-  transition: width 0.08s linear;
+  background: linear-gradient(90deg, #10b981, #34d399, #6ee7b7);
+  box-shadow: 0 0 12px #10b981;
+  transition: width 0.08s ease-out;
   z-index: 10;
 }
 

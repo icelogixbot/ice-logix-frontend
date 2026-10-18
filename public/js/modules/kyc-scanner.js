@@ -67,16 +67,16 @@
   }
 
   /**
-   * Кроп изображения строго по видоискателю с учетом object-fit: cover
-   * Возвращает чисто разворот документа в высоком разрешении без комнаты и фона
+   * Вычисление координат видоискателя на видео с учетом object-fit: cover
    */
-  function cropViewfinderFromVideo(video, viewfinder, targetWidth = 1200) {
+  function getViewfinderCrop(video, viewfinder) {
     const vWidth = video.videoWidth;
     const vHeight = video.videoHeight;
     if (!vWidth || !vHeight) return null;
 
     const vRect = video.getBoundingClientRect();
     const fRect = viewfinder.getBoundingClientRect();
+    if (!vRect.width || !vRect.height || !fRect.width || !fRect.height) return null;
 
     const vRatio = vWidth / vHeight;
     const screenRatio = vRect.width / vRect.height;
@@ -104,17 +104,29 @@
     // Добавляем 4% запаса, чтобы края документа не обрезались
     const marginX = cropW * 0.04;
     const marginY = cropH * 0.04;
-    const finalX = Math.max(0, cropX - marginX);
-    const finalY = Math.max(0, cropY - marginY);
-    const finalW = Math.min(vWidth - finalX, cropW + marginX * 2);
-    const finalH = Math.min(vHeight - finalY, cropH + marginY * 2);
+    const sx = Math.max(0, cropX - marginX);
+    const sy = Math.max(0, cropY - marginY);
+    const sw = Math.min(vWidth - sx, cropW + marginX * 2);
+    const sh = Math.min(vHeight - sy, cropH + marginY * 2);
+
+    if (sw < 20 || sh < 20) return null;
+    return { sx, sy, sw, sh };
+  }
+
+  /**
+   * Кроп изображения строго по видоискателю с учетом object-fit: cover
+   * Возвращает чисто разворот документа в высоком разрешении без комнаты и фона
+   */
+  function cropViewfinderFromVideo(video, viewfinder, targetWidth = 1200) {
+    const crop = getViewfinderCrop(video, viewfinder);
+    if (!crop) return null;
 
     const canvas = document.createElement('canvas');
     canvas.width = targetWidth;
-    canvas.height = Math.round((targetWidth * finalH) / finalW);
+    canvas.height = Math.round((targetWidth * crop.sh) / crop.sw);
 
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, finalX, finalY, finalW, finalH, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(video, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, canvas.width, canvas.height);
     return canvas.toDataURL('image/jpeg', 0.88);
   }
 
@@ -290,9 +302,9 @@
     let liveTimer = null;
     let isCapturing = false;
     let stableCount = 0;
-    let lastSampleLuma = null;
+    let lastBlocks = null;
 
-    // Быстрый оффскрин-холст для анализа кадра в реальном времени
+    // Быстрый оффскрин-холст для анализа кадра в реальном времени (64x48)
     const sampleCanvas = document.createElement('canvas');
     sampleCanvas.width = 64;
     sampleCanvas.height = 48;
@@ -308,7 +320,7 @@
       if (progressBar) progressBar.style.width = '0%';
       if (viewfinder) viewfinder.classList.remove('is-locked');
       stableCount = 0;
-      lastSampleLuma = null;
+      lastBlocks = null;
     }
 
     // Запуск анализа видеопотока в реальном времени
@@ -318,74 +330,133 @@
       runLiveFrameCheck();
     }
 
-    // Цикл детектора живого эфира
+    // Цикл детектора живого эфира: 16-блочный анализ движения и контраста
     function runLiveFrameCheck() {
       if (!liveLoopActive || isCapturing) return;
 
-      if (videoElem && videoElem.readyState >= 2 && videoElem.videoWidth) {
-        sampleCtx.drawImage(videoElem, 0, 0, 64, 48);
+      if (videoElem && videoElem.readyState >= 2 && videoElem.videoWidth && videoElem.videoHeight) {
+        const crop = getViewfinderCrop(videoElem, viewfinder);
+        if (crop) {
+          sampleCtx.drawImage(videoElem, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, 64, 48);
+        } else {
+          sampleCtx.drawImage(videoElem, 0, 0, 64, 48);
+        }
+
         const imgData = sampleCtx.getImageData(0, 0, 64, 48);
         const data = imgData.data;
 
+        // Разделяем кадр видоискателя на 16 блоков (4 колонки x 4 строки)
+        // В каждом блоке 16 x 12 = 192 пикселя
+        // Блочное усреднение на 100% гасит матричные шумы мобильных камер
+        const blocks = new Float32Array(16);
+        let minLuma = 255;
+        let maxLuma = 0;
         let totalLuma = 0;
-        let delta = 0;
 
-        for (let i = 0; i < data.length; i += 4) {
-          const luma = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
-          totalLuma += luma;
-          if (lastSampleLuma) {
-            delta += Math.abs(luma - lastSampleLuma[i / 4]);
+        for (let y = 0; y < 48; y++) {
+          const by = Math.min(3, Math.floor(y / 12));
+          for (let x = 0; x < 64; x++) {
+            const bx = Math.min(3, Math.floor(x / 16));
+            const bIdx = by * 4 + bx;
+            const pIdx = (y * 64 + x) * 4;
+            const luma = 0.299 * data[pIdx] + 0.587 * data[pIdx + 1] + 0.114 * data[pIdx + 2];
+
+            blocks[bIdx] += luma;
+            totalLuma += luma;
+            if (luma < minLuma) minLuma = luma;
+            if (luma > maxLuma) maxLuma = luma;
           }
         }
 
-        const avgLuma = totalLuma / 3072;
-        const avgDelta = lastSampleLuma ? (delta / 3072) : 99;
-
-        if (!lastSampleLuma) lastSampleLuma = new Float32Array(3072);
-        for (let i = 0; i < data.length; i += 4) {
-          lastSampleLuma[i / 4] = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+        for (let b = 0; b < 16; b++) {
+          blocks[b] = blocks[b] / 192;
         }
 
-        if (avgLuma < 30) {
+        const avgLuma = totalLuma / 3072;
+        const contrastRange = maxLuma - minLuma;
+
+        // Расчет межкадрового движения между блоками
+        let blockMotion = 0;
+        if (lastBlocks) {
+          for (let b = 0; b < 16; b++) {
+            blockMotion += Math.abs(blocks[b] - lastBlocks[b]);
+          }
+          blockMotion = blockMotion / 16;
+        } else {
+          blockMotion = 99;
+        }
+        lastBlocks = blocks;
+
+        // Проверка условий освещения и документа
+        const isTooDark = avgLuma < 35;
+        const isTooBright = avgLuma > 235;
+        const hasDocumentInFrame = contrastRange >= 35 && avgLuma >= 35 && avgLuma <= 235;
+        const isSteady = blockMotion <= 4.2;
+
+        if (isTooDark) {
           // Слишком темно
           livePill.className = 'kyc-live-pill is-warning mb-2';
           livePill.innerHTML = '💡 Слишком темно — включите фонарик 🔦';
           viewfinder.classList.remove('is-locked');
           progressBar.style.width = '0%';
           stableCount = 0;
-        } else if (avgDelta < 5.8) {
-          // Паспорт неподвижен в видоискателе!
-          stableCount++;
-          const pct = Math.min(100, Math.round((stableCount / 8) * 100));
-          progressBar.style.width = pct + '%';
-          livePill.className = 'kyc-live-pill is-locked mb-2';
-          livePill.innerHTML = '🎯 Держите ровно! Фиксируем...';
-          viewfinder.classList.add('is-locked');
-
-          if (stableCount >= 8 && !isCapturing) {
-            isCapturing = true;
-            takeShot(true);
-            return;
-          }
-        } else {
-          // Движение
-          stableCount = Math.max(0, stableCount - 2);
-          progressBar.style.width = '0%';
+        } else if (isTooBright) {
+          // Блики
+          livePill.className = 'kyc-live-pill is-warning mb-2';
+          livePill.innerHTML = '☀️ Слишком ярко — поверните от блика';
           viewfinder.classList.remove('is-locked');
+          progressBar.style.width = '0%';
+          stableCount = 0;
+        } else if (!hasDocumentInFrame) {
+          // Нет документа (однотонный фон, стена, стол)
           livePill.className = 'kyc-live-pill mb-2';
           if (mode === 'passport') {
             livePill.innerHTML = currentStep === 1
-              ? '🔍 Держите разворот стр. 31 в рамке'
-              : '🔍 Держите стр. 33 со знаками <<<';
+              ? '📄 Поместите разворот стр. 31 в рамку'
+              : '📄 Поместите разворот стр. 33 в рамку';
           } else {
             livePill.innerHTML = currentStep === 1
-              ? '🔍 Держите лицевую сторону ID в рамке'
-              : '🔍 Держите оборотную сторону со знаками <<<';
+              ? '📄 Поместите лицевую сторону ID в рамку'
+              : '📄 Поместите оборотную сторону ID в рамку';
+          }
+          viewfinder.classList.remove('is-locked');
+          progressBar.style.width = '0%';
+          stableCount = 0;
+        } else if (!isSteady) {
+          // Документ в рамке, но телефон движется
+          livePill.className = 'kyc-live-pill mb-2';
+          livePill.innerHTML = '✋ Держите телефон ровнее...';
+          viewfinder.classList.remove('is-locked');
+          stableCount = Math.max(0, stableCount - 1);
+          const pct = Math.min(100, Math.round((stableCount / 5) * 100));
+          progressBar.style.width = pct + '%';
+        } else {
+          // ДОКУМЕНТ В РАМКЕ И НЕПОДВИЖЕН!
+          stableCount++;
+          viewfinder.classList.add('is-locked');
+          livePill.className = 'kyc-live-pill is-locked mb-2';
+
+          const pct = Math.min(100, Math.round((stableCount / 5) * 100));
+          progressBar.style.width = pct + '%';
+
+          if (stableCount === 1) {
+            livePill.innerHTML = '🎯 Не двигайтесь... 3';
+          } else if (stableCount === 2) {
+            livePill.innerHTML = '🎯 Не двигайтесь... 2';
+          } else if (stableCount === 3) {
+            livePill.innerHTML = '🎯 Не двигайтесь... 1';
+          } else if (stableCount === 4) {
+            livePill.innerHTML = '⚡ Зафиксировано!';
+          } else if (stableCount >= 5 && !isCapturing) {
+            isCapturing = true;
+            livePill.innerHTML = '⚡ Снимок сделан!';
+            takeShot(true);
+            return;
           }
         }
       }
 
-      liveTimer = setTimeout(runLiveFrameCheck, 100);
+      liveTimer = setTimeout(runLiveFrameCheck, 90);
     }
 
     // Закрытие сканера
@@ -477,6 +548,12 @@
         currentStream = stream;
         videoElem.srcObject = stream;
         await videoElem.play();
+        if (!videoElem.videoWidth) {
+          await new Promise((res) => {
+            videoElem.onloadedmetadata = () => res();
+            setTimeout(res, 500);
+          });
+        }
         startLiveAnalysis();
       } catch (err) {
         console.warn('Camera access failed, opening fallback:', err);
@@ -488,6 +565,11 @@
     // Съемка кадра (автоматическая или ручная)
     async function takeShot(isAuto = false) {
       if (!videoElem.videoWidth || !videoElem.videoHeight) return;
+      isCapturing = true;
+      if (liveTimer) {
+        clearTimeout(liveTimer);
+        liveTimer = null;
+      }
 
       // Тактильный виброотклик
       if (typeof tgUtil !== 'undefined' && tgUtil.haptic) {
@@ -509,14 +591,26 @@
         frame1DataUrl = shotDataUrl;
         currentStep = 2;
         updateStepUI();
-        isCapturing = false;
+
+        // Визуальная подсказка перехода на шаг 2
+        livePill.className = 'kyc-live-pill is-locked mb-2';
+        livePill.innerHTML = mode === 'passport'
+          ? '✓ Стр. 31 снята! Наведите на стр. 33 (строки <<<)'
+          : '✓ Лицевая сторона снята! Переверните карту';
+
         stableCount = 0;
-        lastSampleLuma = null;
+        lastBlocks = null;
         if (progressBar) progressBar.style.width = '0%';
         if (viewfinder) viewfinder.classList.remove('is-locked');
+
+        // Пауза 900мс, чтобы пользователь успел перевести камеру на следующую страницу
         setTimeout(() => {
-          if (liveLoopActive) runLiveFrameCheck();
-        }, 800);
+          isCapturing = false;
+          if (liveLoopActive) {
+            livePill.className = 'kyc-live-pill mb-2';
+            runLiveFrameCheck();
+          }
+        }, 900);
       } else {
         frame2DataUrl = shotDataUrl;
         stopLiveAnalysis();
@@ -553,9 +647,14 @@
         <p class="text-white/70 text-xs leading-relaxed">
           ${message || 'Пожалуйста, поднесите паспорт чуть ближе к свету, чтобы строки MRZ со знаками &lt;&lt;&lt; были четко видны без теней и бликов.'}
         </p>
-        <button type="button" id="kycRetryCardBtn" class="btn-primary w-full py-3.5 rounded-2xl font-bold text-xs cursor-pointer active:scale-95 transition">
-          Попробовать снова 🔄
-        </button>
+        <div class="space-y-2 pt-2">
+          <button type="button" id="kycRetryCardBtn" class="btn-primary w-full py-3.5 rounded-2xl font-bold text-xs cursor-pointer active:scale-95 transition">
+            Попробовать снова 🔄
+          </button>
+          <button type="button" id="kycRetryFallbackBtn" class="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-semibold text-xs cursor-pointer active:scale-95 transition">
+            Загрузить фото из галереи 📁
+          </button>
+        </div>
       `;
       modal.appendChild(card);
 
@@ -567,6 +666,11 @@
         isCapturing = false;
         updateStepUI();
         await startCamera();
+      };
+
+      document.getElementById('kycRetryFallbackBtn').onclick = () => {
+        modal.remove();
+        openFallbackTwoFrameUploader({ mode, onComplete, onCancel });
       };
     }
 
