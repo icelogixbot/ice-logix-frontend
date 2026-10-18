@@ -61,15 +61,28 @@ function parseAssistantJson(raw: string): Record<string, any> {
   if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
     s = s.slice(firstBrace, lastBrace + 1);
   }
+  // Remove trailing commas before closing braces/brackets
+  s = s.replace(/,\s*([}\]])/g, "$1");
   try {
     return JSON.parse(s);
   } catch (e) {
     console.error("JSON parse error on assistant output:", s, e);
-    return {};
+    // Regex-based key-value extraction fallback
+    const fallbackRes: Record<string, any> = {};
+    const extract = (key: string) => {
+      const match = s.match(new RegExp(`"${key}"\\s*:\\s*"([^"]+)"`, "i"));
+      return match ? match[1].trim() : "";
+    };
+    const keys = ["raw_mrz", "last_name", "first_name", "patronymic", "series_number", "birth_date", "gender", "id_number", "issue_date", "issued_by"];
+    for (const k of keys) {
+      const val = extract(k);
+      if (val) fallbackRes[k] = val;
+    }
+    return fallbackRes;
   }
 }
 
-async function callVisionChatWithFallback(messages: any[], maxTokens = 350, title = "ICE LOGIX Vision"): Promise<any> {
+async function callVisionChatWithFallback(messages: any[], maxTokens = 1500, title = "ICE LOGIX Vision"): Promise<any> {
   const models = [
     VISION_MODEL,
     "google/gemini-2.0-flash-exp:free",
@@ -503,7 +516,7 @@ ${img1 ? "- Кадр 1: Страница 31 паспорта или лицева
             content: contentItems,
           },
         ],
-        350,
+        1500,
         "ICE LOGIX Alipay MRZ Scanner"
       );
 
@@ -514,6 +527,7 @@ ${img1 ? "- Кадр 1: Страница 31 паспорта или лицева
         JSON.stringify({
           ok: true,
           result: parsed,
+          raw_output: rawOutput,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

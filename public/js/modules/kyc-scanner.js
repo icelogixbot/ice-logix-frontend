@@ -67,6 +67,58 @@
   }
 
   /**
+   * Кроп изображения строго по видоискателю с учетом object-fit: cover
+   * Возвращает чисто разворот документа в высоком разрешении без комнаты и фона
+   */
+  function cropViewfinderFromVideo(video, viewfinder, targetWidth = 1200) {
+    const vWidth = video.videoWidth;
+    const vHeight = video.videoHeight;
+    if (!vWidth || !vHeight) return null;
+
+    const vRect = video.getBoundingClientRect();
+    const fRect = viewfinder.getBoundingClientRect();
+
+    const vRatio = vWidth / vHeight;
+    const screenRatio = vRect.width / vRect.height;
+
+    let renderWidth, renderHeight, offsetX, offsetY;
+    if (screenRatio > vRatio) {
+      renderWidth = vRect.width;
+      renderHeight = vRect.width / vRatio;
+      offsetX = 0;
+      offsetY = (renderHeight - vRect.height) / 2;
+    } else {
+      renderHeight = vRect.height;
+      renderWidth = vRect.height * vRatio;
+      offsetX = (renderWidth - vRect.width) / 2;
+      offsetY = 0;
+    }
+
+    const scale = vWidth / renderWidth;
+
+    const cropX = Math.max(0, (fRect.left - vRect.left + offsetX) * scale);
+    const cropY = Math.max(0, (fRect.top - vRect.top + offsetY) * scale);
+    const cropW = Math.min(vWidth - cropX, fRect.width * scale);
+    const cropH = Math.min(vHeight - cropY, fRect.height * scale);
+
+    // Добавляем 4% запаса, чтобы края документа не обрезались
+    const marginX = cropW * 0.04;
+    const marginY = cropH * 0.04;
+    const finalX = Math.max(0, cropX - marginX);
+    const finalY = Math.max(0, cropY - marginY);
+    const finalW = Math.min(vWidth - finalX, cropW + marginX * 2);
+    const finalH = Math.min(vHeight - finalY, cropH + marginY * 2);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = targetWidth;
+    canvas.height = Math.round((targetWidth * finalH) / finalW);
+
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, finalX, finalY, finalW, finalH, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', 0.88);
+  }
+
+  /**
    * Остановка камеры
    */
   function stopCameraStream() {
@@ -152,7 +204,12 @@
         </div>
 
         <!-- Центральная область с видоискателем -->
-        <div class="kyc-scanner-frame-wrap">
+        <div class="kyc-scanner-frame-wrap flex flex-col items-center justify-center">
+          <!-- Динамическая плашка подсказок прямого эфира -->
+          <div id="kycLivePill" class="kyc-live-pill mb-2 transition-all">
+            🔍 Поместите страницу 31 в рамку
+          </div>
+
           <div id="kycViewfinder" class="kyc-scanner-viewfinder">
             <!-- Уголки -->
             <div class="kyc-scanner-corner tl"></div>
@@ -162,6 +219,9 @@
 
             <!-- Лазерная линия сканирования -->
             <div class="kyc-scanner-laser"></div>
+
+            <!-- Индикатор прогресса автозахвата -->
+            <div id="kycAutoProgressBar" class="kyc-auto-progress-bar"></div>
 
             <!-- Верхняя направляющая зона -->
             <div id="kycTargetTopZone" class="kyc-target-box-name transition-all">
@@ -183,10 +243,10 @@
           </div>
 
           <p id="kycScannerSubText" class="text-[11px] text-white/70 text-center max-w-xs leading-tight">
-            Поместите верхнюю страницу с ФИО на русском языке в рамку и нажмите круглую кнопку затвора.
+            Держите документ ровно: камера автоматически распознает стабильность и сделает снимок.
           </p>
 
-          <!-- Кнопка затвора камеры -->
+          <!-- Кнопка затвора камеры (ручной автоспуск) -->
           <button type="button" id="kycShutterBtn" class="kyc-shutter-btn active:scale-90 transition cursor-pointer" aria-label="Сделать снимок">
             <div class="kyc-shutter-btn-inner"></div>
           </button>
@@ -215,6 +275,8 @@
     const modePassportBtn = document.getElementById('kycModePassportBtn');
     const modeIdCardBtn = document.getElementById('kycModeIdCardBtn');
     const viewfinder = document.getElementById('kycViewfinder');
+    const livePill = document.getElementById('kycLivePill');
+    const progressBar = document.getElementById('kycAutoProgressBar');
     const stepBadge = document.getElementById('kycStepBadge');
     const subText = document.getElementById('kycScannerSubText');
     const topZone = document.getElementById('kycTargetTopZone');
@@ -224,8 +286,111 @@
     const shutterBtn = document.getElementById('kycShutterBtn');
     const processingScreen = document.getElementById('kycProcessingScreen');
 
+    let liveLoopActive = false;
+    let liveTimer = null;
+    let isCapturing = false;
+    let stableCount = 0;
+    let lastSampleLuma = null;
+
+    // Быстрый оффскрин-холст для анализа кадра в реальном времени
+    const sampleCanvas = document.createElement('canvas');
+    sampleCanvas.width = 64;
+    sampleCanvas.height = 48;
+    const sampleCtx = sampleCanvas.getContext('2d', { willReadFrequently: true });
+
+    // Остановка анализа
+    function stopLiveAnalysis() {
+      liveLoopActive = false;
+      if (liveTimer) {
+        clearTimeout(liveTimer);
+        liveTimer = null;
+      }
+      if (progressBar) progressBar.style.width = '0%';
+      if (viewfinder) viewfinder.classList.remove('is-locked');
+      stableCount = 0;
+      lastSampleLuma = null;
+    }
+
+    // Запуск анализа видеопотока в реальном времени
+    function startLiveAnalysis() {
+      stopLiveAnalysis();
+      liveLoopActive = true;
+      runLiveFrameCheck();
+    }
+
+    // Цикл детектора живого эфира
+    function runLiveFrameCheck() {
+      if (!liveLoopActive || isCapturing) return;
+
+      if (videoElem && videoElem.readyState >= 2 && videoElem.videoWidth) {
+        sampleCtx.drawImage(videoElem, 0, 0, 64, 48);
+        const imgData = sampleCtx.getImageData(0, 0, 64, 48);
+        const data = imgData.data;
+
+        let totalLuma = 0;
+        let delta = 0;
+
+        for (let i = 0; i < data.length; i += 4) {
+          const luma = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+          totalLuma += luma;
+          if (lastSampleLuma) {
+            delta += Math.abs(luma - lastSampleLuma[i / 4]);
+          }
+        }
+
+        const avgLuma = totalLuma / 3072;
+        const avgDelta = lastSampleLuma ? (delta / 3072) : 99;
+
+        if (!lastSampleLuma) lastSampleLuma = new Float32Array(3072);
+        for (let i = 0; i < data.length; i += 4) {
+          lastSampleLuma[i / 4] = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+        }
+
+        if (avgLuma < 30) {
+          // Слишком темно
+          livePill.className = 'kyc-live-pill is-warning mb-2';
+          livePill.innerHTML = '💡 Слишком темно — включите фонарик 🔦';
+          viewfinder.classList.remove('is-locked');
+          progressBar.style.width = '0%';
+          stableCount = 0;
+        } else if (avgDelta < 5.8) {
+          // Паспорт неподвижен в видоискателе!
+          stableCount++;
+          const pct = Math.min(100, Math.round((stableCount / 8) * 100));
+          progressBar.style.width = pct + '%';
+          livePill.className = 'kyc-live-pill is-locked mb-2';
+          livePill.innerHTML = '🎯 Держите ровно! Фиксируем...';
+          viewfinder.classList.add('is-locked');
+
+          if (stableCount >= 8 && !isCapturing) {
+            isCapturing = true;
+            takeShot(true);
+            return;
+          }
+        } else {
+          // Движение
+          stableCount = Math.max(0, stableCount - 2);
+          progressBar.style.width = '0%';
+          viewfinder.classList.remove('is-locked');
+          livePill.className = 'kyc-live-pill mb-2';
+          if (mode === 'passport') {
+            livePill.innerHTML = currentStep === 1
+              ? '🔍 Держите разворот стр. 31 в рамке'
+              : '🔍 Держите стр. 33 со знаками <<<';
+          } else {
+            livePill.innerHTML = currentStep === 1
+              ? '🔍 Держите лицевую сторону ID в рамке'
+              : '🔍 Держите оборотную сторону со знаками <<<';
+          }
+        }
+      }
+
+      liveTimer = setTimeout(runLiveFrameCheck, 100);
+    }
+
     // Закрытие сканера
     const closeModal = () => {
+      stopLiveAnalysis();
       stopCameraStream();
       modal.remove();
       if (typeof onCancel === 'function') onCancel();
@@ -260,14 +425,14 @@
       if (mode === 'passport') {
         if (currentStep === 1) {
           stepBadge.textContent = 'Шаг 1 из 2: Разворот стр. 31 (Русские ФИО)';
-          subText.textContent = 'Поместите верхнюю страницу паспорта с ФИО на русском языке в рамку и нажмите кнопку съемки.';
+          subText.textContent = 'Держите верхнюю страницу с ФИО в рамке — камера зафиксирует снимок автоматически.';
           topZone.className = 'kyc-target-box-name transition-all border-cyan-400/60 bg-cyan-500/15 text-white font-bold';
           bottomZone.className = 'kyc-target-box-mrz transition-all opacity-30';
           topText.textContent = 'ФИО на русском языке и орган выдачи (стр. 31)';
           bottomText.textContent = 'Нижняя часть разворота';
         } else {
           stepBadge.textContent = 'Шаг 2 из 2: Разворот стр. 33 (Строка MRZ с <<<)';
-          subText.textContent = 'Теперь наведите на нижнюю страницу с фото лица и двумя строками со знаками <<<. Нажмите кнопку съемки.';
+          subText.textContent = 'Наведите на нижнюю страницу с фото и строками со знаками <<< — автозахват сработает сам.';
           topZone.className = 'kyc-target-box-name transition-all opacity-30';
           bottomZone.className = 'kyc-target-box-mrz transition-all border-cyan-400 bg-cyan-500/20 text-cyan-200 font-bold';
           topText.textContent = 'Фото и реквизиты документа';
@@ -277,14 +442,14 @@
         // ID-карта
         if (currentStep === 1) {
           stepBadge.textContent = 'Шаг 1 из 2: Лицевая сторона ID-карты';
-          subText.textContent = 'Поместите лицевую сторону пластиковой ID-карты в рамку и нажмите кнопку съемки.';
+          subText.textContent = 'Держите лицевую сторону ID-карты в рамке — автозахват сработает сам.';
           topZone.className = 'kyc-target-box-name transition-all border-cyan-400/60 bg-cyan-500/15 text-white font-bold';
           bottomZone.className = 'kyc-target-box-mrz transition-all opacity-30';
           topText.textContent = 'Фотография и ФИО';
           bottomText.textContent = 'Номер документа';
         } else {
           stepBadge.textContent = 'Шаг 2 из 2: Обратная сторона ID-карты';
-          subText.textContent = 'Переверните карту на обратную сторону со строками машиночитаемой зоны <<< и нажмите кнопку съемки.';
+          subText.textContent = 'Переверните карту на обратную сторону со знаками <<< — автозахват сработает сам.';
           topZone.className = 'kyc-target-box-name transition-all opacity-30';
           bottomZone.className = 'kyc-target-box-mrz transition-all border-cyan-400 bg-cyan-500/20 text-cyan-200 font-bold';
           topText.textContent = 'Личный 14-значный номер';
@@ -293,33 +458,35 @@
       }
     }
 
-    // Запуск видеопотока камеры
-    try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Ваш браузер не поддерживает доступ к камере.');
+    // Запуск камеры
+    async function startCamera() {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error('Ваш браузер не поддерживает доступ к камере.');
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          },
+          audio: false
+        });
+
+        currentStream = stream;
+        videoElem.srcObject = stream;
+        await videoElem.play();
+        startLiveAnalysis();
+      } catch (err) {
+        console.warn('Camera access failed, opening fallback:', err);
+        modal.remove();
+        openFallbackTwoFrameUploader({ mode, onComplete, onCancel });
       }
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        },
-        audio: false
-      });
-
-      currentStream = stream;
-      videoElem.srcObject = stream;
-      await videoElem.play();
-    } catch (err) {
-      console.warn('Camera access failed, opening smart 2-frame file fallback:', err);
-      modal.remove();
-      openFallbackTwoFrameUploader({ mode, onComplete, onCancel });
-      return;
     }
 
-    // Съемка кадра по клику затвора
-    shutterBtn.onclick = async () => {
+    // Съемка кадра (автоматическая или ручная)
+    async function takeShot(isAuto = false) {
       if (!videoElem.videoWidth || !videoElem.videoHeight) return;
 
       // Тактильный виброотклик
@@ -335,21 +502,24 @@
       document.body.appendChild(flash);
       setTimeout(() => flash.remove(), 300);
 
-      // Захват кадра в Canvas
-      const canvas = document.createElement('canvas');
-      canvas.width = videoElem.videoWidth;
-      canvas.height = videoElem.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(videoElem, 0, 0, canvas.width, canvas.height);
-      const shotDataUrl = canvasToDataUrl(canvas, 1280, 0.82);
+      // КРОП ВИДОИСКАТЕЛЯ: Извлекаем чисто разворот паспорта в высоком разрешении 1200px
+      const shotDataUrl = cropViewfinderFromVideo(videoElem, viewfinder, 1200) || canvasToDataUrl(videoElem, 1280, 0.85);
 
       if (currentStep === 1) {
         frame1DataUrl = shotDataUrl;
         currentStep = 2;
         updateStepUI();
+        isCapturing = false;
+        stableCount = 0;
+        lastSampleLuma = null;
+        if (progressBar) progressBar.style.width = '0%';
+        if (viewfinder) viewfinder.classList.remove('is-locked');
+        setTimeout(() => {
+          if (liveLoopActive) runLiveFrameCheck();
+        }, 800);
       } else {
         frame2DataUrl = shotDataUrl;
-        // Переход к обработке
+        stopLiveAnalysis();
         processingScreen.classList.remove('hidden');
         stopCameraStream();
 
@@ -363,16 +533,50 @@
         } catch (procErr) {
           console.error('Alipay scanner processing error:', procErr);
           if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('warning');
-          const errText = procErr?.message || '';
-          if (errText.includes('402') || errText.includes('credits')) {
-            alert('Сервис распознавания временно недоступен (лимит запросов). Пожалуйста, введите данные вручную или повторите через минуту.');
-          } else {
-            alert(errText || 'Не удалось распознать строки MRZ. Пожалуйста, сфотографируйте разворот ровно без бликов или введите данные в поля.');
-          }
-          modal.remove();
+          processingScreen.classList.add('hidden');
+          showRetryCard(procErr?.message);
         }
       }
+    }
+
+    // Карточка повторной попытки внутри сканера (без блокирующих alert)
+    function showRetryCard(message) {
+      const existing = document.getElementById('kycRetryCard');
+      if (existing) existing.remove();
+
+      const card = document.createElement('div');
+      card.id = 'kycRetryCard';
+      card.className = 'kyc-retry-card space-y-3';
+      card.innerHTML = `
+        <div class="text-3xl">💡</div>
+        <h4 class="text-white font-bold text-sm">Не удалось четко распознать реквизиты</h4>
+        <p class="text-white/70 text-xs leading-relaxed">
+          ${message || 'Пожалуйста, поднесите паспорт чуть ближе к свету, чтобы строки MRZ со знаками &lt;&lt;&lt; были четко видны без теней и бликов.'}
+        </p>
+        <button type="button" id="kycRetryCardBtn" class="btn-primary w-full py-3.5 rounded-2xl font-bold text-xs cursor-pointer active:scale-95 transition">
+          Попробовать снова 🔄
+        </button>
+      `;
+      modal.appendChild(card);
+
+      document.getElementById('kycRetryCardBtn').onclick = async () => {
+        card.remove();
+        currentStep = 1;
+        frame1DataUrl = null;
+        frame2DataUrl = null;
+        isCapturing = false;
+        updateStepUI();
+        await startCamera();
+      };
+    }
+
+    // Ручная кнопка затвора камеры
+    shutterBtn.onclick = () => {
+      takeShot(false);
     };
+
+    // Старт
+    await startCamera();
   }
 
   /**
