@@ -322,6 +322,87 @@ Return ONLY a JSON object:
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    } else if (action === "parse_passport") {
+      const { image } = payload;
+      if (!image) {
+        return new Response(
+          JSON.stringify({ ok: false, error: "Фотография паспорта не предоставлена" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      let imageUrl = typeof image === "string" ? image.trim() : "";
+      if (!imageUrl.startsWith("data:") && !imageUrl.startsWith("http")) {
+        imageUrl = `data:image/jpeg;base64,${imageUrl}`;
+      }
+
+      const prompt = `Ты — эксперт по оптическому распознаванию паспортов и ID-карт Республики Беларусь (РБ).
+Твоя задача — внимательно изучить предоставленное изображение разворота паспорта РБ (страницы 31-33) или двусторонней ID-карты гражданина Беларуси и извлечь паспортные данные на русском языке.
+
+Белорусский паспорт содержит следующие ключевые поля:
+1. Фамилия (русскими буквами, например "ИВАНОВ")
+2. Имя (русскими буквами, например "ИВАН")
+3. Отчество (русскими буквами, если указано, например "ИВАНОВИЧ")
+4. Пол (строго "Мужской" или "Женский")
+5. Дата рождения (в формате YYYY-MM-DD, например "2000-05-15")
+6. Идентификационный (личный) номер РБ: ровно 14 символов (цифры и заглавные латинские буквы, например "7010204A001PB5", "3051089A012PB4"). Будь предельно точен: латинские A, B, C, E, H, K, M, O, P, T, X и цифры 0, 1, 8.
+7. Серия и номер паспорта: 2 заглавные латинские буквы + 7 цифр (например "MP1234567", "AB2345678", "BM3456789", "HB4567890", "KH5678901", "MC6789012", "KB7890123", "PP8901234") либо 9 цифр для биометрической ID-карты.
+8. Дата выдачи (в формате YYYY-MM-DD, например "2021-08-10")
+9. Кем выдан: орган МВД РБ на русском языке (например "ФРУНЗЕНСКИМ РУВД Г. МИНСКА", "МОСКОВСКИМ РУВД Г. МИНСКА", "БОРИСОВСКИМ РУВД", "ГОМЕЛЬСКИМ РОВД", "МВД").
+
+ВЕРНИ ТОЛЬКО ЧИСТЫЙ JSON-ОБЪЕКТ СЛЕДУЮЩЕГО ФОРМАТА (без markdown-блоков, без кавычек \`\`\`json):
+{
+  "last_name": "Иванов",
+  "first_name": "Иван",
+  "patronymic": "Иванович",
+  "gender": "Мужской",
+  "birth_date": "2000-05-15",
+  "id_number": "7010204A001PB5",
+  "series_number": "MP1234567",
+  "issue_date": "2021-08-10",
+  "issued_by": "ФРУНЗЕНСКИМ РУВД Г. МИНСКА"
+}`;
+
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+          "HTTP-Referer": "https://icelogix.app",
+          "X-Title": "ICE LOGIX Passport OCR",
+        },
+        body: JSON.stringify({
+          model: VISION_MODEL,
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: prompt },
+                { type: "image_url", image_url: { url: imageUrl } },
+              ],
+            },
+          ],
+          temperature: 0.1,
+          max_tokens: 300,
+        }),
+      });
+
+      if (!res.ok) {
+        const errTxt = await res.text().catch(() => "");
+        throw new Error(`OpenRouter HTTP ${res.status}: ${errTxt}`);
+      }
+
+      const data = await res.json();
+      const rawOutput = data?.choices?.[0]?.message?.content || "";
+      const parsed = parseAssistantJson(rawOutput);
+
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          passport_data: parsed,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     } else {
       return new Response(
         JSON.stringify({ error: "Unknown action" }),

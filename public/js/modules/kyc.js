@@ -1122,6 +1122,38 @@
     `;
   }
 
+  // Сжатие фото паспорта на клиенте для мгновенной отправки в Vision OCR (без сохранения на диск)
+  function compressPassportImage(file, maxDimension = 1600, quality = 0.85) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height * maxDimension) / width);
+              width = maxDimension;
+            } else {
+              width = Math.round((width * maxDimension) / height);
+              height = maxDimension;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => reject(new Error('Не удалось прочитать изображение'));
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error('Ошибка чтения файла'));
+      reader.readAsDataURL(file);
+    });
+  }
+
   // --- 10. Состояние: Форма ввода данных (3-шаговый Мастер / Wizard) ---
   function renderFormState(userKyc) {
     const d = userKyc.kyc_data || {};
@@ -1161,6 +1193,30 @@
               <p class="text-[11px] leading-relaxed text-white/70">
                 Заполняется строго <b>как в паспорте</b> гражданина Республики Беларусь или виде на жительство (ВНЖ РБ). Данные требуются для таможенного оформления посылок (декларация ПТДЭГ).
               </p>
+            </div>
+
+            <!-- Кнопка умного автозаполнения по фото паспорта (AI OCR) -->
+            <div class="p-3.5 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-sky-950/30 to-slate-900 border border-cyan-500/30 shadow-lg shadow-cyan-500/10 space-y-2.5">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">✨</span>
+                  <span class="text-xs font-bold text-white">Умное автозаполнение</span>
+                </div>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-400/30">Gemini Vision</span>
+              </div>
+              <p class="text-[11px] text-white/60 leading-tight">
+                Прикрепите фото или сделайте снимок разворота паспорта — нейросеть за пару секунд заполнит ФИО, личный номер, даты и орган выдачи.
+              </p>
+              <input type="file" id="kycPassportPhotoInput" accept="image/*" class="hidden">
+              <button
+                type="button"
+                id="kycOcrScanBtn"
+                class="w-full py-3 px-3 rounded-xl bg-gradient-to-r from-cyan-500/20 hover:from-cyan-500/30 to-blue-500/20 hover:to-blue-500/30 border border-cyan-400/40 text-cyan-300 hover:text-white text-xs font-bold flex items-center justify-center gap-2 active:scale-95 transition cursor-pointer"
+              >
+                <svg class="w-4 h-4 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                <span id="kycOcrScanBtnText">Заполнить по фото паспорта 📷</span>
+              </button>
+              <div id="kycOcrStatusBanner" class="hidden p-2.5 rounded-xl text-xs transition"></div>
             </div>
 
             <!-- ФИО -->
@@ -1700,6 +1756,143 @@
     if (idInput) {
       idInput.addEventListener('input', handleIdInput);
       if (idInput.value) handleIdInput();
+    }
+
+    // --- Умное распознавание паспорта по фото (AI Vision OCR) ---
+    const ocrInput = document.getElementById('kycPassportPhotoInput');
+    const ocrBtn = document.getElementById('kycOcrScanBtn');
+    const ocrBtnText = document.getElementById('kycOcrScanBtnText');
+    const ocrBanner = document.getElementById('kycOcrStatusBanner');
+
+    if (ocrBtn && ocrInput) {
+      ocrBtn.onclick = () => {
+        ocrInput.click();
+      };
+
+      ocrInput.onchange = async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+
+        ocrBtn.disabled = true;
+        ocrBtn.classList.add('opacity-75');
+        if (ocrBtnText) ocrBtnText.innerHTML = '<span class="inline-block animate-spin mr-1.5">🌀</span> Распознаём фото паспорта...';
+        if (ocrBanner) {
+          ocrBanner.className = 'p-3 rounded-xl text-xs bg-cyan-950/60 border border-cyan-400/40 text-cyan-200 flex items-center gap-2.5';
+          ocrBanner.innerHTML = '<span class="animate-pulse text-base">👁️</span><div><div class="font-bold text-white">Нейросеть Gemini Vision считывает разворот...</div><div class="text-[10px] text-cyan-300/80">Обычно это занимает 2-3 секунды.</div></div>';
+          ocrBanner.classList.remove('hidden');
+        }
+
+        try {
+          const base64Data = await compressPassportImage(file, 1600, 0.85);
+
+          const { data, error } = await supabaseClient.functions.invoke('ai-calculator', {
+            body: {
+              action: 'parse_passport',
+              image: base64Data,
+            },
+          });
+
+          if (error) throw error;
+          if (!data?.ok || !data?.passport_data) {
+            throw new Error(data?.error || 'Не удалось распознать документ');
+          }
+
+          const p = data.passport_data;
+
+          // 1. ФИО
+          const nameParts = [];
+          if (p.last_name) nameParts.push(p.last_name.trim());
+          if (p.first_name) nameParts.push(p.first_name.trim());
+          if (p.patronymic) nameParts.push(p.patronymic.trim());
+          const finalFullName = nameParts.join(' ').trim();
+          if (fullNameInput && finalFullName) {
+            fullNameInput.value = finalFullName;
+          }
+
+          // 2. Личный номер
+          if (p.id_number && idInput) {
+            let cleanId = normalizeDocInput(p.id_number).replace(/[^A-Z0-9]/g, '');
+            if (cleanId.length > 14) cleanId = cleanId.slice(0, 14);
+            idInput.value = cleanId;
+            handleIdInput();
+          }
+
+          // 3. Дата рождения
+          if (p.birth_date) {
+            const birthInput = document.getElementById('kycBirthDate');
+            if (birthInput) {
+              birthInput.value = p.birth_date;
+              birthInput.removeAttribute('data-autofilled');
+              const badgeElem = document.getElementById('kycBirthDateAutoBadge');
+              if (badgeElem) badgeElem.textContent = 'Распознано ИИ';
+              birthInput.dispatchEvent(new Event('input', { bubbles: true }));
+              birthInput.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          }
+
+          // 4. Серия и номер документа (Шаг 2)
+          if (p.series_number && seriesNumberInput) {
+            seriesNumberInput.value = normalizeDocInput(p.series_number).toUpperCase().trim();
+          }
+
+          // 5. Дата выдачи (Шаг 2)
+          if (p.issue_date && issueDateInput) {
+            issueDateInput.value = p.issue_date.trim();
+          }
+
+          // 6. Орган МВД (Шаг 2)
+          if (p.issued_by && issuedByInput) {
+            let matchedOrgan = p.issued_by;
+            if (typeof window.searchBelarusOrgans === 'function') {
+              const words = p.issued_by.split(/\s+/).filter(w => w.length > 3);
+              for (const w of words) {
+                const found = window.searchBelarusOrgans(w, 1);
+                if (found && found.length > 0) {
+                  matchedOrgan = found[0];
+                  break;
+                }
+              }
+            }
+            issuedByInput.value = matchedOrgan;
+          }
+
+          if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
+          if (ocrBanner) {
+            ocrBanner.className = 'p-3 rounded-xl text-xs bg-emerald-950/60 border border-emerald-400/50 text-emerald-300 flex items-start gap-2.5 animate-pulse';
+            ocrBanner.innerHTML = `
+              <span class="text-base text-emerald-400">✓</span>
+              <div>
+                <div class="font-bold text-white">Данные паспорта успешно распознаны!</div>
+                <div class="text-[11px] text-emerald-200/90 mt-0.5 leading-snug">
+                  Все поля Шагов 1 и 2 заполнены автоматически. Проверьте их и нажмите «Далее».
+                </div>
+              </div>
+            `;
+          }
+          if (ocrBtnText) ocrBtnText.textContent = 'Загрузить другое фото';
+
+        } catch (err) {
+          console.error('Passport OCR error:', err);
+          if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('warning');
+          if (ocrBanner) {
+            ocrBanner.className = 'p-3 rounded-xl text-xs bg-rose-950/60 border border-rose-400/40 text-rose-300 flex items-start gap-2.5';
+            ocrBanner.innerHTML = `
+              <span class="text-base text-rose-400">⚠️</span>
+              <div>
+                <div class="font-bold text-white">Не удалось автоматически прочитать фото</div>
+                <div class="text-[11px] text-rose-200/80 mt-0.5 leading-snug">
+                  Убедитесь, что страница освещена без бликов, или введите данные в поля вручную.
+                </div>
+              </div>
+            `;
+          }
+          if (ocrBtnText) ocrBtnText.textContent = 'Попробовать снова 📷';
+        } finally {
+          ocrBtn.disabled = false;
+          ocrBtn.classList.remove('opacity-75');
+          e.target.value = '';
+        }
+      };
     }
 
     // Автокомплит органа выдачи
