@@ -1238,8 +1238,20 @@ ${img3 ? `11. address_region: Область РБ (строго одно из: "
     }
 
   } catch (err) {
+    const rawMsg = err.message || "";
+    console.error("ai-calculator fatal error:", rawMsg);
+    let userMsg = "Не удалось распознать документ на фотографии. Пожалуйста, попробуйте еще раз или заполните поля вручную.";
+    if (rawMsg.includes("All vision models failed") || rawMsg.includes("OpenRouter") || rawMsg.includes("credits") || rawMsg.includes("Rate limit")) {
+      userMsg = "Сервер распознавания временно исчерпал лимит запросов OpenRouter. Пожалуйста, повторите попытку позже или введите данные вручную.";
+    }
+
     return new Response(
-      JSON.stringify({ ok: false, error: err.message }),
+      JSON.stringify({
+        ok: false,
+        error: userMsg,
+        technical_details: rawMsg,
+        error_step: 0
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

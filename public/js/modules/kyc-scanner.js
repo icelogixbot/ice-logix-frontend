@@ -880,8 +880,14 @@
       const existing = document.getElementById('kycRetryCard');
       if (existing) existing.remove();
 
-      const isStep3 = errorStep === 3 || (message && message.includes('прописк'));
-      const isStep2Only = !isStep3 && (errorStep === 2 || (frame1DataUrl && message && (message.includes('Кадр 2') || message.includes('33'))));
+      // Санитизация технического текста ошибок и JSON-дампов от внешних API
+      let cleanMsg = message || '';
+      if (cleanMsg.includes('OpenRouter') || cleanMsg.includes('credits') || cleanMsg.includes('HTTP 402') || cleanMsg.includes('HTTP 429') || cleanMsg.includes('Rate limit') || cleanMsg.includes('models failed') || cleanMsg.length > 200) {
+        cleanMsg = 'Сервер распознавания временно перегружен или исчерпал лимит запросов OpenRouter. Пожалуйста, повторите попытку позже либо заполните данные вручную.';
+      }
+
+      const isStep3 = errorStep === 3 || (cleanMsg && cleanMsg.includes('прописк'));
+      const isStep2Only = !isStep3 && (errorStep === 2 || (frame1DataUrl && cleanMsg && (cleanMsg.includes('Кадр 2') || cleanMsg.includes('33'))));
 
       const card = document.createElement('div');
       card.id = 'kycRetryCard';
@@ -892,7 +898,7 @@
           <div class="text-3xl">⚠️</div>
           <h4 class="text-white font-bold text-sm">Паспортные данные распознаны ✓</h4>
           <p class="text-white/70 text-xs leading-relaxed">
-            ${message || 'Не удалось четко прочитать синий штамп прописки или рукописный адрес. Вы можете переснять страницу со штампом или ввести адрес вручную.'}
+            ${cleanMsg || 'Не удалось четко прочитать синий штамп прописки или рукописный адрес. Вы можете переснять страницу со штампом или ввести адрес вручную.'}
           </p>
           <div class="space-y-2 pt-2">
             <button type="button" id="kycRetryStep3OnlyBtn" class="btn-primary w-full py-3.5 rounded-2xl font-bold text-xs cursor-pointer active:scale-95 transition shadow-lg">
@@ -911,7 +917,7 @@
           <div class="text-3xl">⚠️</div>
           <h4 class="text-white font-bold text-sm">Страница 31 сохранена ✓</h4>
           <p class="text-white/70 text-xs leading-relaxed">
-            ${message || 'Не удалось распознать страницу 33 со строками <<<. Пожалуйста, переснимите её ровно и без бликов.'}
+            ${cleanMsg || 'Не удалось распознать страницу 33 со строками <<<. Пожалуйста, переснимите её ровно и без бликов.'}
           </p>
           <div class="space-y-2 pt-2">
             <button type="button" id="kycRetryStep2OnlyBtn" class="btn-primary w-full py-3.5 rounded-2xl font-bold text-xs cursor-pointer active:scale-95 transition shadow-lg">
@@ -930,13 +936,16 @@
           <div class="text-3xl">💡</div>
           <h4 class="text-white font-bold text-sm">Не удалось четко распознать реквизиты</h4>
           <p class="text-white/70 text-xs leading-relaxed">
-            ${message || 'Пожалуйста, убедитесь, что на Шаге 1 сфотографирован разворот стр. 31 (с русскими ФИО), а на Шаге 2 — разворот стр. 33 (с фото и строками MRZ <<<).'}
+            ${cleanMsg || 'Пожалуйста, убедитесь, что на Шаге 1 сфотографирован разворот стр. 31 (с русскими ФИО), а на Шаге 2 — разворот стр. 33 (с фото и строками MRZ <<<).'}
           </p>
           <div class="space-y-2 pt-2">
             <button type="button" id="kycRetryAllBtn" class="btn-primary w-full py-3.5 rounded-2xl font-bold text-xs cursor-pointer active:scale-95 transition shadow-lg">
               Попробовать снова 🔄
             </button>
-            <button type="button" id="kycRetryFallbackBtn" class="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-semibold text-xs cursor-pointer active:scale-95 transition">
+            <button type="button" id="kycManualFillOnErrorBtn" class="w-full py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-semibold text-xs cursor-pointer active:scale-95 transition">
+              Заполнить данные вручную ➔
+            </button>
+            <button type="button" id="kycRetryFallbackBtn" class="w-full py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/15 text-white/70 hover:text-white text-xs cursor-pointer transition">
               Загрузить фото из галереи 📁
             </button>
           </div>
@@ -976,6 +985,14 @@
           isCapturing = false;
           updateStepUI();
           await startCamera();
+        };
+      }
+
+      const manualFillBtn = document.getElementById('kycManualFillOnErrorBtn');
+      if (manualFillBtn) {
+        manualFillBtn.onclick = () => {
+          stopCameraStream();
+          modal.remove();
         };
       }
 
