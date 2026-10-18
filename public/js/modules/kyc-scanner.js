@@ -311,14 +311,11 @@
     let isCapturing = false;
     let stableCount = 0;
     let lastBlocks = null;
-    let frame1Blocks = null; // Сигнатура блоков страницы 31 для защиты от повторного снимка
-    let step2ArmTimer = 0; // Защитная пауза перед разрешением съемки шага 2
-    let step2HasMoved = false; // Флаг обязательного перемещения камеры на новую страницу
 
-    // Быстрый оффскрин-холст для анализа кадра в реальном времени (64x48)
+    // Быстрый оффскрин-холст для анализа кадра в реальном времени (128x96)
     const sampleCanvas = document.createElement('canvas');
-    sampleCanvas.width = 64;
-    sampleCanvas.height = 48;
+    sampleCanvas.width = 128;
+    sampleCanvas.height = 96;
     const sampleCtx = sampleCanvas.getContext('2d', { willReadFrequently: true });
 
     // Остановка анализа
@@ -341,19 +338,81 @@
       runLiveFrameCheck();
     }
 
-    // Цикл детектора живого эфира: 16-блочный анализ + валидация документа и MRZ
+    /**
+     * Прецизионный детектор машиночитаемой зоны MRZ (ICAO 9303)
+     * Сканирует нижние 26% видоискателя на наличие характерной регулярной частоты символов шрифта OCR-B
+     * с символами-разделителями '<<<'.
+     * На развороте стр. 31, обычном тексте, темных ковриках или столе такой структуры нет.
+     */
+    function detectMrzPattern(data, width, height) {
+      const startY = Math.floor(height * 0.70);
+      const endY = Math.floor(height * 0.94);
+      const startX = Math.floor(width * 0.08);
+      const endX = Math.floor(width * 0.92);
+
+      let mrzLineCandidates = 0;
+
+      // Проверяем 8 горизонтальных срезов в зоне MRZ
+      const stepY = Math.max(2, Math.floor((endY - startY) / 8));
+      for (let y = startY; y <= endY; y += stepY) {
+        let minL = 255;
+        let maxL = 0;
+        const lineLumas = [];
+
+        for (let x = startX; x <= endX; x++) {
+          const idx = (y * width + x) * 4;
+          const luma = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+          lineLumas.push(luma);
+          if (luma < minL) minL = luma;
+          if (luma > maxL) maxL = luma;
+        }
+
+        const contrast = maxL - minL;
+        // Строка MRZ имеет ощутимый контраст черного шрифта на светлом фоне бумаги
+        if (contrast < 30) continue;
+
+        const threshold = (minL + maxL) / 2;
+        let transitions = 0;
+        let isDark = lineLumas[0] < threshold;
+        let runLength = 0;
+        let maxRun = 0;
+
+        for (let i = 1; i < lineLumas.length; i++) {
+          const dark = lineLumas[i] < threshold;
+          if (dark === isDark) {
+            runLength++;
+          } else {
+            transitions++;
+            if (runLength > maxRun) maxRun = runLength;
+            runLength = 1;
+            isDark = dark;
+          }
+        }
+
+        // В строке MRZ (44 символа) при ширине среза ~108 пикселей должно быть от 16 до 54 чередований dark/light,
+        // и максимальная длина сплошного участка не должна превышать 26 пикселей (нет огромных полей или сплошных теней)
+        if (transitions >= 16 && transitions <= 54 && maxRun < 26) {
+          mrzLineCandidates++;
+        }
+      }
+
+      // Для подтверждения MRZ требуется минимум 2 линии с характерной частотой OCR-B
+      return mrzLineCandidates >= 2;
+    }
+
+    // Цикл детектора живого эфира: 16-блочный анализ + валидация подлинности разворота
     function runLiveFrameCheck() {
       if (!liveLoopActive || isCapturing) return;
 
       if (videoElem && videoElem.readyState >= 2 && videoElem.videoWidth && videoElem.videoHeight) {
         const crop = getViewfinderCrop(videoElem, viewfinder);
         if (crop) {
-          sampleCtx.drawImage(videoElem, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, 64, 48);
+          sampleCtx.drawImage(videoElem, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, 128, 96);
         } else {
-          sampleCtx.drawImage(videoElem, 0, 0, 64, 48);
+          sampleCtx.drawImage(videoElem, 0, 0, 128, 96);
         }
 
-        const imgData = sampleCtx.getImageData(0, 0, 64, 48);
+        const imgData = sampleCtx.getImageData(0, 0, 128, 96);
         const data = imgData.data;
 
         // 1. 16-блочный анализ (4 колонки x 4 строки) для отсечения шумов сенсора
@@ -363,22 +422,16 @@
         let totalLuma = 0;
 
         // Построчная яркость для детекции печатных строк текста (rowLumas)
-        const rowLumas = new Float32Array(48);
+        const rowLumas = new Float32Array(96);
 
-        // Контраст и яркость в нижней трети видоискателя (строки 32..47 — зона MRZ)
-        let bottomLumaMin = 255;
-        let bottomLumaMax = 0;
-        let bottomLumaSum = 0;
-        let bottomPixelCount = 0;
-
-        for (let y = 0; y < 48; y++) {
-          const by = Math.min(3, Math.floor(y / 12));
+        for (let y = 0; y < 96; y++) {
+          const by = Math.min(3, Math.floor(y / 24));
           let rowSum = 0;
 
-          for (let x = 0; x < 64; x++) {
-            const bx = Math.min(3, Math.floor(x / 16));
+          for (let x = 0; x < 128; x++) {
+            const bx = Math.min(3, Math.floor(x / 32));
             const bIdx = by * 4 + bx;
-            const pIdx = (y * 64 + x) * 4;
+            const pIdx = (y * 128 + x) * 4;
             const luma = 0.299 * data[pIdx] + 0.587 * data[pIdx + 1] + 0.114 * data[pIdx + 2];
 
             blocks[bIdx] += luma;
@@ -387,32 +440,23 @@
 
             if (luma < minLuma) minLuma = luma;
             if (luma > maxLuma) maxLuma = luma;
-
-            if (y >= 32) {
-              if (luma < bottomLumaMin) bottomLumaMin = luma;
-              if (luma > bottomLumaMax) bottomLumaMax = luma;
-              bottomLumaSum += luma;
-              bottomPixelCount++;
-            }
           }
-          rowLumas[y] = rowSum / 64;
+          rowLumas[y] = rowSum / 128;
         }
 
         for (let b = 0; b < 16; b++) {
-          blocks[b] = blocks[b] / 192;
+          blocks[b] = blocks[b] / 768;
         }
 
-        const avgLuma = totalLuma / 3072;
+        const avgLuma = totalLuma / 12288;
         const contrastRange = maxLuma - minLuma;
-        const bottomContrast = bottomLumaMax - bottomLumaMin;
-        const bottomAvgLuma = bottomPixelCount ? (bottomLumaSum / bottomPixelCount) : 0;
 
-        // Вариативность строк текста (текст паспорта имеет перепады между строками)
+        // Вариативность строк текста (текст разворота паспорта имеет характерные перепады между строками)
         let textLineVariance = 0;
-        for (let y = 1; y < 48; y++) {
+        for (let y = 1; y < 96; y++) {
           textLineVariance += Math.abs(rowLumas[y] - rowLumas[y - 1]);
         }
-        textLineVariance = textLineVariance / 47;
+        textLineVariance = textLineVariance / 95;
 
         // Расчет межкадрового движения между блоками
         let blockMotion = 0;
@@ -427,74 +471,19 @@
         lastBlocks = blocks;
 
         // ========================================================
-        // ЗАЩИТА ШАГА 2: Обязательное физическое перемещение на новую страницу
+        // ПРОВЕРКА ОСВЕЩЕНИЯ И ПОДЛИННОСТИ ДОКУМЕНТА (НЕ КОВРИК И НЕ СТОЛ!)
         // ========================================================
-        if (currentStep === 2) {
-          // Если пользователь ещё не сдвинул камеру с первого разворота
-          if (!step2HasMoved) {
-            if (blockMotion > 5.5) {
-              step2HasMoved = true;
-            } else {
-              livePill.className = 'kyc-live-pill is-warning mb-2';
-              livePill.innerHTML = mode === 'passport'
-                ? '🔄 Переверните на стр. 33 (со строками <<<)'
-                : '🔄 Переверните карту на обратную сторону';
-              viewfinder.classList.remove('is-locked');
-              progressBar.style.width = '0%';
-              stableCount = 0;
-              liveTimer = setTimeout(runLiveFrameCheck, 100);
-              return;
-            }
-          }
-
-          // Защитный таймер минимум 1.5 секунды после съемки первого кадра
-          if (Date.now() < step2ArmTimer) {
-            livePill.className = 'kyc-live-pill is-warning mb-2';
-            livePill.innerHTML = '🔄 Наведите на страницу 33...';
-            viewfinder.classList.remove('is-locked');
-            progressBar.style.width = '0%';
-            stableCount = 0;
-            liveTimer = setTimeout(runLiveFrameCheck, 100);
-            return;
-          }
-
-          // Защита от съемки ТОЙ ЖЕ страницы 31 повторно
-          if (frame1Blocks) {
-            let diffFromFrame1 = 0;
-            for (let b = 0; b < 16; b++) {
-              diffFromFrame1 += Math.abs(blocks[b] - frame1Blocks[b]);
-            }
-            diffFromFrame1 = diffFromFrame1 / 16;
-            if (diffFromFrame1 < 3.8) {
-              // Это та же страница!
-              livePill.className = 'kyc-live-pill is-warning mb-2';
-              livePill.innerHTML = '⚠️ Это стр. 31! Переверните на стр. 33 (со строками <<<)';
-              viewfinder.classList.remove('is-locked');
-              progressBar.style.width = '0%';
-              stableCount = 0;
-              liveTimer = setTimeout(runLiveFrameCheck, 100);
-              return;
-            }
-          }
-        }
-
-        // ========================================================
-        // ПРОВЕРКА ОСВЕЩЕНИЯ И ПОДЛИННОСТИ ДОКУМЕНТА (НЕ КОВРИК!)
-        // ========================================================
-        const isTooDark = avgLuma < 50;
-        const isDarkSurface = avgLuma < 75; // Темный коврик мыши, темный стол, ткань
+        const isTooDark = avgLuma < 55;
         const isTooBright = avgLuma > 235;
 
-        // Бумага паспорта — светлая (avgLuma 75..235) с контрастом текста
-        const isPassportPaper = avgLuma >= 75 && avgLuma <= 235 && contrastRange >= 35;
-        const hasTextLines = textLineVariance >= 1.6;
+        // Бумага паспорта РБ — светлая с защитной сеткой (avgLuma 75..235).
+        // Если avgLuma < 75 — это темный коврик мыши, стол, одежда или пол.
+        const isPassportPaper = avgLuma >= 75 && avgLuma <= 235 && contrastRange >= 32;
+        const hasTextLines = textLineVariance >= 1.4;
 
-        // На шаге 2 внизу ОБЯЗАТЕЛЬНО должны быть строки MRZ с символами <<<
-        const hasMrzAtBottom = mode === 'passport'
-          ? (currentStep === 1 ? true : (bottomContrast >= 32 && bottomAvgLuma >= 65))
-          : (currentStep === 1 ? true : (bottomContrast >= 28 && bottomAvgLuma >= 65));
-
-        const isSteady = blockMotion <= 4.2;
+        // Прецизионный детектор MRZ: на стр. 33 обязательно должны присутствовать строки OCR-B с <<<
+        const hasMrz = detectMrzPattern(data, 128, 96);
+        const isSteady = blockMotion <= 4.0;
 
         if (isTooDark) {
           livePill.className = 'kyc-live-pill is-warning mb-2';
@@ -508,29 +497,38 @@
           viewfinder.classList.remove('is-locked');
           progressBar.style.width = '0%';
           stableCount = 0;
-        } else if (isDarkSurface || !isPassportPaper) {
-          // Темный коврик мыши, стол или не документ
-          livePill.className = 'kyc-live-pill mb-2';
-          livePill.innerHTML = '📄 Поместите светлый разворот паспорта в рамку';
+        } else if (!isPassportPaper) {
+          // Темный коврик мыши, стол или посторонний предмет
+          livePill.className = 'kyc-live-pill is-warning mb-2';
+          livePill.innerHTML = currentStep === 1
+            ? '📄 Поместите светлый разворот стр. 31 в рамку'
+            : '📄 Поместите светлый разворот стр. 33 в рамку';
           viewfinder.classList.remove('is-locked');
           progressBar.style.width = '0%';
           stableCount = 0;
         } else if (!hasTextLines) {
-          // Пустой белый лист без строк текста
+          // Белый пустой лист бумаги без печатного текста
           livePill.className = 'kyc-live-pill mb-2';
           livePill.innerHTML = '🔍 Расположите паспорт ровно, чтобы был виден текст';
           viewfinder.classList.remove('is-locked');
           progressBar.style.width = '0%';
           stableCount = 0;
-        } else if (currentStep === 2 && !hasMrzAtBottom) {
-          // На шаге 2 внизу нет строк MRZ
-          livePill.className = 'kyc-live-pill mb-2';
-          livePill.innerHTML = '🔍 Наведите нижнюю часть рамки на строки <<< (MRZ)';
+        } else if (currentStep === 1 && hasMrz) {
+          // На Шаге 1 пользователь по ошибке открыл страницу 33 (со строками <<<)
+          livePill.className = 'kyc-live-pill is-warning mb-2';
+          livePill.innerHTML = '⚠️ Это стр. 33! Сначала откройте стр. 31 (с русскими ФИО)';
+          viewfinder.classList.remove('is-locked');
+          progressBar.style.width = '0%';
+          stableCount = 0;
+        } else if (currentStep === 2 && !hasMrz) {
+          // На Шаге 2 пользователь навел на стр. 31, коврик или стол без строк MRZ
+          livePill.className = 'kyc-live-pill is-warning mb-2';
+          livePill.innerHTML = '⚠️ Это не стр. 33! Наведите на нижние строки <<< (MRZ)';
           viewfinder.classList.remove('is-locked');
           progressBar.style.width = '0%';
           stableCount = 0;
         } else if (!isSteady) {
-          // Паспорт в рамке, но телефон движется
+          // Документ в рамке, но телефон движется
           livePill.className = 'kyc-live-pill mb-2';
           livePill.innerHTML = '✋ Держите телефон ровнее...';
           viewfinder.classList.remove('is-locked');
@@ -589,8 +587,6 @@
       currentStep = 1;
       frame1DataUrl = null;
       frame2DataUrl = null;
-      frame1Blocks = null;
-      step2HasMoved = false;
       if (thumbPreview) thumbPreview.classList.add('hidden');
       modePassportBtn.className = 'px-3 py-1 rounded-full bg-cyan-500 text-black shadow-md transition cursor-pointer';
       modeIdCardBtn.className = 'px-3 py-1 rounded-full text-white/70 hover:text-white transition cursor-pointer';
@@ -603,8 +599,6 @@
       currentStep = 1;
       frame1DataUrl = null;
       frame2DataUrl = null;
-      frame1Blocks = null;
-      step2HasMoved = false;
       if (thumbPreview) thumbPreview.classList.add('hidden');
       modeIdCardBtn.className = 'px-3 py-1 rounded-full bg-cyan-500 text-black shadow-md transition cursor-pointer';
       modePassportBtn.className = 'px-3 py-1 rounded-full text-white/70 hover:text-white transition cursor-pointer';
@@ -683,6 +677,41 @@
       }
     }
 
+    // Карточка перехода между шагами: пауза и осознанное подтверждение переворота на стр. 33
+    function showStepTransitionCard() {
+      const existing = document.getElementById('kycStepTransitionCard');
+      if (existing) existing.remove();
+
+      const card = document.createElement('div');
+      card.id = 'kycStepTransitionCard';
+      card.className = 'kyc-step-transition-card space-y-3';
+      card.innerHTML = `
+        <div class="text-3xl">✅</div>
+        <h4 class="text-white font-bold text-base">
+          ${mode === 'passport' ? 'Страница 31 зафиксирована!' : 'Лицевая сторона снята!'}
+        </h4>
+        <p class="text-white/80 text-xs leading-relaxed">
+          ${mode === 'passport'
+            ? 'Теперь переверните паспорт на <b>страницу 33</b>.<br>Там находится ваша фотография и внизу две строки знаков <span class="text-cyan-300 font-mono font-bold">&lt;&lt;&lt;</span> (MRZ).'
+            : 'Теперь переверните ID-карту на <b>обратную сторону</b>.<br>На ней находятся строки машиночитаемой зоны <span class="text-cyan-300 font-mono font-bold">&lt;&lt;&lt;</span>.'
+          }
+        </p>
+        <div class="pt-2">
+          <button type="button" id="kycProceedStep2Btn" class="btn-primary w-full py-3.5 rounded-2xl font-bold text-xs cursor-pointer active:scale-95 transition shadow-lg">
+            ${mode === 'passport' ? 'Я открыл страницу 33 ➔' : 'Я перевернул карту ➔'}
+          </button>
+        </div>
+      `;
+      modal.appendChild(card);
+
+      document.getElementById('kycProceedStep2Btn').onclick = () => {
+        card.remove();
+        currentStep = 2;
+        updateStepUI();
+        startLiveAnalysis();
+      };
+    }
+
     // Съемка кадра (автоматическая или ручная)
     async function takeShot(isAuto = false) {
       if (!videoElem.videoWidth || !videoElem.videoHeight) return;
@@ -710,9 +739,6 @@
 
       if (currentStep === 1) {
         frame1DataUrl = shotDataUrl;
-        if (lastBlocks) {
-          frame1Blocks = new Float32Array(lastBlocks);
-        }
 
         // Показываем миниатюру первого кадра в нижнем блоке
         if (thumbPreview && thumbImg) {
@@ -720,30 +746,13 @@
           thumbPreview.classList.remove('hidden');
         }
 
-        currentStep = 2;
-        updateStepUI();
+        // КРИТИЧЕСКИ ВАЖНО: Останавливаем живой захват!
+        // Никакой спонтанной съемки пока пользователь физически переворачивает страницу!
+        stopLiveAnalysis();
+        isCapturing = false;
 
-        // Обязательный флаг: Step 2 ждет физического перемещения камеры на новую страницу!
-        step2HasMoved = false;
-        step2ArmTimer = Date.now() + 1800; // Минимум 1.8 секунды пауза
-
-        livePill.className = 'kyc-live-pill is-warning mb-2';
-        livePill.innerHTML = mode === 'passport'
-          ? '🔄 Переверните на стр. 33 (со строками <<<)'
-          : '🔄 Переверните карту на обратную сторону';
-
-        stableCount = 0;
-        lastBlocks = null;
-        if (progressBar) progressBar.style.width = '0%';
-        if (viewfinder) viewfinder.classList.remove('is-locked');
-
-        // Пауза перед возобновлением анализа
-        setTimeout(() => {
-          isCapturing = false;
-          if (liveLoopActive) {
-            runLiveFrameCheck();
-          }
-        }, 1200);
+        // Показываем карточку подтверждения перехода к стр. 33
+        showStepTransitionCard();
       } else {
         frame2DataUrl = shotDataUrl;
         stopLiveAnalysis();
@@ -761,53 +770,94 @@
           console.error('Alipay scanner processing error:', procErr);
           if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('warning');
           processingScreen.classList.add('hidden');
-          showRetryCard(procErr?.message);
+          showRetryCard(procErr?.message, procErr?.error_step);
         }
       }
     }
 
-    // Карточка повторной попытки внутри сканера (без блокирующих alert)
-    function showRetryCard(message) {
+    // Карточка повторной попытки внутри сканера (с умным разделением по шагам)
+    function showRetryCard(message, errorStep = 0) {
       const existing = document.getElementById('kycRetryCard');
       if (existing) existing.remove();
+
+      const isStep2Only = errorStep === 2 || (frame1DataUrl && message && message.includes('Кадр 2'));
 
       const card = document.createElement('div');
       card.id = 'kycRetryCard';
       card.className = 'kyc-retry-card space-y-3';
-      card.innerHTML = `
-        <div class="text-3xl">💡</div>
-        <h4 class="text-white font-bold text-sm">Не удалось четко распознать реквизиты</h4>
-        <p class="text-white/70 text-xs leading-relaxed">
-          ${message || 'Пожалуйста, убедитесь, что на Шаге 1 сфотографирован разворот стр. 31 (с русскими ФИО), а на Шаге 2 — разворот стр. 33 (с фото и строками MRZ <<<).'}
-        </p>
-        <div class="space-y-2 pt-2">
-          <button type="button" id="kycRetryCardBtn" class="btn-primary w-full py-3.5 rounded-2xl font-bold text-xs cursor-pointer active:scale-95 transition">
-            Попробовать снова 🔄
-          </button>
-          <button type="button" id="kycRetryFallbackBtn" class="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-semibold text-xs cursor-pointer active:scale-95 transition">
-            Загрузить фото из галереи 📁
-          </button>
-        </div>
-      `;
+
+      if (isStep2Only) {
+        card.innerHTML = `
+          <div class="text-3xl">⚠️</div>
+          <h4 class="text-white font-bold text-sm">Страница 31 сохранена ✓</h4>
+          <p class="text-white/70 text-xs leading-relaxed">
+            ${message || 'Не удалось распознать страницу 33 со строками <<<. Пожалуйста, переснимите её ровно и без бликов.'}
+          </p>
+          <div class="space-y-2 pt-2">
+            <button type="button" id="kycRetryStep2OnlyBtn" class="btn-primary w-full py-3.5 rounded-2xl font-bold text-xs cursor-pointer active:scale-95 transition shadow-lg">
+              Переснять только страницу 33 🔄
+            </button>
+            <button type="button" id="kycRetryAllBtn" class="w-full py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-semibold text-xs cursor-pointer active:scale-95 transition">
+              Переснять обе страницы заново ↺
+            </button>
+            <button type="button" id="kycRetryFallbackBtn" class="w-full py-2 rounded-2xl bg-transparent text-white/60 hover:text-white text-xs cursor-pointer transition">
+              Загрузить фото из галереи 📁
+            </button>
+          </div>
+        `;
+      } else {
+        card.innerHTML = `
+          <div class="text-3xl">💡</div>
+          <h4 class="text-white font-bold text-sm">Не удалось четко распознать реквизиты</h4>
+          <p class="text-white/70 text-xs leading-relaxed">
+            ${message || 'Пожалуйста, убедитесь, что на Шаге 1 сфотографирован разворот стр. 31 (с русскими ФИО), а на Шаге 2 — разворот стр. 33 (с фото и строками MRZ <<<).'}
+          </p>
+          <div class="space-y-2 pt-2">
+            <button type="button" id="kycRetryAllBtn" class="btn-primary w-full py-3.5 rounded-2xl font-bold text-xs cursor-pointer active:scale-95 transition shadow-lg">
+              Попробовать снова 🔄
+            </button>
+            <button type="button" id="kycRetryFallbackBtn" class="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-semibold text-xs cursor-pointer active:scale-95 transition">
+              Загрузить фото из галереи 📁
+            </button>
+          </div>
+        `;
+      }
+
       modal.appendChild(card);
 
-      document.getElementById('kycRetryCardBtn').onclick = async () => {
-        card.remove();
-        currentStep = 1;
-        frame1DataUrl = null;
-        frame2DataUrl = null;
-        frame1Blocks = null;
-        step2HasMoved = false;
-        isCapturing = false;
-        if (thumbPreview) thumbPreview.classList.add('hidden');
-        updateStepUI();
-        await startCamera();
-      };
+      const step2OnlyBtn = document.getElementById('kycRetryStep2OnlyBtn');
+      if (step2OnlyBtn) {
+        step2OnlyBtn.onclick = async () => {
+          card.remove();
+          currentStep = 2;
+          frame2DataUrl = null;
+          isCapturing = false;
+          updateStepUI();
+          await startCamera();
+        };
+      }
 
-      document.getElementById('kycRetryFallbackBtn').onclick = () => {
-        modal.remove();
-        openFallbackTwoFrameUploader({ mode, onComplete, onCancel });
-      };
+      const retryAllBtn = document.getElementById('kycRetryAllBtn');
+      if (retryAllBtn) {
+        retryAllBtn.onclick = async () => {
+          card.remove();
+          currentStep = 1;
+          frame1DataUrl = null;
+          frame2DataUrl = null;
+          isCapturing = false;
+          if (thumbPreview) thumbPreview.classList.add('hidden');
+          updateStepUI();
+          await startCamera();
+        };
+      }
+
+      const fallbackBtn = document.getElementById('kycRetryFallbackBtn');
+      if (fallbackBtn) {
+        fallbackBtn.onclick = () => {
+          modal.remove();
+          openFallbackTwoFrameUploader({ mode, onComplete, onCancel });
+        };
+      }
     }
 
     // Ручная кнопка затвора камеры
@@ -818,6 +868,7 @@
     // Старт
     await startCamera();
   }
+
 
   /**
    * Склейка и распознавание двух кадров через Vision + MRZ ICAO декодер
@@ -835,7 +886,9 @@
 
     if (error) throw error;
     if (!data?.ok || !data?.result) {
-      throw new Error(data?.error || 'Ошибка декодирования данных');
+      const customErr = new Error(data?.error || 'Ошибка декодирования данных');
+      customErr.error_step = data?.error_step || 0;
+      throw customErr;
     }
 
     const res = data.result;
