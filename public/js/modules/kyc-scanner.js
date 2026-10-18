@@ -368,8 +368,8 @@
         }
 
         const contrast = maxL - minL;
-        // Строка MRZ имеет ощутимый контраст черного шрифта на светлом фоне бумаги
-        if (contrast < 30) continue;
+        // Строка MRZ обязана быть темным печатным шрифтом (minL < 120) на светлой бумаге паспорта (maxL > 135)
+        if (contrast < 35 || minL > 120 || maxL < 135) continue;
 
         const threshold = (minL + maxL) / 2;
         let transitions = 0;
@@ -389,9 +389,9 @@
           }
         }
 
-        // В строке MRZ (44 символа) при ширине среза ~108 пикселей должно быть от 16 до 54 чередований dark/light,
-        // и максимальная длина сплошного участка не должна превышать 26 пикселей (нет огромных полей или сплошных теней)
-        if (transitions >= 16 && transitions <= 54 && maxRun < 26) {
+        // В строке MRZ (44 символа) при ширине среза ~108 пикселей должно быть от 20 до 54 чередований dark/light,
+        // и максимальная длина сплошного участка не должна превышать 22 пикселей (нет огромных полей или сплошных теней)
+        if (transitions >= 20 && transitions <= 54 && maxRun < 22) {
           mrzLineCandidates++;
         }
       }
@@ -533,28 +533,28 @@
           livePill.innerHTML = '✋ Держите телефон ровнее...';
           viewfinder.classList.remove('is-locked');
           stableCount = Math.max(0, stableCount - 2);
-          const pct = Math.min(100, Math.round((stableCount / 8) * 100));
+          const pct = Math.min(100, Math.round((stableCount / 12) * 100));
           progressBar.style.width = pct + '%';
         } else {
           // ========================================================
-          // ДОКУМЕНТ В РАМКЕ И СТАБИЛЕН — УВЕРЕННЫЙ ОБРАТНЫЙ ОТСЧЕТ (~850мс)
+          // ДОКУМЕНТ В РАМКЕ И СТАБИЛЕН — ПЛАВНЫЙ ОБРАТНЫЙ ОТСЧЕТ (~1.2с)
           // ========================================================
           stableCount++;
           viewfinder.classList.add('is-locked');
           livePill.className = 'kyc-live-pill is-locked mb-2';
 
-          const pct = Math.min(100, Math.round((stableCount / 8) * 100));
+          const pct = Math.min(100, Math.round((stableCount / 12) * 100));
           progressBar.style.width = pct + '%';
 
-          if (stableCount <= 2) {
+          if (stableCount <= 3) {
             livePill.innerHTML = '🎯 Зафиксируйте положение...';
-          } else if (stableCount <= 4) {
-            livePill.innerHTML = '🎯 Не двигайтесь... 3';
           } else if (stableCount <= 6) {
+            livePill.innerHTML = '🎯 Не двигайтесь... 3';
+          } else if (stableCount <= 9) {
             livePill.innerHTML = '🎯 Не двигайтесь... 2';
-          } else if (stableCount === 7) {
+          } else if (stableCount <= 11) {
             livePill.innerHTML = '🎯 Замрите... 1';
-          } else if (stableCount >= 8 && !isCapturing) {
+          } else if (stableCount >= 12 && !isCapturing) {
             isCapturing = true;
             livePill.innerHTML = '⚡ Снимок сделан!';
             takeShot(true);
@@ -708,7 +708,10 @@
         card.remove();
         currentStep = 2;
         updateStepUI();
-        startLiveAnalysis();
+        livePill.innerHTML = '📄 Наведите камеру на страницу 33 (с фото)...';
+        setTimeout(() => {
+          startLiveAnalysis();
+        }, 1200);
       };
     }
 

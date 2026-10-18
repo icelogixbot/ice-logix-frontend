@@ -4,8 +4,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY") || "";
-const VISION_MODEL = Deno.env.get("OPENROUTER_VISION_MODEL") || "google/gemini-2.5-flash";
-const TEXT_MODEL = "google/gemini-2.5-flash-lite";
+const VISION_MODEL = Deno.env.get("OPENROUTER_VISION_MODEL") || "google/gemini-2.0-flash-001";
+const TEXT_MODEL = "google/gemini-2.0-flash-001";
 const STORAGE_BUCKET = "product-screenshots";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -52,46 +52,132 @@ async function getExchangeRates(): Promise<Record<string, number>> {
 }
 
 function parseAssistantJson(raw: string): Record<string, any> {
-  let s = (raw || "").trim();
-  if (s.startsWith("```")) {
-    s = s.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/s, "").trim();
-  }
-  const firstBrace = s.indexOf("{");
-  const lastBrace = s.lastIndexOf("}");
-  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-    s = s.slice(firstBrace, lastBrace + 1);
-  }
-  // Remove trailing commas before closing braces/brackets
-  s = s.replace(/,\s*([}\]])/g, "$1");
-  try {
-    return JSON.parse(s);
-  } catch (e) {
-    console.error("JSON parse error on assistant output:", s, e);
-    // Regex-based key-value extraction fallback
-    const fallbackRes: Record<string, any> = {};
-    const extract = (key: string) => {
-      const match = s.match(new RegExp(`"${key}"\\s*:\\s*"([^"]+)"`, "i"));
-      return match ? match[1].trim() : "";
-    };
-    const keys = ["raw_mrz", "last_name", "first_name", "patronymic", "series_number", "birth_date", "gender", "id_number", "issue_date", "issued_by"];
-    for (const k of keys) {
-      const val = extract(k);
-      if (val) fallbackRes[k] = val;
+  const s = (raw || "").trim();
+  if (!s) return {};
+
+  // 1. Try finding all code blocks with json (start from the last one)
+  const codeBlocks = s.match(/```(?:json)?\s*([\s\S]*?)\s*```/gi);
+  if (codeBlocks && codeBlocks.length > 0) {
+    for (let i = codeBlocks.length - 1; i >= 0; i--) {
+      const clean = codeBlocks[i].replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+      try {
+        const obj = JSON.parse(clean);
+        if (obj && typeof obj === "object") return obj;
+      } catch (_) {}
     }
+  }
+
+  // 2. Find balanced JSON object from the end of string
+  const lastBrace = s.lastIndexOf("}");
+  if (lastBrace !== -1) {
+    for (let i = s.lastIndexOf("{"); i >= 0; i = s.lastIndexOf("{", i - 1)) {
+      try {
+        const candidate = s.slice(i, lastBrace + 1).replace(/,\s*([}\]])/g, "$1");
+        const obj = JSON.parse(candidate);
+        if (obj && typeof obj === "object" && (obj.id_number || obj.last_name || obj.ok !== undefined || obj.weight !== undefined)) {
+          return obj;
+        }
+      } catch (_) {}
+    }
+  }
+
+  // 3. Fallback regex-based key-value extraction ("key": "value")
+  const fallbackRes: Record<string, any> = {};
+  const extract = (key: string) => {
+    const match = s.match(new RegExp(`"${key}"\\s*:\\s*"([^"]+)"`, "i"));
+    return match ? match[1].trim() : "";
+  };
+  const keys = ["raw_mrz", "last_name", "first_name", "patronymic", "series_number", "birth_date", "gender", "id_number", "issue_date", "issued_by"];
+  for (const k of keys) {
+    const val = extract(k);
+    if (val) fallbackRes[k] = val;
+  }
+  if (Object.keys(fallbackRes).length > 0) {
     return fallbackRes;
   }
+
+  // 4. Free-form text extraction from reasoning / thinking process
+  const freeRes: Record<string, any> = {};
+
+  const mLastName = s.match(/(?:Фамилия|Last name)[^:\n]*:\s*([А-Яа-яЁёA-Za-z]+)/i);
+  if (mLastName) freeRes.last_name = mLastName[1].trim().toUpperCase();
+
+  const mFirstName = s.match(/(?:Имя|First name|Given names)[^:\n]*:\s*([А-Яа-яЁёA-Za-z]+)/i);
+  if (mFirstName) freeRes.first_name = mFirstName[1].trim().toUpperCase();
+
+  const mPatronymic = s.match(/(?:Отчество|Patronymic)[^:\n]*:\s*([А-Яа-яЁёA-Za-z]+)/i);
+  if (mPatronymic) freeRes.patronymic = mPatronymic[1].trim().toUpperCase();
+
+  const mIdNum = s.match(/(?:Идентификационный|Personal No|личный номер)[^:\n]*:\s*`?([0-9][0-9A-Za-z]{13})`?/i);
+  if (mIdNum) freeRes.id_number = mIdNum[1].trim().toUpperCase();
+
+  const mSeries = s.match(/(?:Номер паспорта|Passport No|Серия)[^:\n]*:\s*`?([A-Za-z]{2}\d{7}|\d{9})`?/i);
+  if (mSeries) freeRes.series_number = mSeries[1].trim().toUpperCase();
+
+  const mBirth = s.match(/(?:Дата рождения|Date of birth)[^:\n]*:\s*`?([0-9]{2,4}[.\/-][0-9]{2}[.\/-][0-9]{2,4})`?/i);
+  if (mBirth) {
+    const rawB = mBirth[1].trim().replace(/\//g, '.').replace(/-/g, '.');
+    const parts = rawB.split('.');
+    if (parts.length === 3) {
+      if (parts[0].length === 4) freeRes.birth_date = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+      else freeRes.birth_date = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    }
+  }
+
+  const mSex = s.match(/(?:Пол|Sex)[^:\n]*:\s*`?(M|МУЖ|Male|F|ЖЕН|Female)`?/i);
+  if (mSex) {
+    const v = mSex[1].toUpperCase();
+    freeRes.gender = (v.startsWith('M') || v.startsWith('МУЖ')) ? 'Мужской' : 'Женский';
+  }
+
+  const mIssueDate = s.match(/(?:Дата выдачи|Date of issue)[^:\n]*:\s*`?([0-9]{2,4}[.\/-][0-9]{2}[.\/-][0-9]{2,4})`?/i);
+  if (mIssueDate) {
+    const rawI = mIssueDate[1].trim().replace(/\//g, '.').replace(/-/g, '.');
+    const parts = rawI.split('.');
+    if (parts.length === 3) {
+      if (parts[0].length === 4) freeRes.issue_date = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+      else freeRes.issue_date = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    }
+  }
+
+  const mIssuedBy = s.match(/(?:Орган, выдавший паспорт|Орган выдачи|Issued by)[^:\n]*:\s*(?:"|'|`)?([А-Яа-яЁё\s.A-Za-z]+?)(?:"|'|`|\n|$)/i);
+  if (mIssuedBy) freeRes.issued_by = mIssuedBy[1].trim().replace(/^[":']+|[":']+$/g, '');
+
+  const mrz1 = s.match(/P<BLR[A-Z0-9<]{10,40}/i);
+  const mrz2 = s.match(/([A-Z]{2}\d{7}\d?BLR[A-Z0-9<]{10,35})/i);
+  if (mrz1 && mrz2) {
+    freeRes.raw_mrz = `${mrz1[0]}\n${mrz2[0]}`;
+  }
+
+  return freeRes;
 }
 
-async function callVisionChatWithFallback(messages: any[], maxTokens = 1500, title = "ICE LOGIX Vision"): Promise<any> {
+async function callVisionChatWithFallback(messages: any[], maxTokens = 3500, title = "ICE LOGIX Vision"): Promise<any> {
   const models = [
-    VISION_MODEL,
-    "google/gemini-2.0-flash-exp:free",
-    "meta-llama/llama-3.2-11b-vision-instruct:free",
-    "nvidia/nemotron-3.5-super-vl:free",
+    Deno.env.get("OPENROUTER_VISION_MODEL"),
+    "dots-studio/dots-3-note-preview:free",
+    "thinkingmachines/inkling:free",
+    "thinkingmachines/inkling-small:free",
+    "google/gemini-2.5-flash",
+    "google/gemini-3.5-flash",
+    "openai/gpt-4o-mini",
+    "qwen/qwen-2.5-vl-72b-instruct",
   ];
 
+  // Remove duplicates and blanks
+  const uniqueModels = [...new Set(models.filter(Boolean))];
+
+  // Ensure system instruction is first if not already present
+  const preparedMessages = [...messages];
+  if (!preparedMessages.some(m => m.role === "system")) {
+    preparedMessages.unshift({
+      role: "system",
+      content: "You are an automated document recognition OCR engine. Output strictly valid JSON format. Do not write thinking process, explanations, markdown quotes or conversational text. Start immediately with '{'."
+    });
+  }
+
   let lastError: any = null;
-  for (const model of models) {
+  for (const model of uniqueModels) {
     try {
       const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
@@ -103,23 +189,32 @@ async function callVisionChatWithFallback(messages: any[], maxTokens = 1500, tit
         },
         body: JSON.stringify({
           model,
-          messages,
-          temperature: 0.05,
+          messages: preparedMessages,
+          temperature: 0.01,
           max_tokens: maxTokens,
+          reasoning: { effort: "none" },
         }),
       });
 
       if (res.ok) {
-        return await res.json();
+        const json = await res.json();
+        if (json?.error) {
+          console.warn(`OpenRouter returned body error for ${model}:`, json.error);
+          lastError = new Error(`OpenRouter (${model}): ${json.error?.message || JSON.stringify(json.error)}`);
+          continue;
+        }
+        const msgContent = json?.choices?.[0]?.message?.content || json?.choices?.[0]?.message?.reasoning;
+        if (msgContent) {
+          return json;
+        }
+        console.warn(`OpenRouter returned empty choices for ${model}:`, json);
+        lastError = new Error(`Empty content returned by ${model}`);
+        continue;
       }
 
       const errTxt = await res.text().catch(() => "");
       lastError = new Error(`OpenRouter HTTP ${res.status} (${model}): ${errTxt}`);
       console.warn(`Vision model ${model} failed (${res.status}): ${errTxt}. Retrying with next fallback...`);
-      if (res.status === 402 || res.status === 429 || res.status === 404 || res.status === 503 || res.status === 500) {
-        continue;
-      }
-      throw lastError;
     } catch (e) {
       lastError = e;
       console.warn(`Exception invoking ${model}:`, e);
@@ -152,6 +247,8 @@ serve(async (req) => {
     }
 
     const { action } = payload;
+
+
 
     if (action === "estimate_weight") {
       const { description, screenshotPath, image } = payload;
@@ -439,17 +536,25 @@ Return ONLY a JSON object:
             ],
           },
         ],
-        350,
+        3500,
         "ICE LOGIX Passport OCR"
       );
 
-      const rawOutput = data?.choices?.[0]?.message?.content || "";
-      const parsed = parseAssistantJson(rawOutput);
+      const choice = data?.choices?.[0]?.message;
+      const contentStr = (choice?.content || "").trim();
+      const reasoningStr = (choice?.reasoning || "").trim();
+      const combined = (contentStr ? contentStr + "\n" : "") + reasoningStr;
+
+      let parsed = parseAssistantJson(contentStr);
+      if (!parsed || (!parsed.id_number && !parsed.series_number && !parsed.last_name)) {
+        parsed = parseAssistantJson(combined);
+      }
 
       return new Response(
         JSON.stringify({
           ok: true,
           passport_data: parsed,
+          raw_output: combined,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -526,12 +631,19 @@ ${img1 ? "- Кадр 1: Должен быть разворотом страни�
             content: contentItems,
           },
         ],
-        1500,
+        4000,
         "ICE LOGIX Alipay MRZ Scanner"
       );
 
-      const rawOutput = data?.choices?.[0]?.message?.content || "";
-      const parsed = parseAssistantJson(rawOutput);
+      const choice = data?.choices?.[0]?.message;
+      const contentStr = (choice?.content || "").trim();
+      const reasoningStr = (choice?.reasoning || "").trim();
+      const combined = (contentStr ? contentStr + "\n" : "") + reasoningStr;
+
+      let parsed = parseAssistantJson(contentStr);
+      if (!parsed || (!parsed.id_number && !parsed.series_number && !parsed.raw_mrz && !parsed.last_name)) {
+        parsed = parseAssistantJson(combined);
+      }
 
       if (parsed?.ok === false) {
         return new Response(
@@ -539,6 +651,20 @@ ${img1 ? "- Кадр 1: Должен быть разворотом страни�
             ok: false,
             error_step: parsed.error_step || 2,
             error: parsed.error || "Не удалось различить реквизиты документа",
+            raw_output: combined,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const hasRequiredFields = parsed && (parsed.id_number || parsed.series_number || parsed.last_name || parsed.first_name || parsed.raw_mrz);
+      if (!hasRequiredFields) {
+        return new Response(
+          JSON.stringify({
+            ok: false,
+            error_step: 0,
+            error: "Не удалось различить реквизиты документа на фотографии. Пожалуйста, держите документ ровно и избегайте бликов.",
+            raw_output: combined,
           }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -548,7 +674,7 @@ ${img1 ? "- Кадр 1: Должен быть разворотом страни�
         JSON.stringify({
           ok: true,
           result: parsed,
-          raw_output: rawOutput,
+          raw_output: combined,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
