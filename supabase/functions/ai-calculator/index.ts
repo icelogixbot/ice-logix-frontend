@@ -4,6 +4,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY") || "";
+const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY") || "";
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || "";
 const VISION_MODEL = Deno.env.get("OPENROUTER_VISION_MODEL") || "google/gemini-2.0-flash-001";
 const TEXT_MODEL = "google/gemini-2.0-flash-001";
 const STORAGE_BUCKET = "product-screenshots";
@@ -638,6 +640,108 @@ async function callVisionChatWithFallback(messages: any[], maxTokens = 3500, tit
       role: "system",
       content: "You are an automated document recognition OCR engine. Output strictly valid JSON format. Do not write thinking process, explanations, markdown quotes or conversational text. Start immediately with '{'."
     });
+  }
+
+  // 1. Приоритетный бесплатный Groq Cloud API (14,400 запросов/день, ~300мс)
+  if (GROQ_API_KEY) {
+    const groqModels = ["llama-3.2-90b-vision-preview", "llama-3.2-11b-vision-preview"];
+    for (const gModel of groqModels) {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 15000);
+        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${GROQ_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: gModel,
+            messages: preparedMessages,
+            temperature: 0.01,
+            max_tokens: maxTokens,
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+        if (res.ok) {
+          const json = await res.json();
+          const content = json?.choices?.[0]?.message?.content;
+          if (content) {
+            console.log(`Success with Groq model: ${gModel}`);
+            return json;
+          }
+        } else {
+          console.warn(`Groq ${gModel} status ${res.status}:`, await res.text().catch(() => ""));
+        }
+      } catch (gErr) {
+        console.warn(`Groq error (${gModel}):`, gErr);
+      }
+    }
+  }
+
+  // 2. Приоритетный бесплатный Google Gemini API напрямую (1500 запросов/день)
+  if (GEMINI_API_KEY) {
+    try {
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+      const geminiParts: any[] = [];
+      for (const m of preparedMessages) {
+        if (typeof m.content === "string") {
+          geminiParts.push({ text: m.content });
+        } else if (Array.isArray(m.content)) {
+          for (const item of m.content) {
+            if (item.type === "text") {
+              geminiParts.push({ text: item.text });
+            } else if (item.type === "image_url" && item.image_url?.url) {
+              const url = item.image_url.url;
+              const match = url.match(/^data:([^;]+);base64,(.+)$/);
+              if (match) {
+                geminiParts.push({
+                  inline_data: {
+                    mime_type: match[1],
+                    data: match[2]
+                  }
+                });
+              }
+            }
+          }
+        }
+      }
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 20000);
+      const gRes = await fetch(geminiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: geminiParts }],
+          generationConfig: {
+            temperature: 0.01,
+            maxOutputTokens: maxTokens,
+            responseMimeType: "application/json"
+          }
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timer);
+
+      if (gRes.ok) {
+        const gJson = await gRes.json();
+        const text = gJson?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) {
+          console.log("Success with direct Gemini 2.0 Flash API!");
+          return {
+            choices: [{
+              message: { content: text }
+            }]
+          };
+        }
+      } else {
+        console.warn("Direct Gemini API error:", await gRes.text().catch(() => ""));
+      }
+    } catch (geminiErr) {
+      console.warn("Direct Gemini exception:", geminiErr);
+    }
   }
 
   const errorLog: string[] = [];
