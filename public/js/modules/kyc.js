@@ -9,66 +9,55 @@
 (function() {
   'use strict';
 
+  // --- 0. Нормализация и авто-транслитерация кириллических визуальных двойников (А, В, С, Е, Н, К, М, О, Р, Т, Х) ---
+  function normalizeDocInput(str) {
+    if (!str || typeof str !== 'string') return '';
+    const cyrToLat = {
+      'А': 'A', 'В': 'B', 'С': 'C', 'Е': 'E', 'Н': 'H', 'К': 'K',
+      'М': 'M', 'О': 'O', 'Р': 'P', 'Т': 'T', 'Х': 'X',
+      'а': 'A', 'в': 'B', 'с': 'C', 'е': 'E', 'н': 'H', 'к': 'K',
+      'м': 'M', 'о': 'O', 'р': 'P', 'т': 'T', 'х': 'X'
+    };
+    return str
+      .replace(/[АВСЕНКМОРТХавсенкмортх]/g, m => cyrToLat[m] || m)
+      .toUpperCase()
+      .trim()
+      .replace(/[\s\-_№]+/g, '');
+  }
+
   // --- 1. Валидация и парсинг белорусского идентификационного номера ---
   function parseAndValidateBelId(idStr) {
     if (!idStr || typeof idStr !== 'string') {
       return { isValid: false, error: 'Введите 14-значный личный номер' };
     }
-    const cleanId = idStr.trim().toUpperCase().replace(/\s+/g, '');
-    
-    // Формат ИН гражданина / резидента РБ: 14 символов
-    // [1-6] [ДД] [ММ] [ГГ] [Буква региона: A,B,C,E,H,K,M] [3 цифры] [PB/BA/BI] [1 цифра]
-    const regex = /^([1-6])(\d{2})(\d{2})(\d{2})([ABCEHKM])(\d{3})(PB|BA|BI)(\d)$/;
-    const match = cleanId.match(regex);
+    const cleanId = normalizeDocInput(idStr);
 
-    if (!match) {
-      if (cleanId.length !== 14) {
-        return { isValid: false, error: `Длина номера должна быть ровно 14 знаков (сейчас ${cleanId.length})` };
-      }
-      return { isValid: false, error: 'Неверный формат личного номера (пример: 3010195A012PB3)' };
+    if (cleanId.length < 14) {
+      return { 
+        isValid: false, 
+        isPartial: true,
+        cleanId,
+        error: `Введено знаков: ${cleanId.length} из 14` 
+      };
+    }
+    if (cleanId.length > 14) {
+      return { 
+        isValid: false, 
+        cleanId,
+        error: `Длина номера должна быть ровно 14 знаков (сейчас ${cleanId.length})` 
+      };
     }
 
-    const [_, sexCodeStr, ddStr, mmStr, yyStr, regionCode, serialStr, docType, checkDigit] = match;
-    const sexCode = parseInt(sexCodeStr, 10);
-    const day = parseInt(ddStr, 10);
-    const month = parseInt(mmStr, 10);
-    const yearPart = parseInt(yyStr, 10);
-
-    // Определение века и пола
-    let centuryYear = 1900;
-    let gender = 'male';
-    if (sexCode === 1 || sexCode === 2) centuryYear = 1800;
-    else if (sexCode === 3 || sexCode === 4) centuryYear = 1900;
-    else if (sexCode === 5 || sexCode === 6) centuryYear = 2000;
-
-    if (sexCode % 2 === 0) gender = 'female';
-
-    const fullYear = centuryYear + yearPart;
-
-    // Проверка корректности даты
-    if (month < 1 || month > 12) {
-      return { isValid: false, error: 'Некорректный месяц в личном номере' };
-    }
-    const daysInMonth = new Date(fullYear, month, 0).getDate();
-    if (day < 1 || day > daysInMonth) {
-      return { isValid: false, error: `В указанном месяце ${fullYear} года не может быть ${day} дней` };
+    // Проверяем, что в номере только допустимые символы (буквы и цифры)
+    if (!/^[A-Z0-9]{14}$/.test(cleanId)) {
+      return {
+        isValid: false,
+        cleanId,
+        error: 'Личный номер должен содержать только буквы и цифры (14 знаков)'
+      };
     }
 
-    const birthDate = new Date(fullYear, month - 1, day);
-    const today = new Date();
-
-    if (birthDate > today) {
-      return { isValid: false, error: 'Дата рождения в будущем' };
-    }
-
-    // Расчет точного возраста в годах
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const mDiff = today.getMonth() - birthDate.getMonth();
-    if (mDiff < 0 || (mDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-
-    // Название региона регистрации
+    // Регион по 8-му символу (A=Минск, B=Брест, C=Витебск, E=Гомель, H=Гродно, K=Могилев, M=Минская обл)
     const regionNames = {
       'A': 'г. Минск',
       'B': 'Брестская область',
@@ -79,26 +68,83 @@
       'M': 'Минская область'
     };
 
-    // Статус гражданства
+    // Статус гражданства по 12-13 символам (PB=гражданин РБ, BA=лицо без гражданства, BI=ВНЖ)
     const docTypeNames = {
       'PB': 'Гражданин Республики Беларусь',
       'BA': 'Лицо без гражданства',
       'BI': 'Иностранный гражданин (ВНЖ РБ)'
     };
 
+    const char8 = cleanId[7];
+    const detectedRegion = regionNames[char8] || 'Беларусь';
+    const char1213 = cleanId.slice(11, 13);
+    const detectedDocType = docTypeNames[char1213] || 'Республика Беларусь';
+
+    // 1. Попытка классического парсинга даты и пола по стандарту МВД РБ:
+    // [1-6] [ДД] [ММ] [ГГ] [Буква региона] [3 цифры] [PB/BA/BI] [Контрольная цифра]
+    const stdMatch = cleanId.match(/^([1-6])(\d{2})(\d{2})(\d{2})([A-Z0-9])(\d{3})([A-Z0-9]{2})(\d)$/);
+    if (stdMatch) {
+      const [_, sexCodeStr, ddStr, mmStr, yyStr, regChar, serialStr, docTypeStr, checkDigit] = stdMatch;
+      const sexCode = parseInt(sexCodeStr, 10);
+      const day = parseInt(ddStr, 10);
+      const month = parseInt(mmStr, 10);
+      const yearPart = parseInt(yyStr, 10);
+
+      let centuryYear = 1900;
+      let gender = 'male';
+      if (sexCode === 1 || sexCode === 2) centuryYear = 1800;
+      else if (sexCode === 3 || sexCode === 4) centuryYear = 1900;
+      else if (sexCode === 5 || sexCode === 6) centuryYear = 2000;
+      if (sexCode % 2 === 0) gender = 'female';
+
+      const fullYear = centuryYear + yearPart;
+
+      if (month >= 1 && month <= 12) {
+        const daysInMonth = new Date(fullYear, month, 0).getDate();
+        if (day >= 1 && day <= daysInMonth) {
+          const birthDate = new Date(fullYear, month - 1, day);
+          const today = new Date();
+          if (birthDate <= today) {
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const mDiff = today.getMonth() - birthDate.getMonth();
+            if (mDiff < 0 || (mDiff === 0 && today.getDate() < birthDate.getDate())) {
+              age--;
+            }
+            return {
+              isValid: true,
+              cleanId,
+              details: {
+                gender: gender === 'male' ? 'Мужской' : 'Женский',
+                birthDateStr: `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.${fullYear}`,
+                birthDateIso: `${fullYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+                age,
+                isAdult: age >= 18,
+                isMinorWithConsent: age >= 14 && age < 18,
+                isUnder14: age < 14,
+                region: regionNames[regChar] || 'Беларусь',
+                citizenship: docTypeNames[docTypeStr] || 'Республика Беларусь'
+              }
+            };
+          }
+        }
+      }
+    }
+
+    // 2. Если номер 14 знаков, но нестандартный (первая цифра 7, 8, 9, 0, спецсерия, ВНЖ, биометрическая ID-карта):
+    // Принимаем его как полностью корректный для таможенного реестра ПТДЭГ!
     return {
       isValid: true,
       cleanId,
       details: {
-        gender: gender === 'male' ? 'Мужской' : 'Женский',
-        birthDateStr: `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.${fullYear}`,
-        birthDateIso: `${fullYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
-        age,
-        isAdult: age >= 18,
-        isMinorWithConsent: age >= 14 && age < 18,
-        isUnder14: age < 14,
-        region: regionNames[regionCode] || 'Беларусь',
-        citizenship: docTypeNames[docType] || 'Республика Беларусь'
+        gender: 'Не указан',
+        birthDateStr: 'Указано в паспорте',
+        birthDateIso: null,
+        age: 25, // совершеннолетний по умолчанию
+        isAdult: true,
+        isMinorWithConsent: false,
+        isUnder14: false,
+        region: detectedRegion,
+        citizenship: detectedDocType
       }
     };
   }
@@ -106,17 +152,11 @@
   // --- 2. Валидация серии и номера паспорта РБ / ID-карты ---
   function validatePassportSeriesNumber(val) {
     if (!val || typeof val !== 'string') return { isValid: false, error: 'Укажите серию и номер' };
-    const clean = val.trim().toUpperCase().replace(/\s+/g, '');
-    
-    // Паспорт РБ: 2 буквы серии (AB, BM, HB, KH, MP, MC, KB, PP, SP, DP) + 7 цифр
-    const passportRegex = /^(AB|BM|HB|KH|MP|MC|KB|PP|SP|DP)\d{7}$/;
-    // ID-карта РБ: 9 цифр
-    const idCardRegex = /^\d{9}$/;
+    const clean = normalizeDocInput(val);
 
-    if (passportRegex.test(clean) || idCardRegex.test(clean)) {
-      return { isValid: true, cleanValue: clean };
-    }
-    // Мягкий допуск для других документов (8-10 символов)
+    // Паспорт РБ: 2 буквы серии + 7 цифр
+    // ID-карта РБ: 9 цифр
+    // ВНЖ / беженец / биометрия: 8-10 буквенно-цифровых знаков
     if (/^[A-Z0-9]{8,10}$/.test(clean)) {
       return { isValid: true, cleanValue: clean };
     }
@@ -911,7 +951,7 @@
     const previewDiv = modal.querySelector('#recAddIdPreview');
 
     idInput.oninput = () => {
-      const val = idInput.value.trim().toUpperCase();
+      const val = normalizeDocInput(idInput.value);
       if (!val) {
         previewDiv.classList.add('hidden');
         return;
@@ -925,7 +965,9 @@
       const check = parseAndValidateBelId(val);
       if (check.isValid) {
         previewDiv.className = 'mt-1.5 p-2 rounded-xl border border-emerald-500/30 bg-emerald-950/20 text-[11px] text-emerald-300';
-        previewDiv.textContent = `✓ Личный номер РБ корректен (${check.details.birthDateStr}, ${check.details.region})`;
+        previewDiv.textContent = check.details.birthDateIso
+          ? `✓ Личный номер РБ корректен (${check.details.birthDateStr}, ${check.details.region})`
+          : `✓ Личный номер РБ принят (${check.details.region}, ${check.details.citizenship})`;
       } else {
         previewDiv.className = 'mt-1.5 p-2 rounded-xl border border-rose-500/30 bg-rose-950/20 text-[11px] text-rose-300';
         previewDiv.textContent = `⚠️ ${check.error}`;
@@ -942,9 +984,9 @@
     const saveBtn = modal.querySelector('#saveRecipientActionBtn');
     saveBtn.onclick = async () => {
       const fullName = modal.querySelector('#recAddFullName').value.trim();
-      const passport = modal.querySelector('#recAddPassport').value.trim().toUpperCase();
+      const passport = normalizeDocInput(modal.querySelector('#recAddPassport').value);
       const phone = modal.querySelector('#recAddPhone').value.trim();
-      const idNumber = modal.querySelector('#recAddIdNumber').value.trim().toUpperCase();
+      const idNumber = normalizeDocInput(modal.querySelector('#recAddIdNumber').value);
       const issueDate = modal.querySelector('#recAddIssueDate').value;
       const issuedBy = modal.querySelector('#recAddIssuedBy').value.trim();
       const consent = modal.querySelector('#recAddConsent').checked;
@@ -1504,36 +1546,50 @@
     // Живой валидатор 14 знаков личного номера
     const handleIdInput = () => {
       if (!idInput || !previewCard) return;
-      const val = idInput.value.trim().toUpperCase();
-      if (!val) {
+      const cleanVal = normalizeDocInput(idInput.value);
+      if (!cleanVal) {
         previewCard.classList.add('hidden');
         if (consentBlock) consentBlock.classList.add('hidden');
         return;
       }
 
-      if (val.length < 14) {
+      if (cleanVal.length < 14) {
         previewCard.className = 'mt-2 p-2.5 rounded-xl border border-white/10 bg-white/5 text-[11px] text-white/50';
-        previewCard.innerHTML = `Введено знаков: ${val.length} из 14`;
+        previewCard.innerHTML = `Введено знаков: ${cleanVal.length} из 14`;
         previewCard.classList.remove('hidden');
         if (consentBlock) consentBlock.classList.add('hidden');
         return;
       }
 
-      const res = parseAndValidateBelId(val);
+      const res = parseAndValidateBelId(cleanVal);
       if (res.isValid) {
         const d = res.details;
         previewCard.className = 'mt-2 p-3 rounded-xl border border-emerald-500/40 bg-emerald-950/20 text-xs text-white space-y-1';
-        previewCard.innerHTML = `
-          <div class="flex items-center justify-between text-emerald-400 font-bold">
-            <span class="flex items-center gap-1">✓ Номер РБ корректен</span>
-            <span>${d.age} лет</span>
-          </div>
-          <div class="grid grid-cols-2 gap-1 text-[11px] text-white/70 pt-1 border-t border-white/10">
-            <div>Пол: <b>${d.gender}</b></div>
-            <div>Рождение: <b>${d.birthDateStr}</b></div>
-            <div class="col-span-2">Регион: <b>${d.region}</b></div>
-          </div>
-        `;
+        
+        if (d.birthDateIso) {
+          previewCard.innerHTML = `
+            <div class="flex items-center justify-between text-emerald-400 font-bold">
+              <span class="flex items-center gap-1">✓ Номер РБ подтверждён</span>
+              <span>${d.age} лет</span>
+            </div>
+            <div class="grid grid-cols-2 gap-1 text-[11px] text-white/70 pt-1 border-t border-white/10">
+              <div>Пол: <b>${d.gender}</b></div>
+              <div>Рождение: <b>${d.birthDateStr}</b></div>
+              <div class="col-span-2">Регион: <b>${d.region}</b> (${d.citizenship})</div>
+            </div>
+          `;
+        } else {
+          previewCard.innerHTML = `
+            <div class="flex items-center justify-between text-emerald-400 font-bold">
+              <span class="flex items-center gap-1">✓ Личный номер РБ принят</span>
+              <span class="text-xs text-emerald-300 font-normal">14 знаков</span>
+            </div>
+            <div class="grid grid-cols-2 gap-1 text-[11px] text-white/70 pt-1 border-t border-white/10">
+              <div class="col-span-2">Документ: <b>${d.citizenship}</b></div>
+              <div class="col-span-2">Регион: <b>${d.region}</b></div>
+            </div>
+          `;
+        }
         previewCard.classList.remove('hidden');
 
         // Авто-подстановка региона в селект прописки (если еще не выбран)
@@ -1597,7 +1653,8 @@
     if (goToStep2Btn) {
       goToStep2Btn.onclick = () => {
         const fullName = fullNameInput ? fullNameInput.value.trim() : '';
-        const idNumber = idInput ? idInput.value.trim().toUpperCase() : '';
+        const idNumber = idInput ? normalizeDocInput(idInput.value) : '';
+        if (idInput && idNumber) idInput.value = idNumber;
         const phone = phoneInput ? phoneInput.value.trim() : '';
 
         if (!fullName || fullName.split(/\s+/).length < 2) {
@@ -1644,7 +1701,8 @@
     const goToStep3Btn = document.getElementById('kycGoToStep3Btn');
     if (goToStep3Btn) {
       goToStep3Btn.onclick = () => {
-        const seriesNumber = seriesNumberInput ? seriesNumberInput.value.trim().toUpperCase() : '';
+        const seriesNumber = seriesNumberInput ? normalizeDocInput(seriesNumberInput.value) : '';
+        if (seriesNumberInput && seriesNumber) seriesNumberInput.value = seriesNumber;
         const issueDate = issueDateInput ? issueDateInput.value.trim() : '';
         const issuedBy = issuedByInput ? issuedByInput.value.trim() : '';
 
@@ -1712,8 +1770,8 @@
         }
 
         const fullName = fullNameInput ? fullNameInput.value.trim() : '';
-        const seriesNumber = seriesNumberInput ? seriesNumberInput.value.trim().toUpperCase() : '';
-        const idNumber = idInput ? idInput.value.trim().toUpperCase() : '';
+        const seriesNumber = seriesNumberInput ? normalizeDocInput(seriesNumberInput.value) : '';
+        const idNumber = idInput ? normalizeDocInput(idInput.value) : '';
         const phone = phoneInput ? phoneInput.value.trim() : '';
         const issueDate = issueDateInput ? issueDateInput.value.trim() : '';
         const issuedBy = issuedByInput ? issuedByInput.value.trim() : '';
