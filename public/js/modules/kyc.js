@@ -1820,9 +1820,9 @@
               const cityInput = document.getElementById('kycAddressCity');
               const streetInput = document.getElementById('kycAddressStreet');
               const houseInput = document.getElementById('kycAddressHouse');
-              const buildingInput = document.getElementById('kycAddressBuilding');
-              const aptInput = document.getElementById('kycAddressApartment');
-              const postcodeInput = document.getElementById('kycAddressPostcode');
+              const buildingInput = document.getElementById('kycAddressCorpus') || document.getElementById('kycAddressBuilding');
+              const aptInput = document.getElementById('kycAddressRoom') || document.getElementById('kycAddressApartment');
+              const postcodeInput = document.getElementById('kycAddressZip') || document.getElementById('kycAddressPostcode');
 
               let hasAddress = false;
               if (res.address_city && cityInput) {
@@ -1845,14 +1845,14 @@
               if (res.address_house && houseInput) {
                 houseInput.value = res.address_house;
               }
-              if (res.address_building && buildingInput) {
-                buildingInput.value = res.address_building;
+              if (buildingInput) {
+                buildingInput.value = res.address_building || '-';
               }
-              if (res.address_apartment && aptInput) {
-                aptInput.value = res.address_apartment;
+              if (aptInput) {
+                aptInput.value = res.address_apartment || '';
               }
-              if (res.address_postcode && postcodeInput) {
-                postcodeInput.value = res.address_postcode;
+              if (postcodeInput) {
+                postcodeInput.value = res.address_postcode || '';
               }
 
               // Статусная плашка
@@ -1906,15 +1906,44 @@
       };
     });
 
+    function autoDetectRegionForCity(c) {
+      if (!regionSelect || !c) return;
+      const lower = c.toLowerCase().trim();
+      let target = '';
+      if (lower.includes('минский р') || lower.includes('минский район')) target = 'Минская область';
+      else if (/^(?:г\.?\s*)?минск(?:\s*|$)/i.test(lower) || /^(?:г\.?\s*)?мінск(?:\s*|$)/i.test(lower)) target = 'г. Минск';
+      else if (lower.includes('брест') || lower.includes('баранови') || lower.includes('пинск') || lower.includes('кобрин')) target = 'Брестская область';
+      else if (lower.includes('гродн') || lower.includes('лид') || lower.includes('слоним') || lower.includes('волковы')) target = 'Гродненская область';
+      else if (lower.includes('гомел') || lower.includes('мозыр') || lower.includes('жлобин') || lower.includes('речиц')) target = 'Гомельская область';
+      else if (lower.includes('витеб') || lower.includes('полоцк') || lower.includes('орша')) target = 'Витебская область';
+      else if (lower.includes('могил') || lower.includes('бобруйск') || lower.includes('горки') || lower.includes('осипови')) target = 'Могилевская область';
+      else if (lower.includes('борис') || lower.includes('солигор') || lower.includes('молодеч') || lower.includes('жодин') || lower.includes('слуцк') || lower.includes('дзержин') || lower.includes('колодищ') || lower.includes('тарасов') || lower.includes('боровлян')) target = 'Минская область';
+
+      if (target) {
+        for (let i = 0; i < regionSelect.options.length; i++) {
+          if (regionSelect.options[i].value === target) {
+            regionSelect.selectedIndex = i;
+            break;
+          }
+        }
+      }
+    }
+
     // Быстрые чипсы городов
     document.querySelectorAll('.kyc-city-chip').forEach(chip => {
       chip.onclick = () => {
         if (cityInput) {
           cityInput.value = chip.textContent.trim();
+          autoDetectRegionForCity(cityInput.value);
           if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
         }
       };
     });
+
+    if (cityInput) {
+      cityInput.addEventListener('change', () => autoDetectRegionForCity(cityInput.value));
+      cityInput.addEventListener('blur', () => autoDetectRegionForCity(cityInput.value));
+    }
 
     // Навигация Шаг 1 -> Шаг 2
     const goToStep2Btn = document.getElementById('kycGoToStep2Btn');

@@ -648,11 +648,11 @@
           if (skipStep3Btn) skipStep3Btn.classList.add('hidden');
         } else {
           stepBadge.textContent = 'Шаг 3 из 3: Штамп прописки (стр. 25–28)';
-          subText.textContent = 'Наведите на синий штамп «ЗАРЭГІСТРАВАНЫ» и рукописный адрес ручкой (или пропустите).';
+          subText.textContent = 'Наведите на синий штамп «ЗАРЭГІСТРАВАНЫ» и рукописный адрес ручкой (город, агрогородок, деревня).';
           topZone.className = 'kyc-target-box-name transition-all border-cyan-400/60 bg-cyan-500/15 text-white font-bold';
           bottomZone.className = 'kyc-target-box-mrz transition-all border-cyan-400/40 bg-cyan-500/10 text-cyan-100 font-medium';
           topText.textContent = 'Синий штамп «ЗАРЭГІСТРАВАНЫ / ЗАРЕГИСТРИРОВАН»';
-          bottomText.textContent = 'Рукописный адрес (улица, дом, квартира)';
+          bottomText.textContent = 'Адрес: город/агрогородок/деревня, улица/проспект, дом, кв.';
           if (skipStep3Btn) skipStep3Btn.classList.remove('hidden');
         }
       } else {
