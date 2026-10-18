@@ -312,6 +312,7 @@
     fullName,
     seriesNumber,
     idNumber,
+    birthDate,
     phone,
     issueDate,
     issuedBy,
@@ -322,18 +323,44 @@
     const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
     if (!curUserId) throw new Error('Пользователь не авторизован');
 
+    const cleanId = normalizeDocInput(idNumber);
+    const cleanSeries = normalizeDocInput(seriesNumber);
+
     // Этап 1: Валидация формата
-    const stage1 = await verifyCustomsDocStage1({ seriesNumber, idNumber });
+    const stage1 = await verifyCustomsDocStage1({ seriesNumber: cleanSeries, idNumber: cleanId });
     if (!stage1.success) {
       throw new Error(stage1.error);
     }
 
     const meta = stage1.extracted_meta;
+    let finalBirthDateIso = meta.birthDateIso;
+    let finalBirthDateStr = meta.birthDateStr;
+    let finalAge = meta.age;
+    let finalIsAdult = meta.isAdult;
+    let finalIsMinor = meta.isMinorWithConsent;
+    let finalIsUnder14 = meta.isUnder14;
 
-    if (meta.isUnder14) {
+    if (birthDate) {
+      const bDate = new Date(birthDate);
+      if (!isNaN(bDate.getTime())) {
+        finalBirthDateIso = birthDate;
+        const [by, bm, bd] = birthDate.split('-');
+        finalBirthDateStr = `${bd}.${bm}.${by}`;
+        const today = new Date();
+        let calcAge = today.getFullYear() - bDate.getFullYear();
+        const mDiff = today.getMonth() - bDate.getMonth();
+        if (mDiff < 0 || (mDiff === 0 && today.getDate() < bDate.getDate())) calcAge--;
+        finalAge = calcAge;
+        finalIsAdult = calcAge >= 18;
+        finalIsMinor = calcAge >= 14 && calcAge < 18;
+        finalIsUnder14 = calcAge < 14;
+      }
+    }
+
+    if (finalIsUnder14) {
       throw new Error('Оформление на граждан младше 14 лет запрещено таможенными правилами РБ. Укажите данные родителя.');
     }
-    if (meta.isMinorWithConsent && !parentalConsent) {
+    if (finalIsMinor && !parentalConsent) {
       throw new Error('Для пользователей от 14 до 17 лет требуется согласие родителей/законных представителей.');
     }
 
@@ -357,13 +384,13 @@
     const { data: kycRow, error: kycErr } = await supabaseClient.from('kyc_verifications').insert({
       user_id: curUserId,
       status: 'pending',
-      id_number: idNumber.toUpperCase().trim(),
-      series_number: seriesNumber.toUpperCase().trim(),
+      id_number: cleanId,
+      series_number: cleanSeries,
       full_name: fullName.trim(),
-      birth_date: meta.birthDateIso,
-      age: meta.age,
+      birth_date: finalBirthDateIso,
+      age: finalAge,
       gender: meta.gender,
-      is_adult: meta.isAdult,
+      is_adult: finalIsAdult,
       parental_consent: Boolean(parentalConsent),
       photo_url: photoUrl,
       validation_stage1_result: {
@@ -388,17 +415,19 @@
       kyc_doc_photo_url: photoUrl,
       kyc_data: {
         full_name: fullName.trim(),
-        series_number: seriesNumber.toUpperCase().trim(),
-        id_number: idNumber.toUpperCase().trim(),
+        series_number: cleanSeries,
+        id_number: cleanId,
         phone: phone || '',
         issue_date: issueDate || '',
         issued_by: issuedBy || '',
         address: address || null,
         address_full: addressFull || '',
-        birth_date: meta.birthDateStr,
-        age: meta.age,
+        birth_date: finalBirthDateStr,
+        birth_date_iso: finalBirthDateIso,
+        age: finalAge,
         gender: meta.gender,
-        is_adult: meta.isAdult,
+        is_adult: finalIsAdult,
+        is_minor: finalIsMinor,
         region: meta.region,
         parental_consent: Boolean(parentalConsent)
       }
@@ -1170,6 +1199,25 @@
               >
               <!-- Карточка предпросмотра данных из 14 знаков -->
               <div id="kycIdPreviewCard" class="mt-2 hidden p-3 rounded-xl border transition-all text-xs"></div>
+
+              <!-- Блок ручного указания даты рождения (показывается, если дата не определена автоматически из ИН) -->
+              <div id="kycManualBirthDateBlock" class="hidden mt-2.5 p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <label class="block text-xs font-bold text-white/90">
+                    Дата рождения получателя <span class="text-rose-400">*</span>
+                  </label>
+                  <span class="text-[10px] text-cyan-400">Таможенное требование</span>
+                </div>
+                <input
+                  type="date"
+                  id="kycBirthDate"
+                  class="w-full p-3 rounded-xl bg-slate-900 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
+                  value="${d.birth_date_iso || ''}"
+                >
+                <p class="text-[10px] text-white/50 leading-relaxed">
+                  Укажите вашу дату рождения для корректного расчета возраста и прохождения таможенного контроля.
+                </p>
+              </div>
             </div>
 
             <!-- Телефон получателя -->
@@ -1564,9 +1612,12 @@
       const res = parseAndValidateBelId(cleanVal);
       if (res.isValid) {
         const d = res.details;
-        previewCard.className = 'mt-2 p-3 rounded-xl border border-emerald-500/40 bg-emerald-950/20 text-xs text-white space-y-1';
-        
+        const manualBirthBlock = document.getElementById('kycManualBirthDateBlock');
+        const birthInput = document.getElementById('kycBirthDate');
+
         if (d.birthDateIso) {
+          if (manualBirthBlock) manualBirthBlock.classList.add('hidden');
+          previewCard.className = 'mt-2 p-3 rounded-xl border border-emerald-500/40 bg-emerald-950/20 text-xs text-white space-y-1';
           previewCard.innerHTML = `
             <div class="flex items-center justify-between text-emerald-400 font-bold">
               <span class="flex items-center gap-1">✓ Номер РБ подтверждён</span>
@@ -1578,27 +1629,65 @@
               <div class="col-span-2">Документ: <b>${d.citizenship}</b></div>
             </div>
           `;
+          if (consentBlock) {
+            if (d.isMinorWithConsent) consentBlock.classList.remove('hidden');
+            else consentBlock.classList.add('hidden');
+          }
         } else {
-          previewCard.innerHTML = `
-            <div class="flex items-center justify-between text-emerald-400 font-bold">
-              <span class="flex items-center gap-1">✓ Личный номер РБ принят</span>
-              <span class="text-xs text-emerald-300 font-normal">14 знаков</span>
-            </div>
-            <div class="grid grid-cols-2 gap-1 text-[11px] text-white/70 pt-1 border-t border-white/10">
-              <div class="col-span-2">Документ: <b>${d.citizenship}</b></div>
-              <div class="col-span-2 text-white/60">Для таможенного реестра ПТДЭГ</div>
-            </div>
-          `;
-        }
-        previewCard.classList.remove('hidden');
+          // Дата рождения не вычисляется из 14 знаков (серия 7 или спецсерия)
+          if (manualBirthBlock) manualBirthBlock.classList.remove('hidden');
 
-        if (consentBlock) {
-          if (d.isMinorWithConsent) {
-            consentBlock.classList.remove('hidden');
-          } else {
-            consentBlock.classList.add('hidden');
+          const updateManualAge = () => {
+            const bVal = birthInput ? birthInput.value : '';
+            if (bVal) {
+              const bDate = new Date(bVal);
+              const today = new Date();
+              let calcAge = today.getFullYear() - bDate.getFullYear();
+              const mDiff = today.getMonth() - bDate.getMonth();
+              if (mDiff < 0 || (mDiff === 0 && today.getDate() < bDate.getDate())) calcAge--;
+
+              const isMinor = calcAge >= 14 && calcAge < 18;
+              const isUnder14 = calcAge < 14;
+
+              previewCard.className = 'mt-2 p-3 rounded-xl border border-emerald-500/40 bg-emerald-950/20 text-xs text-white space-y-1';
+              previewCard.innerHTML = `
+                <div class="flex items-center justify-between text-emerald-400 font-bold">
+                  <span class="flex items-center gap-1">✓ Личный номер РБ принят</span>
+                  <span>${calcAge} лет</span>
+                </div>
+                <div class="grid grid-cols-2 gap-1 text-[11px] text-white/70 pt-1 border-t border-white/10">
+                  <div class="col-span-2">Документ: <b>${d.citizenship}</b></div>
+                  <div class="col-span-2 text-white/60">Возраст: <b>${calcAge} лет</b> ${isMinor ? '(несовершеннолетний)' : (isUnder14 ? '(до 14 лет)' : '(совершеннолетний)')}</div>
+                </div>
+              `;
+
+              if (consentBlock) {
+                if (isMinor) consentBlock.classList.remove('hidden');
+                else consentBlock.classList.add('hidden');
+              }
+            } else {
+              previewCard.className = 'mt-2 p-3 rounded-xl border border-emerald-500/40 bg-emerald-950/20 text-xs text-white space-y-1';
+              previewCard.innerHTML = `
+                <div class="flex items-center justify-between text-emerald-400 font-bold">
+                  <span class="flex items-center gap-1">✓ Личный номер РБ принят</span>
+                  <span class="text-xs text-emerald-300 font-normal">14 знаков</span>
+                </div>
+                <div class="grid grid-cols-2 gap-1 text-[11px] text-white/70 pt-1 border-t border-white/10">
+                  <div class="col-span-2">Документ: <b>${d.citizenship}</b></div>
+                  <div class="col-span-2 text-cyan-300">Укажите дату рождения ниже ↓</div>
+                </div>
+              `;
+              if (consentBlock) consentBlock.classList.add('hidden');
+            }
+          };
+
+          if (birthInput) {
+            birthInput.onchange = updateManualAge;
+            birthInput.oninput = updateManualAge;
+            updateManualAge();
           }
         }
+        previewCard.classList.remove('hidden');
       } else {
         previewCard.className = 'mt-2 p-3 rounded-xl border border-rose-500/40 bg-rose-950/20 text-xs text-rose-300';
         previewCard.innerHTML = `⚠️ ${res.error}`;
@@ -1646,6 +1735,8 @@
         const idNumber = idInput ? normalizeDocInput(idInput.value) : '';
         if (idInput && idNumber) idInput.value = idNumber;
         const phone = phoneInput ? phoneInput.value.trim() : '';
+        const birthInput = document.getElementById('kycBirthDate');
+        const manualBirth = birthInput ? birthInput.value : '';
 
         if (!fullName || fullName.split(/\s+/).length < 2) {
           alert('Пожалуйста, укажите ФИО полностью (Фамилию и Имя).');
@@ -1660,12 +1751,32 @@
           return;
         }
 
-        if (idCheck.details.isUnder14) {
+        let userAge = idCheck.details.age;
+        let isMinor = idCheck.details.isMinorWithConsent;
+        let isUnder14 = idCheck.details.isUnder14;
+
+        if (!idCheck.details.birthDateIso) {
+          if (!manualBirth) {
+            alert('Пожалуйста, укажите дату вашего рождения.');
+            if (birthInput) birthInput.focus();
+            return;
+          }
+          const bDate = new Date(manualBirth);
+          const today = new Date();
+          let calcAge = today.getFullYear() - bDate.getFullYear();
+          const mDiff = today.getMonth() - bDate.getMonth();
+          if (mDiff < 0 || (mDiff === 0 && today.getDate() < bDate.getDate())) calcAge--;
+          userAge = calcAge;
+          isMinor = calcAge >= 14 && calcAge < 18;
+          isUnder14 = calcAge < 14;
+        }
+
+        if (isUnder14) {
           alert('Оформление на граждан младше 14 лет запрещено таможенными правилами РБ. Укажите данные родителя.');
           return;
         }
 
-        if (idCheck.details.isMinorWithConsent && (!parentalConsent || !parentalConsent.checked)) {
+        if (isMinor && (!parentalConsent || !parentalConsent.checked)) {
           alert('Для лиц от 14 до 17 лет требуется подтвердить согласие родителей (отметьте галочку).');
           return;
         }
@@ -1763,6 +1874,8 @@
         const seriesNumber = seriesNumberInput ? normalizeDocInput(seriesNumberInput.value) : '';
         const idNumber = idInput ? normalizeDocInput(idInput.value) : '';
         const phone = phoneInput ? phoneInput.value.trim() : '';
+        const birthInput = document.getElementById('kycBirthDate');
+        const manualBirth = birthInput ? birthInput.value : '';
         const issueDate = issueDateInput ? issueDateInput.value.trim() : '';
         const issuedBy = issuedByInput ? issuedByInput.value.trim() : '';
         const consent = parentalConsent ? parentalConsent.checked : false;
@@ -1778,6 +1891,7 @@
             fullName,
             seriesNumber,
             idNumber,
+            birthDate: manualBirth || null,
             phone,
             issueDate,
             issuedBy,
