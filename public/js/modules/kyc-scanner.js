@@ -178,9 +178,10 @@
     stopCameraStream();
 
     let mode = 'passport'; // 'passport' | 'idcard'
-    let currentStep = 1; // 1 | 2
+    let currentStep = 1; // 1 | 2 | 3
     let frame1DataUrl = null;
     let frame2DataUrl = null;
+    let frame3DataUrl = null;
 
     // Создаем контейнер сканера
     const existing = document.getElementById('kycScannerModal');
@@ -256,13 +257,18 @@
               <div class="kyc-thumb-badge">✓</div>
             </div>
             <div id="kycStepBadge" class="px-4 py-1.5 rounded-full bg-cyan-950/80 backdrop-blur-md border border-cyan-400/50 text-cyan-300 text-xs font-bold text-center kyc-scanner-badge-active">
-              Шаг 1 из 2: Разворот стр. 31 (Русские ФИО)
+              Шаг 1 из 3: Разворот стр. 31 (Русские ФИО)
             </div>
           </div>
 
           <p id="kycScannerSubText" class="text-[11px] text-white/70 text-center max-w-xs leading-tight">
-            Держите документ ровно: камера автоматически распознает стабильность и сделает снимок.
+            Держите верхнюю страницу с ФИО в рамке — камера зафиксирует снимок автоматически.
           </p>
+
+          <!-- Кнопка пропуска шага 3 (прописка) -->
+          <button type="button" id="kycSkipStep3Btn" class="hidden text-xs text-cyan-300 hover:text-cyan-200 underline py-1 transition cursor-pointer">
+            Пропустить штамп прописки ➔
+          </button>
 
           <!-- Кнопка затвора камеры (ручной автоспуск) -->
           <button type="button" id="kycShutterBtn" class="kyc-shutter-btn active:scale-90 transition cursor-pointer" aria-label="Сделать снимок">
@@ -279,7 +285,7 @@
         <div class="space-y-1">
           <h3 class="text-base font-bold text-white">Сверяем контрольные суммы ICAO 9303...</h3>
           <p class="text-xs text-cyan-300/80 max-w-xs leading-relaxed">
-            Нейросеть декодирует машиночитаемую строку MRZ и сопоставляет орган МВД. Секунду...
+            Нейросеть декодирует машиночитаемую строку MRZ, орган МВД и штамп прописки. Секунду...
           </p>
         </div>
       </div>
@@ -297,6 +303,7 @@
     const progressBar = document.getElementById('kycAutoProgressBar');
     const stepBadge = document.getElementById('kycStepBadge');
     const subText = document.getElementById('kycScannerSubText');
+    const skipStep3Btn = document.getElementById('kycSkipStep3Btn');
     const topZone = document.getElementById('kycTargetTopZone');
     const bottomZone = document.getElementById('kycTargetBottomZone');
     const topText = document.getElementById('kycTargetTopText');
@@ -342,7 +349,7 @@
      * Прецизионный детектор машиночитаемой зоны MRZ (ICAO 9303)
      * Сканирует нижние 26% видоискателя на наличие характерной регулярной частоты символов шрифта OCR-B
      * с символами-разделителями '<<<'.
-     * На развороте стр. 31, обычном тексте, темных ковриках или столе такой структуры нет.
+     * На развороте стр. 31, штампе прописки, ковриках или столе такой структуры нет.
      */
     function detectMrzPattern(data, width, height) {
       const startY = Math.floor(height * 0.70);
@@ -451,7 +458,7 @@
         const avgLuma = totalLuma / 12288;
         const contrastRange = maxLuma - minLuma;
 
-        // Вариативность строк текста (текст разворота паспорта имеет характерные перепады между строками)
+        // Вариативность строк текста (штамп/текст имеет характерные перепады)
         let textLineVariance = 0;
         for (let y = 1; y < 96; y++) {
           textLineVariance += Math.abs(rowLumas[y] - rowLumas[y - 1]);
@@ -477,9 +484,8 @@
         const isTooBright = avgLuma > 235;
 
         // Бумага паспорта РБ — светлая с защитной сеткой (avgLuma 75..235).
-        // Если avgLuma < 75 — это темный коврик мыши, стол, одежда или пол.
         const isPassportPaper = avgLuma >= 75 && avgLuma <= 235 && contrastRange >= 32;
-        const hasTextLines = textLineVariance >= 1.4;
+        const hasTextLines = textLineVariance >= 1.3;
 
         // Прецизионный детектор MRZ: на стр. 33 обязательно должны присутствовать строки OCR-B с <<<
         const hasMrz = detectMrzPattern(data, 128, 96);
@@ -500,16 +506,22 @@
         } else if (!isPassportPaper) {
           // Темный коврик мыши, стол или посторонний предмет
           livePill.className = 'kyc-live-pill is-warning mb-2';
-          livePill.innerHTML = currentStep === 1
-            ? '📄 Поместите светлый разворот стр. 31 в рамку'
-            : '📄 Поместите светлый разворот стр. 33 в рамку';
+          if (currentStep === 1) {
+            livePill.innerHTML = '📄 Поместите светлый разворот стр. 31 в рамку';
+          } else if (currentStep === 2) {
+            livePill.innerHTML = '📄 Поместите светлый разворот стр. 33 в рамку';
+          } else {
+            livePill.innerHTML = '📄 Поместите страницу со штампом прописки в рамку';
+          }
           viewfinder.classList.remove('is-locked');
           progressBar.style.width = '0%';
           stableCount = 0;
         } else if (!hasTextLines) {
-          // Белый пустой лист бумаги без печатного текста
+          // Белый пустой лист бумаги без текста/штампа
           livePill.className = 'kyc-live-pill mb-2';
-          livePill.innerHTML = '🔍 Расположите паспорт ровно, чтобы был виден текст';
+          livePill.innerHTML = currentStep === 3
+            ? '🔍 Наведите на синий штамп и рукописный адрес'
+            : '🔍 Расположите паспорт ровно, чтобы был виден текст';
           viewfinder.classList.remove('is-locked');
           progressBar.style.width = '0%';
           stableCount = 0;
@@ -524,6 +536,13 @@
           // На Шаге 2 пользователь навел на стр. 31, коврик или стол без строк MRZ
           livePill.className = 'kyc-live-pill is-warning mb-2';
           livePill.innerHTML = '⚠️ Это не стр. 33! Наведите на нижние строки <<< (MRZ)';
+          viewfinder.classList.remove('is-locked');
+          progressBar.style.width = '0%';
+          stableCount = 0;
+        } else if (currentStep === 3 && hasMrz) {
+          // На Шаге 3 пользователь все еще держит стр. 33 со строками MRZ
+          livePill.className = 'kyc-live-pill is-warning mb-2';
+          livePill.innerHTML = '⚠️ Это стр. 33! Откройте штамп прописки (стр. 25–28)';
           viewfinder.classList.remove('is-locked');
           progressBar.style.width = '0%';
           stableCount = 0;
@@ -547,7 +566,7 @@
           progressBar.style.width = pct + '%';
 
           if (stableCount <= 3) {
-            livePill.innerHTML = '🎯 Зафиксируйте положение...';
+            livePill.innerHTML = currentStep === 3 ? '🎯 Зафиксируйте штамп прописки...' : '🎯 Зафиксируйте положение...';
           } else if (stableCount <= 6) {
             livePill.innerHTML = '🎯 Не двигайтесь... 3';
           } else if (stableCount <= 9) {
@@ -587,6 +606,7 @@
       currentStep = 1;
       frame1DataUrl = null;
       frame2DataUrl = null;
+      frame3DataUrl = null;
       if (thumbPreview) thumbPreview.classList.add('hidden');
       modePassportBtn.className = 'px-3 py-1 rounded-full bg-cyan-500 text-black shadow-md transition cursor-pointer';
       modeIdCardBtn.className = 'px-3 py-1 rounded-full text-white/70 hover:text-white transition cursor-pointer';
@@ -599,6 +619,7 @@
       currentStep = 1;
       frame1DataUrl = null;
       frame2DataUrl = null;
+      frame3DataUrl = null;
       if (thumbPreview) thumbPreview.classList.add('hidden');
       modeIdCardBtn.className = 'px-3 py-1 rounded-full bg-cyan-500 text-black shadow-md transition cursor-pointer';
       modePassportBtn.className = 'px-3 py-1 rounded-full text-white/70 hover:text-white transition cursor-pointer';
@@ -610,22 +631,33 @@
     function updateStepUI() {
       if (mode === 'passport') {
         if (currentStep === 1) {
-          stepBadge.textContent = 'Шаг 1 из 2: Разворот стр. 31 (Русские ФИО)';
+          stepBadge.textContent = 'Шаг 1 из 3: Разворот стр. 31 (Русские ФИО)';
           subText.textContent = 'Держите верхнюю страницу с ФИО в рамке — камера зафиксирует снимок автоматически.';
           topZone.className = 'kyc-target-box-name transition-all border-cyan-400/60 bg-cyan-500/15 text-white font-bold';
           bottomZone.className = 'kyc-target-box-mrz transition-all opacity-30';
           topText.textContent = 'ФИО на русском языке и орган выдачи (стр. 31)';
           bottomText.textContent = 'Нижняя часть разворота';
-        } else {
-          stepBadge.textContent = 'Шаг 2 из 2: Разворот стр. 33 (Строка MRZ с <<<)';
+          if (skipStep3Btn) skipStep3Btn.classList.add('hidden');
+        } else if (currentStep === 2) {
+          stepBadge.textContent = 'Шаг 2 из 3: Разворот стр. 33 (Строка MRZ с <<<)';
           subText.textContent = 'Наведите на нижнюю страницу со строками знаков <<< — автозахват сработает сам.';
           topZone.className = 'kyc-target-box-name transition-all opacity-30';
           bottomZone.className = 'kyc-target-box-mrz transition-all border-cyan-400 bg-cyan-500/20 text-cyan-200 font-bold';
           topText.textContent = 'Фото и личный номер';
           bottomText.textContent = 'P<BLR... Строки машиночитаемой зоны <<< (MRZ)';
+          if (skipStep3Btn) skipStep3Btn.classList.add('hidden');
+        } else {
+          stepBadge.textContent = 'Шаг 3 из 3: Штамп прописки (стр. 25–28)';
+          subText.textContent = 'Наведите на синий штамп «ЗАРЭГІСТРАВАНЫ» и рукописный адрес ручкой (или пропустите).';
+          topZone.className = 'kyc-target-box-name transition-all border-cyan-400/60 bg-cyan-500/15 text-white font-bold';
+          bottomZone.className = 'kyc-target-box-mrz transition-all border-cyan-400/40 bg-cyan-500/10 text-cyan-100 font-medium';
+          topText.textContent = 'Синий штамп «ЗАРЭГІСТРАВАНЫ / ЗАРЕГИСТРИРОВАН»';
+          bottomText.textContent = 'Рукописный адрес (улица, дом, квартира)';
+          if (skipStep3Btn) skipStep3Btn.classList.remove('hidden');
         }
       } else {
         // ID-карта
+        if (skipStep3Btn) skipStep3Btn.classList.add('hidden');
         if (currentStep === 1) {
           stepBadge.textContent = 'Шаг 1 из 2: Лицевая сторона ID-карты';
           subText.textContent = 'Держите лицевую сторону ID-карты в рамке — автозахват сработает сам.';
@@ -673,46 +705,106 @@
       } catch (err) {
         console.warn('Camera access failed, opening fallback:', err);
         modal.remove();
-        openFallbackTwoFrameUploader({ mode, onComplete, onCancel });
+        openFallbackPassportUploader({ mode, onComplete, onCancel });
       }
     }
 
-    // Карточка перехода между шагами: пауза и осознанное подтверждение переворота на стр. 33
-    function showStepTransitionCard() {
+    // Карточка перехода между шагами: пауза и осознанное подтверждение переворота
+    function showStepTransitionCard(toStep) {
       const existing = document.getElementById('kycStepTransitionCard');
       if (existing) existing.remove();
 
       const card = document.createElement('div');
       card.id = 'kycStepTransitionCard';
       card.className = 'kyc-step-transition-card space-y-3';
-      card.innerHTML = `
-        <div class="text-3xl">✅</div>
-        <h4 class="text-white font-bold text-base">
-          ${mode === 'passport' ? 'Страница 31 зафиксирована!' : 'Лицевая сторона снята!'}
-        </h4>
-        <p class="text-white/80 text-xs leading-relaxed">
-          ${mode === 'passport'
-            ? 'Теперь переверните паспорт на <b>страницу 33</b>.<br>Там находится ваша фотография и внизу две строки знаков <span class="text-cyan-300 font-mono font-bold">&lt;&lt;&lt;</span> (MRZ).'
-            : 'Теперь переверните ID-карту на <b>обратную сторону</b>.<br>На ней находятся строки машиночитаемой зоны <span class="text-cyan-300 font-mono font-bold">&lt;&lt;&lt;</span>.'
-          }
-        </p>
-        <div class="pt-2">
-          <button type="button" id="kycProceedStep2Btn" class="btn-primary w-full py-3.5 rounded-2xl font-bold text-xs cursor-pointer active:scale-95 transition shadow-lg">
-            ${mode === 'passport' ? 'Я открыл страницу 33 ➔' : 'Я перевернул карту ➔'}
-          </button>
-        </div>
-      `;
-      modal.appendChild(card);
 
-      document.getElementById('kycProceedStep2Btn').onclick = () => {
-        card.remove();
-        currentStep = 2;
-        updateStepUI();
-        livePill.innerHTML = '📄 Наведите камеру на страницу 33 (с фото)...';
-        setTimeout(() => {
-          startLiveAnalysis();
-        }, 1200);
-      };
+      if (toStep === 2) {
+        card.innerHTML = `
+          <div class="text-3xl">✅</div>
+          <h4 class="text-white font-bold text-base">
+            ${mode === 'passport' ? 'Страница 31 зафиксирована!' : 'Лицевая сторона снята!'}
+          </h4>
+          <p class="text-white/80 text-xs leading-relaxed">
+            ${mode === 'passport'
+              ? 'Теперь переверните паспорт на <b>страницу 33</b>.<br>Там находится ваша фотография и внизу две строки знаков <span class="text-cyan-300 font-mono font-bold">&lt;&lt;&lt;</span> (MRZ).'
+              : 'Теперь переверните ID-карту на <b>обратную сторону</b>.<br>На ней находятся строки машиночитаемой зоны <span class="text-cyan-300 font-mono font-bold">&lt;&lt;&lt;</span>.'
+            }
+          </p>
+          <div class="pt-2">
+            <button type="button" id="kycProceedStep2Btn" class="btn-primary w-full py-3.5 rounded-2xl font-bold text-xs cursor-pointer active:scale-95 transition shadow-lg">
+              ${mode === 'passport' ? 'Я открыл страницу 33 ➔' : 'Я перевернул карту ➔'}
+            </button>
+          </div>
+        `;
+        modal.appendChild(card);
+
+        document.getElementById('kycProceedStep2Btn').onclick = () => {
+          card.remove();
+          currentStep = 2;
+          updateStepUI();
+          livePill.innerHTML = mode === 'passport'
+            ? '📄 Наведите камеру на страницу 33 (с фото)...'
+            : '📄 Наведите камеру на обратную сторону...';
+          setTimeout(() => {
+            startLiveAnalysis();
+          }, 1200);
+        };
+      } else if (toStep === 3) {
+        card.innerHTML = `
+          <div class="text-3xl">✅</div>
+          <h4 class="text-white font-bold text-base">Страница 33 с MRZ зафиксирована!</h4>
+          <p class="text-white/80 text-xs leading-relaxed">
+            Теперь откройте <b>страницу со штампом прописки (стр. 25–28)</b>.<br>
+            Нейросеть распознает синий прямоугольный штамп и рукописный адрес синей ручкой для автозаполнения полей доставки.
+          </p>
+          <div class="space-y-2 pt-2">
+            <button type="button" id="kycProceedStep3Btn" class="btn-primary w-full py-3.5 rounded-2xl font-bold text-xs cursor-pointer active:scale-95 transition shadow-lg">
+              Я открыл штамп прописки ➔
+            </button>
+            <button type="button" id="kycSkipStep3InCardBtn" class="w-full py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-semibold text-xs cursor-pointer active:scale-95 transition">
+              Пропустить и ввести адрес вручную ➔
+            </button>
+          </div>
+        `;
+        modal.appendChild(card);
+
+        document.getElementById('kycProceedStep3Btn').onclick = () => {
+          card.remove();
+          currentStep = 3;
+          updateStepUI();
+          livePill.innerHTML = '📄 Наведите камеру на штамп прописки (стр. 25–28)...';
+          setTimeout(() => {
+            startLiveAnalysis();
+          }, 1200);
+        };
+
+        document.getElementById('kycSkipStep3InCardBtn').onclick = async () => {
+          card.remove();
+          frame3DataUrl = null;
+          await finishCapture();
+        };
+      }
+    }
+
+    // Завершение сканирования и отправка на обработку
+    async function finishCapture() {
+      stopLiveAnalysis();
+      processingScreen.classList.remove('hidden');
+      stopCameraStream();
+
+      try {
+        const finalResult = await processPassportFrames(frame1DataUrl, frame2DataUrl, frame3DataUrl, mode);
+        if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
+        modal.remove();
+        if (typeof onComplete === 'function') {
+          onComplete(finalResult);
+        }
+      } catch (procErr) {
+        console.error('Alipay scanner processing error:', procErr);
+        if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('warning');
+        processingScreen.classList.add('hidden');
+        showRetryCard(procErr?.message, procErr?.error_step);
+      }
     }
 
     // Съемка кадра (автоматическая или ручная)
@@ -749,33 +841,34 @@
           thumbPreview.classList.remove('hidden');
         }
 
-        // КРИТИЧЕСКИ ВАЖНО: Останавливаем живой захват!
-        // Никакой спонтанной съемки пока пользователь физически переворачивает страницу!
+        stopLiveAnalysis();
+        isCapturing = false;
+        showStepTransitionCard(2);
+      } else if (currentStep === 2) {
+        frame2DataUrl = shotDataUrl;
         stopLiveAnalysis();
         isCapturing = false;
 
-        // Показываем карточку подтверждения перехода к стр. 33
-        showStepTransitionCard();
-      } else {
-        frame2DataUrl = shotDataUrl;
-        stopLiveAnalysis();
-        processingScreen.classList.remove('hidden');
-        stopCameraStream();
-
-        try {
-          const finalResult = await processTwoFrames(frame1DataUrl, frame2DataUrl, mode);
-          if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
-          modal.remove();
-          if (typeof onComplete === 'function') {
-            onComplete(finalResult);
-          }
-        } catch (procErr) {
-          console.error('Alipay scanner processing error:', procErr);
-          if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('warning');
-          processingScreen.classList.add('hidden');
-          showRetryCard(procErr?.message, procErr?.error_step);
+        if (mode === 'passport') {
+          showStepTransitionCard(3);
+        } else {
+          // ID-карта состоит из 2 шагов
+          await finishCapture();
         }
+      } else if (currentStep === 3) {
+        frame3DataUrl = shotDataUrl;
+        stopLiveAnalysis();
+        isCapturing = false;
+        await finishCapture();
       }
+    }
+
+    // Кнопка пропуска Шага 3 (прописка)
+    if (skipStep3Btn) {
+      skipStep3Btn.onclick = async () => {
+        frame3DataUrl = null;
+        await finishCapture();
+      };
     }
 
     // Карточка повторной попытки внутри сканера (с умным разделением по шагам)
@@ -783,13 +876,33 @@
       const existing = document.getElementById('kycRetryCard');
       if (existing) existing.remove();
 
-      const isStep2Only = errorStep === 2 || (frame1DataUrl && message && message.includes('Кадр 2'));
+      const isStep3 = errorStep === 3 || (message && message.includes('прописк'));
+      const isStep2Only = !isStep3 && (errorStep === 2 || (frame1DataUrl && message && (message.includes('Кадр 2') || message.includes('33'))));
 
       const card = document.createElement('div');
       card.id = 'kycRetryCard';
       card.className = 'kyc-retry-card space-y-3';
 
-      if (isStep2Only) {
+      if (isStep3) {
+        card.innerHTML = `
+          <div class="text-3xl">⚠️</div>
+          <h4 class="text-white font-bold text-sm">Паспортные данные распознаны ✓</h4>
+          <p class="text-white/70 text-xs leading-relaxed">
+            ${message || 'Не удалось четко прочитать синий штамп прописки или рукописный адрес. Вы можете переснять страницу со штампом или ввести адрес вручную.'}
+          </p>
+          <div class="space-y-2 pt-2">
+            <button type="button" id="kycRetryStep3OnlyBtn" class="btn-primary w-full py-3.5 rounded-2xl font-bold text-xs cursor-pointer active:scale-95 transition shadow-lg">
+              Переснять только прописку 🔄
+            </button>
+            <button type="button" id="kycSkipStep3OnErrorBtn" class="w-full py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-semibold text-xs cursor-pointer active:scale-95 transition">
+              Пропустить и заполнить адрес вручную ➔
+            </button>
+            <button type="button" id="kycRetryAllBtn" class="w-full py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/15 text-white/80 font-semibold text-xs cursor-pointer active:scale-95 transition">
+              Переснять все страницы заново ↺
+            </button>
+          </div>
+        `;
+      } else if (isStep2Only) {
         card.innerHTML = `
           <div class="text-3xl">⚠️</div>
           <h4 class="text-white font-bold text-sm">Страница 31 сохранена ✓</h4>
@@ -801,7 +914,7 @@
               Переснять только страницу 33 🔄
             </button>
             <button type="button" id="kycRetryAllBtn" class="w-full py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-semibold text-xs cursor-pointer active:scale-95 transition">
-              Переснять обе страницы заново ↺
+              Переснять все страницы заново ↺
             </button>
             <button type="button" id="kycRetryFallbackBtn" class="w-full py-2 rounded-2xl bg-transparent text-white/60 hover:text-white text-xs cursor-pointer transition">
               Загрузить фото из галереи 📁
@@ -828,12 +941,34 @@
 
       modal.appendChild(card);
 
+      const step3OnlyBtn = document.getElementById('kycRetryStep3OnlyBtn');
+      if (step3OnlyBtn) {
+        step3OnlyBtn.onclick = async () => {
+          card.remove();
+          currentStep = 3;
+          frame3DataUrl = null;
+          isCapturing = false;
+          updateStepUI();
+          await startCamera();
+        };
+      }
+
+      const skipStep3OnErrorBtn = document.getElementById('kycSkipStep3OnErrorBtn');
+      if (skipStep3OnErrorBtn) {
+        skipStep3OnErrorBtn.onclick = async () => {
+          card.remove();
+          frame3DataUrl = null;
+          await finishCapture();
+        };
+      }
+
       const step2OnlyBtn = document.getElementById('kycRetryStep2OnlyBtn');
       if (step2OnlyBtn) {
         step2OnlyBtn.onclick = async () => {
           card.remove();
           currentStep = 2;
           frame2DataUrl = null;
+          frame3DataUrl = null;
           isCapturing = false;
           updateStepUI();
           await startCamera();
@@ -847,6 +982,7 @@
           currentStep = 1;
           frame1DataUrl = null;
           frame2DataUrl = null;
+          frame3DataUrl = null;
           isCapturing = false;
           if (thumbPreview) thumbPreview.classList.add('hidden');
           updateStepUI();
@@ -858,7 +994,7 @@
       if (fallbackBtn) {
         fallbackBtn.onclick = () => {
           modal.remove();
-          openFallbackTwoFrameUploader({ mode, onComplete, onCancel });
+          openFallbackPassportUploader({ mode, onComplete, onCancel });
         };
       }
     }
@@ -874,15 +1010,16 @@
 
 
   /**
-   * Склейка и распознавание двух кадров через Vision + MRZ ICAO декодер
+   * Склейка и распознавание кадров паспорта через Vision + ICAO декодер + штамп прописки
    */
-  async function processTwoFrames(frame1DataUrl, frame2DataUrl, mode) {
-    // Вызываем Edge Function ai-calculator с обоими кадрами
+  async function processPassportFrames(frame1DataUrl, frame2DataUrl, frame3DataUrl, mode) {
+    // Вызываем Edge Function ai-calculator с переданными кадрами
     const { data, error } = await supabaseClient.functions.invoke('ai-calculator', {
       body: {
         action: 'parse_passport_alipay',
         frame1: frame1DataUrl, // Стр. 31 (ФИО на русском, орган МВД)
         frame2: frame2DataUrl, // Стр. 33 (MRZ, фото, личный номер)
+        frame3: frame3DataUrl || null, // Стр. 25–28 (синий штамп прописки и рукописный адрес)
         mode: mode
       }
     });
@@ -935,10 +1072,13 @@
     return res;
   }
 
+  // Обратная совместимость с вызовами двух кадров
+  const processTwoFrames = processPassportFrames;
+
   /**
-   * Fallback-диалог загрузки двух кадров, если камера недоступна
+   * Fallback-диалог загрузки кадров из галереи, если камера недоступна
    */
-  function openFallbackTwoFrameUploader({ mode = 'passport', onComplete, onCancel } = {}) {
+  function openFallbackPassportUploader({ mode = 'passport', onComplete, onCancel } = {}) {
     const fallbackId = 'kycFallbackModal';
     const existing = document.getElementById(fallbackId);
     if (existing) existing.remove();
@@ -947,17 +1087,17 @@
     overlay.id = fallbackId;
     overlay.className = 'fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4';
     overlay.innerHTML = `
-      <div class="glass-card w-full max-w-sm rounded-3xl p-5 border border-white/15 bg-slate-900/95 space-y-4 text-white text-xs">
+      <div class="glass-card w-full max-w-sm rounded-3xl p-5 border border-white/15 bg-slate-900/95 space-y-4 text-white text-xs max-h-[92vh] overflow-y-auto">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
             <span class="text-base">📸</span>
-            <span class="font-bold text-sm text-white">Загрузка 2-х страниц паспорта</span>
+            <span class="font-bold text-sm text-white">Загрузка страниц паспорта</span>
           </div>
           <button type="button" id="kycFallbackCloseBtn" class="text-white/60 hover:text-white text-base">✕</button>
         </div>
 
         <p class="text-[11px] text-white/70 leading-relaxed">
-          Камера не открылась, но вы можете загрузить 2 четких фото из галереи для безошибочного считывания MRZ:
+          Камера не открылась, но вы можете загрузить четкие фото из галереи:
         </p>
 
         <!-- Кадр 1 -->
@@ -978,8 +1118,19 @@
           <input type="file" id="kycFallbackFile2" accept="image/*" class="w-full text-[11px] text-white/70 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-cyan-500/20 file:text-cyan-300 file:font-bold">
         </div>
 
+        ${mode === 'passport' ? `
+        <!-- Кадр 3 (Прописка) -->
+        <div class="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-cyan-300">3. Прописка (стр. 25–28) <span class="text-white/40 font-normal">[необязательно]</span></span>
+            <span id="kycFallbackStatus3" class="text-[10px] text-white/40">Опционально</span>
+          </div>
+          <input type="file" id="kycFallbackFile3" accept="image/*" class="w-full text-[11px] text-white/70 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-cyan-500/20 file:text-cyan-300 file:font-bold">
+        </div>
+        ` : ''}
+
         <button type="button" id="kycFallbackSubmitBtn" class="btn-primary w-full py-3.5 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 active:scale-95 transition" disabled>
-          Распознать через MRZ ⚡
+          Распознать через нейросеть ⚡
         </button>
       </div>
     `;
@@ -989,12 +1140,15 @@
     const closeBtn = document.getElementById('kycFallbackCloseBtn');
     const f1 = document.getElementById('kycFallbackFile1');
     const f2 = document.getElementById('kycFallbackFile2');
+    const f3 = document.getElementById('kycFallbackFile3');
     const status1 = document.getElementById('kycFallbackStatus1');
     const status2 = document.getElementById('kycFallbackStatus2');
+    const status3 = document.getElementById('kycFallbackStatus3');
     const submitBtn = document.getElementById('kycFallbackSubmitBtn');
 
     let f1Data = null;
     let f2Data = null;
+    let f3Data = null;
 
     closeBtn.onclick = () => {
       overlay.remove();
@@ -1038,13 +1192,33 @@
       }
     };
 
+    if (f3) {
+      f3.onchange = async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        if (status3) status3.textContent = '⏳ Сжатие...';
+        try {
+          f3Data = await compressImageFile(file, 1280, 0.82);
+          if (status3) {
+            status3.textContent = '✓ Готово';
+            status3.className = 'text-[10px] text-emerald-400 font-bold';
+          }
+        } catch (err) {
+          if (status3) {
+            status3.textContent = 'Ошибка файла';
+            status3.className = 'text-[10px] text-rose-400 font-bold';
+          }
+        }
+      };
+    }
+
     submitBtn.onclick = async () => {
       if (!f1Data || !f2Data) return;
       submitBtn.disabled = true;
-      submitBtn.innerHTML = '<span class="inline-block animate-spin mr-1.5">🌀</span> Расшифровываем MRZ...';
+      submitBtn.innerHTML = '<span class="inline-block animate-spin mr-1.5">🌀</span> Расшифровываем...';
 
       try {
-        const res = await processTwoFrames(f1Data, f2Data, mode);
+        const res = await processPassportFrames(f1Data, f2Data, f3Data, mode);
         overlay.remove();
         if (typeof onComplete === 'function') onComplete(res);
       } catch (err) {

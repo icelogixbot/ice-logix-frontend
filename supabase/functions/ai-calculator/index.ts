@@ -87,11 +87,24 @@ function parseAssistantJson(raw: string): Record<string, any> {
     const match = s.match(new RegExp(`"${key}"\\s*:\\s*"([^"]+)"`, "i"));
     return match ? match[1].trim() : "";
   };
-  const keys = ["raw_mrz", "last_name", "first_name", "patronymic", "series_number", "birth_date", "gender", "id_number", "issue_date", "issued_by"];
+  const keys = [
+    "raw_mrz", "last_name", "first_name", "patronymic", "series_number", "birth_date", "gender", "id_number", "issue_date", "issued_by",
+    "address_region", "address_city", "address_street", "address_house", "address_building", "address_apartment", "address_postcode",
+    "region", "city", "street", "house", "building", "apartment", "postcode"
+  ];
   for (const k of keys) {
     const val = extract(k);
     if (val) fallbackRes[k] = val;
   }
+  // Нормализация синонимов адреса
+  if (fallbackRes.city && !fallbackRes.address_city) fallbackRes.address_city = fallbackRes.city;
+  if (fallbackRes.region && !fallbackRes.address_region) fallbackRes.address_region = fallbackRes.region;
+  if (fallbackRes.street && !fallbackRes.address_street) fallbackRes.address_street = fallbackRes.street;
+  if (fallbackRes.house && !fallbackRes.address_house) fallbackRes.address_house = fallbackRes.house;
+  if (fallbackRes.building && !fallbackRes.address_building) fallbackRes.address_building = fallbackRes.building;
+  if (fallbackRes.apartment && !fallbackRes.address_apartment) fallbackRes.address_apartment = fallbackRes.apartment;
+  if (fallbackRes.postcode && !fallbackRes.address_postcode) fallbackRes.address_postcode = fallbackRes.postcode;
+
   if (Object.keys(fallbackRes).length > 0) {
     return fallbackRes;
   }
@@ -148,6 +161,33 @@ function parseAssistantJson(raw: string): Record<string, any> {
   if (mrz1 && mrz2) {
     freeRes.raw_mrz = `${mrz1[0]}\n${mrz2[0]}`;
   }
+
+  // Извлечение полей адреса регистрации из текста/рассуждений
+  const mCity = s.match(/(?:address_city|Город|Населенный пункт|Населены пункт)[^:\n]*:\s*(?:"|'|`)?([А-Яа-яЁё.\s-]+?)(?:"|'|`|\n|,|$)/i);
+  if (mCity) freeRes.address_city = mCity[1].trim();
+
+  const mRegion = s.match(/(?:address_region|Область|Вобласць)[^:\n]*:\s*(?:"|'|`)?([А-Яа-яЁё.\s-]+?)(?:"|'|`|\n|,|$)/i);
+  if (mRegion) freeRes.address_region = mRegion[1].trim();
+
+  const mStreet = s.match(/(?:address_street|Улица|Вуліца|ул\.|вул\.)[^:\n]*:\s*(?:"|'|`)?([А-Яа-яЁё0-9.\s-]+?)(?:"|'|`|\n|,|$)/i);
+  if (mStreet) {
+    let st = mStreet[1].trim();
+    if (st.startsWith('вул.')) st = 'ул.' + st.slice(4);
+    if (st.startsWith('Вуліца')) st = 'Улица ' + st.slice(6);
+    freeRes.address_street = st;
+  }
+
+  const mHouse = s.match(/(?:address_house|Дом|д\.)[^:\n]*:\s*(?:"|'|`)?([0-9]+[А-Яа-яA-Za-z\/-]?)(?:"|'|`|\n|,|\s|$)/i);
+  if (mHouse) freeRes.address_house = mHouse[1].trim();
+
+  const mBuilding = s.match(/(?:address_building|Корпус|корп\.)[^:\n]*:\s*(?:"|'|`)?([0-9]+[А-Яа-яA-Za-z]?)(?:"|'|`|\n|,|\s|$)/i);
+  if (mBuilding) freeRes.address_building = mBuilding[1].trim();
+
+  const mApartment = s.match(/(?:address_apartment|Квартира|Кватэра|кв\.)[^:\n]*:\s*(?:"|'|`)?([0-9]+)(?:"|'|`|\n|,|\s|$)/i);
+  if (mApartment) freeRes.address_apartment = mApartment[1].trim();
+
+  const mPostcode = s.match(/(?:address_postcode|Индекс|Почтовый индекс)[^:\n]*:\s*(?:"|'|`)?([0-9]{6})(?:"|'|`|\n|,|\s|$)/i);
+  if (mPostcode) freeRes.address_postcode = mPostcode[1].trim();
 
   return freeRes;
 }
@@ -559,7 +599,7 @@ Return ONLY a JSON object:
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     } else if (action === "parse_passport_alipay") {
-      const { frame1, frame2, mode } = payload;
+      const { frame1, frame2, frame3, mode } = payload;
       if (!frame2) {
         return new Response(
           JSON.stringify({ ok: false, error: "Отсутствует кадр 2 (страница с MRZ)" }),
@@ -577,10 +617,16 @@ Return ONLY a JSON object:
         img2 = `data:image/jpeg;base64,${img2}`;
       }
 
+      let img3 = typeof frame3 === "string" ? frame3.trim() : "";
+      if (img3 && !img3.startsWith("data:") && !img3.startsWith("http")) {
+        img3 = `data:image/jpeg;base64,${img3}`;
+      }
+
       const prompt = `Ты — эксперт по оптическому считыванию и декодированию паспортов и ID-карт Республики Беларусь (стандарт ICAO 9303).
 Тебе предоставлены изображения документа одного гражданина Беларуси:
 ${img1 ? "- Кадр 1: Должен быть разворотом страницы 31 паспорта или лицевой стороной ID (ФИО на русском языке, орган выдачи МВД)." : ""}
 - Кадр 2: Должен быть разворотом страницы 33 паспорта или обратной стороной ID (фотография, 14-значный личный номер и в самом низу обязательные две строки машиночитаемой зоны MRZ со знаками <<<).
+${img3 ? "- Кадр 3: Разворот со штампом регистрации (прописки) по месту жительства (страницы 25-28 паспорта РБ). Внимание: штамп прямоугольный синий/фиолетовый ('ЗАРЭГІСТРАВАНЫ / ЗАРЕГИСТРИРОВАН'), а адресные реквизиты в нем обычно написаны от руки синей/черной шариковой ручкой (на русском или белорусском языке: 'г. Мінск' / 'г. Минск', 'вул. Прытыцкага' / 'ул. Притыцкого', дом, корпус, квартира)." : ""}
 
 КРИТИЧЕСКИ ВАЖНАЯ ВАЛИДАЦИЯ СТРАНИЦ:
 1. Если Кадр 1 не является разворотом страницы 31 с русскими ФИО (например, это посторонний предмет, стол, коврик, одежда или страница 33):
@@ -591,7 +637,10 @@ ${img1 ? "- Кадр 1: Должен быть разворотом страни�
    ВЕРНИ ТОЛЬКО JSON:
    {"ok": false, "error_step": 2, "error": "Кадр 2 не содержит строки MRZ со знаками <<<. Пожалуйста, переверните паспорт на страницу 33 (с фото и строками <<<)."}
 
-Если оба кадра корректны — извлеки регистрационные данные:
+${img3 ? `3. Если Кадр 3 не содержит штампа регистрации/прописки по месту жительства (например, пустая страница, стол или посторонний предмет):
+   (Если штампа нет или он поврежден, верни пустые строки в полях адреса, но НЕ выдавай ошибку).` : ""}
+
+Если кадры корректны — извлеки данные в формате строгого JSON:
 1. raw_mrz: ровно две строки по 44 символа со знаками < (напр. P<BLR...\\nMP12345678BLR...)
 2. last_name: Фамилия (русскими буквами)
 3. first_name: Имя (русскими буквами)
@@ -602,6 +651,13 @@ ${img1 ? "- Кадр 1: Должен быть разворотом страни�
 8. id_number: Идентификационный номер РБ (14 символов)
 9. issue_date: Дата выдачи документа (YYYY-MM-DD)
 10. issued_by: Орган выдачи документа на русском языке (например "ФРУНЗЕНСКИМ РУВД Г. МИНСКА")
+${img3 ? `11. address_region: Область РБ (строго одно из: "г. Минск", "Минская область", "Брестская область", "Витебская область", "Гомельская область", "Гродненская область", "Могилевская область")
+12. address_city: Город или населенный пункт на русском языке (например "г. Минск", "г. Брест", "г. Борисов")
+13. address_street: Улица/проспект/переулок на русском языке (например "ул. Притыцкого", "пр-т Независимости", переведи с белорусского 'вул.' -> 'ул.')
+14. address_house: Номер дома (например "28", "12А")
+15. address_building: Корпус дома (например "1" или "")
+16. address_apartment: Номер квартиры (например "114" или "")
+17. address_postcode: Почтовый индекс (6 цифр, если виден/известен, например "220073" или "")` : ""}
 
 ВЕРНИ ТОЛЬКО ЧИСТЫЙ JSON-ОБЪЕКТ СЛЕДУЮЩЕЙ СТРУКТУРЫ (без \`\`\`json markdown):
 {
@@ -615,7 +671,14 @@ ${img1 ? "- Кадр 1: Должен быть разворотом страни�
   "gender": "Мужской",
   "id_number": "3010195A012PB3",
   "issue_date": "2021-08-10",
-  "issued_by": "ФРУНЗЕНСКИМ РУВД Г. МИНСКА"
+  "issued_by": "ФРУНЗЕНСКИМ РУВД Г. МИНСКА"${img3 ? `,
+  "address_region": "г. Минск",
+  "address_city": "г. Минск",
+  "address_street": "ул. Притыцкого",
+  "address_house": "28",
+  "address_building": "1",
+  "address_apartment": "114",
+  "address_postcode": "220073"` : ""}
 }`;
 
       const contentItems: any[] = [{ type: "text", text: prompt }];
@@ -623,6 +686,9 @@ ${img1 ? "- Кадр 1: Должен быть разворотом страни�
         contentItems.push({ type: "image_url", image_url: { url: img1 } });
       }
       contentItems.push({ type: "image_url", image_url: { url: img2 } });
+      if (img3) {
+        contentItems.push({ type: "image_url", image_url: { url: img3 } });
+      }
 
       const data = await callVisionChatWithFallback(
         [

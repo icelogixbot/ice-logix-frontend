@@ -1815,18 +1815,70 @@
                 issuedByInput.value = res.issued_by;
               }
 
+              // 7. Адрес регистрации / прописка со штампа (Шаг 3)
+              const regionInput = document.getElementById('kycAddressRegion');
+              const cityInput = document.getElementById('kycAddressCity');
+              const streetInput = document.getElementById('kycAddressStreet');
+              const houseInput = document.getElementById('kycAddressHouse');
+              const buildingInput = document.getElementById('kycAddressBuilding');
+              const aptInput = document.getElementById('kycAddressApartment');
+              const postcodeInput = document.getElementById('kycAddressPostcode');
+
+              let hasAddress = false;
+              if (res.address_city && cityInput) {
+                cityInput.value = res.address_city;
+                hasAddress = true;
+              }
+              if (res.address_region && regionInput) {
+                for (let i = 0; i < regionInput.options.length; i++) {
+                  const optVal = regionInput.options[i].value;
+                  if (optVal && (optVal.includes(res.address_region) || res.address_region.includes(optVal))) {
+                    regionInput.selectedIndex = i;
+                    break;
+                  }
+                }
+              }
+              if (res.address_street && streetInput) {
+                streetInput.value = res.address_street;
+                hasAddress = true;
+              }
+              if (res.address_house && houseInput) {
+                houseInput.value = res.address_house;
+              }
+              if (res.address_building && buildingInput) {
+                buildingInput.value = res.address_building;
+              }
+              if (res.address_apartment && aptInput) {
+                aptInput.value = res.address_apartment;
+              }
+              if (res.address_postcode && postcodeInput) {
+                postcodeInput.value = res.address_postcode;
+              }
+
               // Статусная плашка
               if (ocrBanner) {
                 ocrBanner.className = 'p-3.5 rounded-2xl text-xs bg-emerald-950/70 border border-emerald-400/50 text-emerald-300 flex items-start gap-2.5 animate-pulse';
-                ocrBanner.innerHTML = `
-                  <span class="text-base text-emerald-400 mt-0.5">✓</span>
-                  <div>
-                    <div class="font-bold text-white text-xs">Паспорт считан по стандарту ICAO 9303!</div>
-                    <div class="text-[11px] text-emerald-200/90 mt-0.5 leading-snug">
-                      Контрольные суммы проверены. Все поля Шагов 1 и 2 заполнены автоматически. Проверьте и нажмите «Далее».
+                if (hasAddress) {
+                  ocrBanner.innerHTML = `
+                    <span class="text-base text-emerald-400 mt-0.5">✓</span>
+                    <div>
+                      <div class="font-bold text-white text-xs">Паспорт и прописка считаны успешно!</div>
+                      <div class="text-[11px] text-emerald-200/90 mt-0.5 leading-snug">
+                        ФИО, реквизиты документа и адрес со штампа регистрации заполнены автоматически. Проверьте данные и нажмите «Далее».
+                      </div>
                     </div>
-                  </div>
-                `;
+                  `;
+                } else {
+                  ocrBanner.innerHTML = `
+                    <span class="text-base text-emerald-400 mt-0.5">✓</span>
+                    <div>
+                      <div class="font-bold text-white text-xs">Паспорт считан по стандарту ICAO 9303!</div>
+                      <div class="text-[11px] text-emerald-200/90 mt-0.5 leading-snug">
+                        Контрольные суммы проверены. Все поля Шагов 1 и 2 заполнены автоматически. Проверьте и нажмите «Далее».
+                      </div>
+                    </div>
+                  `;
+                }
                 ocrBanner.classList.remove('hidden');
               }
             }
