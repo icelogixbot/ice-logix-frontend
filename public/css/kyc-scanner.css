@@ -45,14 +45,43 @@
 }
 
 .kyc-scanner-footer {
-  padding: 20px 20px 36px;
+  padding: 16px 20px 32px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   background: linear-gradient(0deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0) 100%);
   pointer-events: auto;
   z-index: 10;
+}
+
+/* Step thumbnail preview in footer */
+.kyc-thumb-preview {
+  position: relative;
+  width: 46px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1.5px solid #10b981;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.45);
+  animation: kycCardPopIn 0.3s ease;
+  flex-shrink: 0;
+}
+.kyc-thumb-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.kyc-thumb-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: #10b981;
+  color: #000;
+  font-size: 8px;
+  font-weight: 900;
+  padding: 0 4px;
+  border-top-left-radius: 4px;
 }
 
 .kyc-scanner-frame-wrap {

@@ -249,9 +249,15 @@
 
         <!-- Нижний блок управления -->
         <div class="kyc-scanner-footer">
-          <!-- Бейдж текущего шага -->
-          <div id="kycStepBadge" class="px-4 py-1.5 rounded-full bg-cyan-950/80 backdrop-blur-md border border-cyan-400/50 text-cyan-300 text-xs font-bold text-center kyc-scanner-badge-active">
-            Шаг 1 из 2: Разворот стр. 31 (Русские ФИО)
+          <!-- Бейдж текущего шага и миниатюра снятого кадра -->
+          <div class="flex items-center gap-2.5">
+            <div id="kycThumbPreview" class="hidden kyc-thumb-preview">
+              <img id="kycThumbImg" alt="Стр. 31">
+              <div class="kyc-thumb-badge">✓</div>
+            </div>
+            <div id="kycStepBadge" class="px-4 py-1.5 rounded-full bg-cyan-950/80 backdrop-blur-md border border-cyan-400/50 text-cyan-300 text-xs font-bold text-center kyc-scanner-badge-active">
+              Шаг 1 из 2: Разворот стр. 31 (Русские ФИО)
+            </div>
           </div>
 
           <p id="kycScannerSubText" class="text-[11px] text-white/70 text-center max-w-xs leading-tight">
@@ -297,12 +303,17 @@
     const bottomText = document.getElementById('kycTargetBottomText');
     const shutterBtn = document.getElementById('kycShutterBtn');
     const processingScreen = document.getElementById('kycProcessingScreen');
+    const thumbPreview = document.getElementById('kycThumbPreview');
+    const thumbImg = document.getElementById('kycThumbImg');
 
     let liveLoopActive = false;
     let liveTimer = null;
     let isCapturing = false;
     let stableCount = 0;
     let lastBlocks = null;
+    let frame1Blocks = null; // Сигнатура блоков страницы 31 для защиты от повторного снимка
+    let step2ArmTimer = 0; // Защитная пауза перед разрешением съемки шага 2
+    let step2HasMoved = false; // Флаг обязательного перемещения камеры на новую страницу
 
     // Быстрый оффскрин-холст для анализа кадра в реальном времени (64x48)
     const sampleCanvas = document.createElement('canvas');
@@ -330,7 +341,7 @@
       runLiveFrameCheck();
     }
 
-    // Цикл детектора живого эфира: 16-блочный анализ движения и контраста
+    // Цикл детектора живого эфира: 16-блочный анализ + валидация документа и MRZ
     function runLiveFrameCheck() {
       if (!liveLoopActive || isCapturing) return;
 
@@ -345,16 +356,25 @@
         const imgData = sampleCtx.getImageData(0, 0, 64, 48);
         const data = imgData.data;
 
-        // Разделяем кадр видоискателя на 16 блоков (4 колонки x 4 строки)
-        // В каждом блоке 16 x 12 = 192 пикселя
-        // Блочное усреднение на 100% гасит матричные шумы мобильных камер
+        // 1. 16-блочный анализ (4 колонки x 4 строки) для отсечения шумов сенсора
         const blocks = new Float32Array(16);
         let minLuma = 255;
         let maxLuma = 0;
         let totalLuma = 0;
 
+        // Построчная яркость для детекции печатных строк текста (rowLumas)
+        const rowLumas = new Float32Array(48);
+
+        // Контраст и яркость в нижней трети видоискателя (строки 32..47 — зона MRZ)
+        let bottomLumaMin = 255;
+        let bottomLumaMax = 0;
+        let bottomLumaSum = 0;
+        let bottomPixelCount = 0;
+
         for (let y = 0; y < 48; y++) {
           const by = Math.min(3, Math.floor(y / 12));
+          let rowSum = 0;
+
           for (let x = 0; x < 64; x++) {
             const bx = Math.min(3, Math.floor(x / 16));
             const bIdx = by * 4 + bx;
@@ -363,9 +383,19 @@
 
             blocks[bIdx] += luma;
             totalLuma += luma;
+            rowSum += luma;
+
             if (luma < minLuma) minLuma = luma;
             if (luma > maxLuma) maxLuma = luma;
+
+            if (y >= 32) {
+              if (luma < bottomLumaMin) bottomLumaMin = luma;
+              if (luma > bottomLumaMax) bottomLumaMax = luma;
+              bottomLumaSum += luma;
+              bottomPixelCount++;
+            }
           }
+          rowLumas[y] = rowSum / 64;
         }
 
         for (let b = 0; b < 16; b++) {
@@ -374,6 +404,15 @@
 
         const avgLuma = totalLuma / 3072;
         const contrastRange = maxLuma - minLuma;
+        const bottomContrast = bottomLumaMax - bottomLumaMin;
+        const bottomAvgLuma = bottomPixelCount ? (bottomLumaSum / bottomPixelCount) : 0;
+
+        // Вариативность строк текста (текст паспорта имеет перепады между строками)
+        let textLineVariance = 0;
+        for (let y = 1; y < 48; y++) {
+          textLineVariance += Math.abs(rowLumas[y] - rowLumas[y - 1]);
+        }
+        textLineVariance = textLineVariance / 47;
 
         // Расчет межкадрового движения между блоками
         let blockMotion = 0;
@@ -387,67 +426,137 @@
         }
         lastBlocks = blocks;
 
-        // Проверка условий освещения и документа
-        const isTooDark = avgLuma < 35;
+        // ========================================================
+        // ЗАЩИТА ШАГА 2: Обязательное физическое перемещение на новую страницу
+        // ========================================================
+        if (currentStep === 2) {
+          // Если пользователь ещё не сдвинул камеру с первого разворота
+          if (!step2HasMoved) {
+            if (blockMotion > 5.5) {
+              step2HasMoved = true;
+            } else {
+              livePill.className = 'kyc-live-pill is-warning mb-2';
+              livePill.innerHTML = mode === 'passport'
+                ? '🔄 Переверните на стр. 33 (со строками <<<)'
+                : '🔄 Переверните карту на обратную сторону';
+              viewfinder.classList.remove('is-locked');
+              progressBar.style.width = '0%';
+              stableCount = 0;
+              liveTimer = setTimeout(runLiveFrameCheck, 100);
+              return;
+            }
+          }
+
+          // Защитный таймер минимум 1.5 секунды после съемки первого кадра
+          if (Date.now() < step2ArmTimer) {
+            livePill.className = 'kyc-live-pill is-warning mb-2';
+            livePill.innerHTML = '🔄 Наведите на страницу 33...';
+            viewfinder.classList.remove('is-locked');
+            progressBar.style.width = '0%';
+            stableCount = 0;
+            liveTimer = setTimeout(runLiveFrameCheck, 100);
+            return;
+          }
+
+          // Защита от съемки ТОЙ ЖЕ страницы 31 повторно
+          if (frame1Blocks) {
+            let diffFromFrame1 = 0;
+            for (let b = 0; b < 16; b++) {
+              diffFromFrame1 += Math.abs(blocks[b] - frame1Blocks[b]);
+            }
+            diffFromFrame1 = diffFromFrame1 / 16;
+            if (diffFromFrame1 < 3.8) {
+              // Это та же страница!
+              livePill.className = 'kyc-live-pill is-warning mb-2';
+              livePill.innerHTML = '⚠️ Это стр. 31! Переверните на стр. 33 (со строками <<<)';
+              viewfinder.classList.remove('is-locked');
+              progressBar.style.width = '0%';
+              stableCount = 0;
+              liveTimer = setTimeout(runLiveFrameCheck, 100);
+              return;
+            }
+          }
+        }
+
+        // ========================================================
+        // ПРОВЕРКА ОСВЕЩЕНИЯ И ПОДЛИННОСТИ ДОКУМЕНТА (НЕ КОВРИК!)
+        // ========================================================
+        const isTooDark = avgLuma < 50;
+        const isDarkSurface = avgLuma < 75; // Темный коврик мыши, темный стол, ткань
         const isTooBright = avgLuma > 235;
-        const hasDocumentInFrame = contrastRange >= 35 && avgLuma >= 35 && avgLuma <= 235;
+
+        // Бумага паспорта — светлая (avgLuma 75..235) с контрастом текста
+        const isPassportPaper = avgLuma >= 75 && avgLuma <= 235 && contrastRange >= 35;
+        const hasTextLines = textLineVariance >= 1.6;
+
+        // На шаге 2 внизу ОБЯЗАТЕЛЬНО должны быть строки MRZ с символами <<<
+        const hasMrzAtBottom = mode === 'passport'
+          ? (currentStep === 1 ? true : (bottomContrast >= 32 && bottomAvgLuma >= 65))
+          : (currentStep === 1 ? true : (bottomContrast >= 28 && bottomAvgLuma >= 65));
+
         const isSteady = blockMotion <= 4.2;
 
         if (isTooDark) {
-          // Слишком темно
           livePill.className = 'kyc-live-pill is-warning mb-2';
           livePill.innerHTML = '💡 Слишком темно — включите фонарик 🔦';
           viewfinder.classList.remove('is-locked');
           progressBar.style.width = '0%';
           stableCount = 0;
         } else if (isTooBright) {
-          // Блики
           livePill.className = 'kyc-live-pill is-warning mb-2';
           livePill.innerHTML = '☀️ Слишком ярко — поверните от блика';
           viewfinder.classList.remove('is-locked');
           progressBar.style.width = '0%';
           stableCount = 0;
-        } else if (!hasDocumentInFrame) {
-          // Нет документа (однотонный фон, стена, стол)
+        } else if (isDarkSurface || !isPassportPaper) {
+          // Темный коврик мыши, стол или не документ
           livePill.className = 'kyc-live-pill mb-2';
-          if (mode === 'passport') {
-            livePill.innerHTML = currentStep === 1
-              ? '📄 Поместите разворот стр. 31 в рамку'
-              : '📄 Поместите разворот стр. 33 в рамку';
-          } else {
-            livePill.innerHTML = currentStep === 1
-              ? '📄 Поместите лицевую сторону ID в рамку'
-              : '📄 Поместите оборотную сторону ID в рамку';
-          }
+          livePill.innerHTML = '📄 Поместите светлый разворот паспорта в рамку';
+          viewfinder.classList.remove('is-locked');
+          progressBar.style.width = '0%';
+          stableCount = 0;
+        } else if (!hasTextLines) {
+          // Пустой белый лист без строк текста
+          livePill.className = 'kyc-live-pill mb-2';
+          livePill.innerHTML = '🔍 Расположите паспорт ровно, чтобы был виден текст';
+          viewfinder.classList.remove('is-locked');
+          progressBar.style.width = '0%';
+          stableCount = 0;
+        } else if (currentStep === 2 && !hasMrzAtBottom) {
+          // На шаге 2 внизу нет строк MRZ
+          livePill.className = 'kyc-live-pill mb-2';
+          livePill.innerHTML = '🔍 Наведите нижнюю часть рамки на строки <<< (MRZ)';
           viewfinder.classList.remove('is-locked');
           progressBar.style.width = '0%';
           stableCount = 0;
         } else if (!isSteady) {
-          // Документ в рамке, но телефон движется
+          // Паспорт в рамке, но телефон движется
           livePill.className = 'kyc-live-pill mb-2';
           livePill.innerHTML = '✋ Держите телефон ровнее...';
           viewfinder.classList.remove('is-locked');
-          stableCount = Math.max(0, stableCount - 1);
-          const pct = Math.min(100, Math.round((stableCount / 5) * 100));
+          stableCount = Math.max(0, stableCount - 2);
+          const pct = Math.min(100, Math.round((stableCount / 8) * 100));
           progressBar.style.width = pct + '%';
         } else {
-          // ДОКУМЕНТ В РАМКЕ И НЕПОДВИЖЕН!
+          // ========================================================
+          // ДОКУМЕНТ В РАМКЕ И СТАБИЛЕН — УВЕРЕННЫЙ ОБРАТНЫЙ ОТСЧЕТ (~850мс)
+          // ========================================================
           stableCount++;
           viewfinder.classList.add('is-locked');
           livePill.className = 'kyc-live-pill is-locked mb-2';
 
-          const pct = Math.min(100, Math.round((stableCount / 5) * 100));
+          const pct = Math.min(100, Math.round((stableCount / 8) * 100));
           progressBar.style.width = pct + '%';
 
-          if (stableCount === 1) {
+          if (stableCount <= 2) {
+            livePill.innerHTML = '🎯 Зафиксируйте положение...';
+          } else if (stableCount <= 4) {
             livePill.innerHTML = '🎯 Не двигайтесь... 3';
-          } else if (stableCount === 2) {
+          } else if (stableCount <= 6) {
             livePill.innerHTML = '🎯 Не двигайтесь... 2';
-          } else if (stableCount === 3) {
-            livePill.innerHTML = '🎯 Не двигайтесь... 1';
-          } else if (stableCount === 4) {
-            livePill.innerHTML = '⚡ Зафиксировано!';
-          } else if (stableCount >= 5 && !isCapturing) {
+          } else if (stableCount === 7) {
+            livePill.innerHTML = '🎯 Замрите... 1';
+          } else if (stableCount >= 8 && !isCapturing) {
             isCapturing = true;
             livePill.innerHTML = '⚡ Снимок сделан!';
             takeShot(true);
@@ -456,7 +565,7 @@
         }
       }
 
-      liveTimer = setTimeout(runLiveFrameCheck, 90);
+      liveTimer = setTimeout(runLiveFrameCheck, 100);
     }
 
     // Закрытие сканера
@@ -477,6 +586,12 @@
     // Переключение режимов: Паспорт / ID-карта
     modePassportBtn.onclick = () => {
       mode = 'passport';
+      currentStep = 1;
+      frame1DataUrl = null;
+      frame2DataUrl = null;
+      frame1Blocks = null;
+      step2HasMoved = false;
+      if (thumbPreview) thumbPreview.classList.add('hidden');
       modePassportBtn.className = 'px-3 py-1 rounded-full bg-cyan-500 text-black shadow-md transition cursor-pointer';
       modeIdCardBtn.className = 'px-3 py-1 rounded-full text-white/70 hover:text-white transition cursor-pointer';
       viewfinder.classList.remove('id-card-mode');
@@ -485,6 +600,12 @@
 
     modeIdCardBtn.onclick = () => {
       mode = 'idcard';
+      currentStep = 1;
+      frame1DataUrl = null;
+      frame2DataUrl = null;
+      frame1Blocks = null;
+      step2HasMoved = false;
+      if (thumbPreview) thumbPreview.classList.add('hidden');
       modeIdCardBtn.className = 'px-3 py-1 rounded-full bg-cyan-500 text-black shadow-md transition cursor-pointer';
       modePassportBtn.className = 'px-3 py-1 rounded-full text-white/70 hover:text-white transition cursor-pointer';
       viewfinder.classList.add('id-card-mode');
@@ -503,11 +624,11 @@
           bottomText.textContent = 'Нижняя часть разворота';
         } else {
           stepBadge.textContent = 'Шаг 2 из 2: Разворот стр. 33 (Строка MRZ с <<<)';
-          subText.textContent = 'Наведите на нижнюю страницу с фото и строками со знаками <<< — автозахват сработает сам.';
+          subText.textContent = 'Наведите на нижнюю страницу со строками знаков <<< — автозахват сработает сам.';
           topZone.className = 'kyc-target-box-name transition-all opacity-30';
           bottomZone.className = 'kyc-target-box-mrz transition-all border-cyan-400 bg-cyan-500/20 text-cyan-200 font-bold';
-          topText.textContent = 'Фото и реквизиты документа';
-          bottomText.textContent = 'P<BLR... Нижние строки со знаками <<< (MRZ)';
+          topText.textContent = 'Фото и личный номер';
+          bottomText.textContent = 'P<BLR... Строки машиночитаемой зоны <<< (MRZ)';
         }
       } else {
         // ID-карта
@@ -589,28 +710,40 @@
 
       if (currentStep === 1) {
         frame1DataUrl = shotDataUrl;
+        if (lastBlocks) {
+          frame1Blocks = new Float32Array(lastBlocks);
+        }
+
+        // Показываем миниатюру первого кадра в нижнем блоке
+        if (thumbPreview && thumbImg) {
+          thumbImg.src = shotDataUrl;
+          thumbPreview.classList.remove('hidden');
+        }
+
         currentStep = 2;
         updateStepUI();
 
-        // Визуальная подсказка перехода на шаг 2
-        livePill.className = 'kyc-live-pill is-locked mb-2';
+        // Обязательный флаг: Step 2 ждет физического перемещения камеры на новую страницу!
+        step2HasMoved = false;
+        step2ArmTimer = Date.now() + 1800; // Минимум 1.8 секунды пауза
+
+        livePill.className = 'kyc-live-pill is-warning mb-2';
         livePill.innerHTML = mode === 'passport'
-          ? '✓ Стр. 31 снята! Наведите на стр. 33 (строки <<<)'
-          : '✓ Лицевая сторона снята! Переверните карту';
+          ? '🔄 Переверните на стр. 33 (со строками <<<)'
+          : '🔄 Переверните карту на обратную сторону';
 
         stableCount = 0;
         lastBlocks = null;
         if (progressBar) progressBar.style.width = '0%';
         if (viewfinder) viewfinder.classList.remove('is-locked');
 
-        // Пауза 900мс, чтобы пользователь успел перевести камеру на следующую страницу
+        // Пауза перед возобновлением анализа
         setTimeout(() => {
           isCapturing = false;
           if (liveLoopActive) {
-            livePill.className = 'kyc-live-pill mb-2';
             runLiveFrameCheck();
           }
-        }, 900);
+        }, 1200);
       } else {
         frame2DataUrl = shotDataUrl;
         stopLiveAnalysis();
@@ -645,7 +778,7 @@
         <div class="text-3xl">💡</div>
         <h4 class="text-white font-bold text-sm">Не удалось четко распознать реквизиты</h4>
         <p class="text-white/70 text-xs leading-relaxed">
-          ${message || 'Пожалуйста, поднесите паспорт чуть ближе к свету, чтобы строки MRZ со знаками &lt;&lt;&lt; были четко видны без теней и бликов.'}
+          ${message || 'Пожалуйста, убедитесь, что на Шаге 1 сфотографирован разворот стр. 31 (с русскими ФИО), а на Шаге 2 — разворот стр. 33 (с фото и строками MRZ <<<).'}
         </p>
         <div class="space-y-2 pt-2">
           <button type="button" id="kycRetryCardBtn" class="btn-primary w-full py-3.5 rounded-2xl font-bold text-xs cursor-pointer active:scale-95 transition">
@@ -663,7 +796,10 @@
         currentStep = 1;
         frame1DataUrl = null;
         frame2DataUrl = null;
+        frame1Blocks = null;
+        step2HasMoved = false;
         isCapturing = false;
+        if (thumbPreview) thumbPreview.classList.add('hidden');
         updateStepUI();
         await startCamera();
       };
