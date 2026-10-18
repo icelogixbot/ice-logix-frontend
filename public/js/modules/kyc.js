@@ -1760,6 +1760,48 @@
       if (idInput.value) handleIdInput();
     }
 
+    // Умное автоопределение области РБ по городу/району/подсказке
+    function autoDetectRegionForCity(c, rHint) {
+      const regionElem = regionSelect || document.getElementById('kycAddressRegion');
+      if (!regionElem) return;
+      const cityStr = (c || '').toLowerCase().trim();
+      const regionStr = (rHint || '').toLowerCase().trim();
+      const combined = `${regionStr} ${cityStr}`;
+
+      let target = '';
+      if (combined.includes('минский р') || combined.includes('минский район') || combined.includes('мінскі р') || combined.includes('мінская вобл')) {
+        target = 'Минская область';
+      } else if (/^(?:г\.?\s*)?минск(?:\s*|$)/i.test(cityStr) || /^(?:г\.?\s*)?мінск(?:\s*|$)/i.test(cityStr) || /^(?:г\.?\s*)?минск(?:\s*|$)/i.test(regionStr)) {
+        if (!combined.includes('район') && !combined.includes('р-н') && !combined.includes('рн')) {
+          target = 'г. Минск';
+        } else {
+          target = 'Минская область';
+        }
+      } else if (combined.includes('брест') || combined.includes('брэст') || combined.includes('баранови') || combined.includes('пинск') || combined.includes('кобрин') || combined.includes('берез') || combined.includes('ивацевич') || combined.includes('пружан') || combined.includes('столин') || combined.includes('дрогичин')) {
+        target = 'Брестская область';
+      } else if (combined.includes('гродн') || combined.includes('гродна') || combined.includes('лид') || combined.includes('слоним') || combined.includes('волковы') || combined.includes('новогруд') || combined.includes('сморгон') || combined.includes('островец') || combined.includes('ошмян') || combined.includes('щучин')) {
+        target = 'Гродненская область';
+      } else if (combined.includes('гомел') || combined.includes('мозыр') || combined.includes('жлобин') || combined.includes('речиц') || combined.includes('светлогорск') || combined.includes('калинкович') || combined.includes('рогачев') || combined.includes('добруш') || combined.includes('житкович')) {
+        target = 'Гомельская область';
+      } else if (combined.includes('витеб') || combined.includes('віцеб') || combined.includes('новополоцк') || combined.includes('полоцк') || combined.includes('орша') || combined.includes('глубок') || combined.includes('лепель') || combined.includes('постав') || combined.includes('браслав')) {
+        target = 'Витебская область';
+      } else if (combined.includes('могил') || combined.includes('магіл') || combined.includes('бобруйск') || combined.includes('горки') || combined.includes('осипови') || combined.includes('кричев') || combined.includes('быхов') || combined.includes('климович') || combined.includes('шклов')) {
+        target = 'Могилевская область';
+      } else if (combined.includes('минск') || combined.includes('мінск') || combined.includes('борис') || combined.includes('солигор') || combined.includes('молодеч') || combined.includes('жодин') || combined.includes('слуцк') || combined.includes('дзержин') || combined.includes('колодищ') || combined.includes('тарасов') || combined.includes('боровлян') || combined.includes('заславл') || combined.includes('фанипол') || combined.includes('смолевич') || combined.includes('столбц') || combined.includes('несвиж') || combined.includes('логойск') || combined.includes('сениц') || combined.includes('ратомк') || combined.includes('жданович') || combined.includes('лесной')) {
+        target = 'Минская область';
+      }
+
+      if (target) {
+        for (let i = 0; i < regionElem.options.length; i++) {
+          if (regionElem.options[i].value === target) {
+            regionElem.selectedIndex = i;
+            regionElem.dispatchEvent(new Event('change', { bubbles: true }));
+            break;
+          }
+        }
+      }
+    }
+
     // --- Высокоточный сканер паспортов Alipay (MRZ ICAO 9303) ---
     const alipayScanBtn = document.getElementById('kycOpenAlipayScannerBtn');
     const ocrBanner = document.getElementById('kycOcrStatusBanner');
@@ -1816,43 +1858,57 @@
               }
 
               // 7. Адрес регистрации / прописка со штампа (Шаг 3)
-              const regionInput = document.getElementById('kycAddressRegion');
-              const cityInput = document.getElementById('kycAddressCity');
-              const streetInput = document.getElementById('kycAddressStreet');
-              const houseInput = document.getElementById('kycAddressHouse');
-              const buildingInput = document.getElementById('kycAddressCorpus') || document.getElementById('kycAddressBuilding');
-              const aptInput = document.getElementById('kycAddressRoom') || document.getElementById('kycAddressApartment');
-              const postcodeInput = document.getElementById('kycAddressZip') || document.getElementById('kycAddressPostcode');
+              const regionInput = regionSelect || document.getElementById('kycAddressRegion');
+              const cityInputElem = cityInput || document.getElementById('kycAddressCity');
+              const streetInputElem = streetInput || document.getElementById('kycAddressStreet');
+              const houseInputElem = houseInput || document.getElementById('kycAddressHouse');
+              const buildingInputElem = corpusInput || document.getElementById('kycAddressCorpus') || document.getElementById('kycAddressBuilding');
+              const aptInputElem = roomInput || document.getElementById('kycAddressRoom') || document.getElementById('kycAddressApartment');
+              const postcodeInputElem = zipInput || document.getElementById('kycAddressZip') || document.getElementById('kycAddressPostcode');
 
               let hasAddress = false;
-              if (res.address_city && cityInput) {
-                cityInput.value = res.address_city;
+              if (res.address_city && cityInputElem) {
+                cityInputElem.value = res.address_city;
                 hasAddress = true;
               }
+
+              // Выбор области: сначала прямое сопоставление (учитывая точные названия 7 областей РБ)
+              let regionSelected = false;
               if (res.address_region && regionInput) {
+                const targetReg = res.address_region.trim().toLowerCase();
                 for (let i = 0; i < regionInput.options.length; i++) {
-                  const optVal = regionInput.options[i].value;
-                  if (optVal && (optVal.includes(res.address_region) || res.address_region.includes(optVal))) {
+                  const optVal = (regionInput.options[i].value || '').toLowerCase();
+                  if (optVal && (optVal === targetReg || targetReg.includes(optVal) || optVal.includes(targetReg))) {
                     regionInput.selectedIndex = i;
+                    regionInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    regionSelected = true;
                     break;
                   }
                 }
               }
-              if (res.address_street && streetInput) {
-                streetInput.value = res.address_street;
+
+              // Если не выбралась или пуста — гарантированно автоопределяем по городу/району
+              if (!regionSelected || (regionInput && regionInput.selectedIndex <= 0)) {
+                autoDetectRegionForCity(res.address_city, res.address_region);
+              }
+
+              if (res.address_street && streetInputElem) {
+                streetInputElem.value = res.address_street;
                 hasAddress = true;
               }
-              if (res.address_house && houseInput) {
-                houseInput.value = res.address_house;
+              if (res.address_house && houseInputElem) {
+                houseInputElem.value = res.address_house;
               }
-              if (buildingInput) {
-                buildingInput.value = res.address_building || '-';
+              if (buildingInputElem) {
+                buildingInputElem.value = res.address_building || '-';
               }
-              if (aptInput) {
-                aptInput.value = res.address_apartment || '';
+              if (aptInputElem) {
+                let aptVal = (res.address_apartment || '').trim();
+                if (aptVal === '-' || aptVal === '—' || aptVal.toLowerCase() === 'нет') aptVal = '';
+                aptInputElem.value = aptVal;
               }
-              if (postcodeInput) {
-                postcodeInput.value = res.address_postcode || '';
+              if (postcodeInputElem) {
+                postcodeInputElem.value = res.address_postcode || '';
               }
 
               // Статусная плашка
@@ -1889,7 +1945,6 @@
       };
     }
 
-
     // Автокомплит органа выдачи
     if (issuedByInput && organsDropdown) {
       attachOrganAutocomplete(issuedByInput, organsDropdown);
@@ -1906,29 +1961,6 @@
       };
     });
 
-    function autoDetectRegionForCity(c) {
-      if (!regionSelect || !c) return;
-      const lower = c.toLowerCase().trim();
-      let target = '';
-      if (lower.includes('минский р') || lower.includes('минский район')) target = 'Минская область';
-      else if (/^(?:г\.?\s*)?минск(?:\s*|$)/i.test(lower) || /^(?:г\.?\s*)?мінск(?:\s*|$)/i.test(lower)) target = 'г. Минск';
-      else if (lower.includes('брест') || lower.includes('баранови') || lower.includes('пинск') || lower.includes('кобрин')) target = 'Брестская область';
-      else if (lower.includes('гродн') || lower.includes('лид') || lower.includes('слоним') || lower.includes('волковы')) target = 'Гродненская область';
-      else if (lower.includes('гомел') || lower.includes('мозыр') || lower.includes('жлобин') || lower.includes('речиц')) target = 'Гомельская область';
-      else if (lower.includes('витеб') || lower.includes('полоцк') || lower.includes('орша')) target = 'Витебская область';
-      else if (lower.includes('могил') || lower.includes('бобруйск') || lower.includes('горки') || lower.includes('осипови')) target = 'Могилевская область';
-      else if (lower.includes('борис') || lower.includes('солигор') || lower.includes('молодеч') || lower.includes('жодин') || lower.includes('слуцк') || lower.includes('дзержин') || lower.includes('колодищ') || lower.includes('тарасов') || lower.includes('боровлян')) target = 'Минская область';
-
-      if (target) {
-        for (let i = 0; i < regionSelect.options.length; i++) {
-          if (regionSelect.options[i].value === target) {
-            regionSelect.selectedIndex = i;
-            break;
-          }
-        }
-      }
-    }
-
     // Быстрые чипсы городов
     document.querySelectorAll('.kyc-city-chip').forEach(chip => {
       chip.onclick = () => {
@@ -1941,6 +1973,7 @@
     });
 
     if (cityInput) {
+      cityInput.addEventListener('input', () => autoDetectRegionForCity(cityInput.value));
       cityInput.addEventListener('change', () => autoDetectRegionForCity(cityInput.value));
       cityInput.addEventListener('blur', () => autoDetectRegionForCity(cityInput.value));
     }

@@ -117,7 +117,7 @@
    * Кроп изображения строго по видоискателю с учетом object-fit: cover
    * Возвращает чисто разворот документа в высоком разрешении без комнаты и фона
    */
-  function cropViewfinderFromVideo(video, viewfinder, targetWidth = 1200) {
+  function cropViewfinderFromVideo(video, viewfinder, targetWidth = 1200, quality = 0.88) {
     const crop = getViewfinderCrop(video, viewfinder);
     if (!crop) return null;
 
@@ -127,7 +127,7 @@
 
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL('image/jpeg', 0.88);
+    return canvas.toDataURL('image/jpeg', quality);
   }
 
   /**
@@ -829,8 +829,11 @@
       document.body.appendChild(flash);
       setTimeout(() => flash.remove(), 300);
 
-      // КРОП ВИДОИСКАТЕЛЯ: Извлекаем чисто разворот паспорта в высоком разрешении 1200px
-      const shotDataUrl = cropViewfinderFromVideo(videoElem, viewfinder, 1200) || canvasToDataUrl(videoElem, 1280, 0.85);
+      // КРОП ВИДОИСКАТЕЛЯ: Извлекаем чисто разворот паспорта в высоком разрешении
+      // Для Шага 3 (рукописный адрес в ячейках штампа) используем максимальную четкость 1600px и качество 0.93
+      const targetCropWidth = (currentStep === 3) ? 1600 : 1300;
+      const targetQuality = (currentStep === 3) ? 0.93 : 0.88;
+      const shotDataUrl = cropViewfinderFromVideo(videoElem, viewfinder, targetCropWidth, targetQuality) || canvasToDataUrl(videoElem, targetCropWidth, targetQuality);
 
       if (currentStep === 1) {
         frame1DataUrl = shotDataUrl;
