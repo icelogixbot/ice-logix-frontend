@@ -425,6 +425,8 @@
           break;
         }
       }
+    }
+
     const hasAnyField = res && (res.id_number || res.series_number || res.last_name || res.first_name || res.raw_mrz);
     if (!hasAnyField) {
       throw new Error('Не удалось различить реквизиты на фото. Пожалуйста, сфотографируйте разворот ровно, при хорошем освещении и без бликов.');
