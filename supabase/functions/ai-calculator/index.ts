@@ -56,6 +56,11 @@ function parseAssistantJson(raw: string): Record<string, any> {
   if (s.startsWith("```")) {
     s = s.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/s, "").trim();
   }
+  const firstBrace = s.indexOf("{");
+  const lastBrace = s.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    s = s.slice(firstBrace, lastBrace + 1);
+  }
   try {
     return JSON.parse(s);
   } catch (e) {
@@ -63,6 +68,54 @@ function parseAssistantJson(raw: string): Record<string, any> {
     return {};
   }
 }
+
+async function callVisionChatWithFallback(messages: any[], maxTokens = 350, title = "ICE LOGIX Vision"): Promise<any> {
+  const models = [
+    VISION_MODEL,
+    "google/gemini-2.0-flash-exp:free",
+    "meta-llama/llama-3.2-11b-vision-instruct:free",
+    "nvidia/nemotron-3.5-super-vl:free",
+  ];
+
+  let lastError: any = null;
+  for (const model of models) {
+    try {
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+          "HTTP-Referer": "https://icelogix.app",
+          "X-Title": title,
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          temperature: 0.05,
+          max_tokens: maxTokens,
+        }),
+      });
+
+      if (res.ok) {
+        return await res.json();
+      }
+
+      const errTxt = await res.text().catch(() => "");
+      lastError = new Error(`OpenRouter HTTP ${res.status} (${model}): ${errTxt}`);
+      console.warn(`Vision model ${model} failed (${res.status}): ${errTxt}. Retrying with next fallback...`);
+      if (res.status === 402 || res.status === 429 || res.status === 404 || res.status === 503 || res.status === 500) {
+        continue;
+      }
+      throw lastError;
+    } catch (e) {
+      lastError = e;
+      console.warn(`Exception invoking ${model}:`, e);
+    }
+  }
+
+  throw lastError || new Error("All vision models failed");
+}
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -363,36 +416,20 @@ Return ONLY a JSON object:
   "issued_by": "ФРУНЗЕНСКИМ РУВД Г. МИНСКА"
 }`;
 
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-          "HTTP-Referer": "https://icelogix.app",
-          "X-Title": "ICE LOGIX Passport OCR",
-        },
-        body: JSON.stringify({
-          model: VISION_MODEL,
-          messages: [
-            {
-              role: "user",
-              content: [
-                { type: "text", text: prompt },
-                { type: "image_url", image_url: { url: imageUrl } },
-              ],
-            },
-          ],
-          temperature: 0.1,
-          max_tokens: 300,
-        }),
-      });
+      const data = await callVisionChatWithFallback(
+        [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: prompt },
+              { type: "image_url", image_url: { url: imageUrl } },
+            ],
+          },
+        ],
+        350,
+        "ICE LOGIX Passport OCR"
+      );
 
-      if (!res.ok) {
-        const errTxt = await res.text().catch(() => "");
-        throw new Error(`OpenRouter HTTP ${res.status}: ${errTxt}`);
-      }
-
-      const data = await res.json();
       const rawOutput = data?.choices?.[0]?.message?.content || "";
       const parsed = parseAssistantJson(rawOutput);
 
@@ -459,33 +496,17 @@ ${img1 ? "- Кадр 1: Страница 31 паспорта или лицева
       }
       contentItems.push({ type: "image_url", image_url: { url: img2 } });
 
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-          "HTTP-Referer": "https://icelogix.app",
-          "X-Title": "ICE LOGIX Alipay MRZ Scanner",
-        },
-        body: JSON.stringify({
-          model: VISION_MODEL,
-          messages: [
-            {
-              role: "user",
-              content: contentItems,
-            },
-          ],
-          temperature: 0.05,
-          max_tokens: 350,
-        }),
-      });
+      const data = await callVisionChatWithFallback(
+        [
+          {
+            role: "user",
+            content: contentItems,
+          },
+        ],
+        350,
+        "ICE LOGIX Alipay MRZ Scanner"
+      );
 
-      if (!res.ok) {
-        const errTxt = await res.text().catch(() => "");
-        throw new Error(`OpenRouter HTTP ${res.status}: ${errTxt}`);
-      }
-
-      const data = await res.json();
       const rawOutput = data?.choices?.[0]?.message?.content || "";
       const parsed = parseAssistantJson(rawOutput);
 

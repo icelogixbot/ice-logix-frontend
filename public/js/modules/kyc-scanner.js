@@ -12,7 +12,7 @@
   /**
    * Сжатие кадра из Canvas в DataURL JPEG
    */
-  function canvasToDataUrl(canvas, maxDim = 1600, quality = 0.88) {
+  function canvasToDataUrl(canvas, maxDim = 1280, quality = 0.82) {
     let { width, height } = canvas;
     if (width > maxDim || height > maxDim) {
       if (width > height) {
@@ -30,6 +30,40 @@
       return scaledCanvas.toDataURL('image/jpeg', quality);
     }
     return canvas.toDataURL('image/jpeg', quality);
+  }
+
+  /**
+   * Сжатие загруженного файла изображения через Image + Canvas
+   */
+  function compressImageFile(file, maxDim = 1280, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => resolve(e.target.result);
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error('Не удалось прочитать файл'));
+      reader.readAsDataURL(file);
+    });
   }
 
   /**
@@ -307,7 +341,7 @@
       canvas.height = videoElem.videoHeight;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(videoElem, 0, 0, canvas.width, canvas.height);
-      const shotDataUrl = canvasToDataUrl(canvas, 1600, 0.88);
+      const shotDataUrl = canvasToDataUrl(canvas, 1280, 0.82);
 
       if (currentStep === 1) {
         frame1DataUrl = shotDataUrl;
@@ -329,7 +363,12 @@
         } catch (procErr) {
           console.error('Alipay scanner processing error:', procErr);
           if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('warning');
-          alert('Не удалось расшифровать строки MRZ. Пожалуйста, сфотографируйте разворот ровно без бликов или введите данные в поля.');
+          const errText = procErr?.message || '';
+          if (errText.includes('402') || errText.includes('credits')) {
+            alert('Сервис распознавания временно недоступен (лимит запросов). Пожалуйста, введите данные вручную или повторите через минуту.');
+          } else {
+            alert(errText || 'Не удалось распознать строки MRZ. Пожалуйста, сфотографируйте разворот ровно без бликов или введите данные в поля.');
+          }
           modal.remove();
         }
       }
@@ -386,6 +425,9 @@
           break;
         }
       }
+    const hasAnyField = res && (res.id_number || res.series_number || res.last_name || res.first_name || res.raw_mrz);
+    if (!hasAnyField) {
+      throw new Error('Не удалось различить реквизиты на фото. Пожалуйста, сфотографируйте разворот ровно, при хорошем освещении и без бликов.');
     }
 
     return res;
@@ -464,30 +506,34 @@
       }
     };
 
-    f1.onchange = (e) => {
+    f1.onchange = async (e) => {
       const file = e.target.files && e.target.files[0];
       if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        f1Data = ev.target.result;
-        status1.textContent = '✓ Выбрано';
+      status1.textContent = '⏳ Сжатие...';
+      try {
+        f1Data = await compressImageFile(file, 1280, 0.82);
+        status1.textContent = '✓ Готово';
         status1.className = 'text-[10px] text-emerald-400 font-bold';
         checkReady();
-      };
-      reader.readAsDataURL(file);
+      } catch (err) {
+        status1.textContent = 'Ошибка файла';
+        status1.className = 'text-[10px] text-rose-400 font-bold';
+      }
     };
 
-    f2.onchange = (e) => {
+    f2.onchange = async (e) => {
       const file = e.target.files && e.target.files[0];
       if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        f2Data = ev.target.result;
-        status2.textContent = '✓ Выбрано';
+      status2.textContent = '⏳ Сжатие...';
+      try {
+        f2Data = await compressImageFile(file, 1280, 0.82);
+        status2.textContent = '✓ Готово';
         status2.className = 'text-[10px] text-emerald-400 font-bold';
         checkReady();
-      };
-      reader.readAsDataURL(file);
+      } catch (err) {
+        status2.textContent = 'Ошибка файла';
+        status2.className = 'text-[10px] text-rose-400 font-bold';
+      }
     };
 
     submitBtn.onclick = async () => {
