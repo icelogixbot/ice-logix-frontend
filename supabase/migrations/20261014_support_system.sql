@@ -46,9 +46,11 @@ ALTER TABLE support_tickets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE support_messages ENABLE ROW LEVEL SECURITY;
 
 -- Политики для support_tickets
+DROP POLICY IF EXISTS "Enable all for support_tickets" ON support_tickets;
 CREATE POLICY "Enable all for support_tickets" ON support_tickets 
     FOR ALL USING (true) WITH CHECK (true);
 
 -- Политики для support_messages
+DROP POLICY IF EXISTS "Enable all for support_messages" ON support_messages;
 CREATE POLICY "Enable all for support_messages" ON support_messages 
     FOR ALL USING (true) WITH CHECK (true);

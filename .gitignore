@@ -20,3 +20,6 @@ puppeteer_test/
 .next/
 out/
 *.tsbuildinfo
+
+# Supabase CLI temp files
+supabase/.temp/

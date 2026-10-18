@@ -367,6 +367,10 @@
     if (phone) {
       updatePayload.phone = phone;
     }
+    if (addressFull) {
+      updatePayload.delivery_address = addressFull;
+    }
+    updatePayload.passport_data = updatePayload.kyc_data;
 
     const { error: userErr } = await supabaseClient.from('users').update(updatePayload).eq('user_id', curUserId);
     if (userErr) throw userErr;
