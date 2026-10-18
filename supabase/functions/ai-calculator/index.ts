@@ -6,6 +6,7 @@ const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY") || "";
 const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY") || "";
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || "";
+const OCR_SPACE_API_KEY = Deno.env.get("OCR_SPACE_API_KEY") || "helloworld";
 const VISION_MODEL = Deno.env.get("OPENROUTER_VISION_MODEL") || "google/gemini-2.0-flash-001";
 const TEXT_MODEL = "google/gemini-2.0-flash-001";
 const STORAGE_BUCKET = "product-screenshots";
@@ -260,7 +261,7 @@ const BELARUS_REGION_MAP: Record<string, string> = {
 };
 
 function detectRegionByCity(city: string): string | null {
-  const c = (city || "").toLowerCase().trim();
+  const c = (city || "").toLowerCase().trim().replace(/колодиц/g, "колодищ").replace(/тарасав/g, "тарасов").replace(/баровлян/g, "боровлян");
   if (!c) return null;
 
   // 1. Минский район или Минская область
@@ -517,8 +518,9 @@ function lookupBelarusPostcode(city?: string, street?: string, house?: string): 
   }
 
   // 4. Поиск по словарю райцентров, поселков и агрогородков
+  const normalizedC = c.replace(/колодиц/g, "колодищ").replace(/тарасав/g, "тарасов").replace(/баровлян/g, "боровлян");
   for (const [key, code] of Object.entries(BELARUS_TOWNS_POSTAL)) {
-    if (c.includes(key)) {
+    if (normalizedC.includes(key)) {
       return code;
     }
   }
@@ -613,6 +615,256 @@ async function enrichBelarusAddress(addr: Record<string, any>): Promise<Record<s
   }
 
   return result;
+}
+
+// ==========================================
+// 🚀 БЕСПЛАТНЫЙ ОПТИЧЕСКИЙ OCR-ДВИЖОК
+// 0 кредитов, 0 рублей, мгновенное считывание паспорта РБ и штампа
+// ==========================================
+
+async function runOCRSpaceImage(base64Image: string, lang = "rus"): Promise<string> {
+  let img = (base64Image || "").trim();
+  if (!img) return "";
+  if (!img.startsWith("data:")) {
+    img = `data:image/jpeg;base64,${img}`;
+  }
+
+  const form = new URLSearchParams();
+  form.append("base64Image", img);
+  form.append("language", lang);
+  form.append("isOverlayRequired", "false");
+  form.append("OCREngine", "2");
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+
+  try {
+    const res = await fetch("https://api.ocr.space/parse/image", {
+      method: "POST",
+      headers: { "apikey": OCR_SPACE_API_KEY },
+      body: form,
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok) return "";
+    const data = await res.json();
+    return data?.ParsedResults?.[0]?.ParsedText || "";
+  } catch (err) {
+    clearTimeout(timer);
+    console.warn("OCR.space network error:", err);
+    return "";
+  }
+}
+
+function parsePage31FromText(text: string): Record<string, any> {
+  const result: Record<string, any> = {};
+  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (/фамилия|прозвішча|sumame|surname/i.test(l) && lines[i + 1]) {
+      result.last_name = lines[i + 1].replace(/[^А-Яа-яЁёA-Za-z-]/g, "").toUpperCase();
+    }
+    if (/^імя|^имя|given names/i.test(l) && !/бацьку|отчество/i.test(l) && lines[i + 1]) {
+      result.first_name = lines[i + 1].replace(/[^А-Яа-яЁёA-Za-z-]/g, "").toUpperCase();
+    }
+    if (/отчество|бацьку/i.test(l) && lines[i + 1]) {
+      result.patronymic = lines[i + 1].replace(/[^А-Яа-яЁёA-Za-z-]/g, "").toUpperCase();
+    }
+    if (/орган/i.test(l)) {
+      const nextParts: string[] = [];
+      for (let j = i + 1; j < Math.min(i + 4, lines.length); j++) {
+        if (/дата|date|паспорт|passport/i.test(lines[j])) break;
+        nextParts.push(lines[j]);
+      }
+      if (nextParts.length > 0) {
+        result.issued_by = nextParts.join(" ").replace(/^[":']+|[":']+$/g, "").trim();
+      }
+    }
+    const mDate = l.match(/\b(\d{2})[./-](\d{2})[./-](\d{4})\b/);
+    if (mDate && !result.issue_date) {
+      result.issue_date = `${mDate[3]}-${mDate[2]}-${mDate[1]}`;
+    }
+  }
+
+  return result;
+}
+
+function parsePage33FromText(text: string): Record<string, any> {
+  const result: Record<string, any> = {};
+  const clean = text.replace(/\r/g, "");
+
+  const m1 = clean.match(/P<BLR([A-Z<]+)/i);
+  if (m1) {
+    const names = m1[1].split("<<");
+    if (names[0]) result.last_name_lat = names[0].replace(/</g, "").trim();
+    if (names[1]) result.first_name_lat = names[1].replace(/</g, "").trim();
+  }
+
+  const m2 = clean.match(/([A-Z]{2}\d{7})\d?BLR(\d{6})\d?([MF])(\d{6})\d?([A-Z0-9]{14})/i);
+  if (m2) {
+    result.series_number = m2[1].toUpperCase();
+    const yy = parseInt(m2[2].slice(0, 2), 10);
+    const mm = m2[2].slice(2, 4);
+    const dd = m2[2].slice(4, 6);
+    const century = yy > 30 ? "19" : "20";
+    result.birth_date = `${century}${yy.toString().padStart(2, "0")}-${mm}-${dd}`;
+    result.gender = m2[3].toUpperCase() === "M" ? "Мужской" : "Женский";
+    result.id_number = m2[5].toUpperCase();
+    result.raw_mrz = `P<BLR${m1 ? m1[1] : ""}\n${m2[0]}`;
+  } else {
+    const mPass = clean.match(/\b([A-Z]{2}\d{7})\b/i);
+    if (mPass) result.series_number = mPass[1].toUpperCase();
+
+    const mId = clean.match(/\b([0-9][0-9]{6}[A-Z][0-9]{3}[A-Z]{2}[0-9])\b/i);
+    if (mId) result.id_number = mId[1].toUpperCase();
+
+    const mBirth = clean.match(/\b(\d{2})\.(\d{2})\.(\d{4})\b/);
+    if (mBirth) result.birth_date = `${mBirth[3]}-${mBirth[2]}-${mBirth[1]}`;
+  }
+
+  return result;
+}
+
+function parseRegistrationStampFromText(text: string): Record<string, any> {
+  const result: Record<string, any> = {};
+  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+
+  // 1. Населенный пункт
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (/населены пункт|нас\.\s*пункт/i.test(l)) {
+      const inline = l.replace(/^.*(?:населены пункт|нас\.\s*пункт)[^:]*[:\s]*/i, "").trim();
+      if (inline && !/вуліца|улица|дом|корп|кв|дата/i.test(inline)) {
+        result.address_city = inline;
+        break;
+      }
+      if (lines[i + 1] && !/вуліца|улица|дом|корп|кв|дата/i.test(lines[i + 1])) {
+        result.address_city = lines[i + 1].trim();
+        break;
+      }
+    } else if (!/населены|па месцы|зарэгістр|жыхарства/i.test(l) && /(?:^|\s)(?:г\.|аг\.|д\.|пос\.|пгт)\s*([А-Яа-яЁё-]+(?:\s+[А-Яа-яЁё-]+)?)/i.test(l)) {
+      const m = l.match(/(?:^|\s)(?:г\.|аг\.|д\.|пос\.|пгт)\s*([А-Яа-яЁё-]+(?:\s+[А-Яа-яЁё-]+)?)/i);
+      result.address_city = m![0].trim();
+      break;
+    }
+  }
+  if (!result.address_city) {
+    for (const l of lines) {
+      if (/минск|брест|витебск|гомель|гродно|могилев|колодищ|тарасов|боровлян|фанипол|заславл|бобруйск/i.test(l) && !/рувд|паспорт|зарегистр|жыхарств/i.test(l)) {
+        result.address_city = l.trim();
+        break;
+      }
+    }
+  }
+
+  // Очистка города от случайных пробелов внутри названия (напр. 'Колодищ и' -> 'Колодищи')
+  if (result.address_city) {
+    result.address_city = result.address_city
+      .replace(/([А-Яа-яЁё]{2,})\s+([А-Яа-яЁё]{1,2})$/, "$1$2")
+      .replace(/колодиц[ие]/gi, "Колодищи");
+  }
+
+  // 2. Улица / проспект
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (/вуліца|улица.*пр-т/i.test(l)) {
+      const inline = l.replace(/^.*(?:вуліца|улица)[^:]*[:\s]*/i, "").trim();
+      if (inline && !/дом|корп|кв|дата/i.test(inline)) {
+        result.address_street = inline;
+        break;
+      }
+      if (lines[i + 1] && !/дом|корп|кв|дата/i.test(lines[i + 1])) {
+        result.address_street = lines[i + 1].trim();
+        break;
+      }
+    } else if (!/вуліца|улица|место|нас\.|пункт|па месцы/i.test(l) && /(?:пр-т|просп|ул\.|вул\.|тракт|пер\.|бул\.)\s*([А-Яа-яЁё0-9.\s-]+)/i.test(l)) {
+      result.address_street = l.trim();
+      break;
+    }
+  }
+  if (!result.address_street) {
+    for (const l of lines) {
+      if (/независимост|победител|притыцк|советск|центральн|тюленин|минск/i.test(l) && !/г\.|город|орган|жыхарств/i.test(l)) {
+        result.address_street = l.trim();
+        break;
+      }
+    }
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    const m = l.match(/(?:Дом|д\.)[:\s]*([0-9]+[А-Яа-яA-Za-z]?(?:[\/-][0-9А-Яа-яA-Za-z]+)?)/i);
+    if (m && m[1]) {
+      result.address_house = m[1].trim();
+      break;
+    } else if (/^дом[:\s]*$/i.test(l) && lines[i + 1] && /^\d+/.test(lines[i + 1])) {
+      result.address_house = lines[i + 1].trim();
+      break;
+    }
+  }
+
+  result.address_building = "-";
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    const m = l.match(/(?:Корп\.?|Корпус)[:\s]*([0-9]+[А-Яа-яA-Za-z]?)/i);
+    if (m && m[1]) {
+      result.address_building = m[1].trim();
+      break;
+    } else if (/^корп\.?[:\s]*$/i.test(l) && lines[i + 1] && /^[0-9]+$/.test(lines[i + 1])) {
+      result.address_building = lines[i + 1].trim();
+      break;
+    }
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    const m = l.match(/(?:Кв\.?|Кватэра|пакой)[:\s]*([0-9]+)/i);
+    if (m && m[1]) {
+      result.address_apartment = m[1].trim();
+      break;
+    } else if (/^(?:кв\.?|кватэра)[:\s]*$/i.test(l) && lines[i + 1] && /^\d+$/.test(lines[i + 1])) {
+      result.address_apartment = lines[i + 1].trim();
+      break;
+    }
+  }
+  if (!result.address_apartment) {
+    const digitLines = lines.filter(l => /^\d{1,4}$/.test(l));
+    if (digitLines.length > 0 && digitLines[digitLines.length - 1] !== result.address_house && digitLines[digitLines.length - 1] !== result.address_building) {
+      result.address_apartment = digitLines[digitLines.length - 1];
+    }
+  }
+
+  return result;
+}
+
+async function parsePassportWithFreeOCR(frame1?: string, frame2?: string, frame3?: string): Promise<Record<string, any> | null> {
+  try {
+    const [t33, t31, tStamp] = await Promise.all([
+      frame2 ? runOCRSpaceImage(frame2, "eng").catch(() => "") : Promise.resolve(""),
+      frame1 ? runOCRSpaceImage(frame1, "rus").catch(() => "") : Promise.resolve(""),
+      frame3 ? runOCRSpaceImage(frame3, "rus").catch(() => "") : Promise.resolve("")
+    ]);
+
+    const data33 = frame2 ? parsePage33FromText(t33) : {};
+    const data31 = frame1 ? parsePage31FromText(t31) : {};
+    const dataStamp = frame3 ? parseRegistrationStampFromText(tStamp) : {};
+
+    const combined: Record<string, any> = {
+      ok: true,
+      ...data33,
+      ...data31,
+      ...dataStamp
+    };
+
+    if (combined.id_number || combined.series_number || combined.last_name) {
+      return combined;
+    }
+    return null;
+  } catch (err) {
+    console.warn("Free OCR Engine error:", err);
+    return null;
+  }
 }
 
 async function callVisionChatWithFallback(messages: any[], maxTokens = 3500, title = "ICE LOGIX Vision"): Promise<any> {
@@ -1083,6 +1335,25 @@ Return ONLY a JSON object:
         imageUrl = `data:image/jpeg;base64,${imageUrl}`;
       }
 
+      // 🚀 ПРИОРИТЕТ 1: БЕСПЛАТНЫЙ БЫСТРЫЙ OCR-ДВИЖОК
+      try {
+        let freeResult = await parsePassportWithFreeOCR(imageUrl, imageUrl, "");
+        if (freeResult && (freeResult.id_number || freeResult.series_number || freeResult.last_name)) {
+          console.log("Successfully recognized parse_passport via Free OCR Engine");
+          return new Response(
+            JSON.stringify({
+              ok: true,
+              passport_data: freeResult,
+              engine: "free-ocr-space",
+              raw_output: "Parsed by Free OCR Engine"
+            }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      } catch (fErr) {
+        console.warn("Free OCR in parse_passport failed, proceeding to Vision LLM fallback:", fErr);
+      }
+
       const prompt = `Ты — эксперт по оптическому распознаванию паспортов и ID-карт Республики Беларусь (РБ).
 Твоя задача — внимательно изучить предоставленное изображение разворота паспорта РБ (страницы 31-33) или двусторонней ID-карты гражданина Беларуси и извлечь паспортные данные на русском языке.
 
@@ -1164,6 +1435,35 @@ Return ONLY a JSON object:
       let img3 = typeof frame3 === "string" ? frame3.trim() : "";
       if (img3 && !img3.startsWith("data:") && !img3.startsWith("http")) {
         img3 = `data:image/jpeg;base64,${img3}`;
+      }
+
+      // ==========================================
+      // 🚀 ПРИОРИТЕТ 1: БЕСПЛАТНЫЙ БЫСТРЫЙ OCR-ДВИЖОК
+      // 0 кредитов, 0 рублей, ответ за 1-2 секунды
+      // ==========================================
+      try {
+        let freeResult = await parsePassportWithFreeOCR(img1, img2, img3);
+        if (freeResult && (freeResult.id_number || freeResult.series_number || freeResult.last_name)) {
+          if (img3) {
+            try {
+              freeResult = await enrichBelarusAddress(freeResult);
+            } catch (enrichErr) {
+              console.warn("Address enrichment error in free OCR:", enrichErr);
+            }
+          }
+          console.log("Successfully recognized via Free OCR Engine");
+          return new Response(
+            JSON.stringify({
+              ok: true,
+              result: freeResult,
+              engine: "free-ocr-space",
+              raw_output: "Parsed by Free OCR Engine"
+            }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      } catch (freeErr) {
+        console.warn("Free OCR attempt failed, proceeding to Vision LLM fallback:", freeErr);
       }
 
       const prompt = `Ты — эксперт по оптическому считыванию и декодированию паспортов и ID-карт Республики Беларусь (стандарт ICAO 9303).
