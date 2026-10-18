@@ -69,7 +69,7 @@
   /**
    * Вычисление координат видоискателя на видео с учетом object-fit: cover
    */
-  function getViewfinderCrop(video, viewfinder) {
+  function getViewfinderCrop(video, viewfinder, isStep3 = false) {
     const vWidth = video.videoWidth;
     const vHeight = video.videoHeight;
     if (!vWidth || !vHeight) return null;
@@ -101,9 +101,10 @@
     const cropW = Math.min(vWidth - cropX, fRect.width * scale);
     const cropH = Math.min(vHeight - cropY, fRect.height * scale);
 
-    // Добавляем 4% запаса, чтобы края документа не обрезались
-    const marginX = cropW * 0.04;
-    const marginY = cropH * 0.04;
+    // Добавляем запас (4% для страниц 31-33, 8% для штампа прописки, чтобы номер дома слева не срезался)
+    const marginRatio = isStep3 ? 0.08 : 0.04;
+    const marginX = cropW * marginRatio;
+    const marginY = cropH * marginRatio;
     const sx = Math.max(0, cropX - marginX);
     const sy = Math.max(0, cropY - marginY);
     const sw = Math.min(vWidth - sx, cropW + marginX * 2);
@@ -117,8 +118,8 @@
    * Кроп изображения строго по видоискателю с учетом object-fit: cover
    * Возвращает чисто разворот документа в высоком разрешении без комнаты и фона
    */
-  function cropViewfinderFromVideo(video, viewfinder, targetWidth = 1200, quality = 0.88) {
-    const crop = getViewfinderCrop(video, viewfinder);
+  function cropViewfinderFromVideo(video, viewfinder, targetWidth = 1200, quality = 0.88, isStep3 = false) {
+    const crop = getViewfinderCrop(video, viewfinder, isStep3);
     if (!crop) return null;
 
     const canvas = document.createElement('canvas');
@@ -833,7 +834,7 @@
       // Для Шага 3 (рукописный адрес в ячейках штампа) используем максимальную четкость 1600px и качество 0.93
       const targetCropWidth = (currentStep === 3) ? 1600 : 1300;
       const targetQuality = (currentStep === 3) ? 0.93 : 0.88;
-      const shotDataUrl = cropViewfinderFromVideo(videoElem, viewfinder, targetCropWidth, targetQuality) || canvasToDataUrl(videoElem, targetCropWidth, targetQuality);
+      const shotDataUrl = cropViewfinderFromVideo(videoElem, viewfinder, targetCropWidth, targetQuality, currentStep === 3) || canvasToDataUrl(videoElem, targetCropWidth, targetQuality);
 
       if (currentStep === 1) {
         frame1DataUrl = shotDataUrl;
