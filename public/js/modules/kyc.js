@@ -68,17 +68,17 @@
       'M': 'Минская область'
     };
 
-    // Статус гражданства по 12-13 символам (PB=гражданин РБ, BA=лицо без гражданства, BI=ВНЖ)
+    // Статус гражданства и документа по 12-13 символам (PB=паспорт РБ, BA=лицо без гражданства, BI=ВНЖ)
     const docTypeNames = {
-      'PB': 'Гражданин Республики Беларусь',
+      'PB': 'Паспорт гражданина РБ',
       'BA': 'Лицо без гражданства',
-      'BI': 'Иностранный гражданин (ВНЖ РБ)'
+      'BI': 'Вид на жительство (ВНЖ РБ)'
     };
 
     const char8 = cleanId[7];
     const detectedRegion = regionNames[char8] || 'Беларусь';
     const char1213 = cleanId.slice(11, 13);
-    const detectedDocType = docTypeNames[char1213] || 'Республика Беларусь';
+    const detectedDocType = docTypeNames[char1213] || 'Паспорт гражданина РБ';
 
     // 1. Попытка классического парсинга даты и пола по стандарту МВД РБ:
     // [1-6] [ДД] [ММ] [ГГ] [Буква региона] [3 цифры] [PB/BA/BI] [Контрольная цифра]
@@ -1575,7 +1575,7 @@
             <div class="grid grid-cols-2 gap-1 text-[11px] text-white/70 pt-1 border-t border-white/10">
               <div>Пол: <b>${d.gender}</b></div>
               <div>Рождение: <b>${d.birthDateStr}</b></div>
-              <div class="col-span-2">Регион: <b>${d.region}</b> (${d.citizenship})</div>
+              <div class="col-span-2">Документ: <b>${d.citizenship}</b></div>
             </div>
           `;
         } else {
@@ -1586,21 +1586,11 @@
             </div>
             <div class="grid grid-cols-2 gap-1 text-[11px] text-white/70 pt-1 border-t border-white/10">
               <div class="col-span-2">Документ: <b>${d.citizenship}</b></div>
-              <div class="col-span-2">Регион: <b>${d.region}</b></div>
+              <div class="col-span-2 text-white/60">Для таможенного реестра ПТДЭГ</div>
             </div>
           `;
         }
         previewCard.classList.remove('hidden');
-
-        // Авто-подстановка региона в селект прописки (если еще не выбран)
-        if (regionSelect && !regionSelect.value && d.region) {
-          for (let i = 0; i < regionSelect.options.length; i++) {
-            if (regionSelect.options[i].value === d.region) {
-              regionSelect.selectedIndex = i;
-              break;
-            }
-          }
-        }
 
         if (consentBlock) {
           if (d.isMinorWithConsent) {
