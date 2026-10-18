@@ -403,6 +403,99 @@ Return ONLY a JSON object:
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    } else if (action === "parse_passport_alipay") {
+      const { frame1, frame2, mode } = payload;
+      if (!frame2) {
+        return new Response(
+          JSON.stringify({ ok: false, error: "Отсутствует кадр 2 (страница с MRZ)" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      let img1 = typeof frame1 === "string" ? frame1.trim() : "";
+      if (img1 && !img1.startsWith("data:") && !img1.startsWith("http")) {
+        img1 = `data:image/jpeg;base64,${img1}`;
+      }
+
+      let img2 = typeof frame2 === "string" ? frame2.trim() : "";
+      if (img2 && !img2.startsWith("data:") && !img2.startsWith("http")) {
+        img2 = `data:image/jpeg;base64,${img2}`;
+      }
+
+      const prompt = `Ты — эксперт по оптическому считыванию и декодированию паспортов и ID-карт Республики Беларусь (стандарт ICAO 9303).
+Тебе предоставлены изображения документа одного гражданина Беларуси:
+${img1 ? "- Кадр 1: Страница 31 паспорта или лицевая сторона ID (ФИО на русском языке, орган выдачи МВД)." : ""}
+- Кадр 2: Страница 33 паспорта или обратная сторона ID (фото, личный 14-значный номер и машиночитаемая зона MRZ со знаками <<<).
+
+Твоя задача — извлечь регистрационные данные для таможенного декларирования:
+1. Машиночитаемая зона MRZ: точно две строки ровно по 44 символа со знаками < (напр. P<BLR...\\nMP12345678BLR...)
+2. Фамилия (русскими буквами)
+3. Имя (русскими буквами)
+4. Отчество (русскими буквами, если указано)
+5. Серия и номер паспорта (например MP1234567 или 9 цифр ID-карты)
+6. Дата рождения (в формате YYYY-MM-DD)
+7. Пол ("Мужской" или "Женский")
+8. Идентификационный (личный) номер РБ: ровно 14 символов (буквы латинские: A, B, C, E, H, K, M, O, P, T, X)
+9. Дата выдачи документа (YYYY-MM-DD)
+10. Орган выдачи документа (на русском языке, например "ФРУНЗЕНСКИМ РУВД Г. МИНСКА", "МОСКОВСКИМ РУВД Г. МИНСКА", "МВД")
+
+ВЕРНИ ТОЛЬКО ЧИСТЫЙ JSON-ОБЪЕКТ СЛЕДУЮЩЕЙ СТРУКТУРЫ (без \`\`\`json markdown):
+{
+  "raw_mrz": "P<BLR...\\nMP...",
+  "last_name": "Иванов",
+  "first_name": "Иван",
+  "patronymic": "Иванович",
+  "series_number": "MP1234567",
+  "birth_date": "2000-05-15",
+  "gender": "Мужской",
+  "id_number": "3010195A012PB3",
+  "issue_date": "2021-08-10",
+  "issued_by": "ФРУНЗЕНСКИМ РУВД Г. МИНСКА"
+}`;
+
+      const contentItems: any[] = [{ type: "text", text: prompt }];
+      if (img1) {
+        contentItems.push({ type: "image_url", image_url: { url: img1 } });
+      }
+      contentItems.push({ type: "image_url", image_url: { url: img2 } });
+
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+          "HTTP-Referer": "https://icelogix.app",
+          "X-Title": "ICE LOGIX Alipay MRZ Scanner",
+        },
+        body: JSON.stringify({
+          model: VISION_MODEL,
+          messages: [
+            {
+              role: "user",
+              content: contentItems,
+            },
+          ],
+          temperature: 0.05,
+          max_tokens: 350,
+        }),
+      });
+
+      if (!res.ok) {
+        const errTxt = await res.text().catch(() => "");
+        throw new Error(`OpenRouter HTTP ${res.status}: ${errTxt}`);
+      }
+
+      const data = await res.json();
+      const rawOutput = data?.choices?.[0]?.message?.content || "";
+      const parsed = parseAssistantJson(rawOutput);
+
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          result: parsed,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     } else {
       return new Response(
         JSON.stringify({ error: "Unknown action" }),
