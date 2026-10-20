@@ -1038,7 +1038,7 @@
     try {
       const docAiUrl = window.DOC_AI_API_URL || 'http://127.0.0.1:8088';
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 2000);
+      const timer = setTimeout(() => controller.abort(), 15000);
       const resp = await fetch(`${docAiUrl}/scan-passport`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
