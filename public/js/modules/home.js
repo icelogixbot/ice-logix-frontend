@@ -119,16 +119,18 @@ async function renderHome() {
 
         <!-- Strictly clipped inside the module -->
         <div class="marketplaces-inner-clipper">
-          <div class="marketplaces-track scroll-x" id="marketplaceRouletteTrack">
-            ${[0, 1, 2, 3, 4].flatMap(() => marketplaces).map((mp, idx) => `
-              <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}" data-idx="${idx}">
-                <div class="story-icon">
-                  ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261021_13" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
-                  <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 20px;">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
+          <div class="marketplaces-track" id="marketplaceRouletteTrack">
+            <div class="marketplaces-ribbon" id="marketplaceRibbon">
+              ${[...marketplaces, ...marketplaces].map((mp, idx) => `
+                <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}" data-idx="${idx}">
+                  <div class="story-icon">
+                    ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261021_14" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
+                    <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 20px;">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
+                  </div>
+                  <span class="story-label">${mp.name}</span>
                 </div>
-                <span class="story-label">${mp.name}</span>
-              </div>
-            `).join('')}
+              `).join('')}
+            </div>
           </div>
         </div>
       </div>
@@ -639,10 +641,11 @@ function attachHomeHandlers() {
   }
 
 
-// ==================== РУЛЕТКА ПЛОЩАДОК (CS:GO Case Style) ====================
+// ==================== РУЛЕТКА ПЛОЩАДОК (True Seamless Infinite Queue) ====================
 function initMarketplaceRoulette() {
   const track = document.getElementById('marketplaceRouletteTrack');
-  if (!track) return;
+  const ribbon = document.getElementById('marketplaceRibbon');
+  if (!track || !ribbon) return;
 
   if (window.__mpRouletteTimer) {
     clearTimeout(window.__mpRouletteTimer);
@@ -653,96 +656,122 @@ function initMarketplaceRoulette() {
     window.__mpResumeTimer = null;
   }
 
-  const cards = Array.from(track.querySelectorAll('.marketplace-story'));
-  if (cards.length === 0) return;
+  const CARD_WIDTH = 54;
+  const GAP = 15;
+  const STEP = CARD_WIDTH + GAP; // 69px
+  const CENTER_INDEX = 2; // карточка с индексом 2 находится ровно по центру видоискателя
 
-  const baseCount = 7; // стандартный набор 7 маркетплейсов
-  let currentIndex = baseCount * 2; // стартуем со среднего сета (сет 2, индекс 14)
-  let isInteracting = false;
-
-  function updateActiveTarget() {
-    if (!track) return;
-    const trackCenter = track.scrollLeft + (track.clientWidth / 2);
-    let closestCard = null;
-    let minDiff = Infinity;
-
-    cards.forEach(card => {
-      const cardCenter = card.offsetLeft + (card.offsetWidth / 2);
-      const diff = Math.abs(cardCenter - trackCenter);
-      if (diff < minDiff) {
-        minDiff = diff;
-        closestCard = card;
-      }
-    });
-
-    cards.forEach(c => c.classList.remove('is-active-target'));
-    if (closestCard) {
-      closestCard.classList.add('is-active-target');
-      currentIndex = cards.indexOf(closestCard);
-    }
+  function alignRibbon() {
+    if (!track || !ribbon) return;
+    const trackWidth = track.clientWidth;
+    const trackCenter = trackWidth / 2;
+    const cardCenterInRibbon = (CENTER_INDEX * STEP) + (CARD_WIDTH / 2);
+    const baseLeft = trackCenter - cardCenterInRibbon;
+    ribbon.style.left = baseLeft + 'px';
+    highlightCenter();
   }
 
-  function centerCard(idx, smooth = true) {
-    if (!track || !cards[idx]) return;
-    const card = cards[idx];
-    const trackCenter = track.clientWidth / 2;
-    const targetLeft = card.offsetLeft + (card.offsetWidth / 2) - trackCenter;
-
-    track.scrollTo({
-      left: targetLeft,
-      behavior: smooth ? 'smooth' : 'auto'
+  function highlightCenter() {
+    if (!ribbon) return;
+    const children = Array.from(ribbon.children);
+    children.forEach((c, idx) => {
+      c.classList.toggle('is-active-target', idx === CENTER_INDEX);
     });
-    updateActiveTarget();
   }
+
+  let isAnimating = false;
+  let isPaused = false;
 
   function stepNext() {
-    if (isInteracting || !document.getElementById('marketplaceRouletteTrack')) return;
-    currentIndex++;
+    if (isAnimating || isPaused || !document.getElementById('marketplaceRibbon')) return;
+    isAnimating = true;
 
-    // Бесшовный цикл: если дошли до 4-го сета, незаметно сдвигаем назад на 2 сета
-    if (currentIndex >= baseCount * 4) {
-      currentIndex -= (baseCount * 2);
-      centerCard(currentIndex, false);
+    // Плавный сдвиг ленты влево ровно на 1 слот карточки
+    ribbon.style.transition = 'transform 0.58s cubic-bezier(0.22, 1, 0.36, 1)';
+    ribbon.style.transform = `translateX(-${STEP}px)`;
+
+    // Предварительная подсветка следующей карточки (входит в центр)
+    const children = Array.from(ribbon.children);
+    children.forEach(c => c.classList.remove('is-active-target'));
+    if (children[CENTER_INDEX + 1]) {
+      children[CENTER_INDEX + 1].classList.add('is-active-target');
     }
 
-    centerCard(currentIndex, true);
-    scheduleNext();
+    // По завершении анимации: бесшовно переносим первую карточку в конец очереди и сбрасываем transform: 0
+    setTimeout(() => {
+      if (!ribbon || !ribbon.firstElementChild) {
+        isAnimating = false;
+        return;
+      }
+      ribbon.style.transition = 'none';
+      ribbon.appendChild(ribbon.firstElementChild);
+      ribbon.style.transform = 'translateX(0px)';
+      void ribbon.offsetWidth; // force reflow
+
+      highlightCenter();
+      isAnimating = false;
+      scheduleNext();
+    }, 590);
   }
 
   function scheduleNext() {
     clearTimeout(window.__mpRouletteTimer);
-    window.__mpRouletteTimer = setTimeout(stepNext, 2600);
+    window.__mpRouletteTimer = setTimeout(stepNext, 2400); // 2.4s пауза в центре
   }
 
-  // Ручное управление: пауза при касании/свайпе
-  function onTouchStart() {
-    isInteracting = true;
+  // Ручное управление свайпом
+  let startX = 0;
+  let currentDragDelta = 0;
+  let isDragging = false;
+
+  function onTouchStart(e) {
+    if (isAnimating) return;
+    isPaused = true;
     clearTimeout(window.__mpRouletteTimer);
     clearTimeout(window.__mpResumeTimer);
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    startX = clientX;
+    currentDragDelta = 0;
+    isDragging = true;
+  }
+
+  function onTouchMove(e) {
+    if (!isDragging || isAnimating || !ribbon) return;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    currentDragDelta = clientX - startX;
+    ribbon.style.transition = 'none';
+    ribbon.style.transform = `translateX(${currentDragDelta}px)`;
   }
 
   function onTouchEnd() {
+    if (!isDragging || !ribbon) return;
+    isDragging = false;
+
+    if (currentDragDelta < -STEP / 2) {
+      stepNext();
+    } else {
+      ribbon.style.transition = 'transform 0.25s ease-out';
+      ribbon.style.transform = 'translateX(0px)';
+    }
+
     clearTimeout(window.__mpResumeTimer);
     window.__mpResumeTimer = setTimeout(() => {
-      isInteracting = false;
-      if (!document.getElementById('marketplaceRouletteTrack')) return;
-      updateActiveTarget();
-      centerCard(currentIndex, true);
+      isPaused = false;
       scheduleNext();
     }, 2500);
   }
 
-  track.addEventListener('scroll', updateActiveTarget, { passive: true });
   track.addEventListener('touchstart', onTouchStart, { passive: true });
+  track.addEventListener('touchmove', onTouchMove, { passive: true });
   track.addEventListener('touchend', onTouchEnd, { passive: true });
   track.addEventListener('mousedown', onTouchStart);
-  track.addEventListener('mouseup', onTouchEnd);
+  window.addEventListener('mousemove', onTouchMove);
+  window.addEventListener('mouseup', onTouchEnd);
+  window.addEventListener('resize', alignRibbon);
 
-  // Первичное позиционирование после отрисовки
-  setTimeout(() => {
-    centerCard(currentIndex, false);
-    scheduleNext();
-  }, 120);
+  // Первичное выравнивание и запуск
+  alignRibbon();
+  scheduleNext();
 }
 
 // Global Exports

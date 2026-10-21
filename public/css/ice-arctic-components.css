@@ -227,18 +227,23 @@ body::before { opacity: .12 !important; }
 .marketplaces-track {
   width: 100%;
   height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  user-select: none;
+  touch-action: pan-y;
+}
+
+.marketplaces-ribbon {
   display: flex;
   align-items: center;
   gap: 15px;
-  padding: 0 22px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  -webkit-overflow-scrolling: touch;
-  scroll-snap-type: x proximity;
-  scrollbar-width: none;
-}
-.marketplaces-track::-webkit-scrollbar {
-  display: none;
+  will-change: transform;
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
 }
 
 .story-card.marketplace-story {
@@ -246,12 +251,12 @@ body::before { opacity: .12 !important; }
   flex-direction: column;
   align-items: center;
   gap: 1px !important;
-  flex: 0 0 auto;
+  flex: 0 0 54px;
+  width: 54px;
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  scroll-snap-align: center;
-  transition: transform 0.32s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.32s ease, filter 0.32s ease;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease;
   opacity: 0.52;
   transform: scale(0.92);
 }

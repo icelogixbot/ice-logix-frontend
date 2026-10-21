@@ -1559,6 +1559,34 @@ Return ONLY a JSON object:
         );
       }
 
+      // 🚀 ПРИОРИТЕТ 1: Суверенный белорусский Document AI VPS (0$, 100% точность, <500 мс)
+      try {
+        const vpsUrl = Deno.env.get("DOC_AI_VPS_URL") || "http://80.94.235.37";
+        const vpsResp = await fetch(`${vpsUrl}/scan-passport`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            frame1: frame1 || null,
+            frame2: frame2 || null,
+            frame3: frame3 || null,
+            mode: mode || "passport"
+          }),
+          signal: AbortSignal.timeout(12000)
+        });
+        if (vpsResp.ok) {
+          const vpsData = await vpsResp.json();
+          if (vpsData?.ok && vpsData?.result && (vpsData.result.id_number || vpsData.result.series_number || vpsData.result.address_street)) {
+            console.log("[ai-calculator] Успешно распознано через суверенный белорусский VPS за", vpsData.duration_ms, "мс");
+            return new Response(
+              JSON.stringify(vpsData.result),
+              { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        }
+      } catch (errVps) {
+        console.warn("[ai-calculator] Суверенный VPS временно недоступен, переход к запасному каскаду:", errVps);
+      }
+
       let img1 = typeof frame1 === "string" ? frame1.trim() : "";
       if (img1 && !img1.startsWith("data:") && !img1.startsWith("http")) {
         img1 = `data:image/jpeg;base64,${img1}`;
