@@ -231,6 +231,12 @@
             🔍 Поместите страницу 31 в рамку
           </div>
 
+          <!-- Кнопка смены ориентации рамки (Шаг 3: вертикально/горизонтально) -->
+          <button type="button" id="kycOrientationToggleBtn" class="hidden kyc-orientation-toggle-btn mb-2 transition-all cursor-pointer">
+            <span>🔄</span>
+            <span id="kycOrientationLabel">Рамка: Вертикальная (1 стр.)</span>
+          </button>
+
           <div id="kycViewfinder" class="kyc-scanner-viewfinder">
             <!-- Уголки -->
             <div class="kyc-scanner-corner tl"></div>
@@ -308,6 +314,8 @@
     const modeIdCardBtn = document.getElementById('kycModeIdCardBtn');
     const viewfinder = document.getElementById('kycViewfinder');
     const livePill = document.getElementById('kycLivePill');
+    const orientationBtn = document.getElementById('kycOrientationToggleBtn');
+    const orientationLabel = document.getElementById('kycOrientationLabel');
     const progressBar = document.getElementById('kycAutoProgressBar');
     const stepBadge = document.getElementById('kycStepBadge');
     const subText = document.getElementById('kycScannerSubText');
@@ -320,6 +328,35 @@
     const processingScreen = document.getElementById('kycProcessingScreen');
     const thumbPreview = document.getElementById('kycThumbPreview');
     const thumbImg = document.getElementById('kycThumbImg');
+
+    let isPortraitOrientation = false;
+
+    function applyOrientation(portrait) {
+      isPortraitOrientation = portrait;
+      if (portrait) {
+        viewfinder.classList.add('is-portrait');
+        if (orientationLabel) orientationLabel.textContent = 'Рамка: Вертикальная (1 стр.)';
+      } else {
+        viewfinder.classList.remove('is-portrait');
+        if (orientationLabel) orientationLabel.textContent = 'Рамка: Горизонтальная (разворот)';
+      }
+    }
+
+    if (orientationBtn) {
+      orientationBtn.onclick = () => {
+        applyOrientation(!isPortraitOrientation);
+        if (typeof tgUtil !== 'undefined' && tgUtil.haptic) {
+          tgUtil.haptic('selection');
+        } else if (window.Telegram?.WebApp?.HapticFeedback) {
+          window.Telegram.WebApp.HapticFeedback.selectionChanged();
+        }
+        if (livePill) {
+          livePill.innerHTML = isPortraitOrientation
+            ? '📄 Держите страницу со штампом вертикально...'
+            : '📄 Держите страницу со штампом горизонтально...';
+        }
+      };
+    }
 
     let liveLoopActive = false;
     let liveTimer = null;
@@ -639,6 +676,8 @@
     function updateStepUI() {
       if (mode === 'passport') {
         if (currentStep === 1) {
+          applyOrientation(false);
+          if (orientationBtn) orientationBtn.classList.add('hidden');
           stepBadge.textContent = 'Шаг 1 из 3: Разворот стр. 31 (Русские ФИО)';
           subText.textContent = 'Держите верхнюю страницу с ФИО в рамке — камера зафиксирует снимок автоматически.';
           topZone.className = 'kyc-target-box-name transition-all border-cyan-400/60 bg-cyan-500/15 text-white font-bold';
@@ -647,6 +686,8 @@
           bottomText.textContent = 'Нижняя часть разворота';
           if (skipStep3Btn) skipStep3Btn.classList.add('hidden');
         } else if (currentStep === 2) {
+          applyOrientation(false);
+          if (orientationBtn) orientationBtn.classList.add('hidden');
           stepBadge.textContent = 'Шаг 2 из 3: Разворот стр. 33 (Строка MRZ с <<<)';
           subText.textContent = 'Наведите на нижнюю страницу со строками знаков <<< — автозахват сработает сам.';
           topZone.className = 'kyc-target-box-name transition-all opacity-30';
@@ -655,16 +696,21 @@
           bottomText.textContent = 'P<BLR... Строки машиночитаемой зоны <<< (MRZ)';
           if (skipStep3Btn) skipStep3Btn.classList.add('hidden');
         } else {
+          // Шаг 3: Страница 25–28 со штампом прописки — вертикальная рамка по умолчанию!
+          applyOrientation(true);
+          if (orientationBtn) orientationBtn.classList.remove('hidden');
           stepBadge.textContent = 'Шаг 3 из 3: Штамп прописки (стр. 25–28)';
-          subText.textContent = 'Держите весь синий штамп «ЗАРЭГІСТРАВАНЫ» в рамке — нейросеть считает рукописный адрес, дом и квартиру.';
+          subText.textContent = 'Держите 1 страницу паспорта со штампом вертикально — рамка идеально совпадает со страницей паспорта РБ (88×125 мм). При необходимости нажмите «Повернуть рамку».';
           topZone.className = 'kyc-target-box-name transition-all border-cyan-400/60 bg-cyan-500/15 text-white font-bold';
           bottomZone.className = 'kyc-target-box-mrz transition-all border-cyan-400/40 bg-cyan-500/10 text-cyan-100 font-medium';
           topText.textContent = 'Синий штамп «ЗАРЭГІСТРАВАНЫ / ЗАРЕГИСТРИРОВАН»';
-          bottomText.textContent = 'Адрес: город/агрогородок/деревня, улица/проспект, дом, кв.';
+          bottomText.textContent = 'Адрес: город, улица, дом, корпус, квартира';
           if (skipStep3Btn) skipStep3Btn.classList.remove('hidden');
         }
       } else {
         // ID-карта
+        applyOrientation(false);
+        if (orientationBtn) orientationBtn.classList.add('hidden');
         if (skipStep3Btn) skipStep3Btn.classList.add('hidden');
         if (currentStep === 1) {
           stepBadge.textContent = 'Шаг 1 из 2: Лицевая сторона ID-карты';
@@ -763,7 +809,8 @@
           <h4 class="text-white font-bold text-base">Страница 33 с MRZ зафиксирована!</h4>
           <p class="text-white/80 text-xs leading-relaxed">
             Теперь откройте <b>страницу со штампом прописки (стр. 25–28)</b>.<br>
-            Нейросеть распознает синий прямоугольный штамп и рукописный адрес синей ручкой для автозаполнения полей доставки.
+            Рамка сканера автоматически переключилась в <b>вертикальный формат (1 страница РБ 88×125 мм)</b>.<br>
+            Держите паспорт вертикально — так рукописный адрес, дом и квартира будут распознаны максимально четко!
           </p>
           <div class="space-y-2 pt-2">
             <button type="button" id="kycProceedStep3Btn" class="btn-primary w-full py-3.5 rounded-2xl font-bold text-xs cursor-pointer active:scale-95 transition shadow-lg">
@@ -838,8 +885,8 @@
       setTimeout(() => flash.remove(), 300);
 
       // КРОП ВИДОИСКАТЕЛЯ: Извлекаем чисто разворот паспорта в высоком разрешении
-      // Для Шага 3 (рукописный адрес в ячейках штампа) используем максимальную четкость 1800px и качество 0.94
-      const targetCropWidth = (currentStep === 3) ? 1800 : 1300;
+      // Для Шага 3 (рукописный адрес в ячейках штампа) используем оптимальное разрешение в зависимости от ориентации
+      const targetCropWidth = (currentStep === 3) ? (isPortraitOrientation ? 1300 : 1800) : 1300;
       const targetQuality = (currentStep === 3) ? 0.94 : 0.88;
       const shotDataUrl = cropViewfinderFromVideo(videoElem, viewfinder, targetCropWidth, targetQuality, currentStep === 3) || canvasToDataUrl(videoElem, targetCropWidth, targetQuality);
 

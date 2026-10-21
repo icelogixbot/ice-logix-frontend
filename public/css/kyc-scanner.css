@@ -107,11 +107,47 @@
   justify-content: space-between;
   padding: 14px;
   box-sizing: border-box;
-  transition: aspect-ratio 0.25s ease, border-color 0.2s ease;
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.3s cubic-bezier(0.16, 1, 0.3, 1), aspect-ratio 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
 }
 
 .kyc-scanner-viewfinder.id-card-mode {
   aspect-ratio: 1.58;
+}
+
+/* Вертикальный режим видоискателя для 1 страницы паспорта РБ (стр. 25–28 со штампом прописки) */
+.kyc-scanner-viewfinder.is-portrait {
+  width: min(calc(100vw - 64px), 320px);
+  max-width: 320px;
+  max-height: 58vh;
+  aspect-ratio: 0.74; /* Пропорции 1 страницы паспорта РБ 88x125 мм */
+  padding: 16px 12px;
+}
+
+/* Кнопка смены ориентации рамки */
+.kyc-orientation-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(34, 211, 238, 0.45);
+  color: #22d3ee;
+  font-size: 11px;
+  font-weight: 700;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4), 0 0 12px rgba(34, 211, 238, 0.25);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 15;
+}
+.kyc-orientation-toggle-btn:hover {
+  border-color: #38bdf8;
+  color: #fff;
+  background: rgba(14, 116, 144, 0.6);
+}
+.kyc-orientation-toggle-btn:active {
+  transform: scale(0.94);
+  background: rgba(34, 211, 238, 0.3);
 }
 
 /* Neon corner guides */
