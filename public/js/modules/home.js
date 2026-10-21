@@ -123,39 +123,52 @@ async function renderHome() {
     </div>
     </div>
     
-    <!-- Popular Marketplaces Capsule (Seamless Tabbed Dock from User Sketch) -->
+    <!-- Popular Marketplaces Capsule (Monolithic Tabbed Dock from User Sketch) -->
     <div class="marketplaces-capsule-section mb-5">
       <div class="marketplaces-capsule">
-        <!-- Seamless Integrated Top-Center Ear ("Ушко одним целым с блоком") -->
-        <div class="marketplaces-ear-wrap">
-          <svg class="marketplaces-ear-svg" viewBox="0 0 150 24" preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="earFillGrad" x1="0" y1="0" x2="0" y2="24" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stop-color="#14283c" />
-                <stop offset="100%" stop-color="#102032" />
-              </linearGradient>
-            </defs>
-            <!-- Background fill extending 3px downwards to cover the card border seamlessly -->
-            <path d="M 0,23 C 12,23 18,1 32,1 L 118,1 C 132,1 138,23 150,23 L 150,26 L 0,26 Z" fill="url(#earFillGrad)" />
-            <!-- Top stroked border: single continuous line merging with card top border -->
-            <path d="M 0,23 C 12,23 18,1 32,1 L 118,1 C 132,1 138,23 150,23" fill="none" stroke="rgba(130, 199, 241, 0.35)" stroke-width="1.5" stroke-linecap="round" />
-          </svg>
-          <span class="marketplaces-ear-title">Площадки</span>
-        </div>
+        <svg class="marketplaces-capsule-svg" viewBox="0 0 351 126" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="capsuleFillGrad" x1="0" y1="0" x2="0" y2="100%">
+              <stop offset="0%" stop-color="#14283c"/>
+              <stop offset="35%" stop-color="#0f1f2e"/>
+              <stop offset="100%" stop-color="#081018"/>
+            </linearGradient>
+            <linearGradient id="capsuleStrokeGrad" x1="0" y1="0" x2="100%" y2="0">
+              <stop offset="0%" stop-color="rgba(130, 199, 241, 0.22)"/>
+              <stop offset="50%" stop-color="rgba(130, 199, 241, 0.45)"/>
+              <stop offset="100%" stop-color="rgba(130, 199, 241, 0.22)"/>
+            </linearGradient>
+          </defs>
+          <path d="
+            M 20,24
+            L 108,24
+            C 120,24 124,3 136,3
+            L 215,3
+            C 227,3 231,24 243,24
+            L 331,24
+            A 18,18 0 0 1 349,42
+            L 349,106
+            A 18,18 0 0 1 331,124
+            L 20,124
+            A 18,18 0 0 1 2,106
+            L 2,42
+            A 18,18 0 0 1 20,24
+            Z
+          " fill="url(#capsuleFillGrad)" stroke="url(#capsuleStrokeGrad)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+        </svg>
+        <span class="marketplaces-ear-title">Площадки</span>
 
         <!-- Inside: Horizontal Platforms Track (Крутить площадки) -->
-        <div class="marketplaces-inner-body">
-          <div class="marketplaces-track scroll-x">
-            ${marketplaces.map(mp => `
-              <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}">
-                <div class="story-icon">
-                  ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261014_55" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
-                  <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 22px;">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
-                </div>
-                <span class="story-label">${mp.name}</span>
+        <div class="marketplaces-track scroll-x">
+          ${marketplaces.map(mp => `
+            <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}">
+              <div class="story-icon">
+                ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261021_08" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
+                <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 22px;">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
               </div>
-            `).join('')}
-          </div>
+              <span class="story-label">${mp.name}</span>
+            </div>
+          `).join('')}
         </div>
       </div>
     </div>
