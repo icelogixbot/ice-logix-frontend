@@ -138,8 +138,8 @@ body::before { opacity: .12 !important; }
 .marketplaces-capsule {
   position: relative;
   width: 100%;
-  height: 126px;
-  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.5));
+  height: 124px;
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.55));
 }
 
 .marketplaces-capsule-svg {
@@ -157,32 +157,42 @@ body::before { opacity: .12 !important; }
   left: 0;
   right: 0;
   text-align: center;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: #FFFFFF;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 10px rgba(91, 191, 235, 0.4);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 10px rgba(91, 191, 235, 0.5);
   z-index: 3;
   pointer-events: none;
 }
 
-.marketplaces-track {
+/* Strictly contains all scrolling inside the capsule body without spilling onto margins */
+.marketplaces-inner-clipper {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 30px;
-  bottom: 8px;
+  top: 24px;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  border-radius: 0 0 18px 18px;
+  overflow: hidden;
+  z-index: 2;
+  mask-image: linear-gradient(to right, transparent 0, black 12px, black calc(100% - 16px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0, black 12px, black calc(100% - 16px), transparent 100%);
+}
+
+.marketplaces-track {
+  width: 100%;
+  height: 100%;
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 2px 14px 6px;
+  align-items: center;
+  gap: 16px;
+  padding: 0 14px;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
-  z-index: 2;
 }
 .marketplaces-track::-webkit-scrollbar {
   display: none;
@@ -192,7 +202,7 @@ body::before { opacity: .12 !important; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   flex: 0 0 auto;
   cursor: pointer;
   user-select: none;
@@ -205,8 +215,8 @@ body::before { opacity: .12 !important; }
   border: 0 !important;
   box-shadow: none !important;
   overflow: visible !important;
-  width: 58px !important;
-  height: 58px !important;
+  width: 48px !important;
+  height: 48px !important;
   padding: 0 !important;
   display: flex !important;
   align-items: center !important;
@@ -214,32 +224,32 @@ body::before { opacity: .12 !important; }
 }
 
 .marketplace-story .story-icon img {
-  width: 58px !important;
-  height: 58px !important;
-  max-width: 58px !important;
-  max-height: 58px !important;
+  width: 48px !important;
+  height: 48px !important;
+  max-width: 48px !important;
+  max-height: 48px !important;
   object-fit: contain !important;
-  border-radius: 14px !important;
-  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45)) !important;
+  border-radius: 12px !important;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.45)) !important;
   transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.18s ease !important;
 }
 
 .marketplace-story:active .story-icon img {
   transform: scale(0.92) !important;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) !important;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.3)) !important;
 }
 
 .marketplace-story .story-label {
-  font-size: 11px !important;
+  font-size: 10.5px !important;
   font-weight: 600 !important;
-  color: rgba(255, 255, 255, 0.85) !important;
+  color: rgba(255, 255, 255, 0.82) !important;
   letter-spacing: -0.01em;
-  max-width: 62px;
+  max-width: 54px;
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin-top: 2px;
+  line-height: 1.2;
 }
 
 .btn-primary,

@@ -126,16 +126,16 @@ async function renderHome() {
     <!-- Popular Marketplaces Capsule (Monolithic Tabbed Dock from User Sketch) -->
     <div class="marketplaces-capsule-section mb-5">
       <div class="marketplaces-capsule">
-        <svg class="marketplaces-capsule-svg" viewBox="0 0 351 126" preserveAspectRatio="none">
+        <svg class="marketplaces-capsule-svg" viewBox="0 0 351 124" preserveAspectRatio="none">
           <defs>
             <linearGradient id="capsuleFillGrad" x1="0" y1="0" x2="0" y2="100%">
               <stop offset="0%" stop-color="#14283c"/>
-              <stop offset="35%" stop-color="#0f1f2e"/>
+              <stop offset="30%" stop-color="#0f1f2e"/>
               <stop offset="100%" stop-color="#081018"/>
             </linearGradient>
             <linearGradient id="capsuleStrokeGrad" x1="0" y1="0" x2="100%" y2="0">
               <stop offset="0%" stop-color="rgba(130, 199, 241, 0.22)"/>
-              <stop offset="50%" stop-color="rgba(130, 199, 241, 0.45)"/>
+              <stop offset="50%" stop-color="rgba(130, 199, 241, 0.5)"/>
               <stop offset="100%" stop-color="rgba(130, 199, 241, 0.22)"/>
             </linearGradient>
           </defs>
@@ -147,10 +147,10 @@ async function renderHome() {
             C 227,3 231,24 243,24
             L 331,24
             A 18,18 0 0 1 349,42
-            L 349,106
-            A 18,18 0 0 1 331,124
-            L 20,124
-            A 18,18 0 0 1 2,106
+            L 349,104
+            A 18,18 0 0 1 331,122
+            L 20,122
+            A 18,18 0 0 1 2,104
             L 2,42
             A 18,18 0 0 1 20,24
             Z
@@ -158,17 +158,19 @@ async function renderHome() {
         </svg>
         <span class="marketplaces-ear-title">Площадки</span>
 
-        <!-- Inside: Horizontal Platforms Track (Крутить площадки) -->
-        <div class="marketplaces-track scroll-x">
-          ${marketplaces.map(mp => `
-            <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}">
-              <div class="story-icon">
-                ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261021_08" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
-                <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 22px;">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
+        <!-- Strictly clipped inside the module -->
+        <div class="marketplaces-inner-clipper">
+          <div class="marketplaces-track scroll-x">
+            ${marketplaces.map(mp => `
+              <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}">
+                <div class="story-icon">
+                  ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261021_10" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
+                  <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 20px;">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
+                </div>
+                <span class="story-label">${mp.name}</span>
               </div>
-              <span class="story-label">${mp.name}</span>
-            </div>
-          `).join('')}
+            `).join('')}
+          </div>
         </div>
       </div>
     </div>
