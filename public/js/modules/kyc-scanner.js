@@ -224,6 +224,14 @@
           </button>
         </div>
 
+        <!-- Брендинг ICE LOGIX AI -->
+        <div class="flex items-center justify-center pt-1 pb-1">
+          <span class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-black/40 backdrop-blur-md border border-cyan-400/30 text-[10px] font-extrabold text-cyan-300 tracking-widest uppercase shadow-sm">
+            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+            ICE LOGIX AI
+          </span>
+        </div>
+
         <!-- Центральная область с видоискателем -->
         <div class="kyc-scanner-frame-wrap flex flex-col items-center justify-center">
           <!-- Динамическая плашка подсказок прямого эфира -->
@@ -296,10 +304,14 @@
         <div class="w-16 h-16 rounded-full bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-3xl animate-spin">
           ⚡
         </div>
-        <div class="space-y-1">
-          <h3 class="text-base font-bold text-white">Сверяем контрольные суммы ICAO 9303...</h3>
+        <div class="space-y-1.5 flex flex-col items-center">
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-400/40 text-[11px] font-extrabold text-cyan-300 tracking-wider uppercase mb-1">
+            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+            ICE LOGIX AI
+          </div>
+          <h3 class="text-base font-bold text-white">ICE LOGIX AI считывает документ...</h3>
           <p class="text-xs text-cyan-300/80 max-w-xs leading-relaxed">
-            Нейросеть декодирует машиночитаемую строку MRZ, орган МВД и штамп прописки. Секунду...
+            Автономный движок сверяет контрольные суммы ICAO 9303, реквизиты МВД и штамп прописки.
           </p>
         </div>
       </div>

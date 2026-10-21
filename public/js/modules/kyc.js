@@ -1195,20 +1195,20 @@
               </p>
             </div>
 
-            <!-- Карточка высокоточного сканера документов Alipay (Live Camera + MRZ ICAO 9303) -->
+            <!-- Карточка высокоточного сканера документов ICE LOGIX AI (Live Camera + MRZ ICAO 9303) -->
             <div class="p-4 rounded-2xl bg-gradient-to-r from-cyan-950/60 via-slate-900 to-sky-950/40 border border-cyan-400/40 shadow-xl shadow-cyan-500/10 space-y-3">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                   <span class="text-xl">⚡</span>
                   <div>
-                    <h4 class="text-xs font-bold text-white leading-tight">Сканер Alipay (MRZ ICAO 9303)</h4>
-                    <p class="text-[10px] text-cyan-300">Двухкадровый захват с проверкой контрольных сумм</p>
+                    <h4 class="text-xs font-bold text-white leading-tight flex items-center gap-1.5"><span class="text-cyan-400 font-extrabold tracking-wide">ICE LOGIX AI</span> <span class="text-[10px] text-white/50 font-normal">| Сверхточный ИИ-сканер</span></h4>
+                    <p class="text-[10px] text-cyan-300">Автономное распознавание документов и штампов</p>
                   </div>
                 </div>
                 <span class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-400/30">100% точность</span>
               </div>
               <p class="text-[11px] text-white/70 leading-relaxed">
-                Наведите камеру смартфона на паспорт (стр. 31 и 33 со знаками &lt;&lt;&lt;) — сканер мгновенно заполнит все поля и проверит контрольные суммы без ручного ввода.
+                Наведите камеру смартфона на паспорт (стр. 31 и 33 со знаками &lt;&lt;&lt;) — нейросеть ICE LOGIX AI мгновенно заполнит все поля и проверит контрольные суммы без ручного ввода.
               </p>
               <button
                 type="button"
@@ -1216,7 +1216,7 @@
                 class="btn-primary w-full py-3.5 px-4 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 active:scale-95 transition cursor-pointer"
               >
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                <span>Включить живой сканер 📷</span>
+                <span>Запустить ICE LOGIX AI 📷</span>
               </button>
               <div id="kycOcrStatusBanner" class="hidden p-2.5 rounded-xl text-xs transition"></div>
             </div>
