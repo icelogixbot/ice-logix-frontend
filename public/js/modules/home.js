@@ -123,30 +123,27 @@ async function renderHome() {
     </div>
     </div>
     
-    <!-- Popular Marketplaces Capsule (Custom Tabbed Dock from User Sketch) -->
+    <!-- Popular Marketplaces Capsule (Seamless Tabbed Dock from User Sketch) -->
     <div class="marketplaces-capsule-section mb-5">
       <div class="marketplaces-capsule">
-        <!-- Integrated Top Tab ("Ушко / Ярлычок") -->
-        <div class="marketplaces-tab-header">
-          <div class="marketplaces-tab-ear">
-            <span class="marketplaces-tab-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="2" y1="12" x2="22" y2="12"/>
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-              </svg>
-            </span>
-            <span class="marketplaces-tab-text">Площадки</span>
-          </div>
-          <button id="moreMarketplacesBtn" class="marketplaces-all-link" type="button" aria-label="Все площадки">
-            <span>Все</span>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
-          </button>
+        <!-- Seamless Integrated Top-Center Ear ("Ушко одним целым с блоком") -->
+        <div class="marketplaces-ear-wrap">
+          <svg class="marketplaces-ear-svg" viewBox="0 0 150 24" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="earFillGrad" x1="0" y1="0" x2="0" y2="24" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#14283c" />
+                <stop offset="100%" stop-color="#102032" />
+              </linearGradient>
+            </defs>
+            <!-- Background fill extending 3px downwards to cover the card border seamlessly -->
+            <path d="M 0,23 C 12,23 18,1 32,1 L 118,1 C 132,1 138,23 150,23 L 150,26 L 0,26 Z" fill="url(#earFillGrad)" />
+            <!-- Top stroked border: single continuous line merging with card top border -->
+            <path d="M 0,23 C 12,23 18,1 32,1 L 118,1 C 132,1 138,23 150,23" fill="none" stroke="rgba(130, 199, 241, 0.35)" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+          <span class="marketplaces-ear-title">Площадки</span>
         </div>
 
-        <!-- Inside: Horizontal Platforms Track -->
+        <!-- Inside: Horizontal Platforms Track (Крутить площадки) -->
         <div class="marketplaces-inner-body">
           <div class="marketplaces-track scroll-x">
             ${marketplaces.map(mp => `

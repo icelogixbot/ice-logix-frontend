@@ -647,30 +647,30 @@ async function enrichBelarusAddress(addr: Record<string, any>): Promise<Record<s
     apt = parts[1].trim();
   }
 
-  // 1.3. Защита от ошибочного считывания даты регистрации ("26" 08 2023 г.) в поля номера дома и квартиры
-  // В штампе РБ:
-  // Строка 4: Дом: [...]  Корп: [...]  Кв./пакой: [...]
-  // Строка 5: Дата: " 26 " 08 2023 г.
-  // Числа 26 и 08 находятся прямо под колонками Дом и Кв. на нижней строке даты.
-  const rawStampDate = (result.stamp_date || "").toString();
-  const hasDate2608 = rawStampDate.includes("26") || rawStampDate.includes("08") || /26\s*08|26\.08/i.test(JSON.stringify(result));
-
-  if (h === "26" && (apt === "8" || apt === "08" || !apt)) {
-    // Число 26 и 8 - это день 26 и месяц 08 (август) из даты регистрации
-    // Квартира 8 сбрасывается в пустую строку "" (прочерк в частном доме или ячейке квартиры)
-    console.warn("Detected 26 / 8 registration date bleed into house/apartment. Resetting apartment to blank.");
-    apt = "";
-    // Проверяем, не остался ли реальный номер дома в строке улицы
-    if (result.address_street) {
-      const mHouseInSt = result.address_street.match(/(?:,\s*|\s+)(?:дом\s*|д\.?\s*)?([0-9]+[А-Яа-яA-Za-z]?(?:[\/-][0-9А-Яа-яA-Za-z]+)?)$/i);
-      if (mHouseInSt && mHouseInSt[1] !== "26") {
-        h = mHouseInSt[1].trim();
-        result.address_street = result.address_street.slice(0, mHouseInSt.index).trim().replace(/,\s*$/, "");
+  // 1.3. Интеллектуальное извлечение рукописных номеров из inspection (если модель зафиксировала якоря 'Дом' и 'Кв.')
+  if (result.inspection) {
+    if (result.inspection.step2_handwritten_house) {
+      const cleanInspH = String(result.inspection.step2_handwritten_house).replace(/^(?:дом|д\.?|№)\s*/i, "").replace(/[-.\/]+$/, "").trim();
+      if (cleanInspH && cleanInspH !== "26" && /\d/.test(cleanInspH)) {
+        h = cleanInspH;
       }
     }
-  } else if ((apt === "8" || apt === "08") && (hasDate2608 || !rawStampDate)) {
-    // Если квартира 8, но штамп содержит дату с августом (08), сбрасываем ошибочную квартиру
-    apt = "";
+    if (result.inspection.step4_handwritten_apartment) {
+      const cleanInspApt = String(result.inspection.step4_handwritten_apartment).replace(/^кв\.?\s*/i, "").replace(/[-.\/]+$/, "").trim();
+      if (cleanInspApt && !/^[-—нет]+$/i.test(cleanInspApt) && /\d/.test(cleanInspApt)) {
+        apt = cleanInspApt;
+      }
+    }
+  }
+
+  // 1.4. Защита от ошибочного попадания номера страницы или дня даты ("26") в поле дома:
+  // Если h == 26, но в строке улицы написан реальный номер дома (напр. "ул. Советская, 12"):
+  if (h === "26" && result.address_street) {
+    const mHouseInSt = result.address_street.match(/(?:,\s*|\s+)(?:дом\s*|д\.?\s*)?([0-9]+[А-Яа-яA-Za-z]?(?:[\/-][0-9А-Яа-яA-Za-z]+)?)$/i);
+    if (mHouseInSt && mHouseInSt[1] !== "26") {
+      h = mHouseInSt[1].trim();
+      result.address_street = result.address_street.slice(0, mHouseInSt.index).trim().replace(/,\s*$/, "");
+    }
   }
 
   result.address_house = h;
@@ -961,16 +961,10 @@ async function parsePassportWithFreeOCR(frame1?: string, frame2?: string, frame3
 async function callVisionChatWithFallback(messages: any[], maxTokens = 3500, title = "ICE LOGIX Vision"): Promise<any> {
   const models = [
     Deno.env.get("OPENROUTER_VISION_MODEL"),
-    "dots-studio/dots-3-note-preview:free",
-    "thinkingmachines/inkling:free",
-    "thinkingmachines/inkling-small:free",
-    "nvidia/nemotron-3.5-super-vl:free",
-    "google/gemma-4-26b-a4b-it:free",
-    "google/gemma-4-31b-it:free",
+    "google/gemini-2.0-flash-001",
     "google/gemini-2.5-flash",
-    "google/gemini-3.5-flash",
-    "openai/gpt-4o-mini",
     "qwen/qwen-2.5-vl-72b-instruct",
+    "openai/gpt-4o-mini",
   ];
 
   // Remove duplicates and blanks
@@ -985,45 +979,7 @@ async function callVisionChatWithFallback(messages: any[], maxTokens = 3500, tit
     });
   }
 
-  // 1. Приоритетный бесплатный Groq Cloud API (14,400 запросов/день, ~300мс)
-  if (GROQ_API_KEY) {
-    const groqModels = ["llama-3.2-90b-vision-preview", "llama-3.2-11b-vision-preview"];
-    for (const gModel of groqModels) {
-      try {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 15000);
-        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${GROQ_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: gModel,
-            messages: preparedMessages,
-            temperature: 0.01,
-            max_tokens: maxTokens,
-          }),
-          signal: controller.signal,
-        });
-        clearTimeout(timer);
-        if (res.ok) {
-          const json = await res.json();
-          const content = json?.choices?.[0]?.message?.content;
-          if (content) {
-            console.log(`Success with Groq model: ${gModel}`);
-            return json;
-          }
-        } else {
-          console.warn(`Groq ${gModel} status ${res.status}:`, await res.text().catch(() => ""));
-        }
-      } catch (gErr) {
-        console.warn(`Groq error (${gModel}):`, gErr);
-      }
-    }
-  }
-
-  // 2. Приоритетный бесплатный Google Gemini API напрямую (1500 запросов/день)
+  // 1. ПРИОРИТЕТ 1: Google Gemini 2.0 Flash напрямую (лучшее в мире распознавание рукописного текста и штампов на русском/белорусском)
   if (GEMINI_API_KEY) {
     try {
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
@@ -1084,6 +1040,44 @@ async function callVisionChatWithFallback(messages: any[], maxTokens = 3500, tit
       }
     } catch (geminiErr) {
       console.warn("Direct Gemini exception:", geminiErr);
+    }
+  }
+
+  // 2. ПРИОРИТЕТ 2: Groq Cloud API
+  if (GROQ_API_KEY) {
+    const groqModels = ["llama-3.2-90b-vision-preview", "llama-3.2-11b-vision-preview"];
+    for (const gModel of groqModels) {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 15000);
+        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${GROQ_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: gModel,
+            messages: preparedMessages,
+            temperature: 0.01,
+            max_tokens: maxTokens,
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+        if (res.ok) {
+          const json = await res.json();
+          const content = json?.choices?.[0]?.message?.content;
+          if (content) {
+            console.log(`Success with Groq model: ${gModel}`);
+            return json;
+          }
+        } else {
+          console.warn(`Groq ${gModel} status ${res.status}:`, await res.text().catch(() => ""));
+        }
+      } catch (gErr) {
+        console.warn(`Groq error (${gModel}):`, gErr);
+      }
     }
   }
 
@@ -1521,21 +1515,35 @@ ${img1 ? `- Кадр 1: Разворот страницы 31 паспорта и
   Всегда сверяй гласные с латинской зоной MRZ на Кадре 2: если в MRZ написано BOGDANOVICH, русская фамилия строго 'БОГДАНОВИЧ'; если в MRZ написано KIRILL, имя строго 'КИРИЛЛ'!` : ""}
 - Кадр 2: Разворот страницы 33 паспорта или обратная сторона ID (фотография, 14-значный личный номер и в самом низу обязательные две строки машиночитаемой зоны MRZ со знаками <<<).
 ${img3 ? `- Кадр 3: Разворот со штампом регистрации (прописки) по месту жительства (страницы 25-28 паспорта РБ).
-ВНИМАНИЕ К СТРУКТУРЕ ШТАМПА И РУКОПИСНОМУ ТЕКСТУ РУЧКОЙ:
-- Штамп прямоугольный ('ЗАРЭГІСТРАВАНЫ / ЗАРЕГИСТРИРОВАН').
-- Населенный пункт: может быть город ('г.'), агрогородок ('аг.'), деревня ('д.'), поселок ('пос.'/'п.'), городской поселок ('г.п.'). Если указан район (например 'Несвижский р-н', 'Минский р-н'), обязательно учти его.
-- Улица/проспект: 'пр-т', 'пер.', 'ул.' и др.
-- НОМЕР ДОМА (address_house): ОБЯЗАТЕЛЬНО ИЗВЛЕКИ РУКОПИСНЫЕ ЦИФРЫ ДОМА ИЗ ГРАФЫ «ДОМ:» НА СТРОКЕ 4 (над датой)!
-- КОРПУС (address_building): цифра после слова «корп.». Если там прочерк '-', слово 'нет' или пусто — верни строго '-'.
-- НОМЕР КВАРТИРЫ (address_apartment):
-  * Цифры квартиры находятся после слова «кв.» / «кватэра» / «пакой».
-  * ЕСЛИ ЭТО ЧАСТНЫЙ ДОМ ИЛИ В ГРАФЕ «КВ.» СТОИТ ПРОЧЕРК '-', ПУСТО, 'нет' — ВЕРНИ СТРОГО ПУСТУЮ СТРОКУ: ""!
-- ДАТА РЕГИСТРАЦИИ (stamp_date): запиши дату из нижней строки штампа (например "26.08.2023" или "26.08.2021").
-- 🛑 КАТЕГОРИЧЕСКИЙ ЗАПРЕТ НА ПЕРЕНОС ДАТЫ В ДОМ И КВАРТИРУ:
-  * В самом низу штампа (строка 5) всегда пишется дата регистрации: например 'Дата: "26" 08 2023 г.'
-  * СТРОЖАЙШЕ ЗАПРЕЩЕНО брать день (например 26) за номер дома!
-  * СТРОЖАЙШЕ ЗАПРЕЩЕНО брать месяц (например 08 или 8) за номер квартиры!
-  * Не пиши '8' или '26' в квартиру, если в графе 'Кв.' стоит прочерк или пусто!
+
+🎯 АЛГОРИТМ ЧТЕНИЯ РУКОПИСНОГО ТЕКСТА РУЧКОЙ НА ШТАМПЕ ПРОПИСКИ:
+В штампе типографские слова напечатаны синим/фиолетовым шрифтом («Дом», «Корп.», «Кв./пакой»).
+Все адресные данные вписаны ОТ РУКИ ШАРИКОВОЙ РУЧКОЙ!
+
+ТВОЯ ЗАДАЧА — НАЙТИ СЛОВА-ЯКОРЯ И СЧИТАТЬ НАПИСАННЫЕ РУЧКОЙ ЧИСЛА НАПРОТИВ НИХ:
+
+1. ДЛЯ ПОЛЯ "address_house" (НОМЕР ДОМА):
+   - Найди в штампе печатное слово «Дом» (или «Дом:», «д.») в левой части 4-й строки.
+   - Посмотри строго НАПРОТИВ слова «Дом» (справа от него, перед словом «Корп.»).
+   - Считай написанные шариковой ручкой цифры и буквы номера дома!
+   - ⚠️ ВНИМАНИЕ: На странице могут быть посторонние цифры (например номер страницы «26» или день даты «26» внизу). ИГНОРИРУЙ ИХ! Номер дома находится СТРОГО напротив слова «Дом»!
+
+2. ДЛЯ ПОЛЯ "address_building" (КОРПУС):
+   - Найди печатное слово «Корп.» посередине 4-й строки штампа.
+   - Посмотри строго напротив слова «Корп.» перед словом «Кв.».
+   - Если ручкой написана цифра — укажи её. Если там рукописный прочерк «-», косая черта «/» или пусто — верни строго "-".
+
+3. ДЛЯ ПОЛЯ "address_apartment" (НОМЕР КВАРТИРЫ):
+   - Найди печатное слово «Кв.» (или «Кватэра», «Кв./пакой», «пакой:») в правой части 4-й строки штампа.
+   - Посмотри строго НАПРОТИВ слова «Кв.» (справа от него, до правого края штампа).
+   - Считай написанные шариковой ручкой цифры номера квартиры!
+   - Разбирай почерк шариковой ручки внимательно: цифры могут быть с наклоном, петлями, хвостиками.
+   - ЕСЛИ НАПРОТИВ СЛОВА «КВ.» НАПИСАНЫ ЦИФРЫ — ОБЯЗАТЕЛЬНО ИЗВЛЕКИ ИХ В ПОЛЕ address_apartment!
+   - Только если напротив «Кв.» стоит явный прочерк «-» или ничего не написано (частный дом) — верни пустую строку "".
+
+4. ДЛЯ ПОЛЯ "stamp_date":
+   - В самом низу штампа (строка 5) найди слово «Дата:». Запиши дату (например "26.08.2023"). Не путай её с номером дома!
+
 - ОБЛАСТЬ (address_region): СТРОГО одно из 7 значений: 'г. Минск', 'Минская область', 'Брестская область', 'Витебская область', 'Гомельская область', 'Гродненская область', 'Могилевская область'.
 - ПОЧТОВЫЙ ИНДЕКС (address_postcode): верни строго пустую строку "", сервер определит официальный индекс Белпочты.` : ""}
 
@@ -1552,28 +1560,36 @@ ${img3 ? `3. Если Кадр 3 не содержит штампа регист
    (Если штампа нет или он поврежден, верни пустые строки в полях адреса, но НЕ выдавай ошибку).` : ""}
 
 Если кадры корректны — извлеки данные в формате строгого JSON:
-1. raw_mrz: ровно две строки по 44 символа со знаками < (напр. P<BLR...\\nMP12345678BLR...)
-2. last_name: Фамилия (русскими буквами, строго нижняя строка стр. 31)
-3. first_name: Имя (русскими буквами, строго нижняя строка стр. 31)
-4. patronymic: Отчество (русскими буквами, строго нижняя строка стр. 31)
-5. series_number: Серия и номер паспорта (например MP1234567)
-6. birth_date: Дата рождения (YYYY-MM-DD)
-7. gender: Пол ("Мужской" или "Женский")
-8. id_number: Идентификационный номер РБ (14 символов)
-9. issue_date: Дата выдачи документа (YYYY-MM-DD)
-10. issued_by: Орган выдачи документа на русском языке (например "ФРУНЗЕНСКИМ РУВД Г. МИНСКА")
-${img3 ? `11. address_region: Область РБ (строго одно из: "г. Минск", "Минская область", "Брестская область", "Витебская область", "Гомельская область", "Гродненская область", "Могилевская область")
-12. address_city: Населенный пункт на русском языке (например "г. Несвиж", "г. Минск", "аг. Хатежино", "г. Брест")
-13. address_street: Улица/проспект/переулок на русском языке (например "ул. Советская", "пр-т Мира", "ул. Ленина")
-14. address_house: Номер дома со штампа (число или число с буквой/дробью, например "12", "14Б", "74/3", "5")
-15. address_building: Корпус дома (если нет корпуса или прочерк — строго "-", если есть — например "1" или "2")
-16. address_apartment: Номер квартиры (если есть — например "45", "12", "277", если частный дом — "")
-17. stamp_date: Дата регистрации со штампа (например "26.08.2023" или "")
-18. address_postcode: строго пустая строка ""` : ""}
+1. inspection: объект визуальной привязки (где находятся слова 'Дом' и 'Кв.' и какие цифры ручкой написаны напротив них)
+2. raw_mrz: ровно две строки по 44 символа со знаками < (напр. P<BLR...\\nMP12345678BLR...)
+3. last_name: Фамилия (русскими буквами, строго нижняя строка стр. 31)
+4. first_name: Имя (русскими буквами, строго нижняя строка стр. 31)
+5. patronymic: Отчество (русскими буквами, строго нижняя строка стр. 31)
+6. series_number: Серия и номер паспорта (например MP1234567)
+7. birth_date: Дата рождения (YYYY-MM-DD)
+8. gender: Пол ("Мужской" или "Женский")
+9. id_number: Идентификационный номер РБ (14 символов)
+10. issue_date: Дата выдачи документа (YYYY-MM-DD)
+11. issued_by: Орган выдачи документа на русском языке (например "ФРУНЗЕНСКИМ РУВД Г. МИНСКА")
+${img3 ? `12. address_region: Область РБ (строго одно из: "г. Минск", "Минская область", "Брестская область", "Витебская область", "Гомельская область", "Гродненская область", "Могилевская область")
+13. address_city: Населенный пункт на русском языке (например "г. Несвиж", "г. Минск", "аг. Хатежино", "г. Брест")
+14. address_street: Улица/проспект/переулок на русском языке (например "ул. Советская", "пр-т Мира", "ул. Ленина")
+15. address_house: Номер дома (число или число с буквой/дробью, строго напротив слова «Дом»)
+16. address_building: Корпус дома (если нет корпуса или прочерк — строго "-", если есть — например "1" или "2")
+17. address_apartment: Номер квартиры (рукописные цифры строго напротив слова «Кв.», если частный дом или прочерк — "")
+18. stamp_date: Дата регистрации со штампа (например "26.08.2023" или "")
+19. address_postcode: строго пустая строка ""` : ""}
 
 ВЕРНИ ТОЛЬКО ЧИСТЫЙ JSON-ОБЪЕКТ СЛЕДУЮЩЕЙ СТРУКТУРЫ (без \`\`\`json markdown):
 {
   "ok": true,
+  "inspection": {
+    "step1_located_word_dom": "слово 'Дом' в 4-й строке штампа",
+    "step2_handwritten_house": "рукописные цифры ручкой сразу СПРАВА от слова 'Дом'",
+    "step3_located_word_kv": "слово 'Кв.' в 4-й строке штампа",
+    "step4_handwritten_apartment": "рукописные цифры ручкой сразу СПРАВА от слова 'Кв.' (или прочерк)",
+    "step5_stamp_date": "дата в строке 'Дата:' внизу штампа"
+  },
   "raw_mrz": "P<BLR...\\nMP...",
   "last_name": "Богданович",
   "first_name": "Кирилл",
@@ -1596,10 +1612,13 @@ ${img3 ? `11. address_region: Область РБ (строго одно из: "
 
       const contentItems: any[] = [{ type: "text", text: prompt }];
       if (img1) {
+        contentItems.push({ type: "text", text: "=== КАДР 1: Страница 31 паспорта (ФИО на русском языке, орган МВД) ===" });
         contentItems.push({ type: "image_url", image_url: { url: img1 } });
       }
+      contentItems.push({ type: "text", text: "=== КАДР 2: Страница 33 паспорта (MRZ со знаками <<<, фото, личный номер) ===" });
       contentItems.push({ type: "image_url", image_url: { url: img2 } });
       if (img3) {
+        contentItems.push({ type: "text", text: "=== КАДР 3: ШТАМП ПРОПИСКИ (стр. 25-28). НАЙДИ ПЕЧАТНЫЕ СЛОВА «Дом» И «Кв.» И СЧИТАЙ НАПИСАННЫЕ РУЧКОЙ ЦИФРЫ НАПРОТИВ НИХ! ===" });
         contentItems.push({ type: "image_url", image_url: { url: img3 } });
       }
 
