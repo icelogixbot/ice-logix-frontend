@@ -846,7 +846,7 @@
         }
       }
       const _savedHome = localStorage.getItem('ice_tab_home_v2');
-      if (_savedHome && !_savedHome.includes('rate-tracker-card') && !_savedHome.includes('Биржевой курс') && !_savedHome.includes('data-story="academy"') && !_savedHome.includes('dewu.svg') && !_savedHome.includes('goofish.svg')) {
+      if (_savedHome && _savedHome.includes('marketplaces-ear') && !_savedHome.includes('rate-tracker-card') && !_savedHome.includes('Биржевой курс') && !_savedHome.includes('data-story="academy"') && !_savedHome.includes('dewu.svg') && !_savedHome.includes('goofish.svg')) {
         _tabCache['home:'] = { html: _savedHome, ts: Date.now() };
       } else {
         try { localStorage.removeItem('ice_tab_home_v2'); } catch(e) {}
