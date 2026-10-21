@@ -56,7 +56,7 @@
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           if (enhanceContrast) {
-            ctx.filter = 'contrast(1.22) brightness(1.03)';
+            ctx.filter = 'contrast(1.18) saturate(1.15)';
           }
           ctx.drawImage(img, 0, 0, width, height);
           resolve(canvas.toDataURL('image/jpeg', quality));
@@ -131,8 +131,8 @@
 
     const ctx = canvas.getContext('2d');
     if (isStep3) {
-      // Увеличиваем контрастность рукописных чернил ручки поверх бумаги штампа
-      ctx.filter = 'contrast(1.22) brightness(1.03)';
+      // Увеличиваем контрастность и насыщенность рукописных синих чернил ручки без вымывания тонких штрихов
+      ctx.filter = 'contrast(1.18) saturate(1.15)';
     }
     ctx.drawImage(video, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, canvas.width, canvas.height);
     return canvas.toDataURL('image/jpeg', quality);
