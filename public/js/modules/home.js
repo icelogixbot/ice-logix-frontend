@@ -123,32 +123,43 @@ async function renderHome() {
     </div>
     </div>
     
-    <!-- Popular Marketplaces Section (WB Squircle Style Line 2) -->
-    <div class="mb-5">
-      <div class="flex justify-between items-center mb-3">
-        <h3 class="text-white font-bold text-sm flex items-center gap-1.5">
-          <span style="font-size: 18px;"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span></span>
-          Площадки
-        </h3>
-        <button id="moreMarketplacesBtn" class="text-xs font-semibold flex items-center gap-1" style="color: var(--ice-primary);">
-          Все
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-        </button>
-      </div>
-      <div>
-      <div class="scroll-x" style="padding: 2px 0 6px;">
-        ${marketplaces.map(mp => `
-          <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}">
-            <div class="story-icon">
-              ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261014_55" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
-              <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 22px;">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
-            </div>
-            <span class="story-label">${mp.name}</span>
+    <!-- Popular Marketplaces Capsule (Custom Tabbed Dock from User Sketch) -->
+    <div class="marketplaces-capsule-section mb-5">
+      <div class="marketplaces-capsule">
+        <!-- Integrated Top Tab ("Ушко / Ярлычок") -->
+        <div class="marketplaces-tab-header">
+          <div class="marketplaces-tab-ear">
+            <span class="marketplaces-tab-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="2" y1="12" x2="22" y2="12"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+            </span>
+            <span class="marketplaces-tab-text">Площадки</span>
           </div>
-        `).join('')}
-      </div>
+          <button id="moreMarketplacesBtn" class="marketplaces-all-link" type="button" aria-label="Все площадки">
+            <span>Все</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Inside: Horizontal Platforms Track -->
+        <div class="marketplaces-inner-body">
+          <div class="marketplaces-track scroll-x">
+            ${marketplaces.map(mp => `
+              <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}">
+                <div class="story-icon">
+                  ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261014_55" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
+                  <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 22px;">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
+                </div>
+                <span class="story-label">${mp.name}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
       </div>
     </div>
     
