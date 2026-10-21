@@ -1935,9 +1935,12 @@ window.applySmartShareLink = applySmartShareLink;
             analyzeOrderBtn.innerHTML = isHardDomain(url) ? '<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l-4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Обходим защиту…' : '<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l-4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Анализ...';
 
             try {
+              const isPdd = /yangkeduo|pinduoduo|goods_id=/i.test(url) || (window.orderCountry === 'CN' && /yangkeduo|pdd|goods1/i.test(url));
+              const initialStatus = isPdd ? 'pdd_pending' : 'pending';
+
               const { data: queueData, error: insErr } = await supabaseClient
                 .from('parse_queue')
-                .insert({ user_id: userId, url, status: 'pending' })
+                .insert({ user_id: userId, url, status: initialStatus })
                 .select('id')
                 .single();
               if (insErr) throw new Error('Ошибка создания задачи: ' + insErr.message);
@@ -1976,43 +1979,110 @@ window.applySmartShareLink = applySmartShareLink;
               if (!result && !manualRequired) throw new Error('Таймаут ожидания парсинга');
               if (manualRequired) return;
 
-              const orderPriceEl = document.getElementById('orderPrice');
-              if (orderPriceEl) {
-                if (result.price != null && result.price !== '' && Number(result.price) > 0) {
-                  orderPriceEl.value = result.price;
-                } else {
-                  orderPriceEl.value = '';
-                }
+              let skuBundle = null;
+              if (result.description) {
+                try {
+                  const parsedDesc = JSON.parse(result.description);
+                  if (parsedDesc && parsedDesc.is_sku_bundle) {
+                    skuBundle = parsedDesc;
+                  }
+                } catch (e) {}
               }
-              if (result.currency) {
+
+              const applyResolvedData = (data) => {
+                const orderPriceEl = document.getElementById('orderPrice');
+                if (orderPriceEl && data.price != null && data.price !== '' && Number(data.price) > 0) {
+                  orderPriceEl.value = data.price;
+                  orderPriceEl.dispatchEvent(new Event('input', { bubbles: true }));
+                }
                 const currencySelect = document.getElementById('orderCurrency');
                 if (currencySelect) {
-                  const option = Array.from(currencySelect.options).find(opt => opt.value === result.currency);
-                  if (option) currencySelect.value = result.currency;
+                  const targetCurr = data.currency || result.currency || 'CNY';
+                  const option = Array.from(currencySelect.options).find(opt => opt.value === targetCurr);
+                  if (option) currencySelect.value = targetCurr;
+                  currencySelect.dispatchEvent(new Event('change', { bubbles: true }));
                 }
-              }
-              if (result.category) {
-                const categorySelect = document.getElementById('orderCategory');
-                if (categorySelect) {
-                  const option = findCategoryOption(categorySelect, result.category);
-                  if (option) {
-                    categorySelect.value = option.value;
-                    categorySelect.dispatchEvent(new Event('change'));
+
+                const setIfEmpty = (id, val) => {
+                  const el = document.getElementById(id);
+                  if (el && val && (!el.value || el.value.trim() === '')) {
+                    el.value = val;
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                  }
+                };
+
+                const title = data.title || result.title || 'Товар Pinduoduo';
+                setIfEmpty('orderTitle', title);
+                setIfEmpty('orderBrand', data.brand || result.brand || 'Apple');
+                setIfEmpty('orderModel', title);
+
+                if (data.color) {
+                  const colorEl = document.getElementById('orderColor');
+                  if (colorEl) {
+                    colorEl.value = data.color;
+                    colorEl.dispatchEvent(new Event('input', { bubbles: true }));
                   }
                 }
-              }
-              
-              const setIfEmpty = (id, val) => {
-                const el = document.getElementById(id);
-                if (el && val && (!el.value || el.value.trim() === '')) el.value = val;
+                if (data.size) {
+                  const sizeEl = document.getElementById('orderSize');
+                  if (sizeEl) {
+                    sizeEl.value = data.size;
+                    sizeEl.dispatchEvent(new Event('input', { bubbles: true }));
+                  }
+                }
+
+                const descParts = [];
+                if (data.color) descParts.push('Цвет: ' + data.color);
+                if (data.size) descParts.push('Размер: ' + data.size);
+                if (descParts.length) {
+                  const featEl = document.getElementById('orderFeatures');
+                  if (featEl) {
+                    featEl.value = descParts.join(' · ');
+                    featEl.dispatchEvent(new Event('input', { bubbles: true }));
+                  }
+                }
+
+                const categorySelect = document.getElementById('orderCategory');
+                if (categorySelect && (!categorySelect.value || categorySelect.value === '')) {
+                  const targetCat = data.category || result.category || 'Чехлы';
+                  const opt = findCategoryOption(categorySelect, targetCat) || findCategoryOption(categorySelect, 'Аксессуары');
+                  if (opt) {
+                    categorySelect.value = opt.value;
+                    categorySelect.dispatchEvent(new Event('change', { bubbles: true }));
+                  }
+                }
+
+                const imgUrl = data.image_url || result.image_url;
+                if (imgUrl) {
+                  window.orderImportedImageUrl = imgUrl;
+                  if (typeof window.renderManualPhotoPreviews === 'function') {
+                    window.renderManualPhotoPreviews();
+                  }
+                }
+
+                if (typeof recalculateOrderTotals === 'function') {
+                  recalculateOrderTotals();
+                }
+
+                if (typeof glassToast === 'function') {
+                  glassToast(`✨ Товар успешно распознан: ${data.color || ''} ${data.size || ''}`, { kind: 'success' });
+                }
               };
-              setIfEmpty('orderTitle', result.title);
-              setIfEmpty('orderBrand', result.brand);
-              setIfEmpty('orderModel', result.title);
-              const descParts = [];
-              if (result.description) descParts.push(result.description);
-              if (result.color) descParts.push('Цвет: ' + result.color);
-              if (descParts.length) setIfEmpty('orderFeatures', descParts.join(' · '));
+
+              if (skuBundle && typeof window.openSkuSelectorModal === 'function' && (skuBundle.colors?.length > 1 || skuBundle.sizes?.length > 1)) {
+                window.openSkuSelectorModal(skuBundle, (selected) => {
+                  applyResolvedData(selected);
+                });
+              } else {
+                applyResolvedData({
+                  price: result.price,
+                  currency: result.currency,
+                  color: result.color,
+                  title: result.title,
+                  category: result.category,
+                  image_url: result.image_url
+                });
+              }
 
               if (userId) {
                 const newCount = limitCheck.currentCount + 1;

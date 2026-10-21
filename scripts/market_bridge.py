@@ -2,6 +2,8 @@ import os
 import sys
 import re
 import time
+import json
+import threading
 import subprocess
 import xml.etree.ElementTree as ET
 from urllib.parse import urlparse, parse_qs
@@ -13,6 +15,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
+from supabase import create_client
 
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -22,6 +25,15 @@ DEVICE = "emulator-5554"
 FRONTEND_PUBLIC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "ice-logix-frontend", "public"))
 PARSED_UPLOADS_DIR = os.path.join(FRONTEND_PUBLIC_DIR, "uploads", "parsed")
 os.makedirs(PARSED_UPLOADS_DIR, exist_ok=True)
+
+SUPABASE_URL = "https://vrvwdagjpttvfvjanbwq.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZydndkYWdqcHR0dmZ2amFuYndxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTY1NzgzOCwiZXhwIjoyMDkxMjMzODM4fQ.wbxnzmz2aRGrN1Ol9Vo1752MMaHwggohrUIlbjm6U6M"
+
+try:
+    supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+except Exception as e:
+    print("Supabase client init error:", e)
+    supabase_client = None
 
 app = FastAPI(title="ICE LOGIX Marketplace Hardware Bridge", version="1.0.0")
 
@@ -400,6 +412,108 @@ def select_sku(req: SelectSkuRequest):
         "selected_summary": selected_summary,
         "image_url": img_url
     }
+
+# ==================== SUPABASE REAL-TIME QUEUE WORKER ====================
+def supabase_queue_worker():
+    if not supabase_client:
+        print("[!] Supabase client not initialized, queue worker disabled.")
+        return
+
+    print("[*] Supabase Queue Worker started. Polling parse_queue...")
+    while True:
+        try:
+            res = (
+                supabase_client.from_("parse_queue")
+                .select("*")
+                .in_("status", ["pdd_pending", "hardware_pending", "pending"])
+                .order("created_at", desc=False)
+                .limit(1)
+                .execute()
+            )
+            if res.data and len(res.data) > 0:
+                task = res.data[0]
+                task_id = task["id"]
+                task_url = task.get("url") or ""
+                task_status = task.get("status")
+
+                is_pdd = any(x in task_url.lower() for x in ["yangkeduo", "pinduoduo", "goods_id="])
+                if task_status == "pending" and not is_pdd:
+                    time.sleep(0.5)
+                    continue
+
+                print(f"[*] Claiming task #{task_id} ({task_status}): {task_url}")
+                # Claim task immediately to prevent race conditions
+                supabase_client.from_("parse_queue").update({"status": "processing"}).eq("id", task_id).execute()
+
+                try:
+                    parsed = parse_product(ParseRequest(url=task_url))
+                    if parsed and parsed.get("success"):
+                        goods_id = parsed["goods_id"]
+                        local_img = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}.jpg")
+                        remote_name = f"sku_{goods_id}_{int(time.time())}.jpg"
+                        pub_img_url = ""
+                        if os.path.exists(local_img):
+                            try:
+                                with open(local_img, "rb") as f:
+                                    supabase_client.storage.from_("product-screenshots").upload(
+                                        remote_name, f.read(), {"content-type": "image/jpeg"}
+                                    )
+                                pub_img_url = supabase_client.storage.from_("product-screenshots").get_public_url(remote_name)
+                            except Exception as up_err:
+                                print("Storage upload error:", up_err)
+
+                        if not pub_img_url:
+                            pub_img_url = parsed.get("image_url") or ""
+
+                        # Pack SKU options bundle
+                        sku_bundle = {
+                            "is_sku_bundle": True,
+                            "goods_id": goods_id,
+                            "title_ru": parsed["title_ru"],
+                            "title": parsed["title"],
+                            "price_cny": parsed["price_cny"],
+                            "orig_price_cny": parsed["orig_price_cny"],
+                            "colors": parsed["colors"],
+                            "sizes": parsed["sizes"],
+                            "has_options": parsed["has_options"],
+                            "image_url": pub_img_url,
+                            "brand": "Apple",
+                            "marketplace": "pinduoduo"
+                        }
+
+                        # Update row in Supabase
+                        supabase_client.from_("parse_queue").update({
+                            "status": "done",
+                            "price": parsed["price_cny"],
+                            "currency": "CNY",
+                            "title": parsed["title_ru"],
+                            "brand": "Apple",
+                            "category": "Аксессуары",
+                            "color": parsed["colors"][0]["name_ru"] if parsed.get("colors") else "Как на фото",
+                            "marketplace_name": "PINDUODUO",
+                            "image_url": pub_img_url,
+                            "description": json.dumps(sku_bundle, ensure_ascii=False),
+                            "parse_method": "hardware_bridge"
+                        }).eq("id", task_id).execute()
+                        print(f"[✓] Task #{task_id} successfully parsed and updated in Supabase!")
+                    else:
+                        supabase_client.from_("parse_queue").update({
+                            "status": "error",
+                            "error_message": "Не удалось распарсить товар через аппаратный мост"
+                        }).eq("id", task_id).execute()
+                except Exception as p_err:
+                    print(f"[!] Parse error on task #{task_id}: {p_err}")
+                    supabase_client.from_("parse_queue").update({
+                        "status": "error",
+                        "error_message": str(p_err)
+                    }).eq("id", task_id).execute()
+        except Exception as poll_err:
+            pass
+        time.sleep(1.0)
+
+# Start background thread automatically
+queue_thread = threading.Thread(target=supabase_queue_worker, daemon=True)
+queue_thread.start()
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=3007)
