@@ -252,6 +252,8 @@ function attachHomeHandlers() {
 
       // Initialize auto-scroll for banners (WB style)
       initBannerAutoScroll();
+      // Initialize CS:GO Case Roulette for Marketplaces (Variant B)
+      initMarketplaceRoulette();
 
       document.querySelectorAll('.banner-slide').forEach(el => {
         el.addEventListener('click', () => {
@@ -637,9 +639,116 @@ function attachHomeHandlers() {
   }
 
 
+// ==================== РУЛЕТКА ПЛОЩАДОК (CS:GO Case Style) ====================
+function initMarketplaceRoulette() {
+  const track = document.getElementById('marketplaceRouletteTrack');
+  if (!track) return;
+
+  if (window.__mpRouletteTimer) {
+    clearTimeout(window.__mpRouletteTimer);
+    window.__mpRouletteTimer = null;
+  }
+  if (window.__mpResumeTimer) {
+    clearTimeout(window.__mpResumeTimer);
+    window.__mpResumeTimer = null;
+  }
+
+  const cards = Array.from(track.querySelectorAll('.marketplace-story'));
+  if (cards.length === 0) return;
+
+  const baseCount = 7; // стандартный набор 7 маркетплейсов
+  let currentIndex = baseCount * 2; // стартуем со среднего сета (сет 2, индекс 14)
+  let isInteracting = false;
+
+  function updateActiveTarget() {
+    if (!track) return;
+    const trackCenter = track.scrollLeft + (track.clientWidth / 2);
+    let closestCard = null;
+    let minDiff = Infinity;
+
+    cards.forEach(card => {
+      const cardCenter = card.offsetLeft + (card.offsetWidth / 2);
+      const diff = Math.abs(cardCenter - trackCenter);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestCard = card;
+      }
+    });
+
+    cards.forEach(c => c.classList.remove('is-active-target'));
+    if (closestCard) {
+      closestCard.classList.add('is-active-target');
+      currentIndex = cards.indexOf(closestCard);
+    }
+  }
+
+  function centerCard(idx, smooth = true) {
+    if (!track || !cards[idx]) return;
+    const card = cards[idx];
+    const trackCenter = track.clientWidth / 2;
+    const targetLeft = card.offsetLeft + (card.offsetWidth / 2) - trackCenter;
+
+    track.scrollTo({
+      left: targetLeft,
+      behavior: smooth ? 'smooth' : 'auto'
+    });
+    updateActiveTarget();
+  }
+
+  function stepNext() {
+    if (isInteracting || !document.getElementById('marketplaceRouletteTrack')) return;
+    currentIndex++;
+
+    // Бесшовный цикл: если дошли до 4-го сета, незаметно сдвигаем назад на 2 сета
+    if (currentIndex >= baseCount * 4) {
+      currentIndex -= (baseCount * 2);
+      centerCard(currentIndex, false);
+    }
+
+    centerCard(currentIndex, true);
+    scheduleNext();
+  }
+
+  function scheduleNext() {
+    clearTimeout(window.__mpRouletteTimer);
+    window.__mpRouletteTimer = setTimeout(stepNext, 2600);
+  }
+
+  // Ручное управление: пауза при касании/свайпе
+  function onTouchStart() {
+    isInteracting = true;
+    clearTimeout(window.__mpRouletteTimer);
+    clearTimeout(window.__mpResumeTimer);
+  }
+
+  function onTouchEnd() {
+    clearTimeout(window.__mpResumeTimer);
+    window.__mpResumeTimer = setTimeout(() => {
+      isInteracting = false;
+      if (!document.getElementById('marketplaceRouletteTrack')) return;
+      updateActiveTarget();
+      centerCard(currentIndex, true);
+      scheduleNext();
+    }, 2500);
+  }
+
+  track.addEventListener('scroll', updateActiveTarget, { passive: true });
+  track.addEventListener('touchstart', onTouchStart, { passive: true });
+  track.addEventListener('touchend', onTouchEnd, { passive: true });
+  track.addEventListener('mousedown', onTouchStart);
+  track.addEventListener('mouseup', onTouchEnd);
+
+  // Первичное позиционирование после отрисовки
+  setTimeout(() => {
+    centerCard(currentIndex, false);
+    scheduleNext();
+  }, 120);
+}
+
 // Global Exports
 if (typeof renderHome === 'function') window.renderHome = renderHome;
 if (typeof attachHomeHandlers === 'function') window.attachHomeHandlers = attachHomeHandlers;
+if (typeof initMarketplaceRoulette === 'function') window.initMarketplaceRoulette = initMarketplaceRoulette;
 if (typeof loadHomeProducts === 'function') window.loadHomeProducts = loadHomeProducts;
 if (typeof scrollToPageTop === 'function') window.scrollToPageTop = scrollToPageTop;
 if (typeof renderCalculator === 'function') window.renderCalculator = renderCalculator;
