@@ -5,13 +5,8 @@ import { join } from 'path';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-let cachedHtml: string | null = null;
-
 function getHtml(): string {
-  if (process.env.NODE_ENV !== 'production' || !cachedHtml) {
-    cachedHtml = readFileSync(join(process.cwd(), 'public', 'app.html'), 'utf-8');
-  }
-  return cachedHtml;
+  return readFileSync(join(process.cwd(), 'public', 'app.html'), 'utf-8');
 }
 
 export async function GET() {

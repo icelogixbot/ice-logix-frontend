@@ -35,7 +35,7 @@
   /**
    * Сжатие загруженного файла изображения через Image + Canvas
    */
-  function compressImageFile(file, maxDim = 1280, quality = 0.82) {
+  function compressImageFile(file, maxDim = 1280, quality = 0.82, enhanceContrast = false) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -55,6 +55,9 @@
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext('2d');
+          if (enhanceContrast) {
+            ctx.filter = 'contrast(1.22) brightness(1.03)';
+          }
           ctx.drawImage(img, 0, 0, width, height);
           resolve(canvas.toDataURL('image/jpeg', quality));
         };
@@ -101,8 +104,8 @@
     const cropW = Math.min(vWidth - cropX, fRect.width * scale);
     const cropH = Math.min(vHeight - cropY, fRect.height * scale);
 
-    // Добавляем запас (4% для страниц 31-33, 18% для штампа прописки, чтобы номер дома и кв. по краям не срезались)
-    const marginRatio = isStep3 ? 0.18 : 0.04;
+    // Добавляем запас (4% для страниц 31-33, 8% для штампа прописки, чтобы захватить весь штамп, но не цеплять номер страницы в углу)
+    const marginRatio = isStep3 ? 0.08 : 0.04;
     const marginX = cropW * marginRatio;
     const marginY = cropH * marginRatio;
     const sx = Math.max(0, cropX - marginX);
@@ -127,6 +130,10 @@
     canvas.height = Math.round((targetWidth * crop.sh) / crop.sw);
 
     const ctx = canvas.getContext('2d');
+    if (isStep3) {
+      // Увеличиваем контрастность рукописных чернил ручки поверх бумаги штампа
+      ctx.filter = 'contrast(1.22) brightness(1.03)';
+    }
     ctx.drawImage(video, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, canvas.width, canvas.height);
     return canvas.toDataURL('image/jpeg', quality);
   }
@@ -1247,7 +1254,7 @@
         if (!file) return;
         if (status3) status3.textContent = '⏳ Сжатие...';
         try {
-          f3Data = await compressImageFile(file, 1280, 0.82);
+          f3Data = await compressImageFile(file, 1600, 0.92, true);
           if (status3) {
             status3.textContent = '✓ Готово';
             status3.className = 'text-[10px] text-emerald-400 font-bold';

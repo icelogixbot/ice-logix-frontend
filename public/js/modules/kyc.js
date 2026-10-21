@@ -1988,10 +1988,18 @@
               let aptVal = (res.address_apartment || '').trim();
               if (aptVal === '-' || aptVal === '—' || aptVal.toLowerCase() === 'нет') aptVal = '';
 
-              // Клиентская защита от артефакта даты штампа ("26" 08 2023 г.)
-              if (houseVal === '26' && (aptVal === '8' || aptVal === '08')) {
-                console.warn('Клиентская защита: обнаружен артефакт даты 26/8. Очистка номера квартиры.');
-                aptVal = '';
+              // Сверяем с inspection якорями распознавания
+              if (res.inspection) {
+                const inspH = res.inspection.house_handwritten_digits || res.inspection.step5_handwritten_after_word_dom || res.inspection.step2_handwritten_house;
+                if (inspH && !/^26$/.test(String(inspH).trim())) {
+                  const cleanH = String(inspH).replace(/^(?:дом|д\.?|№)\s*/i, '').replace(/[-.\/]+$/, '').trim();
+                  if (cleanH && /\d/.test(cleanH)) houseVal = cleanH;
+                }
+                const inspApt = res.inspection.apartment_handwritten_digits || res.inspection.step7_handwritten_after_word_kv || res.inspection.step4_handwritten_apartment;
+                if (inspApt) {
+                  const cleanA = String(inspApt).replace(/^кв\.?\s*/i, '').replace(/[-.\/]+$/, '').trim();
+                  if (cleanA && !/^[-—нет]+$/i.test(cleanA) && /\d/.test(cleanA)) aptVal = cleanA;
+                }
               }
 
               if (houseVal && houseInputElem) {
