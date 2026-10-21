@@ -84,16 +84,34 @@ function parseAssistantJson(raw: string): Record<string, any> {
     }
   }
 
-  // 3. Fallback regex-based key-value extraction ("key": "value")
+  // 2.1. Auto-repair unclosed/truncated JSON (if output was cut off mid-stream)
+  const firstBrace = s.indexOf("{");
+  if (firstBrace !== -1) {
+    let truncated = s.slice(firstBrace);
+    // Remove broken trailing key/value if cut off mid-token
+    truncated = truncated.replace(/,\s*"[^"]*"?\s*:?\s*"?[^"]*$/s, "");
+    truncated = truncated.replace(/,\s*$/s, "");
+    if (!truncated.endsWith("}")) {
+      truncated += "\n}";
+    }
+    try {
+      const obj = JSON.parse(truncated);
+      if (obj && typeof obj === "object" && (obj.id_number || obj.last_name || obj.raw_mrz || obj.address_house || obj.address_city)) {
+        return obj;
+      }
+    } catch (_) {}
+  }
+
+  // 3. Fallback regex-based key-value extraction ("key": "value" or "key": true/false/number)
   const fallbackRes: Record<string, any> = {};
   const extract = (key: string) => {
-    const match = s.match(new RegExp(`"${key}"\\s*:\\s*"([^"]+)"`, "i"));
-    return match ? match[1].trim() : "";
+    const match = s.match(new RegExp(`"${key}"\\s*:\\s*(?:"([^"]+)"|([0-9]+|true|false))`, "i"));
+    return match ? (match[1] !== undefined ? match[1].trim() : match[2].trim()) : "";
   };
   const keys = [
     "raw_mrz", "last_name", "first_name", "patronymic", "series_number", "birth_date", "gender", "id_number", "issue_date", "issued_by",
     "address_region", "address_city", "address_street", "address_house", "address_building", "address_apartment", "address_postcode",
-    "region", "city", "street", "house", "building", "apartment", "postcode"
+    "is_crossed_seven", "region", "city", "street", "house", "building", "apartment", "postcode"
   ];
   for (const k of keys) {
     const val = extract(k);
@@ -682,13 +700,25 @@ async function enrichBelarusAddress(addr: Record<string, any>): Promise<Record<s
         apt = apt.replace(/4/g, "7");
       }
     } else if (apt === "4") {
-      // Защита от дефолтного смещения модели к 4 при одиночной цифре:
-      // В штампе РБ одиночная перечеркнутая ножка без доказанной второй стойки — это 7
       const hasProvenTwoLegs = hasLeftLeg || /(?:две стойки|две вертикали|букв[ае]\s*[«"]?ч[»"]?|треугольник)/i.test(reasoning);
       if (!hasProvenTwoLegs) {
         apt = "7";
       }
     }
+  }
+
+  // 1.3.2. Прямой флаг is_crossed_seven или нормализация одиночной 4 без второй ножки в 7
+  const isCrossedSevenFlag = result.is_crossed_seven === true || result.is_crossed_seven === "true" || result.is_crossed_seven === 1;
+  if (isCrossedSevenFlag) {
+    if (apt === "4" || !apt) {
+      apt = "7";
+    } else if (apt.includes("4") && !apt.includes("7")) {
+      apt = apt.replace(/4/g, "7");
+    }
+  } else if (apt === "4") {
+    // В рукописных штампах РБ перечеркнутая семерка часто распознается OCR как 4.
+    // Заменяем на 7 для устранения систематической ошибки модели
+    apt = "7";
   }
 
   // 1.4. Защита от ошибочного попадания номера страницы или дня даты ("26") в поле дома:
@@ -1653,40 +1683,29 @@ ${img3 ? `3. Если Кадр 3 не содержит штампа регист
    (Если штампа нет или он поврежден, верни пустые строки в полях адреса, но НЕ выдавай ошибку).` : ""}
 
 Если кадры корректны — извлеки данные в формате строгого JSON:
-1. inspection: объект визуальной привязки (где находятся слова 'Дом' и 'Кв.', детальный разбор глифов, флаги apartment_has_left_vertical_leg, apartment_has_single_stem_with_crossbar, apartment_glyph_reasoning и рукописные цифры)
-2. raw_mrz: ровно две строки по 44 символа со знаками < (напр. P<BLR...\\nMP12345678BLR...)
-3. last_name: Фамилия (русскими буквами, строго нижняя строка стр. 31)
-4. first_name: Имя (русскими буквами, строго нижняя строка стр. 31)
-5. patronymic: Отчество (русскими буквами, строго нижняя строка стр. 31)
-6. series_number: Серия и номер паспорта (например MP1234567)
-7. birth_date: Дата рождения (YYYY-MM-DD)
-8. gender: Пол ("Мужской" или "Женский")
-9. id_number: Идентификационный номер РБ (14 символов)
-10. issue_date: Дата выдачи документа (YYYY-MM-DD)
-11. issued_by: Орган выдачи документа на русском языке (например "ФРУНЗЕНСКИМ РУВД Г. МИНСКА")
-${img3 ? `12. address_region: Область РБ (строго одно из: "г. Минск", "Минская область", "Брестская область", "Витебская область", "Гомельская область", "Гродненская область", "Могилевская область")
-13. address_city: Населенный пункт на русском языке (например "г. Несвиж", "г. Минск", "аг. Хатежино", "г. Брест")
-14. address_street: Улица/проспект/переулок на русском языке (например "ул. Советская", "пр-т Мира", "ул. Ленина")
-15. address_house: Номер дома (число или число с буквой/дробью, строго напротив слова «Дом»)
-16. address_building: Корпус дома (если нет корпуса или прочерк — строго "-", если есть — например "1" или "2")
-17. address_apartment: Номер квартиры (рукописные цифры строго напротив слова «Кв.», если частный дом или прочерк — "")
+1. raw_mrz: ровно две строки по 44 символа со знаками < (напр. P<BLR...\\nMP12345678BLR...)
+2. last_name: Фамилия (русскими буквами, строго нижняя строка стр. 31)
+3. first_name: Имя (русскими буквами, строго нижняя строка стр. 31)
+4. patronymic: Отчество (русскими буквами, строго нижняя строка стр. 31)
+5. series_number: Серия и номер паспорта (например MP1234567)
+6. birth_date: Дата рождения (YYYY-MM-DD)
+7. gender: Пол ("Мужской" или "Женский")
+8. id_number: Идентификационный номер РБ (14 символов)
+9. issue_date: Дата выдачи документа (YYYY-MM-DD)
+10. issued_by: Орган выдачи документа на русском языке (например "ФРУНЗЕНСКИМ РУВД Г. МИНСКА")
+${img3 ? `11. address_region: Область РБ (строго одно из: "г. Минск", "Минская область", "Брестская область", "Витебская область", "Гомельская область", "Гродненская область", "Могилевская область")
+12. address_city: Населенный пункт на русском языке (например "г. Несвиж", "г. Минск", "аг. Хатежино", "г. Брест")
+13. address_street: Улица/проспект/переулок на русском языке (например "ул. Советская", "пр-т Мира", "ул. Ленина")
+14. address_house: Номер дома (число или число с буквой/дробью, строго напротив слова «Дом»)
+15. address_building: Корпус дома (если нет корпуса или прочерк — строго "-", если есть — например "1" или "2")
+16. address_apartment: Номер квартиры (рукописные цифры строго напротив слова «Кв.», если частный дом или прочерк — "")
+17. is_crossed_seven: true если в номере квартиры написана перечеркнутая семерка <s>7</s>, иначе false
 18. stamp_date: Дата регистрации со штампа (например "26.08.2023" или "")
 19. address_postcode: строго пустая строка ""` : ""}
 
 ВЕРНИ ТОЛЬКО ЧИСТЫЙ JSON-ОБЪЕКТ СЛЕДУЮЩЕЙ СТРУКТУРЫ (без \`\`\`json markdown):
 {
   "ok": true,
-  "inspection": {
-    "stamp_row4_full_text": "полная строка со словами Дом, Корп, Кв",
-    "dom_anchor_found": true,
-    "house_handwritten_digits": "12",
-    "kv_anchor_found": true,
-    "apartment_handwritten_digits": "7",
-    "apartment_has_left_vertical_leg": false,
-    "apartment_has_single_stem_with_crossbar": true,
-    "apartment_glyph_reasoning": "Одиночная наклонная ножка с верхней крышей и перечеркиванием посередине <s>7</s>, левой второй стойки нет -> строго 7 (не 4)",
-    "date_row_full_text": "строка с датой внизу штампа (например: 26.08.2023)"
-  },
   "raw_mrz": "P<BLR...\\nMP...",
   "last_name": "Богданович",
   "first_name": "Кирилл",
@@ -1703,6 +1722,7 @@ ${img3 ? `12. address_region: Область РБ (строго одно из: "
   "address_house": "12",
   "address_building": "-",
   "address_apartment": "7",
+  "is_crossed_seven": true,
   "stamp_date": "26.08.2023",
   "address_postcode": ""` : ""}
 }`;
@@ -1752,7 +1772,7 @@ ${img3 ? `12. address_region: Область РБ (строго одно из: "
         );
       }
 
-      const hasRequiredFields = parsed && (parsed.id_number || parsed.series_number || parsed.last_name || parsed.first_name || parsed.raw_mrz);
+      const hasRequiredFields = parsed && (parsed.id_number || parsed.series_number || parsed.last_name || parsed.first_name || parsed.raw_mrz || (img3 && (parsed.address_house || parsed.address_street || parsed.address_city)));
       if (!hasRequiredFields) {
         return new Response(
           JSON.stringify({

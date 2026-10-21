@@ -164,7 +164,7 @@ async function renderHome() {
             ${marketplaces.map(mp => `
               <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}">
                 <div class="story-icon">
-                  ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261021_10" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
+                  ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261021_11" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
                   <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 20px;">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
                 </div>
                 <span class="story-label">${mp.name}</span>
