@@ -79,52 +79,8 @@ async function renderHome() {
           }
   
   return `
-    <!-- Promo Banners (WB Style Full Width with Slow Auto-scroll) -->
-    <div class="banner-carousel-wrapper mb-4" id="bannerCarouselWrapper">
-      <div class="banner-carousel" id="promoBannersContainer">
-        ${await renderPromoBanners()}
-      </div>
-      <div class="banner-dots" id="bannerDots"></div>
-    </div>
-
-    <!-- Quick Actions - Story Cards (WB Squircle Style Line 1) -->
-    <div class="mb-4">
-    <div class="scroll-x" style="padding: 2px 0 6px;">
-      <div class="story-card" data-story="onboarding">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(99,202,253,0.25), rgba(59,130,246,0.12));">
-          <span style="font-size: 24px;"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span></span>
-        </div>
-        <span class="story-label">Гайд</span>
-      </div>
-      <div class="story-card" data-story="legitcheck">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(16,185,129,0.25), rgba(5,150,105,0.12));">
-          <span style="font-size: 24px;"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span></span>
-        </div>
-        <span class="story-label">Легит-чек</span>
-      </div>
-      <div class="story-card" data-story="reports">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(251,191,36,0.25), rgba(245,158,11,0.12));">
-          <span style="font-size: 24px;"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span></span>
-        </div>
-        <span class="story-label">Отчёты</span>
-      </div>
-      <div class="story-card" data-story="reviews">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(251,191,36,0.3), rgba(234,179,8,0.18));">
-          <span style="font-size: 24px;"><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span></span>
-        </div>
-        <span class="story-label">Отзывы</span>
-      </div>
-      <div class="story-card" data-story="promo">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(248,113,113,0.25), rgba(239,68,68,0.12));">
-          <span style="font-size: 24px;"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></span></span>
-        </div>
-        <span class="story-label">Акции</span>
-      </div>
-    </div>
-    </div>
-    
     <!-- Popular Marketplaces Capsule (Monolithic Tabbed Dock from User Sketch) -->
-    <div class="marketplaces-capsule-section mb-5">
+    <div class="marketplaces-capsule-section mb-4">
       <div class="marketplaces-capsule">
         <svg class="marketplaces-capsule-svg" viewBox="0 0 351 124" preserveAspectRatio="none">
           <defs>
@@ -167,7 +123,7 @@ async function renderHome() {
             ${[0, 1, 2, 3, 4].flatMap(() => marketplaces).map((mp, idx) => `
               <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}" data-idx="${idx}">
                 <div class="story-icon">
-                  ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261021_12" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
+                  ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261021_13" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
                   <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 20px;">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
                 </div>
                 <span class="story-label">${mp.name}</span>
@@ -176,6 +132,50 @@ async function renderHome() {
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Promo Banners (WB Style Full Width with Slow Auto-scroll) -->
+    <div class="banner-carousel-wrapper mb-4" id="bannerCarouselWrapper">
+      <div class="banner-carousel" id="promoBannersContainer">
+        ${await renderPromoBanners()}
+      </div>
+      <div class="banner-dots" id="bannerDots"></div>
+    </div>
+
+    <!-- Quick Actions - Story Cards (WB Squircle Style Line 1) -->
+    <div class="mb-4">
+    <div class="scroll-x" style="padding: 2px 0 6px;">
+      <div class="story-card" data-story="onboarding">
+        <div class="story-icon" style="background: linear-gradient(145deg, rgba(99,202,253,0.25), rgba(59,130,246,0.12));">
+          <span style="font-size: 24px;"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span></span>
+        </div>
+        <span class="story-label">Гайд</span>
+      </div>
+      <div class="story-card" data-story="legitcheck">
+        <div class="story-icon" style="background: linear-gradient(145deg, rgba(16,185,129,0.25), rgba(5,150,105,0.12));">
+          <span style="font-size: 24px;"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span></span>
+        </div>
+        <span class="story-label">Легит-чек</span>
+      </div>
+      <div class="story-card" data-story="reports">
+        <div class="story-icon" style="background: linear-gradient(145deg, rgba(251,191,36,0.25), rgba(245,158,11,0.12));">
+          <span style="font-size: 24px;"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span></span>
+        </div>
+        <span class="story-label">Отчёты</span>
+      </div>
+      <div class="story-card" data-story="reviews">
+        <div class="story-icon" style="background: linear-gradient(145deg, rgba(251,191,36,0.3), rgba(234,179,8,0.18));">
+          <span style="font-size: 24px;"><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span></span>
+        </div>
+        <span class="story-label">Отзывы</span>
+      </div>
+      <div class="story-card" data-story="promo">
+        <div class="story-icon" style="background: linear-gradient(145deg, rgba(248,113,113,0.25), rgba(239,68,68,0.12));">
+          <span style="font-size: 24px;"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></span></span>
+        </div>
+        <span class="story-label">Акции</span>
+      </div>
+    </div>
     </div>
     
     <!-- Сегодняшние подборки товаров (автопарсинг из @icelogix_selection) -->
