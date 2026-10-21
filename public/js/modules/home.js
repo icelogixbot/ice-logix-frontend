@@ -47,6 +47,11 @@ async function renderHome() {
 
           // Use DB marketplaces if configured for home and matching allowed list, otherwise fall back to static list
           const marketplaces = homeDbMarketplaces.length > 0 ? homeDbMarketplaces : staticMarketplaces;
+          const rouletteInitialMarketplaces = [
+            ...marketplaces.slice(-2),
+            ...marketplaces,
+            ...marketplaces
+          ];
 
           // Загрузка сегодняшних подборок из канала (@icelogix_selection)
           let homeProductsList = [];
@@ -121,10 +126,10 @@ async function renderHome() {
         <div class="marketplaces-inner-clipper">
           <div class="marketplaces-track" id="marketplaceRouletteTrack">
             <div class="marketplaces-ribbon" id="marketplaceRibbon">
-              ${[...marketplaces, ...marketplaces].map((mp, idx) => `
+              ${rouletteInitialMarketplaces.map((mp, idx) => `
                 <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}" data-idx="${idx}">
                   <div class="story-icon">
-                    ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261021_14" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
+                    ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261021_15" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
                     <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 20px;">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
                   </div>
                   <span class="story-label">${mp.name}</span>
@@ -659,7 +664,7 @@ function initMarketplaceRoulette() {
   const CARD_WIDTH = 54;
   const GAP = 15;
   const STEP = CARD_WIDTH + GAP; // 69px
-  const CENTER_INDEX = 2; // карточка с индексом 2 находится ровно по центру видоискателя
+  const CENTER_INDEX = 2; // карточка с индексом 2 (Dewu при старте) находится ровно по центру видоискателя
 
   function alignRibbon() {
     if (!track || !ribbon) return;
@@ -686,11 +691,11 @@ function initMarketplaceRoulette() {
     if (isAnimating || isPaused || !document.getElementById('marketplaceRibbon')) return;
     isAnimating = true;
 
-    // Плавный сдвиг ленты влево ровно на 1 слот карточки
+    // Плавный сдвиг ленты влево ровно на 1 шаг (69px)
     ribbon.style.transition = 'transform 0.58s cubic-bezier(0.22, 1, 0.36, 1)';
     ribbon.style.transform = `translateX(-${STEP}px)`;
 
-    // Предварительная подсветка следующей карточки (входит в центр)
+    // Предварительная подсветка следующей карточки
     const children = Array.from(ribbon.children);
     children.forEach(c => c.classList.remove('is-active-target'));
     if (children[CENTER_INDEX + 1]) {
@@ -714,15 +719,47 @@ function initMarketplaceRoulette() {
     }, 590);
   }
 
+  function stepPrev() {
+    if (isAnimating || !ribbon || !ribbon.lastElementChild) return;
+    isAnimating = true;
+
+    // Мгновенно переносим последний элемент в начало и сдвигаем ленту на -STEP
+    ribbon.style.transition = 'none';
+    ribbon.insertBefore(ribbon.lastElementChild, ribbon.firstElementChild);
+    ribbon.style.transform = `translateX(-${STEP}px)`;
+    void ribbon.offsetWidth;
+
+    // Плавно анимируем к 0
+    ribbon.style.transition = 'transform 0.58s cubic-bezier(0.22, 1, 0.36, 1)';
+    ribbon.style.transform = 'translateX(0px)';
+
+    const children = Array.from(ribbon.children);
+    children.forEach(c => c.classList.remove('is-active-target'));
+    if (children[CENTER_INDEX]) {
+      children[CENTER_INDEX].classList.add('is-active-target');
+    }
+
+    setTimeout(() => {
+      if (!ribbon) {
+        isAnimating = false;
+        return;
+      }
+      highlightCenter();
+      isAnimating = false;
+      scheduleNext();
+    }, 590);
+  }
+
   function scheduleNext() {
     clearTimeout(window.__mpRouletteTimer);
-    window.__mpRouletteTimer = setTimeout(stepNext, 2400); // 2.4s пауза в центре
+    window.__mpRouletteTimer = setTimeout(stepNext, 2400); // 2.4s пауза в центре видоискателя
   }
 
   // Ручное управление свайпом
   let startX = 0;
   let currentDragDelta = 0;
   let isDragging = false;
+  let hasDraggedMeaningfully = false;
 
   function onTouchStart(e) {
     if (isAnimating) return;
@@ -733,12 +770,16 @@ function initMarketplaceRoulette() {
     startX = clientX;
     currentDragDelta = 0;
     isDragging = true;
+    hasDraggedMeaningfully = false;
   }
 
   function onTouchMove(e) {
     if (!isDragging || isAnimating || !ribbon) return;
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     currentDragDelta = clientX - startX;
+    if (Math.abs(currentDragDelta) > 5) {
+      hasDraggedMeaningfully = true;
+    }
     ribbon.style.transition = 'none';
     ribbon.style.transform = `translateX(${currentDragDelta}px)`;
   }
@@ -749,6 +790,8 @@ function initMarketplaceRoulette() {
 
     if (currentDragDelta < -STEP / 2) {
       stepNext();
+    } else if (currentDragDelta > STEP / 2) {
+      stepPrev();
     } else {
       ribbon.style.transition = 'transform 0.25s ease-out';
       ribbon.style.transform = 'translateX(0px)';
@@ -760,6 +803,20 @@ function initMarketplaceRoulette() {
       scheduleNext();
     }, 2500);
   }
+
+  // Делегированный клик без ложных срабатываний при свайпе
+  track.addEventListener('click', (e) => {
+    if (hasDraggedMeaningfully) return;
+    const card = e.target.closest('.marketplace-story');
+    if (!card) return;
+    const url = card.getAttribute('data-url');
+    if (url) {
+      if (window.tgUtil && window.tgUtil.openLink) window.tgUtil.openLink(url);
+      else window.open(url, '_blank');
+    } else {
+      if (window.tgUtil && window.tgUtil.alert) window.tgUtil.alert('Ссылка на площадку будет добавлена позже');
+    }
+  });
 
   track.addEventListener('touchstart', onTouchStart, { passive: true });
   track.addEventListener('touchmove', onTouchMove, { passive: true });
