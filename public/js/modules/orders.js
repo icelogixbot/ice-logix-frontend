@@ -1837,8 +1837,102 @@ window.applySmartShareLink = applySmartShareLink;
             }
 
             const originalText = analyzeOrderBtn.innerText;
-            analyzeOrderBtn.innerHTML = isHardDomain(url) ? '<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l-4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Обходим защиту…' : '<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l-4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Анализ...';
             analyzeOrderBtn.disabled = true;
+
+            // ── FAST-PATH: ANDROID HARDWARE BRIDGE (Pinduoduo Live Engine) ──
+            try {
+              analyzeOrderBtn.innerHTML = '<span class="ix animate-spin">⚡</span> Аппаратный выкуп…';
+              const bridgeCheck = await fetch('http://127.0.0.1:3007/api/status', {
+                signal: AbortSignal.timeout(1200)
+              }).catch(() => null);
+
+              if (bridgeCheck && bridgeCheck.ok) {
+                analyzeOrderBtn.innerHTML = '<span class="ix animate-spin">⚡</span> Чтение опций товара…';
+                const bridgeResp = await fetch('http://127.0.0.1:3007/api/parse-product', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ url }),
+                  signal: AbortSignal.timeout(25000)
+                });
+
+                if (bridgeResp.ok) {
+                  const bData = await bridgeResp.json();
+                  if (bData && bData.success) {
+                    const applyBridgeData = (selected) => {
+                      const orderPriceEl = document.getElementById('orderPrice');
+                      if (orderPriceEl && selected.price != null && Number(selected.price) > 0) {
+                        orderPriceEl.value = selected.price;
+                        orderPriceEl.dispatchEvent(new Event('input', { bubbles: true }));
+                      }
+                      const currencySelect = document.getElementById('orderCurrency');
+                      if (currencySelect) {
+                        currencySelect.value = 'CNY';
+                        currencySelect.dispatchEvent(new Event('change', { bubbles: true }));
+                      }
+                      const setVal = (id, val) => {
+                        const el = document.getElementById(id);
+                        if (el && val) {
+                          el.value = val;
+                          el.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
+                      };
+                      const title = selected.title || bData.title_ru || bData.title || 'Товар Pinduoduo';
+                      setVal('orderTitle', title);
+                      setVal('orderModel', title);
+                      setVal('orderBrand', selected.brand || 'Apple');
+                      if (selected.color) setVal('orderColor', selected.color);
+                      if (selected.size) setVal('orderSize', selected.size);
+                      const descParts = [];
+                      if (selected.color) descParts.push('Цвет: ' + selected.color);
+                      if (selected.size) descParts.push('Размер: ' + selected.size);
+                      if (descParts.length) setVal('orderFeatures', descParts.join(' · '));
+
+                      const categorySelect = document.getElementById('orderCategory');
+                      if (categorySelect && (!categorySelect.value || categorySelect.value === '')) {
+                        const opt = findCategoryOption(categorySelect, 'Чехлы') || findCategoryOption(categorySelect, 'Аксессуары');
+                        if (opt) categorySelect.value = opt.value;
+                        categorySelect.dispatchEvent(new Event('change', { bubbles: true }));
+                      }
+
+                      if (selected.image_url || bData.image_url) {
+                        window.orderImportedImageUrl = selected.image_url || bData.image_url;
+                        if (typeof window.renderManualPhotoPreviews === 'function') {
+                          window.renderManualPhotoPreviews();
+                        }
+                      }
+                      if (typeof recalculateOrderTotals === 'function') {
+                        recalculateOrderTotals();
+                      }
+                      if (typeof glassToast === 'function') {
+                        glassToast(`✨ Выбран вариант: ${selected.color || ''} ${selected.size || ''}`, { kind: 'success' });
+                      }
+                    };
+
+                    if (bData.has_options && typeof window.openSkuSelectorModal === 'function') {
+                      window.openSkuSelectorModal(bData, applyBridgeData);
+                    } else {
+                      applyBridgeData({
+                        price: bData.price_cny,
+                        color: bData.colors?.[0]?.name_ru || '',
+                        size: bData.sizes?.[0]?.name_ru || '',
+                        image_url: bData.image_url,
+                        title: bData.title_ru || bData.title
+                      });
+                    }
+
+                    analyzeOrderBtn.classList.add('bg-green-500');
+                    setTimeout(() => analyzeOrderBtn.classList.remove('bg-green-500'), 1000);
+                    analyzeOrderBtn.innerText = originalText;
+                    analyzeOrderBtn.disabled = false;
+                    return;
+                  }
+                }
+              }
+            } catch (bridgeErr) {
+              console.log('Bridge fast-path fallback:', bridgeErr);
+            }
+
+            analyzeOrderBtn.innerHTML = isHardDomain(url) ? '<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l-4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Обходим защиту…' : '<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l-4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Анализ...';
 
             try {
               const { data: queueData, error: insErr } = await supabaseClient

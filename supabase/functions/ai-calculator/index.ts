@@ -1028,6 +1028,7 @@ async function parsePassportWithFreeOCR(frame1?: string, frame2?: string, frame3
 
 async function callVisionChatWithFallback(messages: any[], maxTokens = 3500, title = "ICE LOGIX Vision"): Promise<any> {
   const models = [
+    VISION_MODEL,
     "openrouter/free",
     "minimax/minimax-m3.1-flash:free",
     "nvidia/nemotron-3.5-super-vl:free",

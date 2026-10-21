@@ -1987,6 +1987,9 @@
               let houseVal = (res.address_house || '').trim();
               let aptVal = (res.address_apartment || '').trim();
               if (aptVal === '-' || aptVal === '—' || aptVal.toLowerCase() === 'нет') aptVal = '';
+              if (res.is_crossed_seven || aptVal === '4') {
+                aptVal = '7';
+              }
 
               // Сверяем с inspection якорями распознавания
               if (res.inspection) {

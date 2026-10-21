@@ -23,3 +23,6 @@ out/
 
 # Supabase CLI temp files
 supabase/.temp/
+
+# Uploads
+public/uploads/
