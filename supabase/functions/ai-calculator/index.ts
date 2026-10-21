@@ -315,14 +315,14 @@ function normalizeBelarusRegion(region?: string, city?: string): string {
 
   const combined = `${r} ${c}`.toLowerCase();
 
-  // 2. Минский район -> СТРОГО "Минская область"!
-  if (combined.includes("минский р") || combined.includes("минский район") || combined.includes("мінскі р") || combined.includes("мінская вобл")) {
+  // 2. Минская область или Минский район -> СТРОГО "Минская область"!
+  if (combined.includes("минская") || combined.includes("мінская") || combined.includes("минский") || combined.includes("мінскі") || combined.includes("минск. обл") || combined.includes("мінск. вобл")) {
     return "Минская область";
   }
 
-  // 3. г. Минск (столица) - только если строго Минск и НЕТ слова район
-  if (/^(?:г\.?\s*)?минск(?:\s*|$)/i.test(r) || /^(?:г\.?\s*)?минск(?:\s*|$)/i.test(c) || /^(?:г\.?\s*)?мінск(?:\s*|$)/i.test(combined)) {
-    if (!combined.includes("район") && !combined.includes("р-н") && !combined.includes("рн")) {
+  // 3. г. Минск (столица) - только если строго Минск и НЕТ слов область / район
+  if (/^(?:г\.?\s*)?минск(?:\s*|$)/i.test(r) || /^(?:г\.?\s*)?минск(?:\s*|$)/i.test(c)) {
+    if (!combined.includes("район") && !combined.includes("р-н") && !combined.includes("рн") && !combined.includes("област") && !combined.includes("воблас")) {
       return "г. Минск";
     } else {
       return "Минская область";
@@ -565,6 +565,17 @@ async function fetchPostcodeOsm(city?: string, street?: string, house?: string):
 
 async function enrichBelarusAddress(addr: Record<string, any>): Promise<Record<string, any>> {
   const result = { ...addr };
+
+  // Очистка от ошибочного попадания названия области в поле города или улицы
+  if (result.address_city && /область|вобласць/i.test(result.address_city) && !/г\.|город|аг\.|д\./i.test(result.address_city)) {
+    if (!result.address_region) {
+      result.address_region = normalizeBelarusRegion(result.address_city, "");
+    }
+    result.address_city = "";
+  }
+  if (result.address_street && /область|вобласць/i.test(result.address_street)) {
+    result.address_street = "";
+  }
 
   // 1. Номер дома: очистка от префиксов ("дом", "д.", "№"), точек, дефисов и выделение из названия улицы при необходимости
   let h = (result.address_house || "").trim();
@@ -1335,25 +1346,6 @@ Return ONLY a JSON object:
         imageUrl = `data:image/jpeg;base64,${imageUrl}`;
       }
 
-      // 🚀 ПРИОРИТЕТ 1: БЕСПЛАТНЫЙ БЫСТРЫЙ OCR-ДВИЖОК
-      try {
-        let freeResult = await parsePassportWithFreeOCR(imageUrl, imageUrl, "");
-        if (freeResult && (freeResult.id_number || freeResult.series_number || freeResult.last_name)) {
-          console.log("Successfully recognized parse_passport via Free OCR Engine");
-          return new Response(
-            JSON.stringify({
-              ok: true,
-              passport_data: freeResult,
-              engine: "free-ocr-space",
-              raw_output: "Parsed by Free OCR Engine"
-            }),
-            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-      } catch (fErr) {
-        console.warn("Free OCR in parse_passport failed, proceeding to Vision LLM fallback:", fErr);
-      }
-
       const prompt = `Ты — эксперт по оптическому распознаванию паспортов и ID-карт Республики Беларусь (РБ).
 Твоя задача — внимательно изучить предоставленное изображение разворота паспорта РБ (страницы 31-33) или двусторонней ID-карты гражданина Беларуси и извлечь паспортные данные на русском языке.
 
@@ -1435,35 +1427,6 @@ Return ONLY a JSON object:
       let img3 = typeof frame3 === "string" ? frame3.trim() : "";
       if (img3 && !img3.startsWith("data:") && !img3.startsWith("http")) {
         img3 = `data:image/jpeg;base64,${img3}`;
-      }
-
-      // ==========================================
-      // 🚀 ПРИОРИТЕТ 1: БЕСПЛАТНЫЙ БЫСТРЫЙ OCR-ДВИЖОК
-      // 0 кредитов, 0 рублей, ответ за 1-2 секунды
-      // ==========================================
-      try {
-        let freeResult = await parsePassportWithFreeOCR(img1, img2, img3);
-        if (freeResult && (freeResult.id_number || freeResult.series_number || freeResult.last_name)) {
-          if (img3) {
-            try {
-              freeResult = await enrichBelarusAddress(freeResult);
-            } catch (enrichErr) {
-              console.warn("Address enrichment error in free OCR:", enrichErr);
-            }
-          }
-          console.log("Successfully recognized via Free OCR Engine");
-          return new Response(
-            JSON.stringify({
-              ok: true,
-              result: freeResult,
-              engine: "free-ocr-space",
-              raw_output: "Parsed by Free OCR Engine"
-            }),
-            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-      } catch (freeErr) {
-        console.warn("Free OCR attempt failed, proceeding to Vision LLM fallback:", freeErr);
       }
 
       const prompt = `Ты — эксперт по оптическому считыванию и декодированию паспортов и ID-карт Республики Беларусь (стандарт ICAO 9303).
@@ -1617,7 +1580,67 @@ ${img3 ? `11. address_region: Область РБ (строго одно из: "
         );
       }
 
-      // Интеллектуальное обогащение адреса: автоопределение области, почтового индекса Белпочты и нормализация корпуса
+      // 1. Очистка идентификационного номера (строго 14 символов стандарта РБ / ICAO 9303: [1-7]\d{6}[A-Z]\d{3}[A-Z]{2}\d)
+      let cleanId = "";
+      if (parsed.id_number) {
+        const mId = String(parsed.id_number).match(/[1-7]\d{6}[A-Z]\d{3}[A-Z]{2}\d/i);
+        if (mId) {
+          cleanId = mId[0].toUpperCase();
+        }
+      }
+      if (!cleanId && parsed.raw_mrz) {
+        const mrzLines = String(parsed.raw_mrz).split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+        const l2 = mrzLines.find(l => l.length >= 42 && /BLR/i.test(l)) || (mrzLines.length > 1 ? mrzLines[1] : "");
+        if (l2 && l2.length >= 42) {
+          const candidate = l2.slice(28, 42).replace(/</g, "").toUpperCase();
+          if (/[1-7]\d{6}[A-Z]\d{3}[A-Z]{2}\d/i.test(candidate)) {
+            cleanId = candidate;
+          }
+        }
+      }
+      if (cleanId) {
+        parsed.id_number = cleanId;
+      } else if (parsed.id_number) {
+        parsed.id_number = String(parsed.id_number).replace(/[^A-Z0-9]/gi, "").slice(0, 14).toUpperCase();
+      }
+
+      // 2. Очистка серии и номера паспорта (2 буквы + 7 цифр = 9 символов) / ID карты (9 цифр)
+      if (parsed.series_number) {
+        let s = String(parsed.series_number).replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+        const mSeries = s.match(/([A-Z]{2}\d{7})/i);
+        if (mSeries) {
+          s = mSeries[1].toUpperCase();
+        } else if (/^[A-Z]{2}\d{8}$/i.test(s)) {
+          s = s.slice(0, 9);
+        }
+        parsed.series_number = s;
+      }
+
+      // 3. Очистка ФИО (строго русская кириллица, удаление двуязычных слешей, замена белорусских букв)
+      const cleanCyrillicName = (val?: any): string => {
+        if (!val) return "";
+        let s = String(val).trim();
+        if (s.includes("/") || s.includes("\\")) {
+          const parts = s.split(/[\/\\]/).map(p => p.trim()).filter(Boolean);
+          s = parts.find(p => /[А-Яа-яЁё]/.test(p)) || parts[0];
+        }
+        s = s.replace(/І/g, "И").replace(/і/g, "и").replace(/Ў/g, "У").replace(/ў/g, "у");
+        return s.replace(/[^А-Яа-яЁё\s-]/g, "").trim().toUpperCase();
+      };
+
+      if (parsed.last_name) parsed.last_name = cleanCyrillicName(parsed.last_name);
+      if (parsed.first_name) parsed.first_name = cleanCyrillicName(parsed.first_name);
+      if (parsed.patronymic) parsed.patronymic = cleanCyrillicName(parsed.patronymic);
+
+      // 4. Очистка органа выдачи МВД
+      if (parsed.issued_by) {
+        parsed.issued_by = String(parsed.issued_by)
+          .replace(/І/g, "И").replace(/і/g, "и")
+          .replace(/^[":']+|[":']+$/g, "")
+          .trim().toUpperCase();
+      }
+
+      // 5. Интеллектуальное обогащение адреса: автоопределение области, почтового индекса Белпочты и нормализация корпуса
       if (img3 && parsed) {
         try {
           parsed = await enrichBelarusAddress(parsed);
@@ -1630,6 +1653,7 @@ ${img3 ? `11. address_region: Область РБ (строго одно из: "
         JSON.stringify({
           ok: true,
           result: parsed,
+          engine: "vision-ai",
           raw_output: combined,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
