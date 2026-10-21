@@ -940,8 +940,8 @@
         cleanMsg = 'Сервер распознавания временно перегружен или исчерпал лимит запросов OpenRouter. Пожалуйста, повторите попытку позже либо заполните данные вручную.';
       }
 
-      const isStep3 = errorStep === 3 || (cleanMsg && cleanMsg.includes('прописк'));
-      const isStep2Only = !isStep3 && (errorStep === 2 || (frame1DataUrl && cleanMsg && (cleanMsg.includes('Кадр 2') || cleanMsg.includes('33'))));
+      const isStep3 = errorStep === 3 || currentStep === 3 || Boolean(frame3DataUrl) || (cleanMsg && cleanMsg.includes('прописк'));
+      const isStep2Only = !isStep3 && (errorStep === 2 || currentStep === 2 || (frame1DataUrl && cleanMsg && (cleanMsg.includes('Кадр 2') || cleanMsg.includes('33'))));
 
       const card = document.createElement('div');
       card.id = 'kycRetryCard';
