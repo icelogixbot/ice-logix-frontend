@@ -101,8 +101,8 @@
     const cropW = Math.min(vWidth - cropX, fRect.width * scale);
     const cropH = Math.min(vHeight - cropY, fRect.height * scale);
 
-    // Добавляем запас (4% для страниц 31-33, 8% для штампа прописки, чтобы номер дома слева не срезался)
-    const marginRatio = isStep3 ? 0.08 : 0.04;
+    // Добавляем запас (4% для страниц 31-33, 18% для штампа прописки, чтобы номер дома и кв. по краям не срезались)
+    const marginRatio = isStep3 ? 0.18 : 0.04;
     const marginX = cropW * marginRatio;
     const marginY = cropH * marginRatio;
     const sx = Math.max(0, cropX - marginX);
@@ -649,7 +649,7 @@
           if (skipStep3Btn) skipStep3Btn.classList.add('hidden');
         } else {
           stepBadge.textContent = 'Шаг 3 из 3: Штамп прописки (стр. 25–28)';
-          subText.textContent = 'Наведите на синий штамп «ЗАРЭГІСТРАВАНЫ» и рукописный адрес ручкой (город, агрогородок, деревня).';
+          subText.textContent = 'Держите весь синий штамп «ЗАРЭГІСТРАВАНЫ» в рамке — нейросеть считает рукописный адрес, дом и квартиру.';
           topZone.className = 'kyc-target-box-name transition-all border-cyan-400/60 bg-cyan-500/15 text-white font-bold';
           bottomZone.className = 'kyc-target-box-mrz transition-all border-cyan-400/40 bg-cyan-500/10 text-cyan-100 font-medium';
           topText.textContent = 'Синий штамп «ЗАРЭГІСТРАВАНЫ / ЗАРЕГИСТРИРОВАН»';
@@ -831,9 +831,9 @@
       setTimeout(() => flash.remove(), 300);
 
       // КРОП ВИДОИСКАТЕЛЯ: Извлекаем чисто разворот паспорта в высоком разрешении
-      // Для Шага 3 (рукописный адрес в ячейках штампа) используем максимальную четкость 1600px и качество 0.93
-      const targetCropWidth = (currentStep === 3) ? 1600 : 1300;
-      const targetQuality = (currentStep === 3) ? 0.93 : 0.88;
+      // Для Шага 3 (рукописный адрес в ячейках штампа) используем максимальную четкость 1800px и качество 0.94
+      const targetCropWidth = (currentStep === 3) ? 1800 : 1300;
+      const targetQuality = (currentStep === 3) ? 0.94 : 0.88;
       const shotDataUrl = cropViewfinderFromVideo(videoElem, viewfinder, targetCropWidth, targetQuality, currentStep === 3) || canvasToDataUrl(videoElem, targetCropWidth, targetQuality);
 
       if (currentStep === 1) {
@@ -1036,7 +1036,7 @@
   async function processPassportFrames(frame1DataUrl, frame2DataUrl, frame3DataUrl, mode) {
     // 🚀 ПРИОРИТЕТ 1: Собственный независимый Document AI микросервис (0$, ~180 мс, 100% точность)
     try {
-      const docAiUrl = window.DOC_AI_API_URL || 'http://127.0.0.1:8088';
+      const docAiUrl = window.DOC_AI_API_URL || 'http://127.0.0.1:8095';
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 15000);
       const resp = await fetch(`${docAiUrl}/scan-passport`, {

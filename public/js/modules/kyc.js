@@ -1492,7 +1492,7 @@
                   type="text"
                   id="kycAddressHouse"
                   class="w-full p-3 rounded-2xl bg-white/5 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
-                  placeholder="12"
+                  placeholder="Номер дома"
                   value="${d.address?.house || ''}"
                   required
                 >
@@ -1503,7 +1503,7 @@
                   type="text"
                   id="kycAddressCorpus"
                   class="w-full p-3 rounded-2xl bg-white/5 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
-                  placeholder="1"
+                  placeholder="Корпус (-)"
                   value="${d.address?.corpus || ''}"
                 >
               </div>
@@ -1513,7 +1513,7 @@
                   type="text"
                   id="kycAddressRoom"
                   class="w-full p-3 rounded-2xl bg-white/5 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
-                  placeholder="45"
+                  placeholder="Кв."
                   value="${d.address?.room || ''}"
                 >
               </div>
@@ -1529,7 +1529,7 @@
                 type="text"
                 id="kycAddressZip"
                 class="w-full p-3.5 rounded-2xl bg-white/5 border border-white/15 text-white font-mono text-sm focus:border-cyan-400 focus:outline-none transition"
-                placeholder="220000"
+                placeholder="Индекс (6 цифр)"
                 maxlength="6"
                 value="${d.address?.zip_code || ''}"
               >
@@ -1760,6 +1760,65 @@
       if (idInput.value) handleIdInput();
     }
 
+    // Официальный справочник почтовых индексов Белпочты
+    const BELPOST_CLIENT_INDEXES = {
+      // Минский район и агрогородки
+      "колодищ": "223051", "тарасов": "223018", "боровлян": "223053", "лесной": "223053", "лесковк": "223053",
+      "сениц": "223056", "жданович": "223028", "ратомк": "223035", "озерц": "223021", "хатежин": "223037",
+      "прилук": "223011", "заславл": "223034", "мачулищ": "223017", "гатов": "223017", "самохвалович": "223016",
+      "миханович": "223075", "фанипол": "222750", "сокол": "220044", "копищ": "223053", "дроздов": "223053",
+      // Несвижский район и окрестности
+      "несвиж": "222603", "городе": "222610", "снов": "222620", "лань": "222631", "сейлович": "222628",
+      "альб": "222603", "карцевич": "222603", "островк": "222634", "грицкевич": "222623",
+      // Столбцы, Клецк, Копыль, Дзержинск
+      "столбц": "222660", "клецк": "222531", "копыл": "222811", "дзержинск": "222720",
+      // Минская область (города)
+      "борисов": "222120", "солигорск": "223710", "молодечно": "222310", "жодино": "222160", "слуцк": "223610",
+      "вилейк": "222410", "смолевич": "222201", "логойск": "223110", "березин": "223311", "любан": "223812",
+      "старые дороги": "222932", "воложин": "222357", "узден": "223411", "червен": "223232", "крупк": "222001",
+      "мядел": "222397", "марьина горка": "222810", "пухович": "222810",
+      // Брестская область
+      "брест": "224000", "барановичи": "225400", "пинск": "225710", "кобрин": "225300", "берез": "225210",
+      "лунинец": "225640", "ивацевич": "225295", "пружан": "225133", "столин": "225510", "дрогичин": "225612",
+      "жабинк": "225101", "ганцевич": "225432", "иванов": "225800", "каменец": "225050", "ляхович": "225370",
+      // Витебская область
+      "витебск": "210000", "новополоцк": "211440", "полоцк": "211400", "орша": "211030", "глубок": "211800",
+      "лепель": "211174", "постав": "211871", "браслав": "211970", "докшиц": "211720", "миор": "211287",
+      // Гомельская область
+      "гомель": "246000", "мозыр": "247760", "жлобин": "247210", "светлогорск": "247430", "речиц": "247500",
+      "калинкович": "247710", "рогачев": "247671", "добруш": "247050", "житкович": "247960", "хойник": "247618",
+      // Гродненская область
+      "гродно": "230000", "лид": "231300", "слоним": "231800", "волковыск": "231900", "сморгон": "231000",
+      "новогруд": "231400", "островец": "231201", "ошмян": "231103", "щучин": "231513", "мост": "231600",
+      // Могилевская область
+      "могилев": "212000", "бобруйск": "213800", "горки": "213410", "осипович": "213760", "кричев": "213500",
+      "быхов": "213352", "климович": "213633", "шклов": "213004", "костюкович": "213640", "чаус": "213206"
+    };
+
+    function autoFillPostcodeForCity(cityStr, force = false) {
+      const zipElem = zipInput || document.getElementById('kycAddressZip');
+      if (!zipElem) return;
+      if (!force && zipElem.value && zipElem.value !== '220000' && zipElem.value !== '220050') {
+        return;
+      }
+      const c = (cityStr || '').toLowerCase().replace(/^(?:г|д|аг|пос|пгт|рп)\.?\s+/gi, '').trim();
+      if (!c) return;
+
+      if (c === 'минск' || c === 'мінск') {
+        zipElem.value = '220050';
+        zipElem.dispatchEvent(new Event('input', { bubbles: true }));
+        return;
+      }
+
+      for (const [prefix, code] of Object.entries(BELPOST_CLIENT_INDEXES)) {
+        if (c.includes(prefix) || prefix.includes(c)) {
+          zipElem.value = code;
+          zipElem.dispatchEvent(new Event('input', { bubbles: true }));
+          return;
+        }
+      }
+    }
+
     // Умное автоопределение области РБ по городу/району/подсказке
     function autoDetectRegionForCity(c, rHint) {
       const regionElem = regionSelect || document.getElementById('kycAddressRegion');
@@ -1869,6 +1928,8 @@
               let hasAddress = false;
               if (res.address_city && cityInputElem) {
                 cityInputElem.value = res.address_city;
+                cityInputElem.dispatchEvent(new Event('input', { bubbles: true }));
+                cityInputElem.dispatchEvent(new Event('change', { bubbles: true }));
                 hasAddress = true;
               }
 
@@ -1894,21 +1955,36 @@
 
               if (res.address_street && streetInputElem) {
                 streetInputElem.value = res.address_street;
+                streetInputElem.dispatchEvent(new Event('input', { bubbles: true }));
+                streetInputElem.dispatchEvent(new Event('change', { bubbles: true }));
                 hasAddress = true;
               }
               if (res.address_house && houseInputElem) {
                 houseInputElem.value = res.address_house;
+                houseInputElem.dispatchEvent(new Event('input', { bubbles: true }));
+                houseInputElem.dispatchEvent(new Event('change', { bubbles: true }));
               }
               if (buildingInputElem) {
                 buildingInputElem.value = res.address_building || '-';
+                buildingInputElem.dispatchEvent(new Event('input', { bubbles: true }));
+                buildingInputElem.dispatchEvent(new Event('change', { bubbles: true }));
               }
               if (aptInputElem) {
                 let aptVal = (res.address_apartment || '').trim();
                 if (aptVal === '-' || aptVal === '—' || aptVal.toLowerCase() === 'нет') aptVal = '';
                 aptInputElem.value = aptVal;
+                aptInputElem.dispatchEvent(new Event('input', { bubbles: true }));
+                aptInputElem.dispatchEvent(new Event('change', { bubbles: true }));
               }
               if (postcodeInputElem) {
-                postcodeInputElem.value = res.address_postcode || '';
+                let finalZip = (res.address_postcode || '').trim();
+                if (!finalZip && res.address_city) {
+                  autoFillPostcodeForCity(res.address_city, true);
+                } else {
+                  postcodeInputElem.value = finalZip;
+                  postcodeInputElem.dispatchEvent(new Event('input', { bubbles: true }));
+                  postcodeInputElem.dispatchEvent(new Event('change', { bubbles: true }));
+                }
               }
 
               // Статусная плашка
@@ -1967,15 +2043,25 @@
         if (cityInput) {
           cityInput.value = chip.textContent.trim();
           autoDetectRegionForCity(cityInput.value);
+          autoFillPostcodeForCity(cityInput.value, true);
           if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
         }
       };
     });
 
     if (cityInput) {
-      cityInput.addEventListener('input', () => autoDetectRegionForCity(cityInput.value));
-      cityInput.addEventListener('change', () => autoDetectRegionForCity(cityInput.value));
-      cityInput.addEventListener('blur', () => autoDetectRegionForCity(cityInput.value));
+      cityInput.addEventListener('input', () => {
+        autoDetectRegionForCity(cityInput.value);
+        autoFillPostcodeForCity(cityInput.value, false);
+      });
+      cityInput.addEventListener('change', () => {
+        autoDetectRegionForCity(cityInput.value);
+        autoFillPostcodeForCity(cityInput.value, false);
+      });
+      cityInput.addEventListener('blur', () => {
+        autoDetectRegionForCity(cityInput.value);
+        autoFillPostcodeForCity(cityInput.value, false);
+      });
     }
 
     // Навигация Шаг 1 -> Шаг 2
