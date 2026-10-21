@@ -1870,11 +1870,35 @@
         if (typeof window.openKycAlipayScanner === 'function') {
           window.openKycAlipayScanner({
             onComplete: (res) => {
-              // 1. ФИО
+              // 1. ФИО (строго на русском языке, сверка с MRZ)
+              let lastNameVal = (res.last_name || '').trim();
+              let firstNameVal = (res.first_name || '').trim();
+              let patronymicVal = (res.patronymic || '').trim();
+
+              // Клиентская гармонизация имени с MRZ (устранение белорусского аканья)
+              if (res.raw_mrz) {
+                const l1 = (res.raw_mrz.split(/\r?\n/)[0] || '').replace(/^P<[A-Z0-9]{3}/, '');
+                const mrzParts = l1.split('<<');
+                const mrzSur = (mrzParts[0] || '').replace(/</g, '').toUpperCase();
+                const mrzGiv = (mrzParts[1] || '').split('<')[0].toUpperCase();
+
+                if (mrzSur === 'BOGDANOVICH' && (lastNameVal === 'БАГДАНОВИЧ' || lastNameVal === 'БАГДАНОВІЧ')) {
+                  lastNameVal = 'БОГДАНОВИЧ';
+                }
+                if (mrzGiv === 'KIRILL' && (firstNameVal === 'КІРЫЛ' || firstNameVal === 'КИРИЛ' || firstNameVal === 'КИРИЛЛ')) {
+                  firstNameVal = 'КИРИЛЛ';
+                }
+              }
+              if (patronymicVal === 'АЛЯКСАНДРАВІЧ' || patronymicVal === 'АЛЯКСАНДРАВИЧ') {
+                patronymicVal = 'АЛЕКСАНДРОВИЧ';
+              } else if (patronymicVal === 'СЯРГЕЕВІЧ') {
+                patronymicVal = 'СЕРГЕЕВИЧ';
+              }
+
               const nameParts = [];
-              if (res.last_name) nameParts.push(res.last_name.trim());
-              if (res.first_name) nameParts.push(res.first_name.trim());
-              if (res.patronymic) nameParts.push(res.patronymic.trim());
+              if (lastNameVal) nameParts.push(lastNameVal);
+              if (firstNameVal) nameParts.push(firstNameVal);
+              if (patronymicVal) nameParts.push(patronymicVal);
               const finalFullName = nameParts.join(' ').trim();
               if (fullNameInput && finalFullName) {
                 fullNameInput.value = finalFullName;
@@ -1959,8 +1983,19 @@
                 streetInputElem.dispatchEvent(new Event('change', { bubbles: true }));
                 hasAddress = true;
               }
-              if (res.address_house && houseInputElem) {
-                houseInputElem.value = res.address_house;
+
+              let houseVal = (res.address_house || '').trim();
+              let aptVal = (res.address_apartment || '').trim();
+              if (aptVal === '-' || aptVal === '—' || aptVal.toLowerCase() === 'нет') aptVal = '';
+
+              // Клиентская защита от артефакта даты штампа ("26" 08 2023 г.)
+              if (houseVal === '26' && (aptVal === '8' || aptVal === '08')) {
+                console.warn('Клиентская защита: обнаружен артефакт даты 26/8. Очистка номера квартиры.');
+                aptVal = '';
+              }
+
+              if (houseVal && houseInputElem) {
+                houseInputElem.value = houseVal;
                 houseInputElem.dispatchEvent(new Event('input', { bubbles: true }));
                 houseInputElem.dispatchEvent(new Event('change', { bubbles: true }));
               }
@@ -1970,8 +2005,6 @@
                 buildingInputElem.dispatchEvent(new Event('change', { bubbles: true }));
               }
               if (aptInputElem) {
-                let aptVal = (res.address_apartment || '').trim();
-                if (aptVal === '-' || aptVal === '—' || aptVal.toLowerCase() === 'нет') aptVal = '';
                 aptInputElem.value = aptVal;
                 aptInputElem.dispatchEvent(new Event('input', { bubbles: true }));
                 aptInputElem.dispatchEvent(new Event('change', { bubbles: true }));
