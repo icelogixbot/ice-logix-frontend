@@ -838,19 +838,8 @@
     // Tab HTML cache: store rendered innerHTML per tab for instant restore on re-visit
     const _tabCache = {};
     try {
-      const _savedScreens = localStorage.getItem('ice_tab_screens_v2');
-      if (_savedScreens) {
-        const _parsed = JSON.parse(_savedScreens);
-        if (_parsed && typeof _parsed === 'object') {
-          Object.assign(_tabCache, _parsed);
-        }
-      }
-      const _savedHome = localStorage.getItem('ice_tab_home_v2');
-      if (_savedHome && _savedHome.includes('marketplaces-ear') && !_savedHome.includes('rate-tracker-card') && !_savedHome.includes('Биржевой курс') && !_savedHome.includes('data-story="academy"') && !_savedHome.includes('dewu.svg') && !_savedHome.includes('goofish.svg')) {
-        _tabCache['home:'] = { html: _savedHome, ts: Date.now() };
-      } else {
-        try { localStorage.removeItem('ice_tab_home_v2'); } catch(e) {}
-      }
+      localStorage.removeItem('ice_tab_home_v2');
+      localStorage.removeItem('ice_tab_screens_v2');
     } catch(e) {}
     let _suppressSpinner = false;
 
@@ -2802,7 +2791,7 @@ let adminOrdersTotalPages = 1;
         // Safe boot without double-rendering or flickering navigation bars
         try {
           const _c = document.getElementById('content');
-          const _hasValidContent = _c && _c.innerHTML && (_c.innerHTML.includes('marketplaces') || _c.innerHTML.includes('product-card')) && !_c.innerHTML.includes('Страница не найдена') && !_c.innerHTML.includes('rate-tracker-card') && !_c.innerHTML.includes('Биржевой курс') && !_c.innerHTML.includes('data-story="academy"');
+          const _hasValidContent = _c && _c.innerHTML && _c.innerHTML.includes('marketplaces-capsule') && !_c.innerHTML.includes('Страница не найдена');
           if (!window._homeRenderedOnce || !_hasValidContent) {
             currentTab = 'home';
             switchTab('home');
@@ -2810,9 +2799,6 @@ let adminOrdersTotalPages = 1;
           } else {
             currentTab = 'home';
             attachHomeHandlers();
-            if (!_tabCache['home:']) {
-              if (_c && _c.innerHTML) _tabCache['home:'] = { html: _c.innerHTML, ts: Date.now() };
-            }
           }
           window._appReady = true;
           dismissSplashScreen();
