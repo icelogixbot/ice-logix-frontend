@@ -170,14 +170,14 @@ body::before { opacity: .12 !important; }
 /* CS:GO / Case Opening Central Reticle Frame (Refined Clean Viewfinder) */
 .marketplaces-reticle {
   position: absolute;
-  top: 29px;
+  top: 27px;
   left: 50%;
   transform: translateX(-50%);
   width: 76px;
-  height: 86px;
+  height: 90px;
   border-radius: 18px;
-  border: 1.5px solid rgba(130, 199, 241, 0.45);
-  background: rgba(130, 199, 241, 0.03);
+  border: 1.5px solid rgba(130, 199, 241, 0.5);
+  background: rgba(130, 199, 241, 0.04);
   pointer-events: none;
   z-index: 4;
 }
@@ -205,8 +205,8 @@ body::before { opacity: .12 !important; }
   border-radius: 0 0 18px 18px;
   overflow: hidden;
   z-index: 2;
-  mask-image: linear-gradient(to right, transparent 0, black 20px, black calc(100% - 20px), transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, transparent 0, black 20px, black calc(100% - 20px), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, black 24px, black calc(100% - 24px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0, black 24px, black calc(100% - 24px), transparent 100%);
 }
 
 .marketplaces-track {
@@ -228,7 +228,7 @@ body::before { opacity: .12 !important; }
 .marketplaces-ribbon {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   will-change: transform;
   position: absolute;
   left: 0;
@@ -242,19 +242,19 @@ body::before { opacity: .12 !important; }
   align-items: center;
   justify-content: center;
   gap: 0 !important;
-  flex: 0 0 66px;
-  width: 66px;
+  flex: 0 0 62px;
+  width: 62px;
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: opacity 0.35s ease, transform 0.35s ease;
   opacity: 0.52;
-  transform: scale(0.94);
+  transform: scale(0.92);
 }
 
 .story-card.marketplace-story.is-active-target {
   opacity: 1 !important;
-  transform: scale(1.0) !important;
+  transform: scale(1.05) !important;
 }
 
 .marketplace-story .story-icon {
@@ -262,8 +262,8 @@ body::before { opacity: .12 !important; }
   border: 0 !important;
   box-shadow: none !important;
   overflow: visible !important;
-  width: 46px !important;
-  height: 46px !important;
+  width: 54px !important;
+  height: 54px !important;
   padding: 0 !important;
   display: flex !important;
   align-items: center !important;
@@ -271,14 +271,14 @@ body::before { opacity: .12 !important; }
 }
 
 .marketplace-story .story-icon img {
-  width: 44px !important;
-  height: 44px !important;
-  max-width: 44px !important;
-  max-height: 44px !important;
+  width: 52px !important;
+  height: 52px !important;
+  max-width: 52px !important;
+  max-height: 52px !important;
   object-fit: contain !important;
-  border-radius: 12px !important;
+  border-radius: 13px !important;
   filter: none !important;
-  transition: transform 0.2s ease;
+  transition: transform 0.25s ease;
 }
 
 .story-card.marketplace-story.is-active-target .story-icon img {
@@ -290,25 +290,24 @@ body::before { opacity: .12 !important; }
 }
 
 .marketplace-story .story-label {
-  font-size: 10px !important;
+  font-size: 10.5px !important;
   font-weight: 600 !important;
   color: rgba(255, 255, 255, 0.75) !important;
   letter-spacing: -0.01em;
-  max-width: 64px;
+  max-width: 62px;
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 1.1;
-  margin-top: 3px !important;
+  margin-top: 2px !important;
   text-shadow: none !important;
-  transition: color 0.2s ease;
+  transition: color 0.25s ease;
 }
 
 .story-card.marketplace-story.is-active-target .story-label {
   color: #FFFFFF !important;
   font-weight: 700 !important;
-  text-shadow: none !important;
   opacity: 1 !important;
 }
 
