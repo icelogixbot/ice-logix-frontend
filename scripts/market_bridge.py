@@ -107,34 +107,76 @@ def translate_size_or_model(val: str) -> str:
     s = s.replace("尺码", "Размер")
     return s.strip()
 
+def detect_category_and_brand(title_cn: str, selected_summary: str):
+    full_text = f"{title_cn} {selected_summary}".lower()
+    
+    category = "Товары из Китая"
+    if any(x in full_text for x in ["鞋", "运动鞋", "板鞋", "球鞋", "sneaker"]):
+        category = "Обувь"
+    elif any(x in full_text for x in ["卫衣", "t恤", "外套", "裤", "短袖", "衣服", "羽绒服"]):
+        category = "Одежда"
+    elif any(x in full_text for x in ["包", "双肩包", "单肩包", "手提包"]):
+        category = "Сумки"
+    elif any(x in full_text for x in ["表", "手表"]):
+        category = "Часы"
+    elif any(x in full_text for x in ["耳机", "音箱"]):
+        category = "Электроника"
+    elif any(x in full_text for x in ["壳", "手机壳", "膜"]):
+        category = "Чехлы"
+        
+    brands = ["Nike", "Adidas", "Jordan", "New Balance", "Puma", "Converse", "Vans", "Apple", "Samsung", "Xiaomi", "Huawei", "Sony", "Casio", "Zara", "Uniqlo", "Supreme", "Stussy", "Balenciaga", "Gucci"]
+    brand = ""
+    for b in brands:
+        if b.lower() in full_text:
+            brand = b
+            break
+            
+    return category, brand
+
 def translate_title(cn_title: str) -> str:
-    # Heuristic cleaner for Chinese marketplace titles
+    if not cn_title:
+        return "Товар с Pinduoduo"
     t = cn_title
     t = re.sub(r"^[^\w\s]*店铺热销\s*\|\s*", "", t)
     t = re.sub(r"24小时发货", "", t)
     t = re.sub(r"【.*?】", " ", t)
+    t = re.sub(r"\[.*?\]", " ", t)
     
     parts = []
     if "手机壳" in t or "壳" in t:
         parts.append("Чехол")
-    if "液态硅胶" in t or "硅胶" in t:
-        parts.append("жидкий силикон")
-    if "苹果" in t or "iphone" in t.lower():
-        parts.append("для iPhone")
-    if "一体按键" in t or "ai键" in t:
-        parts.append("с кнопкой AI Control")
-    if "防摔" in t:
-        parts.append("ударопрочный")
-    if "镜头膜" in t:
-        parts.append("с защитой камеры")
+        if "液态硅胶" in t or "硅胶" in t:
+            parts.append("жидкий силикон")
+        if "苹果" in t or "iphone" in t.lower():
+            parts.append("для iPhone")
+        if "防摔" in t:
+            parts.append("ударопрочный")
+    elif any(x in t for x in ["鞋", "运动鞋", "板鞋"]):
+        parts.append("Кроссовки")
+    elif "卫衣" in t:
+        parts.append("Худи")
+    elif "t恤" in t.lower() or "短袖" in t:
+        parts.append("Футболка")
+    elif "外套" in t:
+        parts.append("Куртка")
+    elif "包" in t:
+        parts.append("Сумка")
+    elif "手表" in t:
+        parts.append("Часы")
+    elif "耳机" in t:
+        parts.append("Наушники")
         
     if parts:
-        return " ".join(parts)
+        clean = re.sub(r"[\u4e00-\u9fa5]", "", t)
+        clean = re.sub(r"\s+", " ", clean).strip()
+        res = " ".join(parts)
+        if clean:
+            res += " " + clean
+        return res[:70].strip()
         
-    # Generic cleanup
-    clean = re.sub(r"[^\w\s\-\(\)\/]", " ", t)
+    clean = re.sub(r"[^\w\s\-\(\)\/\.\,]", " ", t)
     clean = re.sub(r"\s+", " ", clean).strip()
-    return clean[:60] if clean else "Товар с маркетплейса"
+    return clean[:60] if clean else "Товар с Pinduoduo"
 
 # ==================== ADB ДВИЖОК ====================
 def get_connected_device() -> Optional[str]:
@@ -245,6 +287,8 @@ def dump_ui_xml() -> ET.Element:
         xml_str = xml_str[idx:]
     if not xml_str.strip() or "<?xml" not in xml_str:
         raise RuntimeError("Не удалось прочитать экран товара в эмуляторе. Попробуйте еще раз.")
+    if "安全验证" in xml_str or "拖动滑块" in xml_str or "完成拼多多官方验证" in xml_str:
+        raise RuntimeError("Pinduoduo запросил подтверждение (капчу). Пожалуйста, проведите ползунок в окне LDPlayer на компьютере.")
     try:
         return ET.fromstring(xml_str)
     except Exception as e:
@@ -302,18 +346,19 @@ def parse_product(req: ParseRequest):
     # 1. Open product in Pinduoduo App via Deep Link
     intent_url = f"pinduoduo://com.xunmeng.pinduoduo/goods.html?goods_id={goods_id}"
     run_adb(["shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", intent_url])
-    time.sleep(1.8) # wait for page load
+    time.sleep(2.0) # wait for page load
     
     # 2. Check if page is loaded and open SKU drawer
     root = dump_ui_xml()
     
     raw_title = ""
-    # Try finding title on the main product card
+    candidates = []
     for node in root.iter("node"):
-        txt = node.attrib.get("text", "").strip()
-        if len(txt) > 20 and ("手机壳" in txt or "适用" in txt or "款" in txt or "店铺热销" in txt or "【" in txt):
-            raw_title = txt
-            break
+        txt = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
+        if len(txt) >= 10 and not any(x in txt for x in ["退货包运费", "假一赔十", "正品保障", "客服", "店铺", "收藏", "已拼", "券后", "免拼", "评价", "进店", "分享", "已选:"]):
+            candidates.append(txt)
+    if candidates:
+        raw_title = max(candidates, key=len)
 
     # If SKU drawer is not open, click the buy button (免拼购买)
     has_sku_drawer = any("已选:" in (n.attrib.get("text", "") or n.attrib.get("content-desc", "")) for n in root.iter("node"))
@@ -398,12 +443,9 @@ def parse_product(req: ParseRequest):
                     "bounds": bounds
                 })
                 
-    # Clean title
-    if not raw_title or any(bad in raw_title for bad in ["先用后付", "支持0元", "退货", "包邮", "已选:"]):
-        model_name = translate_size_or_model(selected_summary) if selected_summary else "iPhone"
-        title_ru = f"Чехол для {model_name} (жидкий силикон)"
-    else:
-        title_ru = translate_title(raw_title)
+    # Detect category and brand dynamically
+    category, brand = detect_category_and_brand(raw_title, selected_summary)
+    title_ru = translate_title(raw_title)
 
     # 4. Capture current SKU image
     image_rel_url = capture_screen_and_crop(goods_id)
@@ -412,8 +454,10 @@ def parse_product(req: ParseRequest):
         "success": True,
         "marketplace": "pinduoduo",
         "goods_id": goods_id,
-        "title": raw_title,
+        "title": raw_title or "Товар с Pinduoduo",
         "title_ru": title_ru,
+        "brand": brand,
+        "category": category,
         "price_cny": price_cny or 5.43,
         "orig_price_cny": orig_price_cny or 10.22,
         "image_url": image_rel_url,
@@ -521,7 +565,8 @@ def supabase_queue_worker():
                             "sizes": parsed["sizes"],
                             "has_options": parsed["has_options"],
                             "image_url": pub_img_url,
-                            "brand": "Apple",
+                            "brand": parsed.get("brand") or "",
+                            "category": parsed.get("category") or "Товары из Китая",
                             "marketplace": "pinduoduo"
                         }
 
@@ -531,8 +576,8 @@ def supabase_queue_worker():
                             "price": parsed["price_cny"],
                             "currency": "CNY",
                             "title": parsed["title_ru"],
-                            "brand": "Apple",
-                            "category": "Аксессуары",
+                            "brand": parsed.get("brand") or "",
+                            "category": parsed.get("category") or "Товары из Китая",
                             "color": parsed["colors"][0]["name_ru"] if parsed.get("colors") else "Как на фото",
                             "marketplace_name": "PINDUODUO",
                             "image_url": pub_img_url,

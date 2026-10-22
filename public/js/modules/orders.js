@@ -1876,10 +1876,14 @@ window.applySmartShareLink = applySmartShareLink;
                           el.dispatchEvent(new Event('input', { bubbles: true }));
                         }
                       };
-                      const title = selected.title || bData.title_ru || bData.title || 'Товар Pinduoduo';
-                      setVal('orderTitle', title);
-                      setVal('orderModel', title);
-                      setVal('orderBrand', selected.brand || 'Apple');
+                      const title = selected.title || bData.title_ru || bData.title || '';
+                      if (title) {
+                        setVal('orderTitle', title);
+                        setVal('orderModel', title);
+                      }
+                      if (selected.brand || bData.brand) {
+                        setVal('orderBrand', selected.brand || bData.brand);
+                      }
                       if (selected.color) setVal('orderColor', selected.color);
                       if (selected.size) setVal('orderSize', selected.size);
                       const descParts = [];
@@ -1888,10 +1892,12 @@ window.applySmartShareLink = applySmartShareLink;
                       if (descParts.length) setVal('orderFeatures', descParts.join(' · '));
 
                       const categorySelect = document.getElementById('orderCategory');
-                      if (categorySelect && (!categorySelect.value || categorySelect.value === '')) {
-                        const opt = findCategoryOption(categorySelect, 'Чехлы') || findCategoryOption(categorySelect, 'Аксессуары');
-                        if (opt) categorySelect.value = opt.value;
-                        categorySelect.dispatchEvent(new Event('change', { bubbles: true }));
+                      if (categorySelect && (selected.category || bData.category)) {
+                        const opt = findCategoryOption(categorySelect, selected.category || bData.category);
+                        if (opt) {
+                          categorySelect.value = opt.value;
+                          categorySelect.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
                       }
 
                       if (selected.image_url || bData.image_url) {
@@ -2028,49 +2034,41 @@ window.applySmartShareLink = applySmartShareLink;
                   currencySelect.dispatchEvent(new Event('change', { bubbles: true }));
                 }
 
-                const setIfEmpty = (id, val) => {
+                const setVal = (id, val) => {
                   const el = document.getElementById(id);
-                  if (el && val && (!el.value || el.value.trim() === '')) {
+                  if (el && val != null) {
                     el.value = val;
                     el.dispatchEvent(new Event('input', { bubbles: true }));
                   }
                 };
 
-                const title = data.title || result.title || 'Товар Pinduoduo';
-                setIfEmpty('orderTitle', title);
-                setIfEmpty('orderBrand', data.brand || result.brand || 'Apple');
-                setIfEmpty('orderModel', title);
+                const title = data.title || result.title || '';
+                if (title) {
+                  setVal('orderTitle', title);
+                  setVal('orderModel', title);
+                }
+                if (data.brand || result.brand) {
+                  setVal('orderBrand', data.brand || result.brand);
+                }
 
                 if (data.color) {
-                  const colorEl = document.getElementById('orderColor');
-                  if (colorEl) {
-                    colorEl.value = data.color;
-                    colorEl.dispatchEvent(new Event('input', { bubbles: true }));
-                  }
+                  setVal('orderColor', data.color);
                 }
                 if (data.size) {
-                  const sizeEl = document.getElementById('orderSize');
-                  if (sizeEl) {
-                    sizeEl.value = data.size;
-                    sizeEl.dispatchEvent(new Event('input', { bubbles: true }));
-                  }
+                  setVal('orderSize', data.size);
                 }
 
                 const descParts = [];
                 if (data.color) descParts.push('Цвет: ' + data.color);
                 if (data.size) descParts.push('Размер: ' + data.size);
                 if (descParts.length) {
-                  const featEl = document.getElementById('orderFeatures');
-                  if (featEl) {
-                    featEl.value = descParts.join(' · ');
-                    featEl.dispatchEvent(new Event('input', { bubbles: true }));
-                  }
+                  setVal('orderFeatures', descParts.join(' · '));
                 }
 
                 const categorySelect = document.getElementById('orderCategory');
-                if (categorySelect && (!categorySelect.value || categorySelect.value === '')) {
-                  const targetCat = data.category || result.category || 'Чехлы';
-                  const opt = findCategoryOption(categorySelect, targetCat) || findCategoryOption(categorySelect, 'Аксессуары');
+                if (categorySelect && (data.category || result.category)) {
+                  const targetCat = data.category || result.category;
+                  const opt = findCategoryOption(categorySelect, targetCat);
                   if (opt) {
                     categorySelect.value = opt.value;
                     categorySelect.dispatchEvent(new Event('change', { bubbles: true }));
