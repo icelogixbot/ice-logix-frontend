@@ -137,8 +137,45 @@ def translate_title(cn_title: str) -> str:
     return clean[:60] if clean else "Товар с маркетплейса"
 
 # ==================== ADB ДВИЖОК ====================
+def get_connected_device() -> Optional[str]:
+    try:
+        res = subprocess.run([ADB_PATH, "devices"], capture_output=True, text=True, timeout=5)
+        lines = [line.strip().split() for line in res.stdout.splitlines() if line.strip() and not line.startswith("List")]
+        active = [parts[0] for parts in lines if len(parts) >= 2 and parts[1] == "device"]
+        if not active:
+            return None
+        if "emulator-5554" in active:
+            return "emulator-5554"
+        return active[0]
+    except Exception:
+        return None
+
+def check_device_ready() -> bool:
+    return get_connected_device() is not None
+
+def ensure_device_ready(timeout_sec: int = 25) -> bool:
+    if check_device_ready():
+        return True
+
+    print("[*] Device not connected. Attempting auto-launch...")
+    try:
+        dnplayer = os.path.join(os.path.dirname(ADB_PATH), "dnplayer.exe")
+        if os.path.exists(dnplayer):
+            subprocess.Popen([dnplayer], shell=True)
+    except Exception as e:
+        print("[!] Auto-launch error:", e)
+
+    start_time = time.time()
+    while time.time() - start_time < timeout_sec:
+        time.sleep(2.0)
+        if check_device_ready():
+            print("[✓] Device connected and ready!")
+            return True
+    return False
+
 def run_adb(args: List[str], timeout: int = 15) -> str:
-    cmd = [ADB_PATH, "-s", DEVICE] + args
+    dev = get_connected_device() or DEVICE
+    cmd = [ADB_PATH, "-s", dev] + args
     try:
         res = subprocess.run(
             cmd,
@@ -198,21 +235,9 @@ def get_bounds_center(bounds_str: str):
     x1, y1, x2, y2 = parse_bounds(bounds_str)
     return (x1 + x2) // 2, (y1 + y2) // 2
 
-def check_device_ready() -> bool:
-    try:
-        cmd = [ADB_PATH, "devices"]
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
-        for line in res.stdout.splitlines():
-            parts = line.strip().split()
-            if len(parts) >= 2 and parts[1] == "device":
-                return True
-    except Exception as e:
-        print("Device check error:", e)
-    return False
-
 def dump_ui_xml() -> ET.Element:
-    if not check_device_ready():
-        raise RuntimeError("Эмулятор LDPlayer не запущен на компьютере. Пожалуйста, откройте ярлык LDPlayer 14 на рабочем столе.")
+    if not ensure_device_ready():
+        raise RuntimeError("Устройство (эмулятор или телефон) не отвечает. Убедитесь, что оно запущено.")
     run_adb(["shell", "uiautomator", "dump", "/sdcard/dump.xml"])
     xml_str = run_adb(["shell", "cat", "/sdcard/dump.xml"])
     idx = xml_str.find("<?xml")
