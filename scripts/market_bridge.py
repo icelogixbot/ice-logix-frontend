@@ -11,6 +11,8 @@ from urllib.parse import urlparse, parse_qs
 from typing import Optional, Dict, Any, List
 
 import requests
+import cv2
+import numpy as np
 from PIL import Image
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -81,6 +83,15 @@ COLOR_DICT = {
     "卡其色": "Хаки",
     "棕色": "Коричневый",
     "咖啡色": "Кофейный",
+    "浅蓝": "Светло-голубой",
+    "浅蓝色": "Светло-голубой",
+    "米白色": "Молочно-белый",
+    "藏青色": "Темно-синий",
+    "杏色": "Абрикосовый (светло-бежевый)",
+    "墨绿": "Изумрудно-зеленый",
+    "墨绿色": "Изумрудно-зеленый",
+    "酒红": "Бордовый",
+    "酒红色": "Бордовый",
     "透明": "Прозрачный",
 }
 
@@ -328,7 +339,10 @@ def handle_popups_and_verification(root: ET.Element) -> bool:
     """
     Detects and automatically resolves verification modals ('安全验证', '前往验证')
     and coupon/promo popups with humanized taps.
+    Crucially avoids closing the SKU options drawer.
     """
+    has_sku_drawer = any(any(x in (n.attrib.get("text", "") or n.attrib.get("content-desc", "")) for x in ["提交订单", "立即支付", "选择尺码后", "选择款式后"]) for n in root.iter("node"))
+
     for node in root.iter("node"):
         txt = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
         bounds = node.attrib.get("bounds", "")
@@ -337,11 +351,144 @@ def handle_popups_and_verification(root: ET.Element) -> bool:
             human_tap(bounds)
             time.sleep(random.uniform(2.0, 3.0))
             return True
-        if txt in ["关闭", "放弃", "去领券", "知道了"] and bounds:
+        if not has_sku_drawer and txt in ["关闭", "放弃", "去领券", "知道了"] and bounds:
             print(f"[*] Auto-dismissing promo popup '{txt}' at {bounds}")
             human_tap(bounds)
             time.sleep(random.uniform(0.4, 0.8))
             return True
+    return False
+
+def find_puzzle_gap_dx(temp_screen_path: str) -> Optional[int]:
+    """
+    Intelligent Sovereign Vision AI solver:
+    Analyzes puzzle canvas, dynamically isolates the Y-strip containing the puzzle piece,
+    and cross-correlates the piece contours with candidate gap silhouettes to find the exact target dx.
+    """
+    try:
+        full_img = cv2.imread(temp_screen_path)
+        if full_img is None:
+            return None
+            
+        # Puzzle canvas bounds on LDPlayer: [150, 477][750, 778] (Width: 600, Height: 301)
+        crop = full_img[477:778, 150:750]
+        h, w, _ = crop.shape
+        
+        gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+        
+        # 1. Detect dynamic vertical band of puzzle piece on left (x: 10..120)
+        left_band = gray[:, 10:120]
+        blur_left = cv2.GaussianBlur(left_band, (3, 3), 0)
+        edges_left = cv2.Canny(blur_left, 60, 180)
+        
+        row_sums = np.sum(edges_left > 0, axis=1)
+        active_rows = np.where(row_sums >= 12)[0]
+        if len(active_rows) > 0:
+            y_min = max(0, active_rows[0] - 5)
+            y_max = min(h, active_rows[-1] + 5)
+        else:
+            y_min, y_max = 30, h - 30
+            
+        piece_crop = edges_left[y_min:y_max, :]
+        
+        # 2. Extract edge features across the search region along the exact same Y strip
+        blur_full = cv2.GaussianBlur(gray, (3, 3), 0)
+        edges_full = cv2.Canny(blur_full, 60, 180)
+        search_strip = edges_full[y_min:y_max, 140:w-10]
+        
+        # 3. Cross-correlation template matching
+        res = cv2.matchTemplate(search_strip, piece_crop, cv2.TM_CCOEFF_NORMED)
+        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+        
+        target_x = 140 + max_loc[0]
+        dx = target_x - 10
+        print(f"[🧩 Vision AI] Detected puzzle gap at target_x={target_x}, dx={dx} Y=[{y_min}:{y_max}] (match score={max_val:.4f})")
+        return dx
+    except Exception as e:
+        print("[!] Vision AI puzzle gap error:", e)
+        return None
+
+def generate_human_drag_script(start_x: int, start_y: int, distance: int, total_ms: int = 700) -> str:
+    """
+    Generates a natural human motor trajectory with S-curve acceleration,
+    micro-jitter, overshoot, and pullback correction.
+    """
+    lines = [f"input motionevent DOWN {start_x} {start_y}"]
+    overshoot = random.randint(3, 5)
+    target_dist = distance + overshoot
+    steps = max(14, int(total_ms / 35))
+    current_y = start_y
+    
+    for i in range(steps):
+        t = (i + 1) / steps
+        # S-curve cubic ease in-out
+        progress = 2 * t * t if t < 0.5 else 1 - 2 * (1 - t) * (1 - t)
+        current_x = start_x + int(progress * target_dist)
+        current_y = start_y + random.choice([-1, 0, 0, 1])
+        lines.append(f"input motionevent MOVE {current_x} {current_y}")
+        lines.append("sleep 0.02")
+        
+    # Human pullback correction from overshoot
+    correction_steps = 3
+    for k in range(correction_steps):
+        pull_back = int(overshoot * (k + 1) / correction_steps)
+        cx = start_x + distance + overshoot - pull_back
+        lines.append(f"input motionevent MOVE {cx} {current_y}")
+        lines.append("sleep 0.025")
+        
+    lines.append("sleep 0.05")
+    lines.append(f"input motionevent UP {start_x + distance} {current_y}")
+    return "; ".join(lines)
+
+def solve_slider_puzzle(max_attempts: int = 2) -> bool:
+    """
+    Autonomous puzzle solver with multi-attempt retry:
+    1. Captures screen and runs Vision AI to find gap offset
+    2. Executes human physics drag via motionevent
+    3. Verifies if captcha passed, retrying if necessary
+    """
+    for attempt in range(1, max_attempts + 1):
+        print(f"[🧩] Autonomous puzzle solver: attempt {attempt}/{max_attempts}...")
+        temp_cap = os.path.join(PARSED_UPLOADS_DIR, f"captcha_{int(time.time())}.png")
+        run_adb(["shell", "screencap", "-p", "/sdcard/captcha.png"])
+        run_adb(["pull", "/sdcard/captcha.png", temp_cap])
+        
+        dx = find_puzzle_gap_dx(temp_cap)
+        if os.path.exists(temp_cap):
+            try: os.remove(temp_cap)
+            except: pass
+            
+        if not dx or dx < 50 or dx > 510:
+            print("[!] Vision AI could not reliably find gap or dx out of bounds:", dx)
+            if attempt < max_attempts:
+                # Tap refresh button on puzzle
+                human_tap("[690,725][730,765]")
+                time.sleep(random.uniform(1.8, 2.5))
+                continue
+            return False
+            
+        # Slider handle circle is centered around (200, 856)
+        start_x = 200 + random.randint(-2, 2)
+        start_y = 856 + random.randint(-2, 2)
+        
+        drag_script = generate_human_drag_script(start_x, start_y, dx, total_ms=random.randint(660, 780))
+        print(f"[🖐️] Executing humanized drag gesture: start=({start_x},{start_y}), distance={dx}px...")
+        run_adb(["shell", drag_script], timeout=15)
+        
+        time.sleep(random.uniform(2.2, 3.0))
+        
+        # Check if puzzle is resolved
+        run_adb(["shell", "uiautomator", "dump", "/sdcard/dump_check.xml"])
+        check_xml = run_adb(["shell", "cat", "/sdcard/dump_check.xml"])
+        if "拖动滑块" not in check_xml and "完成上方拼图" not in check_xml and "安全验证" not in check_xml:
+            print("[✨] Puzzle captcha successfully solved autonomously!")
+            return True
+        else:
+            print(f"[!] Attempt {attempt} failed, puzzle still visible.")
+            if attempt < max_attempts:
+                # Tap puzzle refresh icon
+                human_tap("[690,725][730,765]")
+                time.sleep(random.uniform(2.0, 2.6))
+                
     return False
 
 def dump_ui_xml(auto_handle_verify: bool = True) -> ET.Element:
@@ -360,14 +507,19 @@ def dump_ui_xml(auto_handle_verify: bool = True) -> ET.Element:
     except Exception as e:
         raise RuntimeError(f"Ошибка обработки экрана товара: {e}")
 
-    # Check if a verification or promo dialog appeared
+    # 1. Check if a button verification or promo dialog appeared ("安全验证", "前往验证")
     if auto_handle_verify:
         handled = handle_popups_and_verification(root)
         if handled:
             # If we clicked "安全验证" or "前往验证", wait and re-dump
             return dump_ui_xml(auto_handle_verify=False)
 
+    # 2. Check if a slider puzzle appeared ("拖动滑块完成上方拼图")
     if "拖动滑块" in xml_str or "完成上方拼图" in xml_str:
+        if auto_handle_verify:
+            solved = solve_slider_puzzle()
+            if solved:
+                return dump_ui_xml(auto_handle_verify=False)
         raise RuntimeError("Pinduoduo запросил пазл-подтверждение. Пожалуйста, сдвиньте ползунок в окне LDPlayer на компьютере (требуется 1 раз).")
         
     return root
@@ -437,25 +589,17 @@ def parse_product(req: ParseRequest):
     candidates = []
     for node in root.iter("node"):
         txt = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
-        if len(txt) >= 10 and not any(x in txt for x in ["退货包运费", "假一赔十", "正品保障", "客服", "店铺", "收藏", "已拼", "券后", "免拼", "评价", "进店", "分享", "已选:"]):
+        if len(txt) >= 10 and not any(x in txt for x in ["退货包运费", "假一赔十", "正品保障", "客服", "店铺", "收藏", "已拼", "券后", "免拼", "评价", "进店", "分享", "已选:", "二次销售", "不支持七天", "退换", "如出现已洗涤", "顶部", "活动优惠", "服务", "更换支付方式", "提交订单"]):
             candidates.append(txt)
     if candidates:
         raw_title = max(candidates, key=len)
 
     # If SKU drawer is not open, click the buy button (免拼购买)
-    has_sku_drawer = any("已选:" in (n.attrib.get("text", "") or n.attrib.get("content-desc", "")) for n in root.iter("node"))
+    has_sku_drawer = any(any(x in (n.attrib.get("text", "") or n.attrib.get("content-desc", "")) for x in ["提交订单", "立即支付", "选择尺码后", "选择款式后"]) for n in root.iter("node"))
     if not has_sku_drawer:
-        # Find buy button
-        for node in root.iter("node"):
-            cd = node.attrib.get("content-desc", "")
-            txt = node.attrib.get("text", "")
-            val = cd or txt
-            if "免拼购买" in val or "单独购买" in val or "立即购买" in val:
-                bounds = node.attrib.get("bounds", "")
-                if bounds:
-                    human_tap(bounds)
-                    time.sleep(random.uniform(0.8, 1.4))
-                    break
+        print("[*] SKU drawer not open yet. Tapping bottom buy button...")
+        human_tap("[450,1515][880,1595]")
+        time.sleep(random.uniform(1.4, 2.0))
         root = dump_ui_xml()
         
     # 3. Parse SKU Drawer
@@ -467,6 +611,9 @@ def parse_product(req: ParseRequest):
     
     current_group = None
     
+    # Non-sku blacklist keywords
+    blacklist_terms = ["¥", "元", "已拼", "折", "包邮", "退货", "发货", "对照表", "体重", "详情", "举报", "店铺", "收藏", "客服", "返回", "大促", "买过", "即将结束", "无需等待", "匿名", "进店", "保障", "评价", "全场", "领型", "穿着方式", "面料", "风格", "适用", "多款", "列表", "打开大图", "减少数量", "增加数量", "数量", "请选择", "去支付"]
+
     for node in root.iter("node"):
         txt = node.attrib.get("text", "").strip()
         cd = node.attrib.get("content-desc", "").strip()
@@ -477,10 +624,10 @@ def parse_product(req: ParseRequest):
         if not val:
             continue
             
-        if "已选:" in val:
-            selected_summary = val.replace("已选:", "").replace("🔥", "").strip()
+        if "已选:" in val or "请选择:" in val:
+            selected_summary = val.replace("已选:", "").replace("请选择:", "").replace("🔥", "").strip()
             
-        if "到手价" in val or "提交订单" in val:
+        if "到手价" in val or "提交订单" in val or "限量价" in val:
             m_price = re.search(r"¥\s*(\d+\.?\d*)", val)
             if m_price:
                 price_cny = float(m_price.group(1))
@@ -492,38 +639,48 @@ def parse_product(req: ParseRequest):
                     orig_price_cny = p
 
         # Check section headers
-        if val == "颜色":
+        if any(h in val for h in ["颜色", "款式", "分类"]):
             current_group = "color"
             continue
-        elif val in ["尺寸", "规格", "型号"]:
+        elif any(h in val for h in ["尺寸", "规格", "型号", "尺码", "容量", "版本"]):
             current_group = "size"
             continue
-        elif val in ["活动优惠", "服务", "使用#支付宝", "更换支付方式", "提交订单"]:
+        elif any(h in val for h in ["活动优惠", "服务", "使用#支付宝", "更换支付方式", "提交订单", "立即支付", "选择尺码后", "数量", "一次选多款"]):
             current_group = None
             
-        if current_group == "color" and "TextView" in cls:
+        if current_group == "color" and any(k in cls for k in ["TextView", "Button", "View"]):
             clean = val.replace("🔥", "").strip()
-            if clean and len(clean) < 30 and clean != "颜色":
+            if clean and 1 < len(clean) < 25 and not any(h in clean for h in ["颜色", "款式", "分类"]) and not any(b in clean for b in blacklist_terms):
                 is_sel = clean in selected_summary
-                colors.append({
-                    "name": clean,
-                    "name_ru": translate_color(clean),
-                    "selected": is_sel,
-                    "bounds": bounds
-                })
-        elif current_group == "size" and "TextView" in cls:
+                if not any(c["name"] == clean for c in colors):
+                    colors.append({
+                        "name": clean,
+                        "name_ru": translate_color(clean),
+                        "selected": is_sel,
+                        "bounds": bounds
+                    })
+        elif current_group == "size" and any(k in cls for k in ["TextView", "Button", "View"]):
             clean = val.replace("🔥", "").strip()
-            if clean and len(clean) < 60 and clean not in ["尺寸", "规格", "型号"]:
-                # filter out non-sizes
-                if any(x in clean for x in ["支付宝", "提交订单", "买过", "更换支付"]):
-                    continue
+            if clean and len(clean) < 30 and not any(h in clean for h in ["尺寸", "规格", "型号", "尺码", "容量", "版本"]) and not any(b in clean for b in blacklist_terms):
                 is_sel = clean in selected_summary
-                sizes.append({
-                    "name": clean,
-                    "name_ru": translate_size_or_model(clean),
-                    "selected": is_sel,
-                    "bounds": bounds
-                })
+                if not any(s["name"] == clean for s in sizes):
+                    sizes.append({
+                        "name": clean,
+                        "name_ru": translate_size_or_model(clean),
+                        "selected": is_sel,
+                        "bounds": bounds
+                    })
+
+    if price_cny == 0.0:
+        if orig_price_cny > 0.0:
+            price_cny = orig_price_cny
+        else:
+            for node in root.iter("node"):
+                val = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
+                m_any = re.search(r"¥\s*(\d+\.?\d*)", val)
+                if m_any:
+                    price_cny = float(m_any.group(1))
+                    break
                 
     # Detect category and brand dynamically
     category, brand = detect_category_and_brand(raw_title, selected_summary)
