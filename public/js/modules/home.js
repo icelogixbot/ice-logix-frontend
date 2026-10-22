@@ -47,11 +47,9 @@ async function renderHome() {
 
           // Use DB marketplaces if configured for home and matching allowed list, otherwise fall back to static list
           const marketplaces = homeDbMarketplaces.length > 0 ? homeDbMarketplaces : staticMarketplaces;
-          const rouletteInitialMarketplaces = [
-            ...marketplaces.slice(-2),
-            ...marketplaces,
-            ...marketplaces
-          ];
+          // Triple repetition: Set 0 (0..6), Set 1 (7..13), Set 2 (14..20)
+          // The sequence is 100% immutable and strictly ordered: Dewu, TaoBao, Pinduoduo, Goofish, 95, JD, Tmall
+          const fullMarketplaces = [...marketplaces, ...marketplaces, ...marketplaces];
 
           // Загрузка сегодняшних подборок из канала (@icelogix_selection)
           let homeProductsList = [];
@@ -126,10 +124,10 @@ async function renderHome() {
         <div class="marketplaces-inner-clipper">
           <div class="marketplaces-track" id="marketplaceRouletteTrack">
             <div class="marketplaces-ribbon" id="marketplaceRibbon">
-              ${rouletteInitialMarketplaces.map((mp, idx) => `
-                <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}" data-idx="${idx}">
+              ${fullMarketplaces.map((mp, idx) => `
+                <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}" data-name="${mp.name}" data-idx="${idx}">
                   <div class="story-icon">
-                    ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261021_15" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
+                    ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261022_01" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
                     <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 20px;">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
                   </div>
                   <span class="story-label">${mp.name}</span>
@@ -646,166 +644,131 @@ function attachHomeHandlers() {
   }
 
 
-// ==================== РУЛЕТКА ПЛОЩАДОК (True Seamless Infinite Queue) ====================
+// ==================== БЕСКОНЕЧНЫЙ КОНВЕЙЕР ПЛОЩАДОК (Continuous 60FPS Infinite Glide) ====================
 function initMarketplaceRoulette() {
   const track = document.getElementById('marketplaceRouletteTrack');
   const ribbon = document.getElementById('marketplaceRibbon');
   if (!track || !ribbon) return;
 
-  if (window.__mpRouletteTimer) {
-    clearTimeout(window.__mpRouletteTimer);
-    window.__mpRouletteTimer = null;
+  // Очистка предыдущих анимаций и таймеров
+  if (window.__mpRafId) {
+    cancelAnimationFrame(window.__mpRafId);
+    window.__mpRafId = null;
   }
   if (window.__mpResumeTimer) {
     clearTimeout(window.__mpResumeTimer);
     window.__mpResumeTimer = null;
   }
 
-  const CARD_WIDTH = 54;
-  const GAP = 15;
-  const STEP = CARD_WIDTH + GAP; // 69px
-  const CENTER_INDEX = 2; // карточка с индексом 2 (Dewu при старте) находится ровно по центру видоискателя
+  const CARD_WIDTH = 66;
+  const GAP = 14;
+  const STEP = CARD_WIDTH + GAP; // 80px
+  const N_ITEMS = 7; // Dewu, TaoBao, Pinduoduo, Goofish, 95, JD, Tmall
+  const ONE_CYCLE = N_ITEMS * STEP; // 560px
+  const SPEED = 28; // пикселей в секунду — спокойный, премиальный равномерный ход
 
-  function alignRibbon() {
-    if (!track || !ribbon) return;
-    const trackWidth = track.clientWidth;
-    const trackCenter = trackWidth / 2;
-    const cardCenterInRibbon = (CENTER_INDEX * STEP) + (CARD_WIDTH / 2);
-    const baseLeft = trackCenter - cardCenterInRibbon;
-    ribbon.style.left = baseLeft + 'px';
-    highlightCenter();
-  }
+  const cards = Array.from(ribbon.querySelectorAll('.story-card'));
+  if (cards.length === 0) return;
 
-  function highlightCenter() {
-    if (!ribbon) return;
-    const children = Array.from(ribbon.children);
-    children.forEach((c, idx) => {
-      c.classList.toggle('is-active-target', idx === CENTER_INDEX);
-    });
-  }
+  let trackWidth = track.clientWidth || 347;
+  let trackCenter = trackWidth / 2;
 
-  let isAnimating = false;
+  // Стартовая позиция: Dewu (индекс 7, средний сет) находится ровно по центру видоискателя
+  const START_INDEX = 7;
+  let currentX = trackCenter - (START_INDEX * STEP + CARD_WIDTH / 2);
+
   let isPaused = false;
-
-  function stepNext() {
-    if (isAnimating || isPaused || !document.getElementById('marketplaceRibbon')) return;
-    isAnimating = true;
-
-    // Плавный сдвиг ленты влево ровно на 1 шаг (69px)
-    ribbon.style.transition = 'transform 0.58s cubic-bezier(0.22, 1, 0.36, 1)';
-    ribbon.style.transform = `translateX(-${STEP}px)`;
-
-    // Предварительная подсветка следующей карточки
-    const children = Array.from(ribbon.children);
-    children.forEach(c => c.classList.remove('is-active-target'));
-    if (children[CENTER_INDEX + 1]) {
-      children[CENTER_INDEX + 1].classList.add('is-active-target');
-    }
-
-    // По завершении анимации: бесшовно переносим первую карточку в конец очереди и сбрасываем transform: 0
-    setTimeout(() => {
-      if (!ribbon || !ribbon.firstElementChild) {
-        isAnimating = false;
-        return;
-      }
-      ribbon.style.transition = 'none';
-      ribbon.appendChild(ribbon.firstElementChild);
-      ribbon.style.transform = 'translateX(0px)';
-      void ribbon.offsetWidth; // force reflow
-
-      highlightCenter();
-      isAnimating = false;
-      scheduleNext();
-    }, 590);
-  }
-
-  function stepPrev() {
-    if (isAnimating || !ribbon || !ribbon.lastElementChild) return;
-    isAnimating = true;
-
-    // Мгновенно переносим последний элемент в начало и сдвигаем ленту на -STEP
-    ribbon.style.transition = 'none';
-    ribbon.insertBefore(ribbon.lastElementChild, ribbon.firstElementChild);
-    ribbon.style.transform = `translateX(-${STEP}px)`;
-    void ribbon.offsetWidth;
-
-    // Плавно анимируем к 0
-    ribbon.style.transition = 'transform 0.58s cubic-bezier(0.22, 1, 0.36, 1)';
-    ribbon.style.transform = 'translateX(0px)';
-
-    const children = Array.from(ribbon.children);
-    children.forEach(c => c.classList.remove('is-active-target'));
-    if (children[CENTER_INDEX]) {
-      children[CENTER_INDEX].classList.add('is-active-target');
-    }
-
-    setTimeout(() => {
-      if (!ribbon) {
-        isAnimating = false;
-        return;
-      }
-      highlightCenter();
-      isAnimating = false;
-      scheduleNext();
-    }, 590);
-  }
-
-  function scheduleNext() {
-    clearTimeout(window.__mpRouletteTimer);
-    window.__mpRouletteTimer = setTimeout(stepNext, 2400); // 2.4s пауза в центре видоискателя
-  }
-
-  // Ручное управление свайпом
-  let startX = 0;
-  let currentDragDelta = 0;
   let isDragging = false;
+  let startX = 0;
+  let dragStartX = 0;
   let hasDraggedMeaningfully = false;
+  let lastTime = performance.now();
+  let currentActiveIdx = -1;
 
-  function onTouchStart(e) {
-    if (isAnimating) return;
+  function updateActiveCard() {
+    trackCenter = (track.clientWidth || 347) / 2;
+    let closestIdx = 0;
+    let minDiff = Infinity;
+
+    for (let i = 0; i < cards.length; i++) {
+      const cardCenter = currentX + (i * STEP) + (CARD_WIDTH / 2);
+      const diff = Math.abs(cardCenter - trackCenter);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestIdx = i;
+      }
+    }
+
+    if (closestIdx !== currentActiveIdx) {
+      currentActiveIdx = closestIdx;
+      cards.forEach((c, i) => {
+        c.classList.toggle('is-active-target', i === closestIdx);
+      });
+    }
+  }
+
+  function animate(now) {
+    const dt = Math.min((now - lastTime) / 1000, 0.1); // защита от скачка времени при свернутой вкладке
+    lastTime = now;
+
+    if (!isPaused && !isDragging) {
+      currentX -= SPEED * dt;
+
+      // Бесшовный бесконечный цикл (0 пикселей разницы):
+      const minX = trackCenter - (14 * STEP + CARD_WIDTH / 2);
+      if (currentX <= minX) {
+        currentX += ONE_CYCLE;
+      }
+    }
+
+    ribbon.style.transform = `translate3d(${currentX}px, 0, 0)`;
+    updateActiveCard();
+
+    window.__mpRafId = requestAnimationFrame(animate);
+  }
+
+  // Ручное управление свайпом и касанием
+  function onPointerDown(e) {
     isPaused = true;
-    clearTimeout(window.__mpRouletteTimer);
-    clearTimeout(window.__mpResumeTimer);
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    startX = clientX;
-    currentDragDelta = 0;
     isDragging = true;
     hasDraggedMeaningfully = false;
+    clearTimeout(window.__mpResumeTimer);
+    startX = e.touches ? e.touches[0].clientX : e.clientX;
+    dragStartX = currentX;
   }
 
-  function onTouchMove(e) {
-    if (!isDragging || isAnimating || !ribbon) return;
+  function onPointerMove(e) {
+    if (!isDragging) return;
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    currentDragDelta = clientX - startX;
-    if (Math.abs(currentDragDelta) > 5) {
+    const dx = clientX - startX;
+    if (Math.abs(dx) > 4) {
       hasDraggedMeaningfully = true;
     }
-    ribbon.style.transition = 'none';
-    ribbon.style.transform = `translateX(${currentDragDelta}px)`;
+
+    currentX = dragStartX + dx;
+
+    // Циклическое зацикливание при ручном свайпе
+    const minX = trackCenter - (14 * STEP + CARD_WIDTH / 2);
+    const maxX = trackCenter - (7 * STEP + CARD_WIDTH / 2) + ONE_CYCLE;
+    if (currentX <= minX) currentX += ONE_CYCLE;
+    if (currentX >= maxX) currentX -= ONE_CYCLE;
+
+    ribbon.style.transform = `translate3d(${currentX}px, 0, 0)`;
+    updateActiveCard();
   }
 
-  function onTouchEnd() {
-    if (!isDragging || !ribbon) return;
+  function onPointerUp() {
+    if (!isDragging) return;
     isDragging = false;
-
-    if (currentDragDelta < -STEP / 2) {
-      stepNext();
-    } else if (currentDragDelta > STEP / 2) {
-      stepPrev();
-    } else {
-      ribbon.style.transition = 'transform 0.25s ease-out';
-      ribbon.style.transform = 'translateX(0px)';
-    }
-
     clearTimeout(window.__mpResumeTimer);
     window.__mpResumeTimer = setTimeout(() => {
       isPaused = false;
-      scheduleNext();
-    }, 2500);
+      lastTime = performance.now();
+    }, 1800);
   }
 
-  // Делегированный клик без ложных срабатываний при свайпе
-  track.addEventListener('click', (e) => {
+  // Делегированный клик с защитой от срабатывания во время свайпа
+  track.onclick = (e) => {
     if (hasDraggedMeaningfully) return;
     const card = e.target.closest('.marketplace-story');
     if (!card) return;
@@ -816,19 +779,22 @@ function initMarketplaceRoulette() {
     } else {
       if (window.tgUtil && window.tgUtil.alert) window.tgUtil.alert('Ссылка на площадку будет добавлена позже');
     }
+  };
+
+  track.addEventListener('touchstart', onPointerDown, { passive: true });
+  track.addEventListener('touchmove', onPointerMove, { passive: true });
+  track.addEventListener('touchend', onPointerUp, { passive: true });
+  track.addEventListener('mousedown', onPointerDown);
+  window.addEventListener('mousemove', onPointerMove);
+  window.addEventListener('mouseup', onPointerUp);
+
+  window.addEventListener('resize', () => {
+    trackWidth = track.clientWidth || 347;
+    trackCenter = trackWidth / 2;
   });
 
-  track.addEventListener('touchstart', onTouchStart, { passive: true });
-  track.addEventListener('touchmove', onTouchMove, { passive: true });
-  track.addEventListener('touchend', onTouchEnd, { passive: true });
-  track.addEventListener('mousedown', onTouchStart);
-  window.addEventListener('mousemove', onTouchMove);
-  window.addEventListener('mouseup', onTouchEnd);
-  window.addEventListener('resize', alignRibbon);
-
-  // Первичное выравнивание и запуск
-  alignRibbon();
-  scheduleNext();
+  updateActiveCard();
+  window.__mpRafId = requestAnimationFrame(animate);
 }
 
 // Global Exports
