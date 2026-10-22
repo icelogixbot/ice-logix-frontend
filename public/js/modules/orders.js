@@ -1906,6 +1906,31 @@ window.applySmartShareLink = applySmartShareLink;
                       if (typeof glassToast === 'function') {
                         glassToast(`✨ Выбран вариант: ${selected.color || ''} ${selected.size || ''}`, { kind: 'success' });
                       }
+
+                      // Mark analyzed and reveal manual order form
+                      window.orderLinkAnalyzed = true;
+                      const manualForm = document.getElementById('orderManualForm');
+                      if (manualForm) {
+                        manualForm.classList.remove('hidden');
+                        setTimeout(() => {
+                          manualForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 120);
+                      }
+                      const manualUrlInp = document.getElementById('orderUrlManual');
+                      if (manualUrlInp && !manualUrlInp.value) {
+                        manualUrlInp.value = url;
+                      }
+                      const linkPane = document.getElementById('paneOrderLink');
+                      if (linkPane) {
+                        let badge = document.getElementById('orderLinkSuccessBadge');
+                        if (!badge) {
+                          badge = document.createElement('div');
+                          badge.id = 'orderLinkSuccessBadge';
+                          badge.className = 'mt-3 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between text-xs text-emerald-300';
+                          badge.innerHTML = '<span class="flex items-center gap-2"><span>✨</span> <strong>Товар загружен.</strong> Параметры заполнены ниже.</span><button type="button" class="text-emerald-200 hover:text-white text-[11px] font-semibold bg-emerald-500/20 px-2.5 py-1 rounded-lg border border-emerald-500/30 ml-2" onclick="document.getElementById(\'orderManualForm\')?.scrollIntoView({behavior:\'smooth\', block:\'start\'})">К заказу ↓</button>';
+                          linkPane.appendChild(badge);
+                        }
+                      }
                     };
 
                     if (bData.has_options && typeof window.openSkuSelectorModal === 'function') {
@@ -2067,9 +2092,34 @@ window.applySmartShareLink = applySmartShareLink;
                 if (typeof glassToast === 'function') {
                   glassToast(`✨ Товар успешно распознан: ${data.color || ''} ${data.size || ''}`, { kind: 'success' });
                 }
+
+                // Mark link as analyzed and reveal the entire order form
+                window.orderLinkAnalyzed = true;
+                const manualForm = document.getElementById('orderManualForm');
+                if (manualForm) {
+                  manualForm.classList.remove('hidden');
+                  setTimeout(() => {
+                    manualForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }, 120);
+                }
+                const manualUrlInp = document.getElementById('orderUrlManual');
+                if (manualUrlInp && !manualUrlInp.value) {
+                  manualUrlInp.value = url;
+                }
+                const linkPane = document.getElementById('paneOrderLink');
+                if (linkPane) {
+                  let badge = document.getElementById('orderLinkSuccessBadge');
+                  if (!badge) {
+                    badge = document.createElement('div');
+                    badge.id = 'orderLinkSuccessBadge';
+                    badge.className = 'mt-3 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between text-xs text-emerald-300';
+                    badge.innerHTML = '<span class="flex items-center gap-2"><span>✨</span> <strong>Товар загружен.</strong> Параметры заполнены ниже.</span><button type="button" class="text-emerald-200 hover:text-white text-[11px] font-semibold bg-emerald-500/20 px-2.5 py-1 rounded-lg border border-emerald-500/30 ml-2" onclick="document.getElementById(\'orderManualForm\')?.scrollIntoView({behavior:\'smooth\', block:\'start\'})">К заказу ↓</button>';
+                    linkPane.appendChild(badge);
+                  }
+                }
               };
 
-              if (skuBundle && typeof window.openSkuSelectorModal === 'function' && (skuBundle.colors?.length > 1 || skuBundle.sizes?.length > 1)) {
+              if (skuBundle && typeof window.openSkuSelectorModal === 'function' && (skuBundle.has_options || (skuBundle.colors && skuBundle.colors.length > 0) || (skuBundle.sizes && skuBundle.sizes.length > 0))) {
                 window.openSkuSelectorModal(skuBundle, (selected) => {
                   applyResolvedData(selected);
                 });
