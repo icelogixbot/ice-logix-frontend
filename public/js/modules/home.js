@@ -47,9 +47,11 @@ async function renderHome() {
 
           // Use DB marketplaces if configured for home and matching allowed list, otherwise fall back to static list
           const marketplaces = homeDbMarketplaces.length > 0 ? homeDbMarketplaces : staticMarketplaces;
-          // Triple repetition: Set 0 (0..6), Set 1 (7..13), Set 2 (14..20)
-          // The sequence is 100% immutable and strictly ordered: Dewu, TaoBao, Pinduoduo, Goofish, 95, JD, Tmall
-          const fullMarketplaces = [...marketplaces, ...marketplaces, ...marketplaces];
+          // 5 identical sets: Sets 0, 1, 2, 3, 4 (35 cards total).
+          // Middle Set 2 starts at index 14 (Dewu). Order is strictly immutable:
+          // Dewu, TaoBao, Pinduoduo, Goofish, 95, JD, Tmall
+          const fullMarketplaces = [];
+          for (let s = 0; s < 5; s++) fullMarketplaces.push(...marketplaces);
 
           // Загрузка сегодняшних подборок из канала (@icelogix_selection)
           let homeProductsList = [];
@@ -644,132 +646,169 @@ function attachHomeHandlers() {
   }
 
 
-// ==================== БЕСКОНЕЧНЫЙ КОНВЕЙЕР ПЛОЩАДОК (Continuous 60FPS Infinite Glide) ====================
+// ==================== РУЛЕТКА ПЛОЩАДОК (Step Roulette with 2.5s Lock & Zero-Glitches) ====================
 function initMarketplaceRoulette() {
   const track = document.getElementById('marketplaceRouletteTrack');
   const ribbon = document.getElementById('marketplaceRibbon');
   if (!track || !ribbon) return;
 
-  // Очистка предыдущих анимаций и таймеров
-  if (window.__mpRafId) {
-    cancelAnimationFrame(window.__mpRafId);
-    window.__mpRafId = null;
+  // Очистка предыдущих таймеров
+  if (window.__mpStepTimer) {
+    clearTimeout(window.__mpStepTimer);
+    window.__mpStepTimer = null;
   }
   if (window.__mpResumeTimer) {
     clearTimeout(window.__mpResumeTimer);
     window.__mpResumeTimer = null;
   }
+  if (window.__mpRafId) {
+    cancelAnimationFrame(window.__mpRafId);
+    window.__mpRafId = null;
+  }
 
-  const CARD_WIDTH = 66;
-  const GAP = 14;
-  const STEP = CARD_WIDTH + GAP; // 80px
-  const N_ITEMS = 7; // Dewu, TaoBao, Pinduoduo, Goofish, 95, JD, Tmall
-  const ONE_CYCLE = N_ITEMS * STEP; // 560px
-  const SPEED = 28; // пикселей в секунду — спокойный, премиальный равномерный ход
+  const CARD_WIDTH = 62;
+  const GAP = 16;
+  const STEP = CARD_WIDTH + GAP; // 78px
+  const N_ITEMS = 7;
+  const BASE_SET = 2; // Средний сет 2 (индексы 14..20)
+  const BASE_DEWU_INDEX = BASE_SET * N_ITEMS; // 14
 
   const cards = Array.from(ribbon.querySelectorAll('.story-card'));
   if (cards.length === 0) return;
 
-  let trackWidth = track.clientWidth || 347;
-  let trackCenter = trackWidth / 2;
+  let currentIndex = BASE_DEWU_INDEX; // Стартуем сразу на Dewu
+  let isTransitioning = false;
 
-  // Стартовая позиция: Dewu (индекс 7, средний сет) находится ровно по центру видоискателя
-  const START_INDEX = 7;
-  let currentX = trackCenter - (START_INDEX * STEP + CARD_WIDTH / 2);
+  function getTrackCenter() {
+    return (track.clientWidth || 347) / 2;
+  }
 
-  let isPaused = false;
-  let isDragging = false;
+  function getXForIndex(idx) {
+    return getTrackCenter() - (idx * STEP + CARD_WIDTH / 2);
+  }
+
+  function highlightCard(idx) {
+    cards.forEach((c, i) => {
+      c.classList.toggle('is-active-target', i === idx);
+    });
+  }
+
+  function applyPosition(idx, animate = true) {
+    const targetX = getXForIndex(idx);
+    if (animate) {
+      ribbon.style.transition = 'transform 0.55s cubic-bezier(0.25, 1, 0.35, 1)';
+    } else {
+      ribbon.style.transition = 'none';
+    }
+    ribbon.style.transform = `translate3d(${targetX}px, 0, 0)`;
+    highlightCard(idx);
+  }
+
+  function stepToNext() {
+    if (isTransitioning || !document.getElementById('marketplaceRibbon')) return;
+    isTransitioning = true;
+    currentIndex++;
+
+    applyPosition(currentIndex, true);
+
+    // По завершении анимации сдвига (550ms):
+    setTimeout(() => {
+      if (!ribbon) {
+        isTransitioning = false;
+        return;
+      }
+      // Если дошли до Dewu следующего сета (индекс 21), мгновенно и незаметно
+      // нормализуем индекс назад на Dewu сета 2 (индекс 14), пока карточка неподвижно стоит в центре!
+      if (currentIndex >= (BASE_SET + 1) * N_ITEMS) {
+        currentIndex -= N_ITEMS; // 21 -> 14
+        applyPosition(currentIndex, false);
+        void ribbon.offsetWidth; // force reflow
+      }
+      isTransitioning = false;
+      scheduleAutoStep();
+    }, 580);
+  }
+
+  function stepToPrev() {
+    if (isTransitioning || !document.getElementById('marketplaceRibbon')) return;
+    isTransitioning = true;
+    currentIndex--;
+
+    applyPosition(currentIndex, true);
+
+    setTimeout(() => {
+      if (!ribbon) {
+        isTransitioning = false;
+        return;
+      }
+      if (currentIndex < BASE_SET * N_ITEMS) {
+        currentIndex += N_ITEMS;
+        applyPosition(currentIndex, false);
+        void ribbon.offsetWidth;
+      }
+      isTransitioning = false;
+      scheduleAutoStep();
+    }, 580);
+  }
+
+  function scheduleAutoStep() {
+    clearTimeout(window.__mpStepTimer);
+    // Фиксация на 2.5 секунды в окошке
+    window.__mpStepTimer = setTimeout(stepToNext, 2500);
+  }
+
+  // Ручное управление свайпом
   let startX = 0;
   let dragStartX = 0;
-  let hasDraggedMeaningfully = false;
-  let lastTime = performance.now();
-  let currentActiveIdx = -1;
+  let isDragging = false;
+  let hasDragged = false;
 
-  function updateActiveCard() {
-    trackCenter = (track.clientWidth || 347) / 2;
-    let closestIdx = 0;
-    let minDiff = Infinity;
-
-    for (let i = 0; i < cards.length; i++) {
-      const cardCenter = currentX + (i * STEP) + (CARD_WIDTH / 2);
-      const diff = Math.abs(cardCenter - trackCenter);
-      if (diff < minDiff) {
-        minDiff = diff;
-        closestIdx = i;
-      }
-    }
-
-    if (closestIdx !== currentActiveIdx) {
-      currentActiveIdx = closestIdx;
-      cards.forEach((c, i) => {
-        c.classList.toggle('is-active-target', i === closestIdx);
-      });
-    }
-  }
-
-  function animate(now) {
-    const dt = Math.min((now - lastTime) / 1000, 0.1); // защита от скачка времени при свернутой вкладке
-    lastTime = now;
-
-    if (!isPaused && !isDragging) {
-      currentX -= SPEED * dt;
-
-      // Бесшовный бесконечный цикл (0 пикселей разницы):
-      const minX = trackCenter - (14 * STEP + CARD_WIDTH / 2);
-      if (currentX <= minX) {
-        currentX += ONE_CYCLE;
-      }
-    }
-
-    ribbon.style.transform = `translate3d(${currentX}px, 0, 0)`;
-    updateActiveCard();
-
-    window.__mpRafId = requestAnimationFrame(animate);
-  }
-
-  // Ручное управление свайпом и касанием
   function onPointerDown(e) {
-    isPaused = true;
-    isDragging = true;
-    hasDraggedMeaningfully = false;
+    if (isTransitioning) return;
+    clearTimeout(window.__mpStepTimer);
     clearTimeout(window.__mpResumeTimer);
+    isDragging = true;
+    hasDragged = false;
     startX = e.touches ? e.touches[0].clientX : e.clientX;
-    dragStartX = currentX;
+    dragStartX = getXForIndex(currentIndex);
+    ribbon.style.transition = 'none';
   }
 
   function onPointerMove(e) {
     if (!isDragging) return;
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const dx = clientX - startX;
-    if (Math.abs(dx) > 4) {
-      hasDraggedMeaningfully = true;
-    }
-
-    currentX = dragStartX + dx;
-
-    // Циклическое зацикливание при ручном свайпе
-    const minX = trackCenter - (14 * STEP + CARD_WIDTH / 2);
-    const maxX = trackCenter - (7 * STEP + CARD_WIDTH / 2) + ONE_CYCLE;
-    if (currentX <= minX) currentX += ONE_CYCLE;
-    if (currentX >= maxX) currentX -= ONE_CYCLE;
-
-    ribbon.style.transform = `translate3d(${currentX}px, 0, 0)`;
-    updateActiveCard();
+    const x = e.touches ? e.touches[0].clientX : e.clientX;
+    const dx = x - startX;
+    if (Math.abs(dx) > 6) hasDragged = true;
+    const curX = dragStartX + dx;
+    ribbon.style.transform = `translate3d(${curX}px, 0, 0)`;
   }
 
-  function onPointerUp() {
+  function onPointerUp(e) {
     if (!isDragging) return;
     isDragging = false;
-    clearTimeout(window.__mpResumeTimer);
-    window.__mpResumeTimer = setTimeout(() => {
-      isPaused = false;
-      lastTime = performance.now();
-    }, 1800);
+    const x = e.changedTouches ? e.changedTouches[0].clientX : (e.clientX || startX);
+    const dx = x - startX;
+
+    if (dx < -STEP / 3) {
+      stepToNext();
+    } else if (dx > STEP / 3) {
+      stepToPrev();
+    } else {
+      // Возврат на текущую карточку
+      applyPosition(currentIndex, true);
+      scheduleAutoStep();
+    }
   }
 
-  // Делегированный клик с защитой от срабатывания во время свайпа
+  track.addEventListener('touchstart', onPointerDown, { passive: true });
+  track.addEventListener('touchmove', onPointerMove, { passive: true });
+  track.addEventListener('touchend', onPointerUp, { passive: true });
+  track.addEventListener('mousedown', onPointerDown);
+  window.addEventListener('mousemove', onPointerMove);
+  window.addEventListener('mouseup', onPointerUp);
+
   track.onclick = (e) => {
-    if (hasDraggedMeaningfully) return;
+    if (hasDragged) return;
     const card = e.target.closest('.marketplace-story');
     if (!card) return;
     const url = card.getAttribute('data-url');
@@ -781,20 +820,13 @@ function initMarketplaceRoulette() {
     }
   };
 
-  track.addEventListener('touchstart', onPointerDown, { passive: true });
-  track.addEventListener('touchmove', onPointerMove, { passive: true });
-  track.addEventListener('touchend', onPointerUp, { passive: true });
-  track.addEventListener('mousedown', onPointerDown);
-  window.addEventListener('mousemove', onPointerMove);
-  window.addEventListener('mouseup', onPointerUp);
-
   window.addEventListener('resize', () => {
-    trackWidth = track.clientWidth || 347;
-    trackCenter = trackWidth / 2;
+    applyPosition(currentIndex, false);
   });
 
-  updateActiveCard();
-  window.__mpRafId = requestAnimationFrame(animate);
+  // Запуск: фиксация на Dewu сразу при загрузке
+  applyPosition(currentIndex, false);
+  scheduleAutoStep();
 }
 
 // Global Exports
