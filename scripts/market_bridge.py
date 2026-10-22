@@ -726,14 +726,27 @@ def select_sku(req: SelectSkuRequest):
             if m_price:
                 price_cny = float(m_price.group(1))
 
-    # Update crop
-    img_url = capture_screen_and_crop(req.goods_id, suffix=f"_{int(time.time())}")
+    # Update crop and upload to public Supabase storage
+    img_rel = capture_screen_and_crop(req.goods_id, suffix=f"_{int(time.time())}")
+    pub_url = img_rel
+    if supabase_client:
+        local_crop = os.path.join(FRONTEND_PUBLIC_DIR, img_rel.lstrip("/"))
+        if os.path.exists(local_crop):
+            try:
+                remote_name = f"sku_{req.goods_id}_{int(time.time())}.jpg"
+                with open(local_crop, "rb") as f:
+                    supabase_client.storage.from_("product-screenshots").upload(
+                        remote_name, f.read(), {"content-type": "image/jpeg"}
+                    )
+                pub_url = supabase_client.storage.from_("product-screenshots").get_public_url(remote_name)
+            except Exception as e:
+                print("Variant crop upload error:", e)
     
     return {
         "success": True,
         "price_cny": price_cny or 5.43,
         "selected_summary": selected_summary,
-        "image_url": img_url
+        "image_url": pub_url
     }
 
 # ==================== SUPABASE REAL-TIME QUEUE WORKER ====================
