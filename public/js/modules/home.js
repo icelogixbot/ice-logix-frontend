@@ -45,8 +45,12 @@ async function renderHome() {
             { name: 'Tmall', url: 'https://www.tmall.com', website_url: 'https://www.tmall.com', logo_url: '/assets/marketplaces/tmall.png', icon: '<span class="mp-dot" style="background:#ff0036" aria-hidden="true"></span>' }
           ];
 
-          // Use DB marketplaces if configured for home and matching allowed list, otherwise fall back to static list
-          const marketplaces = homeDbMarketplaces.length > 0 ? homeDbMarketplaces : staticMarketplaces;
+          // Merge static 7 platforms with any custom URLs from DB, guaranteeing exact 7 platforms in fixed order:
+          // Dewu, TaoBao, Pinduoduo, Goofish, 95, JD, Tmall
+          const marketplaces = staticMarketplaces.map(st => {
+            const fromDb = homeDbMarketplaces.find(db => (db.name || '').toLowerCase() === st.name.toLowerCase());
+            return fromDb ? { ...st, website_url: fromDb.website_url || st.website_url, url: fromDb.website_url || st.url } : st;
+          });
           // 5 identical sets: Sets 0, 1, 2, 3, 4 (35 cards total).
           // Middle Set 2 starts at index 14 (Dewu). Order is strictly immutable:
           // Dewu, TaoBao, Pinduoduo, Goofish, 95, JD, Tmall
@@ -129,7 +133,7 @@ async function renderHome() {
               ${fullMarketplaces.map((mp, idx) => `
                 <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}" data-name="${mp.name}" data-idx="${idx}">
                   <div class="story-icon">
-                    ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261022_01" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
+                    ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261022_02" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
                     <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 20px;">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
                   </div>
                   <span class="story-label">${mp.name}</span>
@@ -666,9 +670,9 @@ function initMarketplaceRoulette() {
     window.__mpRafId = null;
   }
 
-  const CARD_WIDTH = 62;
+  const CARD_WIDTH = 64;
   const GAP = 16;
-  const STEP = CARD_WIDTH + GAP; // 78px
+  const STEP = CARD_WIDTH + GAP; // 80px
   const N_ITEMS = 7;
   const BASE_SET = 2; // Средний сет 2 (индексы 14..20)
   const BASE_DEWU_INDEX = BASE_SET * N_ITEMS; // 14
@@ -720,9 +724,24 @@ function initMarketplaceRoulette() {
       // Если дошли до Dewu следующего сета (индекс 21), мгновенно и незаметно
       // нормализуем индекс назад на Dewu сета 2 (индекс 14), пока карточка неподвижно стоит в центре!
       if (currentIndex >= (BASE_SET + 1) * N_ITEMS) {
-        currentIndex -= N_ITEMS; // 21 -> 14
-        applyPosition(currentIndex, false);
-        void ribbon.offsetWidth; // force reflow
+        // Чтобы исключить микро-рывок или всплеск анимации масштабирования:
+        // 1. Временно отключаем transition у ленты И у всех карточек
+        ribbon.style.transition = 'none';
+        cards.forEach(c => { c.style.transition = 'none'; });
+
+        // 2. Смещаем индекс назад на 7 (21 -> 14)
+        currentIndex -= N_ITEMS;
+        const targetX = getXForIndex(currentIndex);
+        ribbon.style.transform = `translate3d(${targetX}px, 0, 0)`;
+        highlightCard(currentIndex);
+
+        // 3. Форсируем синхронный reflow в одном кадре с отключенным transition
+        void ribbon.offsetWidth;
+
+        // 4. В следующем кадре восстанавливаем transition для карточек
+        requestAnimationFrame(() => {
+          cards.forEach(c => { c.style.transition = ''; });
+        });
       }
       isTransitioning = false;
       scheduleAutoStep();
@@ -742,9 +761,19 @@ function initMarketplaceRoulette() {
         return;
       }
       if (currentIndex < BASE_SET * N_ITEMS) {
+        ribbon.style.transition = 'none';
+        cards.forEach(c => { c.style.transition = 'none'; });
+
         currentIndex += N_ITEMS;
-        applyPosition(currentIndex, false);
+        const targetX = getXForIndex(currentIndex);
+        ribbon.style.transform = `translate3d(${targetX}px, 0, 0)`;
+        highlightCard(currentIndex);
+
         void ribbon.offsetWidth;
+
+        requestAnimationFrame(() => {
+          cards.forEach(c => { c.style.transition = ''; });
+        });
       }
       isTransitioning = false;
       scheduleAutoStep();

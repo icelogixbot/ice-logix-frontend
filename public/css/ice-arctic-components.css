@@ -173,8 +173,8 @@ body::before { opacity: .12 !important; }
   top: 27px;
   left: 50%;
   transform: translateX(-50%);
-  width: 76px;
-  height: 90px;
+  width: 78px;
+  height: 92px;
   border-radius: 18px;
   border: 1.5px solid rgba(130, 199, 241, 0.5);
   background: rgba(130, 199, 241, 0.04);
@@ -242,8 +242,8 @@ body::before { opacity: .12 !important; }
   align-items: center;
   justify-content: center;
   gap: 0 !important;
-  flex: 0 0 62px;
-  width: 62px;
+  flex: 0 0 64px;
+  width: 64px;
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -262,8 +262,8 @@ body::before { opacity: .12 !important; }
   border: 0 !important;
   box-shadow: none !important;
   overflow: visible !important;
-  width: 54px !important;
-  height: 54px !important;
+  width: 56px !important;
+  height: 56px !important;
   padding: 0 !important;
   display: flex !important;
   align-items: center !important;
@@ -271,10 +271,10 @@ body::before { opacity: .12 !important; }
 }
 
 .marketplace-story .story-icon img {
-  width: 52px !important;
-  height: 52px !important;
-  max-width: 52px !important;
-  max-height: 52px !important;
+  width: 54px !important;
+  height: 54px !important;
+  max-width: 54px !important;
+  max-height: 54px !important;
   object-fit: contain !important;
   border-radius: 13px !important;
   filter: none !important;
@@ -290,11 +290,11 @@ body::before { opacity: .12 !important; }
 }
 
 .marketplace-story .story-label {
-  font-size: 10.5px !important;
+  font-size: 11px !important;
   font-weight: 600 !important;
   color: rgba(255, 255, 255, 0.75) !important;
   letter-spacing: -0.01em;
-  max-width: 62px;
+  max-width: 64px;
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
