@@ -133,7 +133,7 @@ async function renderHome() {
               ${fullMarketplaces.map((mp, idx) => `
                 <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}" data-name="${mp.name}" data-idx="${idx}">
                   <div class="story-icon">
-                    ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261022_02" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
+                    ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261022_03" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
                     <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 20px;">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
                   </div>
                   <span class="story-label">${mp.name}</span>
@@ -682,6 +682,7 @@ function initMarketplaceRoulette() {
 
   let currentIndex = BASE_DEWU_INDEX; // Стартуем сразу на Dewu
   let isTransitioning = false;
+  let currentX = 0;
 
   function getTrackCenter() {
     return (track.clientWidth || 347) / 2;
@@ -697,10 +698,11 @@ function initMarketplaceRoulette() {
     });
   }
 
-  function applyPosition(idx, animate = true) {
+  function applyPosition(idx, animate = true, duration = 0.5) {
     const targetX = getXForIndex(idx);
+    currentX = targetX;
     if (animate) {
-      ribbon.style.transition = 'transform 0.55s cubic-bezier(0.25, 1, 0.35, 1)';
+      ribbon.style.transition = `transform ${duration}s cubic-bezier(0.16, 1, 0.3, 1)`;
     } else {
       ribbon.style.transition = 'none';
     }
@@ -708,76 +710,42 @@ function initMarketplaceRoulette() {
     highlightCard(idx);
   }
 
-  function stepToNext() {
-    if (isTransitioning || !document.getElementById('marketplaceRibbon')) return;
-    isTransitioning = true;
-    currentIndex++;
+  function normalizeIndex() {
+    if (currentIndex >= (BASE_SET + 1) * N_ITEMS || currentIndex < BASE_SET * N_ITEMS) {
+      ribbon.style.transition = 'none';
+      cards.forEach(c => { c.style.transition = 'none'; });
 
-    applyPosition(currentIndex, true);
+      while (currentIndex >= (BASE_SET + 1) * N_ITEMS) currentIndex -= N_ITEMS;
+      while (currentIndex < BASE_SET * N_ITEMS) currentIndex += N_ITEMS;
 
-    // По завершении анимации сдвига (550ms):
-    setTimeout(() => {
-      if (!ribbon) {
-        isTransitioning = false;
-        return;
-      }
-      // Если дошли до Dewu следующего сета (индекс 21), мгновенно и незаметно
-      // нормализуем индекс назад на Dewu сета 2 (индекс 14), пока карточка неподвижно стоит в центре!
-      if (currentIndex >= (BASE_SET + 1) * N_ITEMS) {
-        // Чтобы исключить микро-рывок или всплеск анимации масштабирования:
-        // 1. Временно отключаем transition у ленты И у всех карточек
-        ribbon.style.transition = 'none';
-        cards.forEach(c => { c.style.transition = 'none'; });
+      currentX = getXForIndex(currentIndex);
+      ribbon.style.transform = `translate3d(${currentX}px, 0, 0)`;
+      highlightCard(currentIndex);
 
-        // 2. Смещаем индекс назад на 7 (21 -> 14)
-        currentIndex -= N_ITEMS;
-        const targetX = getXForIndex(currentIndex);
-        ribbon.style.transform = `translate3d(${targetX}px, 0, 0)`;
-        highlightCard(currentIndex);
+      void ribbon.offsetWidth;
 
-        // 3. Форсируем синхронный reflow в одном кадре с отключенным transition
-        void ribbon.offsetWidth;
-
-        // 4. В следующем кадре восстанавливаем transition для карточек
-        requestAnimationFrame(() => {
-          cards.forEach(c => { c.style.transition = ''; });
-        });
-      }
-      isTransitioning = false;
-      scheduleAutoStep();
-    }, 580);
+      requestAnimationFrame(() => {
+        cards.forEach(c => { c.style.transition = ''; });
+      });
+    }
   }
 
-  function stepToPrev() {
-    if (isTransitioning || !document.getElementById('marketplaceRibbon')) return;
+  function goToIndex(targetIdx, duration = 0.48) {
     isTransitioning = true;
-    currentIndex--;
-
-    applyPosition(currentIndex, true);
+    currentIndex = targetIdx;
+    applyPosition(currentIndex, true, duration);
 
     setTimeout(() => {
-      if (!ribbon) {
-        isTransitioning = false;
-        return;
-      }
-      if (currentIndex < BASE_SET * N_ITEMS) {
-        ribbon.style.transition = 'none';
-        cards.forEach(c => { c.style.transition = 'none'; });
-
-        currentIndex += N_ITEMS;
-        const targetX = getXForIndex(currentIndex);
-        ribbon.style.transform = `translate3d(${targetX}px, 0, 0)`;
-        highlightCard(currentIndex);
-
-        void ribbon.offsetWidth;
-
-        requestAnimationFrame(() => {
-          cards.forEach(c => { c.style.transition = ''; });
-        });
-      }
+      if (!ribbon) return;
+      normalizeIndex();
       isTransitioning = false;
       scheduleAutoStep();
-    }, 580);
+    }, Math.round(duration * 1000) + 30);
+  }
+
+  function stepToNext() {
+    if (isDragging || !document.getElementById('marketplaceRibbon')) return;
+    goToIndex(currentIndex + 1, 0.55);
   }
 
   function scheduleAutoStep() {
@@ -786,20 +754,47 @@ function initMarketplaceRoulette() {
     window.__mpStepTimer = setTimeout(stepToNext, 2500);
   }
 
-  // Ручное управление свайпом
-  let startX = 0;
-  let dragStartX = 0;
+  // ==================== СВОБОДНЫЙ И ЛЕГКИЙ СКРОЛЛ / СВАЙП С ИНЕРЦИЕЙ ====================
   let isDragging = false;
   let hasDragged = false;
+  let startX = 0;
+  let dragOriginX = 0;
+  let lastDragX = 0;
+  let lastDragTime = 0;
+  let velocity = 0;
+
+  function getCurrentTransformX() {
+    try {
+      const style = window.getComputedStyle(ribbon);
+      const matrix = new DOMMatrixReadOnly(style.transform);
+      return matrix.m41 || getXForIndex(currentIndex);
+    } catch (e) {
+      return getXForIndex(currentIndex);
+    }
+  }
 
   function onPointerDown(e) {
-    if (isTransitioning) return;
     clearTimeout(window.__mpStepTimer);
     clearTimeout(window.__mpResumeTimer);
+
+    // Если карточки были в движении — мгновенно подхватываем их с текущего пикселя без задержек и залипаний!
+    if (isTransitioning) {
+      currentX = getCurrentTransformX();
+      ribbon.style.transition = 'none';
+      ribbon.style.transform = `translate3d(${currentX}px, 0, 0)`;
+      isTransitioning = false;
+    } else {
+      currentX = getXForIndex(currentIndex);
+    }
+
     isDragging = true;
     hasDragged = false;
     startX = e.touches ? e.touches[0].clientX : e.clientX;
-    dragStartX = getXForIndex(currentIndex);
+    dragOriginX = currentX;
+    lastDragX = startX;
+    lastDragTime = performance.now();
+    velocity = 0;
+
     ribbon.style.transition = 'none';
   }
 
@@ -807,26 +802,57 @@ function initMarketplaceRoulette() {
     if (!isDragging) return;
     const x = e.touches ? e.touches[0].clientX : e.clientX;
     const dx = x - startX;
-    if (Math.abs(dx) > 6) hasDragged = true;
-    const curX = dragStartX + dx;
-    ribbon.style.transform = `translate3d(${curX}px, 0, 0)`;
+    if (Math.abs(dx) > 5) hasDragged = true;
+
+    const now = performance.now();
+    const dt = now - lastDragTime;
+    if (dt > 10) {
+      velocity = (x - lastDragX) / dt; // скорость свайпа px/ms
+      lastDragX = x;
+      lastDragTime = now;
+    }
+
+    const newX = dragOriginX + dx;
+    ribbon.style.transform = `translate3d(${newX}px, 0, 0)`;
+
+    // Динамическая живая подсветка карточки при приближении к центру
+    const trackCenter = getTrackCenter();
+    const approxIdx = Math.round((trackCenter - newX - CARD_WIDTH / 2) / STEP);
+    const clampedIdx = Math.max(0, Math.min(cards.length - 1, approxIdx));
+    highlightCard(clampedIdx);
   }
 
   function onPointerUp(e) {
     if (!isDragging) return;
     isDragging = false;
-    const x = e.changedTouches ? e.changedTouches[0].clientX : (e.clientX || startX);
+
+    const x = e.changedTouches ? e.changedTouches[0].clientX : (e.clientX || lastDragX);
     const dx = x - startX;
 
-    if (dx < -STEP / 3) {
-      stepToNext();
-    } else if (dx > STEP / 3) {
-      stepToPrev();
-    } else {
-      // Возврат на текущую карточку
-      applyPosition(currentIndex, true);
+    if (!hasDragged) {
+      // Обычный клик без перемещения
+      applyPosition(currentIndex, true, 0.25);
       scheduleAutoStep();
+      return;
     }
+
+    // Вычисляем целевую карточку с учетом смещения и импульса броска пальцем
+    const currentTrackX = dragOriginX + dx;
+    const trackCenter = getTrackCenter();
+    let targetIdx = Math.round((trackCenter - currentTrackX - CARD_WIDTH / 2) / STEP);
+
+    // Добавляем инерцию при быстром свайпе (flick momentum)
+    if (Math.abs(velocity) > 0.35) {
+      const momentumStep = Math.round(-velocity * 120 / STEP);
+      const bonus = Math.sign(momentumStep) * Math.min(Math.abs(momentumStep), 2);
+      targetIdx += bonus;
+    }
+
+    // Безопасные границы внутри 5 сетов
+    targetIdx = Math.max(2, Math.min(cards.length - 3, targetIdx));
+
+    // Мягкий доводчик в центр с кривой отклика Apple
+    goToIndex(targetIdx, 0.45);
   }
 
   track.addEventListener('touchstart', onPointerDown, { passive: true });
