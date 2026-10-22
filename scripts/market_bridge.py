@@ -3,6 +3,7 @@ import sys
 import re
 import time
 import json
+import random
 import threading
 import subprocess
 import xml.etree.ElementTree as ET
@@ -277,7 +278,73 @@ def get_bounds_center(bounds_str: str):
     x1, y1, x2, y2 = parse_bounds(bounds_str)
     return (x1 + x2) // 2, (y1 + y2) // 2
 
-def dump_ui_xml() -> ET.Element:
+def human_tap(bounds_str: str) -> bool:
+    """
+    Simulates a 100% human capacitive finger touch with randomized Gaussian coordinates,
+    real-world touch-down dwell duration (85-135ms), and realistic micro-drift (-1..1px).
+    """
+    x1, y1, x2, y2 = parse_bounds(bounds_str)
+    if x1 >= x2 or y1 >= y2:
+        return False
+    pad_x = max(2, int((x2 - x1) * 0.15))
+    pad_y = max(2, int((y2 - y1) * 0.15))
+    min_x, max_x = x1 + pad_x, x2 - pad_x
+    min_y, max_y = y1 + pad_y, y2 - pad_y
+    if min_x >= max_x or min_y >= max_y:
+        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+    else:
+        cx = int(random.triangular(min_x, max_x, (min_x + max_x) / 2))
+        cy = int(random.triangular(min_y, max_y, (min_y + max_y) / 2))
+
+    touch_ms = random.randint(85, 135)
+    drift_x = cx + random.choice([-1, 0, 1])
+    drift_y = cy + random.choice([-1, 0, 1])
+    
+    print(f"[*] Human tap at ({cx}, {cy}) bounds={bounds_str} dwell={touch_ms}ms")
+    run_adb(["shell", "input", "swipe", str(cx), str(cy), str(drift_x), str(drift_y), str(touch_ms)])
+    time.sleep(random.uniform(0.3, 0.6))
+    return True
+
+def human_scroll(direction: str = 'down'):
+    """
+    Simulates human hand browsing flick on product pages.
+    """
+    start_x = random.randint(380, 520)
+    end_x = start_x + random.randint(-15, 15)
+    if direction == 'down':
+        start_y = random.randint(1100, 1250)
+        distance = random.randint(220, 360)
+        end_y = start_y - distance
+    else:
+        start_y = random.randint(600, 750)
+        distance = random.randint(220, 360)
+        end_y = start_y + distance
+    duration_ms = random.randint(320, 480)
+    print(f"[*] Human browsing scroll {direction} ({start_x},{start_y} -> {end_x},{end_y}) {duration_ms}ms")
+    run_adb(["shell", "input", "swipe", str(start_x), str(start_y), str(end_x), str(end_y), str(duration_ms)])
+    time.sleep(random.uniform(0.5, 0.9))
+
+def handle_popups_and_verification(root: ET.Element) -> bool:
+    """
+    Detects and automatically resolves verification modals ('安全验证', '前往验证')
+    and coupon/promo popups with humanized taps.
+    """
+    for node in root.iter("node"):
+        txt = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
+        bounds = node.attrib.get("bounds", "")
+        if txt in ["安全验证", "前往验证"]:
+            print(f"[🛡️] Detected verification prompt: '{txt}' at {bounds}. Auto-tapping with human touch...")
+            human_tap(bounds)
+            time.sleep(random.uniform(2.0, 3.0))
+            return True
+        if txt in ["关闭", "放弃", "去领券", "知道了"] and bounds:
+            print(f"[*] Auto-dismissing promo popup '{txt}' at {bounds}")
+            human_tap(bounds)
+            time.sleep(random.uniform(0.4, 0.8))
+            return True
+    return False
+
+def dump_ui_xml(auto_handle_verify: bool = True) -> ET.Element:
     if not ensure_device_ready():
         raise RuntimeError("Устройство (эмулятор или телефон) не отвечает. Убедитесь, что оно запущено.")
     run_adb(["shell", "uiautomator", "dump", "/sdcard/dump.xml"])
@@ -287,12 +354,23 @@ def dump_ui_xml() -> ET.Element:
         xml_str = xml_str[idx:]
     if not xml_str.strip() or "<?xml" not in xml_str:
         raise RuntimeError("Не удалось прочитать экран товара в эмуляторе. Попробуйте еще раз.")
-    if "安全验证" in xml_str or "拖动滑块" in xml_str or "完成拼多多官方验证" in xml_str:
-        raise RuntimeError("Pinduoduo запросил подтверждение (капчу). Пожалуйста, проведите ползунок в окне LDPlayer на компьютере.")
+        
     try:
-        return ET.fromstring(xml_str)
+        root = ET.fromstring(xml_str)
     except Exception as e:
         raise RuntimeError(f"Ошибка обработки экрана товара: {e}")
+
+    # Check if a verification or promo dialog appeared
+    if auto_handle_verify:
+        handled = handle_popups_and_verification(root)
+        if handled:
+            # If we clicked "安全验证" or "前往验证", wait and re-dump
+            return dump_ui_xml(auto_handle_verify=False)
+
+    if "拖动滑块" in xml_str or "完成上方拼图" in xml_str:
+        raise RuntimeError("Pinduoduo запросил пазл-подтверждение. Пожалуйста, сдвиньте ползунок в окне LDPlayer на компьютере (требуется 1 раз).")
+        
+    return root
 
 def capture_screen_and_crop(goods_id: str, suffix: str = "") -> str:
     temp_local = os.path.join(PARSED_UPLOADS_DIR, f"temp_{goods_id}.png")
@@ -346,9 +424,13 @@ def parse_product(req: ParseRequest):
     # 1. Open product in Pinduoduo App via Deep Link
     intent_url = f"pinduoduo://com.xunmeng.pinduoduo/goods.html?goods_id={goods_id}"
     run_adb(["shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", intent_url])
-    time.sleep(2.0) # wait for page load
+    time.sleep(random.uniform(2.2, 3.0)) # human dwell time for page load
     
-    # 2. Check if page is loaded and open SKU drawer
+    # 2. Simulate human browsing behavior (natural scroll down)
+    human_scroll('down')
+    time.sleep(random.uniform(0.7, 1.3))
+    
+    # 3. Check if page is loaded and open SKU drawer
     root = dump_ui_xml()
     
     raw_title = ""
@@ -369,10 +451,10 @@ def parse_product(req: ParseRequest):
             txt = node.attrib.get("text", "")
             val = cd or txt
             if "免拼购买" in val or "单独购买" in val or "立即购买" in val:
-                cx, cy = get_bounds_center(node.attrib.get("bounds", ""))
-                if cx > 0 and cy > 0:
-                    run_adb(["shell", "input", "tap", str(cx), str(cy)])
-                    time.sleep(1.0)
+                bounds = node.attrib.get("bounds", "")
+                if bounds:
+                    human_tap(bounds)
+                    time.sleep(random.uniform(0.8, 1.4))
                     break
         root = dump_ui_xml()
         
@@ -469,13 +551,9 @@ def parse_product(req: ParseRequest):
 
 @app.post("/api/select-sku")
 def select_sku(req: SelectSkuRequest):
-    cx, cy = get_bounds_center(req.bounds)
-    if cx <= 0 or cy <= 0:
-        raise HTTPException(status_code=400, detail="Invalid bounds")
-        
-    print(f"[*] Tapping SKU option at ({cx}, {cy}) for goods_id={req.goods_id}")
-    run_adb(["shell", "input", "tap", str(cx), str(cy)])
-    time.sleep(0.3)
+    print(f"[*] Human tapping SKU option for goods_id={req.goods_id} at {req.bounds}")
+    human_tap(req.bounds)
+    time.sleep(random.uniform(0.4, 0.7))
     
     # Re-dump to get updated price and selected text
     root = dump_ui_xml()
