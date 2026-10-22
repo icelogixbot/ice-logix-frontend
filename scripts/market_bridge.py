@@ -198,13 +198,32 @@ def get_bounds_center(bounds_str: str):
     x1, y1, x2, y2 = parse_bounds(bounds_str)
     return (x1 + x2) // 2, (y1 + y2) // 2
 
+def check_device_ready() -> bool:
+    try:
+        cmd = [ADB_PATH, "devices"]
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+        for line in res.stdout.splitlines():
+            parts = line.strip().split()
+            if len(parts) >= 2 and parts[1] == "device":
+                return True
+    except Exception as e:
+        print("Device check error:", e)
+    return False
+
 def dump_ui_xml() -> ET.Element:
+    if not check_device_ready():
+        raise RuntimeError("Эмулятор LDPlayer не запущен на компьютере. Пожалуйста, откройте ярлык LDPlayer 14 на рабочем столе.")
     run_adb(["shell", "uiautomator", "dump", "/sdcard/dump.xml"])
     xml_str = run_adb(["shell", "cat", "/sdcard/dump.xml"])
     idx = xml_str.find("<?xml")
     if idx != -1:
         xml_str = xml_str[idx:]
-    return ET.fromstring(xml_str)
+    if not xml_str.strip() or "<?xml" not in xml_str:
+        raise RuntimeError("Не удалось прочитать экран товара в эмуляторе. Попробуйте еще раз.")
+    try:
+        return ET.fromstring(xml_str)
+    except Exception as e:
+        raise RuntimeError(f"Ошибка обработки экрана товара: {e}")
 
 def capture_screen_and_crop(goods_id: str, suffix: str = "") -> str:
     temp_local = os.path.join(PARSED_UPLOADS_DIR, f"temp_{goods_id}.png")

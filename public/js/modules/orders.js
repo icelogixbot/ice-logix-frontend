@@ -2095,7 +2095,22 @@ window.applySmartShareLink = applySmartShareLink;
             } catch (err) {
               analyzeOrderBtn.classList.add('bg-red-500');
               setTimeout(() => analyzeOrderBtn.classList.remove('bg-red-500'), 2000);
-              tgUtil.alert('❌ ' + (err && err.message ? err.message : 'Не удалось проанализировать ссылку. Попробуйте ввести данные вручную.'));
+              let rawMsg = (err && err.message) ? String(err.message) : '';
+              let friendlyMsg = 'Не удалось проанализировать ссылку. Попробуйте ввести данные вручную.';
+              if (rawMsg.includes('LDPlayer') || rawMsg.includes('эмулятор') || rawMsg.includes('Эмулятор')) {
+                friendlyMsg = rawMsg.replace(/^❌\s*/, '');
+              } else if (rawMsg.includes('no element found') || rawMsg.includes('XML') || rawMsg.includes('dump') || rawMsg.includes('adb') || rawMsg.includes('line 1')) {
+                friendlyMsg = 'Эмулятор Pinduoduo сейчас не на связи. Откройте ярлык LDPlayer 14 на компьютере и попробуйте снова.';
+              } else if (rawMsg.includes('Таймаут')) {
+                friendlyMsg = 'Сервер маркетплейса не ответил вовремя. Пожалуйста, попробуйте снова через пару секунд.';
+              } else if (rawMsg && !rawMsg.includes('SyntaxError') && !rawMsg.includes('column 0')) {
+                friendlyMsg = rawMsg.replace(/^❌\s*/, '');
+              }
+              if (typeof tgUtil !== 'undefined' && tgUtil.alert) {
+                tgUtil.alert('⚠️ ' + friendlyMsg);
+              } else {
+                alert(friendlyMsg);
+              }
             } finally {
               analyzeOrderBtn.innerText = originalText;
               analyzeOrderBtn.disabled = false;
