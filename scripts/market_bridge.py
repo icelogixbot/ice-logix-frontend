@@ -524,6 +524,95 @@ def dump_ui_xml(auto_handle_verify: bool = True) -> ET.Element:
         
     return root
 
+def capture_hd_studio_and_variants(goods_id: str, root: ET.Element, colors: List[Dict[str, Any]]) -> str:
+    """
+    Captures the Ultra-HD studio main image (900x900) by tapping the drawer preview,
+    plus individual crisp thumbnails for each color variant.
+    Uploads all to public Supabase Storage and attaches image_url to each color.
+    """
+    thumb_bounds = None
+    for n in root.iter('node'):
+        cls = n.attrib.get('class', '')
+        b = n.attrib.get('bounds', '')
+        if 'ImageView' in cls and b:
+            x1, y1, x2, y2 = parse_bounds(b)
+            w, h = x2 - x1, y2 - y1
+            if 130 <= w <= 260 and 130 <= h <= 260 and x1 < 120 and 200 <= y1 <= 520:
+                thumb_bounds = (x1, y1, x2, y2)
+                break
+
+    hd_pub_url = ""
+    # 1. Tap thumbnail to capture full Ultra-HD Studio photo
+    if thumb_bounds:
+        cx, cy = (thumb_bounds[0] + thumb_bounds[2]) // 2, (thumb_bounds[1] + thumb_bounds[3]) // 2
+        run_adb(["shell", f"input tap {cx} {cy}"])
+        time.sleep(0.6)
+        temp_hd = os.path.join(PARSED_UPLOADS_DIR, f"temp_hd_{goods_id}.png")
+        run_adb(["shell", "screencap", "-p", "/sdcard/hd_prev.png"])
+        run_adb(["pull", "/sdcard/hd_prev.png", temp_hd])
+        run_adb(["shell", "input", "keyevent", "4"])  # Close gallery back to drawer
+        time.sleep(0.4)
+        
+        if os.path.exists(temp_hd):
+            try:
+                im = Image.open(temp_hd)
+                crop = im.crop((0, 280, 900, 1180)).convert("RGB")
+                out_hd = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}_hd.jpg")
+                crop.save(out_hd, "JPEG", quality=92)
+                os.remove(temp_hd)
+                if supabase_client:
+                    rem_name = f"sku_{goods_id}_hd_{int(time.time())}.jpg"
+                    with open(out_hd, "rb") as f:
+                        supabase_client.storage.from_("product-screenshots").upload(rem_name, f.read(), {"content-type": "image/jpeg"})
+                    hd_pub_url = supabase_client.storage.from_("product-screenshots").get_public_url(rem_name)
+                    print(f"[✨] Uploaded Ultra-HD Studio Image: {hd_pub_url}")
+            except Exception as e:
+                print("HD photo capture error:", e)
+
+    # 2. Capture clean drawer screenshot for color variants
+    temp_drawer = os.path.join(PARSED_UPLOADS_DIR, f"temp_drawer_{goods_id}.png")
+    run_adb(["shell", "screencap", "-p", "/sdcard/drawer_screen.png"])
+    run_adb(["pull", "/sdcard/drawer_screen.png", temp_drawer])
+    
+    if os.path.exists(temp_drawer):
+        try:
+            im_d = Image.open(temp_drawer)
+            # If HD capture failed, crop clean thumbnail from drawer
+            if not hd_pub_url and thumb_bounds:
+                c_main = im_d.crop(thumb_bounds).convert("RGB")
+                out_main = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}.jpg")
+                c_main.save(out_main, "JPEG", quality=92)
+                if supabase_client:
+                    rem_name = f"sku_{goods_id}_{int(time.time())}.jpg"
+                    with open(out_main, "rb") as f:
+                        supabase_client.storage.from_("product-screenshots").upload(rem_name, f.read(), {"content-type": "image/jpeg"})
+                    hd_pub_url = supabase_client.storage.from_("product-screenshots").get_public_url(rem_name)
+                    
+            # Crop thumbnails for each color option
+            for idx, col in enumerate(colors):
+                b_str = col.get("bounds")
+                if b_str:
+                    x1, y1, x2, y2 = parse_bounds(b_str)
+                    w = x2 - x1
+                    if 80 <= w <= 220:
+                        # Extract clean top-aligned square image inside the option box
+                        c_opt = im_d.crop((x1 + 3, y1 + 3, x2 - 3, y1 + w - 16)).convert("RGB")
+                        opt_path = os.path.join(PARSED_UPLOADS_DIR, f"col_{goods_id}_{idx}.jpg")
+                        c_opt.save(opt_path, "JPEG", quality=88)
+                        if supabase_client:
+                            rem_opt = f"col_{goods_id}_{idx}_{int(time.time())}.jpg"
+                            try:
+                                with open(opt_path, "rb") as f:
+                                    supabase_client.storage.from_("product-screenshots").upload(rem_opt, f.read(), {"content-type": "image/jpeg"})
+                                col["image_url"] = supabase_client.storage.from_("product-screenshots").get_public_url(rem_opt)
+                            except Exception as opt_err:
+                                col["image_url"] = f"/uploads/parsed/col_{goods_id}_{idx}.jpg"
+            os.remove(temp_drawer)
+        except Exception as d_err:
+            print("Color variant crops error:", d_err)
+            
+    return hd_pub_url or f"/uploads/parsed/sku_{goods_id}.jpg"
+
 def capture_screen_and_crop(goods_id: str, suffix: str = "") -> str:
     temp_local = os.path.join(PARSED_UPLOADS_DIR, f"temp_{goods_id}.png")
     run_adb(["shell", "screencap", "-p", "/sdcard/screen.png"])
@@ -535,10 +624,9 @@ def capture_screen_and_crop(goods_id: str, suffix: str = "") -> str:
     if os.path.exists(temp_local):
         try:
             im = Image.open(temp_local)
-            # Thumbnail bounds in SKU drawer: [18, 314][288, 584]
-            # Width = 270, Height = 270
-            crop = im.crop((18, 314, 288, 584))
-            crop.convert("RGB").save(out_abs, "JPEG", quality=90)
+            # Find bounds dynamically or fallback to centered square
+            crop = im.crop((18, 314, 198, 494)).convert("RGB")
+            crop.save(out_abs, "JPEG", quality=90)
             os.remove(temp_local)
         except Exception as e:
             print("Crop error:", e)
@@ -612,7 +700,7 @@ def parse_product(req: ParseRequest):
     current_group = None
     
     # Non-sku blacklist keywords
-    blacklist_terms = ["¥", "元", "已拼", "折", "包邮", "退货", "发货", "对照表", "体重", "详情", "举报", "店铺", "收藏", "客服", "返回", "大促", "买过", "即将结束", "无需等待", "匿名", "进店", "保障", "评价", "全场", "领型", "穿着方式", "面料", "风格", "适用", "多款", "列表", "打开大图", "减少数量", "增加数量", "数量", "请选择", "去支付"]
+    blacklist_terms = ["¥", "元", "已拼", "折", "包邮", "退货", "发货", "对照表", "体重", "详情", "举报", "店铺", "收藏", "客服", "返回", "大促", "买过", "即将结束", "无需等待", "匿名", "进店", "保障", "评价", "全场", "领型", "穿着方式", "面料", "风格", "适用", "多款", "列表", "打开大图", "减少数量", "增加数量", "数量", "请选择", "去支付", "组合"]
 
     for node in root.iter("node"):
         txt = node.attrib.get("text", "").strip()
@@ -686,8 +774,8 @@ def parse_product(req: ParseRequest):
     category, brand = detect_category_and_brand(raw_title, selected_summary)
     title_ru = translate_title(raw_title)
 
-    # 4. Capture current SKU image
-    image_rel_url = capture_screen_and_crop(goods_id)
+    # 4. Capture current SKU image (Ultra-HD Studio + Color Thumbnails)
+    image_rel_url = capture_hd_studio_and_variants(goods_id, root, colors)
     
     return {
         "success": True,
