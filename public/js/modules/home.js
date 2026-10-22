@@ -133,7 +133,7 @@ async function renderHome() {
               ${fullMarketplaces.map((mp, idx) => `
                 <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}" data-name="${mp.name}" data-idx="${idx}">
                   <div class="story-icon">
-                    ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261022_03" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">` : ''}
+                    ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261022_04" loading="eager" decoding="async" class="w-full h-full object-contain" alt="${mp.name}" onerror="if(!this.dataset.retried){this.dataset.retried='1';this.src='${mp.logo_url}?retry=1';}else{this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.style.display='block';}">` : ''}
                     <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 20px;">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
                   </div>
                   <span class="story-label">${mp.name}</span>
