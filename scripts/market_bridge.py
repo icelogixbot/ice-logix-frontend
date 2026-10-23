@@ -215,19 +215,51 @@ def get_connected_device() -> Optional[str]:
 def check_device_ready() -> bool:
     return get_connected_device() is not None
 
+def bring_ldplayer_to_front():
+    """
+    Restores the LDPlayer emulator window from minimized/background
+    and brings it actively to the foreground on the user's desktop.
+    """
+    # 1. Native Windows API via win32gui
+    try:
+        import win32gui, win32con
+        def _enum_cb(hwnd, _):
+            if win32gui.IsWindowVisible(hwnd) or win32gui.IsIconic(hwnd):
+                title = win32gui.GetWindowText(hwnd)
+                cls = win32gui.GetClassName(hwnd)
+                if any(k in title.lower() for k in ["ldplayer", "dnplayer"]) or any(k in cls.lower() for k in ["ldplayer", "dnplayer", "render"]):
+                    win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+                    win32gui.SetForegroundWindow(hwnd)
+            return True
+        win32gui.EnumWindows(_enum_cb, None)
+    except Exception:
+        pass
+
+    # 2. PowerShell / WScript.Shell AppActivate
+    try:
+        subprocess.run([
+            "powershell", "-NoProfile", "-Command",
+            "(New-Object -ComObject WScript.Shell).AppActivate('LDPlayer'); "
+            "(New-Object -ComObject WScript.Shell).AppActivate('LDPlayer-1'); "
+            "(New-Object -ComObject WScript.Shell).AppActivate('dnplayer')"
+        ], timeout=4, capture_output=True)
+    except Exception:
+        pass
+
 def ensure_device_ready(timeout_sec: int = 45) -> bool:
     if check_device_ready():
+        bring_ldplayer_to_front()
         return True
 
-    print("[*] Device not connected. Attempting auto-launch via desktop shortcut...")
+    print("[*] Device not connected. Launching LDPlayer on user screen...")
+    ld_dir = os.path.dirname(ADB_PATH)
+    dnplayer = os.path.join(ld_dir, "dnplayer.exe")
     desktop_lnk = r"C:\Users\kiril_6yx2ik9\OneDrive\Desktop\LDPlayer 14.lnk"
     try:
         if os.path.exists(desktop_lnk):
-            subprocess.run(["powershell", "-Command", f"Invoke-Item '{desktop_lnk}'"], timeout=10)
-        else:
-            dnplayer = os.path.join(os.path.dirname(ADB_PATH), "dnplayer.exe")
-            if os.path.exists(dnplayer):
-                subprocess.Popen([dnplayer], cwd=os.path.dirname(ADB_PATH))
+            subprocess.run(["powershell", "-NoProfile", "-Command", f"Start-Process '{desktop_lnk}'"], timeout=10)
+        elif os.path.exists(dnplayer):
+            subprocess.Popen(f'cmd /c "cd /d {ld_dir} && dnplayer.exe"', shell=True)
     except Exception as e:
         print("[!] Auto-launch error:", e)
 
@@ -236,6 +268,7 @@ def ensure_device_ready(timeout_sec: int = 45) -> bool:
         time.sleep(2.0)
         if check_device_ready():
             print("[✓] Device connected and ready!")
+            bring_ldplayer_to_front()
             return True
     return False
 
@@ -363,6 +396,20 @@ def handle_popups_and_verification(root: ET.Element) -> bool:
             human_tap(bounds)
             time.sleep(random.uniform(2.0, 3.0))
             return True
+
+        # Handle Network error screen ("手机网络有问题", "请检查网络", "刷新")
+        if any(net in txt for net in ["手机网络有问题", "请检查网络", "网络开小差", "刷新", "重新加载"]) and bounds:
+            if "刷新" in txt or "重新加载" in txt:
+                print(f"[🔄] Detected network retry button: '{txt}' at {bounds}. Auto-tapping Refresh...")
+                human_tap(bounds)
+                time.sleep(random.uniform(2.5, 3.5))
+                return True
+            elif "手机网络有问题" in txt or "请检查网络" in txt:
+                print(f"[🔄] Detected network error screen '{txt}'. Tapping refresh button...")
+                human_tap("[352,944][547,1003]")
+                time.sleep(random.uniform(2.5, 3.5))
+                return True
+
         if not has_sku_drawer and txt in ["关闭", "放弃", "去领券", "知道了"] and bounds:
             print(f"[*] Auto-dismissing promo popup '{txt}' at {bounds}")
             human_tap(bounds)
@@ -744,14 +791,14 @@ def parse_product(req: ParseRequest):
         
     print(f"[*] Processing goods_id={goods_id}")
     
-    # 1. Open product in Pinduoduo App via Deep Link
+    # 1. Open product in Pinduoduo App via Deep Link (with CLEAR_TOP / NEW_TASK flag)
     intent_url = f"pinduoduo://com.xunmeng.pinduoduo/goods.html?goods_id={goods_id}"
-    run_adb(["shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", intent_url])
-    time.sleep(random.uniform(2.2, 3.0)) # human dwell time for page load
+    run_adb(["shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", intent_url, "-f", "0x14000000"])
+    time.sleep(random.uniform(2.5, 3.2)) # human dwell time for page load
     
     # 2. Simulate human browsing behavior (natural scroll down)
     human_scroll('down')
-    time.sleep(random.uniform(0.7, 1.3))
+    time.sleep(random.uniform(0.7, 1.2))
     
     # 3. Check if page is loaded and open SKU drawer
     root = dump_ui_xml()
@@ -769,8 +816,20 @@ def parse_product(req: ParseRequest):
     has_sku_drawer = any(any(x in (n.attrib.get("text", "") or n.attrib.get("content-desc", "")) for x in ["提交订单", "立即支付", "选择尺码后", "选择款式后"]) for n in root.iter("node"))
     if not has_sku_drawer:
         print("[*] SKU drawer not open yet. Tapping bottom buy button...")
-        human_tap("[450,1515][880,1595]")
-        time.sleep(random.uniform(1.4, 2.0))
+        buy_bounds = None
+        for n in root.iter("node"):
+            t = (n.attrib.get("text", "") or n.attrib.get("content-desc", "")).strip()
+            b = n.attrib.get("bounds", "")
+            if any(k in t for k in ["免拼购买", "立即购买", "单独购买", "发起拼单"]) and b:
+                x1, y1, x2, y2 = parse_bounds(b)
+                if y1 >= 1300:
+                    buy_bounds = b
+                    break
+        if buy_bounds:
+            human_tap(buy_bounds)
+        else:
+            human_tap("[450,1515][880,1595]")
+        time.sleep(random.uniform(1.8, 2.5))
         root = dump_ui_xml()
         
     # 3. Parse SKU Drawer with Universal Dynamic Groups
@@ -783,7 +842,7 @@ def parse_product(req: ParseRequest):
     selected_summary = ""
     
     # Non-sku blacklist keywords
-    blacklist_terms = ["¥", "元", "已拼", "折", "包邮", "退货", "发货", "对照表", "体重", "详情", "举报", "店铺", "收藏", "客服", "返回", "大促", "买过", "即将结束", "无需等待", "匿名", "进店", "保障", "评价", "全场", "领型", "穿着方式", "面料", "风格", "适用", "多款", "列表", "打开大图", "减少数量", "增加数量", "数量", "请选择", "去支付", "组合", "查收"]
+    blacklist_terms = ["¥", "元", "已拼", "折", "包邮", "退货", "发货", "对照表", "体重", "详情", "举报", "店铺", "收藏", "客服", "返回", "大促", "买过", "即将结束", "无需等待", "匿名", "进店", "保障", "评价", "全场", "领型", "穿着方式", "面料", "风格", "适用", "多款", "列表", "打开大图", "减少数量", "增加数量", "数量", "请选择", "去支付", "组合", "查收", "尺码建议", "查看尺码建议", "建议"]
 
     for node in root.iter("node"):
         txt = node.attrib.get("text", "").strip()
