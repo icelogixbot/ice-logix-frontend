@@ -1578,7 +1578,12 @@ Return ONLY a JSON object:
           if (vpsData?.ok && vpsData?.result && (vpsData.result.id_number || vpsData.result.series_number || vpsData.result.address_street)) {
             console.log("[ai-calculator] Успешно распознано через суверенный белорусский VPS за", vpsData.duration_ms, "мс");
             return new Response(
-              JSON.stringify(vpsData.result),
+              JSON.stringify({
+                ok: true,
+                result: vpsData.result,
+                duration_ms: vpsData.duration_ms,
+                engine: "ice-logix-doc-ai-vps"
+              }),
               { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }

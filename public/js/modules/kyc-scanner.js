@@ -960,11 +960,16 @@
       card.className = 'kyc-retry-card space-y-3';
 
       if (isStep3) {
+        let step3Msg = cleanMsg;
+        if (!step3Msg || step3Msg.includes('декодирования') || step3Msg.includes('различить реквизиты')) {
+          step3Msg = 'Не удалось четко разобрать штамп прописки или рукописный адрес на фотографии. Вы можете переснять страницу со штампом или ввести адрес вручную.';
+        }
+
         card.innerHTML = `
           <div class="text-3xl">⚠️</div>
           <h4 class="text-white font-bold text-sm">Паспортные данные распознаны ✓</h4>
           <p class="text-white/70 text-xs leading-relaxed">
-            ${cleanMsg || 'Не удалось четко прочитать синий штамп прописки или рукописный адрес. Вы можете переснять страницу со штампом или ввести адрес вручную.'}
+            ${step3Msg}
           </p>
           <div class="space-y-2 pt-2">
             <button type="button" id="kycRetryStep3OnlyBtn" class="btn-primary w-full py-3.5 rounded-2xl font-bold text-xs cursor-pointer active:scale-95 transition shadow-lg">
@@ -1036,6 +1041,14 @@
       if (skipStep3OnErrorBtn) {
         skipStep3OnErrorBtn.onclick = async () => {
           card.remove();
+          if (window._lastKycPartialResult && (window._lastKycPartialResult.id_number || window._lastKycPartialResult.series_number || window._lastKycPartialResult.last_name)) {
+            stopCameraStream();
+            modal.remove();
+            if (typeof onComplete === 'function') {
+              onComplete(window._lastKycPartialResult);
+            }
+            return;
+          }
           frame3DataUrl = null;
           await finishCapture();
         };
@@ -1140,13 +1153,22 @@
     });
 
     if (error) throw error;
-    if (!data?.ok || !data?.result) {
-      const customErr = new Error(data?.error || 'Ошибка декодирования данных');
+
+    // Адаптивное извлечение данных (как { ok: true, result }, так и прямой объект от Document AI VPS)
+    let res = null;
+    if (data?.ok && data?.result) {
+      res = data.result;
+    } else if (data?.result && (data.result.id_number || data.result.series_number || data.result.last_name || data.result.address_street)) {
+      res = data.result;
+    } else if (data && (data.id_number || data.series_number || data.last_name || data.first_name || data.address_street || data.raw_mrz)) {
+      res = data;
+    }
+
+    if (!res) {
+      const customErr = new Error(data?.error || 'Не удалось различить реквизиты документа на фотографии');
       customErr.error_step = data?.error_step || 0;
       throw customErr;
     }
-
-    const res = data.result;
 
     // Дополнительная валидация через локальный MrzParser (если вернулся raw_mrz)
     if (res.raw_mrz && window.MrzParser) {
@@ -1182,6 +1204,10 @@
     const hasAnyField = res && (res.id_number || res.series_number || res.last_name || res.first_name || res.raw_mrz);
     if (!hasAnyField) {
       throw new Error('Не удалось различить реквизиты на фото. Пожалуйста, сфотографируйте разворот ровно, при хорошем освещении и без бликов.');
+    }
+
+    if (res && (res.id_number || res.series_number || res.last_name)) {
+      window._lastKycPartialResult = res;
     }
 
     return res;
