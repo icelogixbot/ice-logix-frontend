@@ -447,9 +447,38 @@
     }
     
     .tab-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
       font-size: 22px;
       line-height: 1;
+      position: relative;
       transition: transform 0.2s ease;
+    }
+
+    .tab-item[data-tab="cart"] {
+      overflow: visible;
+    }
+
+    #tabCartBadge, #cartBadge {
+      position: absolute;
+      top: -4px;
+      right: -7px;
+      background: linear-gradient(135deg, #ef4444 0%, #ec4899 100%);
+      color: #fff;
+      font-size: 9px;
+      font-weight: 800;
+      line-height: 1;
+      padding: 2px 4.5px;
+      border-radius: 9999px;
+      min-width: 15px;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(239, 68, 68, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      z-index: 10;
+      pointer-events: none;
     }
     
     .tab-item:hover .tab-icon,
@@ -464,6 +493,9 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      text-align: center;
+      display: block;
+      line-height: 1.2;
     }
     
     /* Central CTA Button */
@@ -3185,7 +3217,9 @@
       color: #fff;
     }
 
-`    @media (hover: hover) {
+    @media (hover: hover) {
       .tab-item.center-calc-tab:hover,
       .tab-item.new-order:hover {
-        transform: scale(1.04) translateY(-3px)
+        transform: scale(1.04) translateY(-3px);
+      }
+    }

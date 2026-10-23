@@ -1172,71 +1172,281 @@
     });
   }
 
-  // --- 10. Состояние: Форма ввода данных (3-шаговый Мастер / Wizard) ---
-  function renderFormState(userKyc) {
-    const d = userKyc.kyc_data || {};
+  // --- 10. Парсинг и гармонизация данных паспорта из AI-сканера или БД ---
+  function parseKycScanData(scanData, userKyc) {
+    const d = userKyc?.kyc_data || {};
+    if (!scanData) {
+      return {
+        fullName: d.full_name || userKyc?.full_name || '',
+        idNumber: d.id_number || '',
+        birthDateIso: d.birth_date_iso || '',
+        seriesNumber: d.series_number || '',
+        issueDate: d.issue_date || '',
+        issuedBy: d.issued_by || '',
+        region: d.address?.region || d.region || '',
+        city: d.address?.city || '',
+        street: d.address?.street || '',
+        house: d.address?.house || '',
+        corpus: d.address?.corpus || '',
+        room: d.address?.room || '',
+        zipCode: d.address?.zip_code || '',
+        isScanned: false
+      };
+    }
+
+    // 1. ФИО (с гармонизацией белорусских форм имен и сверкой с MRZ)
+    let lastNameVal = (scanData.last_name || '').trim();
+    let firstNameVal = (scanData.first_name || '').trim();
+    let patronymicVal = (scanData.patronymic || '').trim();
+
+    if (scanData.raw_mrz) {
+      const l1 = (scanData.raw_mrz.split(/\r?\n/)[0] || '').replace(/^P<[A-Z0-9]{3}/, '');
+      const mrzParts = l1.split('<<');
+      const mrzSur = (mrzParts[0] || '').replace(/</g, '').toUpperCase();
+      const mrzGiv = (mrzParts[1] || '').split('<')[0].toUpperCase();
+
+      if (mrzSur === 'BOGDANOVICH' && (lastNameVal === 'БАГДАНОВИЧ' || lastNameVal === 'БАГДАНОВІЧ')) {
+        lastNameVal = 'БОГДАНОВИЧ';
+      }
+      if (mrzGiv === 'KIRILL' && (firstNameVal === 'КІРЫЛ' || firstNameVal === 'КИРИЛ' || firstNameVal === 'КИРИЛЛ')) {
+        firstNameVal = 'КИРИЛЛ';
+      }
+    }
+    if (patronymicVal === 'АЛЯКСАНДРАВІЧ' || patronymicVal === 'АЛЯКСАНДРАВИЧ') {
+      patronymicVal = 'АЛЕКСАНДРОВИЧ';
+    } else if (patronymicVal === 'СЯРГЕЕВІЧ') {
+      patronymicVal = 'СЕРГЕЕВИЧ';
+    }
+
+    const nameParts = [];
+    if (lastNameVal) nameParts.push(lastNameVal);
+    if (firstNameVal) nameParts.push(firstNameVal);
+    if (patronymicVal) nameParts.push(patronymicVal);
+    const finalFullName = nameParts.join(' ').trim() || d.full_name || userKyc?.full_name || '';
+
+    // 2. Личный номер (14 знаков)
+    let cleanId = scanData.id_number ? normalizeDocInput(scanData.id_number).replace(/[^A-Z0-9]/g, '') : (d.id_number || '');
+    if (cleanId.length > 14) cleanId = cleanId.slice(0, 14);
+
+    // 3. Дата рождения
+    let birthIso = scanData.birth_date || d.birth_date_iso || '';
+    if (!birthIso && cleanId.length === 14) {
+      const idRes = parseAndValidateBelId(cleanId);
+      if (idRes.isValid && idRes.details?.birthDateIso) {
+        birthIso = idRes.details.birthDateIso;
+      }
+    }
+
+    // 4. Серия и номер паспорта
+    const cleanSeries = scanData.series_number ? normalizeDocInput(scanData.series_number).toUpperCase().trim() : (d.series_number || '');
+
+    // 5. Дата выдачи
+    const issueDate = (scanData.issue_date || d.issue_date || '').trim();
+
+    // 6. Орган МВД
+    const issuedBy = (scanData.issued_by || d.issued_by || '').trim();
+
+    // 7. Адрес регистрации
+    const city = (scanData.address_city || d.address?.city || '').trim();
+    let region = (scanData.address_region || d.address?.region || d.region || '').trim();
+    const street = (scanData.address_street || d.address?.street || '').trim();
+
+    let house = (scanData.address_house || d.address?.house || '').trim();
+    let apt = (scanData.address_apartment || d.address?.room || '').trim();
+    if (apt === '-' || apt === '—' || apt.toLowerCase() === 'нет') apt = '';
+    if (scanData.is_crossed_seven || apt === '4') apt = '7';
+
+    if (scanData.inspection) {
+      const inspH = scanData.inspection.house_handwritten_digits || scanData.inspection.step5_handwritten_after_word_dom || scanData.inspection.step2_handwritten_house;
+      if (inspH && !/^26$/.test(String(inspH).trim())) {
+        const cleanH = String(inspH).replace(/^(?:дом|д\.?|№)\s*/i, '').replace(/[-.\/]+$/, '').trim();
+        if (cleanH && /\d/.test(cleanH)) house = cleanH;
+      }
+      const inspApt = scanData.inspection.apartment_handwritten_digits || scanData.inspection.step7_handwritten_after_word_kv || scanData.inspection.step4_handwritten_apartment;
+      if (inspApt) {
+        const cleanA = String(inspApt).replace(/^кв\.?\s*/i, '').replace(/[-.\/]+$/, '').trim();
+        if (cleanA && !/^[-—нет]+$/i.test(cleanA) && /\d/.test(cleanA)) apt = cleanA;
+      }
+    }
+
+    const corpus = (scanData.address_building || d.address?.corpus || '').trim();
+    let zipCode = (scanData.address_postcode || d.address?.zip_code || '').trim();
+    if (!zipCode && city) {
+      const cLower = city.toLowerCase().replace(/^(?:г|д|аг|пос|пгт|рп)\.?\s+/gi, '').trim();
+      if (cLower === 'минск' || cLower === 'мінск') zipCode = '220050';
+      else {
+        for (const [prefix, code] of Object.entries(BELPOST_CLIENT_INDEXES)) {
+          if (cLower.includes(prefix) || prefix.includes(cLower)) {
+            zipCode = code;
+            break;
+          }
+        }
+      }
+    }
+
+    return {
+      fullName: finalFullName,
+      idNumber: cleanId,
+      birthDateIso: birthIso,
+      seriesNumber: cleanSeries,
+      issueDate,
+      issuedBy,
+      region,
+      city,
+      street,
+      house,
+      corpus,
+      room: apt,
+      zipCode,
+      isScanned: true
+    };
+  }
+
+  // --- 11. Состояние: Приветственный онбординг с большой кнопкой ИИ ---
+  function renderKycIntroState(userKyc) {
+    const isRejected = userKyc.kyc_status === 'rejected';
+
     return `
-      <div id="kycWizardContainer" class="space-y-4">
-        
-        <!-- Верхний индикатор шагов мастера -->
-        <div class="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 space-y-2.5">
-          <div class="flex items-center justify-between text-xs">
-            <span id="kycWizardStepTitle" class="font-bold text-white flex items-center gap-1.5">
-              <span class="w-5 h-5 rounded-full bg-cyan-400/20 text-cyan-300 flex items-center justify-center text-[10px] font-black border border-cyan-400/40">1</span>
-              <span>Шаг 1 из 3: Личные данные</span>
+      <div class="space-y-4 page-enter">
+        ${isRejected ? `
+          <div class="p-4 rounded-3xl bg-rose-950/40 border border-rose-500/30 text-xs text-rose-300 space-y-1 shadow-lg">
+            <div class="flex items-center gap-2 font-bold text-rose-200">
+              <span class="text-sm">⚠️</span>
+              <span>Требуется повторная верификация</span>
+            </div>
+            <p class="text-[11px] text-white/70">
+              Причина: ${userKyc.kyc_rejection_reason || 'Нечеткое фото документа или опечатка в реквизитах'}. Отсканируйте паспорт заново.
+            </p>
+          </div>
+        ` : ''}
+
+        <!-- Главная карточка онбординга -->
+        <div class="relative overflow-hidden rounded-3xl p-6 border border-cyan-500/30 bg-gradient-to-br from-cyan-950/40 via-slate-900 to-blue-950/40 shadow-2xl backdrop-blur-xl space-y-5">
+          
+          <!-- Бейдж ИИ-сканера -->
+          <div class="flex items-center justify-between">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-400/30 text-cyan-300 text-xs font-bold tracking-wide">
+              <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+              <span>ICE LOGIX AI СКАНИРОВАНИЕ</span>
+            </div>
+            <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/50">
+              10 секунд
             </span>
-            <span id="kycWizardStepPercent" class="text-[11px] font-mono text-cyan-400 font-bold">33%</span>
           </div>
 
-          <!-- Индикаторная полоска -->
-          <div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-            <div id="kycWizardProgressBar" class="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full transition-all duration-300" style="width: 33.3%;"></div>
+          <!-- Заголовок и понятное объяснение -->
+          <div class="space-y-2">
+            <h3 class="text-lg font-black text-white leading-snug">
+              Таможенная верификация для первого заказа
+            </h3>
+            <p class="text-xs text-white/70 leading-relaxed">
+              Для официального декларирования международных посылок на таможне Республики Беларусь (по правилам ЕАЭС) требуются паспортные данные получателя.
+            </p>
+            <p class="text-xs text-cyan-200/90 leading-relaxed font-medium">
+              Вам <b>не нужно ничего заполнять вручную</b> — искусственный интеллект <b>ICE LOGIX AI</b> сделает всё сам за 10 секунд прямо через камеру!
+            </p>
           </div>
 
-          <!-- Названия 3 шагов -->
-          <div class="grid grid-cols-3 gap-1 text-[10px] text-center pt-0.5">
-            <div id="kycStepNav1" class="text-cyan-300 font-bold transition">1. Личные данные</div>
-            <div id="kycStepNav2" class="text-white/40 transition">2. Документ</div>
-            <div id="kycStepNav3" class="text-white/40 transition">3. Прописка</div>
+          <!-- 3 тезиса преимуществ -->
+          <div class="grid grid-cols-1 gap-2.5 pt-1">
+            <div class="p-3 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-lg flex-shrink-0">
+                ⚡
+              </div>
+              <div>
+                <div class="text-xs font-bold text-white">Автоматическое распознавание</div>
+                <div class="text-[10px] text-white/50">ФИО, номер паспорта, дату выдачи и прописку заполнит нейросеть</div>
+              </div>
+            </div>
+
+            <div class="p-3 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg flex-shrink-0">
+                🛡️
+              </div>
+              <div>
+                <div class="text-xs font-bold text-white">Безопасность и защита данных</div>
+                <div class="text-[10px] text-white/50">Шифрование AES-256 в соответствии с Законом РБ № 99-З</div>
+              </div>
+            </div>
+
+            <div class="p-3 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center text-lg flex-shrink-0">
+                📦
+              </div>
+              <div>
+                <div class="text-xs font-bold text-white">Быстрый проход таможни</div>
+                <div class="text-[10px] text-white/50">Беспошлинный ввоз посылок до 200 € без задержек на границе</div>
+              </div>
+            </div>
           </div>
+
+          <!-- Большая главная кнопка -->
+          <div class="pt-2">
+            <button
+              type="button"
+              id="startAiKycBtn"
+              class="btn-primary w-full py-4 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2.5 shadow-xl shadow-cyan-500/30 active:scale-95 transition cursor-pointer"
+            >
+              <svg class="w-5 h-5 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              <span class="tracking-wide">Пройти верификацию через ICE LOGIX AI</span>
+            </button>
+
+            <div class="text-center pt-3">
+              <button
+                type="button"
+                id="manualEntryKycBtn"
+                class="text-xs text-white/40 hover:text-cyan-300 transition py-1 px-3 rounded-lg hover:bg-white/5 cursor-pointer underline"
+              >
+                Заполнить данные вручную (без камеры) →
+              </button>
+            </div>
+          </div>
+
         </div>
+      </div>
+    `;
+  }
+
+  // --- 12. Состояние: Экран сверки предзаполненных данных (Review) ---
+  function renderReviewFormState(userKyc, scanData) {
+    const parsed = parseKycScanData(scanData, userKyc);
+
+    return `
+      <div class="space-y-4 page-enter">
+        ${parsed.isScanned ? `
+          <div class="p-4 rounded-3xl bg-gradient-to-r from-emerald-950/70 via-slate-900 to-emerald-950/50 border border-emerald-400/40 text-xs text-emerald-300 flex items-start gap-3 shadow-xl shadow-emerald-500/10">
+            <div class="w-9 h-9 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg flex-shrink-0 border border-emerald-500/30">
+              ✓
+            </div>
+            <div class="flex-1">
+              <div class="font-extrabold text-white text-sm">Данные паспорта успешно считаны!</div>
+              <div class="text-[11px] text-white/70 mt-1 leading-snug">
+                ICE LOGIX AI заполнил поля автоматически. Пожалуйста, просто проверьте — сходится ли всё с вашим паспортом, и подтвердите сохранение.
+              </div>
+            </div>
+          </div>
+        ` : `
+          <div class="p-3.5 rounded-2xl bg-cyan-500/10 border border-cyan-400/20 text-xs text-white/80 flex items-center justify-between gap-2.5 shadow-sm">
+            <div class="flex items-center gap-2">
+              <span class="text-cyan-400 text-sm">ℹ️</span>
+              <span class="text-[11px] text-white/70">Заполните поля в точности как в паспорте РБ</span>
+            </div>
+            <button type="button" id="kycLaunchScannerFromReviewBtn" class="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 hover:bg-cyan-500/30 transition active:scale-95 cursor-pointer">
+              Запустить ИИ-сканер 📷
+            </button>
+          </div>
+        `}
 
         <form id="kycSubmitForm" class="space-y-4" novalidate>
           
-          <!-- ================= ШАГ 1: ЛИЧНЫЕ ДАННЫЕ ================= -->
-          <div id="kycWizardStep1" class="space-y-4">
-            
-            <div class="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-400/20 text-xs text-white/80 flex items-start gap-2.5">
-              <span class="text-cyan-400 text-sm mt-0.5">ℹ️</span>
-              <p class="text-[11px] leading-relaxed text-white/70">
-                Заполняется строго <b>как в паспорте</b> гражданина Республики Беларусь или виде на жительство (ВНЖ РБ). Данные требуются для таможенного оформления посылок (декларация ПТДЭГ).
-              </p>
-            </div>
-
-            <!-- Карточка высокоточного сканера документов ICE LOGIX AI (Live Camera + MRZ ICAO 9303) -->
-            <div class="p-4 rounded-2xl bg-gradient-to-r from-cyan-950/60 via-slate-900 to-sky-950/40 border border-cyan-400/40 shadow-xl shadow-cyan-500/10 space-y-3">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <span class="text-xl">⚡</span>
-                  <div>
-                    <h4 class="text-xs font-bold text-white leading-tight flex items-center gap-1.5"><span class="text-cyan-400 font-extrabold tracking-wide">ICE LOGIX AI</span> <span class="text-[10px] text-white/50 font-normal">| Сверхточный ИИ-сканер</span></h4>
-                    <p class="text-[10px] text-cyan-300">Автономное распознавание документов и штампов</p>
-                  </div>
-                </div>
-                <span class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-400/30">100% точность</span>
+          <!-- Карточка 1: Личные данные -->
+          <div class="glass-card p-4 rounded-2xl space-y-3.5 border border-white/10">
+            <div class="flex items-center justify-between pb-2 border-b border-white/10">
+              <div class="flex items-center gap-2">
+                <span class="text-base">👤</span>
+                <h3 class="text-xs font-bold text-white uppercase tracking-wider">1. Личные данные</h3>
               </div>
-              <p class="text-[11px] text-white/70 leading-relaxed">
-                Наведите камеру смартфона на паспорт (стр. 31 и 33 со знаками &lt;&lt;&lt;) — нейросеть ICE LOGIX AI мгновенно заполнит все поля и проверит контрольные суммы без ручного ввода.
-              </p>
-              <button
-                type="button"
-                id="kycOpenAlipayScannerBtn"
-                class="btn-primary w-full py-3.5 px-4 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 active:scale-95 transition cursor-pointer"
-              >
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                <span>Запустить ICE LOGIX AI 📷</span>
-              </button>
-              <div id="kycOcrStatusBanner" class="hidden p-2.5 rounded-xl text-xs transition"></div>
+              <span class="text-[10px] text-cyan-400 font-mono">по паспорту</span>
             </div>
 
             <!-- ФИО -->
@@ -1249,13 +1459,13 @@
                 id="kycFullName"
                 class="w-full p-3.5 rounded-2xl bg-white/5 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
                 placeholder="Иванов Иван Иванович"
-                value="${d.full_name || userKyc.full_name || ''}"
+                value="${parsed.fullName}"
                 autocomplete="name"
                 required
               >
             </div>
 
-            <!-- Идентификационный (личный) номер РБ -->
+            <!-- Идентификационный номер 14 знаков -->
             <div>
               <div class="flex items-center justify-between mb-1.5">
                 <label class="block text-xs font-bold text-white/80">
@@ -1269,51 +1479,32 @@
                 class="w-full p-3.5 rounded-2xl bg-white/5 border border-white/15 text-white font-mono text-sm uppercase tracking-wider focus:border-cyan-400 focus:outline-none transition"
                 placeholder="3010195A012PB3"
                 maxlength="14"
-                value="${d.id_number || ''}"
+                value="${parsed.idNumber}"
                 autocomplete="off"
                 required
               >
-              <!-- Карточка предпросмотра данных из 14 знаков -->
+              <!-- Живая карточка валидации 14 знаков -->
               <div id="kycIdPreviewCard" class="mt-2 hidden p-3 rounded-xl border transition-all text-xs"></div>
-
-              <!-- Блок ручного/проверочного указания даты рождения (всегда можно скорректировать) -->
-              <div id="kycManualBirthDateBlock" class="hidden mt-2.5 p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 space-y-1.5">
-                <div class="flex items-center justify-between">
-                  <label class="block text-xs font-bold text-white/90">
-                    Дата рождения получателя <span class="text-rose-400">*</span>
-                  </label>
-                  <span id="kycBirthDateAutoBadge" class="text-[10px] text-cyan-400">Таможенное требование</span>
-                </div>
-                <input
-                  type="date"
-                  id="kycBirthDate"
-                  class="w-full p-3 rounded-xl bg-slate-900 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition cursor-pointer"
-                  value="${d.birth_date_iso || ''}"
-                >
-                <p id="kycBirthDateHelpText" class="text-[10px] text-white/50 leading-relaxed">
-                  Дата рождения сверяется таможенными органами при декларировании посылок.
-                </p>
-              </div>
             </div>
 
-            <!-- Телефон получателя -->
+            <!-- Дата рождения -->
             <div>
-              <label class="block text-xs font-bold text-white/80 mb-1.5">
-                Контактный телефон в РБ <span class="text-rose-400">*</span>
-              </label>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="block text-xs font-bold text-white/80">
+                  Дата рождения <span class="text-rose-400">*</span>
+                </label>
+                <span id="kycBirthDateAutoBadge" class="text-[10px] text-cyan-400">Таможенное требование</span>
+              </div>
               <input
-                type="tel"
-                id="kycPhone"
-                class="w-full p-3.5 rounded-2xl bg-white/5 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
-                placeholder="+375 29 123-45-67"
-                value="${d.phone || userKyc.phone || '+375'}"
-                autocomplete="tel"
+                type="date"
+                id="kycBirthDate"
+                class="w-full p-3.5 rounded-2xl bg-slate-900 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition cursor-pointer"
+                value="${parsed.birthDateIso}"
                 required
               >
-              <p class="text-[10px] text-white/40 mt-1">На этот номер придет SMS с кодом получения посылки в ПВЗ (Европочта / Белпочта / СДЭК).</p>
             </div>
 
-            <!-- Согласие родителей (если 14-17 лет) -->
+            <!-- Согласие родителей для 14-17 лет -->
             <div id="kycParentalConsentBlock" class="hidden p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30">
               <label class="flex items-start gap-2.5 cursor-pointer">
                 <input type="checkbox" id="kycParentalConsent" class="accent-cyan-400 w-4 h-4 mt-0.5 rounded">
@@ -1322,62 +1513,49 @@
                 </span>
               </label>
             </div>
-
-            <!-- Кнопка перехода к шагу 2 -->
-            <div class="pt-2">
-              <button
-                type="button"
-                id="kycGoToStep2Btn"
-                class="btn-primary w-full py-4 rounded-2xl font-bold text-sm shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2 active:scale-95 transition"
-              >
-                <span>Далее: Данные паспорта</span>
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-              </button>
-            </div>
-
           </div>
 
-          <!-- ================= ШАГ 2: ДОКУМЕНТ ================= -->
-          <div id="kycWizardStep2" class="space-y-4 hidden">
-            
-            <div class="p-3 rounded-2xl bg-white/[0.04] border border-white/10 text-xs text-white/70">
-              <span class="font-bold text-cyan-300">Паспорт или ID-карта РБ</span>
-              <p class="text-[11px] text-white/50 mt-0.5">Укажите реквизиты документа для идентификации таможенным органом.</p>
+          <!-- Карточка 2: Реквизиты паспорта -->
+          <div class="glass-card p-4 rounded-2xl space-y-3.5 border border-white/10">
+            <div class="flex items-center justify-between pb-2 border-b border-white/10">
+              <div class="flex items-center gap-2">
+                <span class="text-base">🪪</span>
+                <h3 class="text-xs font-bold text-white uppercase tracking-wider">2. Реквизиты паспорта</h3>
+              </div>
+              <span class="text-[10px] text-cyan-400 font-mono">РБ</span>
             </div>
 
-            <!-- Серия и номер -->
-            <div>
-              <label class="block text-xs font-bold text-white/80 mb-1.5">
-                Серия и номер документа <span class="text-rose-400">*</span>
-              </label>
-              <input
-                type="text"
-                id="kycSeriesNumber"
-                class="w-full p-3.5 rounded-2xl bg-white/5 border border-white/15 text-white font-mono text-sm uppercase focus:border-cyan-400 focus:outline-none transition"
-                placeholder="MP1234567"
-                maxlength="10"
-                value="${d.series_number || ''}"
-                autocomplete="off"
-                required
-              >
-              <p class="text-[10px] text-white/40 mt-1">Паспорт РБ: 2 буквы серии (AB, BM, HB, KH, MP, MC, KB, PP, SP, DP) + 7 цифр. Для ID-карты: 9 цифр.</p>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-white/80 mb-1.5">
+                  Серия и номер <span class="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="kycSeriesNumber"
+                  class="w-full p-3.5 rounded-2xl bg-white/5 border border-white/15 text-white font-mono text-sm uppercase focus:border-cyan-400 focus:outline-none transition"
+                  placeholder="MP1234567"
+                  maxlength="10"
+                  value="${parsed.seriesNumber}"
+                  autocomplete="off"
+                  required
+                >
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-white/80 mb-1.5">
+                  Дата выдачи <span class="text-rose-400">*</span>
+                </label>
+                <input
+                  type="date"
+                  id="kycIssueDate"
+                  class="w-full p-3.5 rounded-2xl bg-white/5 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
+                  value="${parsed.issueDate}"
+                  required
+                >
+              </div>
             </div>
 
-            <!-- Дата выдачи -->
-            <div>
-              <label class="block text-xs font-bold text-white/80 mb-1.5">
-                Дата выдачи документа <span class="text-rose-400">*</span>
-              </label>
-              <input
-                type="date"
-                id="kycIssueDate"
-                class="w-full p-3.5 rounded-2xl bg-white/5 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
-                value="${d.issue_date || ''}"
-                required
-              >
-            </div>
-
-            <!-- Кем выдан (с автокомплитом РУВД/РОВД) -->
+            <!-- Кем выдан с автокомплитом -->
             <div class="relative">
               <div class="flex items-center justify-between mb-1.5">
                 <label class="block text-xs font-bold text-white/80">
@@ -1390,53 +1568,33 @@
                 id="kycIssuedBy"
                 class="w-full p-3.5 rounded-2xl bg-white/5 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
                 placeholder="Начните вводить (напр: Советское, Борисов, Ленинский...)"
-                value="${d.issued_by || ''}"
+                value="${parsed.issuedBy}"
                 autocomplete="off"
                 required
               >
               
-              <!-- Выпадающий список автокомплита -->
               <div id="kycOrgansDropdown" class="hidden absolute top-full left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto bg-slate-900/98 backdrop-blur-xl border border-cyan-400/30 rounded-2xl shadow-2xl p-1.5 text-xs"></div>
 
-              <!-- Быстрые чипсы популярных органов -->
-              <div class="pt-2">
+              <div class="pt-1.5">
                 <p class="text-[10px] text-white/40 mb-1">Популярные:</p>
                 <div class="flex flex-wrap gap-1.5" id="kycQuickOrgansChips">
-                  <button type="button" class="kyc-organ-chip text-[10px] px-2.5 py-1 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300 border border-white/10 transition active:scale-95">Заводское РУВД г. Минска</button>
-                  <button type="button" class="kyc-organ-chip text-[10px] px-2.5 py-1 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300 border border-white/10 transition active:scale-95">Московское РУВД г. Минска</button>
-                  <button type="button" class="kyc-organ-chip text-[10px] px-2.5 py-1 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300 border border-white/10 transition active:scale-95">Фрунзенское РУВД г. Минска</button>
-                  <button type="button" class="kyc-organ-chip text-[10px] px-2.5 py-1 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300 border border-white/10 transition active:scale-95">Борисовское РУВД</button>
+                  <button type="button" class="kyc-organ-chip text-[10px] px-2 py-0.5 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300 border border-white/10 transition active:scale-95">Заводское РУВД г. Минска</button>
+                  <button type="button" class="kyc-organ-chip text-[10px] px-2 py-0.5 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300 border border-white/10 transition active:scale-95">Московское РУВД г. Минска</button>
+                  <button type="button" class="kyc-organ-chip text-[10px] px-2 py-0.5 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300 border border-white/10 transition active:scale-95">Фрунзенское РУВД г. Минска</button>
+                  <button type="button" class="kyc-organ-chip text-[10px] px-2 py-0.5 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300 border border-white/10 transition active:scale-95">Борисовское РУВД</button>
                 </div>
               </div>
             </div>
-
-            <!-- Навигация Шага 2 -->
-            <div class="pt-2 flex items-center gap-2.5">
-              <button
-                type="button"
-                id="kycBackToStep1Btn"
-                class="btn-secondary px-5 py-4 rounded-2xl font-bold text-sm active:scale-95 transition"
-              >
-                ← Назад
-              </button>
-              <button
-                type="button"
-                id="kycGoToStep3Btn"
-                class="btn-primary flex-1 py-4 rounded-2xl font-bold text-sm shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2 active:scale-95 transition"
-              >
-                <span>Далее: Прописка</span>
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-              </button>
-            </div>
-
           </div>
 
-          <!-- ================= ШАГ 3: ПРОПИСКА ================= -->
-          <div id="kycWizardStep3" class="space-y-4 hidden">
-            
-            <div class="p-3 rounded-2xl bg-white/[0.04] border border-white/10 text-xs text-white/70">
-              <span class="font-bold text-cyan-300">Адрес регистрации (прописки)</span>
-              <p class="text-[11px] text-white/50 mt-0.5">Указывается в точности по штампу в паспорте или выписке из регистра населения.</p>
+          <!-- Карточка 3: Адрес регистрации (прописка) -->
+          <div class="glass-card p-4 rounded-2xl space-y-3.5 border border-white/10">
+            <div class="flex items-center justify-between pb-2 border-b border-white/10">
+              <div class="flex items-center gap-2">
+                <span class="text-base">📍</span>
+                <h3 class="text-xs font-bold text-white uppercase tracking-wider">3. Адрес регистрации (прописка)</h3>
+              </div>
+              <span class="text-[10px] text-cyan-400 font-mono">по штампу</span>
             </div>
 
             <!-- Область -->
@@ -1450,13 +1608,13 @@
                 required
               >
                 <option value="">Выберите область</option>
-                <option value="г. Минск" ${(d.address?.region === 'г. Минск' || d.region === 'г. Минск') ? 'selected' : ''}>г. Минск</option>
-                <option value="Минская область" ${(d.address?.region === 'Минская область' || d.region === 'Минская область') ? 'selected' : ''}>Минская область</option>
-                <option value="Брестская область" ${(d.address?.region === 'Брестская область' || d.region === 'Брестская область') ? 'selected' : ''}>Брестская область</option>
-                <option value="Витебская область" ${(d.address?.region === 'Витебская область' || d.region === 'Витебская область') ? 'selected' : ''}>Витебская область</option>
-                <option value="Гомельская область" ${(d.address?.region === 'Гомельская область' || d.region === 'Гомельская область') ? 'selected' : ''}>Гомельская область</option>
-                <option value="Гродненская область" ${(d.address?.region === 'Гродненская область' || d.region === 'Гродненская область') ? 'selected' : ''}>Гродненская область</option>
-                <option value="Могилевская область" ${(d.address?.region === 'Могилевская область' || d.region === 'Могилевская область') ? 'selected' : ''}>Могилевская область</option>
+                <option value="г. Минск" ${parsed.region === 'г. Минск' ? 'selected' : ''}>г. Минск</option>
+                <option value="Минская область" ${parsed.region === 'Минская область' ? 'selected' : ''}>Минская область</option>
+                <option value="Брестская область" ${parsed.region === 'Брестская область' ? 'selected' : ''}>Брестская область</option>
+                <option value="Витебская область" ${parsed.region === 'Витебская область' ? 'selected' : ''}>Витебская область</option>
+                <option value="Гомельская область" ${parsed.region === 'Гомельская область' ? 'selected' : ''}>Гомельская область</option>
+                <option value="Гродненская область" ${parsed.region === 'Гродненская область' ? 'selected' : ''}>Гродненская область</option>
+                <option value="Могилевская область" ${parsed.region === 'Могилевская область' ? 'selected' : ''}>Могилевская область</option>
               </select>
             </div>
 
@@ -1470,7 +1628,7 @@
                 id="kycAddressCity"
                 class="w-full p-3.5 rounded-2xl bg-white/5 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
                 placeholder="г. Минск"
-                value="${d.address?.city || ''}"
+                value="${parsed.city}"
                 required
               >
               <!-- Быстрые города -->
@@ -1495,7 +1653,7 @@
                 id="kycAddressStreet"
                 class="w-full p-3.5 rounded-2xl bg-white/5 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
                 placeholder="ул. Притыцкого"
-                value="${d.address?.street || ''}"
+                value="${parsed.street}"
                 required
               >
             </div>
@@ -1510,8 +1668,8 @@
                   type="text"
                   id="kycAddressHouse"
                   class="w-full p-3 rounded-2xl bg-white/5 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
-                  placeholder="Номер дома"
-                  value="${d.address?.house || ''}"
+                  placeholder="Дом"
+                  value="${parsed.house}"
                   required
                 >
               </div>
@@ -1522,26 +1680,26 @@
                   id="kycAddressCorpus"
                   class="w-full p-3 rounded-2xl bg-white/5 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
                   placeholder="Корпус (-)"
-                  value="${d.address?.corpus || ''}"
+                  value="${parsed.corpus}"
                 >
               </div>
               <div>
-                <label class="block text-xs font-bold text-white/80 mb-1.5">Кв. / комн.</label>
+                <label class="block text-xs font-bold text-white/80 mb-1.5">Кв.</label>
                 <input
                   type="text"
                   id="kycAddressRoom"
                   class="w-full p-3 rounded-2xl bg-white/5 border border-white/15 text-white text-sm focus:border-cyan-400 focus:outline-none transition"
                   placeholder="Кв."
-                  value="${d.address?.room || ''}"
+                  value="${parsed.room}"
                 >
               </div>
             </div>
 
-            <!-- Почтовый индекс -->
+            <!-- Индекс -->
             <div>
               <label class="block text-xs font-bold text-white/80 mb-1.5 flex items-center justify-between">
                 <span>Почтовый индекс</span>
-                <span class="text-[10px] text-white/40">6 цифр</span>
+                <span class="text-[10px] text-cyan-400">6 цифр</span>
               </label>
               <input
                 type="text"
@@ -1549,68 +1707,84 @@
                 class="w-full p-3.5 rounded-2xl bg-white/5 border border-white/15 text-white font-mono text-sm focus:border-cyan-400 focus:outline-none transition"
                 placeholder="Индекс (6 цифр)"
                 maxlength="6"
-                value="${d.address?.zip_code || ''}"
+                value="${parsed.zipCode}"
               >
             </div>
+          </div>
 
-            <!-- Навигация Шага 3 (Сохранение) -->
-            <div class="pt-2 flex items-center gap-2.5">
+          <!-- Кнопки действий -->
+          <div class="pt-2 space-y-2.5">
+            <button
+              type="submit"
+              id="kycSubmitBtn"
+              class="btn-primary w-full py-4 rounded-2xl font-black text-sm shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2 active:scale-95 transition cursor-pointer"
+            >
+              <span>Всё верно, сохранить данные ✓</span>
+            </button>
+
+            <div class="flex items-center gap-2.5">
               <button
                 type="button"
-                id="kycBackToStep2Btn"
-                class="btn-secondary px-5 py-4 rounded-2xl font-bold text-sm active:scale-95 transition"
+                id="kycRescanBtn"
+                class="btn-secondary flex-1 py-3.5 rounded-2xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition cursor-pointer"
+              >
+                <span>📷 Пересканировать паспорт</span>
+              </button>
+              <button
+                type="button"
+                id="kycBackToIntroBtn"
+                class="px-4 py-3.5 rounded-2xl bg-white/5 hover:bg-white/10 text-white/50 hover:text-white font-semibold text-xs transition active:scale-95 cursor-pointer"
               >
                 ← Назад
               </button>
-              <button
-                type="submit"
-                id="kycSubmitBtn"
-                class="btn-primary flex-1 py-4 rounded-2xl font-bold text-sm shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2 active:scale-95 transition"
-              >
-                <span>Сохранить данные ✓</span>
-              </button>
             </div>
-
           </div>
-
         </form>
-
-        <!-- Блок дополнительных получателей (пояснение) -->
-        <div class="p-4 rounded-2xl border border-white/10 bg-white/[0.02] text-center space-y-1.5 opacity-80 mt-4">
-          <div class="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-base mx-auto text-white/50">
-            👥
-          </div>
-          <h4 class="text-xs font-bold text-white">Дополнительные получатели и замеры</h4>
-          <p class="text-[11px] text-white/50 leading-relaxed max-w-xs mx-auto">
-            Добавление доверенных лиц для разделения беспошлинных лимитов (200 € / 31 кг) и параметры подбора одежды откроются сразу после сохранения ваших основных данных.
-          </p>
-        </div>
-
       </div>
     `;
   }
 
-  // --- 11. Обработчики мастера KYC (Wizard) ---
-  function attachKycFormHandlers() {
-    const wizardStep1 = document.getElementById('kycWizardStep1');
-    const wizardStep2 = document.getElementById('kycWizardStep2');
-    const wizardStep3 = document.getElementById('kycWizardStep3');
+  // --- 13. Обработчики приветственного экрана (Intro) ---
+  function attachKycIntroHandlers(userKyc) {
+    const startAiBtn = document.getElementById('startAiKycBtn');
+    if (startAiBtn) {
+      startAiBtn.onclick = () => {
+        if (typeof window.openKycAlipayScanner === 'function') {
+          window.openKycAlipayScanner({
+            onComplete: (res) => {
+              window._kycScanResult = res;
+              window._kycShowFormMode = true;
+              window.openKycScreen();
+            },
+            onCancel: () => {
+              // Пользователь закрыл видоискатель
+            }
+          });
+        } else {
+          alert('Сканер документов загружается, повторите через секунду...');
+        }
+      };
+    }
 
-    const stepTitle = document.getElementById('kycWizardStepTitle');
-    const stepPercent = document.getElementById('kycWizardStepPercent');
-    const progressBar = document.getElementById('kycWizardProgressBar');
-    const nav1 = document.getElementById('kycStepNav1');
-    const nav2 = document.getElementById('kycStepNav2');
-    const nav3 = document.getElementById('kycStepNav3');
+    const manualEntryBtn = document.getElementById('manualEntryKycBtn');
+    if (manualEntryBtn) {
+      manualEntryBtn.onclick = () => {
+        window._kycScanResult = null;
+        window._kycShowFormMode = true;
+        window.openKycScreen();
+      };
+    }
+  }
 
+  // --- 14. Обработчики экрана сверки данных (Review) ---
+  function attachReviewFormHandlers(userKyc) {
     const idInput = document.getElementById('kycIdNumber');
     const previewCard = document.getElementById('kycIdPreviewCard');
     const consentBlock = document.getElementById('kycParentalConsentBlock');
     const parentalConsent = document.getElementById('kycParentalConsent');
+    const birthInput = document.getElementById('kycBirthDate');
 
     const fullNameInput = document.getElementById('kycFullName');
-    const phoneInput = document.getElementById('kycPhone');
-
     const seriesNumberInput = document.getElementById('kycSeriesNumber');
     const issueDateInput = document.getElementById('kycIssueDate');
     const issuedByInput = document.getElementById('kycIssuedBy');
@@ -1627,44 +1801,34 @@
     const form = document.getElementById('kycSubmitForm');
     const submitBtn = document.getElementById('kycSubmitBtn');
 
-    let currentStep = 1;
-
-    // Переключение шага мастера
-    function setStep(step) {
-      currentStep = step;
-      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
-
-      if (wizardStep1) wizardStep1.classList.toggle('hidden', step !== 1);
-      if (wizardStep2) wizardStep2.classList.toggle('hidden', step !== 2);
-      if (wizardStep3) wizardStep3.classList.toggle('hidden', step !== 3);
-
-      if (step === 1) {
-        if (stepTitle) stepTitle.innerHTML = `<span class="w-5 h-5 rounded-full bg-cyan-400/20 text-cyan-300 flex items-center justify-center text-[10px] font-black border border-cyan-400/40">1</span><span>Шаг 1 из 3: Личные данные</span>`;
-        if (stepPercent) stepPercent.textContent = '33%';
-        if (progressBar) progressBar.style.width = '33.3%';
-        if (nav1) nav1.className = 'text-cyan-300 font-bold transition';
-        if (nav2) nav2.className = 'text-white/40 transition';
-        if (nav3) nav3.className = 'text-white/40 transition';
-      } else if (step === 2) {
-        if (stepTitle) stepTitle.innerHTML = `<span class="w-5 h-5 rounded-full bg-cyan-400/20 text-cyan-300 flex items-center justify-center text-[10px] font-black border border-cyan-400/40">2</span><span>Шаг 2 из 3: Данные документа</span>`;
-        if (stepPercent) stepPercent.textContent = '66%';
-        if (progressBar) progressBar.style.width = '66.6%';
-        if (nav1) nav1.className = 'text-emerald-400 font-bold transition';
-        if (nav2) nav2.className = 'text-cyan-300 font-bold transition';
-        if (nav3) nav3.className = 'text-white/40 transition';
-      } else if (step === 3) {
-        if (stepTitle) stepTitle.innerHTML = `<span class="w-5 h-5 rounded-full bg-cyan-400/20 text-cyan-300 flex items-center justify-center text-[10px] font-black border border-cyan-400/40">3</span><span>Шаг 3 из 3: Адрес регистрации</span>`;
-        if (stepPercent) stepPercent.textContent = '100%';
-        if (progressBar) progressBar.style.width = '100%';
-        if (nav1) nav1.className = 'text-emerald-400 font-bold transition';
-        if (nav2) nav2.className = 'text-emerald-400 font-bold transition';
-        if (nav3) nav3.className = 'text-cyan-300 font-bold transition';
+    // Кнопка пересканирования
+    const triggerScanner = () => {
+      if (typeof window.openKycAlipayScanner === 'function') {
+        window.openKycAlipayScanner({
+          onComplete: (res) => {
+            window._kycScanResult = res;
+            window._kycShowFormMode = true;
+            window.openKycScreen();
+          }
+        });
+      } else {
+        alert('Сканер загружается, повторите через пару секунд.');
       }
+    };
 
-      const container = document.getElementById('kycWizardContainer');
-      if (container) {
-        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+    const rescanBtn = document.getElementById('kycRescanBtn');
+    if (rescanBtn) rescanBtn.onclick = triggerScanner;
+
+    const launchScannerBtn = document.getElementById('kycLaunchScannerFromReviewBtn');
+    if (launchScannerBtn) launchScannerBtn.onclick = triggerScanner;
+
+    const backToIntroBtn = document.getElementById('kycBackToIntroBtn');
+    if (backToIntroBtn) {
+      backToIntroBtn.onclick = () => {
+        window._kycShowFormMode = false;
+        window._kycScanResult = null;
+        window.openKycScreen();
+      };
     }
 
     // Живой валидатор 14 знаков личного номера
@@ -1688,82 +1852,53 @@
       const res = parseAndValidateBelId(cleanVal);
       if (res.isValid) {
         const d = res.details;
-        const manualBirthBlock = document.getElementById('kycManualBirthDateBlock');
-        const birthInput = document.getElementById('kycBirthDate');
         const badgeElem = document.getElementById('kycBirthDateAutoBadge');
-        const helpElem = document.getElementById('kycBirthDateHelpText');
 
-        if (manualBirthBlock) manualBirthBlock.classList.remove('hidden');
-
-        // Авто-подстановка даты, если она зашифрована в ИН (серии 1..6)
-        if (d.birthDateIso && birthInput) {
-          if (!birthInput.value || birthInput.getAttribute('data-autofilled') === 'true') {
-            birthInput.value = d.birthDateIso;
-            birthInput.setAttribute('data-autofilled', 'true');
-          }
+        // Авто-подстановка даты рождения, если она еще не указана
+        if (d.birthDateIso && birthInput && !birthInput.value) {
+          birthInput.value = d.birthDateIso;
           if (badgeElem) badgeElem.textContent = '✓ Определено из ИН';
-          if (helpElem) helpElem.textContent = 'Дата считана из личного номера. При необходимости можете скорректировать.';
-        } else {
-          // Серии 7, 8, 9, 0 или спецсерии
-          if (badgeElem) badgeElem.textContent = 'Укажите дату';
-          if (helpElem) helpElem.textContent = 'Для вашей серии документа укажите дату рождения вручную по паспорту.';
         }
 
-        const updateAgeAndCard = () => {
-          const bVal = birthInput ? birthInput.value : (d.birthDateIso || '');
-          let calcAge = d.age;
-          let isMinor = d.isMinorWithConsent;
-          let isUnder14 = d.isUnder14;
-          let formattedBirth = d.birthDateStr;
+        const bVal = birthInput ? birthInput.value : (d.birthDateIso || '');
+        let calcAge = d.age;
+        let isMinor = d.isMinorWithConsent;
+        let isUnder14 = d.isUnder14;
+        let formattedBirth = d.birthDateStr;
 
-          if (bVal) {
-            const bDate = new Date(bVal);
-            if (!isNaN(bDate.getTime())) {
-              const today = new Date();
-              calcAge = today.getFullYear() - bDate.getFullYear();
-              const mDiff = today.getMonth() - bDate.getMonth();
-              if (mDiff < 0 || (mDiff === 0 && today.getDate() < bDate.getDate())) calcAge--;
-              isMinor = calcAge >= 14 && calcAge < 18;
-              isUnder14 = calcAge < 14;
-              const [by, bm, bd] = bVal.split('-');
-              formattedBirth = `${bd}.${bm}.${by}`;
-            }
+        if (bVal) {
+          const bDate = new Date(bVal);
+          if (!isNaN(bDate.getTime())) {
+            const today = new Date();
+            calcAge = today.getFullYear() - bDate.getFullYear();
+            const mDiff = today.getMonth() - bDate.getMonth();
+            if (mDiff < 0 || (mDiff === 0 && today.getDate() < bDate.getDate())) calcAge--;
+            isMinor = calcAge >= 14 && calcAge < 18;
+            isUnder14 = calcAge < 14;
+            const [by, bm, bd] = bVal.split('-');
+            formattedBirth = `${bd}.${bm}.${by}`;
           }
-
-          previewCard.className = 'mt-2 p-3 rounded-xl border border-emerald-500/40 bg-emerald-950/20 text-xs text-white space-y-1';
-          previewCard.innerHTML = `
-            <div class="flex items-center justify-between text-emerald-400 font-bold">
-              <span class="flex items-center gap-1">✓ Личный номер РБ подтверждён</span>
-              <span>${calcAge !== null && calcAge !== undefined && bVal ? `${calcAge} лет` : '14 знаков'}</span>
-            </div>
-            <div class="grid grid-cols-2 gap-1 text-[11px] text-white/70 pt-1 border-t border-white/10">
-              <div>Рождение: <b>${formattedBirth && bVal ? formattedBirth : 'Укажите дату ↓'}</b></div>
-              <div>Пол: <b>${d.gender}</b></div>
-              <div class="col-span-2">Документ: <b>${d.citizenship}</b></div>
-              ${bVal ? `<div class="col-span-2 text-white/60">Статус возраста: <b>${calcAge} лет</b> ${isMinor ? '(14–17 лет: нужно согласие родителей)' : (isUnder14 ? '(до 14 лет: запрещено правилами таможни)' : '(совершеннолетний)')}</div>` : ''}
-            </div>
-          `;
-
-          if (consentBlock) {
-            if (isMinor) consentBlock.classList.remove('hidden');
-            else consentBlock.classList.add('hidden');
-          }
-        };
-
-        if (birthInput) {
-          birthInput.onchange = () => {
-            birthInput.removeAttribute('data-autofilled');
-            if (badgeElem) badgeElem.textContent = 'Указано вручную';
-            updateAgeAndCard();
-          };
-          birthInput.oninput = () => {
-            birthInput.removeAttribute('data-autofilled');
-            if (badgeElem) badgeElem.textContent = 'Указано вручную';
-            updateAgeAndCard();
-          };
         }
 
-        updateAgeAndCard();
+        previewCard.className = 'mt-2 p-3 rounded-xl border border-emerald-500/40 bg-emerald-950/20 text-xs text-white space-y-1';
+        previewCard.innerHTML = `
+          <div class="flex items-center justify-between text-emerald-400 font-bold">
+            <span class="flex items-center gap-1">✓ Личный номер РБ подтверждён</span>
+            <span>${calcAge !== null && calcAge !== undefined && bVal ? `${calcAge} лет` : '14 знаков'}</span>
+          </div>
+          <div class="grid grid-cols-2 gap-1 text-[11px] text-white/70 pt-1 border-t border-white/10">
+            <div>Рождение: <b>${formattedBirth && bVal ? formattedBirth : 'Укажите дату'}</b></div>
+            <div>Пол: <b>${d.gender}</b></div>
+            <div class="col-span-2">Документ: <b>${d.citizenship}</b></div>
+            ${bVal ? `<div class="col-span-2 text-white/60">Статус: <b>${calcAge} лет</b> ${isMinor ? '(14–17 лет: нужно согласие родителей)' : (isUnder14 ? '(до 14 лет: запрещено правилами таможни)' : '(совершеннолетний)')}</div>` : ''}
+          </div>
+        `;
+
+        if (consentBlock) {
+          if (isMinor) consentBlock.classList.remove('hidden');
+          else consentBlock.classList.add('hidden');
+        }
+
         previewCard.classList.remove('hidden');
       } else {
         previewCard.className = 'mt-2 p-3 rounded-xl border border-rose-500/40 bg-rose-950/20 text-xs text-rose-300';
@@ -1778,309 +1913,9 @@
       if (idInput.value) handleIdInput();
     }
 
-    // Официальный справочник почтовых индексов Белпочты
-    const BELPOST_CLIENT_INDEXES = {
-      // Минский район и агрогородки
-      "колодищ": "223051", "тарасов": "223018", "боровлян": "223053", "лесной": "223053", "лесковк": "223053",
-      "сениц": "223056", "жданович": "223028", "ратомк": "223035", "озерц": "223021", "хатежин": "223037",
-      "прилук": "223011", "заславл": "223034", "мачулищ": "223017", "гатов": "223017", "самохвалович": "223016",
-      "миханович": "223075", "фанипол": "222750", "сокол": "220044", "копищ": "223053", "дроздов": "223053",
-      // Несвижский район и окрестности
-      "несвиж": "222603", "городе": "222610", "снов": "222620", "лань": "222631", "сейлович": "222628",
-      "альб": "222603", "карцевич": "222603", "островк": "222634", "грицкевич": "222623",
-      // Столбцы, Клецк, Копыль, Дзержинск
-      "столбц": "222660", "клецк": "222531", "копыл": "222811", "дзержинск": "222720",
-      // Минская область (города)
-      "борисов": "222120", "солигорск": "223710", "молодечно": "222310", "жодино": "222160", "слуцк": "223610",
-      "вилейк": "222410", "смолевич": "222201", "логойск": "223110", "березин": "223311", "любан": "223812",
-      "старые дороги": "222932", "воложин": "222357", "узден": "223411", "червен": "223232", "крупк": "222001",
-      "мядел": "222397", "марьина горка": "222810", "пухович": "222810",
-      // Брестская область
-      "брест": "224000", "барановичи": "225400", "пинск": "225710", "кобрин": "225300", "берез": "225210",
-      "лунинец": "225640", "ивацевич": "225295", "пружан": "225133", "столин": "225510", "дрогичин": "225612",
-      "жабинк": "225101", "ганцевич": "225432", "иванов": "225800", "каменец": "225050", "ляхович": "225370",
-      // Витебская область
-      "витебск": "210000", "новополоцк": "211440", "полоцк": "211400", "орша": "211030", "глубок": "211800",
-      "лепель": "211174", "постав": "211871", "браслав": "211970", "докшиц": "211720", "миор": "211287",
-      // Гомельская область
-      "гомель": "246000", "мозыр": "247760", "жлобин": "247210", "светлогорск": "247430", "речиц": "247500",
-      "калинкович": "247710", "рогачев": "247671", "добруш": "247050", "житкович": "247960", "хойник": "247618",
-      // Гродненская область
-      "гродно": "230000", "лид": "231300", "слоним": "231800", "волковыск": "231900", "сморгон": "231000",
-      "новогруд": "231400", "островец": "231201", "ошмян": "231103", "щучин": "231513", "мост": "231600",
-      // Могилевская область
-      "могилев": "212000", "бобруйск": "213800", "горки": "213410", "осипович": "213760", "кричев": "213500",
-      "быхов": "213352", "климович": "213633", "шклов": "213004", "костюкович": "213640", "чаус": "213206"
-    };
-
-    function autoFillPostcodeForCity(cityStr, force = false) {
-      const zipElem = zipInput || document.getElementById('kycAddressZip');
-      if (!zipElem) return;
-      if (!force && zipElem.value && zipElem.value !== '220000' && zipElem.value !== '220050') {
-        return;
-      }
-      const c = (cityStr || '').toLowerCase().replace(/^(?:г|д|аг|пос|пгт|рп)\.?\s+/gi, '').trim();
-      if (!c) return;
-
-      if (c === 'минск' || c === 'мінск') {
-        zipElem.value = '220050';
-        zipElem.dispatchEvent(new Event('input', { bubbles: true }));
-        return;
-      }
-
-      for (const [prefix, code] of Object.entries(BELPOST_CLIENT_INDEXES)) {
-        if (c.includes(prefix) || prefix.includes(c)) {
-          zipElem.value = code;
-          zipElem.dispatchEvent(new Event('input', { bubbles: true }));
-          return;
-        }
-      }
-    }
-
-    // Умное автоопределение области РБ по городу/району/подсказке
-    function autoDetectRegionForCity(c, rHint) {
-      const regionElem = regionSelect || document.getElementById('kycAddressRegion');
-      if (!regionElem) return;
-      const cityStr = (c || '').toLowerCase().trim();
-      const regionStr = (rHint || '').toLowerCase().trim();
-      const combined = `${regionStr} ${cityStr}`;
-
-      let target = '';
-      if (combined.includes('минский р') || combined.includes('минский район') || combined.includes('мінскі р') || combined.includes('мінская вобл')) {
-        target = 'Минская область';
-      } else if (/^(?:г\.?\s*)?минск(?:\s*|$)/i.test(cityStr) || /^(?:г\.?\s*)?мінск(?:\s*|$)/i.test(cityStr) || /^(?:г\.?\s*)?минск(?:\s*|$)/i.test(regionStr)) {
-        if (!combined.includes('район') && !combined.includes('р-н') && !combined.includes('рн')) {
-          target = 'г. Минск';
-        } else {
-          target = 'Минская область';
-        }
-      } else if (combined.includes('брест') || combined.includes('брэст') || combined.includes('баранови') || combined.includes('пинск') || combined.includes('кобрин') || combined.includes('берез') || combined.includes('ивацевич') || combined.includes('пружан') || combined.includes('столин') || combined.includes('дрогичин')) {
-        target = 'Брестская область';
-      } else if (combined.includes('гродн') || combined.includes('гродна') || combined.includes('лид') || combined.includes('слоним') || combined.includes('волковы') || combined.includes('новогруд') || combined.includes('сморгон') || combined.includes('островец') || combined.includes('ошмян') || combined.includes('щучин')) {
-        target = 'Гродненская область';
-      } else if (combined.includes('гомел') || combined.includes('мозыр') || combined.includes('жлобин') || combined.includes('речиц') || combined.includes('светлогорск') || combined.includes('калинкович') || combined.includes('рогачев') || combined.includes('добруш') || combined.includes('житкович')) {
-        target = 'Гомельская область';
-      } else if (combined.includes('витеб') || combined.includes('віцеб') || combined.includes('новополоцк') || combined.includes('полоцк') || combined.includes('орша') || combined.includes('глубок') || combined.includes('лепель') || combined.includes('постав') || combined.includes('браслав')) {
-        target = 'Витебская область';
-      } else if (combined.includes('могил') || combined.includes('магіл') || combined.includes('бобруйск') || combined.includes('горки') || combined.includes('осипови') || combined.includes('кричев') || combined.includes('быхов') || combined.includes('климович') || combined.includes('шклов')) {
-        target = 'Могилевская область';
-      } else if (combined.includes('минск') || combined.includes('мінск') || combined.includes('борис') || combined.includes('солигор') || combined.includes('молодеч') || combined.includes('жодин') || combined.includes('слуцк') || combined.includes('дзержин') || combined.includes('колодищ') || combined.includes('тарасов') || combined.includes('боровлян') || combined.includes('заславл') || combined.includes('фанипол') || combined.includes('смолевич') || combined.includes('столбц') || combined.includes('несвиж') || combined.includes('логойск') || combined.includes('сениц') || combined.includes('ратомк') || combined.includes('жданович') || combined.includes('лесной') || combined.includes('хатежин')) {
-        target = 'Минская область';
-      }
-
-      if (target) {
-        for (let i = 0; i < regionElem.options.length; i++) {
-          if (regionElem.options[i].value === target) {
-            regionElem.selectedIndex = i;
-            regionElem.dispatchEvent(new Event('change', { bubbles: true }));
-            break;
-          }
-        }
-      }
-    }
-
-    // --- Высокоточный сканер паспортов Alipay (MRZ ICAO 9303) ---
-    const alipayScanBtn = document.getElementById('kycOpenAlipayScannerBtn');
-    const ocrBanner = document.getElementById('kycOcrStatusBanner');
-
-    if (alipayScanBtn) {
-      alipayScanBtn.onclick = () => {
-        if (typeof window.openKycAlipayScanner === 'function') {
-          window.openKycAlipayScanner({
-            onComplete: (res) => {
-              // 1. ФИО (строго на русском языке, сверка с MRZ)
-              let lastNameVal = (res.last_name || '').trim();
-              let firstNameVal = (res.first_name || '').trim();
-              let patronymicVal = (res.patronymic || '').trim();
-
-              // Клиентская гармонизация имени с MRZ (устранение белорусского аканья)
-              if (res.raw_mrz) {
-                const l1 = (res.raw_mrz.split(/\r?\n/)[0] || '').replace(/^P<[A-Z0-9]{3}/, '');
-                const mrzParts = l1.split('<<');
-                const mrzSur = (mrzParts[0] || '').replace(/</g, '').toUpperCase();
-                const mrzGiv = (mrzParts[1] || '').split('<')[0].toUpperCase();
-
-                if (mrzSur === 'BOGDANOVICH' && (lastNameVal === 'БАГДАНОВИЧ' || lastNameVal === 'БАГДАНОВІЧ')) {
-                  lastNameVal = 'БОГДАНОВИЧ';
-                }
-                if (mrzGiv === 'KIRILL' && (firstNameVal === 'КІРЫЛ' || firstNameVal === 'КИРИЛ' || firstNameVal === 'КИРИЛЛ')) {
-                  firstNameVal = 'КИРИЛЛ';
-                }
-              }
-              if (patronymicVal === 'АЛЯКСАНДРАВІЧ' || patronymicVal === 'АЛЯКСАНДРАВИЧ') {
-                patronymicVal = 'АЛЕКСАНДРОВИЧ';
-              } else if (patronymicVal === 'СЯРГЕЕВІЧ') {
-                patronymicVal = 'СЕРГЕЕВИЧ';
-              }
-
-              const nameParts = [];
-              if (lastNameVal) nameParts.push(lastNameVal);
-              if (firstNameVal) nameParts.push(firstNameVal);
-              if (patronymicVal) nameParts.push(patronymicVal);
-              const finalFullName = nameParts.join(' ').trim();
-              if (fullNameInput && finalFullName) {
-                fullNameInput.value = finalFullName;
-              }
-
-              // 2. Личный номер (14 знаков)
-              if (res.id_number && idInput) {
-                let cleanId = normalizeDocInput(res.id_number).replace(/[^A-Z0-9]/g, '');
-                if (cleanId.length > 14) cleanId = cleanId.slice(0, 14);
-                idInput.value = cleanId;
-                handleIdInput();
-              }
-
-              // 3. Дата рождения
-              if (res.birth_date) {
-                const birthInput = document.getElementById('kycBirthDate');
-                if (birthInput) {
-                  birthInput.value = res.birth_date;
-                  birthInput.removeAttribute('data-autofilled');
-                  const badgeElem = document.getElementById('kycBirthDateAutoBadge');
-                  if (badgeElem) badgeElem.textContent = 'ICAO 9303 ✓';
-                  birthInput.dispatchEvent(new Event('input', { bubbles: true }));
-                  birthInput.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-              }
-
-              // 4. Серия и номер (Шаг 2)
-              if (res.series_number && seriesNumberInput) {
-                seriesNumberInput.value = normalizeDocInput(res.series_number).toUpperCase().trim();
-              }
-
-              // 5. Дата выдачи (Шаг 2)
-              if (res.issue_date && issueDateInput) {
-                issueDateInput.value = res.issue_date.trim();
-              }
-
-              // 6. Орган МВД (Шаг 2)
-              if (res.issued_by && issuedByInput) {
-                issuedByInput.value = res.issued_by;
-              }
-
-              // 7. Адрес регистрации / прописка со штампа (Шаг 3)
-              const regionInput = regionSelect || document.getElementById('kycAddressRegion');
-              const cityInputElem = cityInput || document.getElementById('kycAddressCity');
-              const streetInputElem = streetInput || document.getElementById('kycAddressStreet');
-              const houseInputElem = houseInput || document.getElementById('kycAddressHouse');
-              const buildingInputElem = corpusInput || document.getElementById('kycAddressCorpus') || document.getElementById('kycAddressBuilding');
-              const aptInputElem = roomInput || document.getElementById('kycAddressRoom') || document.getElementById('kycAddressApartment');
-              const postcodeInputElem = zipInput || document.getElementById('kycAddressZip') || document.getElementById('kycAddressPostcode');
-
-              let hasAddress = false;
-              if (res.address_city && cityInputElem) {
-                cityInputElem.value = res.address_city;
-                cityInputElem.dispatchEvent(new Event('input', { bubbles: true }));
-                cityInputElem.dispatchEvent(new Event('change', { bubbles: true }));
-                hasAddress = true;
-              }
-
-              // Выбор области: сначала прямое сопоставление (учитывая точные названия 7 областей РБ)
-              let regionSelected = false;
-              if (res.address_region && regionInput) {
-                const targetReg = res.address_region.trim().toLowerCase();
-                for (let i = 0; i < regionInput.options.length; i++) {
-                  const optVal = (regionInput.options[i].value || '').toLowerCase();
-                  if (optVal && (optVal === targetReg || targetReg.includes(optVal) || optVal.includes(targetReg))) {
-                    regionInput.selectedIndex = i;
-                    regionInput.dispatchEvent(new Event('change', { bubbles: true }));
-                    regionSelected = true;
-                    break;
-                  }
-                }
-              }
-
-              // Если не выбралась или пуста — гарантированно автоопределяем по городу/району
-              if (!regionSelected || (regionInput && regionInput.selectedIndex <= 0)) {
-                autoDetectRegionForCity(res.address_city, res.address_region);
-              }
-
-              if (res.address_street && streetInputElem) {
-                streetInputElem.value = res.address_street;
-                streetInputElem.dispatchEvent(new Event('input', { bubbles: true }));
-                streetInputElem.dispatchEvent(new Event('change', { bubbles: true }));
-                hasAddress = true;
-              }
-
-              let houseVal = (res.address_house || '').trim();
-              let aptVal = (res.address_apartment || '').trim();
-              if (aptVal === '-' || aptVal === '—' || aptVal.toLowerCase() === 'нет') aptVal = '';
-              if (res.is_crossed_seven || aptVal === '4') {
-                aptVal = '7';
-              }
-
-              // Сверяем с inspection якорями распознавания
-              if (res.inspection) {
-                const inspH = res.inspection.house_handwritten_digits || res.inspection.step5_handwritten_after_word_dom || res.inspection.step2_handwritten_house;
-                if (inspH && !/^26$/.test(String(inspH).trim())) {
-                  const cleanH = String(inspH).replace(/^(?:дом|д\.?|№)\s*/i, '').replace(/[-.\/]+$/, '').trim();
-                  if (cleanH && /\d/.test(cleanH)) houseVal = cleanH;
-                }
-                const inspApt = res.inspection.apartment_handwritten_digits || res.inspection.step7_handwritten_after_word_kv || res.inspection.step4_handwritten_apartment;
-                if (inspApt) {
-                  const cleanA = String(inspApt).replace(/^кв\.?\s*/i, '').replace(/[-.\/]+$/, '').trim();
-                  if (cleanA && !/^[-—нет]+$/i.test(cleanA) && /\d/.test(cleanA)) aptVal = cleanA;
-                }
-              }
-
-              if (houseVal && houseInputElem) {
-                houseInputElem.value = houseVal;
-                houseInputElem.dispatchEvent(new Event('input', { bubbles: true }));
-                houseInputElem.dispatchEvent(new Event('change', { bubbles: true }));
-              }
-              if (buildingInputElem) {
-                buildingInputElem.value = res.address_building || '-';
-                buildingInputElem.dispatchEvent(new Event('input', { bubbles: true }));
-                buildingInputElem.dispatchEvent(new Event('change', { bubbles: true }));
-              }
-              if (aptInputElem) {
-                aptInputElem.value = aptVal;
-                aptInputElem.dispatchEvent(new Event('input', { bubbles: true }));
-                aptInputElem.dispatchEvent(new Event('change', { bubbles: true }));
-              }
-              if (postcodeInputElem) {
-                let finalZip = (res.address_postcode || '').trim();
-                if (!finalZip && res.address_city) {
-                  autoFillPostcodeForCity(res.address_city, true);
-                } else {
-                  postcodeInputElem.value = finalZip;
-                  postcodeInputElem.dispatchEvent(new Event('input', { bubbles: true }));
-                  postcodeInputElem.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-              }
-
-              // Статусная плашка
-              if (ocrBanner) {
-                ocrBanner.className = 'p-3.5 rounded-2xl text-xs bg-emerald-950/70 border border-emerald-400/50 text-emerald-300 flex items-start gap-2.5 animate-pulse';
-                if (hasAddress) {
-                  ocrBanner.innerHTML = `
-                    <span class="text-base text-emerald-400 mt-0.5">✓</span>
-                    <div>
-                      <div class="font-bold text-white text-xs">Паспорт и прописка считаны успешно!</div>
-                      <div class="text-[11px] text-emerald-200/90 mt-0.5 leading-snug">
-                        ФИО, реквизиты документа и адрес со штампа регистрации заполнены автоматически. Проверьте данные и нажмите «Далее».
-                      </div>
-                    </div>
-                  `;
-                } else {
-                  ocrBanner.innerHTML = `
-                    <span class="text-base text-emerald-400 mt-0.5">✓</span>
-                    <div>
-                      <div class="font-bold text-white text-xs">Паспорт считан по стандарту ICAO 9303!</div>
-                      <div class="text-[11px] text-emerald-200/90 mt-0.5 leading-snug">
-                        Контрольные суммы проверены. Все поля Шагов 1 и 2 заполнены автоматически. Проверьте и нажмите «Далее».
-                      </div>
-                    </div>
-                  `;
-                }
-                ocrBanner.classList.remove('hidden');
-              }
-            }
-          });
-        } else {
-          alert('Сканер загружается, повторите через пару секунд.');
-        }
-      };
+    if (birthInput) {
+      birthInput.addEventListener('change', handleIdInput);
+      birthInput.addEventListener('input', handleIdInput);
     }
 
     // Автокомплит органа выдачи
@@ -2088,7 +1923,7 @@
       attachOrganAutocomplete(issuedByInput, organsDropdown);
     }
 
-    // Быстрые чипсы популярных органов
+    // Быстрые чипсы органов
     document.querySelectorAll('.kyc-organ-chip').forEach(chip => {
       chip.onclick = () => {
         if (issuedByInput) {
@@ -2120,23 +1955,33 @@
         autoDetectRegionForCity(cityInput.value);
         autoFillPostcodeForCity(cityInput.value, false);
       });
-      cityInput.addEventListener('blur', () => {
-        autoDetectRegionForCity(cityInput.value);
-        autoFillPostcodeForCity(cityInput.value, false);
-      });
     }
 
-    // Навигация Шаг 1 -> Шаг 2
-    const goToStep2Btn = document.getElementById('kycGoToStep2Btn');
-    if (goToStep2Btn) {
-      goToStep2Btn.onclick = () => {
+    // Отправка формы (проверка и сохранение)
+    if (form) {
+      form.onsubmit = async (e) => {
+        e.preventDefault();
+
         const fullName = fullNameInput ? fullNameInput.value.trim() : '';
         const idNumber = idInput ? normalizeDocInput(idInput.value) : '';
         if (idInput && idNumber) idInput.value = idNumber;
-        const phone = phoneInput ? phoneInput.value.trim() : '';
-        const birthInput = document.getElementById('kycBirthDate');
         const manualBirth = birthInput ? birthInput.value : '';
 
+        const seriesNumber = seriesNumberInput ? normalizeDocInput(seriesNumberInput.value) : '';
+        if (seriesNumberInput && seriesNumber) seriesNumberInput.value = seriesNumber;
+        const issueDate = issueDateInput ? issueDateInput.value.trim() : '';
+        const issuedBy = issuedByInput ? issuedByInput.value.trim() : '';
+
+        const region = regionSelect ? regionSelect.value.trim() : '';
+        const city = cityInput ? cityInput.value.trim() : '';
+        const street = streetInput ? streetInput.value.trim() : '';
+        const house = houseInput ? houseInput.value.trim() : '';
+        const corpus = corpusInput ? corpusInput.value.trim() : '';
+        const room = roomInput ? roomInput.value.trim() : '';
+        const zipCode = zipInput ? zipInput.value.trim() : '';
+        const consent = parentalConsent ? parentalConsent.checked : false;
+
+        // Валидации
         if (!fullName || fullName.split(/\s+/).length < 2) {
           alert('Пожалуйста, укажите ФИО полностью (Фамилию и Имя).');
           if (fullNameInput) fullNameInput.focus();
@@ -2151,7 +1996,7 @@
         }
 
         if (!manualBirth) {
-          alert('Пожалуйста, укажите вашу дату рождения (день, месяц, год).');
+          alert('Пожалуйста, укажите дату рождения.');
           if (birthInput) birthInput.focus();
           return;
         }
@@ -2167,36 +2012,10 @@
           return;
         }
 
-        if (userAge >= 14 && userAge < 18 && (!parentalConsent || !parentalConsent.checked)) {
+        if (userAge >= 14 && userAge < 18 && !consent) {
           alert('Для лиц от 14 до 17 лет требуется подтвердить согласие родителей (отметьте галочку).');
           return;
         }
-
-        const cleanPhone = phone.replace(/[^\d+]/g, '');
-        if (!cleanPhone || cleanPhone.length < 9) {
-          alert('Пожалуйста, укажите корректный контактный номер телефона.');
-          if (phoneInput) phoneInput.focus();
-          return;
-        }
-
-        setStep(2);
-      };
-    }
-
-    // Навигация Шаг 2 -> Шаг 1
-    const backToStep1Btn = document.getElementById('kycBackToStep1Btn');
-    if (backToStep1Btn) {
-      backToStep1Btn.onclick = () => setStep(1);
-    }
-
-    // Навигация Шаг 2 -> Шаг 3
-    const goToStep3Btn = document.getElementById('kycGoToStep3Btn');
-    if (goToStep3Btn) {
-      goToStep3Btn.onclick = () => {
-        const seriesNumber = seriesNumberInput ? normalizeDocInput(seriesNumberInput.value) : '';
-        if (seriesNumberInput && seriesNumber) seriesNumberInput.value = seriesNumber;
-        const issueDate = issueDateInput ? issueDateInput.value.trim() : '';
-        const issuedBy = issuedByInput ? issuedByInput.value.trim() : '';
 
         const seriesCheck = validatePassportSeriesNumber(seriesNumber);
         if (!seriesCheck.isValid) {
@@ -2212,33 +2031,10 @@
         }
 
         if (!issuedBy || issuedBy.length < 3) {
-          alert('Пожалуйста, укажите орган, выдавший паспорт (выберите из подсказок или введите вручную).');
+          alert('Пожалуйста, укажите орган, выдавший паспорт.');
           if (issuedByInput) issuedByInput.focus();
           return;
         }
-
-        setStep(3);
-      };
-    }
-
-    // Навигация Шаг 3 -> Шаг 2
-    const backToStep2Btn = document.getElementById('kycBackToStep2Btn');
-    if (backToStep2Btn) {
-      backToStep2Btn.onclick = () => setStep(2);
-    }
-
-    // Отправка формы (Шаг 3)
-    if (form) {
-      form.onsubmit = async (e) => {
-        e.preventDefault();
-
-        const region = regionSelect ? regionSelect.value.trim() : '';
-        const city = cityInput ? cityInput.value.trim() : '';
-        const street = streetInput ? streetInput.value.trim() : '';
-        const house = houseInput ? houseInput.value.trim() : '';
-        const corpus = corpusInput ? corpusInput.value.trim() : '';
-        const room = roomInput ? roomInput.value.trim() : '';
-        const zipCode = zipInput ? zipInput.value.trim() : '';
 
         if (!region) {
           alert('Пожалуйста, выберите область регистрации.');
@@ -2261,16 +2057,6 @@
           return;
         }
 
-        const fullName = fullNameInput ? fullNameInput.value.trim() : '';
-        const seriesNumber = seriesNumberInput ? normalizeDocInput(seriesNumberInput.value) : '';
-        const idNumber = idInput ? normalizeDocInput(idInput.value) : '';
-        const phone = phoneInput ? phoneInput.value.trim() : '';
-        const birthInput = document.getElementById('kycBirthDate');
-        const manualBirth = birthInput ? birthInput.value : '';
-        const issueDate = issueDateInput ? issueDateInput.value.trim() : '';
-        const issuedBy = issuedByInput ? issuedByInput.value.trim() : '';
-        const consent = parentalConsent ? parentalConsent.checked : false;
-
         submitBtn.disabled = true;
         submitBtn.innerHTML = `
           <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -2283,7 +2069,7 @@
             seriesNumber,
             idNumber,
             birthDate: manualBirth || null,
-            phone,
+            phone: userKyc.phone || window.userPhone || '',
             issueDate,
             issuedBy,
             address: {
@@ -2298,17 +2084,21 @@
             parentalConsent: consent
           });
 
+          window._kycShowFormMode = false;
+          window._kycScanResult = null;
+          window._kycForceResubmit = false;
+
           if (typeof tgUtil !== 'undefined') {
             if (tgUtil.haptic) tgUtil.haptic('success');
-            tgUtil.alert('Ваши данные успешно сохранены!');
+            tgUtil.alert('Ваши паспортные данные успешно сохранены и переданы на таможенную проверку!');
           } else {
-            alert('Ваши данные успешно сохранены!');
+            alert('Ваши паспортные данные успешно сохранены и переданы на таможенную проверку!');
           }
           window.openKycScreen();
         } catch (err) {
           console.error('KYC submission error:', err);
           submitBtn.disabled = false;
-          submitBtn.innerHTML = `<span>Сохранить данные ✓</span>`;
+          submitBtn.innerHTML = `<span>Всё верно, сохранить данные ✓</span>`;
           if (typeof tgUtil !== 'undefined') {
             if (tgUtil.haptic) tgUtil.haptic('error');
             tgUtil.alert(err.message || 'Ошибка сохранения данных.');
@@ -2322,12 +2112,9 @@
 
   // Принудительный повторный ввод при отклонении или обновлении
   window.forceReSubmitKyc = function() {
-    const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
-    if (!curUserId) return;
-    const content = document.getElementById('content');
-    if (!content) return;
-    
-    // Рендерим форму напрямую
+    window._kycShowFormMode = false;
+    window._kycScanResult = null;
+    window._kycForceResubmit = true;
     window.openKycScreen();
   };
 

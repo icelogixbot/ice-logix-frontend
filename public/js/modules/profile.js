@@ -171,14 +171,6 @@
       <span><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span></span> ${t('quick_actions', 'Быстрые действия')}
     </h3>
     <div class="grid grid-cols-2 gap-3">
-      <button id="cartBtn" class="glass-card p-4 text-left flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98] relative">
-        <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style="background: linear-gradient(135deg, rgba(251,191,36,0.2), rgba(245,158,11,0.1));"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span></div>
-        <div>
-          <p class="font-bold text-white text-sm">${t('cart', 'Корзина')}</p>
-          <p class="text-xs" style="color: var(--text-muted);">${t('cart_sub', 'Товары к заказу')}</p>
-        </div>
-        <span id="cartBadge" class="absolute top-2 right-2 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center hidden" style="background: #ef4444; color: #fff;">0</span>
-      </button>
       <button id="wishlistBtn" class="glass-card p-4 text-left flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98] relative">
         <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style="background: linear-gradient(135deg, rgba(248,113,113,0.2), rgba(239,68,68,0.1));"><span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span></div>
         <div>
@@ -186,13 +178,6 @@
           <p class="text-xs" style="color: var(--text-muted);">${t('favorites_sub', 'Сохранённое')}</p>
         </div>
         <span id="wishlistBadge" class="absolute top-2 right-2 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center hidden" style="background: #ef4444; color: #fff;">0</span>
-      </button>
-      <button id="myOrdersBtn" class="glass-card p-4 text-left flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98]">
-        <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style="background: linear-gradient(135deg, rgba(96,165,250,0.2), rgba(59,130,246,0.1));"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span></div>
-        <div>
-          <p class="font-bold text-white text-sm">${t('my_orders', 'Мои заказы')}</p>
-          <p class="text-xs" style="color: var(--text-muted);">${t('my_orders_sub', 'История покупок')}</p>
-        </div>
       </button>
       <button id="historyQuickBtn" class="glass-card p-4 text-left flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98]">
         <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style="background: linear-gradient(135deg, rgba(168,85,247,0.2), rgba(139,92,246,0.1));"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span></div>
@@ -269,13 +254,7 @@
     function attachProfileHandlers() {
   console.log('attachProfileHandlers called');
   
-  const myOrdersBtn = document.getElementById('myOrdersBtn');
-  if (myOrdersBtn) {
-    console.log('myOrdersBtn found');
-    myOrdersBtn.onclick = () => { switchTab('profile', 'myOrders'); };
-  } else {
-    console.error('myOrdersBtn NOT found');
-  }
+
 
   const spinFortuneBtn = document.getElementById('spinFortuneWheelBtn');
   if (spinFortuneBtn) {
@@ -474,8 +453,7 @@
   const accountRecoveryBtn = document.getElementById('accountRecoveryBtn');
   if (accountRecoveryBtn) accountRecoveryBtn.onclick = () => showAccountRecovery();
 
-  const cartBtn = document.getElementById('cartBtn');
-  if (cartBtn) cartBtn.onclick = () => switchTab('cart');
+
 
 }
 
