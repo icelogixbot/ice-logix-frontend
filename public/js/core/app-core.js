@@ -2568,6 +2568,11 @@ let adminOrdersTotalPages = 1;
           } catch (err) {
             console.error('Error loading wishlist:', err);
           }
+          try {
+            if (typeof updateCartBadge === 'function') await updateCartBadge();
+          } catch (err) {
+            console.error('Error updating cart badge on init:', err);
+          }
         }
         
         if (!isRegistered && !userId) {
@@ -2905,6 +2910,9 @@ let adminOrdersTotalPages = 1;
         }
         // Update family balance in header — fire-and-forget, must not block init
         setTimeout(() => updateHeaderFamilyBalance().catch(() => {}), 0);
+        setTimeout(() => {
+          if (typeof updateCartBadge === 'function') updateCartBadge().catch(() => {});
+        }, 0);
 
         // Fetch paid orders count and last order size for limits & sizes
         setTimeout(async () => {
@@ -3214,6 +3222,14 @@ let adminOrdersTotalPages = 1;
           }
         };
       }
+      try {
+        const _cachedCount = localStorage.getItem('ice_cart_count');
+        const _tabBadge = document.getElementById('tabCartBadge');
+        if (_tabBadge && _cachedCount && parseInt(_cachedCount) > 0) {
+          _tabBadge.innerText = parseInt(_cachedCount) > 99 ? '99+' : _cachedCount;
+          _tabBadge.classList.remove('hidden');
+        }
+      } catch(_) {}
       document.querySelectorAll('.tab-item').forEach(tab => {
         tab.onclick = () => {
           const tabName = tab.getAttribute('data-tab');
@@ -3337,6 +3353,9 @@ let adminOrdersTotalPages = 1;
         if (targetActive) targetActive.classList.add('active');
       }
       tgUtil.haptic('selection');
+      setTimeout(() => {
+        if (typeof updateCartBadge === 'function') updateCartBadge().catch(() => {});
+      }, 0);
       
       // Highlight header icon if active
       const searchBtn = document.getElementById('globalSearchBtn');

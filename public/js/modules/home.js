@@ -99,6 +99,12 @@ async function renderHome() {
       }
     }
 
+    // Сохраняем сквозной глобальный индекс рулетки, чтобы при переходе между вкладками карусель продолжала непрерывный ход
+    let currentMpIndex = (typeof window !== 'undefined' && window.__mpGlobalIndex != null) ? window.__mpGlobalIndex : 14;
+    while (currentMpIndex > 20) currentMpIndex -= 7;
+    while (currentMpIndex < 14) currentMpIndex += 7;
+    if (typeof window !== 'undefined') window.__mpGlobalIndex = currentMpIndex;
+
     return `
     <!-- Popular Marketplaces Capsule (Monolithic Tabbed Dock from User Sketch) -->
     <div class="marketplaces-capsule-section mb-4">
@@ -141,10 +147,10 @@ async function renderHome() {
         <!-- Strictly clipped inside the module -->
         <div class="marketplaces-inner-clipper">
           <div class="marketplaces-track" id="marketplaceRouletteTrack">
-            <div class="marketplaces-ribbon" id="marketplaceRibbon" style="left: 50%; transform: translate3d(-1152px, 0, 0);">
+            <div class="marketplaces-ribbon" id="marketplaceRibbon" style="left: 50%; transform: translate3d(${-(currentMpIndex * 80 + 32)}px, 0, 0);">
               ${fullMarketplaces.map((mp, idx) => {
                 const logoSrc = getMarketplaceLogo(mp.name, mp.logo_url);
-                const isActive = (idx === 14);
+                const isActive = (idx === currentMpIndex);
                 return `
                 <div class="story-card marketplace-story ${isActive ? 'is-active-target' : ''}" data-url="${mp.website_url || mp.url}" data-name="${mp.name}" data-idx="${idx}">
                   <div class="story-icon">
@@ -490,7 +496,11 @@ function initMarketplaceRoulette() {
   const ribbon = document.getElementById('marketplaceRibbon');
   if (!track || !ribbon) return;
 
-  // Очистка предыдущих таймеров
+  // Очистка предыдущих таймеров и глобальных обработчиков
+  if (window.__mpCleanup) {
+    try { window.__mpCleanup(); } catch (e) {}
+    window.__mpCleanup = null;
+  }
   if (window.__mpStepTimer) {
     clearTimeout(window.__mpStepTimer);
     window.__mpStepTimer = null;
@@ -514,7 +524,12 @@ function initMarketplaceRoulette() {
   const cards = Array.from(ribbon.querySelectorAll('.story-card'));
   if (cards.length === 0) return;
 
-  let currentIndex = BASE_DEWU_INDEX; // Стартуем сразу на Dewu
+  // Восстанавливаем текущий сквозной индекс карусели
+  let currentIndex = (typeof window !== 'undefined' && window.__mpGlobalIndex != null) ? window.__mpGlobalIndex : BASE_DEWU_INDEX;
+  while (currentIndex > 20) currentIndex -= 7;
+  while (currentIndex < 14) currentIndex += 7;
+  if (typeof window !== 'undefined') window.__mpGlobalIndex = currentIndex;
+
   let isTransitioning = false;
   let currentX = -(currentIndex * STEP + CARD_WIDTH / 2);
 
@@ -558,11 +573,18 @@ function initMarketplaceRoulette() {
         cards.forEach(c => { c.style.transition = ''; });
       });
     }
+    if (typeof window !== 'undefined') window.__mpGlobalIndex = currentIndex;
   }
 
   function goToIndex(targetIdx, duration = 0.48) {
     isTransitioning = true;
     currentIndex = targetIdx;
+    if (typeof window !== 'undefined') {
+      let gIdx = targetIdx;
+      while (gIdx > 20) gIdx -= 7;
+      while (gIdx < 14) gIdx += 7;
+      window.__mpGlobalIndex = gIdx;
+    }
     applyPosition(currentIndex, true, duration);
 
     setTimeout(() => {
@@ -574,7 +596,17 @@ function initMarketplaceRoulette() {
   }
 
   function stepToNext() {
-    if (isDragging || !document.getElementById('marketplaceRibbon')) return;
+    if (isDragging) return;
+    const currentRibbon = document.getElementById('marketplaceRibbon');
+    if (!currentRibbon) {
+      // Пользователь находится в другом разделе (калькулятор, профиль и т.д.): карусель непрерывно тикает в фоне!
+      let nextIdx = ((typeof window !== 'undefined' && window.__mpGlobalIndex != null) ? window.__mpGlobalIndex : 14) + 1;
+      while (nextIdx > 20) nextIdx -= 7;
+      while (nextIdx < 14) nextIdx += 7;
+      if (typeof window !== 'undefined') window.__mpGlobalIndex = nextIdx;
+      scheduleAutoStep();
+      return;
+    }
     goToIndex(currentIndex + 1, 0.55);
   }
 
@@ -683,12 +715,23 @@ function initMarketplaceRoulette() {
     goToIndex(targetIdx, 0.45);
   }
 
+  const onResize = () => {
+    applyPosition(currentIndex, false);
+  };
+
   track.addEventListener('touchstart', onPointerDown, { passive: true });
   track.addEventListener('touchmove', onPointerMove, { passive: true });
   track.addEventListener('touchend', onPointerUp, { passive: true });
   track.addEventListener('mousedown', onPointerDown);
   window.addEventListener('mousemove', onPointerMove);
   window.addEventListener('mouseup', onPointerUp);
+  window.addEventListener('resize', onResize);
+
+  window.__mpCleanup = () => {
+    window.removeEventListener('mousemove', onPointerMove);
+    window.removeEventListener('mouseup', onPointerUp);
+    window.removeEventListener('resize', onResize);
+  };
 
   track.onclick = (e) => {
     if (hasDragged) return;
@@ -702,10 +745,6 @@ function initMarketplaceRoulette() {
       if (window.tgUtil && window.tgUtil.alert) window.tgUtil.alert('Ссылка на площадку будет добавлена позже');
     }
   };
-
-  window.addEventListener('resize', () => {
-    applyPosition(currentIndex, false);
-  });
 
   // Запуск: фиксация на Dewu сразу при загрузке
   applyPosition(currentIndex, false);

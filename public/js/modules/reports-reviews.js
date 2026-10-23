@@ -6,16 +6,20 @@
       try {
         let reportsData = null;
         if (window.CacheDB) {
-          reportsData = await window.CacheDB.get('public_reports_feed', async () => {
+          try {
+            if (typeof window.CacheDB.delete === 'function') window.CacheDB.delete('public_reports_feed');
+            if (typeof window.CacheDB.remove === 'function') window.CacheDB.remove('public_reports_feed');
+          } catch(e) {}
+          reportsData = await window.CacheDB.get('public_reports_feed_v3', async () => {
             const { data: rep } = await supabaseClient.from('public_reports').select('*').eq('is_active', true).order('created_at', { ascending: false });
             return { data: rep || [] };
-          }, 60000);
+          }, 30000);
         } else {
           const { data: rep } = await supabaseClient.from('public_reports').select('*').eq('is_active', true).order('created_at', { ascending: false });
           reportsData = { data: rep || [] };
         }
         
-        const data = reportsData?.data || [];
+        const data = (reportsData?.data || []).filter(r => r && r.title && r.title.trim() && r.image_url);
         
         if (data.length === 0) {
           return `
@@ -28,11 +32,30 @@
                 </button>
                 <div class="flex-1 min-w-0">
                   <h2 class="text-xl font-bold text-white tracking-wide">Публичные отчёты</h2>
-                  <p class="text-[11px] text-white/40">Фото и видео доставленных заказов</p>
+                  <p class="text-[11px] text-white/40">Фото и распаковки доставленных заказов</p>
                 </div>
               </div>
-              <div class="text-center py-10">
-                <p class="text-white/70">Пока нет публичных отчётов</p>
+
+              <div class="glass-card p-6 text-center border border-white/10 rounded-2xl relative overflow-hidden bg-white/[0.02] my-4 shadow-xl">
+                <div class="absolute -right-8 -top-8 w-28 h-28 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                <div class="absolute -left-8 -bottom-8 w-28 h-28 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                
+                <div class="w-16 h-16 mx-auto mb-3.5 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 flex items-center justify-center shadow-lg shadow-cyan-500/10">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                  </svg>
+                </div>
+                
+                <h3 class="text-white font-bold text-base tracking-wide">Пока нет опубликованных отчётов</h3>
+                <p class="text-white/50 text-xs mt-2 max-w-xs mx-auto leading-relaxed">
+                  Здесь публикуются живые фото и видео распаковок выкупленных заказов после их поступления на наш склад и вручения клиентам.
+                </p>
+
+                <div class="mt-5 pt-3.5 border-t border-white/10 flex items-center justify-center gap-2 text-cyan-400 text-[11px] font-semibold">
+                  <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                  <span>Лента пополняется по мере доставок</span>
+                </div>
               </div>
             </div>
             ${renderFooter()}
@@ -56,13 +79,6 @@
               let mediaUrls = [];
               try { mediaUrls = JSON.parse(report.image_url); } catch(e) { mediaUrls = [report.image_url]; }
               if (!Array.isArray(mediaUrls)) mediaUrls = [report.image_url];
-              
-              const carouselHtml = mediaUrls.map((url, idx) => `
-                <div class="w-full flex-shrink-0 relative h-72">
-                  ${report.type === 'video' ? `<video src="${url}" class="w-full h-full object-cover" controls></video>` : `<img src="${url}" class="w-full h-full object-cover" alt="${report.title}" onclick="tgUtil.popup('${url}', 'Фото отчета')">`}
-                  ${mediaUrls.length > 1 ? `<div class="absolute bottom-2 right-2 bg-black/60 px-2 py-1 rounded-full text-white text-[10px]">${idx + 1} / ${mediaUrls.length}</div>` : ''}
-                </div>
-              `).join('');
 
               return `
               <div class="glass-card overflow-hidden !p-0 border border-white/5 shadow-xl">
@@ -83,7 +99,7 @@
                   </div>
                 </div>
               </div>
-            `}).join('')}
+            `;}).join('')}
           </div>
           </div>
           ${renderFooter()}

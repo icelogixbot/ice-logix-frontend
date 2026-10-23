@@ -2302,47 +2302,63 @@ function attachCartHandlers() {
 }
 
 async function updateCartBadge() {
-  if (!userId) return;
+  const currentUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
+  
+  let count = 0;
   try {
-    const { data } = await supabaseClient.from('cart').select('quantity').eq('user_id', userId);
-    let count = 0;
-    if (data) {
-      count = data.reduce((sum, item) => sum + (item.quantity || 0), 0);
-    }
-    const badge = document.getElementById('cartBadge');
-    if (badge) {
-      if (count > 0) {
-        badge.innerText = count > 99 ? '99+' : count;
-        badge.classList.remove('hidden');
-      } else {
-        badge.classList.add('hidden');
+    const localCustom = JSON.parse(localStorage.getItem('ice_custom_cart') || '[]');
+    if (Array.isArray(localCustom)) count += localCustom.length;
+  } catch(_) {}
+
+  if (currentUserId && typeof supabaseClient !== 'undefined') {
+    try {
+      const { data } = await supabaseClient.from('cart').select('quantity').eq('user_id', currentUserId);
+      if (data) {
+        count = data.reduce((sum, item) => sum + (item.quantity || 0), count);
       }
+    } catch (e) {
+      console.error('Failed to update cart badge:', e);
     }
-    const tabBadge = document.getElementById('tabCartBadge');
-    if (tabBadge) {
-      if (count > 0) {
-        tabBadge.innerText = count > 99 ? '99+' : count;
-        tabBadge.classList.remove('hidden');
-      } else {
-        tabBadge.classList.add('hidden');
-      }
-    }
-  } catch (e) {
-    console.error('Failed to update cart badge:', e);
   }
+
   try {
-    const { count } = await supabaseClient.from('wishlist').select('*', { count: 'exact', head: true }).eq('user_id', userId);
-    const badge = document.getElementById('wishlistBadge');
-    if (badge) {
-      if (count > 0) {
-        badge.innerText = count > 99 ? '99+' : count;
-        badge.classList.remove('hidden');
-      } else {
-        badge.classList.add('hidden');
-      }
+    localStorage.setItem('ice_cart_count', count.toString());
+  } catch(_) {}
+
+  const badge = document.getElementById('cartBadge');
+  if (badge) {
+    if (count > 0) {
+      badge.innerText = count > 99 ? '99+' : count;
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
     }
-  } catch (e) {
-    console.error('Failed to update wishlist badge:', e);
+  }
+  const tabBadge = document.getElementById('tabCartBadge');
+  if (tabBadge) {
+    if (count > 0) {
+      tabBadge.innerText = count > 99 ? '99+' : count;
+      tabBadge.classList.remove('hidden');
+    } else {
+      tabBadge.classList.add('hidden');
+    }
+  }
+
+  if (currentUserId && typeof supabaseClient !== 'undefined') {
+    try {
+      const { count: wishCount } = await supabaseClient.from('wishlist').select('*', { count: 'exact', head: true }).eq('user_id', currentUserId);
+      const wBadge = document.getElementById('wishlistBadge');
+      if (wBadge) {
+        if (wishCount > 0) {
+          wBadge.innerText = wishCount > 99 ? '99+' : wishCount;
+          wBadge.classList.remove('hidden');
+        } else {
+          wBadge.classList.add('hidden');
+        }
+      }
+    } catch (e) {
+      console.error('Failed to update wishlist badge:', e);
+    }
   }
 }
 
@@ -2367,4 +2383,16 @@ if (typeof renderCart === 'function') window.renderCart = renderCart;
 if (typeof attachCartHandlers === 'function') window.attachCartHandlers = attachCartHandlers;
 if (typeof getCartRowQuantity === 'function') window.getCartRowQuantity = getCartRowQuantity;
 if (typeof updateCartTotal === 'function') window.updateCartTotal = updateCartTotal;
-if (typeof updateCartBadge === 'function') window.updateCartBadge = updateCartBadge;
+if (typeof updateCartBadge === 'function') {
+  window.updateCartBadge = updateCartBadge;
+  try {
+    const _cached = localStorage.getItem('ice_cart_count');
+    if (_cached && parseInt(_cached) > 0) {
+      const _tb = document.getElementById('tabCartBadge');
+      if (_tb) {
+        _tb.innerText = parseInt(_cached) > 99 ? '99+' : _cached;
+        _tb.classList.remove('hidden');
+      }
+    }
+  } catch(_) {}
+}

@@ -57,13 +57,13 @@
   <script src="/js/modules/dropship.js?v=20261017_02"></script>
   <script src="/js/modules/academy.js?v=20261017_02"></script>
   <script src="/js/modules/about-faq.js?v=20261024_05"></script>
-  <script src="/js/modules/promos-history.js?v=20261024_01"></script>
+  <script src="/js/modules/promos-history.js?v=20261024_03"></script>
   <script src="/js/modules/legitcheck.js?v=20261017_02"></script>
   <script src="/js/modules/admin.js?v=20261024_05"></script>
   <script src="/js/modules/admin-analytics.js?v=20261005"></script>
-  <script src="/js/modules/sku-selector.js?v=20261024_03"></script>
-  <script src="/js/modules/orders.js?v=20261024_05"></script>
-  <script src="/js/modules/reports-reviews.js?v=20261024_06"></script>
+  <script src="/js/modules/sku-selector.js?v=20261024_07"></script>
+  <script src="/js/modules/orders.js?v=20261024_07"></script>
+  <script src="/js/modules/reports-reviews.js?v=20261024_07"></script>
   <script src="/js/modules/catalogs.js?v=20261024_02"></script>
   <script src="/js/modules/profile-modals.js?v=20261017_02"></script>
   <script src="/js/modules/resale.js?v=20261024_05"></script>
@@ -341,9 +341,21 @@
   </div>
   </div>
   <!-- ICE LOGIX Core Engine & Lifecycle Router -->
-  <script src="/js/core/app-core.js?v=20261024_03"></script>
-  <script src="/js/modules/home.js?v=20261024_05"></script>
-  <script src="/js/modules/calculator.js?v=20261024_03"></script>
+  <script>
+    (function() {
+      try {
+        var c = localStorage.getItem('ice_cart_count');
+        var b = document.getElementById('tabCartBadge');
+        if (b && c && parseInt(c) > 0) {
+          b.innerText = parseInt(c) > 99 ? '99+' : c;
+          b.classList.remove('hidden');
+        }
+      } catch(e) {}
+    })();
+  </script>
+  <script src="/js/core/app-core.js?v=20261024_04"></script>
+  <script src="/js/modules/home.js?v=20261024_07"></script>
+  <script src="/js/modules/calculator.js?v=20261024_07"></script>
   <script src="/js/modules/profile.js?v=20261024_02"></script>
   <script src="/js/modules/finances.js?v=20261017_02"></script>
   <script defer src="/js/core/router.js?v=20261017_01"></script>

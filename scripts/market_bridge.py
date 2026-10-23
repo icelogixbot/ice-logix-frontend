@@ -6,6 +6,7 @@ import json
 import random
 import threading
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 import xml.etree.ElementTree as ET
 from urllib.parse import urlparse, parse_qs
 from typing import Optional, Dict, Any, List
@@ -200,7 +201,7 @@ def translate_title(cn_title: str) -> str:
         parts.append("Куртка")
     elif "包" in t:
         parts.append("Сумка")
-    elif "手表" in t:
+    elif any(x in t for x in ["手表", "表", "石英表", "机械表"]) or "watch" in t.lower():
         parts.append("Часы")
     elif "耳机" in t:
         parts.append("Наушники")
@@ -614,8 +615,8 @@ def capture_hd_studio_and_variants(goods_id: str, root: ET.Element, colors: List
     """
     Captures:
     1. The master Ultra-HD studio image (900x900) by tapping drawer preview box -> full-screen gallery.
-    2. Clean micro-thumbnail icons for each color variant (cropping left square only, 0 Chinese text).
-    3. Real studio variant preview images (180x180, ~8KB) for each color by tapping color options.
+    2. Clean micro-thumbnail icons for each color variant (cropping left square only, 0 Chinese text),
+       uploaded concurrently in parallel via ThreadPoolExecutor for lightning speed (< 2-3s total).
     """
     thumb_bounds = None
     for n in root.iter('node'):
@@ -633,12 +634,12 @@ def capture_hd_studio_and_variants(goods_id: str, root: ET.Element, colors: List
     if thumb_bounds:
         cx, cy = (thumb_bounds[0] + thumb_bounds[2]) // 2, (thumb_bounds[1] + thumb_bounds[3]) // 2
         run_adb(["shell", f"input tap {cx} {cy}"])
-        time.sleep(0.5)
+        time.sleep(0.4)
         temp_hd = os.path.join(PARSED_UPLOADS_DIR, f"temp_hd_{goods_id}.png")
         run_adb(["shell", "screencap", "-p", "/sdcard/hd_prev.png"])
         run_adb(["pull", "/sdcard/hd_prev.png", temp_hd])
         run_adb(["shell", "input", "keyevent", "4"])  # Close gallery back to drawer
-        time.sleep(0.35)
+        time.sleep(0.3)
         
         if os.path.exists(temp_hd):
             try:
@@ -646,7 +647,10 @@ def capture_hd_studio_and_variants(goods_id: str, root: ET.Element, colors: List
                 crop = im.crop((0, 280, 900, 1180)).convert("RGB")
                 out_hd = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}_hd.jpg")
                 crop.save(out_hd, "JPEG", quality=92)
-                os.remove(temp_hd)
+                try:
+                    os.remove(temp_hd)
+                except Exception:
+                    pass
                 if supabase_client:
                     rem_name = f"sku_{goods_id}_hd_{int(time.time())}.jpg"
                     with open(out_hd, "rb") as f:
@@ -661,6 +665,7 @@ def capture_hd_studio_and_variants(goods_id: str, root: ET.Element, colors: List
     run_adb(["shell", "screencap", "-p", "/sdcard/drawer_screen.png"])
     run_adb(["pull", "/sdcard/drawer_screen.png", temp_drawer])
     
+    upload_tasks = []
     if os.path.exists(temp_drawer):
         try:
             im_d = Image.open(temp_drawer).convert("RGB")
@@ -671,12 +676,16 @@ def capture_hd_studio_and_variants(goods_id: str, root: ET.Element, colors: List
                 c_main.save(out_main, "JPEG", quality=90)
                 if supabase_client:
                     rem_name = f"sku_{goods_id}_{int(time.time())}.jpg"
-                    with open(out_main, "rb") as f:
-                        supabase_client.storage.from_("product-screenshots").upload(rem_name, f.read(), {"content-type": "image/jpeg"})
-                    hd_pub_url = supabase_client.storage.from_("product-screenshots").get_public_url(rem_name)
+                    try:
+                        with open(out_main, "rb") as f:
+                            supabase_client.storage.from_("product-screenshots").upload(rem_name, f.read(), {"content-type": "image/jpeg"})
+                        hd_pub_url = supabase_client.storage.from_("product-screenshots").get_public_url(rem_name)
+                    except Exception as me:
+                        print("Failed main thumbnail upload:", me)
 
             # Crop clean micro-thumbnail icons for each color button (0 Chinese text!)
             for idx, col in enumerate(colors):
+                col["image_url"] = hd_pub_url or f"/uploads/parsed/sku_{goods_id}.jpg"
                 b_str = col.get("bounds")
                 if b_str:
                     x1, y1, x2, y2 = parse_bounds(b_str)
@@ -691,73 +700,34 @@ def capture_hd_studio_and_variants(goods_id: str, root: ET.Element, colors: List
                         
                         icon_path = os.path.join(PARSED_UPLOADS_DIR, f"col_{goods_id}_{idx}_icon.jpg")
                         c_icon.save(icon_path, "JPEG", quality=90)
+                        col["thumb_url"] = f"/uploads/parsed/col_{goods_id}_{idx}_icon.jpg"
+                        
                         if supabase_client:
-                            rem_icon = f"col_{goods_id}_{idx}_icon_{int(time.time())}.jpg"
-                            try:
-                                with open(icon_path, "rb") as f:
-                                    supabase_client.storage.from_("product-screenshots").upload(rem_icon, f.read(), {"content-type": "image/jpeg"})
-                                col["thumb_url"] = supabase_client.storage.from_("product-screenshots").get_public_url(rem_icon)
-                            except Exception:
-                                col["thumb_url"] = f"/uploads/parsed/col_{goods_id}_{idx}_icon.jpg"
+                            rem_icon = f"col_{goods_id}_{idx}_icon_{int(time.time())}_{idx}.jpg"
+                            upload_tasks.append((idx, icon_path, rem_icon))
 
-            os.remove(temp_drawer)
+            # Concurrently upload micro-thumbnails to Supabase
+            if supabase_client and upload_tasks:
+                def _do_upload(task):
+                    i, p, r = task
+                    try:
+                        with open(p, "rb") as fl:
+                            supabase_client.storage.from_("product-screenshots").upload(r, fl.read(), {"content-type": "image/jpeg"})
+                        return i, supabase_client.storage.from_("product-screenshots").get_public_url(r)
+                    except Exception:
+                        return i, None
+
+                with ThreadPoolExecutor(max_workers=min(len(upload_tasks), 6)) as ex:
+                    for i, pub_url in ex.map(_do_upload, upload_tasks):
+                        if pub_url:
+                            colors[i]["thumb_url"] = pub_url
+
+            try:
+                os.remove(temp_drawer)
+            except Exception:
+                pass
         except Exception as d_err:
             print("Color variant icons error:", d_err)
-
-    # 3. Capture real studio preview photos for each color variant (up to 5 colors, ~8KB each)
-    if thumb_bounds and colors:
-        default_color_idx = 0
-        for i, c in enumerate(colors):
-            if c.get("selected"):
-                default_color_idx = i
-                break
-        
-        # Default selected color gets the master HD studio photo
-        colors[default_color_idx]["image_url"] = hd_pub_url
-
-        # For remaining colors, capture the studio preview box [thumb_bounds]
-        for idx, col in enumerate(colors):
-            if idx == default_color_idx:
-                continue
-            if idx > 5:
-                # Limit to 5 colors for speed; remaining colors safely fallback to master HD shot
-                col["image_url"] = hd_pub_url
-                continue
-
-            b_str = col.get("bounds")
-            if b_str:
-                bx1, by1, bx2, by2 = parse_bounds(b_str)
-                cx, cy = (bx1 + bx2) // 2, (by1 + by2) // 2
-                run_adb(["shell", f"input tap {cx} {cy}"])
-                time.sleep(0.3)
-                temp_v = os.path.join(PARSED_UPLOADS_DIR, f"temp_v_{goods_id}_{idx}.png")
-                run_adb(["shell", "screencap", "-p", "/sdcard/v_prev.png"])
-                run_adb(["pull", "/sdcard/v_prev.png", temp_v])
-                if os.path.exists(temp_v):
-                    try:
-                        im_v = Image.open(temp_v).convert("RGB")
-                        c_studio = im_v.crop(thumb_bounds)
-                        v_out = os.path.join(PARSED_UPLOADS_DIR, f"col_{goods_id}_{idx}_studio.jpg")
-                        c_studio.save(v_out, "JPEG", quality=88)
-                        os.remove(temp_v)
-                        if supabase_client:
-                            rem_v = f"col_{goods_id}_{idx}_studio_{int(time.time())}.jpg"
-                            with open(v_out, "rb") as f:
-                                supabase_client.storage.from_("product-screenshots").upload(rem_v, f.read(), {"content-type": "image/jpeg"})
-                            col["image_url"] = supabase_client.storage.from_("product-screenshots").get_public_url(rem_v)
-                        else:
-                            col["image_url"] = f"/uploads/parsed/col_{goods_id}_{idx}_studio.jpg"
-                    except Exception as ve:
-                        print(f"Error capturing studio preview for color {idx}:", ve)
-                        col["image_url"] = hd_pub_url
-            else:
-                col["image_url"] = hd_pub_url
-
-        # Restore default selected color by tapping it back
-        orig_bounds = colors[default_color_idx].get("bounds")
-        if orig_bounds:
-            ox1, oy1, ox2, oy2 = parse_bounds(orig_bounds)
-            run_adb(["shell", f"input tap {(ox1+ox2)//2} {(oy1+oy2)//2}"])
 
     return hd_pub_url or f"/uploads/parsed/sku_{goods_id}.jpg"
 
