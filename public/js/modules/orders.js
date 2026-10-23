@@ -212,189 +212,123 @@ window.applySmartShareLink = applySmartShareLink;
 
       // Initialize order structure
       if (!window.tempOrder) {
-        window.tempOrder = { items: [], total: 0, discountAmount: 0, appliedPromo: null, country: null };
+        window.tempOrder = { items: [], total: 0, discountAmount: 0, appliedPromo: null, country: 'CN' };
       }
       window.tempOrder.items = window.tempOrder.items || [];
+      window.orderCountry = 'CN';
+      if (!window.tempOrder.country) {
+        window.tempOrder.country = 'CN';
+      }
 
       // Auto force orderAddMode if no items are added yet
       if (window.tempOrder.items.length === 0) {
         window.orderAddMode = true;
       }
 
-        // ── STEP A: Country Selection Overlay (if no country selected yet) ──
-        if (!window.orderCountry) {
+      if (window.orderAddMode) {
+        // ── STEP B: Mode Selection Overlay (if no mode selected yet) ──
+        if (!window.orderAddSubMode) {
           const hasExistingItems = window.tempOrder && window.tempOrder.items && window.tempOrder.items.length > 0;
           return `
-            <div class="space-y-4 page-enter">
-              ${hasExistingItems ? `
-                <div class="flex items-center gap-3 mb-2">
-                  <button type="button" class="global-back-btn !mb-0" onclick="window.orderAddMode = false; renderCurrentScreen();" title="Назад к заказу">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="15 18 9 12 15 6"/>
-                    </svg>
-                  </button>
-                  <p class="text-xs text-white/60">Вернуться к заказу</p>
-                </div>
-              ` : ''}
-              <div class="glass-card p-5 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
-                <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
-                <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
+          <style>
+            .order-mode-card {
+              transition: all 0.2s ease-in-out;
+            }
+            .order-mode-card:hover {
+              border-color: rgba(6, 182, 212, 0.4) !important;
+              transform: translateY(-2px) scale(1.01);
+              box-shadow: 0 4px 20px -2px rgba(6, 182, 212, 0.15);
+            }
+            .order-mode-card:active {
+              transform: scale(0.97) !important;
+              background-color: rgba(6, 182, 212, 0.08) !important;
+              border-color: rgba(6, 182, 212, 0.7) !important;
+              box-shadow: 0 0 10px rgba(6, 182, 212, 0.3);
+            }
+          </style>
 
-                <h2 class="text-xl font-extrabold text-white text-center mb-1">Выберите страну отправления</h2>
-                <p class="text-white/60 text-xs text-center mb-5">От страны зависят тарифы на доставку и пошлины</p>
-
-                <div class="flex flex-col gap-2.5">
-                  ${ALL_COUNTRIES.map(c => {
-                    if (c.active) {
-                      return `
-                        <div class="border border-white/10 hover:border-cyan-500/50 p-3.5 rounded-2xl bg-white/5 cursor-pointer transition-all duration-200" onclick="window.selectOrderCountry('${c.code}')">
-                          <div class="flex items-center gap-3">
-                            <div class="text-2xl">${c.flag}</div>
-                            <div class="flex-1 text-left">
-                              <h3 class="font-bold text-white text-sm">${c.name} (${c.platforms})</h3>
-                              <p class="text-white/40 text-[10px] leading-normal mt-0.5">${c.desc}</p>
-                            </div>
-                            <span class="text-cyan-400 text-xs font-bold bg-cyan-500/10 px-2 py-0.5 rounded-lg border border-cyan-500/20">Работает</span>
-                          </div>
-                        </div>
-                      `;
-                    } else {
-                      return `
-                        <div class="border border-white/5 p-3.5 rounded-2xl bg-white/[0.02] opacity-50 cursor-pointer transition-all duration-200" onclick="window.selectOrderCountry('${c.code}')">
-                          <div class="flex items-center gap-3">
-                            <div class="text-2xl">${c.flag}</div>
-                            <div class="flex-1 text-left">
-                              <h3 class="font-bold text-white/70 text-sm">${c.name} (${c.platforms})</h3>
-                              <p class="text-white/30 text-[10px] leading-normal mt-0.5">${c.desc}</p>
-                            </div>
-                            <span class="text-white/40 text-[10px] font-semibold bg-white/5 px-2 py-0.5 rounded-lg border border-white/10">Скоро</span>
-                          </div>
-                        </div>
-                      `;
-                    }
-                  }).join('')}
-                </div>
-              </div>
+          <div class="space-y-4 page-enter">
+            <div class="flex items-center gap-3 mb-2">
+              <button type="button" class="global-back-btn !mb-0" onclick="${hasExistingItems ? 'window.orderAddMode = false; renderCurrentScreen();' : 'switchTab(\'home\');'}" title="${hasExistingItems ? 'Назад к заказу' : 'Назад на главную'}">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+              </button>
+              <p class="text-xs text-white/60">${hasExistingItems ? 'Вернуться к заказу' : 'Назад'}</p>
             </div>
-            ${renderFooter()}
-          `;
-        }
-        if (window.orderAddMode) {
-          // ── STEP B: Mode Selection Overlay (if country selected but no mode selected yet) ──
-          if (!window.orderAddSubMode) {
-            return `
-            <style>
-              .order-mode-card {
-                transition: all 0.2s ease-in-out;
-              }
-              .order-mode-card:hover {
-                border-color: rgba(6, 182, 212, 0.4) !important;
-                transform: translateY(-2px) scale(1.01);
-                box-shadow: 0 4px 20px -2px rgba(6, 182, 212, 0.15);
-              }
-              .order-mode-card:active {
-                transform: scale(0.97) !important;
-                background-color: rgba(6, 182, 212, 0.08) !important;
-                border-color: rgba(6, 182, 212, 0.7) !important;
-                box-shadow: 0 0 10px rgba(6, 182, 212, 0.3);
-              }
-            </style>
 
-            <div class="space-y-4 page-enter">
-              <div class="flex items-center gap-3 mb-2">
-                <button type="button" class="global-back-btn !mb-0" onclick="window.orderCountry=null; renderCurrentScreen();" title="Назад к выбору страны">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="15 18 9 12 15 6"/>
-                  </svg>
-                </button>
-                <p class="text-xs text-white/60">К выбору страны</p>
-              </div>
+            <div class="glass-card p-5 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
+              <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
+              <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
 
-              <div class="glass-card p-5 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
-                <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
-                <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
+              <h2 class="text-xl font-extrabold text-white text-center mb-1">Добавление товара в заказ</h2>
+              <p class="text-white/60 text-xs text-center mb-5">Выберите способ добавления товара</p>
+              
+              ${vacationBanner}
 
-                <h2 class="text-xl font-extrabold text-white text-center mb-1">Добавление товара в заказ</h2>
-                <p class="text-white/60 text-xs text-center mb-5">Выберите способ добавления товара</p>
-                
-                ${vacationBanner}
-
-                <div class="flex flex-col gap-3">
-                  <!-- Import from calculator -->
-                  <div class="order-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.setOrderAddSubMode('import')">
-                    <div class="flex items-center gap-3">
-                      <div class="w-10 h-10 rounded-xl bg-green-500/10 border border-green-500/25 flex items-center justify-center text-green-400 text-lg">
-                        📥
-                      </div>
-                      <div class="flex-1 min-w-0">
-                        <h3 class="font-bold text-white text-sm">Импорт из расчетов</h3>
-                        <p class="text-white/50 text-[11px] leading-normal mt-0.5">Выберите готовый расчет из вашей истории калькулятора.</p>
-                      </div>
+              <div class="flex flex-col gap-3">
+                <!-- Import from calculator -->
+                <div class="order-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.setOrderAddSubMode('import')">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-green-500/10 border border-green-500/25 flex items-center justify-center text-green-400 text-lg">
+                      📥
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <h3 class="font-bold text-white text-sm">Импорт из расчетов</h3>
+                      <p class="text-white/50 text-[11px] leading-normal mt-0.5">Выберите готовый расчет из вашей истории калькулятора.</p>
                     </div>
                   </div>
+                </div>
 
-                  <!-- Link -->
-                  <div class="order-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.setOrderAddSubMode('link')">
-                    <div class="flex items-center gap-3">
-                      <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/25 flex items-center justify-center text-purple-400 text-lg">
-                        🔗
-                      </div>
-                      <div class="flex-1 min-w-0">
-                        <h3 class="font-bold text-white text-sm">Заказать по ссылке</h3>
-                        <p class="text-white/50 text-[11px] leading-normal mt-0.5">Вставьте ссылку на товар — нейросеть заполнит форму сама.</p>
-                      </div>
+                <!-- Link -->
+                <div class="order-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.setOrderAddSubMode('link')">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/25 flex items-center justify-center text-purple-400 text-lg">
+                      🔗
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <h3 class="font-bold text-white text-sm">Заказать по ссылке</h3>
+                      <p class="text-white/50 text-[11px] leading-normal mt-0.5">Вставьте ссылку на товар — нейросеть заполнит форму сама.</p>
                     </div>
                   </div>
+                </div>
 
-                  <!-- Photo -->
-                  <div class="order-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.setOrderAddSubMode('photo')">
-                    <div class="flex items-center gap-3">
-                      <div class="w-10 h-10 rounded-xl bg-pink-500/10 border border-pink-500/25 flex items-center justify-center text-pink-400 text-lg">
-                        📸
-                      </div>
-                      <div class="flex-1 min-w-0">
-                        <h3 class="font-bold text-white text-sm">Заказать по фото</h3>
-                        <p class="text-white/50 text-[11px] leading-normal mt-0.5">Поиск товара по изображению и автозаполнение.</p>
-                      </div>
+                <!-- Photo -->
+                <div class="order-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.setOrderAddSubMode('photo')">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-pink-500/10 border border-pink-500/25 flex items-center justify-center text-pink-400 text-lg">
+                      📸
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <h3 class="font-bold text-white text-sm">Заказать по фото</h3>
+                      <p class="text-white/50 text-[11px] leading-normal mt-0.5">Поиск товара по изображению и автозаполнение.</p>
                     </div>
                   </div>
+                </div>
 
-                  <!-- Description -->
-                  <div class="order-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.setOrderAddSubMode('text')">
-                    <div class="flex items-center gap-3">
-                      <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400 text-lg">
-                        📝
-                      </div>
-                      <div class="flex-1 min-w-0">
-                        <h3 class="font-bold text-white text-sm">Заказать по описанию</h3>
-                        <p class="text-white/50 text-[11px] leading-normal mt-0.5">Текстовое описание товара для автоподбора параметров.</p>
-                      </div>
+                <!-- Description -->
+                <div class="order-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.setOrderAddSubMode('text')">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400 text-lg">
+                      📝
                     </div>
-                  </div>
-
-                  <!-- Manual -->
-                  <div class="order-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.setOrderAddSubMode('manual')">
-                    <div class="flex items-center gap-3">
-                      <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center text-cyan-400 text-lg">
-                        ✍️
-                      </div>
-                      <div class="flex-1 min-w-0">
-                        <h3 class="font-bold text-white text-sm">Указать вручную (без ссылки)</h3>
-                        <p class="text-white/50 text-[11px] leading-normal mt-0.5">Введите параметры товара самостоятельно.</p>
-                      </div>
+                    <div class="flex-1 min-w-0">
+                      <h3 class="font-bold text-white text-sm">Заказать по описанию</h3>
+                      <p class="text-white/50 text-[11px] leading-normal mt-0.5">Текстовое описание товара для автоподбора параметров.</p>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            ${renderFooter()}
-          `;
-        }
+          </div>
+          ${renderFooter()}
+        `;
+      }
 
         // ── STEP C: Product addition Form ──
         const subMode = window.orderAddSubMode;
-        const subModeText = subMode === 'manual' ? '✍️ Вручную' : subMode === 'link' ? '🔗 По ссылке' : subMode === 'photo' ? '📸 По фото' : subMode === 'import' ? '📥 Из расчетов' : '📝 По описанию';
-        const showFormFields = (subMode !== 'link' && subMode !== 'import' || window.orderLinkAnalyzed);
+        const subModeText = subMode === 'link' ? '🔗 По ссылке' : subMode === 'photo' ? '📸 По фото' : subMode === 'import' ? '📥 Из расчетов' : '📝 По описанию';
+        const showFormFields = Boolean(window.orderLinkAnalyzed);
 
         let importListHtml = '';
         if (subMode === 'import') {
@@ -403,13 +337,13 @@ window.applySmartShareLink = applySmartShareLink;
             calculations = JSON.parse(localStorage.getItem('ice_calc_history') || '[]');
           } catch(e) {}
           
-          const filteredCalcs = calculations.filter(c => c.country === window.orderCountry);
+          const filteredCalcs = calculations.filter(c => c.country === 'CN' || !c.country || c.country === window.orderCountry);
           if (filteredCalcs.length === 0) {
             importListHtml = `
               <div class="text-center py-8 text-white/50 text-xs bg-white/5 rounded-2xl border border-white/10 p-4">
                 <span class="text-2xl mb-2 block">📭</span>
-                <p class="font-semibold">История расчетов для этой страны пуста</p>
-                <p class="mt-1 text-white/30 text-[10px]">Сначала сделайте расчет в Калькуляторе для страны: ${window.orderCountry === 'CN' ? 'Китай' : window.orderCountry}</p>
+                <p class="font-semibold">История расчетов пуста</p>
+                <p class="mt-1 text-white/30 text-[10px]">Сначала сделайте расчет в Калькуляторе</p>
               </div>
             `;
           } else {
@@ -440,11 +374,6 @@ window.applySmartShareLink = applySmartShareLink;
           }
         }
 
-        const selectedOrderCountryObj = ALL_COUNTRIES.find(c => c.code === window.orderCountry);
-        const countryText = selectedOrderCountryObj 
-          ? `${selectedOrderCountryObj.flag} ${selectedOrderCountryObj.name}`
-          : (window.orderCountry || '');
-
         return `
           <div class="space-y-4 page-enter">
             <div class="flex items-center gap-3 mb-2">
@@ -460,27 +389,16 @@ window.applySmartShareLink = applySmartShareLink;
               <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
               <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
 
-              <!-- Mode & Country Indicators -->
-              <div class="grid grid-cols-2 gap-3 mb-4 bg-white/5 p-3 rounded-2xl border border-white/5">
-              <div class="flex justify-between items-center bg-white/5 p-2.5 rounded-xl border border-white/5">
+              <!-- Mode Indicator -->
+              <div class="flex justify-between items-center bg-white/5 p-3 rounded-2xl border border-white/5 mb-4">
                 <div class="text-left">
-                  <span class="text-[10px] text-white/40 block">Режим</span>
+                  <span class="text-[10px] text-white/40 block">Способ добавления</span>
                   <span class="text-xs font-bold text-white">${subModeText}</span>
                 </div>
-                <button type="button" class="text-[10px] text-cyan-400 font-bold bg-white/10 px-2 py-1 rounded-lg hover:bg-white/15 transition active:scale-95 border border-white/5" onclick="window.orderAddSubMode=null; window.orderLinkAnalyzed=false; renderCurrentScreen()">
-                  Сменить
+                <button type="button" class="text-[10px] text-cyan-400 font-bold bg-white/10 px-2.5 py-1 rounded-lg hover:bg-white/15 transition active:scale-95 border border-white/5" onclick="window.orderAddSubMode=null; window.orderLinkAnalyzed=false; renderCurrentScreen()">
+                  Сменить способ
                 </button>
               </div>
-              <div class="flex justify-between items-center bg-white/5 p-2.5 rounded-xl border border-white/5">
-                <div class="text-left">
-                  <span class="text-[10px] text-white/40 block">Страна</span>
-                  <span class="text-xs font-bold text-white">${countryText}</span>
-                </div>
-                <button type="button" class="text-[10px] text-cyan-400 font-bold bg-white/10 px-2 py-1 rounded-lg hover:bg-white/15 transition active:scale-95 border border-white/5" onclick="window.orderCountry=null; renderCurrentScreen()">
-                  Сменить
-                </button>
-              </div>
-            </div>
 
             <!-- Mode-specific input views -->
             <!-- Import Pane -->
@@ -1022,9 +940,6 @@ window.applySmartShareLink = applySmartShareLink;
         <div class="glass-card page-enter">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-bold"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></span> Оформление заказа</h2>
-            <button class="text-xs text-cyan-400 bg-white/5 px-3 py-1.5 rounded-full hover:bg-white/10 transition" onclick="resetOrderCountry()">
-              ${window.orderCountry === 'CN' ? '🇨🇳 Китай' : window.orderCountry === 'PL' ? '🇵🇱 Польша' : '🇷🇺 Россия'} <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></span> Сменить
-            </button>
           </div>
           
           ${vacationBanner}
@@ -1632,7 +1547,7 @@ window.applySmartShareLink = applySmartShareLink;
               }
 
               window.tempOrder = null;
-              window.orderCountry = null;
+              window.orderCountry = 'CN';
               delete _tabCache['cart:'];
               delete _tabCache['profile:'];
               delete _tabCache['home:'];

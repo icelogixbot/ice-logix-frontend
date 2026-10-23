@@ -421,7 +421,7 @@
         const c = JSON.parse(decodeURIComponent(serializedData));
         tgUtil.haptic('success');
         
-        window.orderAddSubMode = 'manual';
+        window.orderAddSubMode = 'import';
         window.orderLinkAnalyzed = true;
         
         renderCurrentScreen();
@@ -1037,9 +1037,10 @@
         toNewOrderBtn.onclick = () => {
           if (!window.tempOrder) return;
           
-          window.orderCountry = window.tempOrder.country || 'CN';
+          window.orderCountry = 'CN';
           window.orderAddMode = true;
-          window.orderAddSubMode = 'manual';
+          window.orderAddSubMode = 'import';
+          window.orderLinkAnalyzed = true;
           
           setTimeout(() => {
             const oTitle = document.getElementById('orderTitle');
@@ -1117,23 +1118,13 @@
     };
 
     window.resetOrderCountry = () => {
-      tgUtil.confirm('Смена страны очистит список добавленных товаров. Продолжить?').then(ok => {
-        if (ok) {
-          window.orderCountry = null;
-          window.tempOrder = null;
-          window.orderAddMode = false;
-          renderCurrentScreen();
-        }
-      });
+      window.orderCountry = 'CN';
     };
 
     window.startOrderAddMode = () => {
       window.orderAddMode = true;
       window.orderAddSubMode = null;
-      // Only reset country if order is empty
-      if (!window.tempOrder || !window.tempOrder.items || window.tempOrder.items.length === 0) {
-        window.orderCountry = null;
-      }
+      window.orderCountry = 'CN';
       renderCurrentScreen();
     };
 
@@ -1148,6 +1139,7 @@
     };
 
     window.setOrderAddSubMode = (mode) => {
+      if (mode === 'manual') mode = 'link';
       window.orderAddSubMode = mode;
       if (typeof tgUtil !== 'undefined') {
         tgUtil.hideMainButton();

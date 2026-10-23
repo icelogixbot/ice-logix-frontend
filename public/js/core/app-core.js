@@ -3297,7 +3297,7 @@ let adminOrdersTotalPages = 1;
       tgUtil.hideMainButton();
       if (tabName !== 'neworder' && tabName !== 'new-order') {
         window.tempOrder = null;
-        window.orderCountry = null;
+        window.orderCountry = 'CN';
         window.orderAddSubMode = null;
         window.orderAddMode = false;
       }
@@ -3426,12 +3426,6 @@ let adminOrdersTotalPages = 1;
             syncTelegramBackButton();
             return true;
           }
-          if (window.orderCountry) {
-            window.orderCountry = null;
-            renderCurrentScreen();
-            syncTelegramBackButton();
-            return true;
-          }
           if (window.tempOrder && window.tempOrder.items && window.tempOrder.items.length > 0) {
             window.orderAddMode = false;
             renderCurrentScreen();
@@ -3473,7 +3467,7 @@ let adminOrdersTotalPages = 1;
       const isHomeSubmode = currentTab === 'home' && window._calcMode && window._calcMode !== 'menu';
       const hasOrderItems = Boolean(window.tempOrder && window.tempOrder.items && window.tempOrder.items.length > 0);
       const isOrderSubmode = (currentTab === 'neworder' || currentTab === 'new-order') && 
-        (Boolean(window.orderCountry) || Boolean(window.orderAddSubMode) || (Boolean(window.orderAddMode) && hasOrderItems));
+        (Boolean(window.orderAddSubMode) || (Boolean(window.orderAddMode) && hasOrderItems));
       const isReviewsSubmode = currentTab === 'reviews' && window.reviewsScreen === 'feed';
       const isRoot = noHeaderBackTabs.includes(currentTab) && !currentSubScreen && !isHomeSubmode && !isOrderSubmode && !isReviewsSubmode;
       const hasOverlay = !!document.querySelector('.full-screen-modal-overlay, #spotlightModal:not(.opacity-0), #settingsModal, #notificationsModal, #personalDataModal');
