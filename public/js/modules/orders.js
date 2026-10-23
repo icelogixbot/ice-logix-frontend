@@ -195,19 +195,6 @@ window.applySmartShareLink = applySmartShareLink;
         } catch(e) {}
       }
 
-      const limitInfo = await checkAndUpdateLimit();
-      let limitMessage = '';
-      if (!limitInfo.allowed) {
-        limitMessage = `<div class="bg-red-500/20 border border-red-500/50 rounded-xl p-3 mb-4 text-center">
-          <p class="text-red-400 font-bold"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></span> Дневной лимит исчерпан (${limitInfo.currentCount}/${limitInfo.maxRequests})</p>
-          <p class="text-white/70 text-sm mt-1">Оформите заказ, чтобы снять ограничение</p>
-        </div>`;
-      } else {
-        const remaining = limitInfo.maxRequests - limitInfo.currentCount;
-        limitMessage = `<div class="bg-white/5 rounded-xl p-3 mb-4 text-center">
-          <p class="text-white/70 text-sm">Осталось расчётов сегодня: <span class="text-cyan-400 font-bold">${remaining}</span> из ${limitInfo.maxRequests}</p>
-        </div>`;
-      }
 
       let vacationBanner = '';
       if (window.buyerVacation && window.buyerVacation.active) {
@@ -295,7 +282,6 @@ window.applySmartShareLink = applySmartShareLink;
         if (window.orderAddMode) {
           // ── STEP B: Mode Selection Overlay (if country selected but no mode selected yet) ──
           if (!window.orderAddSubMode) {
-            const limits = await getCalculatorLimits();
             return `
             <style>
               .order-mode-card {
@@ -356,10 +342,6 @@ window.applySmartShareLink = applySmartShareLink;
                       <div class="flex-1 min-w-0">
                         <h3 class="font-bold text-white text-sm">Заказать по ссылке</h3>
                         <p class="text-white/50 text-[11px] leading-normal mt-0.5">Вставьте ссылку на товар — нейросеть заполнит форму сама.</p>
-                        <div class="text-[10px] text-purple-400 font-bold mt-1.5 flex items-center gap-1">
-                          <span>🔮 Лимит ИИ:</span>
-                          <span>${limits.ai.remaining}/${limits.ai.max} расчетов осталось на день</span>
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -373,10 +355,6 @@ window.applySmartShareLink = applySmartShareLink;
                       <div class="flex-1 min-w-0">
                         <h3 class="font-bold text-white text-sm">Заказать по фото</h3>
                         <p class="text-white/50 text-[11px] leading-normal mt-0.5">Поиск товара по изображению и автозаполнение.</p>
-                        <div class="text-[10px] text-pink-400 font-bold mt-1.5 flex items-center gap-1">
-                          <span>🔮 Лимит ИИ:</span>
-                          <span>${limits.ai.remaining}/${limits.ai.max} расчетов осталось на день</span>
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -390,10 +368,6 @@ window.applySmartShareLink = applySmartShareLink;
                       <div class="flex-1 min-w-0">
                         <h3 class="font-bold text-white text-sm">Заказать по описанию</h3>
                         <p class="text-white/50 text-[11px] leading-normal mt-0.5">Текстовое описание товара для автоподбора параметров.</p>
-                        <div class="text-[10px] text-amber-400 font-bold mt-1.5 flex items-center gap-1">
-                          <span>🔮 Лимит ИИ:</span>
-                          <span>${limits.ai.remaining}/${limits.ai.max} расчетов осталось на день</span>
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -407,10 +381,6 @@ window.applySmartShareLink = applySmartShareLink;
                       <div class="flex-1 min-w-0">
                         <h3 class="font-bold text-white text-sm">Указать вручную (без ссылки)</h3>
                         <p class="text-white/50 text-[11px] leading-normal mt-0.5">Введите параметры товара самостоятельно.</p>
-                        <div class="text-[10px] text-cyan-400 font-bold mt-1.5 flex items-center gap-1">
-                          <span>📊 Лимит:</span>
-                          <span>${limits.manual.max === Infinity ? 'Безлимитно расчетов на день' : `${limits.manual.remaining}/${limits.manual.max} расчетов осталось на день`}</span>
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -1058,7 +1028,6 @@ window.applySmartShareLink = applySmartShareLink;
           </div>
           
           ${vacationBanner}
-          ${limitMessage}
           
           <div class="mb-4">
             <h3 class="text-sm font-semibold text-white/70 mb-2">Список выбранных товаров:</h3>
@@ -1660,7 +1629,6 @@ window.applySmartShareLink = applySmartShareLink;
               if (!userLimits.isTrusted) {
                 await supabaseClient.from('users').update({ is_trusted: true }).eq('user_id', userId);
                 userLimits.isTrusted = true;
-                tgUtil.alert('✅ Поздравляем с первым заказом! Лимит на расчёты увеличен до 100 в день.');
               }
 
               window.tempOrder = null;
@@ -1829,12 +1797,6 @@ window.applySmartShareLink = applySmartShareLink;
           analyzeOrderBtn.addEventListener('click', async () => {
             const url = urlInp?.value.trim();
             if (!url) { tgUtil.alert('Вставьте ссылку'); return; }
-
-            const limitCheck = await checkAndUpdateLimit();
-            if (!limitCheck.allowed) {
-              tgUtil.alert(`Лимит исчерпан (${limitCheck.currentCount}/${limitCheck.maxRequests}).`);
-              return;
-            }
 
             const originalText = analyzeOrderBtn.innerText;
             analyzeOrderBtn.disabled = true;
@@ -2143,12 +2105,6 @@ window.applySmartShareLink = applySmartShareLink;
                   category: result.category,
                   image_url: result.image_url
                 });
-              }
-
-              if (userId) {
-                const newCount = limitCheck.currentCount + 1;
-                await supabaseClient.from('users').update({ daily_requests_count: newCount, last_request_date: new Date().toISOString() }).eq('user_id', userId);
-                userLimits.dailyCount = newCount;
               }
 
               analyzeOrderBtn.classList.add('bg-green-500');
