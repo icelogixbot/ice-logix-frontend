@@ -78,17 +78,7 @@ async function renderAdminReviewsConfig() {
       </div>
 
       <div class="glass-card p-5 space-y-4 rounded-3xl">
-        <h3 class="text-white font-bold text-sm border-b border-white/5 pb-2 flex items-center gap-2">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-teal-400">
-            <path d="m11 17 2 2a1 1 0 0 0 1.42 0l4.58-4.58a1 1 0 0 0 0-1.42l-2-2"/>
-            <path d="m14 11-4-4a1 1 0 0 0-1.42 0L4 11.58a1 1 0 0 0 0 1.42l2 2"/>
-            <path d="m11 11 3-3"/>
-            <path d="m7 15 2 2"/>
-            <path d="M18 10h3a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3"/>
-            <path d="M6 14H3a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/>
-          </svg>
-          Верифицированные партнеры
-        </h3>
+        <h3 class="text-white font-bold text-sm border-b border-white/5 pb-2">🏢 Верифицированные партнеры</h3>
         <div class="space-y-1">
           <label class="text-white/60 text-xs font-bold">Список User ID (через запятую)</label>
           <input type="text" id="cfgPartnerIds" class="btn-secondary w-full p-2.5 rounded-xl border border-white/10 text-xs text-white" value="${partners}" placeholder="123456, 789012">

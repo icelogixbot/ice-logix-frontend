@@ -55,38 +55,21 @@ async function renderResale() {
 
         <div class="w-full space-y-2.5 max-w-sm mb-6 text-left">
           <div class="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-pink-500/20 border border-pink-500/30 text-pink-300 flex items-center justify-center flex-shrink-0 shadow-sm">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                <polyline points="9 12 11 14 15 10"/>
-              </svg>
-            </div>
+            <div class="w-9 h-9 rounded-xl bg-pink-500/20 text-pink-300 flex items-center justify-center font-bold text-base flex-shrink-0">🤝</div>
             <div class="flex-1 min-w-0">
               <p class="text-white text-xs font-bold leading-tight">Безопасная сделка</p>
               <p class="text-[11px] text-white/50 mt-0.5">Деньги переводятся продавцу только после подтверждения получения</p>
             </div>
           </div>
           <div class="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-purple-500/20 border border-purple-500/30 text-purple-300 flex items-center justify-center flex-shrink-0 shadow-sm">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/>
-                <path d="M12 18V6"/>
-              </svg>
-            </div>
+            <div class="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center font-bold text-base flex-shrink-0">💸</div>
             <div class="flex-1 min-w-0">
               <p class="text-white text-xs font-bold leading-tight">Минимальная комиссия 2%</p>
               <p class="text-[11px] text-white/50 mt-0.5">Честные и прозрачные условия продажи вещей между пользователями</p>
             </div>
           </div>
           <div class="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 flex items-center justify-center flex-shrink-0 shadow-sm">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-                <line x1="12" y1="22.08" x2="12" y2="12"/>
-              </svg>
-            </div>
+            <div class="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-bold text-base flex-shrink-0">📦</div>
             <div class="flex-1 min-w-0">
               <p class="text-white text-xs font-bold leading-tight">Быстрая доставка</p>
               <p class="text-[11px] text-white/50 mt-0.5">Вещи из наличия отправляются в течение 1–2 дней по РБ и РФ</p>

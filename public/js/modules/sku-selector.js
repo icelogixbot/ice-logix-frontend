@@ -90,8 +90,14 @@
 
     const overlay = document.createElement('div');
     overlay.id = 'skuSelectorModalOverlay';
-    overlay.className = 'fixed inset-0 z-[100] flex flex-col justify-end transition-opacity duration-300';
-    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.72)';
+    overlay.className = 'fixed inset-0 flex flex-col justify-end transition-opacity duration-300';
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.right = '0';
+    overlay.style.bottom = '0';
+    overlay.style.zIndex = '99999';
+    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.78)';
     overlay.style.backdropFilter = 'blur(16px)';
     overlay.style.webkitBackdropFilter = 'blur(16px)';
     overlay.style.opacity = '0';
@@ -249,12 +255,14 @@
     document.body.appendChild(overlay);
     _activeSkuOverlay = overlay;
 
-    // Enter animation
-    requestAnimationFrame(() => {
+    // Enter animation with fast fallback for mobile webview
+    const showModal = () => {
       overlay.style.opacity = '1';
       const sheet = overlay.querySelector('.sku-bottom-sheet');
       if (sheet) sheet.style.transform = 'translateY(0)';
-    });
+    };
+    requestAnimationFrame(showModal);
+    setTimeout(showModal, 40);
 
     overlay.querySelector('#skuCloseBtn').onclick = closeSkuModal;
     overlay.addEventListener('click', (e) => {

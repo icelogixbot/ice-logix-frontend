@@ -256,54 +256,14 @@
           const avgRating = reviewsStats ? reviewsStats.avg : 0;
 
           const categories = [
-            {
-              id: 'orders',
-              label: 'Заказы',
-              desc: 'Отзывы розничных клиентов о доставленных вещах',
-              iconHtml: `<div class="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center flex-shrink-0 shadow-sm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>`
-            },
-            {
-              id: 'promotions',
-              label: 'Акции / Розыгрыши',
-              desc: 'Впечатления победителей конкурсов и участников акций',
-              iconHtml: `<div class="w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 flex items-center justify-center flex-shrink-0 shadow-sm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></div>`
-            },
-            {
-              id: 'dropshipping',
-              label: 'Дропшиппинг',
-              desc: 'Отзывы оптовых B2B-партнеров нашей программы',
-              iconHtml: `<div class="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-400 flex items-center justify-center flex-shrink-0 shadow-sm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>`
-            },
-            {
-              id: 'referral',
-              label: 'Рефералка',
-              desc: 'Отзывы участников, получающих реферальные выплаты',
-              iconHtml: `<div class="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center flex-shrink-0 shadow-sm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>`
-            },
-            {
-              id: 'advertising',
-              label: 'Реклама',
-              desc: 'Отзывы блогеров и администраторов об интеграциях',
-              iconHtml: `<div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center flex-shrink-0 shadow-sm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></div>`
-            },
-            {
-              id: 'academy',
-              label: 'Обучение',
-              desc: 'Отзывы учеников о курсах по самостоятельному выкупу',
-              iconHtml: `<div class="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 flex items-center justify-center flex-shrink-0 shadow-sm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div>`
-            },
-            {
-              id: 'legitcheck',
-              label: 'Legit Check',
-              desc: 'Отзывы о проверке подлинности брендовых вещей',
-              iconHtml: `<div class="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center flex-shrink-0 shadow-sm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></div>`
-            },
-            {
-              id: 'partnership',
-              label: 'Партнерство',
-              desc: 'Отзывы от B2B партнеров (ShopByShop, легит-чекеры)',
-              iconHtml: `<div class="w-10 h-10 rounded-xl bg-teal-500/20 border border-teal-500/35 text-teal-300 flex items-center justify-center flex-shrink-0 shadow-sm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17 2 2a1 1 0 0 0 1.42 0l4.58-4.58a1 1 0 0 0 0-1.42l-2-2"/><path d="m14 11-4-4a1 1 0 0 0-1.42 0L4 11.58a1 1 0 0 0 0 1.42l2 2"/><path d="m11 11 3-3"/><path d="m7 15 2 2"/><path d="M18 10h3a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3"/><path d="M6 14H3a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg></div>`
-            }
+            { id: 'orders', label: 'Заказы', icon: '🛒', desc: 'Отзывы розничных клиентов о доставленных вещах' },
+            { id: 'promotions', label: 'Акции / Розыгрыши', icon: '🎁', desc: 'Впечатления победителей конкурсов и участников акций' },
+            { id: 'dropshipping', label: 'Дропшиппинг', icon: '💼', desc: 'Отзывы оптовых B2B-партнеров нашей программы' },
+            { id: 'referral', label: 'Рефералка', icon: '👥', desc: 'Отзывы участников, получающих реферальные выплаты' },
+            { id: 'advertising', label: 'Реклама', icon: '📢', desc: 'Отзывы блогеров и администраторов об интеграциях' },
+            { id: 'academy', label: 'Обучение', icon: '🎓', desc: 'Отзывы учеников о курсах по самостоятельному выкупу' },
+            { id: 'legitcheck', label: 'Legit Check', icon: '🔍', desc: 'Отзывы о проверке подлинности брендовых вещей' },
+            { id: 'partnership', label: 'Партнерство', icon: '🏢', desc: 'Отзывы от B2B партнеров (ShopByShop, легит-чекеры)' }
           ];
 
           return `
@@ -360,14 +320,7 @@
                 <div class="reviews-hub-grid">
                   <!-- Крупная кнопка Все отзывы -->
                   <div class="reviews-hub-tile-btn full-width" data-category="all">
-                    <div class="w-12 h-12 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 flex items-center justify-center flex-shrink-0 shadow-sm">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/>
-                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-                        <line x1="12" y1="22.08" x2="12" y2="12"/>
-                      </svg>
-                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-2xl flex-shrink-0">📦</div>
                     <div>
                       <h4 class="text-white font-extrabold text-sm leading-tight">Все отзывы</h4>
                       <p class="text-white/50 text-[10.5px] mt-0.5 leading-snug">Лента вообще всех отзывов сервиса ICE LOGIX</p>
@@ -378,7 +331,7 @@
                   ${categories.map(c => `
                     <div class="reviews-hub-tile-btn" data-category="${c.id}">
                       <div class="flex items-center justify-between w-full">
-                        ${c.iconHtml}
+                        <span class="text-2xl">${c.icon}</span>
                         <span class="text-white/30 text-xs">➔</span>
                       </div>
                       <div>
@@ -397,15 +350,15 @@
 
         async function renderReviewsFeed(config) {
           const categories = [
-            { id: 'all', label: 'Все отзывы', iconSvg: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="opacity-70"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>` },
-            { id: 'orders', label: 'Заказы', iconSvg: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="opacity-70"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>` },
-            { id: 'promotions', label: 'Акции', iconSvg: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="opacity-70"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/></svg>` },
-            { id: 'dropshipping', label: 'Дропшиппинг', iconSvg: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="opacity-70"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>` },
-            { id: 'referral', label: 'Рефералка', iconSvg: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="opacity-70"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>` },
-            { id: 'advertising', label: 'Реклама', iconSvg: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="opacity-70"><path d="M3 11l18-5v12L3 14z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>` },
-            { id: 'academy', label: 'Обучение', iconSvg: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="opacity-70"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>` },
-            { id: 'legitcheck', label: 'Legit Check', iconSvg: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="opacity-70"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>` },
-            { id: 'partnership', label: 'Партнерство', iconSvg: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="opacity-70"><path d="m11 17 2 2a1 1 0 0 0 1.42 0l4.58-4.58a1 1 0 0 0 0-1.42l-2-2"/><path d="m14 11-4-4a1 1 0 0 0-1.42 0L4 11.58a1 1 0 0 0 0 1.42l2 2"/><path d="m11 11 3-3"/><path d="m7 15 2 2"/><path d="M18 10h3a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3"/><path d="M6 14H3a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>` }
+            { id: 'all', label: 'Все отзывы' },
+            { id: 'orders', label: 'Заказы 🛒' },
+            { id: 'promotions', label: 'Акции 🎁' },
+            { id: 'dropshipping', label: 'Дропшиппинг 💼' },
+            { id: 'referral', label: 'Рефералка 💸' },
+            { id: 'advertising', label: 'Реклама 📢' },
+            { id: 'academy', label: 'Обучение 🎓' },
+            { id: 'legitcheck', label: 'Legit Check 🔍' },
+            { id: 'partnership', label: 'Партнерство 🏢' }
           ];
 
           const countries = [
@@ -526,9 +479,8 @@
               <!-- Категории скролл -->
               <div class="reviews-category-chips pb-1" id="feedCategoryChips">
                 ${categories.map(c => `
-                  <button class="filter-chip ${window.currentReviewsCategory === c.id ? 'active' : ''} inline-flex items-center gap-1.5" data-category="${c.id}">
-                    ${c.iconSvg || ''}
-                    <span>${c.label}</span>
+                  <button class="filter-chip ${window.currentReviewsCategory === c.id ? 'active' : ''}" data-category="${c.id}">
+                    ${c.label}
                   </button>
                 `).join('')}
               </div>
@@ -635,7 +587,7 @@
                             <span>${review.user_name || 'Клиент'}</span>
                           </div>
                           <div class="review-card-wb-meta">
-                            <span class="review-card-wb-category">${{orders:'Заказы',promotions:'Акции',dropshipping:'Дропшиппинг',referral:'Рефералка',advertising:'Реклама',academy:'Обучение',legitcheck:'Legit Check',partnership:'Партнерство'}[review.category] || review.category}</span>
+                            <span class="review-card-wb-category">${review.category}</span>
                             <span class="review-card-wb-time">
                               ${new Date(review.created_at).toLocaleDateString('ru-RU')}
                             </span>
@@ -889,14 +841,14 @@
                   <div class="space-y-1">
                     <label class="text-white/60 text-xs font-bold uppercase tracking-wider">Категория</label>
                     <select id="reviewFormCategory" class="btn-secondary w-full p-3 rounded-xl border border-white/10 text-white text-sm">
-                      <option value="orders">Заказы</option>
-                      <option value="promotions">Акции</option>
-                      <option value="dropshipping">Дропшиппинг</option>
-                      <option value="referral">Рефералы</option>
-                      <option value="advertising">Реклама</option>
-                      <option value="academy">Академия</option>
-                      <option value="legitcheck">Legit Check</option>
-                      <option value="partnership">Партнерство</option>
+                      <option value="orders">Заказы 🛒</option>
+                      <option value="promotions">Акции 🔥</option>
+                      <option value="dropshipping">Дропшиппинг 📦</option>
+                      <option value="referral">Рефералы 👥</option>
+                      <option value="advertising">Реклама 📢</option>
+                      <option value="academy">Академия 🎓</option>
+                      <option value="legitcheck">Legit Check 🔍</option>
+                      <option value="partnership">Партнерство 🏢</option>
                     </select>
                   </div>
                 `}

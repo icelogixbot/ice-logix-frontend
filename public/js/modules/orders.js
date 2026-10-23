@@ -66,7 +66,7 @@ function parseMarketplaceShare(rawText) {
   // 4. Extract title / model
   let detectedTitle = '';
   const quoteMatch = raw.match(/「([^」]+)」/);
-  if (quoteMatch && quoteMatch[1] && !['得物', '淘宝', '天猫', '京东', '闲鱼', '1688', 'Poizon'].includes(quoteMatch[1].trim())) {
+  if (quoteMatch && quoteMatch[1] && !['得物', '淘宝', '天猫', '京东', '闲鱼', '1688', 'Poizon', '拼多多', 'Pinduoduo'].includes(quoteMatch[1].trim())) {
     detectedTitle = quoteMatch[1].trim();
   }
 
@@ -74,13 +74,16 @@ function parseMarketplaceShare(rawText) {
     let t = raw;
     if (cleanUrl) t = t.replace(cleanUrl, ' ');
     // Remove boilerplate Chinese phrases
-    t = t.replace(/【(?:得物|淘宝|天猫|京东|闲鱼|1688|Poizon)】/gi, ' ');
+    t = t.replace(/【(?:得物|淘宝|天猫|京东|闲鱼|1688|Poizon|拼多多|Pinduoduo)】/gi, ' ');
     t = t.replace(/点击链接直接打开.*$/gi, ' ');
     t = t.replace(/或复制该信息打开.*$/gi, ' ');
     t = t.replace(/复制这条信息后打开.*$/gi, ' ');
     t = t.replace(/复制本条信息打开.*$/gi, ' ');
+    t = t.replace(/复制打开拼多多.*$/gi, ' ');
+    t = t.replace(/查看商品详情/gi, ' ');
     t = t.replace(/得物App专注于.*?社区/gi, ' ');
     t = t.replace(/得物App/gi, ' ');
+    t = t.replace(/拼多多/gi, ' ');
     t = t.replace(/[0-9]+￥\s*[A-Z0-9]+\s*[0-9]:\/！/gi, ' ');
     t = t.replace(/CZ[0-9]{4}/gi, ' ');
     t = t.replace(/[\n\r\t]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -4384,29 +4387,16 @@ window.openInvoiceModal = (orderId, originalPrice) => {
     <div class="full-screen-modal-body space-y-4" id="invModalContent">
       
       <div class="space-y-3">
-        <button id="btnStdInv" class="w-full btn-secondary text-left flex items-start gap-3 p-3 border border-cyan-500/30 hover:bg-cyan-500/10 rounded-xl">
-          <div class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 flex items-center justify-center flex-shrink-0 shadow-sm">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
-              <polyline points="10 9 9 9 8 9"/>
-            </svg>
-          </div>
+        <button id="btnStdInv" class="w-full btn-secondary text-left flex items-start gap-3 p-3 border border-cyan-500/30 hover:bg-cyan-500/10">
+          <span class="text-2xl">🏢</span>
           <div>
             <p class="text-white font-bold text-sm">Стандартный (ICE LOGIX)</p>
             <p class="text-white/50 text-[10px] mt-0.5">Официальный инвойс со штампом и логотипом сервиса.</p>
           </div>
         </button>
 
-        <button id="btnB2bInv" class="w-full btn-secondary text-left flex items-start gap-3 p-3 border border-fuchsia-500/30 hover:bg-fuchsia-500/10 rounded-xl">
-          <div class="w-10 h-10 rounded-xl bg-fuchsia-500/20 border border-fuchsia-500/30 text-fuchsia-400 flex items-center justify-center flex-shrink-0 shadow-sm">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-            </svg>
-          </div>
+        <button id="btnB2bInv" class="w-full btn-secondary text-left flex items-start gap-3 p-3 border border-fuchsia-500/30 hover:bg-fuchsia-500/10">
+          <span class="text-2xl">🥷</span>
           <div>
             <p class="text-fuchsia-400 font-bold text-sm">Дропшиппинг (White-Label)</p>
             <p class="text-white/50 text-[10px] mt-0.5">Без логотипов ICE LOGIX. С возможностью указать вашу цену перепродажи.</p>
