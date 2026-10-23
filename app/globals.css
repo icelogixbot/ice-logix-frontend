@@ -2903,11 +2903,9 @@ html.light-theme .glass-card {
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.35s ease, transform 0.35s ease;
   opacity: 0.52;
   transform: scale(0.92);
-  contain: layout paint style;
-  will-change: transform, opacity;
 }
 
 .story-card.marketplace-story.is-active-target {
@@ -2928,9 +2926,7 @@ html.light-theme .glass-card {
   justify-content: center !important;
 }
 
-.marketplace-story .story-icon img,
-.marketplace-story .story-icon svg,
-.mp-logo-svg {
+.marketplace-story .story-icon img {
   width: 54px !important;
   height: 54px !important;
   max-width: 54px !important;
@@ -2938,22 +2934,14 @@ html.light-theme .glass-card {
   object-fit: contain !important;
   border-radius: 13px !important;
   filter: none !important;
-  display: block !important;
-  overflow: hidden !important;
-  pointer-events: none;
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), filter 0.25s ease;
-  will-change: transform;
+  transition: transform 0.25s ease;
 }
 
-.story-card.marketplace-story.is-active-target .story-icon img,
-.story-card.marketplace-story.is-active-target .story-icon svg,
-.story-card.marketplace-story.is-active-target .mp-logo-svg {
-  filter: brightness(1.08) drop-shadow(0 4px 12px rgba(130, 199, 241, 0.3)) !important;
+.story-card.marketplace-story.is-active-target .story-icon img {
+  filter: brightness(1.08) !important;
 }
 
-.marketplace-story:active .story-icon img,
-.marketplace-story:active .story-icon svg,
-.marketplace-story:active .mp-logo-svg {
+.marketplace-story:active .story-icon img {
   transform: scale(0.92) !important;
 }
 

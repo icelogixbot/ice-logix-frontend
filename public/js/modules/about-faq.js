@@ -32,7 +32,7 @@ async function renderAboutUs() {
 
     <div class="glass-card">
       <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
-        <span class="text-xl">🤝</span> Наши условия и комиссии
+        <span class="text-xl">⚖️</span> Наши условия и комиссии
       </h3>
       <div class="space-y-4">
         <div class="p-3 bg-white/5 rounded-xl border border-white/10">
@@ -514,7 +514,7 @@ function showContactsModal() {
       <!-- 3. Партнерство и B2B -->
       <div class="glass-card p-3.5 rounded-2xl bg-white/5 border border-white/10">
         <div class="flex items-center gap-2 mb-1.5">
-          <span class="text-base">🤝</span>
+          <span class="text-base">🏢</span>
           <span class="font-bold text-white text-sm">Партнерство и B2B</span>
         </div>
         <p class="text-xs text-white/70 leading-relaxed mb-2">

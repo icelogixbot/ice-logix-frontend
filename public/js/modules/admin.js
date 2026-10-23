@@ -78,7 +78,7 @@ async function renderAdminReviewsConfig() {
       </div>
 
       <div class="glass-card p-5 space-y-4 rounded-3xl">
-        <h3 class="text-white font-bold text-sm border-b border-white/5 pb-2">🤝 Верифицированные партнеры</h3>
+        <h3 class="text-white font-bold text-sm border-b border-white/5 pb-2">🏢 Верифицированные партнеры</h3>
         <div class="space-y-1">
           <label class="text-white/60 text-xs font-bold">Список User ID (через запятую)</label>
           <input type="text" id="cfgPartnerIds" class="btn-secondary w-full p-2.5 rounded-xl border border-white/10 text-xs text-white" value="${partners}" placeholder="123456, 789012">

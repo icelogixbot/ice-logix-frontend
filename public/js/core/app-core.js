@@ -2736,7 +2736,7 @@ let adminOrdersTotalPages = 1;
                 const totalStars = data.reduce((sum, r) => sum + (r.rating || 0), 0);
                 return { count, avg: totalStars / count };
               }
-              return { count: 0, avg: 4.9 };
+              return { count: 0, avg: 0 };
             }, 600000).catch(() => {});
             // 5. Pre-warm academy
             window.CacheDB.get('academy_catalog', async () => {
