@@ -1847,23 +1847,25 @@ window.applySmartShareLink = applySmartShareLink;
               }).catch(() => null);
 
               if (bridgeCheck && bridgeCheck.ok) {
-                analyzeOrderBtn.innerHTML = '<span class="ix animate-spin">⚡</span> Чтение опций товара…';
-                const bridgeResp = await fetch('http://127.0.0.1:3007/api/parse-product', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ url }),
-                  signal: AbortSignal.timeout(25000)
-                });
+                const statusData = await bridgeCheck.json().catch(() => null);
+                if (statusData && statusData.status === 'online') {
+                  analyzeOrderBtn.innerHTML = '<span class="ix animate-spin">⚡</span> Чтение опций товара…';
+                  const bridgeResp = await fetch('http://127.0.0.1:3007/api/parse-product', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url }),
+                    signal: AbortSignal.timeout(30000)
+                  });
 
-                if (bridgeResp.ok) {
-                  const bData = await bridgeResp.json();
-                  if (bData && bData.success) {
-                    const applyBridgeData = (selected) => {
-                      const orderPriceEl = document.getElementById('orderPrice');
-                      if (orderPriceEl && selected.price != null && Number(selected.price) > 0) {
-                        orderPriceEl.value = selected.price;
-                        orderPriceEl.dispatchEvent(new Event('input', { bubbles: true }));
-                      }
+                  if (bridgeResp.ok) {
+                    const bData = await bridgeResp.json();
+                    if (bData && bData.success) {
+                      const applyBridgeData = (selected) => {
+                        const orderPriceEl = document.getElementById('orderPrice');
+                        if (orderPriceEl && selected.price != null && Number(selected.price) > 0) {
+                          orderPriceEl.value = selected.price;
+                          orderPriceEl.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
                       const currencySelect = document.getElementById('orderCurrency');
                       if (currencySelect) {
                         currencySelect.value = 'CNY';
@@ -1943,7 +1945,8 @@ window.applySmartShareLink = applySmartShareLink;
                       }
                     };
 
-                    if (bData.has_options && typeof window.openSkuSelectorModal === 'function') {
+                    const hasOpts = bData.has_options || (bData.colors && bData.colors.length > 0) || (bData.sizes && bData.sizes.length > 0) || (bData.spec_groups && bData.spec_groups.length > 0);
+                    if (hasOpts && typeof window.openSkuSelectorModal === 'function') {
                       window.openSkuSelectorModal(bData, applyBridgeData);
                     } else {
                       applyBridgeData({
@@ -1961,6 +1964,7 @@ window.applySmartShareLink = applySmartShareLink;
                     analyzeOrderBtn.disabled = false;
                     return;
                   }
+                }
                 }
               }
             } catch (bridgeErr) {
@@ -2125,7 +2129,8 @@ window.applySmartShareLink = applySmartShareLink;
                 }
               };
 
-              if (skuBundle && typeof window.openSkuSelectorModal === 'function' && (skuBundle.has_options || (skuBundle.colors && skuBundle.colors.length > 0) || (skuBundle.sizes && skuBundle.sizes.length > 0))) {
+              const hasBundleOpts = skuBundle && (skuBundle.has_options || (skuBundle.colors && skuBundle.colors.length > 0) || (skuBundle.sizes && skuBundle.sizes.length > 0) || (skuBundle.spec_groups && skuBundle.spec_groups.length > 0) || (skuBundle.visual_options && skuBundle.visual_options.length > 0));
+              if (skuBundle && typeof window.openSkuSelectorModal === 'function' && hasBundleOpts) {
                 window.openSkuSelectorModal(skuBundle, (selected) => {
                   applyResolvedData(selected);
                 });

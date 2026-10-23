@@ -215,15 +215,15 @@ def get_connected_device() -> Optional[str]:
 def check_device_ready() -> bool:
     return get_connected_device() is not None
 
-def ensure_device_ready(timeout_sec: int = 25) -> bool:
+def ensure_device_ready(timeout_sec: int = 45) -> bool:
     if check_device_ready():
         return True
 
-    print("[*] Device not connected. Attempting auto-launch...")
+    print("[*] Device not connected. Attempting auto-launch via os.startfile...")
     try:
         dnplayer = os.path.join(os.path.dirname(ADB_PATH), "dnplayer.exe")
         if os.path.exists(dnplayer):
-            subprocess.Popen([dnplayer], shell=True)
+            os.startfile(dnplayer)
     except Exception as e:
         print("[!] Auto-launch error:", e)
 
@@ -1004,16 +1004,33 @@ def supabase_queue_worker():
                             pub_img_url = parsed.get("image_url") or ""
 
                         # Pack SKU options bundle
+                        pub_img_url = parsed.get("image_url") or ""
+                        if not pub_img_url or not pub_img_url.startswith("http"):
+                            local_img = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}.jpg")
+                            remote_name = f"sku_{goods_id}_{int(time.time())}.jpg"
+                            if os.path.exists(local_img):
+                                try:
+                                    with open(local_img, "rb") as f:
+                                        supabase_client.storage.from_("product-screenshots").upload(
+                                            remote_name, f.read(), {"content-type": "image/jpeg"}
+                                        )
+                                    pub_img_url = supabase_client.storage.from_("product-screenshots").get_public_url(remote_name)
+                                except Exception as up_err:
+                                    print("Storage upload error:", up_err)
+
                         sku_bundle = {
                             "is_sku_bundle": True,
                             "goods_id": goods_id,
-                            "title_ru": parsed["title_ru"],
-                            "title": parsed["title"],
-                            "price_cny": parsed["price_cny"],
-                            "orig_price_cny": parsed["orig_price_cny"],
-                            "colors": parsed["colors"],
-                            "sizes": parsed["sizes"],
-                            "has_options": parsed["has_options"],
+                            "title_ru": parsed.get("title_ru") or parsed.get("title") or "Товар",
+                            "title": parsed.get("title") or "",
+                            "price_cny": parsed.get("price_cny") or 0.0,
+                            "orig_price_cny": parsed.get("orig_price_cny") or 0.0,
+                            "visual_options": parsed.get("visual_options") or parsed.get("colors") or [],
+                            "spec_options": parsed.get("spec_options") or parsed.get("sizes") or [],
+                            "colors": parsed.get("colors") or [],
+                            "sizes": parsed.get("sizes") or [],
+                            "spec_groups": parsed.get("spec_groups") or [],
+                            "has_options": parsed.get("has_options", True),
                             "image_url": pub_img_url,
                             "brand": parsed.get("brand") or "",
                             "category": parsed.get("category") or "Товары из Китая",
