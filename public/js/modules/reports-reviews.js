@@ -7,23 +7,15 @@
         let reportsData = null;
         if (window.CacheDB) {
           reportsData = await window.CacheDB.get('public_reports_feed', async () => {
-            const [{ data: rep }, countRes] = await Promise.all([
-              supabaseClient.from('public_reports').select('*').eq('is_active', true).order('created_at', { ascending: false }),
-              supabaseClient.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'delivered').catch(() => ({ count: 120 }))
-            ]);
-            return { data: rep || [], count: countRes?.count || 120 };
+            const { data: rep } = await supabaseClient.from('public_reports').select('*').eq('is_active', true).order('created_at', { ascending: false });
+            return { data: rep || [] };
           }, 60000);
         } else {
-          const [{ data: rep }, countRes] = await Promise.all([
-            supabaseClient.from('public_reports').select('*').eq('is_active', true).order('created_at', { ascending: false }),
-            supabaseClient.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'delivered').catch(() => ({ count: 120 }))
-          ]);
-          reportsData = { data: rep || [], count: countRes?.count || 120 };
+          const { data: rep } = await supabaseClient.from('public_reports').select('*').eq('is_active', true).order('created_at', { ascending: false });
+          reportsData = { data: rep || [] };
         }
         
         const data = reportsData?.data || [];
-        const count = reportsData?.count || '120+';
-        const statsHtml = `<div class="glass-card mb-4 p-3 flex justify-around items-center text-center"><div class="flex-1 border-r border-white/10"><p class="text-white/50 text-[10px] uppercase">Выкуплено</p><p class="text-white font-bold text-lg">${data.length}</p></div><div class="flex-1"><p class="text-white/50 text-[10px] uppercase">Доставлено</p><p class="text-cyan-400 font-bold text-lg">${count}</p></div></div>`;
         
         if (data.length === 0) {
           return `
@@ -39,10 +31,8 @@
                   <p class="text-[11px] text-white/40">Фото и видео доставленных заказов</p>
                 </div>
               </div>
-              ${statsHtml}
               <div class="text-center py-10">
                 <p class="text-white/70">Пока нет публичных отчётов</p>
-                ${isOwner ? '<button id="addReportBtn" class="btn-primary mt-4 py-2 px-4 rounded-xl text-xs font-bold inline-flex items-center gap-1.5"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить первый отчёт</button>' : ''}
               </div>
             </div>
             ${renderFooter()}
@@ -60,9 +50,7 @@
                 <h2 class="text-xl font-bold text-white tracking-wide">Публичные отчёты</h2>
                 <p class="text-[11px] text-white/40">Фото и видео доставленных заказов</p>
               </div>
-              ${isOwner ? '<button id="addReportBtn" class="btn-primary py-1.5 px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 flex-shrink-0"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить</button>' : ''}
             </div>
-            ${statsHtml}
             <div class="space-y-4">
             ${data.map(report => {
               let mediaUrls = [];
@@ -104,100 +92,6 @@
     }
 
     function attachReportsHandlers() {
-      const addBtn = document.getElementById('addReportBtn');
-      if (addBtn) {
-        addBtn.onclick = () => {
-          const modal = document.createElement('div');
-          modal.className = 'full-screen-modal-overlay page-enter';
-          modal.id = 'addReportModal';
-          modal.innerHTML = `
-            <div class="full-screen-modal-header">
-              <button type="button" class="global-back-btn !mb-0" id="cancelReportBtn" title="Назад">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="15 18 9 12 15 6"/>
-                </svg>
-              </button>
-              <div class="text-center">
-                <h3 class="text-white font-bold text-sm truncate">Новый отчёт</h3>
-                <p class="text-white/40 text-[10px]">Публикация в ленте</p>
-              </div>
-              <div style="width: 48px;"></div>
-            </div>
-
-            <div class="full-screen-modal-body space-y-3">
-              <input type="text" id="reportTitle" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-sm text-white" placeholder="Заголовок">
-              <textarea id="reportDesc" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-sm text-white" placeholder="Описание" rows="3"></textarea>
-              <select id="reportType" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-sm text-white">
-                <option value="photo">Фото</option>
-                <option value="video">Видео</option>
-              </select>
-
-              <p class="text-white/60 text-xs mb-1 font-semibold">Фото/видео:</p>
-              <div id="reportPhotoPreviews" class="flex flex-wrap gap-2 mb-2"></div>
-              <label class="cursor-pointer flex items-center gap-2 bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/30 rounded-xl px-4 py-3 mb-2 transition">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;color:#22d3ee" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                <span class="text-cyan-400 text-sm font-semibold">Выбрать из галереи</span>
-                <input type="file" id="reportFileInput" accept="image/*,video/*" multiple class="hidden">
-              </label>
-              <span id="reportUploadStatus" class="text-xs text-white/50 mb-2 block"></span>
-
-              <input type="url" id="reportProductUrl" class="btn-secondary w-full p-3.5 rounded-xl border border-cyan-500/30 mb-2 text-sm text-white" placeholder="Ссылка на оригинальный товар (для 'Хочу такой же')">
-            </div>
-
-            <div class="p-4 border-t border-white/10 bg-slate-900/95 flex gap-3 flex-shrink-0" style="padding-bottom: calc(16px + env(safe-area-inset-bottom, 16px));">
-              <button id="saveReportBtn" class="btn-primary flex-1 py-3.5 rounded-xl font-bold">Сохранить</button>
-              <button id="cancelReportBtn2" class="btn-secondary flex-1 py-3.5 rounded-xl font-bold">Отмена</button>
-            </div>
-          `;
-          document.body.appendChild(modal);
-          modal.querySelector('#cancelReportBtn2').onclick = () => modal.remove();
-
-          const uploadedUrls = [];
-          const statusEl = modal.querySelector('#reportUploadStatus');
-          const previewsEl = modal.querySelector('#reportPhotoPreviews');
-
-          modal.querySelector('#reportFileInput').onchange = async (e) => {
-            const files = Array.from(e.target.files || []);
-            if (!files.length) return;
-            statusEl.textContent = `⏳ Загрузка ${files.length} файл(а)...`;
-            statusEl.className = 'text-xs text-yellow-400 mb-3 block';
-            let ok = 0;
-            for (const file of files) {
-              try {
-                const ext = file.name.split('.').pop();
-                const fileName = `reports/${Date.now()}-${Math.random().toString(36).slice(2, 9)}.${ext}`;
-                const { error: upErr } = await supabaseClient.storage.from('ugc').upload(fileName, file, { contentType: file.type });
-                if (upErr) throw upErr;
-                const { data } = supabaseClient.storage.from('ugc').getPublicUrl(fileName);
-                uploadedUrls.push(data.publicUrl);
-                const thumb = document.createElement('div');
-                thumb.style.cssText = 'width:60px;height:60px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.15);flex-shrink:0;';
-                thumb.innerHTML = `<img src="${data.publicUrl}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`;
-                previewsEl.appendChild(thumb);
-                ok++;
-              } catch (err) { console.error('Upload error:', err); }
-            }
-            statusEl.textContent = ok === files.length ? `✅ Загружено ${ok} файл(а)` : `⚠️ Загружено ${ok} из ${files.length}`;
-            statusEl.className = `text-xs mb-3 block ${ok === files.length ? 'text-green-400' : 'text-yellow-400'}`;
-          };
-
-          modal.querySelector('#cancelReportBtn').onclick = () => modal.remove();
-          modal.querySelector('#saveReportBtn').onclick = async () => {
-            const title = modal.querySelector('#reportTitle').value.trim();
-            const description = modal.querySelector('#reportDesc').value.trim();
-            const type = modal.querySelector('#reportType').value;
-            const product_url = modal.querySelector('#reportProductUrl').value.trim();
-
-            if (!title || uploadedUrls.length === 0) { tgUtil.alert('Заполните заголовок и добавьте хотя бы одно фото из галереи'); return; }
-
-            const finalImageUrl = uploadedUrls.length > 1 ? JSON.stringify(uploadedUrls) : uploadedUrls[0];
-            try {
-              await supabaseClient.from('public_reports').insert({ title, description, type, image_url: finalImageUrl, product_url, is_active: true, created_at: new Date().toISOString() });
-              tgUtil.alert('Отчёт добавлен'); modal.remove(); renderCurrentScreen();
-            } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }
-          };
-        };
-      }
       document.querySelectorAll('.orderFromReportBtn').forEach(btn => {
         btn.onclick = () => {
           if (!window.userId) { window.requireAuth('Для оформления заказа необходимо войти или зарегистрироваться.'); return; }
