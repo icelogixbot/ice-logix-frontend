@@ -219,11 +219,15 @@ def ensure_device_ready(timeout_sec: int = 45) -> bool:
     if check_device_ready():
         return True
 
-    print("[*] Device not connected. Attempting auto-launch via os.startfile...")
+    print("[*] Device not connected. Attempting auto-launch via desktop shortcut...")
+    desktop_lnk = r"C:\Users\kiril_6yx2ik9\OneDrive\Desktop\LDPlayer 14.lnk"
     try:
-        dnplayer = os.path.join(os.path.dirname(ADB_PATH), "dnplayer.exe")
-        if os.path.exists(dnplayer):
-            os.startfile(dnplayer)
+        if os.path.exists(desktop_lnk):
+            subprocess.run(["powershell", "-Command", f"Invoke-Item '{desktop_lnk}'"], timeout=10)
+        else:
+            dnplayer = os.path.join(os.path.dirname(ADB_PATH), "dnplayer.exe")
+            if os.path.exists(dnplayer):
+                subprocess.Popen([dnplayer], cwd=os.path.dirname(ADB_PATH))
     except Exception as e:
         print("[!] Auto-launch error:", e)
 
@@ -366,6 +370,13 @@ def handle_popups_and_verification(root: ET.Element) -> bool:
             return True
     return False
 
+def cv2_imread_safe(path: str) -> Optional[np.ndarray]:
+    try:
+        data = np.fromfile(path, dtype=np.uint8)
+        return cv2.imdecode(data, cv2.IMREAD_COLOR)
+    except Exception:
+        return None
+
 def find_puzzle_gap_dx(temp_screen_path: str) -> Optional[int]:
     """
     Intelligent Sovereign Vision AI solver:
@@ -373,7 +384,7 @@ def find_puzzle_gap_dx(temp_screen_path: str) -> Optional[int]:
     and cross-correlates the piece contours with candidate gap silhouettes to find the exact target dx.
     """
     try:
-        full_img = cv2.imread(temp_screen_path)
+        full_img = cv2_imread_safe(temp_screen_path)
         if full_img is None:
             return None
             
@@ -724,6 +735,9 @@ def get_status():
 
 @app.post("/api/parse-product")
 def parse_product(req: ParseRequest):
+    if not ensure_device_ready(timeout_sec=45):
+        raise HTTPException(status_code=503, detail="Не удалось запустить эмулятор Pinduoduo. Пожалуйста, откройте LDPlayer вручную.")
+
     goods_id = resolve_goods_id(req.url)
     if not goods_id:
         raise HTTPException(status_code=400, detail="Не удалось извлечь goods_id из ссылки")
@@ -980,6 +994,14 @@ def supabase_queue_worker():
                     continue
 
                 print(f"[*] Claiming task #{task_id} ({task_status}): {task_url}")
+                if not ensure_device_ready(timeout_sec=45):
+                    print(f"[!] Device failed to become ready for task #{task_id}")
+                    supabase_client.from_("parse_queue").update({
+                        "status": "error",
+                        "error_message": "Эмулятор не смог запуститься автоматически. Запустите ярлык LDPlayer 14 на рабочем столе."
+                    }).eq("id", task_id).execute()
+                    continue
+
                 # Claim task immediately to prevent race conditions
                 supabase_client.from_("parse_queue").update({"status": "processing"}).eq("id", task_id).execute()
 
