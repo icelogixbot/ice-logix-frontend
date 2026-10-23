@@ -686,23 +686,23 @@ window.displayCalcResult = function(item) {
   window._currentCalcItem = item;
   window._calcSelectedSize = item.size || null;
   window._calcSelectedColor = item.color || null;
-  window._calcQuantity = 1;
+  window._calcQuantity = item.quantity || 1;
   window._calcSkuBundle = item.skuBundle || null;
   window._calcMode = 'result';
 
   // Save to history so user can review it or import it
   try {
-    const calc = window.calculateAllInclusiveByn(item.price, item.category, item.weight, 1);
+    const calc = window.calculateAllInclusiveByn(item.price, item.category, item.weight, window._calcQuantity || 1);
     saveCalculationToHistory({
       title: item.title,
       price: item.price,
       currency: item.currency || 'CNY',
-      weight: item.weight || calc.weightKg || 1.2,
-      category: item.category || 'Обувь',
+      weight: item.weight || calc.weightKg || 0.8,
+      category: item.category || 'Одежда',
       total_byn: calc.totalByn,
       image_url: item.image_url || '',
       url: item.url || '',
-      platform: item.platform || 'POIZON'
+      platform: item.platform || 'PINDUODUO'
     });
   } catch(e) {}
 
@@ -721,15 +721,15 @@ window.startCheckoutWithItem = function(item) {
       title: item.title || 'Товар',
       price: item.price,
       currency: item.currency || 'CNY',
-      weight: item.weight || calc.weightKg || 1.2,
+      weight: item.weight || calc.weightKg || 0.8,
       total_byn: calc.totalByn,
       size: window._calcSelectedSize || item.size || '',
       color: window._calcSelectedColor || item.color || '',
-      category: item.category || 'Обувь',
+      category: item.category || 'Одежда',
       image_url: item.image_url || '',
       url: item.url || '',
       quantity: qty,
-      platform: item.platform || 'POIZON'
+      platform: item.platform || 'PINDUODUO'
     }],
     total: calc.totalByn,
     total_byn: calc.totalByn,
@@ -738,7 +738,7 @@ window.startCheckoutWithItem = function(item) {
     country: item.country || 'CN',
     url: item.url || '',
     price: item.price,
-    weight: item.weight || calc.weightKg || 1.2
+    weight: item.weight || calc.weightKg || 0.8
   };
 
   window.orderAddMode = false;
@@ -786,7 +786,7 @@ window.addToCartFromCalc = async function(item) {
     quantity: qty,
     size: window._calcSelectedSize || item.size || '',
     color: window._calcSelectedColor || item.color || '',
-    category: item.category || 'Обувь',
+    category: item.category || 'Одежда',
     image_url: item.image_url || '',
     url: item.url || '',
     total_byn: calc.totalByn
@@ -1101,7 +1101,17 @@ window.renderSmartCalculator = async function() {
     // Build size chips from skuBundle if available
     let sizeChipsHtml = '';
     const sku = window._calcSkuBundle || item.skuBundle;
-    const sizesList = (sku && Array.isArray(sku.sizes) && sku.sizes.length > 0) ? sku.sizes : null;
+    let sizesList = null;
+    if (sku) {
+      if (Array.isArray(sku.sizes) && sku.sizes.length > 0) {
+        sizesList = sku.sizes;
+      } else if (Array.isArray(sku.spec_groups) && sku.spec_groups.length > 0) {
+        const specGrp = sku.spec_groups.find(g => g.type === 'spec') || sku.spec_groups[0];
+        if (specGrp && Array.isArray(specGrp.options) && specGrp.options.length > 0) {
+          sizesList = specGrp.options;
+        }
+      }
+    }
 
     if (sizesList) {
       sizeChipsHtml = `
@@ -1109,7 +1119,7 @@ window.renderSmartCalculator = async function() {
           <div class="flex items-center justify-between mb-1.5">
             <label class="text-white/70 text-xs font-semibold">Выберите размер:</label>
             ${typeof window.openSkuSelectorModal === 'function' && sku?.has_options ? `
-              <button type="button" id="calcOpenSkuModalBtn" class="text-[11px] text-cyan-400 hover:text-cyan-300 font-semibold bg-cyan-500/10 px-2 py-0.5 rounded-lg border border-cyan-500/20">
+              <button type="button" id="calcOpenSkuModalBtn" class="text-[11px] text-cyan-400 hover:text-cyan-300 font-semibold bg-cyan-500/10 px-2 py-0.5 rounded-lg border border-cyan-500/20 cursor-pointer">
                 🎨 Все опции
               </button>
             ` : ''}
@@ -1154,11 +1164,15 @@ window.renderSmartCalculator = async function() {
             }
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-1.5 mb-1">
-                <span class="text-[9px] font-extrabold text-cyan-300 bg-cyan-500/15 px-2 py-0.5 rounded-md border border-cyan-500/30">🇨🇳 ${item.platform || 'Poizon'}</span>
-                <span class="text-[9px] text-white/50">${item.category || 'Обувь'}</span>
+                <span class="text-[9px] font-extrabold text-cyan-300 bg-cyan-500/15 px-2 py-0.5 rounded-md border border-cyan-500/30">🇨🇳 ${item.platform || 'PINDUODUO'}</span>
+                <span class="text-[9px] text-white/50">${item.category || 'Одежда'}</span>
               </div>
               <h4 class="text-sm font-bold text-white leading-snug line-clamp-2" title="${item.title}">${item.title}</h4>
-              <p class="text-xs text-cyan-400 font-bold mt-1 font-mono"><span id="calcCurrentPriceCny">${calc.priceCny}</span> ¥</p>
+              <div class="text-[11px] text-white/70 mt-1 flex flex-wrap items-center gap-1.5">
+                ${item.color ? `<span class="bg-white/10 px-2 py-0.5 rounded-md border border-white/15 text-white/90">Цвет: <strong class="text-white">${item.color}</strong></span>` : ''}
+                ${window._calcSelectedSize || item.size ? `<span class="bg-cyan-500/15 text-cyan-300 px-2 py-0.5 rounded-md border border-cyan-500/30">Размер: <strong class="text-white">${window._calcSelectedSize || item.size}</strong></span>` : ''}
+              </div>
+              <p class="text-xs text-cyan-400 font-bold mt-1.5 font-mono"><span id="calcCurrentPriceCny">${calc.priceCny}</span> ¥</p>
             </div>
           </div>
 
@@ -1299,8 +1313,78 @@ window.renderSmartCalculator = async function() {
               statusBox.innerHTML = '<span class="animate-spin inline-block mr-1">⚡</span> Аппаратный выкуп… Подключение к эмулятору...';
             }
 
+            // Smart category detector from Russian & Chinese titles
+            const detectSmartCategory = (title, origCat) => {
+              if (origCat && origCat !== 'Товары из Китая' && origCat !== 'Обувь') return origCat;
+              const t = (title || '').toLowerCase();
+              if (t.includes('брюки') || t.includes('штаны') || t.includes('худи') || t.includes('толстовк') || 
+                  t.includes('футболк') || t.includes('майк') || t.includes('джинс') || t.includes('шорт') || 
+                  t.includes('куртк') || t.includes('пуховик') || t.includes('пальто') || t.includes('одежд') ||
+                  t.includes('свитшот') || t.includes('свитер') || t.includes('костюм') || t.includes('sweatpants') ||
+                  t.includes('pants') || t.includes('hoodie') || t.includes('jacket') || t.includes('t-shirt') ||
+                  t.includes('плать') || t.includes('юбк') || t.includes('ветровк')) {
+                return 'Одежда';
+              }
+              if (t.includes('кроссовк') || t.includes('ботин') || t.includes('кед') || t.includes('лофер') || 
+                  t.includes('туфл') || t.includes('сланц') || t.includes('обув') || t.includes('sneaker') || t.includes('shoes')) {
+                return 'Обувь';
+              }
+              if (t.includes('чехол') || t.includes('стекло') || t.includes('пленк') || t.includes('case')) {
+                return 'Чехлы';
+              }
+              if (t.includes('рюкзак') || t.includes('сумк') || t.includes('кошелек') || t.includes('bag')) {
+                return 'Сумки';
+              }
+              if (t.includes('часы') || t.includes('watch')) {
+                return 'Часы';
+              }
+              if (t.includes('наушник') || t.includes('колонк') || t.includes('телефон') || t.includes('ipad') || t.includes('iphone')) {
+                return 'Электроника';
+              }
+              return origCat || 'Одежда';
+            };
+
+            const finalizeParsedItem = (bData, selected = null) => {
+              const title = selected?.title || bData.title_ru || bData.title || 'Товар';
+              const price = (selected?.price != null && Number(selected.price) > 0) ? Number(selected.price) : (bData.price_cny || bData.price || 50);
+              const category = detectSmartCategory(title, selected?.category || bData.category);
+              const img = selected?.image_url || bData.image_url || null;
+              const brand = bData.brand || selected?.brand || '';
+              const color = selected?.color || bData.color || (bData.colors?.[0]?.name_ru) || '';
+              const size = selected?.size || bData.size || (bData.sizes?.[0]?.name_ru) || '';
+              const platform = /yangkeduo|pinduoduo/i.test(url) ? 'PINDUODUO' : (/taobao/i.test(url) ? 'TAOBAO' : 'POIZON');
+
+              if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
+
+              window.displayCalcResult({
+                title,
+                price,
+                currency: 'CNY',
+                image_url: img,
+                category,
+                brand,
+                color,
+                size,
+                url,
+                platform,
+                skuBundle: bData
+              });
+            };
+
+            const handleParsedBundle = (bundleData) => {
+              if (statusBox) statusBox.classList.add('hidden');
+              const hasOpts = bundleData.has_options || (bundleData.colors && bundleData.colors.length > 0) || (bundleData.sizes && bundleData.sizes.length > 0) || (bundleData.spec_groups && bundleData.spec_groups.length > 0);
+              if (hasOpts && typeof window.openSkuSelectorModal === 'function') {
+                window.openSkuSelectorModal(bundleData, (selected) => {
+                  finalizeParsedItem(bundleData, selected);
+                });
+              } else {
+                finalizeParsedItem(bundleData, null);
+              }
+            };
+
             try {
-              let parsedResult = null;
+              let handled = false;
 
               // ── FAST-PATH: ANDROID HARDWARE BRIDGE (LDPlayer / Pinduoduo / Poizon live engine) ──
               try {
@@ -1321,19 +1405,9 @@ window.renderSmartCalculator = async function() {
                     if (bridgeResp.ok) {
                       const bData = await bridgeResp.json();
                       if (bData && bData.success) {
-                        parsedResult = {
-                          title: bData.title_ru || bData.title || 'Товар',
-                          price: bData.price_cny || bData.price || 350,
-                          currency: 'CNY',
-                          image_url: bData.image_url || null,
-                          category: bData.category || 'Обувь',
-                          brand: bData.brand || '',
-                          color: bData.color || '',
-                          size: bData.size || '',
-                          url: url,
-                          platform: 'POIZON',
-                          skuBundle: bData
-                        };
+                        handleParsedBundle(bData);
+                        handled = true;
+                        return;
                       }
                     }
                   }
@@ -1343,7 +1417,7 @@ window.renderSmartCalculator = async function() {
               }
 
               // ── FALLBACK PATH: SUPABASE PARSE_QUEUE ──
-              if (!parsedResult && typeof supabaseClient !== 'undefined' && supabaseClient) {
+              if (!handled && typeof supabaseClient !== 'undefined' && supabaseClient) {
                 if (statusBox) statusBox.innerHTML = '<span class="animate-spin inline-block mr-1">⏳</span> Обходим защиту… Парсинг через облачный шлюз...';
                 const isPdd = /yangkeduo|pinduoduo|goods_id=/i.test(url);
                 const initialStatus = isPdd ? 'pdd_pending' : 'pending';
@@ -1372,20 +1446,22 @@ window.renderSmartCalculator = async function() {
                           if (parsedDesc && parsedDesc.is_sku_bundle) skuBundle = parsedDesc;
                         } catch(e) {}
                       }
-                      parsedResult = {
-                        title: checkData.title || 'Товар',
-                        price: checkData.price || 350,
-                        currency: checkData.currency || 'CNY',
-                        image_url: checkData.image_url || null,
-                        category: checkData.category || 'Обувь',
-                        brand: checkData.brand || '',
-                        color: checkData.color || '',
-                        size: checkData.size || '',
-                        url: url,
-                        platform: checkData.marketplace_name || 'POIZON',
-                        skuBundle: skuBundle
+
+                      const bundleData = skuBundle || {
+                        title: checkData.title,
+                        title_ru: checkData.title,
+                        price_cny: checkData.price,
+                        category: checkData.category,
+                        image_url: checkData.image_url,
+                        brand: checkData.brand,
+                        colors: checkData.color ? [{ name: checkData.color, name_ru: checkData.color }] : [],
+                        sizes: checkData.size ? [{ name: checkData.size, name_ru: checkData.size }] : [],
+                        spec_groups: []
                       };
-                      break;
+
+                      handleParsedBundle(bundleData);
+                      handled = true;
+                      return;
                     }
                     if (checkData?.status === 'error') {
                       throw new Error(checkData.error_message || 'Ошибка парсинга');
@@ -1394,31 +1470,9 @@ window.renderSmartCalculator = async function() {
                 }
               }
 
-              // Fallback if neither responded: Provide smart estimate with real parameters
-              if (!parsedResult) {
-                parsedResult = {
-                  title: 'Товар по ссылке',
-                  price: 350,
-                  currency: 'CNY',
-                  category: 'Обувь',
-                  url: url,
-                  platform: 'POIZON',
-                  image_url: null,
-                  skuBundle: {
-                    has_options: true,
-                    sizes: [
-                      { name: '40', price: 340 },
-                      { name: '41', price: 350 },
-                      { name: '42', price: 360 },
-                      { name: '43', price: 380 },
-                      { name: '44', price: 390 }
-                    ]
-                  }
-                };
+              if (!handled) {
+                throw new Error('Не удалось получить данные о товаре. Проверьте ссылку и попробуйте снова.');
               }
-
-              if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
-              window.displayCalcResult(parsedResult);
 
             } catch (err) {
               let rawMsg = (err && err.message) ? String(err.message) : '';

@@ -98,6 +98,13 @@ COLOR_DICT = {
     "酒红": "Бордовый",
     "酒红色": "Бордовый",
     "透明": "Прозрачный",
+    "浅灰色": "Светло-серый",
+    "深灰色": "Темно-серый",
+    "粉红色": "Розовый",
+    "花灰色": "Меланж серый",
+    "燕麦色": "Овсяный",
+    "驼色": "Верблюжий",
+    "焦糖色": "Карамельный",
 }
 
 def translate_color(name_cn: str) -> str:
@@ -131,11 +138,11 @@ def detect_category_and_brand(title_cn: str, selected_summary: str):
     full_text = f"{title_cn} {selected_summary}".lower()
     
     category = "Товары из Китая"
-    if any(x in full_text for x in ["鞋", "运动鞋", "板鞋", "球鞋", "sneaker"]):
+    if any(x in full_text for x in ["鞋", "运动鞋", "板鞋", "球鞋", "sneaker", "靴"]):
         category = "Обувь"
-    elif any(x in full_text for x in ["卫衣", "t恤", "外套", "裤", "短袖", "衣服", "羽绒服"]):
+    elif any(x in full_text for x in ["卫衣", "t恤", "外套", "裤", "短袖", "衣服", "羽绒服", "夹克", "牛仔", "长裤", "卫裤", "休闲裤", "工装裤", "运动裤", "短裤"]):
         category = "Одежда"
-    elif any(x in full_text for x in ["包", "双肩包", "单肩包", "手提包"]):
+    elif any(x in full_text for x in ["包", "双肩包", "单肩包", "手提包", "斜挎包"]):
         category = "Сумки"
     elif any(x in full_text for x in ["表", "手表"]):
         category = "Часы"
@@ -144,7 +151,7 @@ def detect_category_and_brand(title_cn: str, selected_summary: str):
     elif any(x in full_text for x in ["壳", "手机壳", "膜"]):
         category = "Чехлы"
         
-    brands = ["Nike", "Adidas", "Jordan", "New Balance", "Puma", "Converse", "Vans", "Apple", "Samsung", "Xiaomi", "Huawei", "Sony", "Casio", "Zara", "Uniqlo", "Supreme", "Stussy", "Balenciaga", "Gucci"]
+    brands = ["Nike", "Adidas", "Jordan", "New Balance", "Puma", "Converse", "Vans", "Apple", "Samsung", "Xiaomi", "Huawei", "Sony", "Casio", "Zara", "Uniqlo", "Supreme", "Stussy", "Balenciaga", "Gucci", "C.P. Company", "Stone Island", "Arc'teryx", "Trapstar", "Syna World", "Corteiz"]
     brand = ""
     for b in brands:
         if b.lower() in full_text:
@@ -171,13 +178,25 @@ def translate_title(cn_title: str) -> str:
             parts.append("для iPhone")
         if "防摔" in t:
             parts.append("ударопрочный")
-    elif any(x in t for x in ["鞋", "运动鞋", "板鞋"]):
+    elif any(x in t for x in ["鞋", "运动鞋", "板鞋", "球鞋"]):
         parts.append("Кроссовки")
+    elif any(x in t for x in ["卫裤", "休闲长裤", "运动裤", "束脚裤"]):
+        parts.append("Спортивные брюки")
+    elif "牛仔裤" in t:
+        parts.append("Джинсы")
+    elif "短裤" in t:
+        parts.append("Шорты")
+    elif "工装裤" in t:
+        parts.append("Брюки-карго")
+    elif "裤" in t:
+        parts.append("Штаны / Брюки")
     elif "卫衣" in t:
         parts.append("Худи")
     elif "t恤" in t.lower() or "短袖" in t:
         parts.append("Футболка")
-    elif "外套" in t:
+    elif "羽绒服" in t:
+        parts.append("Пуховик")
+    elif "外套" in t or "夹克" in t:
         parts.append("Куртка")
     elif "包" in t:
         parts.append("Сумка")
@@ -188,6 +207,7 @@ def translate_title(cn_title: str) -> str:
         
     if parts:
         clean = re.sub(r"[\u4e00-\u9fa5]", "", t)
+        clean = re.sub(r"[^\w\s\-\/]", " ", clean)
         clean = re.sub(r"\s+", " ", clean).strip()
         res = " ".join(parts)
         if clean:
@@ -796,43 +816,60 @@ def parse_product(req: ParseRequest):
     run_adb(["shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", intent_url, "-f", "0x14000000"])
     time.sleep(random.uniform(2.5, 3.2)) # human dwell time for page load
     
-    # 2. Simulate human browsing behavior (natural scroll down)
-    human_scroll('down')
-    time.sleep(random.uniform(0.7, 1.2))
-    
-    # 3. Check if page is loaded and open SKU drawer
-    root = dump_ui_xml()
+    # 2. Capture title directly from initial page state
+    root_init = dump_ui_xml()
     
     raw_title = ""
-    candidates = []
-    for node in root.iter("node"):
+    # Look for title node in top half of screen (below image y1 >= 850)
+    for node in root_init.iter("node"):
         txt = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
-        if len(txt) >= 10 and not any(x in txt for x in ["退货包运费", "假一赔十", "正品保障", "客服", "店铺", "收藏", "已拼", "券后", "免拼", "评价", "进店", "分享", "已选:", "二次销售", "不支持七天", "退换", "如出现已洗涤", "顶部", "活动优惠", "服务", "更换支付方式", "提交订单"]):
-            candidates.append(txt)
-    if candidates:
-        raw_title = max(candidates, key=len)
+        b = node.attrib.get("bounds", "")
+        if b and len(txt) >= 8:
+            x1, y1, x2, y2 = parse_bounds(b)
+            # True title is on screen (y1 between 850 and 1350, wide width >= 400), not a review or phantom
+            if 850 <= y1 <= 1350 and (x2 - x1) >= 400 and not any(x in txt for x in ["收到了", "退货", "假一赔十", "正品保障", "客服", "店铺", "收藏", "已拼", "券后", "免拼", "评价", "进店", "分享", "已选:", "二次销售", "不支持七天", "退换", "如出现已洗涤", "顶部", "活动优惠", "服务", "更换支付方式", "提交订单", "在拼", "参与可立即", "拼单即将结束", "去拼单", "元", "¥", "保暖", "舒服", "穿搭", "手感", "面料", "好评"]):
+                if len(txt) > len(raw_title):
+                    raw_title = txt
+    
+    if not raw_title:
+        candidates = []
+        for node in root_init.iter("node"):
+            txt = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
+            b = node.attrib.get("bounds", "")
+            x1, y1, x2, y2 = parse_bounds(b) if b else (0,0,0,0)
+            if (x1 > 0 or y1 > 0) and len(txt) >= 10 and not any(x in txt for x in ["收到了", "退货包运费", "假一赔十", "正品保障", "客服", "店铺", "收藏", "已拼", "券后", "免拼", "评价", "进店", "分享", "已选:", "二次销售", "不支持七天", "退换", "如出现已洗涤", "顶部", "活动优惠", "服务", "更换支付方式", "提交订单", "在拼", "参与可立即", "拼单即将结束", "去拼单", "保暖", "舒服", "穿搭", "手感", "面料", "好评"]):
+                candidates.append(txt)
+        if candidates:
+            raw_title = max(candidates, key=len)
 
-    # If SKU drawer is not open, click the buy button (免拼购买)
-    has_sku_drawer = any(any(x in (n.attrib.get("text", "") or n.attrib.get("content-desc", "")) for x in ["提交订单", "立即支付", "选择尺码后", "选择款式后"]) for n in root.iter("node"))
+    # 3. Check if SKU drawer is open, or tap buy button
+    has_sku_drawer = any(any(x in (n.attrib.get("text", "") or n.attrib.get("content-desc", "")) for x in ["提交订单", "立即支付", "选择尺码后", "选择款式后"]) for n in root_init.iter("node"))
     if not has_sku_drawer:
         print("[*] SKU drawer not open yet. Tapping bottom buy button...")
         buy_bounds = None
-        for n in root.iter("node"):
-            t = (n.attrib.get("text", "") or n.attrib.get("content-desc", "")).strip()
-            b = n.attrib.get("bounds", "")
-            if any(k in t for k in ["免拼购买", "立即购买", "单独购买", "发起拼单"]) and b:
-                x1, y1, x2, y2 = parse_bounds(b)
-                if y1 >= 1300:
-                    buy_bounds = b
-                    break
+        # Strict priority: discount/group buy first, expensive single buy last
+        for target_text in ["免拼购买", "发起拼单", "立即购买", "单独购买"]:
+            for n in root_init.iter("node"):
+                t = (n.attrib.get("text", "") or n.attrib.get("content-desc", "")).strip()
+                b = n.attrib.get("bounds", "")
+                if target_text in t and b:
+                    x1, y1, x2, y2 = parse_bounds(b)
+                    if y1 >= 1300 and x2 > x1 and y2 > y1:
+                        buy_bounds = b
+                        break
+            if buy_bounds:
+                break
+
         if buy_bounds:
             human_tap(buy_bounds)
         else:
-            human_tap("[450,1515][880,1595]")
+            human_tap("[740,1535]") # Center of right bottom buy button
         time.sleep(random.uniform(1.8, 2.5))
         root = dump_ui_xml()
+    else:
+        root = root_init
         
-    # 3. Parse SKU Drawer with Universal Dynamic Groups
+    # 4. Parse SKU Drawer with Universal Dynamic Groups
     spec_groups = []
     current_group_dict = None
     colors = []
@@ -842,7 +879,7 @@ def parse_product(req: ParseRequest):
     selected_summary = ""
     
     # Non-sku blacklist keywords
-    blacklist_terms = ["¥", "元", "已拼", "折", "包邮", "退货", "发货", "对照表", "体重", "详情", "举报", "店铺", "收藏", "客服", "返回", "大促", "买过", "即将结束", "无需等待", "匿名", "进店", "保障", "评价", "全场", "领型", "穿着方式", "面料", "风格", "适用", "多款", "列表", "打开大图", "减少数量", "增加数量", "数量", "请选择", "去支付", "组合", "查收", "尺码建议", "查看尺码建议", "建议"]
+    blacklist_terms = ["¥", "元", "已拼", "折", "包邮", "退货", "发货", "对照表", "体重", "详情", "举报", "店铺", "收藏", "客服", "返回", "大促", "买过", "即将结束", "无需等待", "匿名", "进店", "保障", "评价", "全场", "领型", "穿着方式", "面料", "风格", "适用", "多款", "列表", "打开大图", "减少数量", "增加数量", "数量", "请选择", "去支付", "组合", "查收", "尺码建议", "查看尺码建议", "建议", "关闭弹窗", "当前收货地址", "送达", "同行"]
 
     for node in root.iter("node"):
         txt = node.attrib.get("text", "").strip()
@@ -851,16 +888,24 @@ def parse_product(req: ParseRequest):
         bounds = node.attrib.get("bounds", "")
         cls = node.attrib.get("class", "")
         
-        if not val:
+        if not val or not bounds:
+            continue
+
+        x1, y1, x2, y2 = parse_bounds(bounds)
+        # Filter phantom nodes with (0,0) or zero dimensions (e.g. background review tags)
+        if (x1 == 0 and y1 == 0 and x2 == 0 and y2 == 0) or (x2 - x1 < 10) or (y2 - y1 < 10):
             continue
             
-        if "已选:" in val or "请选择:" in val:
-            selected_summary = val.replace("已选:", "").replace("请选择:", "").replace("🔥", "").strip()
+        if "已选:" in val or "请选择:" in val or "请选择" in val:
+            selected_summary = val.replace("已选:", "").replace("请选择:", "").replace("请选择", "").replace("🔥", "").strip()
             
-        if "到手价" in val or "提交订单" in val or "限量价" in val:
-            m_price = re.search(r"¥\s*(\d+\.?\d*)", val)
-            if m_price:
-                price_cny = float(m_price.group(1))
+        m_price = re.search(r"¥\s*(\d+\.?\d*)", val)
+        if m_price:
+            p_val = float(m_price.group(1))
+            if any(k in val for k in ["到手价", "提交订单", "限量价", "限1件", "券后"]):
+                price_cny = p_val
+            elif price_cny == 0.0:
+                price_cny = p_val
         elif val.startswith("¥") and orig_price_cny == 0.0:
             m_orig = re.search(r"¥\s*(\d+\.?\d*)", val)
             if m_orig:
@@ -868,8 +913,8 @@ def parse_product(req: ParseRequest):
                 if p != price_cny:
                     orig_price_cny = p
 
-        # Check section headers dynamically
-        if any(h in val for h in ["颜色", "款式", "分类", "花色", "外观"]) and not any(x in val for x in ["大图", "已选", "请选择", "建议"]):
+        # Check section headers dynamically (visible on screen, short title <= 6 chars)
+        if len(val) <= 6 and any(h in val for h in ["颜色", "款式", "分类", "花色", "外观"]) and not any(x in val for x in ["大图", "已选", "请选择", "建议"]):
             existing_visual = next((g for g in spec_groups if g["title"] == "Цвет / Расцветка"), None)
             if not existing_visual:
                 current_group_dict = {
@@ -882,7 +927,7 @@ def parse_product(req: ParseRequest):
             else:
                 current_group_dict = existing_visual
             continue
-        elif any(h in val for h in ["尺码", "鞋码", "尺寸", "身高"]) and not any(x in val for x in ["建议", "对照", "已选", "请选择", "表"]):
+        elif len(val) <= 6 and any(h in val for h in ["尺码", "鞋码", "尺寸", "身高"]) and not any(x in val for x in ["建议", "对照", "已选", "请选择", "表"]):
             existing_size = next((g for g in spec_groups if g["title"] == "Размер"), None)
             if not existing_size:
                 current_group_dict = {
@@ -895,7 +940,7 @@ def parse_product(req: ParseRequest):
             else:
                 current_group_dict = existing_size
             continue
-        elif any(h in val for h in ["机型", "型号", "适配", "版本"]) and not any(x in val for x in ["已选", "请选择"]):
+        elif len(val) <= 6 and any(h in val for h in ["机型", "型号", "适配", "版本"]) and not any(x in val for x in ["已选", "请选择"]):
             existing_model = next((g for g in spec_groups if g["title"] == "Модель / Версия"), None)
             if not existing_model:
                 current_group_dict = {
@@ -908,7 +953,7 @@ def parse_product(req: ParseRequest):
             else:
                 current_group_dict = existing_model
             continue
-        elif any(h in val for h in ["容量", "内存", "存储"]) and not any(x in val for x in ["已选", "请选择"]):
+        elif len(val) <= 6 and any(h in val for h in ["容量", "内存", "存储"]) and not any(x in val for x in ["已选", "请选择"]):
             existing_mem = next((g for g in spec_groups if g["title"] == "Объем памяти"), None)
             if not existing_mem:
                 current_group_dict = {
@@ -921,7 +966,7 @@ def parse_product(req: ParseRequest):
             else:
                 current_group_dict = existing_mem
             continue
-        elif any(h in val for h in ["套餐", "规格", "配置"]) and not any(x in val for x in ["已选", "请选择"]):
+        elif len(val) <= 6 and any(h in val for h in ["套餐", "规格", "配置"]) and not any(x in val for x in ["已选", "请选择"]):
             existing_pkg = next((g for g in spec_groups if g["title"] == "Комплектация"), None)
             if not existing_pkg:
                 current_group_dict = {
@@ -934,7 +979,7 @@ def parse_product(req: ParseRequest):
             else:
                 current_group_dict = existing_pkg
             continue
-        elif any(h in val for h in ["活动优惠", "服务", "使用#支付宝", "更换支付方式", "提交订单", "立即支付", "选择尺码后", "数量", "一次选多款"]):
+        elif any(h in val for h in ["活动优惠", "服务", "使用#支付宝", "更换支付方式", "提交订单", "立即支付", "选择尺码后", "选择款式后", "数量", "一次选多款"]):
             current_group_dict = None
             
         if current_group_dict and any(k in cls for k in ["TextView", "Button", "View"]):

@@ -8,84 +8,120 @@ function _esc(s) {
 }
 if (typeof _esc === 'function') window._esc = _esc;
 
+// ==================== ИНЛАЙН ВЕКТОРНЫЕ ЛОГОТИПЫ ПЛОЩАДОК (0 МС ЗАГРУЗКИ, 0 СЕТЕВЫХ ЗАПРОСОВ) ====================
+const MARKETPLACE_SVGS = {
+  dewu: `<svg viewBox="0 0 128 128" width="100%" height="100%" class="mp-logo-svg" aria-label="Dewu"><defs><linearGradient id="mp_dewuBg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0b171b"/><stop offset="100%" stop-color="#02080a"/></linearGradient><linearGradient id="mp_dewuCyan" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00f5d4"/><stop offset="50%" stop-color="#00d2c4"/><stop offset="100%" stop-color="#00b4d8"/></linearGradient><filter id="mp_dewuGlow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter></defs><rect width="128" height="128" rx="28" fill="url(#mp_dewuBg)"/><rect width="126" height="126" x="1" y="1" rx="27" fill="none" stroke="url(#mp_dewuCyan)" stroke-width="2" stroke-opacity="0.3"/><rect x="22" y="22" width="84" height="84" rx="20" fill="none" stroke="url(#mp_dewuCyan)" stroke-width="4.5" filter="url(#mp_dewuGlow)"/><g fill="url(#mp_dewuCyan)"><path d="M42 38 C38 43 35 48 33 53 C35.5 53.5 38 52 40 50 C41.5 46.5 43 43 44 40 Z"/><path d="M44 54 C39 61 35 68 31 75 C34 75.5 37 74 39 71 C41.5 66 44 60 46 56 Z"/><rect x="42" y="70" width="4.5" height="24" rx="2.2"/><rect x="52" y="38" width="38" height="22" rx="3" fill="none" stroke="url(#mp_dewuCyan)" stroke-width="4.5"/><line x1="53" y1="49" x2="89" y2="49" stroke="url(#mp_dewuCyan)" stroke-width="4"/><rect x="49" y="66" width="44" height="4.5" rx="2.25"/><rect x="67" y="69" width="4.5" height="27" rx="2.25"/><path d="M54 75 Q72 74 88 74" stroke="url(#mp_dewuCyan)" stroke-width="4" stroke-linecap="round" fill="none"/><circle cx="80" cy="84" r="3.2"/></g></svg>`,
+  taobao: `<svg viewBox="0 0 128 128" width="100%" height="100%" class="mp-logo-svg" aria-label="TaoBao"><defs><linearGradient id="mp_taobaoBg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ff6a00"/><stop offset="100%" stop-color="#ee3800"/></linearGradient></defs><rect width="128" height="128" rx="28" fill="url(#mp_taobaoBg)"/><g fill="#ffffff"><path d="M26 36 C29 34 35 37 36 41 C37 44 33 46 29 45 C26 44 24 39 26 36 Z"/><path d="M22 56 C26 54 31 56 32 60 C32 63 29 65 25 64 C22 63 20 59 22 56 Z"/><path d="M21 89 C23 85 28 78 33 71 C34 73 34 76 32 79 C28 85 24 90 21 89 Z"/><path d="M43 33 L86 33 C91 33 93 36 92 41 L88 77 C86 91 79 97 66 97 C62 97 58 96 56 94 C54 92 56 89 59 89 C67 89 74 88 77 78 L80 43 L45 43 C42 43 41 38 43 33 Z"/><path d="M57 36 C55 45 49 55 41 62 C39 60 40 57 43 54 C48 49 52 42 53 36 Z"/><rect x="49" y="50" width="26" height="5" rx="2.5"/><rect x="60" y="52" width="5" height="25" rx="2.5"/><rect x="46" y="65" width="31" height="5" rx="2.5"/><path d="M51 72 L49 84 C48 87 53 88 54 85 L56 72 Z"/><path d="M72 72 L74 84 C75 87 70 88 69 85 L67 72 Z"/></g></svg>`,
+  pinduoduo: `<svg viewBox="0 0 128 128" width="100%" height="100%" class="mp-logo-svg" aria-label="Pinduoduo"><defs><linearGradient id="mp_pddBg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ff3e2e"/><stop offset="100%" stop-color="#dc1f18"/></linearGradient></defs><rect width="128" height="128" rx="28" fill="url(#mp_pddBg)"/><g fill="#ffffff"><path d="M42 28 C49 28 55 33 55 41 C55 50 44 60 38 64 C32 60 21 50 21 41 C21 33 27 28 34 28 C37 28 40 29.5 42 32 C44 29.5 47 28 50 28 Z" transform="scale(0.85) translate(14, 8)"/><path d="M78 28 C85 28 91 33 91 41 C91 50 80 60 74 64 C68 60 57 50 57 41 C57 33 63 28 70 28 C73 28 76 29.5 78 32 C80 29.5 83 28 86 28 Z" transform="scale(0.85) translate(22, 8)"/><path d="M38 52 C35 56 31 60 27 63 L29 65 C33 62 38 57 41 53 Z"/><rect x="36" y="58" width="4" height="34" rx="2"/><path d="M28 72 L47 72" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round"/><path d="M26 89 L45 80" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/><circle cx="61" cy="58" r="3.2"/><circle cx="83" cy="58" r="3.2"/><line x1="51" y1="67" x2="94" y2="67" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round"/><rect x="59" y="66" width="4.5" height="28" rx="2.2"/><rect x="83" y="66" width="4.5" height="28" rx="2.2"/><line x1="47" y1="81" x2="97" y2="81" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/></g></svg>`,
+  goofish: `<svg viewBox="0 0 128 128" width="100%" height="100%" class="mp-logo-svg" aria-label="Goofish"><defs><linearGradient id="mp_goofishBg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ffdc00"/><stop offset="100%" stop-color="#ffbf00"/></linearGradient></defs><rect width="128" height="128" rx="28" fill="url(#mp_goofishBg)"/><g><path d="M64 26 C88 26 102 44 102 68 C102 90 86 102 64 102 C42 102 26 90 26 68 C26 44 40 26 64 26 Z" fill="#ffffff"/><path d="M58 24 C64 17 72 20 70 26 Z" fill="#ffbf00"/><circle cx="49" cy="56" r="12" fill="#1e1e1e"/><circle cx="52" cy="53" r="4.5" fill="#ffffff"/><circle cx="46" cy="59" r="2" fill="#ffffff"/><circle cx="79" cy="56" r="12" fill="#1e1e1e"/><circle cx="82" cy="53" r="4.5" fill="#ffffff"/><circle cx="76" cy="59" r="2" fill="#ffffff"/><path d="M56 75 Q64 84 72 75" fill="none" stroke="#1e1e1e" stroke-width="4.5" stroke-linecap="round"/><circle cx="36" cy="67" r="5" fill="#ff7f50" opacity="0.6"/><circle cx="92" cy="67" r="5" fill="#ff7f50" opacity="0.6"/></g></svg>`,
+  '95fen': `<svg viewBox="0 0 128 128" width="100%" height="100%" class="mp-logo-svg" aria-label="95"><defs><linearGradient id="mp_nineFiveBg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#141a24"/><stop offset="100%" stop-color="#080c12"/></linearGradient><linearGradient id="mp_nineFiveMint" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00ff9d"/><stop offset="100%" stop-color="#00d486"/></linearGradient><filter id="mp_mintGlow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.5" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter></defs><rect width="128" height="128" rx="28" fill="url(#mp_nineFiveBg)"/><rect width="126" height="126" x="1" y="1" rx="27" fill="none" stroke="url(#mp_nineFiveMint)" stroke-width="1.8" stroke-opacity="0.3"/><g fill="url(#mp_nineFiveMint)" filter="url(#mp_mintGlow)"><path d="M57 32 C41 32 30 42 30 58 C30 72 38 80 50 80 C54 80 57 79 60 77 L57 96 L47 96 L48 91 L35 93 L32 101 L65 101 C72 101 75 95 76 86 L78 32 L57 32 Z M54 67 C46 67 42 62 42 55 C42 47 47 43 54 43 L66 43 L63 64 C60 66 57 67 54 67 Z"/><path d="M78 33 L106 33 L104 43 L88 43 L86 54 C89 53 93 52 97 52 C108 52 115 59 113 73 C111 87 99 97 84 97 C74 97 66 92 64 85 L75 80 C77 84 81 87 86 87 C92 87 98 83 99 75 C100 68 96 63 89 63 C85 63 81 65 79 67 Z"/></g><g fill="#ffffff" opacity="0.85"><path d="M78 108 L84 104 L87 107 L81 111 Z"/><path d="M96 105 L102 109 L99 112 L93 108 Z"/><path d="M83 113 L99 113 C101 113 102 114 101 116 L98 122 L95 120 L97 116 L83 116 Z"/><path d="M91 113 C91 118 89 122 84 124 L82 122 C86 120 88 116 88 113 Z"/></g></svg>`,
+  jd: `<svg viewBox="0 0 128 128" width="100%" height="100%" class="mp-logo-svg" aria-label="JD"><defs><linearGradient id="mp_jdBg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ea251b"/><stop offset="100%" stop-color="#b60d14"/></linearGradient></defs><rect width="128" height="128" rx="28" fill="url(#mp_jdBg)"/><g fill="#ffffff"><path d="M64 24 C45 24 33 37 33 54 C33 65 39 74 48 78 L48 83 C48 86 52 88 56 87 L62 85 C63.3 85.3 64.7 85.3 66 85 L72 87 C76 88 80 86 80 83 L80 78 C89 74 95 65 95 54 C95 37 83 24 64 24 Z"/></g><g fill="#ea251b"><path d="M33 46 C31 52 32 60 37 64 C35 58 35 51 37 46 Z"/><path d="M95 46 C97 52 96 60 91 64 C93 58 93 51 91 46 Z"/><circle cx="51" cy="51" r="5"/><circle cx="52.5" cy="49.5" r="1.5" fill="#ffffff"/><circle cx="77" cy="51" r="5"/><circle cx="78.5" cy="49.5" r="1.5" fill="#ffffff"/><ellipse cx="64" cy="61" rx="6" ry="4"/><path d="M58 66 Q64 73 70 66" fill="none" stroke="#ea251b" stroke-width="2.5" stroke-linecap="round"/></g><text x="64" y="112" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="1">JD.COM</text></svg>`,
+  tmall: `<svg viewBox="0 0 128 128" width="100%" height="100%" class="mp-logo-svg" aria-label="Tmall"><defs><linearGradient id="mp_tmallBg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ff0036"/><stop offset="100%" stop-color="#cf002b"/></linearGradient></defs><rect width="128" height="128" rx="28" fill="url(#mp_tmallBg)"/><path d="M26 42 L38 28 L52 38 C59 36 69 36 76 38 L90 28 L102 42 C106 50 106 64 102 73 C95 86 78 89 64 89 C50 89 33 86 26 73 C22 64 22 50 26 42 Z" fill="#ffffff"/><path d="M30 46 L39 34 L51 43 C59 41 69 41 77 43 L89 34 L98 46 C101 53 101 64 98 71 C92 82 76 85 64 85 C52 85 36 82 30 71 C27 64 27 53 30 46 Z" fill="#111111"/><ellipse cx="49" cy="60" rx="7" ry="5" transform="rotate(-15 49 60)" fill="#ffffff"/><ellipse cx="79" cy="60" rx="7" ry="5" transform="rotate(15 79 60)" fill="#ffffff"/><ellipse cx="64" cy="68" rx="3.5" ry="2.5" fill="#ffffff"/><text x="64" y="112" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="2">TMALL</text></svg>`
+};
+
+function renderMarketplaceLogo(mp) {
+  const rawKey = (mp.key || mp.name || '').toLowerCase().trim();
+  if (MARKETPLACE_SVGS[rawKey]) return MARKETPLACE_SVGS[rawKey];
+  if (rawKey.includes('dewu') || rawKey.includes('poizon')) return MARKETPLACE_SVGS.dewu;
+  if (rawKey.includes('taobao')) return MARKETPLACE_SVGS.taobao;
+  if (rawKey.includes('pinduoduo') || rawKey.includes('пиндуодуо')) return MARKETPLACE_SVGS.pinduoduo;
+  if (rawKey.includes('goofish') || rawKey.includes('xianyu') || rawKey.includes('сяньюй')) return MARKETPLACE_SVGS.goofish;
+  if (rawKey.includes('95') || rawKey.includes('95fen')) return MARKETPLACE_SVGS['95fen'];
+  if (rawKey.includes('jd')) return MARKETPLACE_SVGS.jd;
+  if (rawKey.includes('tmall')) return MARKETPLACE_SVGS.tmall;
+
+  if (mp.logo_url) {
+    return `<img src="${mp.logo_url}" loading="lazy" decoding="async" class="mp-logo-svg object-contain" alt="${_esc(mp.name)}" onerror="this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.style.display='block';">
+            <span style="display:none; font-size: 20px;">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>`;
+  }
+  return `<span style="font-size: 20px;">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>`;
+}
+
+// In-memory быстрый кэш для мгновенного рендера главной без микрозадержек
+let _memHomeDbMarketplaces = null;
+let _memHomeProductsList = null;
+
 // ==================== РЕНДЕР ГЛАВНОЙ СТРАНИЦЫ ====================
 async function renderHome() {
   try {
-    let dbMarketplaces = [];
-    try {
-      const _sb = (typeof supabaseClient !== 'undefined' && supabaseClient) ? supabaseClient : window.supabaseClient;
-      if (window.CacheDB) window.CacheDB.clear('marketplaces');
-      if (window.CacheDB && _sb) {
-        const dbData = await window.CacheDB.get('marketplaces', async () => {
-          const { data } = await _sb.from('marketplaces').select('*').eq('is_active', true).order('sort_order', { ascending: true });
-          return data;
-        }, 300000);
-        if (dbData) dbMarketplaces = preprocessMarketplaces(dbData);
+    let dbMarketplaces = _memHomeDbMarketplaces || [];
+    if (!dbMarketplaces.length) {
+      try {
+        const _sb = (typeof supabaseClient !== 'undefined' && supabaseClient) ? supabaseClient : window.supabaseClient;
+        if (window.CacheDB && _sb) {
+          const dbData = await window.CacheDB.get('marketplaces', async () => {
+            const { data } = await _sb.from('marketplaces').select('*').eq('is_active', true).order('sort_order', { ascending: true });
+            return data;
+          }, 300000);
+          if (dbData) {
+            dbMarketplaces = preprocessMarketplaces(dbData);
+            _memHomeDbMarketplaces = dbMarketplaces;
+          }
+        }
+      } catch (e) {
+        console.warn('Marketplaces CacheDB warning:', e);
       }
-    } catch (e) {
-      console.error(e);
     }
 
-          // Filter only the 7 allowed Chinese marketplaces (excluding 1688 and all non-Chinese)
-          const allowedSlugs = ['dewu', 'poizon', 'taobao', 'pinduoduo', 'пиндуодуо', 'goofish', 'xianyu', 'сяньюй', '95', '95fen', 'jd', 'tmall'];
-          const homeDbMarketplaces = dbMarketplaces
-            .filter(mp => mp.show_on_home)
-            .filter(mp => {
-              const n = (mp.name || '').toLowerCase();
-              return allowedSlugs.some(slug => n.includes(slug));
-            });
+    // Filter only the 7 allowed Chinese marketplaces (excluding 1688 and all non-Chinese)
+    const allowedSlugs = ['dewu', 'poizon', 'taobao', 'pinduoduo', 'пиндуодуо', 'goofish', 'xianyu', 'сяньюй', '95', '95fen', 'jd', 'tmall'];
+    const homeDbMarketplaces = dbMarketplaces
+      .filter(mp => mp.show_on_home)
+      .filter(mp => {
+        const n = (mp.name || '').toLowerCase();
+        return allowedSlugs.some(slug => n.includes(slug));
+      });
 
-          const staticMarketplaces = [
-            { name: 'Dewu', url: 'https://dewu.com', website_url: 'https://dewu.com', logo_url: '/assets/marketplaces/dewu.png', icon: '<span class="mp-dot" style="background:#00f5d4" aria-hidden="true"></span>' },
-            { name: 'TaoBao', url: 'https://taobao.com', website_url: 'https://taobao.com', logo_url: '/assets/marketplaces/taobao.png', icon: '<span class="mp-dot" style="background:#ff5000" aria-hidden="true"></span>' },
-            { name: 'Pinduoduo', url: 'https://mobile.yangkeduo.com', website_url: 'https://mobile.yangkeduo.com', logo_url: '/assets/marketplaces/pinduoduo.png', icon: '<span class="mp-dot" style="background:#e02e24" aria-hidden="true"></span>' },
-            { name: 'Goofish', url: 'https://www.goofish.com', website_url: 'https://www.goofish.com', logo_url: '/assets/marketplaces/goofish.png', icon: '<span class="mp-dot" style="background:#ffd400" aria-hidden="true"></span>' },
-            { name: '95', url: 'https://www.95fen.com', website_url: 'https://www.95fen.com', logo_url: '/assets/marketplaces/95fen.png', icon: '<span class="mp-dot" style="background:#00ff9d" aria-hidden="true"></span>' },
-            { name: 'JD', url: 'https://www.jd.com', website_url: 'https://www.jd.com', logo_url: '/assets/marketplaces/jd.png', icon: '<span class="mp-dot" style="background:#ea251b" aria-hidden="true"></span>' },
-            { name: 'Tmall', url: 'https://www.tmall.com', website_url: 'https://www.tmall.com', logo_url: '/assets/marketplaces/tmall.png', icon: '<span class="mp-dot" style="background:#ff0036" aria-hidden="true"></span>' }
-          ];
+    const staticMarketplaces = [
+      { key: 'dewu', name: 'Dewu', url: 'https://dewu.com', website_url: 'https://dewu.com' },
+      { key: 'taobao', name: 'TaoBao', url: 'https://taobao.com', website_url: 'https://taobao.com' },
+      { key: 'pinduoduo', name: 'Pinduoduo', url: 'https://mobile.yangkeduo.com', website_url: 'https://mobile.yangkeduo.com' },
+      { key: 'goofish', name: 'Goofish', url: 'https://www.goofish.com', website_url: 'https://www.goofish.com' },
+      { key: '95fen', name: '95', url: 'https://www.95fen.com', website_url: 'https://www.95fen.com' },
+      { key: 'jd', name: 'JD', url: 'https://www.jd.com', website_url: 'https://www.jd.com' },
+      { key: 'tmall', name: 'Tmall', url: 'https://www.tmall.com', website_url: 'https://www.tmall.com' }
+    ];
 
-          // Merge static 7 platforms with any custom URLs from DB, guaranteeing exact 7 platforms in fixed order:
-          // Dewu, TaoBao, Pinduoduo, Goofish, 95, JD, Tmall
-          const marketplaces = staticMarketplaces.map(st => {
-            const fromDb = homeDbMarketplaces.find(db => (db.name || '').toLowerCase() === st.name.toLowerCase());
-            return fromDb ? { ...st, website_url: fromDb.website_url || st.website_url, url: fromDb.website_url || st.url } : st;
-          });
-          // 5 identical sets: Sets 0, 1, 2, 3, 4 (35 cards total).
-          // Middle Set 2 starts at index 14 (Dewu). Order is strictly immutable:
-          // Dewu, TaoBao, Pinduoduo, Goofish, 95, JD, Tmall
-          const fullMarketplaces = [];
-          for (let s = 0; s < 5; s++) fullMarketplaces.push(...marketplaces);
+    // Merge static 7 platforms with any custom URLs from DB, guaranteeing exact 7 platforms in fixed order:
+    // Dewu, TaoBao, Pinduoduo, Goofish, 95, JD, Tmall
+    const marketplaces = staticMarketplaces.map(st => {
+      const fromDb = homeDbMarketplaces.find(db => {
+        const dbName = (db.name || '').toLowerCase();
+        return dbName === st.name.toLowerCase() || (st.key && dbName.includes(st.key));
+      });
+      return fromDb ? { ...st, website_url: fromDb.website_url || st.website_url, url: fromDb.website_url || st.url } : st;
+    });
+    // 5 identical sets: Sets 0, 1, 2, 3, 4 (35 cards total).
+    // Middle Set 2 starts at index 14 (Dewu). Order is strictly immutable:
+    // Dewu, TaoBao, Pinduoduo, Goofish, 95, JD, Tmall
+    const fullMarketplaces = [];
+    for (let s = 0; s < 5; s++) fullMarketplaces.push(...marketplaces);
 
-          // Загрузка сегодняшних подборок из канала (@icelogix_selection)
-          let homeProductsList = [];
-          try {
-            if (window.CacheDB) window.CacheDB.clear('todaySelectionDrops');
-            // Ждём инициализации supabaseClient (может быть null при быстром старте из кэша)
-            let _sbClient = supabaseClient;
-            if (!_sbClient) {
-              for (let _w = 0; _w < 30; _w++) {
-                await new Promise(r => setTimeout(r, 100));
-                if (supabaseClient) { _sbClient = supabaseClient; break; }
-              }
-            }
-            if (_sbClient) {
-              const { data: drops } = await _sbClient
-                .from('products')
-                .select('*')
-                .eq('is_active', true)
-                .eq('show_on_home', true)
-                .order('created_at', { ascending: false })
-                .limit(9);
-              if (drops && drops.length > 0) {
-                homeProductsList = preprocessProducts(drops);
-              } else {
-                homeProductsList = [];
-              }
-            }
-          } catch(e) {
-            console.error('Failed to load drops for home:', e);
+    // Загрузка сегодняшних подборок из канала (@icelogix_selection) без сброса кэша
+    let homeProductsList = _memHomeProductsList || [];
+    if (!homeProductsList.length) {
+      try {
+        const _sbClient = (typeof supabaseClient !== 'undefined' && supabaseClient) ? supabaseClient : window.supabaseClient;
+        if (window.CacheDB && _sbClient) {
+          const drops = await window.CacheDB.get('todaySelectionDrops', async () => {
+            const { data } = await _sbClient
+              .from('products')
+              .select('*')
+              .eq('is_active', true)
+              .eq('show_on_home', true)
+              .order('created_at', { ascending: false })
+              .limit(9);
+            return data || [];
+          }, 180000);
+          if (drops && drops.length > 0) {
+            homeProductsList = preprocessProducts(drops);
+            _memHomeProductsList = homeProductsList;
           }
+        }
+      } catch(e) {
+        console.warn('Failed to load drops for home:', e);
+      }
+    }
   
   return `
     <!-- Popular Marketplaces Capsule (Monolithic Tabbed Dock from User Sketch) -->
@@ -133,8 +169,7 @@ async function renderHome() {
               ${fullMarketplaces.map((mp, idx) => `
                 <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}" data-name="${mp.name}" data-idx="${idx}">
                   <div class="story-icon">
-                    ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261022_04" loading="eager" decoding="async" class="w-full h-full object-contain" alt="${mp.name}" onerror="if(!this.dataset.retried){this.dataset.retried='1';this.src='${mp.logo_url}?retry=1';}else{this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.style.display='block';}">` : ''}
-                    <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 20px;">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
+                    ${renderMarketplaceLogo(mp)}
                   </div>
                   <span class="story-label">${mp.name}</span>
                 </div>
