@@ -663,19 +663,19 @@
     function preprocessMarketplaces(marketplaces) {
       if (!marketplaces) return [];
       const localLogos = {
-        'dewu': '/assets/marketplaces/dewu.svg',
-        'poizon': '/assets/marketplaces/dewu.svg',
-        'taobao': '/assets/marketplaces/taobao.svg',
-        'pinduoduo': '/assets/marketplaces/pinduoduo.svg',
-        'пиндуодуо': '/assets/marketplaces/pinduoduo.svg',
-        'goofish': '/assets/marketplaces/goofish.svg',
-        'xianyu': '/assets/marketplaces/goofish.svg',
-        'сяньюй': '/assets/marketplaces/goofish.svg',
-        '95': '/assets/marketplaces/95fen.svg',
-        '95fen': '/assets/marketplaces/95fen.svg',
-        'jd': '/assets/marketplaces/jd.svg',
-        'jd.com': '/assets/marketplaces/jd.svg',
-        'tmall': '/assets/marketplaces/tmall.svg'
+        'dewu': '/assets/marketplaces/dewu.png',
+        'poizon': '/assets/marketplaces/dewu.png',
+        'taobao': '/assets/marketplaces/taobao.png',
+        'pinduoduo': '/assets/marketplaces/pinduoduo.png',
+        'пиндуодуо': '/assets/marketplaces/pinduoduo.png',
+        'goofish': '/assets/marketplaces/goofish.png',
+        'xianyu': '/assets/marketplaces/goofish.png',
+        'сяньюй': '/assets/marketplaces/goofish.png',
+        '95': '/assets/marketplaces/95fen.png',
+        '95fen': '/assets/marketplaces/95fen.png',
+        'jd': '/assets/marketplaces/jd.png',
+        'jd.com': '/assets/marketplaces/jd.png',
+        'tmall': '/assets/marketplaces/tmall.png'
       };
 
       return marketplaces.map(mp => {
