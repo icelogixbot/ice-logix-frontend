@@ -1098,37 +1098,46 @@ window.renderSmartCalculator = async function() {
     item.total_byn = calc.totalByn;
     item.quantity = qty;
 
-    // Build size chips from skuBundle if available
+    // Build size / color / variant chips from skuBundle if available
     let sizeChipsHtml = '';
     const sku = window._calcSkuBundle || item.skuBundle;
-    let sizesList = null;
+    let variantsList = null;
+    let variantsLabel = 'Выберите вариант:';
     if (sku) {
-      if (Array.isArray(sku.sizes) && sku.sizes.length > 0) {
-        sizesList = sku.sizes;
-      } else if (Array.isArray(sku.spec_groups) && sku.spec_groups.length > 0) {
-        const specGrp = sku.spec_groups.find(g => g.type === 'spec') || sku.spec_groups[0];
-        if (specGrp && Array.isArray(specGrp.options) && specGrp.options.length > 0) {
-          sizesList = specGrp.options;
+      if (Array.isArray(sku.spec_groups) && sku.spec_groups.length > 0) {
+        const primaryGrp = sku.spec_groups.find(g => g.type === 'spec') || sku.spec_groups[0];
+        if (primaryGrp && Array.isArray(primaryGrp.options) && primaryGrp.options.length > 0) {
+          variantsList = primaryGrp.options;
+          variantsLabel = (primaryGrp.title || 'Вариант') + ':';
         }
+      } else if (Array.isArray(sku.sizes) && sku.sizes.length > 0) {
+        variantsList = sku.sizes;
+        variantsLabel = 'Выберите размер:';
+      } else if (Array.isArray(sku.colors) && sku.colors.length > 0) {
+        variantsList = sku.colors;
+        variantsLabel = 'Выберите цвет / расцветку:';
+      } else if (Array.isArray(sku.visual_options) && sku.visual_options.length > 0) {
+        variantsList = sku.visual_options;
+        variantsLabel = 'Выберите расцветку:';
       }
     }
 
-    if (sizesList) {
+    if (variantsList && variantsList.length > 0) {
       sizeChipsHtml = `
         <div class="mt-3 text-left">
           <div class="flex items-center justify-between mb-1.5">
-            <label class="text-white/70 text-xs font-semibold">Выберите размер:</label>
+            <label class="text-white/70 text-xs font-semibold">${variantsLabel}</label>
             ${typeof window.openSkuSelectorModal === 'function' && sku?.has_options ? `
-              <button type="button" id="calcOpenSkuModalBtn" class="text-[11px] text-cyan-400 hover:text-cyan-300 font-semibold bg-cyan-500/10 px-2 py-0.5 rounded-lg border border-cyan-500/20 cursor-pointer">
-                🎨 Все опции
+              <button type="button" id="calcOpenSkuModalBtn" class="text-[11px] text-cyan-400 hover:text-cyan-300 font-semibold bg-cyan-500/10 px-2.5 py-0.5 rounded-lg border border-cyan-500/20 cursor-pointer flex items-center gap-1 active:scale-95 transition">
+                <span>🎨</span> Все опции и фото
               </button>
             ` : ''}
           </div>
           <div class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
-            ${sizesList.map((s, idx) => {
+            ${variantsList.map((s, idx) => {
               const sName = s.name_ru || s.name || s.size || s;
               const sPrice = s.price || s.price_cny || item.price;
-              const isActive = (window._calcSelectedSize === sName) || (!window._calcSelectedSize && idx === 0);
+              const isActive = (window._calcSelectedSize === sName || window._calcSelectedColor === sName) || (!window._calcSelectedSize && !window._calcSelectedColor && idx === 0);
               return `
                 <button type="button" class="calc-size-chip ${isActive ? 'active' : ''}" data-size="${sName}" data-price="${sPrice}">
                   <span>${sName}</span>
@@ -1317,6 +1326,9 @@ window.renderSmartCalculator = async function() {
             const detectSmartCategory = (title, origCat) => {
               if (origCat && origCat !== 'Товары из Китая' && origCat !== 'Обувь') return origCat;
               const t = (title || '').toLowerCase();
+              if (t.includes('часы') || t.includes('watch') || t.includes('reloj') || t.includes('手表') || t.includes('часики')) {
+                return 'Часы';
+              }
               if (t.includes('брюки') || t.includes('штаны') || t.includes('худи') || t.includes('толстовк') || 
                   t.includes('футболк') || t.includes('майк') || t.includes('джинс') || t.includes('шорт') || 
                   t.includes('куртк') || t.includes('пуховик') || t.includes('пальто') || t.includes('одежд') ||
@@ -1335,18 +1347,28 @@ window.renderSmartCalculator = async function() {
               if (t.includes('рюкзак') || t.includes('сумк') || t.includes('кошелек') || t.includes('bag')) {
                 return 'Сумки';
               }
-              if (t.includes('часы') || t.includes('watch')) {
-                return 'Часы';
-              }
               if (t.includes('наушник') || t.includes('колонк') || t.includes('телефон') || t.includes('ipad') || t.includes('iphone')) {
                 return 'Электроника';
               }
-              return origCat || 'Одежда';
+              return (origCat && origCat !== 'Товары из Китая') ? origCat : 'Одежда';
             };
 
             const finalizeParsedItem = (bData, selected = null) => {
-              const title = selected?.title || bData.title_ru || bData.title || 'Товар';
-              const price = (selected?.price != null && Number(selected.price) > 0) ? Number(selected.price) : (bData.price_cny || bData.price || 50);
+              let title = selected?.title || bData.title_ru || bData.title || '';
+              // Eliminate raw Chinese platform title like "拼多多" or fallback "Товар с Pinduoduo"
+              if (!title || title === '拼多多' || title === 'Товар с Pinduoduo') {
+                title = bData.category || selected?.category || 'Товар';
+              }
+              
+              const rawPrice = (selected?.price != null && Number(selected.price) > 0) 
+                ? Number(selected.price) 
+                : (Number(bData.price_cny) || Number(bData.price) || 0);
+
+              if (rawPrice <= 0) {
+                throw new Error('Не удалось определить цену товара. Пожалуйста, проверьте ссылку или введите цену вручную.');
+              }
+
+              const price = rawPrice;
               const category = detectSmartCategory(title, selected?.category || bData.category);
               const img = selected?.image_url || bData.image_url || null;
               const brand = bData.brand || selected?.brand || '';
@@ -1373,7 +1395,7 @@ window.renderSmartCalculator = async function() {
 
             const handleParsedBundle = (bundleData) => {
               if (statusBox) statusBox.classList.add('hidden');
-              const hasOpts = bundleData.has_options || (bundleData.colors && bundleData.colors.length > 0) || (bundleData.sizes && bundleData.sizes.length > 0) || (bundleData.spec_groups && bundleData.spec_groups.length > 0);
+              const hasOpts = bundleData.has_options || (bundleData.colors && bundleData.colors.length > 0) || (bundleData.sizes && bundleData.sizes.length > 0) || (bundleData.spec_groups && bundleData.spec_groups.length > 0) || (bundleData.visual_options && bundleData.visual_options.length > 0);
               if (hasOpts && typeof window.openSkuSelectorModal === 'function') {
                 window.openSkuSelectorModal(bundleData, (selected) => {
                   finalizeParsedItem(bundleData, selected);
@@ -1789,6 +1811,7 @@ window.renderSmartCalculator = async function() {
             const sPrice = parseFloat(chip.dataset.price);
 
             window._calcSelectedSize = sName;
+            window._calcSelectedColor = sName;
             if (sPrice && sPrice > 0) {
               item.price = sPrice;
             }
