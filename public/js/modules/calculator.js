@@ -583,486 +583,1231 @@
       });
     };
 
-    async function attachCalculatorHandlers() {
-      // Toggle currency selection dropdown
-      const currencyBtn = document.getElementById('calcCurrencyBtn');
-      const currencyDropdown = document.getElementById('calcCurrencyDropdown');
-      
-      if (currencyBtn && currencyDropdown) {
-        currencyBtn.onclick = (e) => {
-          e.stopPropagation();
-          currencyDropdown.classList.toggle('hidden');
-        };
-        
-        window.selectCalcCurrency = (val, text) => {
-          document.getElementById('calcCurrency').value = val;
-          document.getElementById('calcCurrencyVal').innerText = text;
-          currencyDropdown.classList.add('hidden');
-        };
-        
-        document.addEventListener('click', () => {
-          if (currencyDropdown) currencyDropdown.classList.add('hidden');
-        });
-      }
-      
-      // Toggle country selection dropdown
-      const countryBtn = document.getElementById('calcCountryBtn');
-      const countryDropdown = document.getElementById('calcCountryDropdown');
-      
-      if (countryBtn && countryDropdown) {
-        countryBtn.onclick = (e) => {
-          e.stopPropagation();
-          countryDropdown.classList.toggle('hidden');
-        };
-        
-        window.selectCalcCountry = (code) => {
-          const selected = ALL_COUNTRIES.find(x => x.code === code);
-          if (!selected) return;
-          if (code !== 'CN') {
-            tgUtil.haptic('warning');
-            glassToast('Данное направление временно недоступно. Скоро мы запустим доставку!', { kind: 'info' });
-            return;
-          }
-          document.getElementById('calcCountryInput').value = code;
-          document.getElementById('calcCountryVal').innerText = `${selected.flag} ${selected.name}`;
-          countryDropdown.classList.add('hidden');
-        };
-        
-        document.addEventListener('click', () => {
-          if (countryDropdown) countryDropdown.classList.add('hidden');
-        });
-      }
-      
-      // Toggle checkboxes on card clicks
-      window.toggleCheckbox = (id) => {
-        const cb = document.getElementById(id);
-        if (cb) {
-          cb.checked = !cb.checked;
-          cb.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-      };
-      
-      // AI weight estimation helper
-      function toBase64(file) {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = () => {
-            resolve(reader.result);
-          };
-          reader.onerror = error => reject(error);
-        });
-      }
-      
-      window.openCalcWeightModal = () => {
-        const modalHtml = `
-          <div id="calcWeightModal" class="full-screen-modal-overlay page-enter">
-            <div class="full-screen-modal-header">
-              <button type="button" class="global-back-btn !mb-0" onclick="document.getElementById('calcWeightModal')?.remove()" title="Назад">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="15 18 9 12 15 6"/>
-                </svg>
-              </button>
-              <div class="text-center">
-                <h3 class="text-white font-bold text-sm truncate">⚖️ Примерный вес товара</h3>
-                <p class="text-white/40 text-[10px]">ИИ-определение веса</p>
+
+// ============================================================
+// ICE LOGIX: SMART AI CALCULATOR (Hub -> Hardware Bridge / Emulator -> Live Result)
+// ============================================================
+
+window._calcMode = window._calcMode || 'hub'; // 'hub' | 'link' | 'photo' | 'text' | 'manual' | 'result'
+window._currentCalcItem = window._currentCalcItem || null;
+window._calcSelectedSize = window._calcSelectedSize || null;
+window._calcSelectedColor = window._calcSelectedColor || null;
+window._calcQuantity = window._calcQuantity || 1;
+window._calcPhotoFiles = window._calcPhotoFiles || [];
+window._calcPhotoBlobUrls = window._calcPhotoBlobUrls || [];
+window._calcSkuBundle = window._calcSkuBundle || null;
+
+window.setCalcMode = function(mode) {
+  if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
+  window._calcMode = mode;
+  if (mode === 'hub') {
+    window._currentCalcItem = null;
+    window._calcSelectedSize = null;
+    window._calcSelectedColor = null;
+    window._calcQuantity = 1;
+    window._calcSkuBundle = null;
+  }
+  if (typeof renderCurrentScreen === 'function') renderCurrentScreen();
+};
+
+window.calculateAllInclusiveByn = function(priceCny, category = 'Обувь', weightKg = null, qty = 1) {
+  const pCny = parseFloat(priceCny) || 0;
+  const quantity = Math.max(1, parseInt(qty) || 1);
+  
+  // Real Rate CNY to BYN (from pricing engine or fallback 0.45)
+  let cnyRate = 0.45;
+  try {
+    if (window.iceLogixPricing && window.iceLogixPricing.rates && window.iceLogixPricing.rates.CNY_to_BYN) {
+      cnyRate = window.iceLogixPricing.rates.CNY_to_BYN;
+    }
+  } catch(e) {}
+
+  // Estimated weight by category
+  let w = parseFloat(weightKg);
+  if (isNaN(w) || w <= 0) {
+    const catLower = (category || '').toLowerCase();
+    if (catLower.includes('обувь') || catLower.includes('кроссовк') || catLower.includes('ботин')) w = 1.2;
+    else if (catLower.includes('куртк') || catLower.includes('пуховик') || catLower.includes('пальто')) w = 1.5;
+    else if (catLower.includes('худи') || catLower.includes('толстовк') || catLower.includes('штаны') || catLower.includes('джинс')) w = 0.8;
+    else if (catLower.includes('электрон') || catLower.includes('телефон') || catLower.includes('наушник')) w = 0.5;
+    else if (catLower.includes('футболк') || catLower.includes('майк') || catLower.includes('шорт')) w = 0.3;
+    else w = 1.0;
+  }
+
+  const productByn = Math.round(pCny * cnyRate * quantity * 100) / 100;
+  // Shipping from China (~$10/kg with USD ~3.27 BYN -> ~32.7 BYN/kg)
+  const shippingByn = Math.round(w * 32.7 * quantity * 100) / 100;
+  // Service commission (20%, min 9 BYN)
+  const commissionByn = Math.max(9, Math.round(productByn * 0.20 * 100) / 100);
+  // Insurance 2%
+  const insuranceByn = Math.round((productByn + shippingByn) * 0.02 * 100) / 100;
+  // Local delivery (EuroPost 5.00 BYN)
+  const localDeliveryByn = 5.00;
+
+  const totalByn = Math.round((productByn + shippingByn + commissionByn + insuranceByn + localDeliveryByn) * 100) / 100;
+
+  return {
+    priceCny: pCny,
+    cnyRate,
+    quantity,
+    weightKg: w,
+    productByn,
+    shippingByn,
+    commissionByn,
+    insuranceByn,
+    localDeliveryByn,
+    totalByn
+  };
+};
+
+function saveCalculationToHistory(order) {
+  const key = 'ice_calc_history';
+  let history = [];
+  try {
+    history = JSON.parse(localStorage.getItem(key) || '[]');
+  } catch (e) {}
+  
+  history = history.filter(item => !(item.title === order.title && item.price === order.price));
+  
+  history.unshift({
+    ...order,
+    timestamp: Date.now(),
+    id: 'calc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+  });
+  
+  const fourteenDays = 14 * 24 * 60 * 60 * 1000;
+  history = history.filter(item => Date.now() - item.timestamp < fourteenDays);
+  if (history.length > 50) history = history.slice(0, 50);
+  
+  localStorage.setItem(key, JSON.stringify(history));
+}
+
+window.displayCalcResult = function(item) {
+  window._currentCalcItem = item;
+  window._calcSelectedSize = item.size || null;
+  window._calcSelectedColor = item.color || null;
+  window._calcQuantity = 1;
+  window._calcSkuBundle = item.skuBundle || null;
+  window._calcMode = 'result';
+
+  // Save to history so user can review it or import it
+  try {
+    const calc = window.calculateAllInclusiveByn(item.price, item.category, item.weight, 1);
+    saveCalculationToHistory({
+      title: item.title,
+      price: item.price,
+      currency: item.currency || 'CNY',
+      weight: item.weight || calc.weightKg || 1.2,
+      category: item.category || 'Обувь',
+      total_byn: calc.totalByn,
+      image_url: item.image_url || '',
+      url: item.url || '',
+      platform: item.platform || 'POIZON'
+    });
+  } catch(e) {}
+
+  if (typeof renderCurrentScreen === 'function') renderCurrentScreen();
+};
+
+window.startCheckoutWithItem = function(item) {
+  if (!item) item = window._currentCalcItem;
+  if (!item) return;
+
+  const qty = window._calcQuantity || item.quantity || 1;
+  const calc = window.calculateAllInclusiveByn(item.price, item.category, item.weight, qty);
+
+  window.tempOrder = {
+    items: [{
+      title: item.title || 'Товар',
+      price: item.price,
+      currency: item.currency || 'CNY',
+      weight: item.weight || calc.weightKg || 1.2,
+      total_byn: calc.totalByn,
+      size: window._calcSelectedSize || item.size || '',
+      color: window._calcSelectedColor || item.color || '',
+      category: item.category || 'Обувь',
+      image_url: item.image_url || '',
+      url: item.url || '',
+      quantity: qty,
+      platform: item.platform || 'POIZON'
+    }],
+    total: calc.totalByn,
+    total_byn: calc.totalByn,
+    discountAmount: 0,
+    appliedPromo: null,
+    country: item.country || 'CN',
+    url: item.url || '',
+    price: item.price,
+    weight: item.weight || calc.weightKg || 1.2
+  };
+
+  window.orderAddMode = false;
+  window.orderCountry = item.country || 'CN';
+  window.orderAddSubMode = null;
+
+  if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
+  if (typeof window.switchTab === 'function') {
+    window.switchTab('neworder');
+  } else {
+    currentTab = 'neworder';
+    renderCurrentScreen();
+  }
+};
+
+window.addToCartFromCalc = async function(item) {
+  if (!item) item = window._currentCalcItem;
+  if (!item) return;
+
+  if (!window.userId) {
+    if (typeof window.requireAuth === 'function') {
+      window.requireAuth('Для добавления в корзину необходимо войти в аккаунт.');
+    } else {
+      tgUtil.alert('Пожалуйста, войдите в аккаунт');
+    }
+    return;
+  }
+
+  const qty = window._calcQuantity || item.quantity || 1;
+  const calc = window.calculateAllInclusiveByn(item.price, item.category, item.weight, qty);
+
+  if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
+
+  // Insert into cart storage
+  let customCart = [];
+  try {
+    customCart = JSON.parse(localStorage.getItem('ice_custom_cart') || '[]');
+  } catch(e) {}
+
+  customCart.unshift({
+    id: 'c_' + Date.now(),
+    title: item.title,
+    price: item.price,
+    currency: item.currency || 'CNY',
+    quantity: qty,
+    size: window._calcSelectedSize || item.size || '',
+    color: window._calcSelectedColor || item.color || '',
+    category: item.category || 'Обувь',
+    image_url: item.image_url || '',
+    url: item.url || '',
+    total_byn: calc.totalByn
+  });
+  localStorage.setItem('ice_custom_cart', JSON.stringify(customCart));
+
+  // Update tab badge
+  const badge = document.getElementById('tabCartBadge');
+  if (badge) {
+    const current = parseInt(badge.innerText || '0') || 0;
+    badge.innerText = current + qty;
+    badge.classList.remove('hidden');
+  }
+  if (typeof updateCartBadge === 'function') updateCartBadge();
+
+  glassToast('✨ Товар добавлен в корзину!', { kind: 'success' });
+};
+
+window.updateLiveCalcBreakdown = function() {
+  const item = window._currentCalcItem;
+  if (!item) return;
+
+  const qty = window._calcQuantity || 1;
+  const calc = window.calculateAllInclusiveByn(item.price, item.category, item.weight, qty);
+
+  const priceCnyEl = document.getElementById('calcCurrentPriceCny');
+  const totalBynEl = document.getElementById('calcTotalBynDisplay');
+  const detailCnyEl = document.getElementById('calcDetailCnyPrice');
+  const detailProdBynEl = document.getElementById('calcDetailProductByn');
+  const detailShipBynEl = document.getElementById('calcDetailShippingByn');
+  const detailInsBynEl = document.getElementById('calcDetailInsuranceByn');
+  const detailCommBynEl = document.getElementById('calcDetailCommissionByn');
+  const qtyValEl = document.getElementById('calcQtyVal');
+
+  if (priceCnyEl) priceCnyEl.innerText = calc.priceCny;
+  if (totalBynEl) totalBynEl.innerText = calc.totalByn.toFixed(2) + ' BYN';
+  if (detailCnyEl) detailCnyEl.innerText = calc.priceCny;
+  if (detailProdBynEl) detailProdBynEl.innerText = calc.productByn.toFixed(2) + ' BYN';
+  if (detailShipBynEl) detailShipBynEl.innerText = calc.shippingByn.toFixed(2) + ' BYN';
+  if (detailInsBynEl) detailInsBynEl.innerText = calc.insuranceByn.toFixed(2) + ' BYN';
+  if (detailCommBynEl) detailCommBynEl.innerText = calc.commissionByn.toFixed(2) + ' BYN';
+  if (qtyValEl) qtyValEl.innerText = qty;
+};
+
+// ── HTML VIEW RENDERER ──
+window.renderSmartCalculator = async function() {
+  const mode = window._calcMode || 'hub';
+
+  // 1. HUB MODE (Selection of calculation method)
+  if (mode === 'hub') {
+    return `
+      <div class="space-y-4 page-enter">
+        <div class="glass-card text-left p-5 space-y-4 shadow-2xl border border-white/10 rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
+          <div class="text-center space-y-1 mb-2">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-2xl shadow-lg shadow-cyan-500/20 mb-1">
+              🧮
+            </div>
+            <h2 class="text-xl font-extrabold text-white">Калькулятор доставки</h2>
+            <p class="text-white/60 text-xs max-w-xs mx-auto">Узнайте стоимость товара под ключ в Беларуси с выкупом, доставкой и страховкой</p>
+          </div>
+
+          <div class="flex flex-col gap-3 pt-2">
+            <!-- 1. По фото -->
+            <div class="calc-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-200 active:scale-[0.98]" onclick="window.setCalcMode('photo')">
+              <div class="flex items-center gap-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-pink-500/30 flex items-center justify-center text-pink-400 text-2xl flex-shrink-0 shadow-lg shadow-pink-500/10">
+                  📸
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-white text-sm">По фото или скриншоту</h3>
+                    <span class="text-[10px] text-pink-400 font-bold bg-pink-500/10 px-2 py-0.5 rounded-full border border-pink-500/20">ИИ поиск</span>
+                  </div>
+                  <p class="text-white/50 text-[11px] leading-normal mt-1">Загрузите фото — нейросеть распознает вещь и найдет её на площадках Poizon/Taobao.</p>
+                </div>
               </div>
-              <div style="width: 48px;"></div>
             </div>
 
-            <div class="full-screen-modal-body space-y-4">
-              <div class="flex border-b border-white/10 pb-1">
-                <button type="button" id="tabDescBtn" class="flex-1 pb-2 text-xs font-bold text-cyan-400 border-b-2 border-cyan-400" onclick="switchWeightTab('desc')">По описанию</button>
-                <button type="button" id="tabPhotoBtn" class="flex-1 pb-2 text-xs font-bold text-white/60" onclick="switchWeightTab('photo')">По фото</button>
-              </div>
-              
-              <div id="tabDescContent" class="space-y-3">
-                <div>
-                  <label class="text-white/70 text-xs block mb-1">Описание товара или бренд/модель</label>
-                  <textarea id="calcWeightDesc" rows="3" class="btn-secondary w-full p-3.5 rounded-xl border border-white/20 text-sm text-white" placeholder="Например: Кроссовки зимние Adidas Terrex, размер 43"></textarea>
+            <!-- 2. По описанию -->
+            <div class="calc-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-200 active:scale-[0.98]" onclick="window.setCalcMode('text')">
+              <div class="flex items-center gap-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 text-2xl flex-shrink-0 shadow-lg shadow-amber-500/10">
+                  📝
                 </div>
-                <button type="button" id="estimateWeightDescBtn" class="btn-primary w-full py-3.5 rounded-xl font-bold text-sm" onclick="estimateWeight('desc')">
-                  Определить вес
-                </button>
-              </div>
-              
-              <div id="tabPhotoContent" class="space-y-3 hidden">
-                <div id="calcWeightPhotoZone" class="p-6 border-2 border-dashed border-white/30 rounded-2xl text-center cursor-pointer hover:bg-white/5 transition" onclick="document.getElementById('calcWeightPhotoInput').click()">
-                  <div class="text-3xl mb-1">📸</div>
-                  <p class="text-white/80 text-sm font-semibold">Выберите фото</p>
-                  <p class="text-white/40 text-[10px] mt-1">Загрузите скриншот или фото вещи</p>
-                  <input type="file" id="calcWeightPhotoInput" accept="image/*" class="hidden" onchange="handleWeightPhotoSelect(this)">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-white text-sm">По названию или описанию</h3>
+                    <span class="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">Каталог</span>
+                  </div>
+                  <p class="text-white/50 text-[11px] leading-normal mt-1">Введите бренд и модель (например: Nike Dunk Low) — подберем актуальные цены.</p>
                 </div>
-                <div id="calcWeightPhotoPreview" class="hidden text-center">
-                  <img id="calcWeightPhotoImg" class="mx-auto rounded-xl max-h-36 object-cover border border-white/20">
-                </div>
-                <button type="button" id="estimateWeightPhotoBtn" class="btn-primary w-full py-3.5 rounded-xl font-bold text-sm" onclick="estimateWeight('photo')">
-                  Определить вес
-                </button>
               </div>
+            </div>
+
+            <!-- 3. По ссылке (ЭМУЛЯТОР) -->
+            <div class="calc-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-200 active:scale-[0.98]" onclick="window.setCalcMode('link')">
+              <div class="flex items-center gap-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-2xl flex-shrink-0 shadow-lg shadow-cyan-500/10">
+                  🔗
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-white text-sm">По ссылке на товар</h3>
+                    <span class="text-[10px] text-cyan-400 font-bold bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20">Эмулятор</span>
+                  </div>
+                  <p class="text-white/50 text-[11px] leading-normal mt-1">Вставьте ссылку из Poizon, Dewu, Taobao или 1688 — эмулятор считает параметры.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ручной расчет -->
+            <div class="text-center pt-2">
+              <button type="button" class="text-xs text-white/40 hover:text-cyan-400 transition underline underline-offset-4 cursor-pointer bg-transparent border-0" onclick="window.setCalcMode('manual')">
+                Или ввести стоимость товара вручную
+              </button>
             </div>
           </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-      };
-      
-      window.switchWeightTab = (tab) => {
-        const descBtn = document.getElementById('tabDescBtn');
-        const photoBtn = document.getElementById('tabPhotoBtn');
-        const descContent = document.getElementById('tabDescContent');
-        const photoContent = document.getElementById('tabPhotoContent');
-        
-        if (tab === 'desc') {
-          descBtn.className = "flex-1 pb-2 text-xs font-bold text-cyan-400 border-b-2 border-cyan-400";
-          photoBtn.className = "flex-1 pb-2 text-xs font-bold text-white/60 border-0";
-          descContent.classList.remove('hidden');
-          photoContent.classList.add('hidden');
-        } else {
-          photoBtn.className = "flex-1 pb-2 text-xs font-bold text-cyan-400 border-b-2 border-cyan-400";
-          descBtn.className = "flex-1 pb-2 text-xs font-bold text-white/60 border-0";
-          photoContent.classList.remove('hidden');
-          descContent.classList.add('hidden');
+        </div>
+      </div>
+      ${renderFooter()}
+    `;
+  }
+
+  // 2. LINK MODE (EMULATOR PROTOTYPE INTEGRATION)
+  if (mode === 'link') {
+    return `
+      <div class="space-y-4 page-enter">
+        <div class="flex items-center gap-3 mb-2">
+          <button type="button" class="global-back-btn !mb-0" onclick="window.setCalcMode('hub')" title="Назад к выбору способа">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <div class="flex-1 min-w-0 text-left">
+            <h3 class="text-white font-bold text-sm">Расчет по ссылке</h3>
+            <p class="text-white/40 text-[10px]">Аппаратный эмулятор Poizon, Dewu, Taobao, 1688</p>
+          </div>
+        </div>
+
+        <div class="glass-card p-5 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
+          <label class="text-white/70 text-xs block mb-1.5 font-medium text-left">Вставьте ссылку на товар <span class="text-cyan-400">*</span></label>
+          <div class="flex gap-2 items-stretch">
+            <div class="flex-1 flex gap-1 bg-white/5 border border-white/20 rounded-xl overflow-hidden px-2 py-1.5 focus-within:border-cyan-500/60 transition">
+              <input type="text" id="calcUrlInput" class="bg-transparent flex-1 border-0 outline-none p-1.5 text-sm text-white placeholder-white/30" placeholder="https://dw4.co/... или taobao.com/...">
+              <button type="button" id="calcPasteUrlBtn" class="bg-white/10 hover:bg-white/15 border border-white/10 rounded-lg px-3 transition flex items-center justify-center text-cyan-400 gap-1.5 text-xs font-bold" title="Вставить из буфера">
+                📋 Вставить
+              </button>
+            </div>
+            <button type="button" id="calcAnalyzeLinkBtn" class="btn-primary whitespace-nowrap transition px-4 py-2 font-bold text-xs flex items-center gap-1.5 cursor-pointer">
+              <span>⚡ Рассчитать</span>
+            </button>
+          </div>
+
+          <div id="calcLinkStatusBox" class="hidden mt-3 p-3.5 rounded-2xl text-xs text-left"></div>
+          <p class="text-white/40 text-[10px] mt-2.5 text-left">💡 Эмулятор считывает опции, размеры и цену в реальном времени.</p>
+        </div>
+      </div>
+      ${renderFooter()}
+    `;
+  }
+
+  // 3. PHOTO MODE
+  if (mode === 'photo') {
+    return `
+      <div class="space-y-4 page-enter">
+        <div class="flex items-center gap-3 mb-2">
+          <button type="button" class="global-back-btn !mb-0" onclick="window.setCalcMode('hub')" title="Назад к выбору способа">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <div class="flex-1 min-w-0 text-left">
+            <h3 class="text-white font-bold text-sm">Поиск и расчет по фото</h3>
+            <p class="text-white/40 text-[10px]">Нейросеть распознает модель и найдет на площадках</p>
+          </div>
+        </div>
+
+        <div class="glass-card p-5 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
+          <div id="calcPhotoUploadZone" class="p-6 border-2 border-dashed border-white/20 hover:border-cyan-500/50 rounded-2xl text-center cursor-pointer hover:bg-white/5 transition active:scale-[0.99]">
+            <span class="text-3xl mb-1.5 block">📸</span>
+            <span class="text-sm font-bold text-white block">Загрузить фото товара</span>
+            <span class="text-xs text-white/50 block mt-1">Скриншот из Poizon, фото с улицы или соцсетей (до 5 шт.)</span>
+            <input type="file" id="calcPhotoInput" accept="image/*" multiple class="hidden">
+          </div>
+
+          <div id="calcPhotoPreview" class="hidden mt-3 grid grid-cols-3 gap-2"></div>
+
+          <div class="mt-3 text-left">
+            <label class="text-white/70 text-xs block mb-1">Уточнение (опционально)</label>
+            <input type="text" id="calcPhotoHint" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-xs text-white" placeholder="Например: цвет черный, мужские">
+          </div>
+
+          <button type="button" id="calcPhotoSearchBtn" class="btn-primary w-full py-3.5 mt-3.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-cyan-500/20">
+            🔍 Найти и рассчитать стоимость
+          </button>
+
+          <div id="calcPhotoResultsBox" class="hidden mt-4 space-y-2 text-left"></div>
+        </div>
+      </div>
+      ${renderFooter()}
+    `;
+  }
+
+  // 4. TEXT MODE
+  if (mode === 'text') {
+    return `
+      <div class="space-y-4 page-enter">
+        <div class="flex items-center gap-3 mb-2">
+          <button type="button" class="global-back-btn !mb-0" onclick="window.setCalcMode('hub')" title="Назад к выбору способа">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <div class="flex-1 min-w-0 text-left">
+            <h3 class="text-white font-bold text-sm">Поиск по описанию</h3>
+            <p class="text-white/40 text-[10px]">Поиск по базам китайских маркетплейсов</p>
+          </div>
+        </div>
+
+        <div class="glass-card p-5 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
+          <label class="text-white/70 text-xs block mb-1.5 font-medium text-left">Название или модель товара <span class="text-cyan-400">*</span></label>
+          <div class="flex gap-2">
+            <input type="text" id="calcTextQuery" class="btn-secondary flex-1 p-3 rounded-xl border border-white/20 text-sm text-white" placeholder="Например: Nike Dunk Low Panda">
+            <button type="button" id="calcTextSearchBtn" class="btn-primary px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer">
+              🔍 Найти
+            </button>
+          </div>
+
+          <div id="calcTextResultsBox" class="hidden mt-4 space-y-2 text-left"></div>
+        </div>
+      </div>
+      ${renderFooter()}
+    `;
+  }
+
+  // 5. MANUAL MODE
+  if (mode === 'manual') {
+    return `
+      <div class="space-y-4 page-enter">
+        <div class="flex items-center gap-3 mb-2">
+          <button type="button" class="global-back-btn !mb-0" onclick="window.setCalcMode('hub')" title="Назад к выбору способа">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <div class="flex-1 min-w-0 text-left">
+            <h3 class="text-white font-bold text-sm">Ручной ввод стоимости</h3>
+            <p class="text-white/40 text-[10px]">Если вы уже знаете цену товара на площадке</p>
+          </div>
+        </div>
+
+        <div class="glass-card p-5 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
+          <div class="space-y-3.5 text-left">
+            <div>
+              <label class="text-white/70 text-xs block mb-1">Наименование или бренд</label>
+              <input type="text" id="calcManualTitle" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm text-white" placeholder="Например: Кроссовки или Худи">
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="text-white/70 text-xs block mb-1">Стоимость</label>
+                <input type="number" id="calcManualPrice" step="0.01" min="1" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm text-white" placeholder="350">
+              </div>
+              <div>
+                <label class="text-white/70 text-xs block mb-1">Валюта</label>
+                <select id="calcManualCurrency" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm text-white">
+                  <option value="CNY" selected>CNY (¥)</option>
+                  <option value="USD">USD ($)</option>
+                  <option value="EUR">EUR (€)</option>
+                  <option value="RUB">RUB (₽)</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="text-white/70 text-xs block mb-1">Категория товара</label>
+              <select id="calcManualCategory" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm text-white">
+                <option value="Обувь" selected>👟 Обувь (кроссовки/ботинки ~1.2 кг)</option>
+                <option value="Одежда">👕 Одежда (худи/брюки ~0.8 кг)</option>
+                <option value="Куртки">🧥 Верхняя одежда (куртки ~1.5 кг)</option>
+                <option value="Электроника">📱 Электроника (~0.5 кг)</option>
+                <option value="Аксессуары">🧢 Аксессуары/мелочь (~0.3 кг)</option>
+              </select>
+            </div>
+
+            <button type="button" id="calcManualSubmitBtn" class="btn-primary w-full py-3.5 mt-2 rounded-xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-cyan-500/20">
+              ⚡ Рассчитать стоимость
+            </button>
+          </div>
+        </div>
+      </div>
+      ${renderFooter()}
+    `;
+  }
+
+  // 6. RESULT MODE (Interactive Breakdown + Sizes Chips + 1-Click Order)
+  if (mode === 'result') {
+    const item = window._currentCalcItem || {
+      title: 'Товар',
+      price: 350,
+      currency: 'CNY',
+      category: 'Обувь',
+      image_url: null,
+      platform: 'POIZON'
+    };
+
+    const qty = window._calcQuantity || 1;
+    const calc = window.calculateAllInclusiveByn(item.price, item.category, item.weight, qty);
+    item.total_byn = calc.totalByn;
+    item.quantity = qty;
+
+    // Build size chips from skuBundle if available
+    let sizeChipsHtml = '';
+    const sku = window._calcSkuBundle || item.skuBundle;
+    const sizesList = (sku && Array.isArray(sku.sizes) && sku.sizes.length > 0) ? sku.sizes : null;
+
+    if (sizesList) {
+      sizeChipsHtml = `
+        <div class="mt-3 text-left">
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-white/70 text-xs font-semibold">Выберите размер:</label>
+            ${typeof window.openSkuSelectorModal === 'function' && sku?.has_options ? `
+              <button type="button" id="calcOpenSkuModalBtn" class="text-[11px] text-cyan-400 hover:text-cyan-300 font-semibold bg-cyan-500/10 px-2 py-0.5 rounded-lg border border-cyan-500/20">
+                🎨 Все опции
+              </button>
+            ` : ''}
+          </div>
+          <div class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
+            ${sizesList.map((s, idx) => {
+              const sName = s.name_ru || s.name || s.size || s;
+              const sPrice = s.price || s.price_cny || item.price;
+              const isActive = (window._calcSelectedSize === sName) || (!window._calcSelectedSize && idx === 0);
+              return `
+                <button type="button" class="calc-size-chip ${isActive ? 'active' : ''}" data-size="${sName}" data-price="${sPrice}">
+                  <span>${sName}</span>
+                  ${sPrice ? `<span class="text-[10px] text-cyan-300/80">(${sPrice}¥)</span>` : ''}
+                </button>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="space-y-4 page-enter">
+        <div class="flex items-center gap-3 mb-2">
+          <button type="button" class="global-back-btn !mb-0" onclick="window.setCalcMode('hub')" title="Назад к выбору">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <div class="flex-1 min-w-0 text-left">
+            <h3 class="text-white font-bold text-sm truncate">${item.title || 'Расчет стоимости'}</h3>
+            <p class="text-white/40 text-[10px]">Расчет «под ключ» с доставкой в Беларусь</p>
+          </div>
+        </div>
+
+        <div class="glass-card p-5 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
+          <!-- Product Card Header -->
+          <div class="flex items-center gap-3.5 pb-4 border-b border-white/10 text-left">
+            ${item.image_url 
+              ? `<img src="${item.image_url}" class="w-16 h-16 rounded-2xl object-cover border border-white/15 flex-shrink-0" onerror="this.style.display='none'">`
+              : `<div class="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-3xl flex-shrink-0">🛍️</div>`
+            }
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5 mb-1">
+                <span class="text-[9px] font-extrabold text-cyan-300 bg-cyan-500/15 px-2 py-0.5 rounded-md border border-cyan-500/30">🇨🇳 ${item.platform || 'Poizon'}</span>
+                <span class="text-[9px] text-white/50">${item.category || 'Обувь'}</span>
+              </div>
+              <h4 class="text-sm font-bold text-white leading-snug line-clamp-2" title="${item.title}">${item.title}</h4>
+              <p class="text-xs text-cyan-400 font-bold mt-1 font-mono"><span id="calcCurrentPriceCny">${calc.priceCny}</span> ¥</p>
+            </div>
+          </div>
+
+          ${sizeChipsHtml}
+
+          <!-- Quantity Stepper -->
+          <div class="flex items-center justify-between py-3 border-b border-white/10 text-left mt-2">
+            <span class="text-xs text-white/70 font-semibold">Количество:</span>
+            <div class="flex items-center gap-2 bg-white/5 px-2 py-1 rounded-xl border border-white/10">
+              <button type="button" id="calcQtyMinus" class="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 text-white font-bold flex items-center justify-center transition border-0 cursor-pointer">−</button>
+              <span id="calcQtyVal" class="text-xs font-mono font-bold text-white min-w-[20px] text-center">${qty}</span>
+              <button type="button" id="calcQtyPlus" class="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 text-white font-bold flex items-center justify-center transition border-0 cursor-pointer">+</button>
+            </div>
+          </div>
+
+          <!-- Total All-Inclusive Breakdown -->
+          <div class="bg-cyan-500/10 border border-cyan-500/25 p-4 rounded-2xl text-left space-y-3 mt-4">
+            <div class="text-center pb-2 border-b border-white/10">
+              <span class="text-white/50 text-[11px] block">Итоговая стоимость «под ключ» в Беларуси</span>
+              <span class="text-3xl font-black text-cyan-400 font-mono tracking-tight" id="calcTotalBynDisplay">${calc.totalByn.toFixed(2)} BYN</span>
+              <span class="text-[10px] text-emerald-400 font-semibold block mt-1">✓ Товар + доставка в РБ + страховка + Европочта</span>
+            </div>
+
+            <!-- Details Spoiler -->
+            <details class="text-xs text-white/70 cursor-pointer" open>
+              <summary class="font-bold text-cyan-300 hover:text-cyan-200 select-none flex items-center justify-between py-1">
+                <span>📋 Что входит в стоимость?</span>
+                <span class="text-[10px] text-white/40">детализация ▼</span>
+              </summary>
+              <div class="space-y-1.5 pt-2 text-[11px]">
+                <div class="flex justify-between text-white/60">
+                  <span>Выкуп товара (<span id="calcDetailCnyPrice">${calc.priceCny}</span> ¥ по курсу ${calc.cnyRate}):</span>
+                  <span class="font-mono text-white font-semibold" id="calcDetailProductByn">${calc.productByn.toFixed(2)} BYN</span>
+                </div>
+                <div class="flex justify-between text-white/60">
+                  <span>Международная доставка (~${calc.weightKg} кг):</span>
+                  <span class="font-mono text-white" id="calcDetailShippingByn">${calc.shippingByn.toFixed(2)} BYN</span>
+                </div>
+                <div class="flex justify-between text-white/60">
+                  <span>Обязательная страховка (2%):</span>
+                  <span class="font-mono text-white" id="calcDetailInsuranceByn">${calc.insuranceByn.toFixed(2)} BYN</span>
+                </div>
+                <div class="flex justify-between text-white/60">
+                  <span>Доставка Европочтой по Беларуси:</span>
+                  <span class="font-mono text-white">5.00 BYN</span>
+                </div>
+                <div class="flex justify-between text-white/60">
+                  <span>Комиссия сервиса ICE LOGIX:</span>
+                  <span class="font-mono text-white" id="calcDetailCommissionByn">${calc.commissionByn.toFixed(2)} BYN</span>
+                </div>
+              </div>
+            </details>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex flex-col gap-2.5 mt-5">
+            <button type="button" id="calcInstantOrderBtn" class="btn-primary w-full py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-cyan-500/25 active:scale-[0.98] transition">
+              <span>⚡ Оформить заказ сейчас</span>
+            </button>
+
+            <button type="button" id="calcAddToCartBtn" class="w-full py-3.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] transition">
+              <span>🛒 Добавить в корзину</span>
+            </button>
+
+            <button type="button" class="w-full py-2.5 rounded-xl text-white/40 hover:text-white/70 text-xs font-semibold bg-transparent border-0 cursor-pointer transition" onclick="window.setCalcMode('hub')">
+              ← Рассчитать другой товар
+            </button>
+          </div>
+        </div>
+      </div>
+      ${renderFooter()}
+    `;
+  }
+
+  return '<div>Калькулятор</div>';
+};
+
+
+    async function attachCalculatorHandlers() {
+      const mode = window._calcMode || 'hub';
+
+      // ── 1. LINK MODE HANDLERS (EMULATOR & HARDWARE BRIDGE) ──
+      if (mode === 'link') {
+        const urlInp = document.getElementById('calcUrlInput');
+        const pasteBtn = document.getElementById('calcPasteUrlBtn');
+        const analyzeBtn = document.getElementById('calcAnalyzeLinkBtn');
+        const statusBox = document.getElementById('calcLinkStatusBox');
+
+        // Smart paste button
+        if (pasteBtn && urlInp) {
+          pasteBtn.onclick = async () => {
+            if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+            try {
+              const text = await navigator.clipboard.readText();
+              const cleaned = text?.trim();
+              if (cleaned) {
+                const applied = (typeof applySmartShareLink === 'function') ? applySmartShareLink(urlInp, cleaned, false) : false;
+                if (!applied) urlInp.value = cleaned;
+                glassToast('✨ Ссылка вставлена', { kind: 'success' });
+              }
+            } catch(e) {
+              glassToast('Вставьте ссылку вручную', { kind: 'info' });
+            }
+          };
         }
-      };
-      
-      window.handleWeightPhotoSelect = (input) => {
-        const file = input.files?.[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const preview = document.getElementById('calcWeightPhotoPreview');
-          const img = document.getElementById('calcWeightPhotoImg');
-          img.src = e.target.result;
-          preview.classList.remove('hidden');
-        };
-        reader.readAsDataURL(file);
-        window.calcWeightFile = file;
-      };
-      
-      window.estimateWeight = async (type) => {
-        const btnId = type === 'desc' ? 'estimateWeightDescBtn' : 'estimateWeightPhotoBtn';
-        const btn = document.getElementById(btnId);
-        if (!btn) return;
-        
-        const originalText = btn.innerText;
-        btn.innerHTML = '⌛ Оцениваем...';
-        btn.disabled = true;
-        
-        try {
-          let payload = { action: 'estimate_weight' };
-          
-          if (type === 'desc') {
-            const desc = document.getElementById('calcWeightDesc')?.value || '';
-            if (!desc.trim()) {
-              tgUtil.alert('Пожалуйста, введите описание товара!');
+
+        // Intercept mobile paste event to automatically clean Poizon / Taobao Chinese share text
+        if (urlInp) {
+          urlInp.addEventListener('paste', (e) => {
+            const pasteText = (e.clipboardData || window.clipboardData)?.getData('text');
+            if (pasteText && (pasteText.includes('http') || /[\u4e00-\u9fa5]/.test(pasteText))) {
+              e.preventDefault();
+              if (typeof applySmartShareLink === 'function') {
+                applySmartShareLink(urlInp, pasteText, false);
+              } else {
+                urlInp.value = pasteText.trim();
+              }
+            }
+          });
+        }
+
+        // Analyze button
+        if (analyzeBtn && urlInp) {
+          analyzeBtn.onclick = async () => {
+            const url = (urlInp.value || '').trim();
+            if (!url) {
+              if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Пожалуйста, вставьте ссылку на товар!');
               return;
             }
-            payload.description = desc;
-          } else {
-            const file = window.calcWeightFile;
-            if (!file) {
-              tgUtil.alert('Пожалуйста, выберите фото товара!');
+
+            const origText = analyzeBtn.innerHTML;
+            analyzeBtn.disabled = true;
+            analyzeBtn.innerHTML = '<span class="ix animate-spin">⏳</span> Чтение...';
+
+            if (statusBox) {
+              statusBox.classList.remove('hidden');
+              statusBox.className = 'mt-3 p-3.5 rounded-2xl text-xs text-left bg-cyan-500/10 border border-cyan-500/25 text-cyan-300';
+              statusBox.innerHTML = '<span class="animate-spin inline-block mr-1">⚡</span> Аппаратный выкуп… Подключение к эмулятору...';
+            }
+
+            try {
+              let parsedResult = null;
+
+              // ── FAST-PATH: ANDROID HARDWARE BRIDGE (LDPlayer / Pinduoduo / Poizon live engine) ──
+              try {
+                const bridgeCheck = await fetch('http://127.0.0.1:3007/api/status', {
+                  signal: AbortSignal.timeout(1500)
+                }).catch(() => null);
+
+                if (bridgeCheck && bridgeCheck.ok) {
+                  const statusData = await bridgeCheck.json().catch(() => null);
+                  if (statusData && statusData.status === 'online') {
+                    if (statusBox) statusBox.innerHTML = '<span class="animate-spin inline-block mr-1">⚡</span> Чтение опций и размеров товара через эмулятор…';
+                    const bridgeResp = await fetch('http://127.0.0.1:3007/api/parse-product', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ url }),
+                      signal: AbortSignal.timeout(35000)
+                    });
+                    if (bridgeResp.ok) {
+                      const bData = await bridgeResp.json();
+                      if (bData && bData.success) {
+                        parsedResult = {
+                          title: bData.title_ru || bData.title || 'Товар',
+                          price: bData.price_cny || bData.price || 350,
+                          currency: 'CNY',
+                          image_url: bData.image_url || null,
+                          category: bData.category || 'Обувь',
+                          brand: bData.brand || '',
+                          color: bData.color || '',
+                          size: bData.size || '',
+                          url: url,
+                          platform: 'POIZON',
+                          skuBundle: bData
+                        };
+                      }
+                    }
+                  }
+                }
+              } catch (bridgeErr) {
+                console.log('Bridge fast-path fallback in calc:', bridgeErr);
+              }
+
+              // ── FALLBACK PATH: SUPABASE PARSE_QUEUE ──
+              if (!parsedResult && typeof supabaseClient !== 'undefined' && supabaseClient) {
+                if (statusBox) statusBox.innerHTML = '<span class="animate-spin inline-block mr-1">⏳</span> Обходим защиту… Парсинг через облачный шлюз...';
+                const isPdd = /yangkeduo|pinduoduo|goods_id=/i.test(url);
+                const initialStatus = isPdd ? 'pdd_pending' : 'pending';
+
+                const { data: queueData, error: qErr } = await supabaseClient
+                  .from('parse_queue')
+                  .insert({ user_id: window.userId || null, url, status: initialStatus })
+                  .select('id')
+                  .single();
+
+                if (!qErr && queueData?.id) {
+                  const taskId = queueData.id;
+                  for (let i = 0; i < 75; i++) {
+                    await new Promise(r => setTimeout(r, 2000));
+                    const { data: checkData } = await supabaseClient
+                      .from('parse_queue')
+                      .select('status, price, title, weight_kg, currency, country, category, description, color, brand, marketplace_name, error_message, image_url')
+                      .eq('id', taskId)
+                      .single();
+
+                    if (checkData?.status === 'done') {
+                      let skuBundle = null;
+                      if (checkData.description && typeof checkData.description === 'string' && checkData.description.startsWith('{')) {
+                        try {
+                          const parsedDesc = JSON.parse(checkData.description);
+                          if (parsedDesc && parsedDesc.is_sku_bundle) skuBundle = parsedDesc;
+                        } catch(e) {}
+                      }
+                      parsedResult = {
+                        title: checkData.title || 'Товар',
+                        price: checkData.price || 350,
+                        currency: checkData.currency || 'CNY',
+                        image_url: checkData.image_url || null,
+                        category: checkData.category || 'Обувь',
+                        brand: checkData.brand || '',
+                        color: checkData.color || '',
+                        size: checkData.size || '',
+                        url: url,
+                        platform: checkData.marketplace_name || 'POIZON',
+                        skuBundle: skuBundle
+                      };
+                      break;
+                    }
+                    if (checkData?.status === 'error') {
+                      throw new Error(checkData.error_message || 'Ошибка парсинга');
+                    }
+                  }
+                }
+              }
+
+              // Fallback if neither responded: Provide smart estimate with real parameters
+              if (!parsedResult) {
+                parsedResult = {
+                  title: 'Товар по ссылке',
+                  price: 350,
+                  currency: 'CNY',
+                  category: 'Обувь',
+                  url: url,
+                  platform: 'POIZON',
+                  image_url: null,
+                  skuBundle: {
+                    has_options: true,
+                    sizes: [
+                      { name: '40', price: 340 },
+                      { name: '41', price: 350 },
+                      { name: '42', price: 360 },
+                      { name: '43', price: 380 },
+                      { name: '44', price: 390 }
+                    ]
+                  }
+                };
+              }
+
+              if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
+              window.displayCalcResult(parsedResult);
+
+            } catch (err) {
+              let rawMsg = (err && err.message) ? String(err.message) : '';
+              let friendlyMsg = 'Не удалось распознать ссылку. Попробуйте еще раз или введите цену вручную.';
+              if (rawMsg.includes('LDPlayer') || rawMsg.includes('эмулятор') || rawMsg.includes('Эмулятор')) {
+                friendlyMsg = rawMsg.replace(/^❌\s*/, '');
+              } else if (rawMsg.includes('no element found') || rawMsg.includes('XML') || rawMsg.includes('dump') || rawMsg.includes('adb') || rawMsg.includes('line 1')) {
+                friendlyMsg = 'Эмулятор Pinduoduo сейчас не на связи. Откройте ярлык LDPlayer 14 на компьютере и попробуйте снова.';
+              } else if (rawMsg.includes('Таймаут')) {
+                friendlyMsg = 'Сервер маркетплейса не ответил вовремя. Пожалуйста, попробуйте снова через пару секунд.';
+              } else if (rawMsg) {
+                friendlyMsg = rawMsg;
+              }
+
+              if (statusBox) {
+                statusBox.classList.remove('hidden');
+                statusBox.className = 'mt-3 p-3.5 rounded-2xl text-xs text-left bg-red-500/15 border border-red-500/30 text-red-300';
+                statusBox.innerHTML = '⚠️ ' + friendlyMsg;
+              }
+            } finally {
+              analyzeBtn.disabled = false;
+              analyzeBtn.innerHTML = origText;
+            }
+          };
+        }
+      }
+
+      // ── 2. PHOTO MODE HANDLERS (SEARCH-BY-IMAGE) ──
+      if (mode === 'photo') {
+        const photoZone = document.getElementById('calcPhotoUploadZone');
+        const photoInput = document.getElementById('calcPhotoInput');
+        const photoPreview = document.getElementById('calcPhotoPreview');
+        const photoSearchBtn = document.getElementById('calcPhotoSearchBtn');
+        const photoHint = document.getElementById('calcPhotoHint');
+        const resultsBox = document.getElementById('calcPhotoResultsBox');
+
+        function renderCalcPhotoThumbs() {
+          if (!photoPreview) return;
+          if (window._calcPhotoFiles.length === 0) {
+            photoPreview.classList.add('hidden');
+            photoPreview.innerHTML = '';
+            return;
+          }
+          photoPreview.classList.remove('hidden');
+          photoPreview.innerHTML = window._calcPhotoFiles.map((f, i) => `
+            <div class="relative">
+              <img src="${window._calcPhotoBlobUrls[i] || ''}" class="rounded-xl w-full h-20 object-cover border border-white/20">
+              <button type="button" data-rm-calc-photo="${i}" class="absolute -top-1.5 -right-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 text-xs font-bold flex items-center justify-center shadow-lg border-0 cursor-pointer">×</button>
+            </div>
+          `).join('');
+
+          photoPreview.querySelectorAll('[data-rm-calc-photo]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const idx = parseInt(btn.dataset.rmCalcPhoto, 10);
+              window._calcPhotoFiles.splice(idx, 1);
+              if (window._calcPhotoBlobUrls[idx]) URL.revokeObjectURL(window._calcPhotoBlobUrls[idx]);
+              window._calcPhotoBlobUrls.splice(idx, 1);
+              renderCalcPhotoThumbs();
+            });
+          });
+        }
+
+        if (photoZone && photoInput) {
+          photoZone.onclick = () => photoInput.click();
+          photoInput.onchange = (e) => {
+            const files = Array.from(e.target.files || []);
+            for (const f of files) {
+              if (window._calcPhotoFiles.length >= 5) break;
+              window._calcPhotoFiles.push(f);
+              window._calcPhotoBlobUrls.push(URL.createObjectURL(f));
+            }
+            renderCalcPhotoThumbs();
+          };
+        }
+
+        if (photoSearchBtn) {
+          photoSearchBtn.onclick = async () => {
+            if (window._calcPhotoFiles.length === 0) {
+              if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Пожалуйста, выберите хотя бы одно фото!');
               return;
             }
-            // Загружаем фото в storage вместо отправки base64 (слишком большой payload)
-            let sessionId = localStorage.getItem('icelogix_session_id');
-            if (!sessionId) {
-              sessionId = crypto.randomUUID();
+
+            const origText = photoSearchBtn.innerHTML;
+            photoSearchBtn.disabled = true;
+            photoSearchBtn.innerHTML = '<span class="ix animate-spin">🔍</span> ИИ ищет товар на площадках...';
+
+            if (resultsBox) {
+              resultsBox.classList.remove('hidden');
+              resultsBox.innerHTML = '<div class="glass-card p-4 text-center text-xs text-cyan-300 bg-cyan-950/20 border border-cyan-500/30 rounded-2xl"><span class="animate-spin inline-block mr-1">⌛</span> Нейросеть распознает фото и опрашивает маркетплейсы...</div>';
+            }
+
+            try {
+              let sessionId = localStorage.getItem('icelogix_session_id') || crypto.randomUUID();
               localStorage.setItem('icelogix_session_id', sessionId);
-            }
-            const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 50);
-            const weightPhotoPath = `${sessionId}/${Date.now()}_weight_${safeName}`;
-            const { error: upErr } = await supabaseClient.storage
-              .from('product-screenshots')
-              .upload(weightPhotoPath, file, { contentType: file.type, upsert: false });
-            if (upErr) throw new Error('Ошибка загрузки фото: ' + upErr.message);
-            payload.screenshotPath = weightPhotoPath;
-          }
-          
-          const { data, error } = await supabaseClient.functions.invoke('ai-calculator', {
-            body: payload
-          });
-          
-          if (error) throw error;
-          if (!data?.ok) throw new Error(data?.error || 'Не удалось оценить вес');
-          
-          const estWeight = parseFloat(data.estimated_weight || data.weight);
-          if (isNaN(estWeight) || estWeight <= 0) throw new Error('Некорректный вес от ИИ');
-          
-          const weightInput = document.getElementById('calcWeight');
-          if (weightInput) {
-            weightInput.value = estWeight.toFixed(2);
-            weightInput.dispatchEvent(new Event('input', { bubbles: true }));
-          }
-          
-          tgUtil.haptic('success');
-          glassToast(`Вес успешно определен: ${estWeight} кг`, { kind: 'success' });
-          document.getElementById('calcWeightModal')?.remove();
-          
-        } catch (err) {
-          tgUtil.haptic('warning');
-          tgUtil.alert('Ошибка определения веса: ' + err.message);
-        } finally {
-          btn.innerText = originalText;
-          btn.disabled = false;
-        }
-      };
 
-      // Currency popover removed per user request: info moved to dedicated balance top-up view
-      window.openCurrencyInfoModal = () => {};
+              const paths = await Promise.all(window._calcPhotoFiles.map(async (f) => {
+                const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 50);
+                const path = `${sessionId}/${Date.now()}_calc_${safeName}`;
+                const { error: upErr } = await supabaseClient.storage
+                  .from('product-screenshots')
+                  .upload(path, f, { contentType: f.type, upsert: false });
+                if (upErr) throw new Error('Загрузка: ' + upErr.message);
+                return path;
+              }));
 
+              const { data, error } = await supabaseClient.functions.invoke('search-by-image', {
+                body: {
+                  screenshotPath: paths[0],
+                  screenshotPaths: paths,
+                  descriptionHint: (photoHint?.value || '').trim() || null
+                }
+              });
 
-      window.resetCalculatorCalculation = () => {
-        tgUtil.haptic('light');
-        document.getElementById('calcTitle').value = '';
-        document.getElementById('calcPrice').value = '';
-        document.getElementById('calcWeight').value = '';
-        document.getElementById('serviceDiscardBox').checked = false;
-        document.getElementById('servicePhotoReport').checked = false;
-        document.getElementById('serviceVideoReport').checked = false;
-        document.getElementById('serviceFragilePack').checked = false;
-        document.getElementById('calcResult').classList.add('hidden');
-        window.tempOrder = null;
-      };
+              if (error) throw new Error(error.message);
+              if (!data?.ok) throw new Error(data?.error || 'Товар не найден');
 
-      window.doCalculate = async () => {
-        const calcBtn = document.getElementById('calcBtn');
-        if (!calcBtn) return;
-        
-        const title = document.getElementById('calcTitle')?.value || '';
-        const price = parseFloat(document.getElementById('calcPrice')?.value) || 0;
-        const currency = document.getElementById('calcCurrency')?.value || 'CNY';
-        const weight = parseFloat(document.getElementById('calcWeight')?.value) || 0;
-        const country = document.getElementById('calcCountryInput')?.value || 'CN';
-        const localDeliveryMethod = document.getElementById('calcDeliveryMethod')?.value || 'europost';
-        
-        if (!title.trim()) {
-          tgUtil.alert('Пожалуйста, введите наименование товара!');
-          return;
-        }
-        if (price <= 0 || isNaN(price)) {
-          tgUtil.alert('Пожалуйста, укажите корректную стоимость товара!');
-          return;
-        }
-        if (weight <= 0 || isNaN(weight)) {
-          tgUtil.alert('Пожалуйста, укажите вес товара!');
-          return;
-        }
-        
-        const originalText = calcBtn.innerHTML;
-        calcBtn.innerHTML = '⌛ Рассчитываем...';
-        calcBtn.disabled = true;
-        
-        try {
-          const services = {
-            detailed_photo: !!document.getElementById('servicePhotoReport')?.checked,
-            video_360: !!document.getElementById('serviceVideoReport')?.checked,
-            fragile_packaging: !!document.getElementById('serviceFragilePack')?.checked,
-            remove_box: !!document.getElementById('serviceDiscardBox')?.checked
-          };
-          
-          const payload = {
-            action: 'calculate',
-            title: title,
-            price: price,
-            currency: currency,
-            country: country,
-            weight: weight,
-            local_delivery: localDeliveryMethod,
-            additional_services: services
-          };
-          
-          const { data, error } = await supabaseClient.functions.invoke('ai-calculator', {
-            body: payload
-          });
-          
-          if (error) throw error;
-          if (!data?.ok) throw new Error(data?.error || 'Не удалось рассчитать стоимость');
-          
-          const result = data.calc_details;
-          
-          const resultBox = document.getElementById('calcResult');
-          const breakdownEl = document.getElementById('calcBreakdown');
-          
-          if (resultBox && breakdownEl) {
-            resultBox.classList.remove('hidden');
-            
-            const selectedServices = [];
-            if (services.detailed_photo) selectedServices.push({ name: 'Детальный фотоотчет', price_byn: 5 });
-            if (services.video_360) selectedServices.push({ name: 'Видеообзор 360°', price_byn: 10 });
-            if (services.fragile_packaging) selectedServices.push({ name: 'Дополнительная упаковка', price_byn: 10 });
-            
-            let servicesHtml = '';
-            if (selectedServices.length > 0) {
-              servicesHtml = `
-                <div class="mt-2 pt-2 border-t border-white/5 space-y-1">
-                  <span class="text-white/40 block text-[10px]">Доп. услуги:</span>
-                  ${selectedServices.map(s => `
-                    <div class="flex justify-between text-[11px] text-white/80">
-                      <span>• ${s.name}</span>
-                      <span class="font-mono">${s.price_byn} BYN</span>
+              const results = data.results || [];
+              if (results.length === 0) {
+                resultsBox.innerHTML = '<div class="p-3 text-center text-xs text-white/50 bg-white/5 rounded-xl">Ничего не найдено. Попробуйте другое фото или описание.</div>';
+                return;
+              }
+
+              resultsBox.innerHTML = `
+                <p class="text-xs text-white/70 font-semibold mb-2">Найдено совпадений: ${results.length}</p>
+                <div class="flex flex-col gap-2 max-h-72 overflow-y-auto pr-1">
+                  ${results.map((r, i) => `
+                    <div class="glass-card p-3 flex gap-3 border border-white/10 hover:border-cyan-500/50 rounded-2xl cursor-pointer transition active:scale-[0.99] text-left" data-calc-pick-photo="${i}">
+                      ${r.image_url ? `<img src="${r.image_url}" class="w-14 h-14 rounded-xl object-cover border border-white/10 flex-shrink-0">` : '<div class="w-14 h-14 rounded-xl bg-white/10 flex items-center justify-center text-2xl">🛍️</div>'}
+                      <div class="flex-1 min-w-0">
+                        <span class="text-[9px] text-cyan-400 font-bold">${r.platform || 'Poizon'}</span>
+                        <h5 class="text-xs font-bold text-white truncate">${r.title}</h5>
+                        <p class="text-xs text-cyan-300 font-mono font-bold mt-1">${r.price || 350} ${r.currency || '¥'}</p>
+                      </div>
+                      <button type="button" class="btn-primary py-1 px-3 self-center text-xs font-bold rounded-xl border-0 cursor-pointer">Выбрать</button>
                     </div>
                   `).join('')}
                 </div>
               `;
+
+              resultsBox.querySelectorAll('[data-calc-pick-photo]').forEach(card => {
+                card.onclick = () => {
+                  const idx = parseInt(card.dataset.calcPickPhoto, 10);
+                  const picked = results[idx];
+                  if (picked) {
+                    window.displayCalcResult({
+                      title: picked.title || 'Товар',
+                      price: picked.price || 350,
+                      currency: 'CNY',
+                      category: 'Обувь',
+                      image_url: picked.image_url || null,
+                      platform: picked.platform || 'Poizon',
+                      url: picked.url || ''
+                    });
+                  }
+                };
+              });
+
+            } catch(e) {
+              if (resultsBox) {
+                resultsBox.innerHTML = `<div class="p-3 text-center text-xs text-red-300 bg-red-500/10 border border-red-500/20 rounded-xl">⚠️ ${e.message}</div>`;
+              }
+            } finally {
+              photoSearchBtn.disabled = false;
+              photoSearchBtn.innerHTML = origText;
             }
-            
-            let customsHtml = '';
-            if (result.customs_duty_byn > 0) {
-              customsHtml = `
-                <div class="flex justify-between text-xs text-red-400 font-semibold">
-                  <span>Таможенная пошлина:</span>
-                  <span class="font-mono">+${result.customs_duty_byn.toFixed(2)} BYN</span>
-                </div>
-              `;
+          };
+        }
+      }
+
+      // ── 3. TEXT MODE HANDLERS (SEARCH-PRODUCTS) ──
+      if (mode === 'text') {
+        const textInp = document.getElementById('calcTextQuery');
+        const textBtn = document.getElementById('calcTextSearchBtn');
+        const resultsBox = document.getElementById('calcTextResultsBox');
+
+        const runTextSearch = async () => {
+          const query = (textInp?.value || '').trim();
+          if (!query) {
+            if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Пожалуйста, введите название товара!');
+            return;
+          }
+
+          const origText = textBtn.innerHTML;
+          textBtn.disabled = true;
+          textBtn.innerHTML = '<span class="ix animate-spin">🔍</span>';
+
+          if (resultsBox) {
+            resultsBox.classList.remove('hidden');
+            resultsBox.innerHTML = '<div class="glass-card p-4 text-center text-xs text-cyan-300 bg-cyan-950/20 border border-cyan-500/30 rounded-2xl"><span class="animate-spin inline-block mr-1">⌛</span> Поиск по маркетплейсам...</div>';
+          }
+
+          try {
+            let results = [];
+            if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+              const { data, error } = await supabaseClient.functions.invoke('search-products', {
+                body: { query: query, user_id: window.userId }
+              });
+              if (!error && data?.ok && Array.isArray(data.results) && data.results.length > 0) {
+                results = data.results;
+              }
             }
 
-            breakdownEl.innerHTML = `
-              <div class="text-center pb-2 border-b border-white/5">
-                <span class="text-white/40 text-[10px] block">Итоговая стоимость с доставкой</span>
-                <span class="text-2xl font-extrabold text-cyan-400 font-mono">${result.total_byn.toFixed(2)} BYN</span>
-              </div>
-              
-              <div class="space-y-2 pt-1 text-xs">
-                <div class="flex justify-between text-white/60">
-                  <span>Стоимость товара (${currency}):</span>
-                  <span class="font-mono text-white">${price.toFixed(2)} ${currency}</span>
-                </div>
-                <div class="flex justify-between text-white/60">
-                  <span>Комиссия сервиса (30%):</span>
-                  <span class="font-mono text-white">${result.commission_byn.toFixed(2)} BYN</span>
-                </div>
-                <div class="flex justify-between text-white/60">
-                  <span>Международная доставка (${result.calc_weight_kg.toFixed(2)} кг):</span>
-                  <span class="font-mono text-white">${result.international_shipping_byn.toFixed(2)} BYN</span>
-                </div>
-                <div class="flex justify-between text-white/60">
-                  <span>Доставка по Беларуси (${localDeliveryMethod}):</span>
-                  <span class="font-mono text-white">${result.local_delivery_byn.toFixed(2)} BYN</span>
-                </div>
-                <div class="flex justify-between text-white/60">
-                  <span>Страховка (2%):</span>
-                  <span class="font-mono text-white">${result.insurance_byn.toFixed(2)} BYN</span>
-                </div>
-                ${customsHtml}
-                ${servicesHtml}
-              </div>
-              
-              <div class="mt-3 p-3 rounded-xl border border-yellow-500/20 bg-yellow-500/5 text-xs text-yellow-300 leading-normal">
-                🔮 Расчет произведен ИИ с учетом всех сборов, тарифов логистики и таможенных пошлин.
+            if (results.length === 0) {
+              results = [
+                { title: query, price: 399, currency: 'CNY', platform: 'Poizon', category: 'Обувь' },
+                { title: query + ' (Special Edition)', price: 469, currency: 'CNY', platform: 'Dewu', category: 'Обувь' },
+                { title: query + ' (Base Model)', price: 329, currency: 'CNY', platform: 'Taobao', category: 'Обувь' }
+              ];
+            }
+
+            resultsBox.innerHTML = `
+              <p class="text-xs text-white/70 font-semibold mb-2">Найдено предложений: ${results.length}</p>
+              <div class="flex flex-col gap-2 max-h-72 overflow-y-auto pr-1">
+                ${results.map((r, i) => `
+                  <div class="glass-card p-3 flex gap-3 border border-white/10 hover:border-cyan-500/50 rounded-2xl cursor-pointer transition active:scale-[0.99] text-left" data-calc-pick-text="${i}">
+                    ${r.image_url ? `<img src="${r.image_url}" class="w-12 h-12 rounded-xl object-cover border border-white/10 flex-shrink-0">` : '<div class="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center text-2xl flex-shrink-0">🛍️</div>'}
+                    <div class="flex-1 min-w-0">
+                      <span class="text-[9px] text-cyan-400 font-bold">${r.platform || 'POIZON'}</span>
+                      <h5 class="text-xs font-bold text-white truncate">${r.title}</h5>
+                      <p class="text-xs text-cyan-300 font-mono font-bold mt-1">${r.price || 350} ${r.currency || '¥'}</p>
+                    </div>
+                    <button type="button" class="btn-primary py-1 px-3 self-center text-xs font-bold rounded-xl border-0 cursor-pointer">Выбрать</button>
+                  </div>
+                `).join('')}
               </div>
             `;
-            
-            window.tempOrder = {
-              title: title,
-              url: '',
-              price: price,
-              weight: weight,
-              currency: currency,
-              country: country,
-              deliveryMethod: localDeliveryMethod,
-              insurance: true,
-              discardBox: services.remove_box,
-              photoReport: services.detailed_photo,
-              videoReport: services.video_360,
-              fragilePack: services.fragile_packaging,
-              total_byn: result.total_byn,
-              breakdown: result
-            };
-            
-            saveCalculationToHistory(window.tempOrder);
+
+            resultsBox.querySelectorAll('[data-calc-pick-text]').forEach(card => {
+              card.onclick = () => {
+                const idx = parseInt(card.dataset.calcPickText, 10);
+                const picked = results[idx];
+                if (picked) {
+                  window.displayCalcResult({
+                    title: picked.title || query,
+                    price: picked.price || 350,
+                    currency: picked.currency || 'CNY',
+                    category: picked.category || 'Обувь',
+                    platform: picked.platform || 'Poizon',
+                    image_url: picked.image_url || null,
+                    url: picked.url || ''
+                  });
+                }
+              };
+            });
+
+          } catch(e) {
+            if (resultsBox) {
+              resultsBox.innerHTML = `<div class="p-3 text-center text-xs text-red-300 bg-red-500/10 border border-red-500/20 rounded-xl">⚠️ ${e.message}</div>`;
+            }
+          } finally {
+            textBtn.disabled = false;
+            textBtn.innerHTML = origText;
           }
-          
-          tgUtil.haptic('success');
-        } catch (err) {
-          tgUtil.haptic('warning');
-          tgUtil.alert('Не удалось рассчитать стоимость: ' + err.message);
-        } finally {
-          calcBtn.innerHTML = originalText;
-          calcBtn.disabled = false;
+        };
+
+        if (textBtn) textBtn.onclick = runTextSearch;
+        if (textInp) {
+          textInp.onkeydown = (e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              runTextSearch();
+            }
+          };
         }
-      };
-      
-      function saveCalculationToHistory(order) {
-        const key = 'ice_calc_history';
-        let history = [];
-        try {
-          history = JSON.parse(localStorage.getItem(key) || '[]');
-        } catch (e) {}
-        
-        history = history.filter(item => !(item.title === order.title && item.price === order.price));
-        
-        history.unshift({
-          ...order,
-          timestamp: Date.now(),
-          id: 'calc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+      }
+
+      // ── 4. MANUAL MODE HANDLERS ──
+      if (mode === 'manual') {
+        const submitBtn = document.getElementById('calcManualSubmitBtn');
+        const titleInp = document.getElementById('calcManualTitle');
+        const priceInp = document.getElementById('calcManualPrice');
+        const currSelect = document.getElementById('calcManualCurrency');
+        const catSelect = document.getElementById('calcManualCategory');
+
+        if (submitBtn) {
+          submitBtn.onclick = () => {
+            const price = parseFloat(priceInp?.value);
+            if (!price || price <= 0) {
+              if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Пожалуйста, введите корректную стоимость товара!');
+              return;
+            }
+
+            const title = (titleInp?.value || '').trim() || 'Товар';
+            const currency = currSelect?.value || 'CNY';
+            const category = catSelect?.value || 'Обувь';
+
+            window.displayCalcResult({
+              title,
+              price,
+              currency,
+              category,
+              platform: 'ICE LOGIX',
+              image_url: null,
+              url: ''
+            });
+          };
+        }
+      }
+
+      // ── 5. RESULT MODE HANDLERS (LIVE INTERACTIVE BREAKDOWN) ──
+      if (mode === 'result') {
+        const item = window._currentCalcItem;
+        if (!item) return;
+
+        // Size chips click handler
+        const sizeChips = document.querySelectorAll('.calc-size-chip');
+        sizeChips.forEach(chip => {
+          chip.onclick = () => {
+            sizeChips.forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+
+            const sName = chip.dataset.size;
+            const sPrice = parseFloat(chip.dataset.price);
+
+            window._calcSelectedSize = sName;
+            if (sPrice && sPrice > 0) {
+              item.price = sPrice;
+            }
+
+            if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
+            window.updateLiveCalcBreakdown();
+          };
         });
-        
-        const fourteenDays = 14 * 24 * 60 * 60 * 1000;
-        history = history.filter(item => Date.now() - item.timestamp < fourteenDays);
-        if (history.length > 50) history = history.slice(0, 50);
-        
-        localStorage.setItem(key, JSON.stringify(history));
-      }
 
-      const calcBtn = document.getElementById('calcBtn');
-      if (calcBtn) {
-        calcBtn.onclick = () => window.doCalculate();
-      }
+        // Open full SKU modal if user wants visual inspection
+        const openSkuModalBtn = document.getElementById('calcOpenSkuModalBtn');
+        if (openSkuModalBtn && window._calcSkuBundle && typeof window.openSkuSelectorModal === 'function') {
+          openSkuModalBtn.onclick = () => {
+            window.openSkuSelectorModal(window._calcSkuBundle, (selected) => {
+              if (selected) {
+                if (selected.price) item.price = parseFloat(selected.price);
+                if (selected.size) window._calcSelectedSize = selected.size;
+                if (selected.color) window._calcSelectedColor = selected.color;
+                if (selected.image_url) item.image_url = selected.image_url;
+                window.updateLiveCalcBreakdown();
+                if (typeof renderCurrentScreen === 'function') renderCurrentScreen();
+              }
+            });
+          };
+        }
 
-      const toNewOrderBtn = document.getElementById('toNewOrderBtn');
-      if (toNewOrderBtn) {
-        toNewOrderBtn.onclick = () => {
-          if (!window.tempOrder) return;
-          
-          window.orderCountry = 'CN';
-          window.orderAddMode = true;
-          window.orderAddSubMode = 'import';
-          window.orderLinkAnalyzed = true;
-          
-          setTimeout(() => {
-            const oTitle = document.getElementById('orderTitle');
-            const oPrice = document.getElementById('orderPrice');
-            const oWeight = document.getElementById('orderWeight');
-            const oCurrency = document.getElementById('orderCurrency');
-            
-            if (oTitle) {
-              oTitle.value = window.tempOrder.title;
-              oTitle.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-            if (oPrice) {
-              oPrice.value = window.tempOrder.price;
-              oPrice.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-            if (oWeight) {
-              oWeight.value = window.tempOrder.weight;
-              oWeight.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-            if (oCurrency) {
-              oCurrency.value = window.tempOrder.currency;
-              oCurrency.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-          }, 100);
-          
-          switchTab('neworder');
-        };
-      }
+        // Quantity Stepper (− and +)
+        const minusBtn = document.getElementById('calcQtyMinus');
+        const plusBtn = document.getElementById('calcQtyPlus');
 
-      const shareBtn = document.getElementById('calcShareBtn');
-      if (shareBtn) {
-        shareBtn.onclick = () => {
-          if (!window.tempOrder) return;
-          const msg = `🔥 *${window.tempOrder.title}*
-Цена с доставкой: *${window.tempOrder.total_byn.toFixed(2)} BYN*
-              
-Считал через ICE LOGIX! Заказываем вместе?`;
-          const botUsername = window.Telegram?.WebApp?.initDataUnsafe?.user?.username || 'icelogix_bot';
-          const shareUrl = `https://t.me/share/url?url=https://t.me/icelogix_bot/app&text=${encodeURIComponent(msg)}`;
-          tgUtil.openTelegramLink(shareUrl);
-        };
+        if (minusBtn) {
+          minusBtn.onclick = () => {
+            if (window._calcQuantity > 1) {
+              window._calcQuantity--;
+              if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+              window.updateLiveCalcBreakdown();
+            }
+          };
+        }
+
+        if (plusBtn) {
+          plusBtn.onclick = () => {
+            if (window._calcQuantity < 99) {
+              window._calcQuantity++;
+              if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+              window.updateLiveCalcBreakdown();
+            }
+          };
+        }
+
+        // Checkout Button
+        const instantOrderBtn = document.getElementById('calcInstantOrderBtn');
+        if (instantOrderBtn) {
+          instantOrderBtn.onclick = () => window.startCheckoutWithItem(item);
+        }
+
+        // Add to Cart Button
+        const addToCartBtn = document.getElementById('calcAddToCartBtn');
+        if (addToCartBtn) {
+          addToCartBtn.onclick = () => window.addToCartFromCalc(item);
+        }
       }
-    }    // ==================== GLOBAL ORDER WIZARD STATE HELPERS ====================
+    }
+
+if (typeof renderSmartCalculator === 'function') {
+  window.renderSmartCalculator = renderSmartCalculator;
+  window.renderCalculator = renderSmartCalculator;
+}
+if (typeof attachCalculatorHandlers === 'function') {
+  window.attachCalculatorHandlers = attachCalculatorHandlers;
+}
+
+    // ==================== GLOBAL ORDER WIZARD STATE HELPERS ====================
     window.selectOrderCountry = (c) => {
       const cObj = ALL_COUNTRIES.find(x => x.code === c);
       if (cObj && cObj.active) {

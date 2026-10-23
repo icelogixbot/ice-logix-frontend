@@ -229,6 +229,46 @@ window.applySmartShareLink = applySmartShareLink;
         // ── STEP B: Mode Selection Overlay (if no mode selected yet) ──
         if (!window.orderAddSubMode) {
           const hasExistingItems = window.tempOrder && window.tempOrder.items && window.tempOrder.items.length > 0;
+
+          // If no items in order, guide user to Calculator or Catalog
+          if (!hasExistingItems) {
+            return `
+              <div class="space-y-4 page-enter">
+                <div class="flex items-center gap-3 mb-2">
+                  <button type="button" class="global-back-btn !mb-0" onclick="switchTab('home')" title="Назад на главную">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="15 18 9 12 15 6"/>
+                    </svg>
+                  </button>
+                  <p class="text-xs text-white/60">Назад на главную</p>
+                </div>
+
+                <div class="glass-card p-6 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl text-center space-y-4" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
+                  <div class="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-3xl shadow-lg shadow-cyan-500/20 mb-1">
+                    🛍️
+                  </div>
+                  <h2 class="text-xl font-extrabold text-white">Оформление заказа</h2>
+                  <p class="text-white/60 text-xs max-w-xs mx-auto">В заказе пока нет выбранных товаров. Рассчитайте стоимость в умном калькуляторе или выберите товар в каталоге.</p>
+                  
+                  ${vacationBanner}
+
+                  <div class="flex flex-col gap-2.5 pt-2">
+                    <button type="button" class="btn-primary w-full py-3.5 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-cyan-500/20" onclick="switchTab('calculator')">
+                      🧮 Рассчитать в Калькуляторе
+                    </button>
+                    <button type="button" class="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer" onclick="switchTab('catalogs')">
+                      🔍 Выбрать в Каталоге
+                    </button>
+                    <button type="button" class="w-full py-2.5 text-white/50 hover:text-cyan-400 text-xs font-semibold bg-transparent border-0 cursor-pointer transition" onclick="window.setOrderAddSubMode('import')">
+                      📥 Или выбрать из сохраненных расчетов
+                    </button>
+                  </div>
+                </div>
+              </div>
+              ${renderFooter()}
+            `;
+          }
+
           return `
           <style>
             .order-mode-card {
@@ -249,19 +289,19 @@ window.applySmartShareLink = applySmartShareLink;
 
           <div class="space-y-4 page-enter">
             <div class="flex items-center gap-3 mb-2">
-              <button type="button" class="global-back-btn !mb-0" onclick="${hasExistingItems ? 'window.orderAddMode = false; renderCurrentScreen();' : 'switchTab(\'home\');'}" title="${hasExistingItems ? 'Назад к заказу' : 'Назад на главную'}">
+              <button type="button" class="global-back-btn !mb-0" onclick="window.orderAddMode = false; renderCurrentScreen();" title="Назад к заказу">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="15 18 9 12 15 6"/>
                 </svg>
               </button>
-              <p class="text-xs text-white/60">${hasExistingItems ? 'Вернуться к заказу' : 'Назад'}</p>
+              <p class="text-xs text-white/60">Вернуться к заказу</p>
             </div>
 
             <div class="glass-card p-5 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
               <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
               <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
 
-              <h2 class="text-xl font-extrabold text-white text-center mb-1">Добавление товара в заказ</h2>
+              <h2 class="text-xl font-extrabold text-white text-center mb-1">Добавление товара к заказу</h2>
               <p class="text-white/60 text-xs text-center mb-5">Выберите способ добавления товара</p>
               
               ${vacationBanner}
@@ -280,41 +320,15 @@ window.applySmartShareLink = applySmartShareLink;
                   </div>
                 </div>
 
-                <!-- Link -->
-                <div class="order-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.setOrderAddSubMode('link')">
+                <!-- Calculator redirect -->
+                <div class="order-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="switchTab('calculator')">
                   <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/25 flex items-center justify-center text-purple-400 text-lg">
-                      🔗
+                    <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center text-cyan-400 text-lg">
+                      🧮
                     </div>
                     <div class="flex-1 min-w-0">
-                      <h3 class="font-bold text-white text-sm">Заказать по ссылке</h3>
-                      <p class="text-white/50 text-[11px] leading-normal mt-0.5">Вставьте ссылку на товар — нейросеть заполнит форму сама.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Photo -->
-                <div class="order-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.setOrderAddSubMode('photo')">
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-pink-500/10 border border-pink-500/25 flex items-center justify-center text-pink-400 text-lg">
-                      📸
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <h3 class="font-bold text-white text-sm">Заказать по фото</h3>
-                      <p class="text-white/50 text-[11px] leading-normal mt-0.5">Поиск товара по изображению и автозаполнение.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Description -->
-                <div class="order-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.setOrderAddSubMode('text')">
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400 text-lg">
-                      📝
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <h3 class="font-bold text-white text-sm">Заказать по описанию</h3>
-                      <p class="text-white/50 text-[11px] leading-normal mt-0.5">Текстовое описание товара для автоподбора параметров.</p>
+                      <h3 class="font-bold text-white text-sm">Рассчитать новый товар</h3>
+                      <p class="text-white/50 text-[11px] leading-normal mt-0.5">По фото, ссылке через эмулятор или описанию.</p>
                     </div>
                   </div>
                 </div>

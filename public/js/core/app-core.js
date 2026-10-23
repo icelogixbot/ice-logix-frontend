@@ -174,9 +174,9 @@
       localStorage.setItem('lang', lang);
       const tabLabels = {
         home: t('tab_home', 'Главная'),
+        catalogs: t('tab_catalogs', 'Каталог'),
         calculator: t('tab_calc', 'Калькулятор'),
-        neworder: t('tab_order', 'Заказ'),
-        catalogs: t('tab_catalogs', 'Каталоги'),
+        cart: t('tab_cart', 'Корзина'),
         profile: t('tab_profile', 'Профиль')
       };
       document.querySelectorAll('#tabBar .tab-item').forEach(item => {

@@ -168,6 +168,12 @@ async function renderHome() {
         </div>
         <span class="story-label">Легит-чек</span>
       </div>
+      <div class="story-card" data-story="my_orders">
+        <div class="story-icon" style="background: linear-gradient(145deg, rgba(6,182,212,0.25), rgba(14,165,233,0.12));">
+          <span style="font-size: 24px;"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span></span>
+        </div>
+        <span class="story-label">Заказы</span>
+      </div>
       <div class="story-card" data-story="reports">
         <div class="story-icon" style="background: linear-gradient(145deg, rgba(251,191,36,0.25), rgba(245,158,11,0.12));">
           <span style="font-size: 24px;"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span></span>
@@ -246,6 +252,10 @@ function attachHomeHandlers() {
       document.querySelector('[data-story="legitcheck"]')?.addEventListener('click', () => {
         if (!window.userId) { window.requireAuth('Для проверки подлинности необходимо войти или зарегистрироваться.'); return; }
         switchTab('legitcheck');
+      });
+      document.querySelector('[data-story="my_orders"]')?.addEventListener('click', () => {
+        if (!window.userId) { window.requireAuth('Для просмотра заказов необходимо войти или зарегистрироваться.'); return; }
+        switchTab('profile', 'myOrders');
       });
       document.getElementById('moreMarketplacesBtn')?.addEventListener('click', () => {
         switchTab('catalogs', 'marketplaces');
@@ -452,202 +462,11 @@ function attachHomeHandlers() {
     }
 
     async function renderCalculator() {
-      window._calcMode = 'manual';
-      scrollToPageTop();
-
-      const selectedCountryObj = ALL_COUNTRIES.find(c => c.code === (window.calcCountry || 'CN'));
-      const countryText = selectedCountryObj 
-        ? `${selectedCountryObj.flag} ${selectedCountryObj.name}`
-        : '🇨🇳 Китай';
-
-      // Check if we need to auto-fill pending AI data
-      if (window._pendingAiData) {
-        const d = window._pendingAiData;
-        delete window._pendingAiData;
-        setTimeout(() => {
-          const titleInp = document.getElementById('calcTitle');
-          const priceInp = document.getElementById('calcPrice');
-          const weightInp = document.getElementById('calcWeight');
-          if (titleInp && d.title) titleInp.value = d.title;
-          if (priceInp && d.price) priceInp.value = d.price;
-          if (weightInp && d.weight) weightInp.value = parseFloat(d.weight).toFixed(2);
-          if (d.currency && typeof window.selectCalcCurrency === 'function') {
-            window.selectCalcCurrency(d.currency, `${d.currency}`);
-          }
-          if (d.country && typeof window.selectCalcCountry === 'function') {
-            window.selectCalcCountry(d.country);
-          }
-          tgUtil.haptic('success');
-          glassToast('✨ Данные товара автоматически подставлены ИИ!', { kind: 'success' });
-        }, 100);
+      if (typeof window.renderSmartCalculator === 'function') {
+        return await window.renderSmartCalculator();
       }
-
-      return `
-        <div class="space-y-4 page-enter">
-          <div class="glass-card text-left p-5 space-y-4 shadow-2xl border border-white/10 rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
-            <h2 class="text-xl font-extrabold text-white text-center mb-6">Калькулятор доставки</h2>
-
-          <form id="calculatorForm" class="space-y-4" onsubmit="event.preventDefault();">
-            <!-- Наименование товара -->
-            <div>
-              <label class="text-white/70 text-xs block mb-1">Наименование товара <span class="text-red-400 font-bold">*</span></label>
-              <input type="text" id="calcTitle" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm" placeholder="Например: Кроссовки Nike Dunk Low">
-            </div>
-
-            <!-- Цена товара с выбором валюты -->
-            <div>
-              <label class="text-white/70 text-xs block mb-1">Стоимость товара <span class="text-red-400 font-bold">*</span></label>
-              <div class="flex gap-2">
-                <div class="flex-1">
-                  <input type="number" id="calcPrice" step="0.01" min="0" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm" placeholder="Укажите цену">
-                </div>
-                <div class="relative w-[110px]">
-                  <button type="button" id="calcCurrencyBtn" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm flex justify-between items-center cursor-pointer">
-                    <span id="calcCurrencyVal">CNY (¥)</span>
-                    <span>▼</span>
-                  </button>
-                  <input type="hidden" id="calcCurrency" value="CNY">
-                  <div id="calcCurrencyDropdown" class="hidden absolute right-0 mt-1 w-[120px] bg-slate-900 border border-white/10 rounded-xl shadow-2xl z-30 overflow-hidden">
-                    <div class="p-2.5 hover:bg-white/5 cursor-pointer text-xs text-white border-b border-white/5" onclick="selectCalcCurrency('CNY', 'CNY (¥)')">CNY (¥)</div>
-                    <div class="p-2.5 hover:bg-white/5 cursor-pointer text-xs text-white border-b border-white/5" onclick="selectCalcCurrency('USD', 'USD ($)')">USD ($)</div>
-                    <div class="p-2.5 hover:bg-white/5 cursor-pointer text-xs text-white border-b border-white/5" onclick="selectCalcCurrency('EUR', 'EUR (€)')">EUR (€)</div>
-                    <div class="p-2.5 hover:bg-white/5 cursor-pointer text-xs text-white border-b border-white/5" onclick="selectCalcCurrency('RUB', 'RUB (₽)')">RUB (₽)</div>
-                    <div class="p-2.5 hover:bg-white/5 cursor-pointer text-xs text-white" onclick="selectCalcCurrency('BYN', 'BYN (Br)')">BYN (Br)</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Вес товара с ссылкой на помощь -->
-            <div>
-              <div class="flex justify-between items-center mb-1">
-                <label class="text-white/70 text-xs">Вес товара (кг) <span class="text-red-400 font-bold">*</span></label>
-                <button type="button" class="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold bg-cyan-500/10 border border-cyan-500/20 rounded-full px-2.5 py-1.5 transition active:scale-95 cursor-pointer flex items-center gap-1 border-0" onclick="window.openCalcWeightModal()">
-                  ⚖️ Помогите узнать вес
-                </button>
-              </div>
-              <input type="number" id="calcWeight" step="0.01" min="0.05" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm" placeholder="Например: 1.2">
-            </div>
-
-            <!-- Страна покупки (выбор) -->
-            <div>
-              <label class="text-white/70 text-xs block mb-1">Страна покупки</label>
-              <div class="relative">
-                <button type="button" id="calcCountryBtn" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm flex justify-between items-center cursor-pointer">
-                  <span id="calcCountryVal">${countryText}</span>
-                  <span>▼</span>
-                </button>
-                <input type="hidden" id="calcCountryInput" value="${window.calcCountry || 'CN'}">
-                <div id="calcCountryDropdown" class="hidden absolute left-0 right-0 mt-1 bg-slate-900 border border-white/10 rounded-xl shadow-2xl z-30 overflow-hidden max-h-60 overflow-y-auto">
-                  ${ALL_COUNTRIES.map(c => {
-                    const isAvailable = c.code === 'CN';
-                    const statusBadge = isAvailable
-                      ? '<span class="text-[9px] text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">Доступно</span>'
-                      : '<span class="text-[9px] text-white/30 bg-white/5 px-1.5 py-0.5 rounded border border-white/10">Скоро</span>';
-                    const opacityClass = isAvailable ? 'text-white' : 'text-white/50 opacity-60';
-                    return `
-                      <div class="p-3 hover:bg-white/5 cursor-pointer text-xs ${opacityClass} flex justify-between items-center border-b border-white/5" onclick="selectCalcCountry('${c.code}')">
-                        <span class="flex items-center gap-2">
-                          <span class="text-base">${c.flag}</span>
-                          <span>${c.name}</span>
-                        </span>
-                        ${statusBadge}
-                      </div>
-                    `;
-                  }).join('')}
-                </div>
-              </div>
-            </div>
-
-            <!-- Способ доставки по Беларуси -->
-            <div>
-              <label class="text-white/70 text-xs block mb-1">Доставка по Беларуси <span class="text-red-400 font-bold">*</span></label>
-              <select id="calcDeliveryMethod" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm">
-                <option value="europost" selected>Европочта (5 BYN)</option>
-                <option value="belpost">Белпочта (7 BYN)</option>
-                <option value="pickup">Самовывоз (Несвиж) (Бесплатно)</option>
-              </select>
-            </div>
-
-            <!-- Дополнительные услуги -->
-            <div>
-              <label class="text-white/70 text-xs block mb-2">Дополнительные услуги</label>
-              <div class="space-y-2">
-                <div class="flex items-start gap-2.5 bg-white/5 p-3 rounded-xl border border-white/5">
-                  <input type="checkbox" id="serviceInsurance" checked disabled class="w-4 h-4 mt-0.5 accent-cyan-500 cursor-not-allowed">
-                  <div class="text-xs">
-                    <span class="font-bold text-white block">Обязательная страховка 2%</span>
-                    <span class="text-[10px] text-white/40 block mt-0.5">Обязательное страхование груза от утери или повреждения.</span>
-                  </div>
-                </div>
-                <div class="flex items-start gap-2.5 bg-white/5 p-3 rounded-xl border border-white/5 cursor-pointer" onclick="toggleCheckbox('serviceDiscardBox')">
-                  <input type="checkbox" id="serviceDiscardBox" class="w-4 h-4 mt-0.5 accent-cyan-500 cursor-pointer" onclick="event.stopPropagation();">
-                  <div class="text-xs">
-                    <span class="font-bold text-white block">Выкину оригинальную упаковку</span>
-                    <span class="text-[10px] text-white/40 block mt-0.5">Уменьшает вес посылки примерно на 0.3 кг, снижая стоимость международной доставки.</span>
-                  </div>
-                </div>
-                <div class="flex items-start gap-2.5 bg-white/5 p-3 rounded-xl border border-white/5 cursor-pointer" onclick="toggleCheckbox('servicePhotoReport')">
-                  <input type="checkbox" id="servicePhotoReport" class="w-4 h-4 mt-0.5 accent-cyan-500 cursor-pointer" onclick="event.stopPropagation();">
-                  <div class="text-xs">
-                    <span class="font-bold text-white block">Детальный фотоотчет (5 BYN)</span>
-                    <span class="text-[10px] text-white/40 block mt-0.5">Сделаем подробные фотографии товара и бирок при поступлении на склад.</span>
-                  </div>
-                </div>
-                <div class="flex items-start gap-2.5 bg-white/5 p-3 rounded-xl border border-white/5 cursor-pointer" onclick="toggleCheckbox('serviceVideoReport')">
-                  <input type="checkbox" id="serviceVideoReport" class="w-4 h-4 mt-0.5 accent-cyan-500 cursor-pointer" onclick="event.stopPropagation();">
-                  <div class="text-xs">
-                    <span class="font-bold text-white block">Видеообзор 360 градусов (10 BYN)</span>
-                    <span class="text-[10px] text-white/40 block mt-0.5">Запишем круговое видео товара для проверки качества перед отправкой.</span>
-                  </div>
-                </div>
-                <div class="flex items-start gap-2.5 bg-white/5 p-3 rounded-xl border border-white/5 cursor-pointer" onclick="toggleCheckbox('serviceFragilePack')">
-                  <input type="checkbox" id="serviceFragilePack" class="w-4 h-4 mt-0.5 accent-cyan-500 cursor-pointer" onclick="event.stopPropagation();">
-                  <div class="text-xs">
-                    <span class="font-bold text-white block">Дополнительная упаковка (10 BYN)</span>
-                    <span class="text-[10px] text-white/40 block mt-0.5">Усиленная коробка и воздушно-пузырчатая пленка для хрупких товаров.</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Кнопка Рассчитать -->
-            <button type="button" id="calcBtn" class="w-full py-4 mt-4 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-extrabold transition active:scale-[0.98] duration-150 flex items-center justify-center gap-2 shadow-lg shadow-red-600/30 cursor-pointer border-0">
-              <span>Рассчитать</span>
-            </button>
-          </form>
-
-          <!-- Блок результатов -->
-          <div id="calcResult" class="mt-6 hidden">
-            <div id="calcBreakdown" class="bg-cyan-500/10 border border-cyan-500/25 p-4 rounded-2xl text-left space-y-3">
-              <!-- Заполняется динамически -->
-            </div>
-            
-            <div class="flex flex-col gap-2 mt-4">
-              <button id="toNewOrderBtn" class="btn-primary w-full py-3.5 rounded-xl flex items-center justify-center gap-2 font-bold transition duration-200 border-0 cursor-pointer">
-                <span>Перенести в заказ</span>
-              </button>
-              
-              <button id="calcShareBtn" class="w-full py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition hover:bg-white/10 active:scale-95 cursor-pointer" style="background: var(--glass-bg-strong); border: 1px solid var(--glass-border); color: #38bdf8;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                Поделиться расчетом
-              </button>
-
-              <button type="button" id="calcResetBtn" class="w-full py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition hover:bg-white/10 active:scale-95 text-white/50 border border-white/10 cursor-pointer bg-transparent" onclick="window.resetCalculatorCalculation()">
-                🗑️ Сбросить расчет
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Предупреждение -->
-      <div class="mt-4 text-center max-w-md mx-auto">
-        <p class="text-white/40 text-[10px]">⚠️ Обратите внимание: расчет является ориентировочным. Окончательная стоимость формируется после взвешивания на нашем складе.</p>
-      </div>
-      ${renderFooter()}
-    `;
-  }
+      return '<div class="glass-card p-6 text-center text-white my-8"><p class="font-bold text-sm">Калькулятор загружается...</p></div>';
+    }
 
 
 // ==================== РУЛЕТКА ПЛОЩАДОК (Step Roulette with 2.5s Lock & Zero-Glitches) ====================
