@@ -31,8 +31,17 @@ async function renderAboutUs() {
     </div>
 
     <div class="glass-card">
-      <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
-        <span class="text-xl">⚖️</span> Наши условия и комиссии
+      <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center flex-shrink-0">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/>
+            <path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/>
+            <path d="M7 21h10"/>
+            <path d="M12 3v18"/>
+            <path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>
+          </svg>
+        </div>
+        Наши условия и комиссии
       </h3>
       <div class="space-y-4">
         <div class="p-3 bg-white/5 rounded-xl border border-white/10">
@@ -61,8 +70,17 @@ async function renderAboutUs() {
     </div>
     
     <div class="glass-card bg-gradient-to-br from-cyan-900/30 to-blue-900/30">
-      <h3 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
-        <span class="text-xl">📜</span> Юридическая прозрачность
+      <h3 class="text-lg font-bold text-white mb-3 flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-lg bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 flex items-center justify-center flex-shrink-0">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+        </div>
+        Юридическая прозрачность
       </h3>
       <p class="text-sm text-white/80 leading-relaxed mb-4">
         Мы работаем официально. При регистрации вы принимаете условия публичной оферты. Бот автоматически генерирует счета и инвойсы, чтобы гарантировать безопасность ваших средств и посылок.
@@ -438,8 +456,13 @@ function showContactsModal() {
     <!-- Заголовок -->
     <div class="flex items-start justify-between border-b border-white/10 pb-3">
       <div>
-        <h3 class="text-lg font-bold text-white flex items-center gap-2">
-          <span class="text-cyan-400">📞</span> Контакты и реквизиты
+        <h3 class="text-lg font-bold text-white flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded-lg bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 flex items-center justify-center flex-shrink-0">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+          </div>
+          Контакты и реквизиты
         </h3>
         <p class="text-xs text-white/60 mt-0.5">ICE LOGIX — официальный сервис доставки</p>
       </div>
@@ -456,8 +479,13 @@ function showContactsModal() {
       <!-- 1. Служба заботы -->
       <div class="glass-card p-3.5 rounded-2xl bg-gradient-to-br from-cyan-950/40 to-blue-950/40 border border-cyan-500/30">
         <div class="flex items-center justify-between mb-1.5">
-          <div class="flex items-center gap-2">
-            <span class="text-base">🎧</span>
+          <div class="flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-lg bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 flex items-center justify-center flex-shrink-0">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+                <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+              </svg>
+            </div>
             <span class="font-bold text-white text-sm">Служба заботы о клиентах</span>
           </div>
           <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
@@ -477,8 +505,16 @@ function showContactsModal() {
 
       <!-- 2. Юридические данные -->
       <div class="glass-card p-3.5 rounded-2xl bg-white/5 border border-white/10">
-        <div class="flex items-center gap-2 mb-2">
-          <span class="text-base">⚖️</span>
+        <div class="flex items-center gap-2.5 mb-2">
+          <div class="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center flex-shrink-0">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/>
+              <path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/>
+              <path d="M7 21h10"/>
+              <path d="M12 3v18"/>
+              <path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>
+            </svg>
+          </div>
           <span class="font-bold text-white text-sm">Юридические данные</span>
         </div>
         <div class="space-y-2 text-xs">
@@ -513,8 +549,17 @@ function showContactsModal() {
 
       <!-- 3. Партнерство и B2B -->
       <div class="glass-card p-3.5 rounded-2xl bg-white/5 border border-white/10">
-        <div class="flex items-center gap-2 mb-1.5">
-          <span class="text-base">🏢</span>
+        <div class="flex items-center gap-2.5 mb-1.5">
+          <div class="w-7 h-7 rounded-lg bg-teal-500/20 border border-teal-500/30 text-teal-300 flex items-center justify-center flex-shrink-0">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m11 17 2 2a1 1 0 0 0 1.42 0l4.58-4.58a1 1 0 0 0 0-1.42l-2-2"/>
+              <path d="m14 11-4-4a1 1 0 0 0-1.42 0L4 11.58a1 1 0 0 0 0 1.42l2 2"/>
+              <path d="m11 11 3-3"/>
+              <path d="m7 15 2 2"/>
+              <path d="M18 10h3a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3"/>
+              <path d="M6 14H3a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/>
+            </svg>
+          </div>
           <span class="font-bold text-white text-sm">Партнерство и B2B</span>
         </div>
         <p class="text-xs text-white/70 leading-relaxed mb-2">
@@ -530,8 +575,14 @@ function showContactsModal() {
 
       <!-- 4. Доставка и склады -->
       <div class="glass-card p-3.5 rounded-2xl bg-white/5 border border-white/10">
-        <div class="flex items-center gap-2 mb-1.5">
-          <span class="text-base">📦</span>
+        <div class="flex items-center gap-2.5 mb-1.5">
+          <div class="w-7 h-7 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-400 flex items-center justify-center flex-shrink-0">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+              <line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
+          </div>
           <span class="font-bold text-white text-sm">Логистика и пункты выдачи</span>
         </div>
         <p class="text-xs text-white/70 leading-relaxed">

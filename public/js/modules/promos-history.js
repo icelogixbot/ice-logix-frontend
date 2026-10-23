@@ -2318,6 +2318,15 @@ async function updateCartBadge() {
         badge.classList.add('hidden');
       }
     }
+    const tabBadge = document.getElementById('tabCartBadge');
+    if (tabBadge) {
+      if (count > 0) {
+        tabBadge.innerText = count > 99 ? '99+' : count;
+        tabBadge.classList.remove('hidden');
+      } else {
+        tabBadge.classList.add('hidden');
+      }
+    }
   } catch (e) {
     console.error('Failed to update cart badge:', e);
   }

@@ -8,12 +8,20 @@ function _esc(s) {
 }
 if (typeof _esc === 'function') window._esc = _esc;
 
-// Предзагрузка (pre-warming) оригинальных логотипов площадок в память браузера
-if (typeof window !== 'undefined') {
-  ['/assets/marketplaces/dewu.png', '/assets/marketplaces/taobao.png', '/assets/marketplaces/pinduoduo.png', '/assets/marketplaces/goofish.png', '/assets/marketplaces/95fen.png', '/assets/marketplaces/jd.png', '/assets/marketplaces/tmall.png'].forEach(src => {
-    const im = new Image();
-    im.src = src;
-  });
+// Вспомогательная функция получения оригинального PNG-логотипа из оперативной памяти (0 мс)
+function getMarketplaceLogo(nameOrSlug, fallbackUrl) {
+  if (typeof window !== 'undefined' && window.ORIGINAL_MARKETPLACE_PNG_DATA) {
+    const s = String(nameOrSlug || '').toLowerCase();
+    if (window.ORIGINAL_MARKETPLACE_PNG_DATA[s]) return window.ORIGINAL_MARKETPLACE_PNG_DATA[s];
+    if (s.includes('dewu') || s.includes('poizon')) return window.ORIGINAL_MARKETPLACE_PNG_DATA['dewu'];
+    if (s.includes('taobao')) return window.ORIGINAL_MARKETPLACE_PNG_DATA['taobao'];
+    if (s.includes('pinduoduo') || s.includes('пиндуодуо')) return window.ORIGINAL_MARKETPLACE_PNG_DATA['pinduoduo'];
+    if (s.includes('goofish') || s.includes('xianyu') || s.includes('сяньюй')) return window.ORIGINAL_MARKETPLACE_PNG_DATA['goofish'];
+    if (s.includes('95')) return window.ORIGINAL_MARKETPLACE_PNG_DATA['95fen'] || window.ORIGINAL_MARKETPLACE_PNG_DATA['95'];
+    if (s.includes('jd')) return window.ORIGINAL_MARKETPLACE_PNG_DATA['jd'];
+    if (s.includes('tmall')) return window.ORIGINAL_MARKETPLACE_PNG_DATA['tmall'];
+  }
+  return fallbackUrl;
 }
 
 // In-memory кэш для мгновенного рендера
@@ -23,83 +31,75 @@ let _memHomeProductsList = null;
 // ==================== РЕНДЕР ГЛАВНОЙ СТРАНИЦЫ ====================
 async function renderHome() {
   try {
+    // 7 неизменных официальных китайских площадок
+    const staticMarketplaces = [
+      { name: 'Dewu', url: 'https://dewu.com', website_url: 'https://dewu.com', logo_url: getMarketplaceLogo('dewu', '/assets/marketplaces/dewu.png'), icon: '<span class="mp-dot" style="background:#00f5d4" aria-hidden="true"></span>' },
+      { name: 'TaoBao', url: 'https://taobao.com', website_url: 'https://taobao.com', logo_url: getMarketplaceLogo('taobao', '/assets/marketplaces/taobao.png'), icon: '<span class="mp-dot" style="background:#ff5000" aria-hidden="true"></span>' },
+      { name: 'Pinduoduo', url: 'https://mobile.yangkeduo.com', website_url: 'https://mobile.yangkeduo.com', logo_url: getMarketplaceLogo('pinduoduo', '/assets/marketplaces/pinduoduo.png'), icon: '<span class="mp-dot" style="background:#e02e24" aria-hidden="true"></span>' },
+      { name: 'Goofish', url: 'https://www.goofish.com', website_url: 'https://www.goofish.com', logo_url: getMarketplaceLogo('goofish', '/assets/marketplaces/goofish.png'), icon: '<span class="mp-dot" style="background:#ffd400" aria-hidden="true"></span>' },
+      { name: '95', url: 'https://www.95fen.com', website_url: 'https://www.95fen.com', logo_url: getMarketplaceLogo('95fen', '/assets/marketplaces/95fen.png'), icon: '<span class="mp-dot" style="background:#00ff9d" aria-hidden="true"></span>' },
+      { name: 'JD', url: 'https://www.jd.com', website_url: 'https://www.jd.com', logo_url: getMarketplaceLogo('jd', '/assets/marketplaces/jd.png'), icon: '<span class="mp-dot" style="background:#ea251b" aria-hidden="true"></span>' },
+      { name: 'Tmall', url: 'https://www.tmall.com', website_url: 'https://www.tmall.com', logo_url: getMarketplaceLogo('tmall', '/assets/marketplaces/tmall.png'), icon: '<span class="mp-dot" style="background:#ff0036" aria-hidden="true"></span>' }
+    ];
+
     let dbMarketplaces = _memHomeDbMarketplaces || [];
     if (!dbMarketplaces.length) {
-      try {
-        const _sb = (typeof supabaseClient !== 'undefined' && supabaseClient) ? supabaseClient : window.supabaseClient;
-        if (window.CacheDB && _sb) {
-          const dbData = await window.CacheDB.get('marketplaces', async () => {
-            const { data } = await _sb.from('marketplaces').select('*').eq('is_active', true).order('sort_order', { ascending: true });
-            return data;
-          }, 300000);
-          if (dbData) {
-            dbMarketplaces = preprocessMarketplaces(dbData);
-            _memHomeDbMarketplaces = dbMarketplaces;
-          }
-        }
-      } catch (e) {
-        console.warn(e);
+      const _sb = (typeof supabaseClient !== 'undefined' && supabaseClient) ? supabaseClient : window.supabaseClient;
+      if (window.CacheDB && _sb) {
+        window.CacheDB.get('marketplaces', async () => {
+          const { data } = await _sb.from('marketplaces').select('*').eq('is_active', true).order('sort_order', { ascending: true });
+          return data;
+        }, 300000).then(dbData => {
+          if (dbData) _memHomeDbMarketplaces = preprocessMarketplaces(dbData);
+        }).catch(() => {});
       }
     }
 
-          // Filter only the 7 allowed Chinese marketplaces (excluding 1688 and all non-Chinese)
-          const allowedSlugs = ['dewu', 'poizon', 'taobao', 'pinduoduo', 'пиндуодуо', 'goofish', 'xianyu', 'сяньюй', '95', '95fen', 'jd', 'tmall'];
-          const homeDbMarketplaces = dbMarketplaces
-            .filter(mp => mp.show_on_home)
-            .filter(mp => {
-              const n = (mp.name || '').toLowerCase();
-              return allowedSlugs.some(slug => n.includes(slug));
-            });
+    const homeDbMarketplaces = dbMarketplaces
+      .filter(mp => mp.show_on_home)
+      .filter(mp => {
+        const n = (mp.name || '').toLowerCase();
+        return ['dewu', 'poizon', 'taobao', 'pinduoduo', 'пиндуодуо', 'goofish', 'xianyu', 'сяньюй', '95', '95fen', 'jd', 'tmall'].some(slug => n.includes(slug));
+      });
 
-          const staticMarketplaces = [
-            { name: 'Dewu', url: 'https://dewu.com', website_url: 'https://dewu.com', logo_url: '/assets/marketplaces/dewu.png', icon: '<span class="mp-dot" style="background:#00f5d4" aria-hidden="true"></span>' },
-            { name: 'TaoBao', url: 'https://taobao.com', website_url: 'https://taobao.com', logo_url: '/assets/marketplaces/taobao.png', icon: '<span class="mp-dot" style="background:#ff5000" aria-hidden="true"></span>' },
-            { name: 'Pinduoduo', url: 'https://mobile.yangkeduo.com', website_url: 'https://mobile.yangkeduo.com', logo_url: '/assets/marketplaces/pinduoduo.png', icon: '<span class="mp-dot" style="background:#e02e24" aria-hidden="true"></span>' },
-            { name: 'Goofish', url: 'https://www.goofish.com', website_url: 'https://www.goofish.com', logo_url: '/assets/marketplaces/goofish.png', icon: '<span class="mp-dot" style="background:#ffd400" aria-hidden="true"></span>' },
-            { name: '95', url: 'https://www.95fen.com', website_url: 'https://www.95fen.com', logo_url: '/assets/marketplaces/95fen.png', icon: '<span class="mp-dot" style="background:#00ff9d" aria-hidden="true"></span>' },
-            { name: 'JD', url: 'https://www.jd.com', website_url: 'https://www.jd.com', logo_url: '/assets/marketplaces/jd.png', icon: '<span class="mp-dot" style="background:#ea251b" aria-hidden="true"></span>' },
-            { name: 'Tmall', url: 'https://www.tmall.com', website_url: 'https://www.tmall.com', logo_url: '/assets/marketplaces/tmall.png', icon: '<span class="mp-dot" style="background:#ff0036" aria-hidden="true"></span>' }
-          ];
+    const marketplaces = staticMarketplaces.map(st => {
+      const fromDb = homeDbMarketplaces.find(db => (db.name || '').toLowerCase() === st.name.toLowerCase());
+      return fromDb ? { ...st, website_url: fromDb.website_url || st.website_url, url: fromDb.website_url || st.url } : st;
+    });
 
-          // Merge static 7 platforms with any custom URLs from DB, guaranteeing exact 7 platforms in fixed order:
-          // Dewu, TaoBao, Pinduoduo, Goofish, 95, JD, Tmall
-          const marketplaces = staticMarketplaces.map(st => {
-            const fromDb = homeDbMarketplaces.find(db => (db.name || '').toLowerCase() === st.name.toLowerCase());
-            return fromDb ? { ...st, website_url: fromDb.website_url || st.website_url, url: fromDb.website_url || st.url } : st;
-          });
-          // 5 identical sets: Sets 0, 1, 2, 3, 4 (35 cards total).
-          // Middle Set 2 starts at index 14 (Dewu). Order is strictly immutable:
-          // Dewu, TaoBao, Pinduoduo, Goofish, 95, JD, Tmall
-          const fullMarketplaces = [];
-          for (let s = 0; s < 5; s++) fullMarketplaces.push(...marketplaces);
+    // 5 идентичных сетов (35 карточек). Средний сет 2 стартует с индекса 14 (Dewu).
+    const fullMarketplaces = [];
+    for (let s = 0; s < 5; s++) fullMarketplaces.push(...marketplaces);
 
-          // Загрузка сегодняшних подборок из канала (@icelogix_selection)
-          let homeProductsList = _memHomeProductsList || [];
-          if (!homeProductsList.length) {
-            try {
-              const _sbClient = (typeof supabaseClient !== 'undefined' && supabaseClient) ? supabaseClient : window.supabaseClient;
-              if (window.CacheDB && _sbClient) {
-                const drops = await window.CacheDB.get('todaySelectionDrops', async () => {
-                  const { data } = await _sbClient
-                    .from('products')
-                    .select('*')
-                    .eq('is_active', true)
-                    .eq('show_on_home', true)
-                    .order('created_at', { ascending: false })
-                    .limit(9);
-                  return data;
-                }, 300000);
-                if (drops && drops.length > 0) {
-                  homeProductsList = preprocessProducts(drops);
-                  _memHomeProductsList = homeProductsList;
-                }
+    // Подборки товаров (автопарсинг из канала)
+    let homeProductsList = _memHomeProductsList || [];
+    if (!homeProductsList.length) {
+      const _sbClient = (typeof supabaseClient !== 'undefined' && supabaseClient) ? supabaseClient : window.supabaseClient;
+      if (window.CacheDB && _sbClient) {
+        window.CacheDB.get('todaySelectionDrops', async () => {
+          const { data } = await _sbClient
+            .from('products')
+            .select('*')
+            .eq('is_active', true)
+            .eq('show_on_home', true)
+            .order('created_at', { ascending: false })
+            .limit(9);
+          return data;
+        }, 300000).then(drops => {
+          if (drops && drops.length > 0) {
+            _memHomeProductsList = preprocessProducts(drops);
+            const grid = document.getElementById('homeProductsGrid');
+            if (grid && (!grid.children || grid.children.length === 0)) {
+              if (typeof _renderHomeDropCards === 'function') {
+                grid.innerHTML = _renderHomeDropCards(_memHomeProductsList);
               }
-            } catch(e) {
-              console.error('Failed to load drops for home:', e);
             }
           }
-  
-  return `
+        }).catch(() => {});
+      }
+    }
+
+    return `
     <!-- Popular Marketplaces Capsule (Monolithic Tabbed Dock from User Sketch) -->
     <div class="marketplaces-capsule-section mb-4">
       <div class="marketplaces-capsule">
@@ -141,16 +141,19 @@ async function renderHome() {
         <!-- Strictly clipped inside the module -->
         <div class="marketplaces-inner-clipper">
           <div class="marketplaces-track" id="marketplaceRouletteTrack">
-            <div class="marketplaces-ribbon" id="marketplaceRibbon">
-              ${fullMarketplaces.map((mp, idx) => `
-                <div class="story-card marketplace-story" data-url="${mp.website_url || mp.url}" data-name="${mp.name}" data-idx="${idx}">
+            <div class="marketplaces-ribbon" id="marketplaceRibbon" style="left: 50%; transform: translate3d(-1152px, 0, 0);">
+              ${fullMarketplaces.map((mp, idx) => {
+                const logoSrc = getMarketplaceLogo(mp.name, mp.logo_url);
+                const isActive = (idx === 14);
+                return `
+                <div class="story-card marketplace-story ${isActive ? 'is-active-target' : ''}" data-url="${mp.website_url || mp.url}" data-name="${mp.name}" data-idx="${idx}">
                   <div class="story-icon">
-                    ${mp.logo_url ? `<img src="${mp.logo_url}" loading="eager" decoding="async" class="w-full h-full object-contain" alt="${mp.name}" onerror="this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.style.display='block';">` : ''}
-                    <span style="${mp.logo_url ? 'display:none;' : ''} font-size: 20px;">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
+                    ${logoSrc ? `<img src="${logoSrc}" loading="eager" fetchpriority="high" decoding="sync" class="w-full h-full object-contain" alt="${mp.name}">` : ''}
+                    <span style="${logoSrc ? 'display:none;' : ''} font-size: 20px;">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
                   </div>
                   <span class="story-label">${mp.name}</span>
                 </div>
-              `).join('')}
+              `;}).join('')}
             </div>
           </div>
         </div>
@@ -513,14 +516,10 @@ function initMarketplaceRoulette() {
 
   let currentIndex = BASE_DEWU_INDEX; // Стартуем сразу на Dewu
   let isTransitioning = false;
-  let currentX = 0;
-
-  function getTrackCenter() {
-    return (track.clientWidth || 347) / 2;
-  }
+  let currentX = -(currentIndex * STEP + CARD_WIDTH / 2);
 
   function getXForIndex(idx) {
-    return getTrackCenter() - (idx * STEP + CARD_WIDTH / 2);
+    return -(idx * STEP + CARD_WIDTH / 2);
   }
 
   function highlightCard(idx) {
@@ -647,8 +646,7 @@ function initMarketplaceRoulette() {
     ribbon.style.transform = `translate3d(${newX}px, 0, 0)`;
 
     // Динамическая живая подсветка карточки при приближении к центру
-    const trackCenter = getTrackCenter();
-    const approxIdx = Math.round((trackCenter - newX - CARD_WIDTH / 2) / STEP);
+    const approxIdx = Math.round((-newX - CARD_WIDTH / 2) / STEP);
     const clampedIdx = Math.max(0, Math.min(cards.length - 1, approxIdx));
     highlightCard(clampedIdx);
   }
@@ -669,8 +667,7 @@ function initMarketplaceRoulette() {
 
     // Вычисляем целевую карточку с учетом смещения и импульса броска пальцем
     const currentTrackX = dragOriginX + dx;
-    const trackCenter = getTrackCenter();
-    let targetIdx = Math.round((trackCenter - currentTrackX - CARD_WIDTH / 2) / STEP);
+    let targetIdx = Math.round((-currentTrackX - CARD_WIDTH / 2) / STEP);
 
     // Добавляем инерцию при быстром свайпе (flick momentum)
     if (Math.abs(velocity) > 0.35) {

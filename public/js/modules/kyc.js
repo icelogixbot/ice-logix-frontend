@@ -499,6 +499,9 @@
     }
 
     const status = userKyc.kyc_status;
+    const isVerified = status === 'verified' && !window._kycForceResubmit;
+    const isPending = status === 'pending' && !window._kycForceResubmit;
+    const isFormOpen = Boolean(window._kycShowFormMode);
 
     // Вёрстка экрана
     content.innerHTML = `
@@ -507,78 +510,71 @@
         <!-- Header экрана с кнопкой Назад -->
         <div class="flex items-center justify-between mb-4 mt-2">
           <div class="flex items-center gap-3">
-            <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal ? window.goBackGlobal() : switchTab('profile')" title="Назад">
+            <button type="button" class="global-back-btn !mb-0" id="kycHeaderBackBtn" title="Назад">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="15 18 9 12 15 6"/>
               </svg>
             </button>
             <div>
               <h2 class="text-xl font-bold text-white tracking-wide">Мои данные</h2>
-              <p class="text-[11px] text-white/40">Паспортные данные, получатели и размеры</p>
+              <p class="text-[11px] text-white/40">
+                ${isVerified ? 'Паспортные данные, получатели и размеры' : 'Таможенная верификация и первый заказ'}
+              </p>
             </div>
           </div>
           <div class="flex items-center gap-1.5">
             <span class="w-2 h-2 rounded-full ${
-              status === 'verified' ? 'bg-emerald-400 animate-pulse' :
-              status === 'pending' ? 'bg-amber-400 animate-pulse' :
-              status === 'rejected' ? 'bg-rose-500' : 'bg-rose-400'
+              isVerified ? 'bg-emerald-400 animate-pulse' :
+              isPending ? 'bg-amber-400 animate-pulse' :
+              status === 'rejected' ? 'bg-rose-500' : 'bg-cyan-400 animate-pulse'
             }"></span>
             <span class="text-xs font-bold uppercase tracking-wider text-white/60">
-              ${status === 'verified' ? 'Подтверждено' : (status === 'pending' ? 'На проверке' : 'Мои данные')}
+              ${isVerified ? 'Подтверждено' : (isPending ? 'На проверке' : (status === 'rejected' ? 'Отклонено' : 'Верификация'))}
             </span>
           </div>
         </div>
 
-        <!-- Главный баннер -->
-        <div class="relative overflow-hidden rounded-3xl p-5 mb-5 border ${
-          status === 'verified'
-            ? 'bg-gradient-to-br from-emerald-500/20 via-emerald-950/30 to-slate-900 border-emerald-500/40'
-            : status === 'pending'
-            ? 'bg-gradient-to-br from-amber-500/20 via-amber-950/30 to-slate-900 border-amber-500/40'
-            : status === 'rejected'
-            ? 'bg-gradient-to-br from-rose-500/20 via-rose-950/30 to-slate-900 border-rose-500/40'
-            : 'bg-gradient-to-br from-cyan-500/20 via-blue-950/30 to-slate-900 border-cyan-500/30'
-        } shadow-xl backdrop-blur-xl">
-          <div class="flex items-start gap-4">
-            <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 ${
-              status === 'verified' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-              status === 'pending' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
-              status === 'rejected' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' :
-              'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-            }">
-              ${
-                status === 'verified' ? '🛡️' :
-                status === 'pending' ? '⏳' :
-                status === 'rejected' ? '⚠️' : '🪪'
-              }
-            </div>
-            <div class="flex-1">
-              <h1 class="text-base font-extrabold text-white leading-tight mb-1">
-                ${
-                  status === 'verified' ? 'Данные подтверждены для таможни' :
-                  status === 'pending' ? 'Данные находятся на проверке' :
-                  status === 'rejected' ? 'Требуется исправление данных' :
-                  'Верификация получателя (KYC)'
-                }
-              </h1>
-              <p class="text-xs text-white/70 leading-relaxed">
-                ${
-                  status === 'verified'
-                    ? 'Ваш аккаунт полностью верифицирован. Добавляйте дополнительных получателей для распределения беспошлинных лимитов и управляйте размерами.'
-                    : status === 'pending'
-                    ? 'Администратор сверяет данные документа. Обычно подтверждение занимает от 5 до 15 минут.'
-                    : status === 'rejected'
-                    ? `Причина: ${userKyc.kyc_rejection_reason || 'Нечеткое фото или ошибка в номере'}. Исправьте данные ниже.`
-                    : 'Требование таможенных органов РБ для оформления международных почтовых отправлений.'
-                }
-              </p>
+        ${isVerified ? `
+          <!-- Баннер для подтвержденного статуса -->
+          <div class="relative overflow-hidden rounded-3xl p-5 mb-5 border bg-gradient-to-br from-emerald-500/20 via-emerald-950/30 to-slate-900 border-emerald-500/40 shadow-xl backdrop-blur-xl">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                🛡️
+              </div>
+              <div class="flex-1">
+                <h1 class="text-base font-extrabold text-white leading-tight mb-1">Данные подтверждены для таможни</h1>
+                <p class="text-xs text-white/70 leading-relaxed">
+                  Ваш аккаунт полностью верифицирован. Добавляйте дополнительных получателей для распределения беспошлинных лимитов и управляйте размерами.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+          ${renderVerifiedState(userKyc)}
+        ` : ''}
 
-        ${status === 'verified' ? renderVerifiedState(userKyc) : ''}
-        ${status === 'pending' ? renderPendingState(userKyc) : ''}
-        ${(status === 'not_submitted' || status === 'rejected') ? renderFormState(userKyc) : ''}
+        ${isPending ? `
+          <!-- Баннер для статуса на проверке -->
+          <div class="relative overflow-hidden rounded-3xl p-5 mb-5 border bg-gradient-to-br from-amber-500/20 via-amber-950/30 to-slate-900 border-amber-500/40 shadow-xl backdrop-blur-xl">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                ⏳
+              </div>
+              <div class="flex-1">
+                <h1 class="text-base font-extrabold text-white leading-tight mb-1">Данные находятся на проверке</h1>
+                <p class="text-xs text-white/70 leading-relaxed">
+                  Администратор сверяет данные документа. Обычно подтверждение занимает от 5 до 15 минут.
+                </p>
+              </div>
+            </div>
+          </div>
+          ${renderPendingState(userKyc)}
+        ` : ''}
+
+        ${(!isVerified && !isPending) ? (
+          isFormOpen
+            ? renderReviewFormState(userKyc, window._kycScanResult)
+            : renderKycIntroState(userKyc)
+        ) : ''}
 
         <!-- Блок безопасности -->
         <div class="mt-6 p-4 rounded-2xl bg-white/[0.03] border border-white/5 text-[11px] text-white/50 space-y-2">
@@ -598,11 +594,33 @@
       window.ensureGlobalFooter();
     }
 
-    // Привязываем обработчики
-    if (status === 'not_submitted' || status === 'rejected') {
-      attachKycFormHandlers();
-    } else if (status === 'verified') {
+    // Обработчик кнопки Назад в шапке
+    const backBtn = document.getElementById('kycHeaderBackBtn');
+    if (backBtn) {
+      backBtn.onclick = () => {
+        if (window._kycShowFormMode) {
+          window._kycShowFormMode = false;
+          window._kycScanResult = null;
+          window.openKycScreen();
+        } else {
+          window._kycForceResubmit = false;
+          if (typeof window.goBackGlobal === 'function') window.goBackGlobal();
+          else switchTab('profile');
+        }
+      };
+    }
+
+    // Привязываем обработчики в зависимости от состояния
+    if (isVerified) {
       attachVerifiedKycHandlers(userKyc, curUserId);
+    } else if (isPending) {
+      // Pending state handlers
+    } else {
+      if (isFormOpen) {
+        attachReviewFormHandlers(userKyc);
+      } else {
+        attachKycIntroHandlers(userKyc);
+      }
     }
   };
 

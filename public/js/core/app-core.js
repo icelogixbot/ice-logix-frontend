@@ -682,10 +682,11 @@
         const nameLower = (mp.name || '').toLowerCase().trim();
         const urlLower = (mp.website_url || mp.url || '').toLowerCase();
         
-        // Priority 1: Match with local crisp vector SVG logos
+        // Priority 1: Match with local authentic original PNG logos (RAM data URI if available)
         for (const [key, logoPath] of Object.entries(localLogos)) {
           if (nameLower.includes(key) || urlLower.includes(key)) {
-            mp.logo_url = logoPath;
+            const memData = (typeof window !== 'undefined' && window.ORIGINAL_MARKETPLACE_PNG_DATA) ? window.ORIGINAL_MARKETPLACE_PNG_DATA[key] : null;
+            mp.logo_url = memData || logoPath;
             return mp;
           }
         }
@@ -3372,8 +3373,9 @@ let adminOrdersTotalPages = 1;
       }
 
       // If not in cache and moving to a new section, mount lightweight shimmer skeleton (0ms feedback)
+      // Home screen renders synchronously from memory, never flash skeleton over it
       const _cd = document.getElementById('content');
-      if (_cd && !window._isNavigatingBack) {
+      if (_cd && !window._isNavigatingBack && tabName !== 'home') {
         _cd.innerHTML = renderScreenSkeleton(tabName, subScreen);
         window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       }
