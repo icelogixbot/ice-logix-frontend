@@ -378,6 +378,53 @@ function attachHistoryHandlers() {
   });
 }
 
+window.restoreCalculation = (idx) => {
+  try {
+    let calculations = JSON.parse(localStorage.getItem('ice_calc_history') || '[]');
+    const fourteenDaysAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
+    const active = calculations.filter(c => c.timestamp && c.timestamp > fourteenDaysAgo);
+    const item = active[idx];
+    if (!item) return;
+
+    if (typeof tgUtil !== 'undefined' && typeof tgUtil.haptic === 'function') tgUtil.haptic('light');
+
+    window.orderCountry = item.country || 'CN';
+    window.orderAddMode = true;
+    window._pendingImportCalc = item;
+    if (item.image_url) {
+      window.orderImportedImageUrl = item.image_url;
+    }
+    window.orderAddSubMode = 'manual';
+    window.orderLinkAnalyzed = true;
+
+    if (typeof switchTab === 'function') {
+      switchTab('neworder');
+      if (typeof glassToast === 'function') {
+        glassToast('Расчет перенесен в оформление заказа!', { kind: 'success' });
+      }
+    }
+  } catch(e) {
+    console.error('restoreCalculation error:', e);
+  }
+};
+
+window.deleteCalculation = (idx) => {
+  try {
+    let calculations = JSON.parse(localStorage.getItem('ice_calc_history') || '[]');
+    const fourteenDaysAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
+    let active = calculations.filter(c => c.timestamp && c.timestamp > fourteenDaysAgo);
+    if (idx >= 0 && idx < active.length) {
+      active.splice(idx, 1);
+      localStorage.setItem('ice_calc_history', JSON.stringify(active));
+      if (typeof tgUtil !== 'undefined' && typeof tgUtil.haptic === 'function') tgUtil.haptic('light');
+      if (typeof renderCurrentScreen === 'function') renderCurrentScreen();
+      if (typeof glassToast === 'function') glassToast('Расчет удален из истории', { kind: 'info' });
+    }
+  } catch(e) {
+    console.error('deleteCalculation error:', e);
+  }
+};
+
 // Все транзакции (полноэкранный режим)
 async function showAllTransactions() {
   const { data, error } = await supabaseClient.from('transaction_history').select('*').eq('user_id', userId).order('created_at', { ascending: false });

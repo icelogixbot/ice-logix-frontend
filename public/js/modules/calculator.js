@@ -418,64 +418,43 @@
 
     window.selectImportedCalculation = (serializedData) => {
       try {
-        const c = JSON.parse(decodeURIComponent(serializedData));
-        tgUtil.haptic('success');
-        
-        window.orderAddSubMode = 'import';
+        if (typeof window.selectImportedCalculationByIndex === 'function' && typeof serializedData === 'number') {
+          return window.selectImportedCalculationByIndex(serializedData);
+        }
+        let c = null;
+        if (typeof serializedData === 'string') {
+          c = JSON.parse(decodeURIComponent(serializedData));
+        } else if (typeof serializedData === 'object' && serializedData !== null) {
+          c = serializedData;
+        }
+        if (!c) return;
+
+        if (typeof tgUtil !== 'undefined' && typeof tgUtil.haptic === 'function') {
+          tgUtil.haptic('success');
+        }
+
+        window._pendingImportCalc = c;
+        if (c.image_url) {
+          window.orderImportedImageUrl = c.image_url;
+        }
+        window.orderAddSubMode = 'manual';
         window.orderLinkAnalyzed = true;
-        
-        renderCurrentScreen();
-        
-        setTimeout(() => {
-          if (document.getElementById('orderUrlManual')) {
-            document.getElementById('orderUrlManual').value = c.url || '';
-          }
-          if (document.getElementById('orderBrand')) {
-            document.getElementById('orderBrand').value = c.brand || '';
-          }
-          if (document.getElementById('orderModel')) {
-            document.getElementById('orderModel').value = c.model || c.title || '';
-          }
-          if (document.getElementById('orderFeatures')) {
-            document.getElementById('orderFeatures').value = c.color || '';
-          }
-          if (document.getElementById('orderColor')) {
-            document.getElementById('orderColor').value = c.color || '';
-          }
-          if (document.getElementById('orderSize')) {
-            document.getElementById('orderSize').value = c.size || '';
-          }
-          if (document.getElementById('orderWeight')) {
-            document.getElementById('orderWeight').value = c.weight || 1.0;
-            const weightVal = document.getElementById('orderWeightVal');
-            if (weightVal) weightVal.textContent = (c.weight || 1.0) + ' кг';
-          }
-          if (document.getElementById('orderPrice')) {
-            document.getElementById('orderPrice').value = c.price || 0;
-            document.getElementById('orderPrice').dispatchEvent(new Event('input', { bubbles: true }));
-          }
-          if (document.getElementById('orderCurrency')) {
-            document.getElementById('orderCurrency').value = c.currency || 'CNY';
-          }
-          if (document.getElementById('orderCategory')) {
-            document.getElementById('orderCategory').value = c.category || '';
-          }
-          if (document.getElementById('keepBox')) {
-            document.getElementById('keepBox').checked = c.keepBox || false;
-          }
-          
-          if (c.image_url) {
-            window.orderImportedImageUrl = c.image_url;
+
+        if (typeof renderCurrentScreen === 'function') {
+          renderCurrentScreen().then(() => {
             if (typeof window.renderManualPhotoPreviews === 'function') {
               window.renderManualPhotoPreviews();
             }
-          }
-          
-          glassToast('Данные расчета успешно импортированы!', { kind: 'success' });
-        }, 50);
+            if (typeof glassToast === 'function') {
+              glassToast('Данные расчета успешно импортированы!', { kind: 'success' });
+            }
+          });
+        }
       } catch(e) {
-        console.error(e);
-        glassToast('Ошибка импорта расчета', { kind: 'error' });
+        console.error('selectImportedCalculation error:', e);
+        if (typeof glassToast === 'function') {
+          glassToast('Ошибка импорта расчета', { kind: 'error' });
+        }
       }
     };
 

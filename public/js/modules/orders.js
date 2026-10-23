@@ -329,6 +329,10 @@ window.applySmartShareLink = applySmartShareLink;
         const subMode = window.orderAddSubMode;
         const subModeText = subMode === 'link' ? '🔗 По ссылке' : subMode === 'photo' ? '📸 По фото' : subMode === 'import' ? '📥 Из расчетов' : '📝 По описанию';
         const showFormFields = Boolean(window.orderLinkAnalyzed);
+        const pending = window._pendingImportCalc || null;
+        if (pending && pending.image_url) {
+          window.orderImportedImageUrl = pending.image_url;
+        }
 
         let importListHtml = '';
         if (subMode === 'import') {
@@ -337,24 +341,36 @@ window.applySmartShareLink = applySmartShareLink;
             calculations = JSON.parse(localStorage.getItem('ice_calc_history') || '[]');
           } catch(e) {}
           
-          const filteredCalcs = calculations.filter(c => c.country === 'CN' || !c.country || c.country === window.orderCountry);
+          const targetCountry = (window.orderCountry || 'CN').toUpperCase();
+          const filteredCalcs = calculations.filter(c => {
+            const cCountry = (c.country || 'CN').toUpperCase();
+            return cCountry === targetCountry || (!c.country && targetCountry === 'CN');
+          });
+
+          window._cachedImportCalcs = filteredCalcs;
+
           if (filteredCalcs.length === 0) {
+            const countryObj = ALL_COUNTRIES.find(x => x.code === window.orderCountry);
+            const countryName = countryObj ? countryObj.name : (window.orderCountry === 'CN' ? 'Китай' : window.orderCountry);
             importListHtml = `
-              <div class="text-center py-8 text-white/50 text-xs bg-white/5 rounded-2xl border border-white/10 p-4">
-                <span class="text-2xl mb-2 block">📭</span>
-                <p class="font-semibold">История расчетов пуста</p>
-                <p class="mt-1 text-white/30 text-[10px]">Сначала сделайте расчет в Калькуляторе</p>
+              <div class="text-center py-8 text-white/50 text-xs bg-white/5 rounded-2xl border border-white/10 p-5 space-y-3">
+                <span class="text-3xl mb-1 block">📭</span>
+                <p class="font-bold text-white text-sm">История расчетов для этой страны пуста</p>
+                <p class="text-white/40 text-xs leading-relaxed">Сначала сделайте расчет интересующего товара в Калькуляторе для страны: <strong class="text-cyan-400">${countryName}</strong></p>
+                <button type="button" class="btn-primary px-4 py-2.5 rounded-xl text-xs font-bold transition active:scale-95 inline-flex items-center gap-1.5 shadow-lg" onclick="window.switchTab('calculator')">
+                  <span>📐</span>
+                  <span>Открыть калькулятор</span>
+                </button>
               </div>
             `;
           } else {
-            importListHtml = filteredCalcs.slice(0, 15).map(c => {
-              const dateStr = new Date(c.timestamp).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+            importListHtml = filteredCalcs.slice(0, 20).map((c, idx) => {
+              const dateStr = new Date(c.timestamp || Date.now()).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
               const imageHtml = c.image_url 
                 ? `<img src="${escHtmlC(c.image_url)}" class="w-12 h-12 object-cover rounded-xl border border-white/10 flex-shrink-0" onerror="this.style.display='none'">` 
                 : '';
-              const serialized = encodeURIComponent(JSON.stringify(c));
               return `
-                <div class="glass-card p-3 flex gap-3 border border-white/5 hover:border-cyan-500/30 cursor-pointer transition active:scale-[0.99] text-left" onclick="window.selectImportedCalculation('${serialized}')">
+                <div class="glass-card p-3 flex gap-3 border border-white/5 hover:border-cyan-500/30 cursor-pointer transition active:scale-[0.99] text-left" onclick="window.selectImportedCalculationByIndex(${idx})">
                   ${imageHtml}
                   <div class="flex-1 min-w-0 flex flex-col justify-between">
                     <div class="flex justify-between items-center text-[9px] text-white/40 mb-1">
@@ -365,7 +381,7 @@ window.applySmartShareLink = applySmartShareLink;
                     <p class="text-white/50 text-[10px] mt-0.5">Размер: ${escHtmlC(c.size || '—')} · Цвет: ${escHtmlC(c.color || '—')} · ${c.weight || 1.0} кг</p>
                   </div>
                   <div class="flex flex-col justify-center items-end ml-2 pl-2 border-l border-white/5">
-                    <span class="text-cyan-400 font-extrabold text-xs font-mono">${c.total_byn ? c.total_byn.toFixed(2) : '0.00'} BYN</span>
+                    <span class="text-cyan-400 font-extrabold text-xs font-mono">${c.total_byn ? Number(c.total_byn).toFixed(2) : '0.00'} BYN</span>
                     <span class="text-[9px] text-cyan-400/80 font-bold bg-cyan-500/10 px-1.5 py-0.5 rounded-lg border border-cyan-500/20 mt-1">Выбрать</span>
                   </div>
                 </div>
@@ -458,7 +474,7 @@ window.applySmartShareLink = applySmartShareLink;
                   <span class="text-[10px] text-cyan-400 font-medium flex items-center gap-1">✨ Автоочистка</span>
                 </div>
                 <div class="flex gap-1 bg-white/5 border border-white/30 rounded-xl overflow-hidden px-1.5 py-1">
-                  <input type="text" id="orderUrlManual" class="bg-transparent flex-1 border-0 outline-none p-2 text-sm text-white" placeholder="Вставьте ссылку на Poizon, Taobao, 1688...">
+                  <input type="text" id="orderUrlManual" class="bg-transparent flex-1 border-0 outline-none p-2 text-sm text-white" placeholder="Вставьте ссылку на Poizon, Taobao, 1688..." value="${escHtmlC(pending?.url || '')}">
                   <button type="button" id="orderUrlManualPasteBtn" class="bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg px-3.5 transition flex items-center justify-center text-cyan-400 gap-1.5 text-xs font-bold" title="Вставить и очистить ссылку">
                     ${ix('clipboard', { size: '14px' })}
                     <span>Вставить</span>
@@ -481,15 +497,15 @@ window.applySmartShareLink = applySmartShareLink;
                 <p class="text-white/60 text-xs mb-2">Название товара:</p>
                 <div class="mb-2">
                   <label class="text-white/50 text-xs block mb-0.5">Бренд</label>
-                  <input type="text" id="orderBrand" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Nike, Adidas, etc.">
+                  <input type="text" id="orderBrand" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Nike, Adidas, etc." value="${escHtmlC(pending?.brand || '')}">
                 </div>
                 <div class="mb-2">
                   <label class="text-white/50 text-xs block mb-0.5">Модель</label>
-                  <input type="text" id="orderModel" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Air Force 1, etc.">
+                  <input type="text" id="orderModel" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Air Force 1, etc." value="${escHtmlC(pending?.model || pending?.title || '')}">
                 </div>
                 <div>
                   <label class="text-white/50 text-xs block mb-0.5">Особенности</label>
-                  <input type="text" id="orderFeatures" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Цвет, расцветка...">
+                  <input type="text" id="orderFeatures" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Цвет, расцветка..." value="${escHtmlC(pending?.features || pending?.color || '')}">
                 </div>
               </div>
 
@@ -502,7 +518,7 @@ window.applySmartShareLink = applySmartShareLink;
                     <button type="button" data-gender="Мужской" class="filter-chip flex-1 py-2 text-center text-xs border border-white/10 hover:bg-white/5 transition" onclick="window.selectOrderGender('Мужской')">Мужской</button>
                     <button type="button" data-gender="Женский" class="filter-chip flex-1 py-2 text-center text-xs border border-white/10 hover:bg-white/5 transition" onclick="window.selectOrderGender('Женский')">Женский</button>
                     <button type="button" data-gender="Унисекс" class="filter-chip flex-1 py-2 text-center text-xs border border-white/10 hover:bg-white/5 transition" onclick="window.selectOrderGender('Унисекс')">Унисекс</button>
-                    <input type="hidden" id="orderGender" value="Унисекс">
+                    <input type="hidden" id="orderGender" value="${pending?.gender || 'Унисекс'}">
                   </div>
                 </div>
 
@@ -515,11 +531,11 @@ window.applySmartShareLink = applySmartShareLink;
                 <div class="grid grid-cols-2 gap-2 mb-3">
                   <div>
                     <label class="text-white/50 text-xs block mb-0.5">Цвет</label>
-                    <input type="text" id="orderColor" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Напр. Черный">
+                    <input type="text" id="orderColor" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Напр. Черный" value="${escHtmlC(pending?.color || '')}">
                   </div>
                   <div>
                     <label class="text-white/50 text-xs block mb-0.5">Размер</label>
-                    <input type="text" id="orderSize" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Напр. 42">
+                    <input type="text" id="orderSize" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Напр. 42" value="${escHtmlC(pending?.size || '')}">
                   </div>
                 </div>
 
@@ -547,8 +563,8 @@ window.applySmartShareLink = applySmartShareLink;
               <div class="mb-4">
                 <label class="text-white/70 text-sm block">Вес товара (кг) <span class="text-white/40 text-xs">- влияет на стоимость доставки</span></label>
                 <div class="flex items-center gap-3 mt-1">
-                  <input type="range" id="orderWeight" min="0.1" max="30" step="0.1" value="1.0" class="flex-1 accent-cyan-500">
-                  <span id="orderWeightVal" class="text-white/80 bg-white/10 px-3 py-1 rounded-full text-xs font-bold">1.0 кг</span>
+                  <input type="range" id="orderWeight" min="0.1" max="30" step="0.1" value="${pending?.weight || 1.0}" class="flex-1 accent-cyan-500">
+                  <span id="orderWeightVal" class="text-white/80 bg-white/10 px-3 py-1 rounded-full text-xs font-bold">${pending?.weight || 1.0} кг</span>
                 </div>
               </div>
 
@@ -557,7 +573,7 @@ window.applySmartShareLink = applySmartShareLink;
                 <label class="text-white/70 text-sm block mb-1">Цена с валютой</label>
                 <div class="flex gap-2">
                   <div class="flex-[3]">
-                    <input type="number" id="orderPrice" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Укажите цену товара">
+                    <input type="number" id="orderPrice" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm" placeholder="Укажите цену товара" value="${pending?.price || ''}">
                   </div>
                   <div class="flex-[1]">
                     <select id="orderCurrency" class="btn-secondary w-full p-3 rounded-xl border border-white/30 text-sm cursor-not-allowed opacity-60" style="padding: 14px 10px !important;" disabled>
@@ -1568,6 +1584,29 @@ window.applySmartShareLink = applySmartShareLink;
           if (h && window.userSizing.height) h.value = window.userSizing.height;
           if (w && window.userSizing.weight) w.value = window.userSizing.weight;
           if (m && window.userSizing.measure) m.value = window.userSizing.measure;
+        }
+
+        if (window._pendingImportCalc) {
+          const imported = window._pendingImportCalc;
+          window._pendingImportCalc = null;
+
+          if (imported.category && document.getElementById('orderCategory')) {
+            document.getElementById('orderCategory').value = imported.category;
+            if (window.updateCategoryHint) {
+              window.updateCategoryHint('orderCategory', 'orderCategoryHint');
+            }
+          }
+          if (imported.gender && typeof window.selectOrderGender === 'function') {
+            window.selectOrderGender(imported.gender);
+          }
+          const priceEl = document.getElementById('orderPrice');
+          if (priceEl && imported.price) {
+            priceEl.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+          const weightEl = document.getElementById('orderWeight');
+          if (weightEl && imported.weight) {
+            weightEl.dispatchEvent(new Event('input', { bubbles: true }));
+          }
         }
 
         // New Order Size Advisor logic
@@ -4780,6 +4819,78 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
 };
 
 
+window.selectImportedCalculationByIndex = (idx) => {
+  try {
+    const list = window._cachedImportCalcs || [];
+    const c = list[idx];
+    if (!c) throw new Error('Расчет не найден');
+
+    if (typeof tgUtil !== 'undefined' && typeof tgUtil.haptic === 'function') {
+      tgUtil.haptic('success');
+    }
+
+    window._pendingImportCalc = c;
+    if (c.image_url) {
+      window.orderImportedImageUrl = c.image_url;
+    }
+    window.orderAddSubMode = 'manual';
+    window.orderLinkAnalyzed = true;
+
+    if (typeof renderCurrentScreen === 'function') {
+      renderCurrentScreen().then(() => {
+        if (typeof window.renderManualPhotoPreviews === 'function') {
+          window.renderManualPhotoPreviews();
+        }
+        if (typeof glassToast === 'function') {
+          glassToast('Данные расчета успешно импортированы!', { kind: 'success' });
+        }
+      });
+    }
+  } catch(e) {
+    console.error('Import calculation error:', e);
+    if (typeof glassToast === 'function') {
+      glassToast('Ошибка импорта расчета', { kind: 'error' });
+    }
+  }
+};
+
+window.selectImportedCalculation = (param) => {
+  if (typeof param === 'number') {
+    return window.selectImportedCalculationByIndex(param);
+  }
+  try {
+    let c = null;
+    if (typeof param === 'string') {
+      c = JSON.parse(decodeURIComponent(param));
+    } else if (typeof param === 'object' && param !== null) {
+      c = param;
+    }
+    if (c) {
+      if (typeof tgUtil !== 'undefined' && typeof tgUtil.haptic === 'function') {
+        tgUtil.haptic('success');
+      }
+      window._pendingImportCalc = c;
+      if (c.image_url) {
+        window.orderImportedImageUrl = c.image_url;
+      }
+      window.orderAddSubMode = 'manual';
+      window.orderLinkAnalyzed = true;
+      if (typeof renderCurrentScreen === 'function') {
+        renderCurrentScreen().then(() => {
+          if (typeof window.renderManualPhotoPreviews === 'function') {
+            window.renderManualPhotoPreviews();
+          }
+          if (typeof glassToast === 'function') {
+            glassToast('Данные расчета успешно импортированы!', { kind: 'success' });
+          }
+        });
+      }
+    }
+  } catch(e) {
+    console.error('selectImportedCalculation error:', e);
+  }
+};
+
 // Global Exports
 if (typeof renderNewOrder === 'function') window.renderNewOrder = renderNewOrder;
 if (typeof attachNewOrderHandlers === 'function') window.attachNewOrderHandlers = attachNewOrderHandlers;
@@ -4796,3 +4907,5 @@ if (typeof renderMyOrders === 'function') window.renderMyOrders = renderMyOrders
 if (typeof detectCardType === 'function') window.detectCardType = detectCardType;
 if (typeof getCardIcon === 'function') window.getCardIcon = getCardIcon;
 if (typeof getCardBrandLogoHtml === 'function') window.getCardBrandLogoHtml = getCardBrandLogoHtml;
+if (typeof selectImportedCalculationByIndex === 'function') window.selectImportedCalculationByIndex = selectImportedCalculationByIndex;
+if (typeof selectImportedCalculation === 'function') window.selectImportedCalculation = selectImportedCalculation;
