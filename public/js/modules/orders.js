@@ -1887,8 +1887,12 @@ window.applySmartShareLink = applySmartShareLink;
                       if (selected.color) setVal('orderColor', selected.color);
                       if (selected.size) setVal('orderSize', selected.size);
                       const descParts = [];
-                      if (selected.color) descParts.push('Цвет: ' + selected.color);
-                      if (selected.size) descParts.push('Размер: ' + selected.size);
+                      if (selected.variant_summary) {
+                        descParts.push(selected.variant_summary);
+                      } else {
+                        if (selected.color) descParts.push('Цвет: ' + selected.color);
+                        if (selected.size) descParts.push('Размер: ' + selected.size);
+                      }
                       if (descParts.length) setVal('orderFeatures', descParts.join(' · '));
 
                       const categorySelect = document.getElementById('orderCategory');
@@ -2059,8 +2063,12 @@ window.applySmartShareLink = applySmartShareLink;
                 }
 
                 const descParts = [];
-                if (data.color) descParts.push('Цвет: ' + data.color);
-                if (data.size) descParts.push('Размер: ' + data.size);
+                if (data.variant_summary) {
+                  descParts.push(data.variant_summary);
+                } else {
+                  if (data.color) descParts.push('Цвет: ' + data.color);
+                  if (data.size) descParts.push('Размер: ' + data.size);
+                }
                 if (descParts.length) {
                   setVal('orderFeatures', descParts.join(' · '));
                 }

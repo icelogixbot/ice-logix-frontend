@@ -81,6 +81,11 @@ COLOR_DICT = {
     "黄色": "Желтый",
     "米色": "Бежевый",
     "卡其色": "Хаки",
+    "卡其": "Хаки",
+    "灰蓝": "Серо-голубой",
+    "海蓝": "Морской синий",
+    "军绿": "Милитари зеленый",
+    "炭黑": "Угольно-черный",
     "棕色": "Коричневый",
     "咖啡色": "Кофейный",
     "浅蓝": "Светло-голубой",
@@ -96,14 +101,14 @@ COLOR_DICT = {
 }
 
 def translate_color(name_cn: str) -> str:
-    clean = name_cn.replace("🔥", "").strip()
+    clean = re.sub(r"[🔥\s]|快要抢光|热卖|爆款|大促", "", name_cn).strip()
     for cn, ru in COLOR_DICT.items():
         if cn in clean:
             return ru
     return clean
 
 def translate_size_or_model(val: str) -> str:
-    clean = val.replace("🔥", "").strip()
+    clean = re.sub(r"[🔥\s]|快要抢光|热卖|爆款|大促", "", val).strip()
     s = clean
     s = s.replace("苹果", "iPhone ")
     s = s.replace("【带一体ai键】", " (кнопка AI Control)")
@@ -117,6 +122,9 @@ def translate_size_or_model(val: str) -> str:
     s = s.replace("MINI", "mini")
     s = s.replace("码", " EU")
     s = s.replace("尺码", "Размер")
+    s = s.replace("官方标配", "Стандартный комплект")
+    s = s.replace("套餐一", "Комплект 1")
+    s = s.replace("套餐二", "Комплект 2")
     return s.strip()
 
 def detect_category_and_brand(title_cn: str, selected_summary: str):
@@ -526,9 +534,10 @@ def dump_ui_xml(auto_handle_verify: bool = True) -> ET.Element:
 
 def capture_hd_studio_and_variants(goods_id: str, root: ET.Element, colors: List[Dict[str, Any]]) -> str:
     """
-    Captures the Ultra-HD studio main image (900x900) by tapping the drawer preview,
-    plus individual crisp thumbnails for each color variant.
-    Uploads all to public Supabase Storage and attaches image_url to each color.
+    Captures:
+    1. The master Ultra-HD studio image (900x900) by tapping drawer preview box -> full-screen gallery.
+    2. Clean micro-thumbnail icons for each color variant (cropping left square only, 0 Chinese text).
+    3. Real studio variant preview images (180x180, ~8KB) for each color by tapping color options.
     """
     thumb_bounds = None
     for n in root.iter('node'):
@@ -537,7 +546,7 @@ def capture_hd_studio_and_variants(goods_id: str, root: ET.Element, colors: List
         if 'ImageView' in cls and b:
             x1, y1, x2, y2 = parse_bounds(b)
             w, h = x2 - x1, y2 - y1
-            if 130 <= w <= 260 and 130 <= h <= 260 and x1 < 120 and 200 <= y1 <= 520:
+            if 130 <= w <= 260 and 130 <= h <= 260 and x1 < 120 and 180 <= y1 <= 550:
                 thumb_bounds = (x1, y1, x2, y2)
                 break
 
@@ -546,12 +555,12 @@ def capture_hd_studio_and_variants(goods_id: str, root: ET.Element, colors: List
     if thumb_bounds:
         cx, cy = (thumb_bounds[0] + thumb_bounds[2]) // 2, (thumb_bounds[1] + thumb_bounds[3]) // 2
         run_adb(["shell", f"input tap {cx} {cy}"])
-        time.sleep(0.6)
+        time.sleep(0.5)
         temp_hd = os.path.join(PARSED_UPLOADS_DIR, f"temp_hd_{goods_id}.png")
         run_adb(["shell", "screencap", "-p", "/sdcard/hd_prev.png"])
         run_adb(["pull", "/sdcard/hd_prev.png", temp_hd])
         run_adb(["shell", "input", "keyevent", "4"])  # Close gallery back to drawer
-        time.sleep(0.4)
+        time.sleep(0.35)
         
         if os.path.exists(temp_hd):
             try:
@@ -569,48 +578,109 @@ def capture_hd_studio_and_variants(goods_id: str, root: ET.Element, colors: List
             except Exception as e:
                 print("HD photo capture error:", e)
 
-    # 2. Capture clean drawer screenshot for color variants
+    # 2. Capture clean drawer screenshot for color micro-thumbnails
     temp_drawer = os.path.join(PARSED_UPLOADS_DIR, f"temp_drawer_{goods_id}.png")
     run_adb(["shell", "screencap", "-p", "/sdcard/drawer_screen.png"])
     run_adb(["pull", "/sdcard/drawer_screen.png", temp_drawer])
     
     if os.path.exists(temp_drawer):
         try:
-            im_d = Image.open(temp_drawer)
+            im_d = Image.open(temp_drawer).convert("RGB")
             # If HD capture failed, crop clean thumbnail from drawer
             if not hd_pub_url and thumb_bounds:
-                c_main = im_d.crop(thumb_bounds).convert("RGB")
+                c_main = im_d.crop(thumb_bounds)
                 out_main = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}.jpg")
-                c_main.save(out_main, "JPEG", quality=92)
+                c_main.save(out_main, "JPEG", quality=90)
                 if supabase_client:
                     rem_name = f"sku_{goods_id}_{int(time.time())}.jpg"
                     with open(out_main, "rb") as f:
                         supabase_client.storage.from_("product-screenshots").upload(rem_name, f.read(), {"content-type": "image/jpeg"})
                     hd_pub_url = supabase_client.storage.from_("product-screenshots").get_public_url(rem_name)
-                    
-            # Crop thumbnails for each color option
+
+            # Crop clean micro-thumbnail icons for each color button (0 Chinese text!)
             for idx, col in enumerate(colors):
                 b_str = col.get("bounds")
                 if b_str:
                     x1, y1, x2, y2 = parse_bounds(b_str)
-                    w = x2 - x1
-                    if 80 <= w <= 220:
-                        # Extract clean top-aligned square image inside the option box
-                        c_opt = im_d.crop((x1 + 3, y1 + 3, x2 - 3, y1 + w - 16)).convert("RGB")
-                        opt_path = os.path.join(PARSED_UPLOADS_DIR, f"col_{goods_id}_{idx}.jpg")
-                        c_opt.save(opt_path, "JPEG", quality=88)
+                    w, h = x2 - x1, y2 - y1
+                    if w > 10 and h > 10:
+                        if w > h + 10:
+                            # Horizontal pill button: icon is strictly the left square [x1, y1, x1+h, y2]
+                            c_icon = im_d.crop((x1 + 2, y1 + 2, x1 + h - 2, y2 - 2))
+                        else:
+                            # Square card button
+                            c_icon = im_d.crop((x1 + 3, y1 + 3, x2 - 3, y1 + w - 3))
+                        
+                        icon_path = os.path.join(PARSED_UPLOADS_DIR, f"col_{goods_id}_{idx}_icon.jpg")
+                        c_icon.save(icon_path, "JPEG", quality=90)
                         if supabase_client:
-                            rem_opt = f"col_{goods_id}_{idx}_{int(time.time())}.jpg"
+                            rem_icon = f"col_{goods_id}_{idx}_icon_{int(time.time())}.jpg"
                             try:
-                                with open(opt_path, "rb") as f:
-                                    supabase_client.storage.from_("product-screenshots").upload(rem_opt, f.read(), {"content-type": "image/jpeg"})
-                                col["image_url"] = supabase_client.storage.from_("product-screenshots").get_public_url(rem_opt)
-                            except Exception as opt_err:
-                                col["image_url"] = f"/uploads/parsed/col_{goods_id}_{idx}.jpg"
+                                with open(icon_path, "rb") as f:
+                                    supabase_client.storage.from_("product-screenshots").upload(rem_icon, f.read(), {"content-type": "image/jpeg"})
+                                col["thumb_url"] = supabase_client.storage.from_("product-screenshots").get_public_url(rem_icon)
+                            except Exception:
+                                col["thumb_url"] = f"/uploads/parsed/col_{goods_id}_{idx}_icon.jpg"
+
             os.remove(temp_drawer)
         except Exception as d_err:
-            print("Color variant crops error:", d_err)
-            
+            print("Color variant icons error:", d_err)
+
+    # 3. Capture real studio preview photos for each color variant (up to 5 colors, ~8KB each)
+    if thumb_bounds and colors:
+        default_color_idx = 0
+        for i, c in enumerate(colors):
+            if c.get("selected"):
+                default_color_idx = i
+                break
+        
+        # Default selected color gets the master HD studio photo
+        colors[default_color_idx]["image_url"] = hd_pub_url
+
+        # For remaining colors, capture the studio preview box [thumb_bounds]
+        for idx, col in enumerate(colors):
+            if idx == default_color_idx:
+                continue
+            if idx > 5:
+                # Limit to 5 colors for speed; remaining colors safely fallback to master HD shot
+                col["image_url"] = hd_pub_url
+                continue
+
+            b_str = col.get("bounds")
+            if b_str:
+                bx1, by1, bx2, by2 = parse_bounds(b_str)
+                cx, cy = (bx1 + bx2) // 2, (by1 + by2) // 2
+                run_adb(["shell", f"input tap {cx} {cy}"])
+                time.sleep(0.3)
+                temp_v = os.path.join(PARSED_UPLOADS_DIR, f"temp_v_{goods_id}_{idx}.png")
+                run_adb(["shell", "screencap", "-p", "/sdcard/v_prev.png"])
+                run_adb(["pull", "/sdcard/v_prev.png", temp_v])
+                if os.path.exists(temp_v):
+                    try:
+                        im_v = Image.open(temp_v).convert("RGB")
+                        c_studio = im_v.crop(thumb_bounds)
+                        v_out = os.path.join(PARSED_UPLOADS_DIR, f"col_{goods_id}_{idx}_studio.jpg")
+                        c_studio.save(v_out, "JPEG", quality=88)
+                        os.remove(temp_v)
+                        if supabase_client:
+                            rem_v = f"col_{goods_id}_{idx}_studio_{int(time.time())}.jpg"
+                            with open(v_out, "rb") as f:
+                                supabase_client.storage.from_("product-screenshots").upload(rem_v, f.read(), {"content-type": "image/jpeg"})
+                            col["image_url"] = supabase_client.storage.from_("product-screenshots").get_public_url(rem_v)
+                        else:
+                            col["image_url"] = f"/uploads/parsed/col_{goods_id}_{idx}_studio.jpg"
+                    except Exception as ve:
+                        print(f"Error capturing studio preview for color {idx}:", ve)
+                        col["image_url"] = hd_pub_url
+            else:
+                col["image_url"] = hd_pub_url
+
+        # Restore default selected color by tapping it back
+        orig_bounds = colors[default_color_idx].get("bounds")
+        if orig_bounds:
+            ox1, oy1, ox2, oy2 = parse_bounds(orig_bounds)
+            run_adb(["shell", f"input tap {(ox1+ox2)//2} {(oy1+oy2)//2}"])
+
     return hd_pub_url or f"/uploads/parsed/sku_{goods_id}.jpg"
 
 def capture_screen_and_crop(goods_id: str, suffix: str = "") -> str:
@@ -623,9 +693,8 @@ def capture_screen_and_crop(goods_id: str, suffix: str = "") -> str:
     
     if os.path.exists(temp_local):
         try:
-            im = Image.open(temp_local)
-            # Find bounds dynamically or fallback to centered square
-            crop = im.crop((18, 314, 198, 494)).convert("RGB")
+            im = Image.open(temp_local).convert("RGB")
+            crop = im.crop((18, 314, 198, 494))
             crop.save(out_abs, "JPEG", quality=90)
             os.remove(temp_local)
         except Exception as e:
@@ -690,17 +759,17 @@ def parse_product(req: ParseRequest):
         time.sleep(random.uniform(1.4, 2.0))
         root = dump_ui_xml()
         
-    # 3. Parse SKU Drawer
+    # 3. Parse SKU Drawer with Universal Dynamic Groups
+    spec_groups = []
+    current_group_dict = None
     colors = []
     sizes = []
     price_cny = 0.0
     orig_price_cny = 0.0
     selected_summary = ""
     
-    current_group = None
-    
     # Non-sku blacklist keywords
-    blacklist_terms = ["¥", "元", "已拼", "折", "包邮", "退货", "发货", "对照表", "体重", "详情", "举报", "店铺", "收藏", "客服", "返回", "大促", "买过", "即将结束", "无需等待", "匿名", "进店", "保障", "评价", "全场", "领型", "穿着方式", "面料", "风格", "适用", "多款", "列表", "打开大图", "减少数量", "增加数量", "数量", "请选择", "去支付", "组合"]
+    blacklist_terms = ["¥", "元", "已拼", "折", "包邮", "退货", "发货", "对照表", "体重", "详情", "举报", "店铺", "收藏", "客服", "返回", "大促", "买过", "即将结束", "无需等待", "匿名", "进店", "保障", "评价", "全场", "领型", "穿着方式", "面料", "风格", "适用", "多款", "列表", "打开大图", "减少数量", "增加数量", "数量", "请选择", "去支付", "组合", "查收"]
 
     for node in root.iter("node"):
         txt = node.attrib.get("text", "").strip()
@@ -726,38 +795,99 @@ def parse_product(req: ParseRequest):
                 if p != price_cny:
                     orig_price_cny = p
 
-        # Check section headers
-        if any(h in val for h in ["颜色", "款式", "分类"]):
-            current_group = "color"
+        # Check section headers dynamically
+        if any(h in val for h in ["颜色", "款式", "分类", "花色", "外观"]) and not any(x in val for x in ["大图", "已选", "请选择", "建议"]):
+            existing_visual = next((g for g in spec_groups if g["title"] == "Цвет / Расцветка"), None)
+            if not existing_visual:
+                current_group_dict = {
+                    "id": f"group_{len(spec_groups)}",
+                    "title": "Цвет / Расцветка",
+                    "type": "visual",
+                    "options": []
+                }
+                spec_groups.append(current_group_dict)
+            else:
+                current_group_dict = existing_visual
             continue
-        elif any(h in val for h in ["尺寸", "规格", "型号", "尺码", "容量", "版本"]):
-            current_group = "size"
+        elif any(h in val for h in ["尺码", "鞋码", "尺寸", "身高"]) and not any(x in val for x in ["建议", "对照", "已选", "请选择", "表"]):
+            existing_size = next((g for g in spec_groups if g["title"] == "Размер"), None)
+            if not existing_size:
+                current_group_dict = {
+                    "id": f"group_{len(spec_groups)}",
+                    "title": "Размер",
+                    "type": "spec",
+                    "options": []
+                }
+                spec_groups.append(current_group_dict)
+            else:
+                current_group_dict = existing_size
+            continue
+        elif any(h in val for h in ["机型", "型号", "适配", "版本"]) and not any(x in val for x in ["已选", "请选择"]):
+            existing_model = next((g for g in spec_groups if g["title"] == "Модель / Версия"), None)
+            if not existing_model:
+                current_group_dict = {
+                    "id": f"group_{len(spec_groups)}",
+                    "title": "Модель / Версия",
+                    "type": "spec",
+                    "options": []
+                }
+                spec_groups.append(current_group_dict)
+            else:
+                current_group_dict = existing_model
+            continue
+        elif any(h in val for h in ["容量", "内存", "存储"]) and not any(x in val for x in ["已选", "请选择"]):
+            existing_mem = next((g for g in spec_groups if g["title"] == "Объем памяти"), None)
+            if not existing_mem:
+                current_group_dict = {
+                    "id": f"group_{len(spec_groups)}",
+                    "title": "Объем памяти",
+                    "type": "spec",
+                    "options": []
+                }
+                spec_groups.append(current_group_dict)
+            else:
+                current_group_dict = existing_mem
+            continue
+        elif any(h in val for h in ["套餐", "规格", "配置"]) and not any(x in val for x in ["已选", "请选择"]):
+            existing_pkg = next((g for g in spec_groups if g["title"] == "Комплектация"), None)
+            if not existing_pkg:
+                current_group_dict = {
+                    "id": f"group_{len(spec_groups)}",
+                    "title": "Комплектация",
+                    "type": "spec",
+                    "options": []
+                }
+                spec_groups.append(current_group_dict)
+            else:
+                current_group_dict = existing_pkg
             continue
         elif any(h in val for h in ["活动优惠", "服务", "使用#支付宝", "更换支付方式", "提交订单", "立即支付", "选择尺码后", "数量", "一次选多款"]):
-            current_group = None
+            current_group_dict = None
             
-        if current_group == "color" and any(k in cls for k in ["TextView", "Button", "View"]):
-            clean = val.replace("🔥", "").strip()
-            if clean and 1 < len(clean) < 25 and not any(h in clean for h in ["颜色", "款式", "分类"]) and not any(b in clean for b in blacklist_terms):
-                is_sel = clean in selected_summary
-                if not any(c["name"] == clean for c in colors):
-                    colors.append({
+        if current_group_dict and any(k in cls for k in ["TextView", "Button", "View"]):
+            clean = re.sub(r"[🔥\s]|快要抢光|热卖|爆款|大促", "", val).strip()
+            if clean and 1 <= len(clean) < 35 and clean != "大图" and not any(b in clean for b in blacklist_terms):
+                if not any(opt["name"] == clean for opt in current_group_dict["options"]):
+                    is_sel = clean in selected_summary
+                    ru_val = translate_color(clean) if current_group_dict["type"] == "visual" else translate_size_or_model(clean)
+                    opt_entry = {
                         "name": clean,
-                        "name_ru": translate_color(clean),
+                        "name_ru": ru_val,
                         "selected": is_sel,
                         "bounds": bounds
-                    })
-        elif current_group == "size" and any(k in cls for k in ["TextView", "Button", "View"]):
-            clean = val.replace("🔥", "").strip()
-            if clean and len(clean) < 30 and not any(h in clean for h in ["尺寸", "规格", "型号", "尺码", "容量", "版本"]) and not any(b in clean for b in blacklist_terms):
-                is_sel = clean in selected_summary
-                if not any(s["name"] == clean for s in sizes):
-                    sizes.append({
-                        "name": clean,
-                        "name_ru": translate_size_or_model(clean),
-                        "selected": is_sel,
-                        "bounds": bounds
-                    })
+                    }
+                    current_group_dict["options"].append(opt_entry)
+
+    # Populate backward-compatible colors and sizes
+    visual_groups = [g for g in spec_groups if g["type"] == "visual"]
+    if visual_groups:
+        colors = visual_groups[0]["options"]
+    elif spec_groups:
+        colors = spec_groups[0]["options"]
+        
+    spec_only_groups = [g for g in spec_groups if g["type"] == "spec"]
+    if spec_only_groups:
+        sizes = spec_only_groups[0]["options"]
 
     if price_cny == 0.0:
         if orig_price_cny > 0.0:
@@ -789,16 +919,17 @@ def parse_product(req: ParseRequest):
         "orig_price_cny": orig_price_cny or 10.22,
         "image_url": image_rel_url,
         "selected_summary": selected_summary,
-        "has_options": len(colors) > 1 or len(sizes) > 1,
+        "has_options": len(colors) > 1 or len(sizes) > 1 or len(spec_groups) > 1,
         "colors": colors,
-        "sizes": sizes
+        "sizes": sizes,
+        "spec_groups": spec_groups
     }
 
 @app.post("/api/select-sku")
 def select_sku(req: SelectSkuRequest):
     print(f"[*] Human tapping SKU option for goods_id={req.goods_id} at {req.bounds}")
     human_tap(req.bounds)
-    time.sleep(random.uniform(0.4, 0.7))
+    time.sleep(random.uniform(0.35, 0.5))
     
     # Re-dump to get updated price and selected text
     root = dump_ui_xml()
@@ -807,34 +938,17 @@ def select_sku(req: SelectSkuRequest):
     
     for node in root.iter("node"):
         val = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
-        if "已选:" in val:
-            selected_summary = val.replace("已选:", "").replace("🔥", "").strip()
-        if "到手价" in val or "提交订单" in val:
+        if "已选:" in val or "请选择:" in val:
+            selected_summary = val.replace("已选:", "").replace("请选择:", "").replace("🔥", "").strip()
+        if "到手价" in val or "提交订单" in val or "限量价" in val:
             m_price = re.search(r"¥\s*(\d+\.?\d*)", val)
             if m_price:
                 price_cny = float(m_price.group(1))
 
-    # Update crop and upload to public Supabase storage
-    img_rel = capture_screen_and_crop(req.goods_id, suffix=f"_{int(time.time())}")
-    pub_url = img_rel
-    if supabase_client:
-        local_crop = os.path.join(FRONTEND_PUBLIC_DIR, img_rel.lstrip("/"))
-        if os.path.exists(local_crop):
-            try:
-                remote_name = f"sku_{req.goods_id}_{int(time.time())}.jpg"
-                with open(local_crop, "rb") as f:
-                    supabase_client.storage.from_("product-screenshots").upload(
-                        remote_name, f.read(), {"content-type": "image/jpeg"}
-                    )
-                pub_url = supabase_client.storage.from_("product-screenshots").get_public_url(remote_name)
-            except Exception as e:
-                print("Variant crop upload error:", e)
-    
     return {
         "success": True,
-        "price_cny": price_cny or 5.43,
-        "selected_summary": selected_summary,
-        "image_url": pub_url
+        "price_cny": price_cny or 0.0,
+        "selected_summary": selected_summary
     }
 
 # ==================== SUPABASE REAL-TIME QUEUE WORKER ====================

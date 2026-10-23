@@ -1,6 +1,7 @@
 // ============================================================
 // ICE LOGIX Module: Interactive Marketplace SKU Selector Modal
-// High-performance Hardware-in-the-Loop Bridge Integration
+// High-performance Dynamic Spec Groups & Studio Photography
+// Zero-Waste Studio Quality & Iron Rule Separation (Visual vs Specs)
 // ============================================================
 
 (function () {
@@ -33,11 +34,59 @@
 
     closeSkuModal();
 
-    let selectedColor = (productData.colors || []).find(c => c.selected) || (productData.colors && productData.colors[0]) || null;
-    let selectedSize = (productData.sizes || []).find(s => s.selected) || (productData.sizes && productData.sizes[0]) || null;
+    // 1. Build unified dynamic spec groups and filter out empty groups
+    let rawGroups = [];
+    if (productData.spec_groups && productData.spec_groups.length > 0) {
+      rawGroups = productData.spec_groups;
+    } else {
+      if ((productData.visual_options && productData.visual_options.length > 0) || (productData.colors && productData.colors.length > 0)) {
+        rawGroups.push({
+          id: 'group_color',
+          title: 'Цвет / Расцветка',
+          type: 'visual',
+          options: productData.visual_options || productData.colors
+        });
+      }
+      if ((productData.spec_options && productData.spec_options.length > 0) || (productData.sizes && productData.sizes.length > 0)) {
+        rawGroups.push({
+          id: 'group_size',
+          title: 'Размер / Характеристики',
+          type: 'spec',
+          options: productData.spec_options || productData.sizes
+        });
+      }
+    }
+
+    // Keep only groups with actual selectable options
+    const validGroups = rawGroups.filter(g => g && g.options && g.options.length > 0);
+
+    // Sort: Visual groups strictly on top, followed by Spec/Technical groups
+    const groups = validGroups.sort((a, b) => {
+      if (a.type === 'visual' && b.type !== 'visual') return -1;
+      if (a.type !== 'visual' && b.type === 'visual') return 1;
+      return 0;
+    });
+
+    // Track selected option per group
+    const selectedState = {};
+    groups.forEach(grp => {
+      const foundSel = (grp.options || []).find(o => o.selected) || (grp.options && grp.options[0]) || null;
+      selectedState[grp.id] = foundSel;
+    });
+
     let currentPriceCny = productData.price_cny || 0;
-    let currentImgUrl = productData.image_url || '';
+    const masterStudioImg = productData.image_url || '';
+    let currentImgUrl = masterStudioImg;
     const goodsId = productData.goods_id || '';
+
+    // If initial visual option has its own studio image, use it as default
+    const initialVisualGroup = groups.find(g => g.type === 'visual');
+    if (initialVisualGroup && selectedState[initialVisualGroup.id]) {
+      const initVisualOpt = selectedState[initialVisualGroup.id];
+      if (initVisualOpt.image_url) {
+        currentImgUrl = initVisualOpt.image_url;
+      }
+    }
 
     const overlay = document.createElement('div');
     overlay.id = 'skuSelectorModalOverlay';
@@ -51,34 +100,88 @@
     const calcRub = (cny) => Math.round(cny * 13.8);
     const calcByn = (cny) => (cny * 0.46).toFixed(2);
 
-    const colorsHtml = (productData.colors || []).map((col, idx) => {
-      const isSel = selectedColor && (selectedColor.name === col.name);
-      const imgHtml = col.image_url ? `<img src="${col.image_url}" class="w-7 h-7 rounded-lg object-cover flex-shrink-0 border border-white/20 bg-black/40" alt="${col.name}">` : '';
-      return `
-        <button type="button" 
-          class="sku-color-chip flex items-center gap-2 p-2 rounded-xl text-xs font-semibold border transition-all duration-200 cursor-pointer text-left ${isSel ? 'active-chip bg-gradient-to-r from-cyan-500/25 to-blue-500/25 border-cyan-400 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.35)]' : 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10'}" 
-          data-color-idx="${idx}"
-          data-bounds="${col.bounds || ''}"
-          data-name-cn="${col.name}"
-          data-img-url="${col.image_url || ''}"
-          data-name-ru="${col.name_ru || col.name}">
-          ${imgHtml}
-          <span>${col.name_ru || col.name}</span>
-        </button>
-      `;
-    }).join('');
+    function getCombinedSummary() {
+      const parts = [];
+      const visualGrp = groups.find(g => g.type === 'visual');
+      const specGrps = groups.filter(g => g.type === 'spec');
 
-    const sizesHtml = (productData.sizes || []).map((sz, idx) => {
-      const isSel = selectedSize && (selectedSize.name === sz.name);
+      if (visualGrp && selectedState[visualGrp.id]) {
+        const v = selectedState[visualGrp.id];
+        parts.push(v.name_ru || v.name);
+      }
+      specGrps.forEach(g => {
+        const s = selectedState[g.id];
+        if (s) {
+          const name = s.name_ru || s.name;
+          parts.push(name.toLowerCase().startsWith('размер') || name.toLowerCase().startsWith('память') ? name : `${g.title}: ${name}`);
+        }
+      });
+
+      return parts.join(' • ') || 'Стандарт';
+    }
+
+    function getFullStatusLine() {
+      const title = productData.title_ru || productData.title || 'Товар';
+      const summary = getCombinedSummary();
+      const rub = calcRub(currentPriceCny);
+      return `${title} • ${summary} • ${rub} ₽`;
+    }
+
+    // Render HTML for each group dynamically
+    const groupsHtml = groups.map((grp) => {
+      const isVisual = grp.type === 'visual';
+      const selOpt = selectedState[grp.id];
+
+      const optionsHtml = (grp.options || []).map((opt, optIdx) => {
+        const isSel = selOpt && (selOpt.name === opt.name);
+        
+        if (isVisual) {
+          const thumbSrc = opt.thumb_url || opt.image_url;
+          const imgHtml = thumbSrc 
+            ? `<img src="${thumbSrc}" class="w-7 h-7 rounded-lg object-cover flex-shrink-0 border border-white/20 bg-black/40 shadow-sm" alt="${opt.name_ru || opt.name}" loading="lazy">` 
+            : `<span class="w-7 h-7 rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-xs">🎨</span>`;
+          
+          return `
+            <button type="button" 
+              class="sku-chip sku-visual-chip flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all duration-200 cursor-pointer text-left ${isSel ? 'active-chip bg-gradient-to-r from-cyan-500/25 to-blue-500/25 border-cyan-400 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.35)]' : 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10'}" 
+              data-group-id="${grp.id}"
+              data-opt-idx="${optIdx}"
+              data-bounds="${opt.bounds || ''}"
+              data-img-url="${opt.image_url || ''}"
+              data-name-ru="${opt.name_ru || opt.name}">
+              ${imgHtml}
+              <span class="truncate max-w-[120px]">${opt.name_ru || opt.name}</span>
+            </button>
+          `;
+        } else {
+          return `
+            <button type="button" 
+              class="sku-chip sku-spec-chip px-3.5 py-2.5 rounded-xl text-xs font-semibold border transition-all duration-200 cursor-pointer text-left ${isSel ? 'active-chip bg-gradient-to-r from-cyan-500/25 to-blue-500/25 border-cyan-400 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.35)]' : 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10'}" 
+              data-group-id="${grp.id}"
+              data-opt-idx="${optIdx}"
+              data-bounds="${opt.bounds || ''}"
+              data-name-ru="${opt.name_ru || opt.name}">
+              ${opt.name_ru || opt.name}
+            </button>
+          `;
+        }
+      }).join('');
+
       return `
-        <button type="button" 
-          class="sku-size-chip px-3 py-2 rounded-xl text-xs font-semibold border transition-all duration-200 cursor-pointer text-left ${isSel ? 'active-chip bg-gradient-to-r from-cyan-500/25 to-blue-500/25 border-cyan-400 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.35)]' : 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10'}" 
-          data-size-idx="${idx}"
-          data-bounds="${sz.bounds || ''}"
-          data-name-cn="${sz.name}"
-          data-name-ru="${sz.name_ru || sz.name}">
-          ${sz.name_ru || sz.name}
-        </button>
+        <div class="sku-group-block space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white/70 uppercase tracking-wider flex items-center gap-1.5">
+              <span>${isVisual ? '🎨' : '📏'}</span>
+              ${grp.title}
+            </span>
+            <span id="skuSelectedLabel_${grp.id}" class="text-xs font-bold text-cyan-400">
+              ${selOpt ? (selOpt.name_ru || selOpt.name) : 'Не выбран'}
+            </span>
+          </div>
+          <div class="flex flex-wrap gap-2 ${!isVisual && (grp.options || []).length > 8 ? 'max-h-40 overflow-y-auto pr-1' : ''}">
+            ${optionsHtml}
+          </div>
+        </div>
       `;
     }).join('');
 
@@ -94,7 +197,7 @@
                 <span class="w-2 h-2 rounded-full bg-red-400 animate-pulse"></span>
                 Pinduoduo Direct
               </span>
-              <span class="text-xs text-white/50">Аппаратный выкуп</span>
+              <span class="text-xs text-white/50">Студийный каталог</span>
             </div>
             <button type="button" id="skuCloseBtn" class="w-8 h-8 rounded-full bg-white/10 text-white/70 hover:text-white flex items-center justify-center text-sm font-bold">✕</button>
           </div>
@@ -113,6 +216,11 @@
             </div>
             <div class="flex-1 min-w-0">
               <h4 class="text-white text-xs font-bold line-clamp-2 leading-snug">${productData.title_ru || productData.title}</h4>
+              <div class="mt-1 flex items-center gap-1.5">
+                <span id="skuSummaryPill" class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 truncate max-w-[220px]">
+                  ${getCombinedSummary()}
+                </span>
+              </div>
               <div class="mt-1.5 flex items-baseline gap-2">
                 <span id="skuModalPrice" class="text-xl font-black text-cyan-400">¥${currentPriceCny}</span>
                 <span id="skuModalPriceRu" class="text-xs text-white/50">≈ ${calcRub(currentPriceCny)} ₽ / ${calcByn(currentPriceCny)} Br</span>
@@ -123,31 +231,8 @@
             </div>
           </div>
 
-          <!-- Color options -->
-          ${productData.colors && productData.colors.length > 0 ? `
-            <div>
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-bold text-white/70 uppercase tracking-wider">Цвет / Расцветка</span>
-                <span id="skuSelectedColorLabel" class="text-xs font-bold text-cyan-400">${selectedColor ? (selectedColor.name_ru || selectedColor.name) : 'Не выбран'}</span>
-              </div>
-              <div class="flex flex-wrap gap-2">
-                ${colorsHtml}
-              </div>
-            </div>
-          ` : ''}
-
-          <!-- Size options -->
-          ${productData.sizes && productData.sizes.length > 0 ? `
-            <div>
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-bold text-white/70 uppercase tracking-wider">Размер / Модель</span>
-                <span id="skuSelectedSizeLabel" class="text-xs font-bold text-cyan-400">${selectedSize ? (selectedSize.name_ru || selectedSize.name) : 'Не выбран'}</span>
-              </div>
-              <div class="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-1">
-                ${sizesHtml}
-              </div>
-            </div>
-          ` : ''}
+          <!-- Dynamic Spec Groups -->
+          ${groupsHtml}
 
         </div>
 
@@ -164,13 +249,11 @@
     document.body.appendChild(overlay);
     _activeSkuOverlay = overlay;
 
-    // Trigger enter animation
+    // Enter animation
     requestAnimationFrame(() => {
       overlay.style.opacity = '1';
       const sheet = overlay.querySelector('.sku-bottom-sheet');
-      if (sheet) {
-        sheet.style.transform = 'translateY(0)';
-      }
+      if (sheet) sheet.style.transform = 'translateY(0)';
     });
 
     overlay.querySelector('#skuCloseBtn').onclick = closeSkuModal;
@@ -178,7 +261,6 @@
       if (e.target === overlay) closeSkuModal();
     });
 
-    // Helper: update price on screen
     function updatePriceDisplay(price) {
       currentPriceCny = price;
       const pEl = overlay.querySelector('#skuModalPrice');
@@ -187,101 +269,81 @@
       if (prEl) prEl.innerText = `≈ ${calcRub(price)} ₽ / ${calcByn(price)} Br`;
     }
 
-    // Color chips click
-    const colorChips = overlay.querySelectorAll('.sku-color-chip');
-    colorChips.forEach(btn => {
+    function updateSummaryDisplay() {
+      const pill = overlay.querySelector('#skuSummaryPill');
+      if (pill) pill.innerText = getCombinedSummary();
+    }
+
+    // Attach click listeners to all chips
+    overlay.querySelectorAll('.sku-chip').forEach(btn => {
       btn.onclick = async () => {
         if (window.tgUtil && typeof window.tgUtil.haptic === 'function') window.tgUtil.haptic('light');
-        colorChips.forEach(b => {
+
+        const groupId = btn.dataset.groupId;
+        const optIdx = parseInt(btn.dataset.optIdx, 10);
+        const grp = groups.find(g => g.id === groupId);
+        if (!grp) return;
+
+        const opt = (grp.options || [])[optIdx];
+        if (!opt) return;
+
+        // Update selected state for this group
+        selectedState[groupId] = opt;
+
+        // Visual toggle in this group
+        const groupChips = overlay.querySelectorAll(`.sku-chip[data-group-id="${groupId}"]`);
+        groupChips.forEach(b => {
           b.classList.remove('active-chip', 'bg-gradient-to-r', 'from-cyan-500/25', 'to-blue-500/25', 'border-cyan-400', 'text-cyan-300', 'shadow-[0_0_12px_rgba(6,182,212,0.35)]');
           b.classList.add('border-white/10', 'bg-white/5', 'text-white/80');
         });
         btn.classList.remove('border-white/10', 'bg-white/5', 'text-white/80');
         btn.classList.add('active-chip', 'bg-gradient-to-r', 'from-cyan-500/25', 'to-blue-500/25', 'border-cyan-400', 'text-cyan-300', 'shadow-[0_0_12px_rgba(6,182,212,0.35)]');
 
-        const idx = parseInt(btn.dataset.colorIdx, 10);
-        selectedColor = (productData.colors || [])[idx] || null;
-        
-        const label = overlay.querySelector('#skuSelectedColorLabel');
-        if (label && selectedColor) {
-          label.innerText = selectedColor.name_ru || selectedColor.name;
+        // Update group label
+        const grpLabel = overlay.querySelector(`#skuSelectedLabel_${groupId}`);
+        if (grpLabel) {
+          grpLabel.innerText = opt.name_ru || opt.name;
         }
 
-        // ⚡ INSTANT Client-side Hero Image Swap (0ms lag, 100% reliable on mobile)
-        const targetImg = btn.dataset.imgUrl || (selectedColor && selectedColor.image_url);
-        if (targetImg) {
-          currentImgUrl = targetImg;
-          const img = overlay.querySelector('#skuModalImg');
-          if (img) {
-            img.style.opacity = '0.35';
-            img.src = targetImg;
-            setTimeout(() => { img.style.opacity = '1'; }, 80);
+        updateSummaryDisplay();
+
+        // 1. If Visual group (Color/Appearance): Smooth hero photo swap to clean studio shot
+        if (grp.type === 'visual') {
+          const targetImg = opt.image_url || masterStudioImg;
+          if (targetImg && targetImg !== currentImgUrl) {
+            currentImgUrl = targetImg;
+            const imgEl = overlay.querySelector('#skuModalImg');
+            if (imgEl) {
+              imgEl.style.opacity = '0.35';
+              imgEl.src = targetImg;
+              setTimeout(() => { imgEl.style.opacity = '1'; }, 90);
+            }
           }
         }
+        // 2. Iron Rule: If Spec group (size, memory, specs): NEVER touch hero photo!
+        // Photo stays pristine as the selected color's studio photo.
 
-        // Tap on device via bridge if bounds exist
+        // Tap on physical bridge with fast timeout to update price and summary
         const bounds = btn.dataset.bounds;
         if (bounds && goodsId) {
-          const imgLoader = overlay.querySelector('#skuImgLoader');
-          if (imgLoader) imgLoader.style.opacity = '1';
           try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 900);
             const resp = await fetch('http://127.0.0.1:3007/api/select-sku', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ goods_id: goodsId, bounds })
+              body: JSON.stringify({ goods_id: goodsId, bounds }),
+              signal: controller.signal
             });
+            clearTimeout(timeoutId);
             if (resp.ok) {
               const resData = await resp.json();
               if (resData.price_cny) updatePriceDisplay(resData.price_cny);
-              if (resData.image_url) {
-                currentImgUrl = resData.image_url;
-                const img = overlay.querySelector('#skuModalImg');
-                if (img) img.src = resData.image_url;
-              }
+              // Zero-Waste Rule: never overwrite studio photo with screen crop!
             }
           } catch (e) {
-            console.log('Bridge select-sku error:', e);
-          } finally {
-            if (imgLoader) imgLoader.style.opacity = '0';
+            // Expected on mobile devices without direct localhost access
           }
-        }
-      };
-    });
-
-    // Size chips click
-    const sizeChips = overlay.querySelectorAll('.sku-size-chip');
-    sizeChips.forEach(btn => {
-      btn.onclick = async () => {
-        if (window.tgUtil && typeof window.tgUtil.haptic === 'function') window.tgUtil.haptic('light');
-        sizeChips.forEach(b => {
-          b.classList.remove('active-chip', 'bg-gradient-to-r', 'from-cyan-500/25', 'to-blue-500/25', 'border-cyan-400', 'text-cyan-300', 'shadow-[0_0_12px_rgba(6,182,212,0.35)]');
-          b.classList.add('border-white/10', 'bg-white/5', 'text-white/80');
-        });
-        btn.classList.remove('border-white/10', 'bg-white/5', 'text-white/80');
-        btn.classList.add('active-chip', 'bg-gradient-to-r', 'from-cyan-500/25', 'to-blue-500/25', 'border-cyan-400', 'text-cyan-300', 'shadow-[0_0_12px_rgba(6,182,212,0.35)]');
-
-        const idx = parseInt(btn.dataset.sizeIdx, 10);
-        selectedSize = (productData.sizes || [])[idx] || null;
-
-        const label = overlay.querySelector('#skuSelectedSizeLabel');
-        if (label && selectedSize) {
-          label.innerText = selectedSize.name_ru || selectedSize.name;
-        }
-
-        // Tap on device via bridge if bounds exist
-        const bounds = btn.dataset.bounds;
-        if (bounds && goodsId) {
-          try {
-            const resp = await fetch('http://127.0.0.1:3007/api/select-sku', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ goods_id: goodsId, bounds })
-            });
-            if (resp.ok) {
-              const resData = await resp.json();
-              if (resData.price_cny) updatePriceDisplay(resData.price_cny);
-            }
-          } catch (e) {}
         }
       };
     });
@@ -290,12 +352,24 @@
     overlay.querySelector('#skuApplyBtn').onclick = () => {
       if (window.tgUtil && typeof window.tgUtil.haptic === 'function') window.tgUtil.haptic('success');
       closeSkuModal();
+
+      const visualGroup = groups.find(g => g.type === 'visual');
+      const specGroupsList = groups.filter(g => g.type === 'spec');
+
+      const selectedColorOpt = visualGroup ? selectedState[visualGroup.id] : null;
+      const specSummaryParts = specGroupsList.map(g => {
+        const s = selectedState[g.id];
+        return s ? (s.name_ru || s.name) : '';
+      }).filter(Boolean);
+
       if (typeof onConfirm === 'function') {
         onConfirm({
-          color: selectedColor ? (selectedColor.name_ru || selectedColor.name) : '',
-          size: selectedSize ? (selectedSize.name_ru || selectedSize.name) : '',
+          color: selectedColorOpt ? (selectedColorOpt.name_ru || selectedColorOpt.name) : '',
+          size: specSummaryParts.join(', ') || '',
+          variant_summary: getCombinedSummary(),
+          full_status: getFullStatusLine(),
           price: currentPriceCny,
-          image_url: currentImgUrl,
+          image_url: currentImgUrl || masterStudioImg,
           title: productData.title_ru || productData.title,
           brand: productData.brand || '',
           category: productData.category || '',
