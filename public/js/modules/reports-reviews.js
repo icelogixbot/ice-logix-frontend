@@ -238,7 +238,7 @@
         }
 
         async function renderReviewsHub(config) {
-          let reviewsStats = { count: 184, avg: 4.9 };
+          let reviewsStats = { count: 0, avg: 0 };
           try {
             if (window.CacheDB) {
               reviewsStats = await window.CacheDB.get('reviews_hub_stats', async () => {
@@ -248,12 +248,12 @@
                   const totalStars = data.reduce((sum, r) => sum + (r.rating || 0), 0);
                   return { count, avg: totalStars / count };
                 }
-                return { count: 0, avg: 4.9 };
+                return { count: 0, avg: 0 };
               }, 60000);
             }
           } catch (e) {}
-          const reviewsCount = reviewsStats.count;
-          const avgRating = reviewsStats.avg;
+          const reviewsCount = reviewsStats ? reviewsStats.count : 0;
+          const avgRating = reviewsStats ? reviewsStats.avg : 0;
 
           const categories = [
             { id: 'orders', label: 'Заказы', icon: '🛒', desc: 'Отзывы розничных клиентов о доставленных вещах' },
@@ -263,7 +263,7 @@
             { id: 'advertising', label: 'Реклама', icon: '📢', desc: 'Отзывы блогеров и администраторов об интеграциях' },
             { id: 'academy', label: 'Обучение', icon: '🎓', desc: 'Отзывы учеников о курсах по самостоятельному выкупу' },
             { id: 'legitcheck', label: 'Legit Check', icon: '🔍', desc: 'Отзывы о проверке подлинности брендовых вещей' },
-            { id: 'partnership', label: 'Партнерство', icon: '🤝', desc: 'Отзывы от B2B партнеров (ShopByShop, легит-чекеры)' }
+            { id: 'partnership', label: 'Партнерство', icon: '🏢', desc: 'Отзывы от B2B партнеров (ShopByShop, легит-чекеры)' }
           ];
 
           return `
@@ -281,44 +281,35 @@
                 </div>
               </div>
               <div class="space-y-6 text-left mb-6">
-              <!-- Визуальная досочка (Инфо-плашка) -->
-              <div class="reviews-board p-5 border border-white/10 text-center relative overflow-hidden">
-                <div class="absolute -right-10 -top-10 w-28 h-28 bg-cyan-500/10 rounded-full blur-2xl"></div>
-                <div class="absolute -left-10 -bottom-10 w-28 h-28 bg-blue-500/10 rounded-full blur-2xl"></div>
+              <!-- Карточка независимых площадок и отзывов -->
+              <div class="reviews-board p-4 rounded-2xl border border-white/10 text-center relative overflow-hidden bg-white/[0.03]">
+                <div class="absolute -right-10 -top-10 w-28 h-28 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                <div class="absolute -left-10 -bottom-10 w-28 h-28 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
                 
-                <p class="text-cyan-400 text-[10px] font-extrabold uppercase tracking-widest mb-1">Рейтинг ICE LOGIX</p>
-                <div class="flex justify-center items-baseline gap-1.5 my-2">
-                  <span class="text-white text-4xl font-black">${avgRating.toFixed(1)}</span>
-                  <span class="text-white/60 text-base font-semibold">/ 5.0</span>
-                </div>
-                
-                <div class="flex justify-center gap-1 text-base mb-4">
-                  ${'⭐'.repeat(Math.min(5, Math.max(1, Math.round(avgRating))))}${'☆'.repeat(Math.max(0, 5 - Math.min(5, Math.max(1, Math.round(avgRating)))))}
-                </div>
+                <h3 class="text-white text-sm font-bold tracking-wide">Отзывы на независимых площадках</h3>
+                <p class="text-white/50 text-[11px] mt-1 mb-4">Читайте реальные впечатления и делитесь мнением на картах и в сообществах</p>
 
-                <p class="text-white/50 text-[11px] mb-4">На основе ${reviewsCount} отзывов покупателей</p>
-
-                <!-- Внешние гео-ресурсы и соцсети -->
-                <div class="grid grid-cols-5 gap-2 border-t border-white/10 pt-4">
-                  <button onclick="openExternalLink('${config.yandex_maps_link || 'https://yandex.by/maps/'}')" class="btn-secondary py-2 rounded-xl flex flex-col items-center justify-center gap-1 border border-white/5" title="Яндекс.Карты">
-                    <span class="text-lg">🇷🇺</span>
-                    <span class="text-[9px] font-extrabold text-white/70">Яндекс</span>
+                <!-- Внешние гео-ресурсы и соцсети с реальными логотипами -->
+                <div class="grid grid-cols-5 gap-2 border-t border-white/10 pt-3">
+                  <button type="button" onclick="openExternalLink('${config.yandex_maps_link || 'https://yandex.by/maps/'}')" class="btn-secondary py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1.5 border border-white/5 hover:border-white/20 active:scale-95 transition" title="Яндекс Карты">
+                    <img src="/assets/reviews-platforms/yandex-maps.png" alt="Яндекс Карты" class="w-8 h-8 rounded-lg shadow-sm object-contain" loading="lazy">
+                    <span class="text-[9.5px] font-bold text-white/80 leading-none">Яндекс</span>
                   </button>
-                  <button onclick="openExternalLink('${config.google_maps_link || 'https://maps.google.com/'}')" class="btn-secondary py-2 rounded-xl flex flex-col items-center justify-center gap-1 border border-white/5" title="Google Maps">
-                    <span class="text-lg">🌐</span>
-                    <span class="text-[9px] font-extrabold text-white/70">Google</span>
+                  <button type="button" onclick="openExternalLink('${config.google_maps_link || 'https://maps.google.com/'}')" class="btn-secondary py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1.5 border border-white/5 hover:border-white/20 active:scale-95 transition" title="Google Maps">
+                    <img src="/assets/reviews-platforms/google-maps.png" alt="Google Maps" class="w-8 h-8 rounded-lg shadow-sm object-contain" loading="lazy">
+                    <span class="text-[9.5px] font-bold text-white/80 leading-none">Google</span>
                   </button>
-                  <button onclick="openExternalLink('${config.gis_2_link || 'https://2gis.by/'}')" class="btn-secondary py-2 rounded-xl flex flex-col items-center justify-center gap-1 border border-white/5" title="2ГИС">
-                    <span class="text-lg">🟢</span>
-                    <span class="text-[9px] font-extrabold text-white/70">2ГИС</span>
+                  <button type="button" onclick="openExternalLink('${config.gis_2_link || 'https://2gis.by/'}')" class="btn-secondary py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1.5 border border-white/5 hover:border-white/20 active:scale-95 transition" title="2ГИС">
+                    <img src="/assets/reviews-platforms/2gis.png" alt="2ГИС" class="w-8 h-8 rounded-lg shadow-sm object-contain" loading="lazy">
+                    <span class="text-[9.5px] font-bold text-white/80 leading-none">2ГИС</span>
                   </button>
-                  <button onclick="openExternalLink('${config.telegram_group_link || 'https://t.me/'}')" class="btn-secondary py-2 rounded-xl flex flex-col items-center justify-center gap-1 border border-white/5" title="Telegram Отзывы">
-                    <span class="text-lg">💬</span>
-                    <span class="text-[9px] font-extrabold text-white/70">Чат</span>
+                  <button type="button" onclick="openExternalLink('${config.telegram_group_link || 'https://t.me/'}')" class="btn-secondary py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1.5 border border-white/5 hover:border-white/20 active:scale-95 transition" title="Telegram Отзывы">
+                    <img src="/assets/reviews-platforms/telegram.png" alt="Telegram" class="w-8 h-8 rounded-lg shadow-sm object-contain" loading="lazy">
+                    <span class="text-[9.5px] font-bold text-white/80 leading-none">Telegram</span>
                   </button>
-                  <button onclick="openExternalLink('${config.social_media_links?.vk || 'https://vk.com/'}')" class="btn-secondary py-2 rounded-xl flex flex-col items-center justify-center gap-1 border border-white/5" title="ВКонтакте">
-                    <span class="text-lg">🔵</span>
-                    <span class="text-[9px] font-extrabold text-white/70">VK</span>
+                  <button type="button" onclick="openExternalLink('${config.social_media_links?.vk || 'https://vk.com/'}')" class="btn-secondary py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1.5 border border-white/5 hover:border-white/20 active:scale-95 transition" title="ВКонтакте">
+                    <img src="/assets/reviews-platforms/vk.png" alt="VK" class="w-8 h-8 rounded-lg shadow-sm object-contain" loading="lazy">
+                    <span class="text-[9.5px] font-bold text-white/80 leading-none">VK</span>
                   </button>
                 </div>
               </div>
@@ -367,7 +358,7 @@
             { id: 'advertising', label: 'Реклама 📢' },
             { id: 'academy', label: 'Обучение 🎓' },
             { id: 'legitcheck', label: 'Legit Check 🔍' },
-            { id: 'partnership', label: 'Партнерство 🤝' }
+            { id: 'partnership', label: 'Партнерство 🏢' }
           ];
 
           const countries = [
@@ -384,7 +375,7 @@
           ];
 
           // 1. Calculate specific category rating & total count
-          let avgRating = 4.9;
+          let avgRating = 0;
           let categoryReviewsCount = 0;
           try {
             let statsQuery = supabaseClient.from('reviews').select('rating').eq('is_published', true);
@@ -529,8 +520,8 @@
 
               <!-- Заголовок подраздела и статистика -->
               <div class="flex justify-between items-center bg-white/5 p-3 rounded-2xl border border-white/5 text-xs text-white/60">
-                <span>⭐ Раздел: ${avgRating.toFixed(1)} / 5.0</span>
-                <span>Всего: ${categoryReviewsCount} отзывов</span>
+                <span>${categoryReviewsCount > 0 ? `⭐ Средняя оценка: ${avgRating.toFixed(1)} / 5.0` : '⭐ Оценки покупателей'}</span>
+                <span>${categoryReviewsCount > 0 ? `Всего отзывов: ${categoryReviewsCount}` : 'Пока нет отзывов'}</span>
               </div>
 
               <!-- Список отзывов -->
@@ -857,7 +848,7 @@
                       <option value="advertising">Реклама 📢</option>
                       <option value="academy">Академия 🎓</option>
                       <option value="legitcheck">Legit Check 🔍</option>
-                      <option value="partnership">Партнерство 🤝</option>
+                      <option value="partnership">Партнерство 🏢</option>
                     </select>
                   </div>
                 `}
