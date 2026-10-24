@@ -713,33 +713,69 @@ window.startCheckoutWithItem = function(item) {
   if (!item) item = window._currentCalcItem;
   if (!item) return;
 
-  const qty = window._calcQuantity || item.quantity || 1;
-  const calc = window.calculateAllInclusiveByn(item.price, item.category, item.weight, qty);
+  const bundle = window._calcBundleItems;
+  if (Array.isArray(bundle) && bundle.length > 0) {
+    const totalQty = bundle.reduce((acc, it) => acc + it.quantity, 0);
+    const sumCny = bundle.reduce((acc, it) => acc + (it.price * it.quantity), 0);
+    const avgPrice = Math.round((sumCny / (totalQty || 1)) * 100) / 100;
+    const calc = window.calculateAllInclusiveByn(avgPrice, item.category, item.weight, totalQty);
 
-  window.tempOrder = {
-    items: [{
-      title: item.title || 'Товар',
-      price: item.price,
-      currency: item.currency || 'CNY',
-      weight: item.weight || calc.weightKg || 0.8,
+    window.tempOrder = {
+      items: bundle.map(it => {
+        const itCalc = window.calculateAllInclusiveByn(it.price, item.category, item.weight, it.quantity);
+        return {
+          title: item.title || 'Товар',
+          price: it.price,
+          currency: item.currency || 'CNY',
+          weight: item.weight || (calc.weightKg / totalQty) || 0.8,
+          total_byn: itCalc.totalByn,
+          size: it.size || '',
+          color: it.color || '',
+          category: item.category || 'Одежда',
+          image_url: it.image_url || item.image_url || '',
+          url: item.url || '',
+          quantity: it.quantity,
+          platform: item.platform || 'PINDUODUO'
+        };
+      }),
+      total: calc.totalByn,
       total_byn: calc.totalByn,
-      size: window._calcSelectedSize || item.size || '',
-      color: window._calcSelectedColor || item.color || '',
-      category: item.category || 'Одежда',
-      image_url: item.image_url || '',
+      discountAmount: 0,
+      appliedPromo: null,
+      country: item.country || 'CN',
       url: item.url || '',
-      quantity: qty,
-      platform: item.platform || 'PINDUODUO'
-    }],
-    total: calc.totalByn,
-    total_byn: calc.totalByn,
-    discountAmount: 0,
-    appliedPromo: null,
-    country: item.country || 'CN',
-    url: item.url || '',
-    price: item.price,
-    weight: item.weight || calc.weightKg || 0.8
-  };
+      price: avgPrice,
+      weight: calc.weightKg
+    };
+  } else {
+    const qty = window._calcQuantity || item.quantity || 1;
+    const calc = window.calculateAllInclusiveByn(item.price, item.category, item.weight, qty);
+
+    window.tempOrder = {
+      items: [{
+        title: item.title || 'Товар',
+        price: item.price,
+        currency: item.currency || 'CNY',
+        weight: item.weight || calc.weightKg || 0.8,
+        total_byn: calc.totalByn,
+        size: window._calcSelectedSize || item.size || '',
+        color: window._calcSelectedColor || item.color || '',
+        category: item.category || 'Одежда',
+        image_url: item.image_url || '',
+        url: item.url || '',
+        quantity: qty,
+        platform: item.platform || 'PINDUODUO'
+      }],
+      total: calc.totalByn,
+      total_byn: calc.totalByn,
+      discountAmount: 0,
+      appliedPromo: null,
+      country: item.country || 'CN',
+      url: item.url || '',
+      price: item.price,
+      weight: item.weight || calc.weightKg || 0.8
+    };
+  }
 
   window.orderAddMode = false;
   window.orderCountry = item.country || 'CN';
@@ -767,16 +803,49 @@ window.addToCartFromCalc = async function(item) {
     return;
   }
 
-  const qty = window._calcQuantity || item.quantity || 1;
-  const calc = window.calculateAllInclusiveByn(item.price, item.category, item.weight, qty);
-
-  if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
-
-  // Insert into cart storage
   let customCart = [];
   try {
     customCart = JSON.parse(localStorage.getItem('ice_custom_cart') || '[]');
   } catch(e) {}
+
+  if (window._calcBundleItems && window._calcBundleItems.length > 0) {
+    const bundle = window._calcBundleItems;
+    let addedCount = 0;
+    bundle.forEach(it => {
+      const itCalc = window.calculateAllInclusiveByn(it.price, item.category, item.weight, it.quantity);
+      customCart.unshift({
+        id: 'c_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        title: item.title,
+        price: it.price,
+        currency: item.currency || 'CNY',
+        quantity: it.quantity,
+        size: it.size || '',
+        color: it.color || '',
+        category: item.category || 'Одежда',
+        image_url: it.image_url || item.image_url || '',
+        url: item.url || '',
+        total_byn: itCalc.totalByn
+      });
+      addedCount += it.quantity;
+    });
+
+    localStorage.setItem('ice_custom_cart', JSON.stringify(customCart));
+
+    const badge = document.getElementById('tabCartBadge');
+    if (badge) {
+      const current = parseInt(badge.innerText || '0') || 0;
+      badge.innerText = current + addedCount;
+      badge.classList.remove('hidden');
+    }
+    if (typeof updateCartBadge === 'function') updateCartBadge();
+    if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
+    glassToast(`✨ Добавлено ${addedCount} шт. (${bundle.length} поз.) в корзину!`, { kind: 'success' });
+    return;
+  }
+
+  // Single item fallback
+  const qty = window._calcQuantity || item.quantity || 1;
+  const calc = window.calculateAllInclusiveByn(item.price, item.category, item.weight, qty);
 
   customCart.unshift({
     id: 'c_' + Date.now(),
@@ -793,7 +862,6 @@ window.addToCartFromCalc = async function(item) {
   });
   localStorage.setItem('ice_custom_cart', JSON.stringify(customCart));
 
-  // Update tab badge
   const badge = document.getElementById('tabCartBadge');
   if (badge) {
     const current = parseInt(badge.innerText || '0') || 0;
@@ -801,7 +869,7 @@ window.addToCartFromCalc = async function(item) {
     badge.classList.remove('hidden');
   }
   if (typeof updateCartBadge === 'function') updateCartBadge();
-
+  if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
   glassToast('✨ Товар добавлен в корзину!', { kind: 'success' });
 };
 
@@ -810,7 +878,12 @@ window.updateLiveCalcBreakdown = function() {
   if (!item) return;
 
   const qty = window._calcQuantity || 1;
-  const calc = window.calculateAllInclusiveByn(item.price, item.category, item.weight, qty);
+  let effectivePrice = item.price;
+  if (window._calcBundleItems && window._calcBundleItems.length > 0) {
+    const sumCny = window._calcBundleItems.reduce((acc, it) => acc + (it.price * it.quantity), 0);
+    effectivePrice = Math.round((sumCny / (qty || 1)) * 100) / 100;
+  }
+  const calc = window.calculateAllInclusiveByn(effectivePrice, item.category, item.weight, qty);
 
   const priceCnyEl = document.getElementById('calcCurrentPriceCny');
   const totalBynEl = document.getElementById('calcTotalBynDisplay');
@@ -1094,7 +1167,12 @@ window.renderSmartCalculator = async function() {
     };
 
     const qty = window._calcQuantity || 1;
-    const calc = window.calculateAllInclusiveByn(item.price, item.category, item.weight, qty);
+    let effectivePrice = item.price;
+    if (window._calcBundleItems && window._calcBundleItems.length > 0) {
+      const sumCny = window._calcBundleItems.reduce((acc, it) => acc + (it.price * it.quantity), 0);
+      effectivePrice = Math.round((sumCny / (qty || 1)) * 100) / 100;
+    }
+    const calc = window.calculateAllInclusiveByn(effectivePrice, item.category, item.weight, qty);
     item.total_byn = calc.totalByn;
     item.quantity = qty;
 
@@ -1178,14 +1256,48 @@ window.renderSmartCalculator = async function() {
               </div>
               <h4 class="text-sm font-bold text-white leading-snug line-clamp-2" title="${item.title}">${item.title}</h4>
               <div class="text-[11px] text-white/70 mt-1 flex flex-wrap items-center gap-1.5">
-                ${item.color ? `<span class="bg-white/10 px-2 py-0.5 rounded-md border border-white/15 text-white/90">Цвет: <strong class="text-white">${item.color}</strong></span>` : ''}
-                ${window._calcSelectedSize || item.size ? `<span class="bg-cyan-500/15 text-cyan-300 px-2 py-0.5 rounded-md border border-cyan-500/30">Размер: <strong class="text-white">${window._calcSelectedSize || item.size}</strong></span>` : ''}
+                ${window._calcBundleItems && window._calcBundleItems.length > 1
+                  ? `<span class="bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-md border border-cyan-500/30 font-bold">Партия: ${window._calcBundleItems.length} поз. (${qty} шт.)</span>`
+                  : `
+                    ${item.color ? `<span class="bg-white/10 px-2 py-0.5 rounded-md border border-white/15 text-white/90">Цвет: <strong class="text-white">${item.color}</strong></span>` : ''}
+                    ${window._calcSelectedSize || item.size ? `<span class="bg-cyan-500/15 text-cyan-300 px-2 py-0.5 rounded-md border border-cyan-500/30">Размер: <strong class="text-white">${window._calcSelectedSize || item.size}</strong></span>` : ''}
+                  `
+                }
               </div>
               <p class="text-xs text-cyan-400 font-bold mt-1.5 font-mono"><span id="calcCurrentPriceCny">${calc.priceCny}</span> ¥</p>
             </div>
           </div>
 
-          ${sizeChipsHtml}
+          ${window._calcBundleItems && window._calcBundleItems.length > 1 ? `
+            <div class="mt-3 p-3.5 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-left space-y-2.5">
+              <div class="flex items-center justify-between text-xs font-bold text-white/90">
+                <span class="flex items-center gap-1.5">
+                  <span>🛍️</span> Состав партии (${qty} шт.)
+                </span>
+                ${typeof window.openSkuSelectorModal === 'function' && sku?.has_options ? `
+                  <button type="button" id="calcReopenSkuModalBtn" class="text-[11px] text-cyan-400 hover:text-cyan-300 font-semibold cursor-pointer bg-transparent border-0 flex items-center gap-1 active:scale-95 transition">
+                    <span>✏️</span> Изменить набор
+                  </button>
+                ` : ''}
+              </div>
+              <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                ${window._calcBundleItems.map(it => `
+                  <div class="flex items-center justify-between py-2 px-3 rounded-xl bg-white/5 border border-white/10 text-xs gap-2">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                      <img src="${it.image_url}" class="w-8 h-8 rounded-lg object-cover flex-shrink-0 bg-black/40 border border-white/15" onerror="this.src='${item.image_url}'">
+                      <div class="truncate">
+                        <span class="font-bold text-white">${it.color ? it.color + ' • ' : ''}${it.size || ''}</span>
+                        <span class="text-white/40 block text-[10px]">¥${it.price} за шт.</span>
+                      </div>
+                    </div>
+                    <div class="font-mono font-bold text-cyan-300 text-right flex-shrink-0">
+                      ${it.quantity} шт. • ¥${Math.round(it.price * it.quantity * 100) / 100}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : sizeChipsHtml}
 
           <!-- Quantity Stepper -->
           <div class="flex items-center justify-between py-3 border-b border-white/10 text-left mt-2">
@@ -1376,6 +1488,17 @@ window.renderSmartCalculator = async function() {
               const size = selected?.size || bData.size || (bData.sizes?.[0]?.name_ru) || '';
               const platform = /yangkeduo|pinduoduo/i.test(url) ? 'PINDUODUO' : (/taobao/i.test(url) ? 'TAOBAO' : 'POIZON');
 
+              if (selected?.is_bundle && Array.isArray(selected.items) && selected.items.length > 0) {
+                window._calcBundleItems = selected.items;
+                window._calcQuantity = selected.total_quantity || 1;
+              } else if (selected?.items && selected.items.length > 0) {
+                window._calcBundleItems = selected.items;
+                window._calcQuantity = selected.total_quantity || selected.quantity || 1;
+              } else {
+                window._calcBundleItems = null;
+                window._calcQuantity = selected?.quantity || 1;
+              }
+
               if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
 
               window.displayCalcResult({
@@ -1389,7 +1512,8 @@ window.renderSmartCalculator = async function() {
                 size,
                 url,
                 platform,
-                skuBundle: bData
+                skuBundle: bData,
+                bundleItems: window._calcBundleItems
               });
             };
 
@@ -1821,20 +1945,42 @@ window.renderSmartCalculator = async function() {
           };
         });
 
-        // Open full SKU modal if user wants visual inspection
+        const handleSkuModalSelect = (selected) => {
+          if (!selected) return;
+          if (selected.is_bundle && Array.isArray(selected.items) && selected.items.length > 0) {
+            window._calcBundleItems = selected.items;
+            window._calcQuantity = selected.total_quantity || 1;
+            const sumCny = selected.items.reduce((acc, it) => acc + (it.price * it.quantity), 0);
+            item.price = Math.round((sumCny / (window._calcQuantity || 1)) * 100) / 100;
+          } else if (selected.items && selected.items.length > 0) {
+            window._calcBundleItems = selected.items;
+            window._calcQuantity = selected.total_quantity || selected.quantity || 1;
+            const sumCny = selected.items.reduce((acc, it) => acc + (it.price * it.quantity), 0);
+            item.price = Math.round((sumCny / (window._calcQuantity || 1)) * 100) / 100;
+          } else {
+            window._calcBundleItems = null;
+            if (selected.price) item.price = parseFloat(selected.price);
+            if (selected.quantity) window._calcQuantity = selected.quantity;
+          }
+          if (selected.size) window._calcSelectedSize = selected.size;
+          if (selected.color) window._calcSelectedColor = selected.color;
+          if (selected.image_url) item.image_url = selected.image_url;
+          window.updateLiveCalcBreakdown();
+          if (typeof renderCurrentScreen === 'function') renderCurrentScreen();
+        };
+
+        const skuTarget = window._calcSkuBundle || item.skuBundle;
         const openSkuModalBtn = document.getElementById('calcOpenSkuModalBtn');
-        if (openSkuModalBtn && window._calcSkuBundle && typeof window.openSkuSelectorModal === 'function') {
+        if (openSkuModalBtn && skuTarget && typeof window.openSkuSelectorModal === 'function') {
           openSkuModalBtn.onclick = () => {
-            window.openSkuSelectorModal(window._calcSkuBundle, (selected) => {
-              if (selected) {
-                if (selected.price) item.price = parseFloat(selected.price);
-                if (selected.size) window._calcSelectedSize = selected.size;
-                if (selected.color) window._calcSelectedColor = selected.color;
-                if (selected.image_url) item.image_url = selected.image_url;
-                window.updateLiveCalcBreakdown();
-                if (typeof renderCurrentScreen === 'function') renderCurrentScreen();
-              }
-            });
+            window.openSkuSelectorModal(skuTarget, handleSkuModalSelect);
+          };
+        }
+
+        const reopenSkuModalBtn = document.getElementById('calcReopenSkuModalBtn');
+        if (reopenSkuModalBtn && skuTarget && typeof window.openSkuSelectorModal === 'function') {
+          reopenSkuModalBtn.onclick = () => {
+            window.openSkuSelectorModal(skuTarget, handleSkuModalSelect);
           };
         }
 

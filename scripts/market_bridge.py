@@ -685,7 +685,11 @@ def capture_hd_studio_and_variants(goods_id: str, root: ET.Element, colors: List
 
             # Crop clean micro-thumbnail icons for each color button (0 Chinese text!)
             for idx, col in enumerate(colors):
-                col["image_url"] = hd_pub_url or f"/uploads/parsed/sku_{goods_id}.jpg"
+                if col.get("selected"):
+                    col["image_url"] = hd_pub_url or f"/uploads/parsed/sku_{goods_id}.jpg"
+                else:
+                    col["image_url"] = None
+
                 b_str = col.get("bounds")
                 if b_str:
                     x1, y1, x2, y2 = parse_bounds(b_str)
@@ -721,6 +725,11 @@ def capture_hd_studio_and_variants(goods_id: str, root: ET.Element, colors: List
                     for i, pub_url in ex.map(_do_upload, upload_tasks):
                         if pub_url:
                             colors[i]["thumb_url"] = pub_url
+
+            # Ensure every color variant has a dedicated distinct image_url
+            for col in colors:
+                if not col.get("image_url"):
+                    col["image_url"] = col.get("thumb_url") or hd_pub_url or f"/uploads/parsed/sku_{goods_id}.jpg"
 
             try:
                 os.remove(temp_drawer)

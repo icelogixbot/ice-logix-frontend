@@ -240,12 +240,42 @@
           <!-- Dynamic Spec Groups -->
           ${groupsHtml}
 
+          <!-- Quantity Stepper & Add to Bundle -->
+          <div class="mt-4 pt-3 border-t border-white/10 space-y-3">
+            <div class="flex items-center justify-between p-3 rounded-2xl bg-white/[0.04] border border-white/10">
+              <div class="flex flex-col text-left">
+                <span class="text-xs font-bold text-white/90">Количество:</span>
+                <span class="text-[11px] text-white/40">Для выбранного размера и цвета</span>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <button type="button" id="skuQtyMinus" class="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white font-black text-sm flex items-center justify-center transition cursor-pointer">−</button>
+                <span id="skuQtyVal" class="text-sm font-black font-mono text-cyan-400 min-w-[28px] text-center">1</span>
+                <button type="button" id="skuQtyPlus" class="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white font-black text-sm flex items-center justify-center transition cursor-pointer">+</button>
+              </div>
+            </div>
+
+            <button type="button" id="skuAddVariantBtn" class="w-full py-2.5 px-4 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 font-bold text-xs flex items-center justify-center gap-2 active:scale-[0.98] transition cursor-pointer">
+              <span>➕</span> Добавить еще один цвет / размер
+            </button>
+          </div>
+
+          <!-- Bundle Items Section (Multi-Variant List) -->
+          <div id="skuBundleSection" class="hidden mt-3 pt-3 border-t border-cyan-500/25 space-y-2 text-left">
+            <div class="flex items-center justify-between text-xs font-bold text-white/80 px-1">
+              <span class="flex items-center gap-1.5">
+                <span>🛍️</span> Набор позиций (<span id="skuBundleCount">0</span> шт.)
+              </span>
+              <button type="button" id="skuClearBundleBtn" class="text-[11px] text-red-400/80 hover:text-red-400 cursor-pointer bg-transparent border-0">Очистить всё</button>
+            </div>
+            <div id="skuBundleList" class="space-y-1.5 max-h-48 overflow-y-auto pr-1"></div>
+          </div>
+
         </div>
 
         <!-- Sticky Footer Action -->
-        <div class="p-4 border-t border-white/10 bg-[#0a101c]/90 backdrop-blur-md flex-shrink-0 flex flex-col gap-2">
-          <button type="button" id="skuApplyBtn" class="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 font-black text-sm text-white shadow-[0_4px_25px_rgba(6,182,212,0.4)] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-            <span>✨</span> Выбрать этот вариант
+        <div class="p-4 border-t border-white/10 bg-[#0a101c]/95 backdrop-blur-md flex-shrink-0 flex flex-col gap-2">
+          <button type="button" id="skuApplyBtn" class="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 font-black text-sm text-white shadow-[0_4px_25px_rgba(6,182,212,0.4)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer">
+            <span>✨</span> Выбрать этот вариант (1 шт. • ¥${currentPriceCny})
           </button>
         </div>
 
@@ -269,18 +299,177 @@
       if (e.target === overlay) closeSkuModal();
     });
 
+    let currentQty = 1;
+    const bundleItems = []; // Array of { id, color, size, quantity, price, image_url, summary }
+
     function updatePriceDisplay(price) {
       currentPriceCny = price;
       const pEl = overlay.querySelector('#skuModalPrice');
       const prEl = overlay.querySelector('#skuModalPriceRu');
       if (pEl) pEl.innerText = `¥${price}`;
       if (prEl) prEl.innerText = `≈ ${calcRub(price)} ₽ / ${calcByn(price)} Br`;
+      updateFooterButton();
     }
 
     function updateSummaryDisplay() {
       const pill = overlay.querySelector('#skuSummaryPill');
       if (pill) pill.innerText = getCombinedSummary();
+      updateFooterButton();
     }
+
+    function updateFooterButton() {
+      const applyBtn = overlay.querySelector('#skuApplyBtn');
+      if (!applyBtn) return;
+
+      if (bundleItems.length === 0) {
+        const totalCny = Math.round((currentPriceCny * currentQty) * 100) / 100;
+        applyBtn.innerHTML = `<span>✨</span> Выбрать этот вариант (${currentQty} шт. • ¥${totalCny})`;
+      } else {
+        const totalQty = bundleItems.reduce((acc, it) => acc + it.quantity, 0);
+        const totalCny = Math.round(bundleItems.reduce((acc, it) => acc + (it.price * it.quantity), 0) * 100) / 100;
+        applyBtn.innerHTML = `<span>✨</span> Подтвердить выбор (${totalQty} шт. • ¥${totalCny})`;
+      }
+    }
+
+    // Stepper logic
+    const qtyValEl = overlay.querySelector('#skuQtyVal');
+    overlay.querySelector('#skuQtyMinus').onclick = () => {
+      if (currentQty > 1) {
+        currentQty--;
+        if (qtyValEl) qtyValEl.innerText = currentQty;
+        if (window.tgUtil && typeof window.tgUtil.haptic === 'function') window.tgUtil.haptic('light');
+        updateFooterButton();
+      }
+    };
+    overlay.querySelector('#skuQtyPlus').onclick = () => {
+      if (currentQty < 99) {
+        currentQty++;
+        if (qtyValEl) qtyValEl.innerText = currentQty;
+        if (window.tgUtil && typeof window.tgUtil.haptic === 'function') window.tgUtil.haptic('light');
+        updateFooterButton();
+      }
+    };
+
+    function renderBundleList() {
+      const section = overlay.querySelector('#skuBundleSection');
+      const listEl = overlay.querySelector('#skuBundleList');
+      const countEl = overlay.querySelector('#skuBundleCount');
+      if (!section || !listEl) return;
+
+      if (bundleItems.length === 0) {
+        section.classList.add('hidden');
+        listEl.innerHTML = '';
+        updateFooterButton();
+        return;
+      }
+
+      section.classList.remove('hidden');
+      const totalQty = bundleItems.reduce((acc, it) => acc + it.quantity, 0);
+      if (countEl) countEl.innerText = totalQty;
+
+      listEl.innerHTML = bundleItems.map(item => `
+        <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/10 gap-2.5">
+          <img src="${item.image_url}" class="w-9 h-9 rounded-lg object-cover bg-black/40 border border-white/15 flex-shrink-0" onerror="this.src='${masterStudioImg}'">
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-bold text-white truncate leading-tight">${item.summary}</div>
+            <div class="text-[11px] text-cyan-400 font-semibold mt-0.5">¥${item.price} × ${item.quantity} = <strong class="text-cyan-300">¥${Math.round(item.price * item.quantity * 100) / 100}</strong></div>
+          </div>
+          <div class="flex items-center gap-1.5 flex-shrink-0">
+            <button type="button" class="bundle-minus w-6 h-6 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 text-white font-bold text-xs flex items-center justify-center cursor-pointer border-0" data-id="${item.id}">−</button>
+            <span class="text-xs font-bold font-mono text-white min-w-[16px] text-center">${item.quantity}</span>
+            <button type="button" class="bundle-plus w-6 h-6 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 text-white font-bold text-xs flex items-center justify-center cursor-pointer border-0" data-id="${item.id}">+</button>
+            <button type="button" class="bundle-del w-6 h-6 rounded-lg bg-red-500/15 hover:bg-red-500/25 active:scale-95 text-red-400 font-bold text-xs flex items-center justify-center ml-1 cursor-pointer border-0" data-id="${item.id}">✕</button>
+          </div>
+        </div>
+      `).join('');
+
+      // Wire bundle item buttons
+      listEl.querySelectorAll('.bundle-minus').forEach(b => {
+        b.onclick = () => {
+          const id = b.dataset.id;
+          const found = bundleItems.find(it => it.id === id);
+          if (found) {
+            if (found.quantity > 1) {
+              found.quantity--;
+            } else {
+              const idx = bundleItems.indexOf(found);
+              if (idx !== -1) bundleItems.splice(idx, 1);
+            }
+            if (window.tgUtil && typeof window.tgUtil.haptic === 'function') window.tgUtil.haptic('light');
+            renderBundleList();
+          }
+        };
+      });
+
+      listEl.querySelectorAll('.bundle-plus').forEach(b => {
+        b.onclick = () => {
+          const id = b.dataset.id;
+          const found = bundleItems.find(it => it.id === id);
+          if (found && found.quantity < 99) {
+            found.quantity++;
+            if (window.tgUtil && typeof window.tgUtil.haptic === 'function') window.tgUtil.haptic('light');
+            renderBundleList();
+          }
+        };
+      });
+
+      listEl.querySelectorAll('.bundle-del').forEach(b => {
+        b.onclick = () => {
+          const id = b.dataset.id;
+          const idx = bundleItems.findIndex(it => it.id === id);
+          if (idx !== -1) {
+            bundleItems.splice(idx, 1);
+            if (window.tgUtil && typeof window.tgUtil.haptic === 'function') window.tgUtil.haptic('medium');
+            renderBundleList();
+          }
+        };
+      });
+
+      updateFooterButton();
+    }
+
+    // Add current selection to bundle
+    overlay.querySelector('#skuAddVariantBtn').onclick = () => {
+      const visualGroup = groups.find(g => g.type === 'visual');
+      const specGroupsList = groups.filter(g => g.type === 'spec');
+
+      const selectedColorOpt = visualGroup ? selectedState[visualGroup.id] : null;
+      const specSummaryParts = specGroupsList.map(g => {
+        const s = selectedState[g.id];
+        return s ? (s.name_ru || s.name) : '';
+      }).filter(Boolean);
+
+      const colorName = selectedColorOpt ? (selectedColorOpt.name_ru || selectedColorOpt.name) : '';
+      const sizeName = specSummaryParts.join(', ') || '';
+      const comboKey = `${colorName}___${sizeName}`;
+
+      const existing = bundleItems.find(it => it.key === comboKey);
+      if (existing) {
+        existing.quantity += currentQty;
+      } else {
+        bundleItems.push({
+          id: 'b_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+          key: comboKey,
+          color: colorName,
+          size: sizeName,
+          quantity: currentQty,
+          price: currentPriceCny,
+          image_url: currentImgUrl || masterStudioImg,
+          summary: getCombinedSummary()
+        });
+      }
+
+      currentQty = 1;
+      if (qtyValEl) qtyValEl.innerText = '1';
+      if (window.tgUtil && typeof window.tgUtil.haptic === 'function') window.tgUtil.haptic('success');
+      renderBundleList();
+    };
+
+    overlay.querySelector('#skuClearBundleBtn').onclick = () => {
+      bundleItems.length = 0;
+      if (window.tgUtil && typeof window.tgUtil.haptic === 'function') window.tgUtil.haptic('light');
+      renderBundleList();
+    };
 
     // Attach click listeners to all chips
     overlay.querySelectorAll('.sku-chip').forEach(btn => {
@@ -317,7 +506,11 @@
 
         // 1. If Visual group (Color/Appearance): Smooth hero photo swap to clean studio shot
         if (grp.type === 'visual') {
-          const targetImg = opt.image_url || masterStudioImg;
+          // Resolve true image: unique image_url or thumb_url of button, never stick on default if option has its own image!
+          const targetImg = (opt.image_url && opt.image_url !== masterStudioImg)
+            ? opt.image_url 
+            : (opt.thumb_url || opt.image_url || masterStudioImg);
+
           if (targetImg && targetImg !== currentImgUrl) {
             currentImgUrl = targetImg;
             const imgEl = overlay.querySelector('#skuModalImg');
@@ -347,7 +540,6 @@
             if (resp.ok) {
               const resData = await resp.json();
               if (resData.price_cny) updatePriceDisplay(resData.price_cny);
-              // Zero-Waste Rule: never overwrite studio photo with screen crop!
             }
           } catch (e) {
             // Expected on mobile devices without direct localhost access
@@ -370,19 +562,60 @@
         return s ? (s.name_ru || s.name) : '';
       }).filter(Boolean);
 
+      const colorName = selectedColorOpt ? (selectedColorOpt.name_ru || selectedColorOpt.name) : '';
+      const sizeName = specSummaryParts.join(', ') || '';
+
       if (typeof onConfirm === 'function') {
-        onConfirm({
-          color: selectedColorOpt ? (selectedColorOpt.name_ru || selectedColorOpt.name) : '',
-          size: specSummaryParts.join(', ') || '',
-          variant_summary: getCombinedSummary(),
-          full_status: getFullStatusLine(),
-          price: currentPriceCny,
-          image_url: currentImgUrl || masterStudioImg,
-          title: productData.title_ru || productData.title,
-          brand: productData.brand || '',
-          category: productData.category || '',
-          marketplace: 'pinduoduo'
-        });
+        if (bundleItems.length > 0) {
+          const totalQty = bundleItems.reduce((acc, it) => acc + it.quantity, 0);
+          const totalCny = Math.round(bundleItems.reduce((acc, it) => acc + (it.price * it.quantity), 0) * 100) / 100;
+          const summaryParts = bundleItems.map(it => `${it.summary} × ${it.quantity} шт.`);
+
+          onConfirm({
+            is_bundle: true,
+            items: bundleItems,
+            total_quantity: totalQty,
+            total_price_cny: totalCny,
+            price: bundleItems[0].price,
+            quantity: totalQty,
+            color: bundleItems.map(it => it.color).filter(Boolean).join(', '),
+            size: bundleItems.map(it => it.size).filter(Boolean).join(', '),
+            variant_summary: summaryParts.join('; '),
+            full_status: `${productData.title_ru || productData.title} • ${summaryParts.join('; ')} • ${calcRub(totalCny)} ₽`,
+            image_url: bundleItems[0].image_url || currentImgUrl || masterStudioImg,
+            title: productData.title_ru || productData.title,
+            brand: productData.brand || '',
+            category: productData.category || '',
+            marketplace: 'pinduoduo'
+          });
+        } else {
+          const totalCny = Math.round((currentPriceCny * currentQty) * 100) / 100;
+          onConfirm({
+            is_bundle: false,
+            items: [{
+              id: 'b_' + Date.now(),
+              color: colorName,
+              size: sizeName,
+              quantity: currentQty,
+              price: currentPriceCny,
+              image_url: currentImgUrl || masterStudioImg,
+              summary: getCombinedSummary()
+            }],
+            total_quantity: currentQty,
+            total_price_cny: totalCny,
+            quantity: currentQty,
+            color: colorName,
+            size: sizeName,
+            variant_summary: `${getCombinedSummary()}${currentQty > 1 ? ` × ${currentQty} шт.` : ''}`,
+            full_status: `${productData.title_ru || productData.title} • ${getCombinedSummary()}${currentQty > 1 ? ` × ${currentQty} шт.` : ''} • ${calcRub(totalCny)} ₽`,
+            price: currentPriceCny,
+            image_url: currentImgUrl || masterStudioImg,
+            title: productData.title_ru || productData.title,
+            brand: productData.brand || '',
+            category: productData.category || '',
+            marketplace: 'pinduoduo'
+          });
+        }
       }
     };
   };
