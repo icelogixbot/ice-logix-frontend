@@ -140,6 +140,11 @@
 
       const optionsHtml = (grp.options || []).map((opt, optIdx) => {
         const isSel = selOpt && (selOpt.name === opt.name);
+        const optPrice = opt.price_cny && opt.price_cny > 0 ? opt.price_cny : null;
+        const priceBadge = optPrice 
+          ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex-shrink-0">¥${optPrice}</span>` 
+          : '';
+        const isDis = opt.disabled || false;
         
         if (isVisual) {
           const thumbSrc = opt.thumb_url || opt.image_url;
@@ -154,20 +159,26 @@
               data-opt-idx="${optIdx}"
               data-bounds="${opt.bounds || ''}"
               data-img-url="${opt.image_url || ''}"
+              data-price-cny="${opt.price_cny || ''}"
+              data-raw-name="${opt.name}"
               data-name-ru="${opt.name_ru || opt.name}">
               ${imgHtml}
               <div class="flex-1 min-w-0 flex flex-col justify-center">
                 <span class="truncate font-bold text-xs text-white leading-tight">${opt.name_ru || opt.name}</span>
               </div>
+              ${priceBadge}
             </button>
           `;
         } else {
           return `
             <button type="button" 
-              class="sku-chip sku-spec-chip h-10 w-full flex items-center justify-center rounded-xl text-xs font-bold font-mono border transition-all duration-200 cursor-pointer text-center ${isSel ? 'active-chip bg-gradient-to-r from-cyan-500/25 to-blue-500/25 border-cyan-400 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.35)]' : 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10'}" 
+              class="sku-chip sku-spec-chip h-10 w-full flex items-center justify-center rounded-xl text-xs font-bold font-mono border transition-all duration-200 cursor-pointer text-center ${isDis ? 'opacity-30 pointer-events-none cursor-not-allowed line-through border-white/5 bg-white/[0.02] text-white/30' : isSel ? 'active-chip bg-gradient-to-r from-cyan-500/25 to-blue-500/25 border-cyan-400 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.35)]' : 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10'}" 
               data-group-id="${grp.id}"
               data-opt-idx="${optIdx}"
               data-bounds="${opt.bounds || ''}"
+              data-price-cny="${opt.price_cny || ''}"
+              data-raw-name="${opt.name}"
+              data-disabled="${isDis ? 'true' : 'false'}"
               data-name-ru="${opt.name_ru || opt.name}">
               <span class="truncate px-1">${opt.name_ru || opt.name}</span>
             </button>
@@ -242,6 +253,9 @@
         <div id="skuScrollableBody" class="p-4 overflow-y-auto space-y-4 flex-1">
           <!-- Dynamic Spec Groups -->
           ${groupsHtml}
+
+          <!-- Customs / Seller Limit Warning Banner -->
+          <div id="skuCustomsAlert" class="hidden p-3 rounded-2xl bg-amber-500/15 border border-amber-500/35 text-amber-300 text-xs flex items-center gap-2.5 shadow-lg shadow-amber-500/5 transition-all"></div>
 
           <!-- Quantity Stepper & Add to Bundle -->
           <div class="mt-4 pt-3 border-t border-white/10 space-y-3">
@@ -334,7 +348,52 @@
       }
     }
 
-    // Stepper logic
+    const MAX_CUSTOMS_SINGLE_VARIANT = 2; // Максимум 2 шт. одного цвета/размера для физлиц
+    const MAX_CUSTOMS_TOTAL_PRODUCT = 3;  // Максимум 3 шт. суммарно на один товар
+
+    let sellerLimit = parseInt(productData.seller_limit_qty || 0, 10);
+    const getEffectiveVariantLimit = () => (sellerLimit > 0 && sellerLimit < MAX_CUSTOMS_SINGLE_VARIANT) ? sellerLimit : MAX_CUSTOMS_SINGLE_VARIANT;
+
+    function showCustomsWarning(msg) {
+      const alertEl = overlay.querySelector('#skuCustomsAlert');
+      if (alertEl) {
+        alertEl.innerHTML = `<span class="text-base flex-shrink-0">⚠️</span> <span class="leading-tight">${msg}</span>`;
+        alertEl.classList.remove('hidden');
+        clearTimeout(alertEl._timer);
+        alertEl._timer = setTimeout(() => {
+          alertEl.classList.add('hidden');
+        }, 4500);
+      }
+    }
+
+    function updateSizesAvailability(disabledList) {
+      if (!disabledList || !disabledList.length) return;
+      const sizeChips = overlay.querySelectorAll('.sku-chip.sku-spec-chip');
+      let currentSelectedSizeDisabled = false;
+      let firstAvailableChip = null;
+
+      sizeChips.forEach(chip => {
+        const raw = chip.dataset.rawName || '';
+        const ru = chip.dataset.nameRu || '';
+        const isDis = disabledList.some(d => (raw && raw.includes(d)) || (d && d.includes(raw)) || (ru && ru.includes(d)));
+        if (isDis) {
+          chip.classList.add('opacity-30', 'pointer-events-none', 'cursor-not-allowed', 'line-through', 'border-white/5', 'bg-white/[0.02]', 'text-white/30');
+          chip.classList.remove('active-chip', 'bg-gradient-to-r', 'from-cyan-500/25', 'to-blue-500/25', 'border-cyan-400', 'text-cyan-300', 'shadow-[0_0_12px_rgba(6,182,212,0.35)]');
+          if (chip.classList.contains('active-chip')) {
+            currentSelectedSizeDisabled = true;
+          }
+        } else {
+          chip.classList.remove('opacity-30', 'pointer-events-none', 'cursor-not-allowed', 'line-through', 'border-white/5', 'bg-white/[0.02]', 'text-white/30');
+          if (!firstAvailableChip) firstAvailableChip = chip;
+        }
+      });
+
+      if (currentSelectedSizeDisabled && firstAvailableChip) {
+        firstAvailableChip.click();
+      }
+    }
+
+    // Stepper logic with Customs Anti-Commercial Limit
     const qtyValEl = overlay.querySelector('#skuQtyVal');
     overlay.querySelector('#skuQtyMinus').onclick = () => {
       if (currentQty > 1) {
@@ -345,12 +404,19 @@
       }
     };
     overlay.querySelector('#skuQtyPlus').onclick = () => {
-      if (currentQty < 99) {
-        currentQty++;
-        if (qtyValEl) qtyValEl.innerText = currentQty;
-        if (window.tgUtil && typeof window.tgUtil.haptic === 'function') window.tgUtil.haptic('light');
-        updateFooterButton();
+      const effLimit = getEffectiveVariantLimit();
+      if (currentQty >= effLimit) {
+        if (window.tgUtil && typeof window.tgUtil.haptic === 'function') window.tgUtil.haptic('error');
+        const warningMsg = (sellerLimit > 0 && sellerLimit < MAX_CUSTOMS_SINGLE_VARIANT)
+          ? `Ограничение продавца: не более ${sellerLimit} шт. в одни руки`
+          : `Таможенный лимит физлиц: не более ${effLimit} шт. одного варианта во избежание признания посылки коммерческой партией на таможне РБ/ЕАЭС.`;
+        showCustomsWarning(warningMsg);
+        return;
       }
+      currentQty++;
+      if (qtyValEl) qtyValEl.innerText = currentQty;
+      if (window.tgUtil && typeof window.tgUtil.haptic === 'function') window.tgUtil.haptic('light');
+      updateFooterButton();
     };
 
     function renderBundleList() {
@@ -408,7 +474,19 @@
         b.onclick = () => {
           const id = b.dataset.id;
           const found = bundleItems.find(it => it.id === id);
-          if (found && found.quantity < 99) {
+          if (found) {
+            const effLimit = getEffectiveVariantLimit();
+            const totalQty = bundleItems.reduce((acc, it) => acc + it.quantity, 0);
+            if (found.quantity >= effLimit) {
+              if (window.tgUtil && typeof window.tgUtil.haptic === 'function') window.tgUtil.haptic('error');
+              showCustomsWarning(`Лимит: не более ${effLimit} шт. одного варианта для физлиц.`);
+              return;
+            }
+            if (totalQty >= MAX_CUSTOMS_TOTAL_PRODUCT) {
+              if (window.tgUtil && typeof window.tgUtil.haptic === 'function') window.tgUtil.haptic('error');
+              showCustomsWarning(`Таможенный лимит: не более ${MAX_CUSTOMS_TOTAL_PRODUCT} единиц товара в одной посылке во избежание признания коммерческой партией.`);
+              return;
+            }
             found.quantity++;
             if (window.tgUtil && typeof window.tgUtil.haptic === 'function') window.tgUtil.haptic('light');
             renderBundleList();
@@ -431,8 +509,15 @@
       updateFooterButton();
     }
 
-    // Add current selection to bundle
+    // Add current selection to bundle with Customs Total Limit check
     overlay.querySelector('#skuAddVariantBtn').onclick = () => {
+      const totalBundleQty = bundleItems.reduce((acc, it) => acc + it.quantity, 0);
+      if (totalBundleQty + currentQty > MAX_CUSTOMS_TOTAL_PRODUCT) {
+        if (window.tgUtil && typeof window.tgUtil.haptic === 'function') window.tgUtil.haptic('error');
+        showCustomsWarning(`Таможенный лимит: суммарно не более ${MAX_CUSTOMS_TOTAL_PRODUCT} единиц товара в посылке для физлиц.`);
+        return;
+      }
+
       const visualGroup = groups.find(g => g.type === 'visual');
       const specGroupsList = groups.filter(g => g.type === 'spec');
 
@@ -448,6 +533,12 @@
 
       const existing = bundleItems.find(it => it.key === comboKey);
       if (existing) {
+        const effLimit = getEffectiveVariantLimit();
+        if (existing.quantity + currentQty > effLimit) {
+          if (window.tgUtil && typeof window.tgUtil.haptic === 'function') window.tgUtil.haptic('error');
+          showCustomsWarning(`Лимит: не более ${effLimit} шт. одного варианта.`);
+          return;
+        }
         existing.quantity += currentQty;
       } else {
         bundleItems.push({
@@ -477,6 +568,7 @@
     // Attach click listeners to all chips
     overlay.querySelectorAll('.sku-chip').forEach(btn => {
       btn.onclick = async () => {
+        if (btn.dataset.disabled === 'true') return;
         if (window.tgUtil && typeof window.tgUtil.haptic === 'function') window.tgUtil.haptic('light');
 
         const groupId = btn.dataset.groupId;
@@ -494,7 +586,9 @@
         const groupChips = overlay.querySelectorAll(`.sku-chip[data-group-id="${groupId}"]`);
         groupChips.forEach(b => {
           b.classList.remove('active-chip', 'bg-gradient-to-r', 'from-cyan-500/25', 'to-blue-500/25', 'border-cyan-400', 'text-cyan-300', 'shadow-[0_0_12px_rgba(6,182,212,0.35)]');
-          b.classList.add('border-white/10', 'bg-white/5', 'text-white/80');
+          if (b.dataset.disabled !== 'true') {
+            b.classList.add('border-white/10', 'bg-white/5', 'text-white/80');
+          }
         });
         btn.classList.remove('border-white/10', 'bg-white/5', 'text-white/80');
         btn.classList.add('active-chip', 'bg-gradient-to-r', 'from-cyan-500/25', 'to-blue-500/25', 'border-cyan-400', 'text-cyan-300', 'shadow-[0_0_12px_rgba(6,182,212,0.35)]');
@@ -505,11 +599,16 @@
           grpLabel.innerText = opt.name_ru || opt.name;
         }
 
+        // Instant Dynamic Price Update from Option Data (Zero Delay!)
+        if (opt.price_cny && opt.price_cny > 0) {
+          updatePriceDisplay(opt.price_cny);
+        }
+
         updateSummaryDisplay();
 
         // 1. If Visual group (Color/Appearance): Smooth hero photo swap to clean studio shot
         if (grp.type === 'visual') {
-          // Always pick the variant's own distinct photo, falling back to master studio photo
+          // Always pick the variant's own distinct 800x800 studio photo, falling back to master studio photo
           const targetImg = opt.image_url || opt.thumb_url || masterStudioImg;
 
           if (targetImg && targetImg !== currentImgUrl) {
@@ -525,7 +624,7 @@
         // 2. Iron Rule: If Spec group (size, memory, specs): NEVER touch hero photo!
         // Photo stays pristine as the selected color's studio photo.
 
-        // Tap on physical bridge with fast timeout to update price and summary
+        // Tap on physical bridge with fast timeout to update price and size availability
         const bounds = btn.dataset.bounds;
         if (bounds && goodsId) {
           try {
@@ -541,13 +640,11 @@
             if (resp.ok) {
               const resData = await resp.json();
               if (resData.price_cny) updatePriceDisplay(resData.price_cny);
-              if (resData.image_url) {
-                const imgEl = overlay.querySelector('#skuModalImg');
-                if (imgEl) {
-                  imgEl.src = resData.image_url;
-                  currentImgUrl = resData.image_url;
-                }
-                opt.image_url = resData.image_url;
+              if (resData.seller_limit_qty) {
+                sellerLimit = resData.seller_limit_qty;
+              }
+              if (resData.disabled_sizes && resData.disabled_sizes.length > 0) {
+                updateSizesAvailability(resData.disabled_sizes);
               }
             }
           } catch (e) {

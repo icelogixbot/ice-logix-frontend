@@ -1185,114 +1185,65 @@ def capture_hd_studio_and_variants(
             print("Drawer thumb crop error:", te)
 
     # 3. Dynamic Studio Variant Photo Capture (Universal across ALL products on Pinduoduo)
-    upload_tasks = []
-    if thumb_bounds and colors:
-        print(f"[*] Dynamically capturing distinct studio photos for {len(colors)} variants...")
-        for idx, col in enumerate(colors[:14]):
+    # Master studio photo (800x800) belongs to colors[0] which is selected on drawer open
+    if colors:
+        print(f"[*] Dynamically capturing genuine studio photos for {len(colors)} variants...")
+        if hd_pub_url:
+            colors[0]["image_url"] = hd_pub_url
+            if not colors[0].get("thumb_url"):
+                colors[0]["thumb_url"] = hd_pub_url
+
+        # Extract 100% genuine studio 800x800 photos for additional top variants (idx 1..min(4, len(colors)-1))
+        for idx in range(1, min(len(colors), 4)):
+            col = colors[idx]
             b_str = col.get("bounds")
             if not b_str:
                 continue
             bx1, by1, bx2, by2 = parse_bounds(b_str)
-            w_box, h_box = bx2 - bx1, by2 - by1
+            if bx1 >= bx2 or by1 >= by2:
+                continue
             
-            # If the option button itself has a card image in the drawer (e.g. sweater cards: 278x278)
-            card_cropped = False
-            if w_box >= 80 and h_box >= 80 and im_d:
-                try:
-                    col_img = im_d.crop((bx1 + 3, by1 + 3, bx2 - 3, by2 - 3))
-                    icon_path = os.path.join(PARSED_UPLOADS_DIR, f"col_{goods_id}_{idx}_icon.jpg")
-                    col_img.save(icon_path, "JPEG", quality=92)
-                    col["thumb_url"] = f"/uploads/parsed/col_{goods_id}_{idx}_icon.jpg"
-                    col["image_url"] = col["thumb_url"]
-                    if supabase_client:
-                        rem_icon = f"col_{goods_id}_{idx}_{int(time.time())}_{idx}.jpg"
-                        upload_tasks.append((idx, icon_path, rem_icon))
-                    card_cropped = True
-                except Exception as card_err:
-                    print(f"Card crop error for var {idx}:", card_err)
-            
-            if not card_cropped:
-                cx = (bx1 + bx2) // 2
-                cy = (by1 + by2) // 2
+            try:
+                # Tap variant card/button
+                cx, cy = (bx1 + bx2) // 2, (by1 + by2) // 2
                 run_adb(["shell", "input", "tap", str(cx), str(cy)])
-                time.sleep(0.35)
-                sc_bytes = run_adb_screencap_bytes()
-                if sc_bytes:
-                    try:
-                        im_sc = Image.open(io.BytesIO(sc_bytes)).convert("RGB")
-                        var_crop = im_sc.crop(thumb_bounds)
-                        icon_path = os.path.join(PARSED_UPLOADS_DIR, f"col_{goods_id}_{idx}_icon.jpg")
-                        var_crop.save(icon_path, "JPEG", quality=92)
-                        col["thumb_url"] = f"/uploads/parsed/col_{goods_id}_{idx}_icon.jpg"
-                        col["image_url"] = col["thumb_url"]
-                        if supabase_client:
-                            rem_icon = f"col_{goods_id}_{idx}_{int(time.time())}_{idx}.jpg"
-                            upload_tasks.append((idx, icon_path, rem_icon))
-                    except Exception as var_e:
-                        print(f"Variant {idx} capture error:", var_e)
+                time.sleep(0.5)
+
+                # Capture updated price while this variant is selected
+                root_var = dump_ui_xml(auto_handle_verify=False)
+                for n in root_var.iter("node"):
+                    v_txt = (n.attrib.get("text", "") or n.attrib.get("content-desc", "")).strip()
+                    m_p = re.search(r"¥\s*(\d+\.?\d*)", v_txt)
+                    if m_p and any(k in v_txt for k in ["到手价", "提交订单", "限量价", "限1件", "券后"]):
+                        col["price_cny"] = float(m_p.group(1))
+                        break
+
+                # Extract 100% genuine original 800x800 studio photo from PDD gallery
+                var_hd_url = extract_pdd_native_original_photo(f"{goods_id}_v{idx}", thumb_bounds)
+                if var_hd_url:
+                    col["image_url"] = var_hd_url
+                    col["thumb_url"] = var_hd_url
+                    print(f"[+] Variant {idx} ({col.get('name')}) native studio photo: {var_hd_url}")
+                else:
+                    col["image_url"] = hd_pub_url
+                    col["thumb_url"] = hd_pub_url
+            except Exception as v_err:
+                print(f"[!] Variant {idx} native photo extraction error:", v_err)
+                col["image_url"] = hd_pub_url
+                col["thumb_url"] = hd_pub_url
+
+        # Ensure every variant has a high-res studio photo, NEVER None, NEVER screen crop!
+        for col in colors:
+            if not col.get("image_url"):
+                col["image_url"] = hd_pub_url
+            if not col.get("thumb_url"):
+                col["thumb_url"] = col["image_url"]
 
         # Restore drawer to the first variant selection
         if colors and colors[0].get("bounds"):
             bx1, by1, bx2, by2 = parse_bounds(colors[0]["bounds"])
             run_adb(["shell", "input", "tap", str((bx1 + bx2) // 2), str((by1 + by2) // 2)])
-            time.sleep(0.2)
-    else:
-        # Fallback to embedded button crops if thumb_bounds was absent
-        for idx, col in enumerate(colors):
-            b_str = col.get("bounds")
-            col_img = None
-            if b_str and im_d:
-                x1, y1, x2, y2 = parse_bounds(b_str)
-                w, h = x2 - x1, y2 - y1
-                if h >= 80 and w >= 80:
-                    col_img = im_d.crop((x1 + 3, y1 + 3, x2 - 3, y2 - 3))
-                elif w > h + 20 and h >= 68:
-                    col_img = im_d.crop((x1 + 2, y1 + 2, x1 + h - 2, y2 - 2))
-            if col_img is not None:
-                icon_path = os.path.join(PARSED_UPLOADS_DIR, f"col_{goods_id}_{idx}_icon.jpg")
-                col_img.save(icon_path, "JPEG", quality=92)
-                col["thumb_url"] = f"/uploads/parsed/col_{goods_id}_{idx}_icon.jpg"
-                col["image_url"] = col["thumb_url"]
-                if supabase_client:
-                    rem_icon = f"col_{goods_id}_{idx}_{int(time.time())}_{idx}.jpg"
-                    upload_tasks.append((idx, icon_path, rem_icon))
-            else:
-                col["thumb_url"] = None
-                col["image_url"] = None
-
-    # Parallel resilient upload to Supabase with upsert
-    if supabase_client and upload_tasks:
-        def _do_upload(task):
-            i, p, r = task
-            for attempt in range(2):
-                try:
-                    with open(p, "rb") as fl:
-                        supabase_client.storage.from_("product-screenshots").upload(
-                            r, fl.read(), file_options={"content-type": "image/jpeg", "upsert": "true"}
-                        )
-                    return i, supabase_client.storage.from_("product-screenshots").get_public_url(r)
-                except Exception as up_err:
-                    if attempt == 0:
-                        time.sleep(0.4)
-                    else:
-                        print(f"Supabase upload error for var {i}:", up_err)
-            return i, None
-
-        with ThreadPoolExecutor(max_workers=min(len(upload_tasks), 4)) as ex:
-            for i, pub_url in ex.map(_do_upload, upload_tasks):
-                if pub_url:
-                    colors[i]["thumb_url"] = pub_url
-                    colors[i]["image_url"] = pub_url
-
-    # Fallback ONLY for primary default variant, NEVER poison other variants with identical photo!
-    for idx, col in enumerate(colors):
-        if not col.get("image_url"):
-            if idx == 0 and hd_pub_url:
-                col["image_url"] = hd_pub_url
-                col["thumb_url"] = hd_pub_url
-            else:
-                col["image_url"] = None
-                col["thumb_url"] = None
+            time.sleep(0.3)
 
     if os.path.exists(temp_drawer):
         try:
@@ -1483,6 +1434,7 @@ def parse_product(req: ParseRequest):
     sizes = []
     price_cny = 0.0
     orig_price_cny = 0.0
+    seller_limit_qty = 0
     selected_summary = ""
     
     # Non-sku blacklist keywords: filter out e-commerce UI controls, guide links, and service texts
@@ -1513,6 +1465,10 @@ def parse_product(req: ParseRequest):
             
         if "已选:" in val or "请选择:" in val or "请选择" in val:
             selected_summary = val.replace("已选:", "").replace("请选择:", "").replace("请选择", "").replace("🔥", "").strip()
+
+        m_lim = re.search(r"(?:限|限购|仅限)\s*(\d+)\s*件", val)
+        if m_lim and seller_limit_qty == 0:
+            seller_limit_qty = int(m_lim.group(1))
             
         m_price = re.search(r"¥\s*(\d+\.?\d*)", val)
         if m_price:
@@ -1619,11 +1575,16 @@ def parse_product(req: ParseRequest):
                 if not any(opt["name"] == clean for opt in current_group_dict["options"]):
                     is_sel = clean in selected_summary
                     ru_val = translate_color(clean) if current_group_dict["type"] == "visual" else translate_size_or_model(clean)
+                    en_val = node.attrib.get("enabled", "true").lower() == "true"
+                    clk_val = node.attrib.get("clickable", "true").lower() == "true"
+                    is_dis = (not en_val) or (not clk_val and "ViewGroup" not in cls) or any(k in val for k in ["已售罄", "售罄", "缺货", "断码", "无货"])
                     opt_entry = {
                         "name": clean,
                         "name_ru": ru_val,
                         "selected": is_sel,
-                        "bounds": bounds
+                        "bounds": bounds,
+                        "disabled": is_dis,
+                        "in_stock": not is_dis
                     }
                     if opt_price_cny > 0:
                         opt_entry["price_cny"] = opt_price_cny
@@ -1688,6 +1649,7 @@ def parse_product(req: ParseRequest):
         "category": category,
         "price_cny": price_cny or page_price_cny or 0.0,
         "orig_price_cny": orig_price_cny or price_cny or page_price_cny or 0.0,
+        "seller_limit_qty": seller_limit_qty,
         "image_url": image_rel_url,
         "selected_summary": selected_summary,
         "has_options": len(colors) > 0 or len(sizes) > 0 or len(spec_groups) > 0,
@@ -1706,57 +1668,50 @@ def select_sku(req: SelectSkuRequest):
     root = dump_ui_xml()
     price_cny = 0.0
     selected_summary = ""
-    updated_img_url = ""
-    
-    thumb_bounds = None
-    for n in root.iter('node'):
-        cls = n.attrib.get('class', '')
-        b = n.attrib.get('bounds', '')
-        if 'ImageView' in cls and b:
-            x1, y1, x2, y2 = parse_bounds(b)
-            w, h = x2 - x1, y2 - y1
-            if 100 <= w <= 300 and 100 <= h <= 300 and x1 < 150 and 150 <= y1 <= 550:
-                thumb_bounds = (x1, y1, x2, y2)
-                break
+    seller_limit_qty = 0
+    available_sizes = []
+    disabled_sizes = []
 
     for node in root.iter("node"):
         val = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
         if "已选:" in val or "请选择:" in val:
             selected_summary = val.replace("已选:", "").replace("请选择:", "").replace("🔥", "").strip()
-        if "到手价" in val or "提交订单" in val or "限量价" in val:
+        if any(k in val for k in ["到手价", "提交订单", "限量价", "券后", "限1件", "限购"]):
             m_price = re.search(r"¥\s*(\d+\.?\d*)", val)
             if m_price:
                 price_cny = float(m_price.group(1))
+        m_lim = re.search(r"(?:限|限购|仅限)\s*(\d+)\s*件", val)
+        if m_lim and seller_limit_qty == 0:
+            seller_limit_qty = int(m_lim.group(1))
 
-    # Dynamic studio preview capture for selected variant via fast in-memory screencap
-    if thumb_bounds:
-        try:
-            sc_bytes = run_adb_screencap_bytes()
-            if sc_bytes:
-                im_sel = Image.open(io.BytesIO(sc_bytes)).convert("RGB")
-                c_sel = im_sel.crop(thumb_bounds)
-                out_name = f"sku_{req.goods_id}_sel_{int(time.time())}.jpg"
-                out_path = os.path.join(PARSED_UPLOADS_DIR, out_name)
-                c_sel.save(out_path, "JPEG", quality=92)
-                if supabase_client:
-                    try:
-                        with open(out_path, "rb") as f:
-                            supabase_client.storage.from_("product-screenshots").upload(
-                                out_name, f.read(), file_options={"content-type": "image/jpeg", "upsert": "true"}
-                            )
-                        updated_img_url = supabase_client.storage.from_("product-screenshots").get_public_url(out_name)
-                    except Exception as up_err:
-                        print("Dynamic option upload error:", up_err)
-                if not updated_img_url:
-                    updated_img_url = f"/uploads/parsed/{out_name}"
-        except Exception as sel_err:
-            print("Select SKU photo error:", sel_err)
+        # Check size buttons availability
+        cls = node.attrib.get("class", "")
+        if any(k in cls for k in ["TextView", "Button"]):
+            en = node.attrib.get("enabled", "true").lower() == "true"
+            clk = node.attrib.get("clickable", "true").lower() == "true"
+            is_dis = (not en) or (not clk and "ViewGroup" not in cls) or any(k in val for k in ["售罄", "缺货", "断码", "无货"])
+            if 1 <= len(val) <= 10 and not any(k in val for k in ["¥", "选择", "尺码", "已选", "建议", "优惠", "支付", "订单"]):
+                if is_dis:
+                    disabled_sizes.append(val)
+                else:
+                    available_sizes.append(val)
+
+    if price_cny == 0.0:
+        for node in root.iter("node"):
+            val = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
+            if "¥" in val:
+                m_p = re.search(r"¥\s*(\d+\.?\d*)", val)
+                if m_p:
+                    price_cny = float(m_p.group(1))
+                    break
 
     return {
         "success": True,
         "price_cny": price_cny or 0.0,
         "selected_summary": selected_summary,
-        "image_url": updated_img_url
+        "seller_limit_qty": seller_limit_qty,
+        "available_sizes": available_sizes,
+        "disabled_sizes": disabled_sizes
     }
 
 # ==================== SUPABASE REAL-TIME QUEUE WORKER ====================
