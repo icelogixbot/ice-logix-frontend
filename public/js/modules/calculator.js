@@ -1564,9 +1564,71 @@ window.renderSmartCalculator = async function() {
 
               // ── FALLBACK PATH: SUPABASE PARSE_QUEUE ──
               if (!handled && typeof supabaseClient !== 'undefined' && supabaseClient) {
-                if (statusBox) statusBox.innerHTML = '<span class="animate-spin inline-block mr-1">⏳</span> Обходим защиту… Парсинг через облачный шлюз...';
+                if (statusBox) {
+                  statusBox.innerHTML = '<span class="animate-spin inline-block mr-1">⏳</span> Проверяем базу товаров…';
+                  statusBox.classList.remove('hidden');
+                }
                 const isPdd = /yangkeduo|pinduoduo|goods_id=/i.test(url);
                 const initialStatus = isPdd ? 'pdd_pending' : 'pending';
+
+                // 1. FAST CACHE HIT: Instant load if product was parsed recently
+                try {
+                  const mGid = url.match(/goods_id=(\d+)/);
+                  let cacheQuery = supabaseClient
+                    .from('parse_queue')
+                    .select('status, price, title, weight_kg, currency, country, category, description, color, brand, marketplace_name, error_message, image_url')
+                    .eq('status', 'done')
+                    .gt('price', 0)
+                    .order('id', { ascending: false })
+                    .limit(1);
+
+                  if (mGid) {
+                    cacheQuery = cacheQuery.ilike('url', `%goods_id=${mGid[1]}%`);
+                  } else {
+                    cacheQuery = cacheQuery.eq('url', url);
+                  }
+
+                  const { data: cachedRows } = await cacheQuery;
+
+                  if (cachedRows && cachedRows.length > 0) {
+                    const cachedItem = cachedRows[0];
+                    let skuBundle = null;
+                    if (cachedItem.description) {
+                      if (typeof cachedItem.description === 'object' && cachedItem.description.is_sku_bundle) {
+                        skuBundle = cachedItem.description;
+                      } else if (typeof cachedItem.description === 'string') {
+                        try {
+                          const parsedDesc = JSON.parse(cachedItem.description);
+                          if (parsedDesc && parsedDesc.is_sku_bundle) skuBundle = parsedDesc;
+                        } catch(e) {}
+                      }
+                    }
+                    const effectivePrice = Number(skuBundle?.price_cny) || Number(cachedItem.price) || 0;
+                    if (effectivePrice > 0) {
+                      const bundleData = skuBundle || {
+                        title: cachedItem.title,
+                        title_ru: cachedItem.title,
+                        price_cny: effectivePrice,
+                        category: cachedItem.category,
+                        image_url: cachedItem.image_url,
+                        brand: cachedItem.brand,
+                        colors: cachedItem.color ? [{ name: cachedItem.color, name_ru: cachedItem.color }] : [],
+                        sizes: cachedItem.size ? [{ name: cachedItem.size, name_ru: cachedItem.size }] : [],
+                        spec_groups: []
+                      };
+                      handleParsedBundle(bundleData);
+                      handled = true;
+                      return;
+                    }
+                  }
+                } catch (cacheErr) {
+                  console.log('Cache check error:', cacheErr);
+                }
+
+                // 2. Queue live parse task
+                if (statusBox) {
+                  statusBox.innerHTML = '<span class="animate-spin inline-block mr-1">⚡</span> Подключение к аппаратному мосту Pinduoduo...';
+                }
 
                 const { data: queueData, error: qErr } = await supabaseClient
                   .from('parse_queue')
@@ -1584,6 +1646,10 @@ window.renderSmartCalculator = async function() {
                       .eq('id', taskId)
                       .single();
 
+                    if (checkData?.status === 'processing' && statusBox) {
+                      statusBox.innerHTML = '<span class="animate-spin inline-block mr-1">📲</span> Эмулятор считывает опции, размеры и студийные фото…';
+                    }
+
                     if (checkData?.status === 'done') {
                       let skuBundle = null;
                       if (checkData.description) {
@@ -1598,14 +1664,21 @@ window.renderSmartCalculator = async function() {
                       }
 
                       const effectivePrice = Number(skuBundle?.price_cny) || Number(checkData.price) || 0;
-                      if (effectivePrice <= 0) {
-                        throw new Error('Облачный шлюз был временно ограничен защитой Pinduoduo. Пожалуйста, убедитесь, что фоновый аппаратный мост активен на компьютере, или введите цену вручную.');
+                      const hasOptions = skuBundle && (
+                        (skuBundle.visual_options && skuBundle.visual_options.length > 0) ||
+                        (skuBundle.colors && skuBundle.colors.length > 0) ||
+                        (skuBundle.sizes && skuBundle.sizes.length > 0) ||
+                        (skuBundle.spec_groups && skuBundle.spec_groups.length > 0)
+                      );
+
+                      if (effectivePrice <= 0 && !hasOptions) {
+                        throw new Error('Не удалось автоматически считать цену для этого товара. Пожалуйста, введите цену вручную.');
                       }
 
                       const bundleData = skuBundle || {
                         title: checkData.title,
                         title_ru: checkData.title,
-                        price_cny: checkData.price,
+                        price_cny: effectivePrice,
                         category: checkData.category,
                         image_url: checkData.image_url,
                         brand: checkData.brand,
@@ -1619,7 +1692,7 @@ window.renderSmartCalculator = async function() {
                       return;
                     }
                     if (checkData?.status === 'error') {
-                      throw new Error(checkData.error_message || 'Ошибка парсинга');
+                      throw new Error(checkData.error_message || 'Ошибка парсинга товара');
                     }
                   }
                 }

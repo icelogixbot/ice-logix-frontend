@@ -1398,13 +1398,15 @@ def supabase_queue_worker():
                                 except Exception as up_err:
                                     print("Storage upload error:", up_err)
 
+                        effective_price = parsed.get("price_cny") or parsed.get("page_price_cny") or 0.0
+
                         sku_bundle = {
                             "is_sku_bundle": True,
                             "goods_id": goods_id,
                             "title_ru": parsed.get("title_ru") or parsed.get("title") or "Товар",
                             "title": parsed.get("title") or "",
-                            "price_cny": parsed.get("price_cny") or 0.0,
-                            "orig_price_cny": parsed.get("orig_price_cny") or 0.0,
+                            "price_cny": effective_price,
+                            "orig_price_cny": parsed.get("orig_price_cny") or effective_price,
                             "visual_options": parsed.get("visual_options") or parsed.get("colors") or [],
                             "spec_options": parsed.get("spec_options") or parsed.get("sizes") or [],
                             "colors": parsed.get("colors") or [],
@@ -1420,9 +1422,9 @@ def supabase_queue_worker():
                         # Update row in Supabase
                         supabase_client.from_("parse_queue").update({
                             "status": "done",
-                            "price": parsed["price_cny"],
+                            "price": effective_price,
                             "currency": "CNY",
-                            "title": parsed["title_ru"],
+                            "title": parsed.get("title_ru") or parsed.get("title") or "Товар",
                             "brand": parsed.get("brand") or "",
                             "category": parsed.get("category") or "Товары из Китая",
                             "color": parsed["colors"][0]["name_ru"] if parsed.get("colors") else "Как на фото",

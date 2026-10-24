@@ -1356,13 +1356,16 @@
     const issuedBy = (scanData.issued_by || d.issued_by || '').trim();
 
     // 7. Адрес регистрации
-    const city = (scanData.address_city || d.address?.city || '').trim();
+    let city = (scanData.address_city || d.address?.city || '').trim();
+    if (/районн|исполком|выканкам|нсиолните|комитет/i.test(city)) {
+      city = '';
+    }
     let region = (scanData.address_region || d.address?.region || d.region || '').trim();
-    const street = (scanData.address_street || d.address?.street || '').trim();
+    let street = (scanData.address_street || d.address?.street || '').trim();
 
     let house = (scanData.address_house || d.address?.house || '').trim();
     let apt = (scanData.address_apartment || d.address?.room || '').trim();
-    if (apt === '-' || apt === '—' || apt.toLowerCase() === 'нет') apt = '';
+    if (apt === '-' || apt === '—' || apt.toLowerCase() === 'нет' || apt === 'null') apt = '';
     if (scanData.is_crossed_seven || apt === '4') apt = '7';
 
     if (scanData.inspection) {
@@ -1378,7 +1381,10 @@
       }
     }
 
-    const corpus = (scanData.address_building || d.address?.corpus || '').trim();
+    let corpus = (scanData.address_building || d.address?.corpus || '').trim();
+    if (corpus === '-' || corpus === '—' || corpus.toLowerCase() === 'нет' || corpus.toLowerCase() === 'null' || (corpus.length > 2 && !/\d/.test(corpus))) {
+      corpus = '';
+    }
     let zipCode = (scanData.address_postcode || d.address?.zip_code || '').trim();
     if (!zipCode && city) {
       const cLower = city.toLowerCase().replace(/^(?:г|д|аг|пос|пгт|рп)\.?\s+/gi, '').trim();
