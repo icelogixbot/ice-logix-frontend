@@ -161,6 +161,11 @@ BRAND_RULES = [
     (["stone island", "石头岛", "罗盘"], "Stone Island"),
     (["arc'teryx", "arcteryx", "始祖鸟"], "Arc'teryx"),
     (["salomon", "萨洛蒙", "xt-6", "xt6", "acs pro"], "Salomon"),
+    (["nocta", "nike x nocta", "nocta x nike", "nike nocta"], "Nike x Nocta"),
+    (["sp5der", "spider 555"], "Sp5der"),
+    (["denim tears"], "Denim Tears"),
+    (["bape", "a bathing ape"], "BAPE"),
+    (["gallery dept"], "Gallery Dept"),
     (["nike", "耐克", "dunk", "jordan", "air force", "kobe", "vomero"], "Nike"),
     (["adidas", "阿迪达斯", "samba", "gazelle", "yeezy", "spezial", "campus", "bad bunny"], "Adidas"),
     (["new balance", "nb", "1906r", "2002r", "9060", "530", "990"], "New Balance"),
@@ -300,24 +305,58 @@ def preprocess_fashion_text(t: str) -> str:
     res = re.sub(r"\s+", " ", res).strip()
     return res
 
-def humanize_size(val: str) -> str:
+def format_standard_size(val: str) -> str:
+    if not val:
+        return ""
     clean = val.strip()
+    
     # Convert weight recommendations from Chinese jin (斤 = 0.5 kg) to kg
     # e.g., "M 建议90-110斤" -> "M (45–55 кг)"
     m_range = re.search(r'(?:建议)?\s*(\d+)\s*[-–—~至]\s*(\d+)\s*斤', clean)
+    weight_part = ""
     if m_range:
         w1 = int(int(m_range.group(1)) * 0.5)
         w2 = int(int(m_range.group(2)) * 0.5)
-        clean = re.sub(r'\(?(?:建议)?\s*\d+\s*[-–—~至]\s*\d+\s*斤\)?', f' ({w1}–{w2} кг)', clean)
+        weight_part = f" ({w1}–{w2} кг)"
+        clean = re.sub(r'\(?(?:建议)?\s*\d+\s*[-–—~至]\s*\d+\s*斤\)?', '', clean).strip()
     else:
         m_single = re.search(r'(?:建议)?\s*(\d+)\s*斤', clean)
         if m_single:
             w = int(int(m_single.group(1)) * 0.5)
-            clean = re.sub(r'\(?(?:建议)?\s*\d+\s*斤\)?', f' ({w} кг)', clean)
+            weight_part = f" ({w} кг)"
+            clean = re.sub(r'\(?(?:建议)?\s*\d+\s*斤\)?', '', clean).strip()
             
-    clean = clean.replace("亚洲尺码", "").replace("尺码", "").replace("建议", "").strip()
-    clean = re.sub(r'\s+', ' ', clean)
-    return clean
+    clean = re.sub(r"亚洲尺码|欧码|美码|尺码|标准码|正码|建议|码", "", clean).strip()
+    clean = re.sub(r"\s+", " ", clean).strip()
+    
+    if any(k in clean.lower() for k in ["均码", "free", "onesize", "one size"]):
+        return f"Универсальный{weight_part}"
+        
+    low = clean.lower()
+    m_num_xl = re.match(r'^(\d+)\s*x+l$', low)
+    if m_num_xl:
+        clean = f"{m_num_xl.group(1)}XL"
+    elif re.match(r'^x+l$', low):
+        x_count = low.count('x')
+        clean = "XL" if x_count == 1 else f"{x_count}XL"
+    elif re.match(r'^x+s$', low):
+        x_count = low.count('x')
+        clean = "XS" if x_count == 1 else f"{x_count}XS"
+    elif low in ["s", "m", "l"]:
+        clean = low.upper()
+    else:
+        clean = re.sub(r'\b([xX]{2,})[lL]\b', lambda m: f"{len(m.group(1))}XL", clean)
+        clean = re.sub(r'\b([xX])[lL]\b', 'XL', clean)
+        clean = re.sub(r'\b(\d+)\s*[xX]+[lL]\b', lambda m: f"{m.group(1)}XL", clean)
+        clean = re.sub(r'\b([xX]{2,})[sS]\b', lambda m: f"{len(m.group(1))}XS", clean)
+        clean = re.sub(r'\b([xX])[sS]\b', 'XS', clean)
+        clean = re.sub(r'\b([sml])\b', lambda m: m.group(1).upper(), clean)
+
+    res = f"{clean}{weight_part}".strip()
+    return res or val
+
+def humanize_size(val: str) -> str:
+    return format_standard_size(val)
 
 def clean_and_translate_option(name_cn: str, is_color: bool = True) -> str:
     clean = re.sub(r"[🔥\s]|快要抢光|热卖|爆款|大促|马上卖完", " ", name_cn).strip()
@@ -408,7 +447,9 @@ def detect_category_and_brand(title_cn: str, selected_summary: str = ""):
             break
             
     category = "Товары из Китая"
-    if any(x in full_text for x in ["牛仔裤", "牛仔"]):
+    if any(x in full_text for x in ["套装", "套服", "两件套", "运动套装", "卫衣套装"]):
+        category = "Спортивный костюм"
+    elif any(x in full_text for x in ["牛仔裤", "牛仔"]):
         category = "Джинсы"
     elif any(x in full_text for x in ["鞋", "运动鞋", "板鞋", "球鞋", "sneaker", "靴"]):
         category = "Обувь"
@@ -438,6 +479,10 @@ def synthesize_smart_title(raw_title: str, brand: str = "", category: str = "") 
     trans = translate_raw_gtx(clean_cn)
     
     fashion_cleanup = {
+        "运动套装": "спортивный костюм",
+        "卫衣套装": "спортивный костюм",
+        "两件套": "костюм",
+        "套装": "костюм",
         "毛衣": "свитер",
         "针织衫": "вязаный свитер",
         "提花": "жаккардовый",
@@ -486,7 +531,9 @@ def synthesize_smart_title(raw_title: str, brand: str = "", category: str = "") 
     feature = ""
     detected_model = ""
     
-    if any(k in raw_lower for k in ["足球鞋", "猎鹰", "刺客", "碎钉", "长钉"]) or any(k in clean_low for k in ["бутсы", "футбольн"]):
+    if any(k in raw_lower for k in ["运动套装", "套装", "套服", "两件套", "卫衣套装", "秋款套装", "冬款套装"]) or any(k in clean_low for k in ["спортивный костюм", "костюм", "комплект"]):
+        lead = "Спортивный костюм"
+    elif any(k in raw_lower for k in ["足球鞋", "猎鹰", "刺客", "碎钉", "长钉"]) or any(k in clean_low for k in ["бутсы", "футбольн"]):
         lead = "Футбольные бутсы"
         if "猎鹰" in raw_lower:
             detected_model = "Predator"
@@ -1193,8 +1240,8 @@ def capture_hd_studio_and_variants(
             if not colors[0].get("thumb_url"):
                 colors[0]["thumb_url"] = hd_pub_url
 
-        # Extract 100% genuine studio 800x800 photos for additional top variants (idx 1..min(4, len(colors)-1))
-        for idx in range(1, min(len(colors), 4)):
+        # Extract 100% genuine studio 800x800 photos for additional top variants (idx 1..min(len(colors), 8))
+        for idx in range(1, min(len(colors), 8)):
             col = colors[idx]
             b_str = col.get("bounds")
             if not b_str:
@@ -1214,7 +1261,7 @@ def capture_hd_studio_and_variants(
                 for n in root_var.iter("node"):
                     v_txt = (n.attrib.get("text", "") or n.attrib.get("content-desc", "")).strip()
                     m_p = re.search(r"¥\s*(\d+\.?\d*)", v_txt)
-                    if m_p and any(k in v_txt for k in ["到手价", "提交订单", "限量价", "限1件", "券后"]):
+                    if m_p and any(k in v_txt for k in ["到手价", "提交订单", "限量价", "限1件", "券后", "已狂降至", "提前降", "抢先购", "现在买"]):
                         col["price_cny"] = float(m_p.group(1))
                         break
 
@@ -1572,15 +1619,21 @@ def parse_product(req: ParseRequest):
                 # Auxiliary link on same row as header (like "看对比" or "尺码建议")
                 continue
             if clean and 1 <= len(clean) < 35 and clean != "大图":
-                if not any(opt["name"] == clean for opt in current_group_dict["options"]):
+                if not any(opt.get("raw_name") == clean or opt["name"] == clean for opt in current_group_dict["options"]):
                     is_sel = clean in selected_summary
-                    ru_val = translate_color(clean) if current_group_dict["type"] == "visual" else translate_size_or_model(clean)
+                    if current_group_dict["type"] == "visual":
+                        ru_val = translate_color(clean)
+                        display_name = clean
+                    else:
+                        ru_val = format_standard_size(clean)
+                        display_name = ru_val
                     en_val = node.attrib.get("enabled", "true").lower() == "true"
                     clk_val = node.attrib.get("clickable", "true").lower() == "true"
                     is_dis = (not en_val) or (not clk_val and "ViewGroup" not in cls) or any(k in val for k in ["已售罄", "售罄", "缺货", "断码", "无货"])
                     opt_entry = {
-                        "name": clean,
+                        "name": display_name,
                         "name_ru": ru_val,
+                        "raw_name": clean,
                         "selected": is_sel,
                         "bounds": bounds,
                         "disabled": is_dis,
@@ -1606,6 +1659,30 @@ def parse_product(req: ParseRequest):
     colors = [c for c in colors if not any(j in c.get("name", "") for j in marketing_junk) and len(c.get("name", "").strip()) > 0]
     if visual_groups:
         visual_groups[0]["options"] = colors
+
+    # Check bottom bar checkout button for promotional checkout price
+    for node in root.iter("node"):
+        val = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
+        b_btn = node.attrib.get("bounds", "")
+        if b_btn:
+            bx1, by1, bx2, by2 = parse_bounds(b_btn)
+            if by1 >= 1400:
+                m_bottom_p = re.search(r"¥\s*(\d+\.?\d*)", val)
+                if m_bottom_p:
+                    b_price = float(m_bottom_p.group(1))
+                    if b_price > 0 and (price_cny == 0.0 or b_price < price_cny):
+                        price_cny = b_price
+
+    # Check store coupon if mentioned on screen
+    for node in root.iter("node"):
+        val = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
+        m_coup = re.search(r"店铺券\s*[-–—]?\s*(\d+\.?\d*)\s*元", val)
+        if m_coup:
+            coup_val = float(m_coup.group(1))
+            if coup_val > 0 and price_cny > coup_val:
+                discounted = round(price_cny - coup_val, 2)
+                if not any(f"{discounted}" in (n.attrib.get("text", "") or n.attrib.get("content-desc", "")) for n in root.iter("node")):
+                    price_cny = discounted
 
     if price_cny == 0.0:
         if orig_price_cny > 0.0:
@@ -1676,13 +1753,24 @@ def select_sku(req: SelectSkuRequest):
         val = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
         if "已选:" in val or "请选择:" in val:
             selected_summary = val.replace("已选:", "").replace("请选择:", "").replace("🔥", "").strip()
-        if any(k in val for k in ["到手价", "提交订单", "限量价", "券后", "限1件", "限购"]):
+        if any(k in val for k in ["到手价", "提交订单", "限量价", "券后", "限1件", "限购", "已狂降至", "提前降", "抢先购", "现在买"]):
             m_price = re.search(r"¥\s*(\d+\.?\d*)", val)
             if m_price:
                 price_cny = float(m_price.group(1))
         m_lim = re.search(r"(?:限|限购|仅限)\s*(\d+)\s*件", val)
         if m_lim and seller_limit_qty == 0:
             seller_limit_qty = int(m_lim.group(1))
+
+        # Check bottom bar checkout button for exact promotional checkout price
+        b_btn = node.attrib.get("bounds", "")
+        if b_btn:
+            bx1, by1, bx2, by2 = parse_bounds(b_btn)
+            if by1 >= 1400:
+                m_bottom_p = re.search(r"¥\s*(\d+\.?\d*)", val)
+                if m_bottom_p:
+                    b_price = float(m_bottom_p.group(1))
+                    if b_price > 0 and (price_cny == 0.0 or b_price < price_cny):
+                        price_cny = b_price
 
         # Check size buttons availability
         cls = node.attrib.get("class", "")
@@ -1691,10 +1779,22 @@ def select_sku(req: SelectSkuRequest):
             clk = node.attrib.get("clickable", "true").lower() == "true"
             is_dis = (not en) or (not clk and "ViewGroup" not in cls) or any(k in val for k in ["售罄", "缺货", "断码", "无货"])
             if 1 <= len(val) <= 10 and not any(k in val for k in ["¥", "选择", "尺码", "已选", "建议", "优惠", "支付", "订单"]):
+                std_s = format_standard_size(val)
                 if is_dis:
-                    disabled_sizes.append(val)
+                    disabled_sizes.extend([val, std_s])
                 else:
-                    available_sizes.append(val)
+                    available_sizes.extend([val, std_s])
+
+    # Check store coupon if mentioned on screen
+    for node in root.iter("node"):
+        val = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
+        m_coup = re.search(r"店铺券\s*[-–—]?\s*(\d+\.?\d*)\s*元", val)
+        if m_coup:
+            coup_val = float(m_coup.group(1))
+            if coup_val > 0 and price_cny > coup_val:
+                discounted = round(price_cny - coup_val, 2)
+                if not any(f"{discounted}" in (n.attrib.get("text", "") or n.attrib.get("content-desc", "")) for n in root.iter("node")):
+                    price_cny = discounted
 
     if price_cny == 0.0:
         for node in root.iter("node"):

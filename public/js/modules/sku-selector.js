@@ -106,6 +106,57 @@
     const calcRub = (cny) => Math.round(cny * 13.8);
     const calcByn = (cny) => (cny * 0.46).toFixed(2);
 
+    function formatStandardSize(val) {
+      if (!val) return '';
+      let str = String(val).trim();
+
+      // Convert weight recommendations from Chinese jin to kg: e.g. "M 建议90-110斤" -> "M (45–55 кг)"
+      let weightPart = '';
+      const rangeMatch = str.match(/(?:建议)?\s*(\d+)\s*[-–—~至]\s*(\d+)\s*斤/);
+      if (rangeMatch) {
+        const w1 = Math.round(parseInt(rangeMatch[1], 10) * 0.5);
+        const w2 = Math.round(parseInt(rangeMatch[2], 10) * 0.5);
+        weightPart = ` (${w1}–${w2} кг)`;
+        str = str.replace(/\(?(?:建议)?\s*\d+\s*[-–—~至]\s*\d+\s*斤\)?/g, '').trim();
+      } else {
+        const singleMatch = str.match(/(?:建议)?\s*(\d+)\s*斤/);
+        if (singleMatch) {
+          const w = Math.round(parseInt(singleMatch[1], 10) * 0.5);
+          weightPart = ` (${w} кг)`;
+          str = str.replace(/\(?(?:建议)?\s*\d+\s*斤\)?/g, '').trim();
+        }
+      }
+
+      str = str.replace(/亚洲尺码|欧码|美码|尺码|标准码|正码|建议|码/g, '').trim();
+
+      if (/^(均码|free|onesize|one\s*size)$/i.test(str)) {
+        return `Универсальный${weightPart}`;
+      }
+
+      const low = str.toLowerCase();
+      const numXl = low.match(/^(\d+)\s*x+l$/);
+      if (numXl) {
+        str = `${numXl[1]}XL`;
+      } else if (/^x+l$/.test(low)) {
+        const xCount = (low.match(/x/g) || []).length;
+        str = xCount === 1 ? 'XL' : `${xCount}XL`;
+      } else if (/^x+s$/.test(low)) {
+        const xCount = (low.match(/x/g) || []).length;
+        str = xCount === 1 ? 'XS' : `${xCount}XS`;
+      } else if (/^[sml]$/.test(low)) {
+        str = low.toUpperCase();
+      } else {
+        str = str.replace(/\b([xX]{2,})[lL]\b/g, (_, xs) => `${xs.length}XL`);
+        str = str.replace(/\b([xX])[lL]\b/g, 'XL');
+        str = str.replace(/\b(\d+)\s*[xX]+[lL]\b/g, (_, n) => `${n}XL`);
+        str = str.replace(/\b([xX]{2,})[sS]\b/g, (_, xs) => `${xs.length}XS`);
+        str = str.replace(/\b([xX])[sS]\b/g, 'XS');
+        str = str.replace(/\b([sml])\b/gi, (m) => m.toUpperCase());
+      }
+
+      return `${str}${weightPart}`.trim() || val;
+    }
+
     function getCombinedSummary() {
       const parts = [];
       const visualGrp = groups.find(g => g.type === 'visual');
@@ -118,7 +169,10 @@
       specGrps.forEach(g => {
         const s = selectedState[g.id];
         if (s) {
-          const name = s.name_ru || s.name;
+          let name = s.name_ru || s.name;
+          if (g.title === 'Размер' || g.id.includes('size')) {
+            name = formatStandardSize(name);
+          }
           parts.push(name.toLowerCase().startsWith('размер') || name.toLowerCase().startsWith('память') ? name : `${g.title}: ${name}`);
         }
       });
@@ -136,6 +190,7 @@
     // Render HTML for each group dynamically
     const groupsHtml = groups.map((grp) => {
       const isVisual = grp.type === 'visual';
+      const isSizeGroup = grp.title === 'Размер' || grp.id.includes('size');
       const selOpt = selectedState[grp.id];
 
       const optionsHtml = (grp.options || []).map((opt, optIdx) => {
@@ -160,7 +215,7 @@
               data-bounds="${opt.bounds || ''}"
               data-img-url="${opt.image_url || ''}"
               data-price-cny="${opt.price_cny || ''}"
-              data-raw-name="${opt.name}"
+              data-raw-name="${opt.raw_name || opt.name}"
               data-name-ru="${opt.name_ru || opt.name}">
               ${imgHtml}
               <div class="flex-1 min-w-0 flex flex-col justify-center">
@@ -170,6 +225,7 @@
             </button>
           `;
         } else {
+          const formattedLabel = isSizeGroup ? formatStandardSize(opt.name_ru || opt.name) : (opt.name_ru || opt.name);
           return `
             <button type="button" 
               class="sku-chip sku-spec-chip h-10 w-full flex items-center justify-center rounded-xl text-xs font-bold font-mono border transition-all duration-200 cursor-pointer text-center ${isDis ? 'opacity-30 pointer-events-none cursor-not-allowed line-through border-white/5 bg-white/[0.02] text-white/30' : isSel ? 'active-chip bg-gradient-to-r from-cyan-500/25 to-blue-500/25 border-cyan-400 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.35)]' : 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10'}" 
@@ -177,14 +233,18 @@
               data-opt-idx="${optIdx}"
               data-bounds="${opt.bounds || ''}"
               data-price-cny="${opt.price_cny || ''}"
-              data-raw-name="${opt.name}"
+              data-raw-name="${opt.raw_name || opt.name}"
               data-disabled="${isDis ? 'true' : 'false'}"
-              data-name-ru="${opt.name_ru || opt.name}">
-              <span class="truncate px-1">${opt.name_ru || opt.name}</span>
+              data-name-ru="${formattedLabel}">
+              <span class="truncate px-1">${formattedLabel}</span>
             </button>
           `;
         }
       }).join('');
+
+      const selLabel = selOpt 
+        ? (isSizeGroup ? formatStandardSize(selOpt.name_ru || selOpt.name) : (selOpt.name_ru || selOpt.name))
+        : 'Не выбран';
 
       return `
         <div class="sku-group-block space-y-2">
@@ -194,7 +254,7 @@
               ${grp.title}
             </span>
             <span id="skuSelectedLabel_${grp.id}" class="text-xs font-bold text-cyan-400 truncate max-w-[180px]">
-              ${selOpt ? (selOpt.name_ru || selOpt.name) : 'Не выбран'}
+              ${selLabel}
             </span>
           </div>
           <div class="${isVisual ? 'grid grid-cols-2 gap-2.5' : 'grid grid-cols-4 sm:grid-cols-5 gap-2'} ${!isVisual && (grp.options || []).length > 10 ? 'max-h-48 overflow-y-auto pr-1' : ''}">
@@ -524,7 +584,9 @@
       const selectedColorOpt = visualGroup ? selectedState[visualGroup.id] : null;
       const specSummaryParts = specGroupsList.map(g => {
         const s = selectedState[g.id];
-        return s ? (s.name_ru || s.name) : '';
+        if (!s) return '';
+        const raw = s.name_ru || s.name;
+        return (g.title === 'Размер' || g.id.includes('size')) ? formatStandardSize(raw) : raw;
       }).filter(Boolean);
 
       const colorName = selectedColorOpt ? (selectedColorOpt.name_ru || selectedColorOpt.name) : '';
@@ -596,7 +658,8 @@
         // Update group label
         const grpLabel = overlay.querySelector(`#skuSelectedLabel_${groupId}`);
         if (grpLabel) {
-          grpLabel.innerText = opt.name_ru || opt.name;
+          const isSizeGroup = grp.title === 'Размер' || grp.id.includes('size');
+          grpLabel.innerText = isSizeGroup ? formatStandardSize(opt.name_ru || opt.name) : (opt.name_ru || opt.name);
         }
 
         // Instant Dynamic Price Update from Option Data (Zero Delay!)

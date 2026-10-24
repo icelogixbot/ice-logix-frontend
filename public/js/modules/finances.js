@@ -799,7 +799,19 @@ function switchFinancesSubTab(targetTab) {
   window._financesSubTab = targetTab;
   if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
 
-  // 1. Мгновенно обновляем стили кнопок в DOM
+  // 1. Мгновенно обновляем стили кнопок и заголовок в DOM
+  const titles = {
+    pay: { title: 'ICE LOGIX <span class="text-cyan-400">PAY</span>', sub: 'Лицевой счёт и пополнение баланса' },
+    payment: { title: 'Банковские карты', sub: 'Привязанные карты для быстрой оплаты' },
+    coupons: { title: 'Купоны и промокоды', sub: 'Активация скидок и баллов' },
+    refunds: { title: 'Гарантия и возвраты', sub: 'История возвратов средств' }
+  };
+  const meta = titles[targetTab] || titles.pay;
+  const headerTitleEl = document.getElementById('financesHeaderTitle');
+  const headerSubEl = document.getElementById('financesHeaderSub');
+  if (headerTitleEl) headerTitleEl.innerHTML = meta.title;
+  if (headerSubEl) headerSubEl.innerText = meta.sub;
+
   const tabs = ['pay', 'payment', 'coupons', 'refunds'];
   tabs.forEach(tab => {
     const btn = document.getElementById('financesTab' + tab.charAt(0).toUpperCase() + tab.slice(1));
@@ -859,6 +871,14 @@ async function renderFinances() {
   if (subTab === 'history' || subTab === 'topup') subTab = 'pay';
   window._financesSubTab = subTab;
 
+  const titles = {
+    pay: { title: 'ICE LOGIX <span class="text-cyan-400">PAY</span>', sub: 'Лицевой счёт и пополнение баланса' },
+    payment: { title: 'Банковские карты', sub: 'Привязанные карты для быстрой оплаты' },
+    coupons: { title: 'Купоны и промокоды', sub: 'Активация скидок и баллов' },
+    refunds: { title: 'Гарантия и возвраты', sub: 'История возвратов средств' }
+  };
+  const curMeta = titles[subTab] || titles.pay;
+
   let initialContent = '';
   if (subTab === 'pay') {
     initialContent = _renderPayTabHtml();
@@ -902,8 +922,8 @@ async function renderFinances() {
           </svg>
         </button>
         <div>
-          <h2 class="text-xl font-bold text-white tracking-wide">Финансы</h2>
-          <p class="text-[11px] text-white/40">Счёт ICE LOGIX PAY, карты и возвраты</p>
+          <h2 id="financesHeaderTitle" class="text-xl font-bold text-white tracking-wide">${curMeta.title}</h2>
+          <p id="financesHeaderSub" class="text-[11px] text-white/40">${curMeta.sub}</p>
         </div>
       </div>
 
@@ -922,7 +942,7 @@ async function renderFinances() {
           <svg class="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
           </svg>
-          <span class="truncate">ICE PAY</span>
+          <span class="truncate">ICE LOGIX PAY</span>
         </button>
 
         <button
