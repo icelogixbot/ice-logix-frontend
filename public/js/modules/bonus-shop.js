@@ -8,6 +8,35 @@
   let bonusItemsCache = [];
   let userOrdersCache = [];
 
+  function formatRewardText(text) {
+    if (!text) return '';
+    const signHtml = window.bynSign ? window.bynSign({ color: 'cyan', size: '0.82em' }) : '';
+    return String(text)
+      .replace(/(\d+(?:\.\d+)?)\s*BYN\b/gi, `$1 ${signHtml}`)
+      .replace(/\bBYN\b/gi, signHtml)
+      .replace(/(\d+(?:\.\d+)?)\s*ICE\b/gi, `$1 ${signHtml}`)
+      .replace(/\bICE\b/gi, signHtml);
+  }
+
+  function getCategoryIconEmoji(cat) {
+    switch (cat) {
+      case 'coupons': return '🎟️';
+      case 'mobile': return '📱';
+      case 'merch': return '👕';
+      case 'gadgets': return '🎧';
+      default: return '🎁';
+    }
+  }
+
+  function renderRewardIcon(item) {
+    const hasCustomImg = item.image_url && !item.image_url.includes('icl_currency_icon') && !item.image_url.includes('coupon_10byn') && (item.image_url.startsWith('http') || item.image_url.startsWith('/'));
+    const emoji = getCategoryIconEmoji(item.category);
+    if (hasCustomImg) {
+      return `<img src="${item.image_url}" alt="${item.title}" class="w-full h-full object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="w-full h-full rounded-xl flex items-center justify-center text-2xl select-none" style="display:none;">${emoji}</div>`;
+    }
+    return `<div class="w-full h-full rounded-xl flex items-center justify-center text-2xl select-none">${emoji}</div>`;
+  }
+
   // Fallback стартовые товары (если база ещё наполняется)
   const FALLBACK_ITEMS = [
     {
@@ -16,7 +45,7 @@
       description: 'Скидка на комиссию вашего следующего заказа',
       category: 'coupons',
       price_ice: 10,
-      image_url: './assets/icl_currency_icon.png',
+      image_url: '',
       badge: 'Популярно',
       stock: -1
     },
@@ -26,7 +55,7 @@
       description: 'Скидка на комиссию любого крупного заказа',
       category: 'coupons',
       price_ice: 25,
-      image_url: './assets/icl_currency_icon.png',
+      image_url: '',
       badge: 'Выгодно',
       stock: -1
     },
@@ -36,7 +65,7 @@
       description: '100% покрытие рисков международной логистики на один любой заказ',
       category: 'coupons',
       price_ice: 15,
-      image_url: './assets/icl_currency_icon.png',
+      image_url: '',
       badge: 'Хит',
       stock: -1
     },
@@ -46,7 +75,7 @@
       description: 'Моментальное пополнение баланса МТС, А1 или Life:)',
       category: 'mobile',
       price_ice: 5,
-      image_url: './assets/icl_currency_icon.png',
+      image_url: '',
       badge: 'Связь',
       stock: -1
     },
@@ -56,7 +85,7 @@
       description: 'Пополнение номера телефона любого мобильного оператора Беларуси',
       category: 'mobile',
       price_ice: 10,
-      image_url: './assets/icl_currency_icon.png',
+      image_url: '',
       badge: 'Топ',
       stock: -1
     },
@@ -66,7 +95,7 @@
       description: 'Пополнение номера телефона любого мобильного оператора Беларуси',
       category: 'mobile',
       price_ice: 20,
-      image_url: './assets/icl_currency_icon.png',
+      image_url: '',
       badge: 'Максимум',
       stock: -1
     },
@@ -76,7 +105,7 @@
       description: 'Набор из 10 голографических водостойких виниловых стикеров',
       category: 'merch',
       price_ice: 12,
-      image_url: './assets/icl_currency_icon.png',
+      image_url: '',
       badge: 'Эксклюзив',
       stock: 45
     },
@@ -86,7 +115,7 @@
       description: 'Плотный премиальный хлопок, усиленная стопа и вышитый логотип',
       category: 'merch',
       price_ice: 18,
-      image_url: './assets/icl_currency_icon.png',
+      image_url: '',
       badge: 'Дроп',
       stock: 28
     },
@@ -96,7 +125,7 @@
       description: 'Плотность 240g, стойкая шелкография, фирменная бирка с голограммой',
       category: 'merch',
       price_ice: 65,
-      image_url: './assets/icl_currency_icon.png',
+      image_url: '',
       badge: 'Лимитка',
       stock: 12
     },
@@ -106,7 +135,7 @@
       description: 'Утеплённый оверсайз худи с премиальной вышивкой на груди',
       category: 'merch',
       price_ice: 120,
-      image_url: './assets/icl_currency_icon.png',
+      image_url: '',
       badge: 'VIP',
       stock: 8
     },
@@ -116,7 +145,7 @@
       description: 'Профессиональная щётка, чистящая пена и влагозащитная микрофибра',
       category: 'gadgets',
       price_ice: 35,
-      image_url: './assets/icl_currency_icon.png',
+      image_url: '',
       badge: 'Полезно',
       stock: 18
     },
@@ -126,7 +155,7 @@
       description: 'Защита от заломов носовой части обуви (пара, регулируемый размер)',
       category: 'gadgets',
       price_ice: 14,
-      image_url: './assets/icl_currency_icon.png',
+      image_url: '',
       badge: 'Мастхэв',
       stock: 35
     },
@@ -136,7 +165,7 @@
       description: 'Компактный внешний аккумулятор с быстрой зарядкой PD 22.5W',
       category: 'gadgets',
       price_ice: 75,
-      image_url: './assets/icl_currency_icon.png',
+      image_url: '',
       badge: 'Гаджет',
       stock: 6
     }
@@ -212,19 +241,19 @@
               
               <div class="flex items-start gap-3 mb-3">
                 <div class="w-14 h-14 rounded-xl flex items-center justify-center shrink-0 p-2" style="background: linear-gradient(135deg, rgba(6,182,212,0.15), rgba(14,165,233,0.05)); border: 1px solid rgba(6,182,212,0.2);">
-                  <img src="${item.image_url || './assets/icl_currency_icon.png'}" alt="${item.title}" class="w-full h-full object-contain" onerror="this.src='./assets/icl_currency_icon.png'">
+                  ${renderRewardIcon(item)}
                 </div>
                 <div class="flex-1 min-w-0 pr-12">
-                  <h4 class="text-white font-bold text-sm leading-snug line-clamp-2">${item.title}</h4>
-                  <p class="text-white/50 text-[11px] mt-1 line-clamp-2 leading-relaxed">${item.description || ''}</p>
+                  <h4 class="text-white font-bold text-sm leading-snug line-clamp-2">${formatRewardText(item.title)}</h4>
+                  <p class="text-white/50 text-[11px] mt-1 line-clamp-2 leading-relaxed">${formatRewardText(item.description)}</p>
                 </div>
               </div>
 
               <div class="pt-2 border-t border-white/5 flex items-center justify-between gap-2">
                 <div>
-                  <div class="flex items-center gap-1.5">
+                  <div class="flex items-center gap-1">
                     <span class="text-cyan-400 font-black text-base">${item.price_ice}</span>
-                    <span class="text-[11px] font-bold text-cyan-300">ICE</span>
+                    ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}
                   </div>
                   ${item.stock > 0 ? `<p class="text-[10px] text-white/40">Осталось: ${item.stock} шт.</p>` : ''}
                 </div>
@@ -498,7 +527,7 @@
     if (!modal) return;
 
     document.getElementById('modalItemId').value = item.id;
-    document.getElementById('modalItemTitle').textContent = item.title;
+    document.getElementById('modalItemTitle').innerHTML = formatRewardText(item.title);
     document.getElementById('modalItemPrice').innerHTML = `${item.price_ice} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}`;
 
     const mobileFields = document.getElementById('mobileFields');

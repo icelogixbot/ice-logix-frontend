@@ -229,35 +229,45 @@
             </div>
             
             <div class="wb-card-right">
-              <div class="wb-card-header-line">
-                <div class="wb-product-title" title="${it.title.replace(/"/g, '&quot;')}">${it.title}</div>
+              <!-- Row 1: Price and Three-dots Menu (WB Style) -->
+              <div class="wb-card-top-row">
+                <div class="wb-price-block">
+                  <span class="wb-current-price inline-flex items-baseline gap-1 font-mono font-extrabold text-[15px] text-cyan-400">
+                    <span class="wb-row-price" data-unit-price="${it.priceByn}">${itemSubtotal}</span>
+                    ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.82em' }) : ''}
+                  </span>
+                  <span class="wb-old-price inline-flex items-baseline gap-0.5 text-[11px] text-white/35 line-through ml-1 font-mono">
+                    ${(it.oldPriceByn * it.quantity).toFixed(2)}
+                    ${window.bynSign ? window.bynSign({ color: 'muted', size: '0.72em' }) : ''}
+                  </span>
+                </div>
                 <div class="wb-card-actions-top">
                   <button class="wb-menu-btn" data-cart-id="${it.id}" aria-label="Действия" title="Действия">
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
                       <circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/>
                     </svg>
                   </button>
-                  <button class="wb-item-remove-btn" data-id="${it.id}" aria-label="Удалить товар" title="Удалить">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                      <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                  </button>
                 </div>
               </div>
 
+              <!-- Row 2: Title and Variant -->
+              <div class="wb-product-title" title="${it.title.replace(/"/g, '&quot;')}">${it.title}</div>
               ${variantText ? `<div class="wb-product-variant">${variantText}</div>` : ''}
 
-              <div class="wb-card-bottom-line">
-                <div class="wb-price-block">
-                  <span class="wb-current-price inline-flex items-baseline gap-1"><span class="wb-row-price" data-unit-price="${it.priceByn}">${itemSubtotal}</span> ${window.bynSign ? window.bynSign() : ''}</span>
-                  <span class="wb-old-price inline-flex items-baseline gap-1">${(it.oldPriceByn * it.quantity).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
-                </div>
+              <!-- Row 3: Delivery Info (WB Style) -->
+              <div class="wb-delivery-info">
+                <span class="wb-delivery-date">Доставим через 8–12 дней</span>
+                <span class="wb-delivery-badge">Бесплатный отказ при получении</span>
+              </div>
 
+              <!-- Row 4: Stepper and Buy Button (WB Style) -->
+              <div class="wb-card-bottom-row">
                 <div class="wb-stepper">
                   <button class="wb-stepper-btn wb-step-dec" data-id="${it.id}" aria-label="Уменьшить">−</button>
                   <span class="wb-stepper-value wb-qty-val">${it.quantity}</span>
                   <button class="wb-stepper-btn wb-step-inc" data-id="${it.id}" aria-label="Увеличить">+</button>
                 </div>
+                <button type="button" class="wb-buy-item-btn" data-cart-id="${it.id}">Купить</button>
               </div>
             </div>
           </div>
@@ -591,6 +601,23 @@
             renderCurrentScreen();
           }
         };
+      };
+    });
+
+    // 7.1. Quick Buy Button on Item ("Купить" like WB)
+    document.querySelectorAll('.wb-buy-item-btn').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('medium');
+        const card = btn.closest('.wb-cart-card');
+        if (!card) return;
+        const cb = card.querySelector('.wb-item-cb');
+        // Uncheck all other items and check only this one
+        document.querySelectorAll('.wb-cart-card .wb-item-cb').forEach(c => c.checked = false);
+        if (cb) cb.checked = true;
+        updateWbTotals();
+        const checkoutBtn = document.getElementById('wbCheckoutBtn');
+        if (checkoutBtn) checkoutBtn.click();
       };
     });
 

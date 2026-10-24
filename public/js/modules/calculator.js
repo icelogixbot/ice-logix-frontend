@@ -1638,9 +1638,10 @@ window.renderSmartCalculator = async function() {
                   statusBox.innerHTML = '<span class="animate-spin inline-block mr-1">⚡</span> Подключение к аппаратному мосту Pinduoduo...';
                 }
 
+                const currentUserId = window.userId || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) || 6107097715;
                 const { data: queueData, error: qErr } = await supabaseClient
                   .from('parse_queue')
-                  .insert({ user_id: window.userId || null, url, status: initialStatus })
+                  .insert({ user_id: currentUserId, url, status: initialStatus })
                   .select('id')
                   .single();
 

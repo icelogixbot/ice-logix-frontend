@@ -685,6 +685,43 @@
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
     }
     .product-card:active { transform: scale(0.98) !important; }
+
+    /* Wildberries-style Floating Circular Cart Button */
+    .wb-card-cart-btn {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #00e5ff;
+      color: #041019;
+      border: none;
+      box-shadow: 0 4px 14px rgba(0, 229, 255, 0.45);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 15;
+      transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.18s ease, box-shadow 0.18s ease;
+      touch-action: manipulation;
+    }
+    .wb-card-cart-btn:active {
+      transform: scale(0.88);
+      background: #38bdf8;
+      box-shadow: 0 2px 8px rgba(0, 229, 255, 0.3);
+    }
+    .wb-card-cart-btn.added-anim {
+      animation: wbCartBtnPulse 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      background: #34d399;
+      color: #041019;
+      box-shadow: 0 4px 14px rgba(52, 211, 153, 0.45);
+    }
+    @keyframes wbCartBtnPulse {
+      0% { transform: scale(0.85); }
+      50% { transform: scale(1.18); }
+      100% { transform: scale(1); }
+    }
     
     /* ═══════════════════════════════════════════════════════════════════════════
        STORY / CATEGORY SQUIRCLES (WB Inspired)

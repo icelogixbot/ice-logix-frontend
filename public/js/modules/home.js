@@ -238,29 +238,78 @@ async function renderHome() {
           9 дропов
         </span>
       </div>
+// Вспомогательная функция рендеринга карточки товара в стиле Wildberries
+function renderWbProductCard(p, inWish) {
+  const brand = p.brand ? p.brand.trim() : 'ICE LOGIX';
+  const priceVal = Number(p.price || 0);
+  const oldPriceVal = priceVal * 1.35;
+  const bynSignHtml = window.bynSign ? window.bynSign({ color: 'cyan', size: '0.82em' }) : '';
+  const bynMutedSign = window.bynSign ? window.bynSign({ color: 'muted', size: '0.72em' }) : '';
+
+  return `
+    <div class="product-card cursor-pointer" data-product-id="${p.id}" data-url="${p.url || ''}" data-price="${p.price}">
+      <div class="relative w-full overflow-hidden" style="border-radius: 14px 14px 0 0;">
+        ${renderCardMedia(p.image_urls || p.image_url, p.title)}
+        
+        <!-- Top-Right: Wishlist Heart -->
+        <span class="wishlist-heart absolute top-2 right-2 w-7 h-7 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-sm ${inWish ? 'text-red-500' : 'text-white/70'} z-20 hover:scale-110 active:scale-95 transition" data-product-id="${p.id}" aria-label="В избранное">
+          ${getHeartIcon(inWish)}
+        </span>
+
+        <!-- Bottom-Left: Badges (WB Style) -->
+        <div class="absolute bottom-2 left-2 flex flex-col gap-1 z-10 pointer-events-none">
+          <span class="bg-black/60 backdrop-blur-md text-white/90 text-[9px] font-bold px-1.5 py-0.5 rounded border border-white/10 uppercase tracking-wider">${_esc(brand)}</span>
+          <span class="bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-[8.5px] font-black px-1.5 py-0.5 rounded shadow-sm">100% ОРИГИНАЛ</span>
+        </div>
+
+        <!-- Bottom-Right: Floating Circular Cart Button (WB Style) -->
+        <button type="button" class="wb-card-cart-btn addToCartBtn" data-product-id="${p.id}" aria-label="В корзину" title="В корзину">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Compact WB Info Section (NO heavy bottom buttons!) -->
+      <div style="padding: 8px 8px 10px 8px; display: flex; flex-direction: column;">
+        <!-- Row 1: Price and Strikethrough -->
+        <div class="flex items-baseline gap-1.5">
+          <span class="text-cyan-400 font-extrabold text-[15px] font-mono leading-none inline-flex items-baseline gap-0.5">
+            ${priceVal.toFixed(2)} ${bynSignHtml}
+          </span>
+          <span class="text-[11px] text-white/35 line-through font-mono">
+            ${oldPriceVal.toFixed(2)} ${bynMutedSign}
+          </span>
+        </div>
+
+        <!-- Row 2: Brand -->
+        <div class="text-[11px] font-bold text-white/90 mt-1 uppercase tracking-wide truncate">
+          ${_esc(brand)}
+        </div>
+
+        <!-- Row 3: Product Name -->
+        <div class="text-[11px] font-medium text-white/60 truncate mt-0.5" title="${_esc(p.title)}">
+          ${_esc(p.title)}
+        </div>
+
+        <!-- Row 4: Rating -->
+        <div class="flex items-center gap-1 text-[10px] text-white/45 mt-1.5">
+          <span class="text-amber-400">★</span>
+          <span class="font-bold text-white/80">4.9</span>
+          <span>·</span>
+          <span>128 оценок</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
       <div class="grid grid-cols-2 gap-2" id="homeProductsGrid" style="margin-left: -6px; margin-right: -6px;">
         ${homeProductsList.map(p => {
           const _inWish = ((typeof wishlist !== 'undefined' && wishlist?.has) ? wishlist.has(p.id) : (window.wishlist?.has ? window.wishlist.has(p.id) : false));
-          return `
-          <div class="product-card" data-product-id="${p.id}">
-            <div class="relative">
-              ${renderCardMedia(p.image_urls || p.image_url, p.title)}
-              <span class="absolute top-2 right-2 wishlist-heart text-lg ${_inWish ? 'text-red-500' : 'text-white/60'} z-20" data-product-id="${p.id}">${getHeartIcon(_inWish)}</span>
-              ${p.brand ? `<span class="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-white/90 text-[10px] font-bold px-2 py-0.5 rounded-md border border-white/10 uppercase tracking-wider">${_esc(p.brand)}</span>` : ''}
-            </div>
-            <div style="padding: 10px 8px 10px 8px; display: flex; flex-direction: column; flex: 1;">
-              <p class="text-white font-bold text-sm truncate" style="font-size: 13px; font-weight: 700; line-height: 1.2;">${_esc(p.title)}</p>
-              <div class="flex items-center justify-between mt-1.5">
-                <p class="text-cyan-400 font-bold text-sm font-mono leading-none inline-flex items-baseline gap-1">${p.price} ${window.bynSign ? window.bynSign() : ''}</p>
-                ${p.category ? `<span class="text-[10px] text-white/40 truncate max-w-[80px]">${_esc(p.category)}</span>` : ''}
-              </div>
-              <div class="flex gap-1.5 mt-2.5">
-                <button class="btn-primary addToCartBtn flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg" data-product-id="${p.id}">Корзина</button>
-                <button class="buyNowBtn flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg" data-url="${p.url || ''}" data-price="${p.price}">Заказать</button>
-              </div>
-            </div>
-          </div>
-        `;}).join('')}
+          return renderWbProductCard(p, _inWish);
+        }).join('')}
       </div>
     </div>
     
@@ -345,26 +394,11 @@ function attachHomeHandlers() {
           e.stopPropagation();
           if (!window.userId) { window.requireAuth('Для добавления в корзину необходимо войти или зарегистрироваться.'); return; }
           const productId = btn.dataset.productId;
-          if (productId) addToCart(productId);
-        };
-      });
-
-      document.querySelectorAll('.buyNowBtn').forEach(btn => {
-        btn.onclick = (e) => {
-          e.stopPropagation();
-          if (!window.userId) { window.requireAuth('Для оформления заказа необходимо войти или зарегистрироваться.'); return; }
-          const url = btn.dataset.url;
-          const price = parseFloat(btn.dataset.price);
-          if (url && !isNaN(price)) {
-            window.tempOrder = {
-              url: url,
-              price: price,
-              weight: 1,
-              total: window.iceLogixPricing.quickEstimate(price, 1),
-              discountAmount: 0,
-              appliedPromo: null
-            };
-            switchTab('neworder');
+          if (productId) {
+            if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('medium');
+            addToCart(productId);
+            btn.classList.add('added-anim');
+            setTimeout(() => btn.classList.remove('added-anim'), 400);
           }
         };
       });
@@ -408,26 +442,7 @@ function attachHomeHandlers() {
           } else {
             grid.innerHTML = data.map(p => {
               const _inWish = ((typeof wishlist !== 'undefined' && wishlist?.has) ? wishlist.has(p.id) : (window.wishlist?.has ? window.wishlist.has(p.id) : false));
-              return `
-              <div class="product-card" data-product-id="${p.id}">
-                <div class="relative">
-                  ${renderCardMedia(p.image_urls || p.image_url, p.title)}
-                  <span class="absolute top-2 right-2 wishlist-heart text-lg ${_inWish ? 'text-red-500' : 'text-white/60'} z-20" data-product-id="${p.id}">${getHeartIcon(_inWish)}</span>
-                  ${p.brand ? `<span class="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-white/90 text-[10px] font-bold px-2 py-0.5 rounded-md border border-white/10 uppercase tracking-wider">${_esc(p.brand)}</span>` : ''}
-                </div>
-                <div style="padding: 10px 8px 10px 8px; display: flex; flex-direction: column; flex: 1;">
-                  <p class="text-white font-bold text-sm truncate" style="font-size: 13px; font-weight: 700; line-height: 1.2;">${_esc(p.title)}</p>
-                  <div class="flex items-center justify-between mt-1.5">
-                    <p class="text-cyan-400 font-bold text-sm font-mono leading-none inline-flex items-center gap-1">${p.price} ${window.bynSign ? window.bynSign() : ''}</p>
-                    ${p.category ? `<span class="text-[10px] text-white/40 truncate max-w-[80px]">${_esc(p.category)}</span>` : ''}
-                  </div>
-                  <div class="flex gap-1.5 mt-2.5">
-                    <button class="btn-primary addToCartBtn flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg" data-product-id="${p.id}">Корзина</button>
-                    <button class="buyNowBtn flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg" data-url="${p.url || ''}" data-price="${p.price}">Заказать</button>
-                  </div>
-                </div>
-              </div>
-            `;
+              return renderWbProductCard(p, _inWish);
             }).join('');
             initCardSliders();
           }
@@ -443,29 +458,21 @@ function attachHomeHandlers() {
       btn.onclick = (e) => {
         e.stopPropagation();
         const productId = btn.dataset.productId;
-        if (productId) addToCart(productId);
-      };
-    });
-
-    grid.querySelectorAll('.buyNowBtn').forEach(btn => {
-      btn.onclick = (e) => {
-        e.stopPropagation();
-        if (!window.userId) { window.requireAuth('Для оформления заказа необходимо войти или зарегистрироваться.'); return; }
-        const url = btn.dataset.url;
-        const price = parseFloat(btn.dataset.price);
-        if (url && !isNaN(price)) {
-          window.tempOrder = { url, price, weight: 1, total: window.iceLogixPricing.quickEstimate(price, 1), discountAmount: 0, appliedPromo: null };
-          switchTab('neworder');
+        if (productId) {
+          if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('medium');
+          addToCart(productId);
+          btn.classList.add('added-anim');
+          setTimeout(() => btn.classList.remove('added-anim'), 400);
         }
       };
     });
 
     grid.querySelectorAll('.product-card').forEach(card => {
       card.onclick = (e) => {
-        if (e.target.closest('.wishlist-heart') || e.target.closest('.addToCartBtn') || e.target.closest('.cart-stepper') || e.target.closest('.buyNowBtn') || e.target.closest('.card-photo-container')) return;
+        if (e.target.closest('.wishlist-heart') || e.target.closest('.addToCartBtn') || e.target.closest('.card-slider') || e.target.closest('.card-dots')) return;
         const productId = card.dataset.productId;
-        const url = card.querySelector('.buyNowBtn')?.dataset.url;
-        const price = parseFloat(card.querySelector('.buyNowBtn')?.dataset.price);
+        const url = card.dataset.url;
+        const price = parseFloat(card.dataset.price);
         if (userId && productId) {
           supabaseClient.from('user_views').upsert({ user_id: userId, product_id: productId }, { onConflict: 'user_id,product_id' }).then(() => {});
         }

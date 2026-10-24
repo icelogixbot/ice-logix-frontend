@@ -301,7 +301,7 @@ function attachAdminReviewsConfigHandlers() {
 let adminUsersSearch = '';
 
 window.changeUserBalance = async (userId, currentBalance) => {
-  const amountStr = prompt(`Текущий баланс пользователя: ${currentBalance} ICE\n\nВведите сумму (с минусом для списания):`);
+  const amountStr = prompt(`Текущий баланс пользователя: ${currentBalance}\n\nВведите сумму (с минусом для списания):`);
   if (!amountStr) return;
   const amount = parseFloat(amountStr);
   if (isNaN(amount) || amount === 0) return;
@@ -322,7 +322,7 @@ window.changeUserBalance = async (userId, currentBalance) => {
     if (txErr) console.warn('Ошибка записи транзакции', txErr);
     
     if (amount > 0) {
-      supabaseClient.functions.invoke('send-notification', { body: { user_id: userId, message: `💎 *Пополнение баланса!*\n\nАдминистратор начислил вам **${amount} ICE**.` } }).catch(console.error);
+      supabaseClient.functions.invoke('send-notification', { body: { user_id: userId, message: `💎 *Пополнение баланса!*\n\nАдминистратор начислил вам **${amount}** на баланс.` } }).catch(console.error);
     }
     
     glassToast('Баланс успешно обновлен!', { kind: 'success' });
@@ -524,7 +524,7 @@ async function renderAdminUsersList() {
           <div>
             <p class="text-white font-bold text-sm">${u.full_name || 'Без имени'} ${u.username ? '(@' + u.username + ')' : ''}</p>
             <p class="text-white/50 text-[10px]">ID: ${u.user_id} | Рег: ${new Date(u.created_at).toLocaleDateString('ru-RU')}</p>
-            <p class="text-cyan-400 font-bold mt-1 text-sm">${Number(u.ices_balance || 0).toFixed(2)} ICE</p>
+            <p class="text-cyan-400 font-bold mt-1 text-sm inline-flex items-baseline gap-1">${Number(u.ices_balance || 0).toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</p>
           </div>
           <div class="flex flex-col gap-2">
             <button class="btn-primary px-3 py-1.5 text-xs rounded-lg shadow-[0_0_10px_rgba(6,182,212,0.3)]" onclick="window.changeUserBalance('${u.user_id}', ${u.ices_balance || 0})">
@@ -603,7 +603,7 @@ async function renderPromotionsAdminList() {
       <div class="flex items-center justify-between p-2 bg-white/5 rounded-lg">
         <div>
           <span class="text-white">${p.title}</span>
-          <span class="text-cyan-400 text-xs ml-2">${p.discount_type === 'percent' ? p.discount_value + '%' : p.discount_value + ' BYN'}</span>
+          <span class="text-cyan-400 text-xs ml-2 inline-flex items-baseline gap-0.5">${p.discount_type === 'percent' ? p.discount_value + '%' : p.discount_value + ' ' + (window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : '')}</span>
           <span class="text-white/50 text-xs block">${p.is_active ? '<span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Активна' : '<span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span> Неактивна'}</span>
         </div>
         <div>
@@ -671,7 +671,7 @@ async function renderAdminClaimsList() {
           </div>
           <div class="text-xs text-white leading-normal">
             <p><strong>Заказ:</strong> <span class="font-mono text-cyan-400 font-semibold">#${c.order_id.slice(0, 8)}</span></p>
-            <p class="mt-1"><strong>Сумма возмещения:</strong> <span class="text-green-400 font-mono font-bold">${orderTotal.toFixed(2)} BYN</span></p>
+            <p class="mt-1"><strong>Сумма возмещения:</strong> <span class="text-green-400 font-mono font-bold inline-flex items-baseline gap-1">${orderTotal.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'emerald', size: '0.85em' }) : ''}</span></p>
             <p class="mt-1.5 p-2 bg-slate-950/60 rounded-lg text-white/70 border border-white/5 font-sans">
               <strong>Описание:</strong> ${c.description}
             </p>
@@ -981,7 +981,7 @@ async function renderAdmin() {
         <div class="glass-card">
           <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Создать промокод</h3>
           <input type="text" id="newPromoCode" class="btn-secondary w-full p-2 rounded-lg mb-2" placeholder="Код">
-          <select id="promoType" class="btn-secondary w-full p-2 rounded-lg mb-2"><option value="percent">Процент (%)</option><option value="fixed">Фикс (BYN)</option></select>
+          <select id="promoType" class="btn-secondary w-full p-2 rounded-lg mb-2"><option value="percent">Процент (%)</option><option value="fixed">Фикс (сумма)</option></select>
           <input type="number" id="promoValue" class="btn-secondary w-full p-2 rounded-lg mb-2" placeholder="Значение">
           <button id="createPromoBtn" class="btn-primary w-full">Создать</button>
         </div>
@@ -1044,7 +1044,7 @@ async function renderAdmin() {
         <!-- Список промокодов -->
         <div class="glass-card">
           <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span> Промокоды</h3>
-          ${promoCodes.length === 0 ? '<p class="text-white/70">Нет промокодов</p>' : `<div class="space-y-2">${promoCodes.map(p => `<div class="flex justify-between items-center p-2 bg-white/5 rounded-lg"><div><span class="font-bold text-cyan-400">${p.code}</span><span class="text-white/70 text-sm ml-2">${p.discount_type === 'percent' ? p.discount_value + '%' : p.discount_value + ' BYN'}</span><span class="text-white/50 text-xs ml-2">${p.is_active ? '<span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Активен' : '<span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span> Неактивен'}</span></div><button class="togglePromoBtn text-cyan-400 text-sm" data-id="${p.id}" data-active="${p.is_active}">${p.is_active ? 'Деактивировать' : 'Активировать'}</button></div>`).join('')}</div>`}
+          ${promoCodes.length === 0 ? '<p class="text-white/70">Нет промокодов</p>' : `<div class="space-y-2">${promoCodes.map(p => `<div class="flex justify-between items-center p-2 bg-white/5 rounded-lg"><div><span class="font-bold text-cyan-400">${p.code}</span><span class="text-white/70 text-sm ml-2 inline-flex items-baseline gap-0.5">${p.discount_type === 'percent' ? p.discount_value + '%' : p.discount_value + ' ' + (window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : '')}</span><span class="text-white/50 text-xs ml-2">${p.is_active ? '<span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Активен' : '<span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span> Неактивен'}</span></div><button class="togglePromoBtn text-cyan-400 text-sm" data-id="${p.id}" data-active="${p.is_active}">${p.is_active ? 'Деактивировать' : 'Активировать'}</button></div>`).join('')}</div>`}
         </div>
         
         <!-- Отзывы на модерации -->
@@ -1473,8 +1473,8 @@ function attachAdminHandlers() {
                   <span class="text-cyan-400 font-bold font-mono">${activeOrdersCount} шт.</span>
                 </div>
                 <div class="flex justify-between border-t border-white/10 pt-2 mt-2">
-                  <span class="text-white/50">Общий оборот заказов (BYN):</span>
-                  <span class="text-white font-extrabold font-mono">${totalRevenue.toFixed(2)} BYN</span>
+                  <span class="text-white/50">Общий оборот заказов:</span>
+                  <span class="text-white font-extrabold font-mono inline-flex items-baseline gap-1">${totalRevenue.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
                 </div>
               </div>
 
@@ -1482,15 +1482,15 @@ function attachAdminHandlers() {
               <div class="bg-yellow-500/10 p-3.5 rounded-xl border border-yellow-500/20 space-y-2">
                 <div class="flex justify-between">
                   <span class="text-white/60">Валовая комиссия байеров (доход услуги):</span>
-                  <span class="text-white font-bold font-mono">${totalCommission.toFixed(2)} BYN</span>
+                  <span class="text-white font-bold font-mono inline-flex items-baseline gap-1">${totalCommission.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
                 </div>
                 <div class="flex justify-between text-yellow-400">
                   <span>Подоходный налог в РБ (20%):</span>
-                  <span class="font-extrabold font-mono">${totalTax.toFixed(2)} BYN</span>
+                  <span class="font-extrabold font-mono inline-flex items-baseline gap-1">${totalTax.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
                 </div>
                 <div class="flex justify-between text-green-400 border-t border-white/10 pt-2 mt-2">
                   <span>Чистая прибыль после налогов:</span>
-                  <span class="font-extrabold font-mono">${netProfit.toFixed(2)} BYN</span>
+                  <span class="font-extrabold font-mono inline-flex items-baseline gap-1">${netProfit.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
                 </div>
               </div>
               <p class="text-[10px] text-white/50 italic leading-snug">
@@ -1501,13 +1501,13 @@ function attachAdminHandlers() {
               <div class="bg-cyan-500/10 p-3.5 rounded-xl border border-cyan-500/20 grid grid-cols-2 gap-4 text-[10px]">
                 <div>
                   <p class="font-bold text-cyan-400 uppercase">ИП Кирилл (50%):</p>
-                  <p class="mt-1 font-extrabold text-sm text-white font-mono">${splitProfit.toFixed(2)} BYN</p>
+                  <p class="mt-1 font-extrabold text-sm text-white font-mono inline-flex items-baseline gap-1">${splitProfit.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</p>
                   <p class="text-white/40 mt-1">ОАО «Белгазпромбанк»</p>
                   <p class="text-white/40 truncate text-[9px]">BY54BGPB3012000000001000</p>
                 </div>
                 <div>
                   <p class="font-bold text-cyan-400 uppercase">ИП Партнёр (50%):</p>
-                  <p class="mt-1 font-extrabold text-sm text-white font-mono">${splitProfit.toFixed(2)} BYN</p>
+                  <p class="mt-1 font-extrabold text-sm text-white font-mono inline-flex items-baseline gap-1">${splitProfit.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</p>
                   <p class="text-white/40 mt-1">ОАО «Белгазпромбанк»</p>
                   <p class="text-white/40 truncate text-[9px]">BY12BGPB3012000000002000</p>
                 </div>
@@ -1595,8 +1595,8 @@ function attachAdminHandlers() {
                     <td>${activeOrdersCount} шт.</td>
                   </tr>
                   <tr>
-                    <td><strong>Валовый оборот заказов (BYN)</strong></td>
-                    <td><strong>${totalRevenue.toFixed(2)} BYN</strong></td>
+                    <td><strong>Валовый оборот заказов</strong></td>
+                    <td><strong class="inline-flex items-baseline gap-1">${totalRevenue.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</strong></td>
                   </tr>
                 </tbody>
               </table>
@@ -1614,9 +1614,9 @@ function attachAdminHandlers() {
                 <tbody>
                   <tr>
                     <td>Комиссионный доход байера (20% услуги)</td>
-                    <td>${totalCommission.toFixed(2)} BYN</td>
+                    <td><span class="inline-flex items-baseline gap-1">${totalCommission.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span></td>
                     <td>20%</td>
-                    <td><strong>${totalTax.toFixed(2)} BYN</strong></td>
+                    <td><strong class="inline-flex items-baseline gap-1">${totalTax.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</strong></td>
                   </tr>
                 </tbody>
               </table>
@@ -1629,14 +1629,14 @@ function attachAdminHandlers() {
                 <div class="card">
                   <strong>ИП Кирилл (Соучредитель 1):</strong><br>
                   Доля прибыли: 50%<br>
-                  Сумма к зачислению: <strong>${splitProfit.toFixed(2)} BYN</strong><br>
+                  Сумма к зачислению: <strong class="inline-flex items-baseline gap-1">${splitProfit.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</strong><br>
                   Банк: ОАО «Белгазпромбанк»<br>
                   Р/С: BY54BGPB3012000000001000
                 </div>
                 <div class="card">
                   <strong>ИП Партнёр (Соучредитель 2):</strong><br>
                   Доля прибыли: 50%<br>
-                  Сумма к зачислению: <strong>${splitProfit.toFixed(2)} BYN</strong><br>
+                  Сумма к зачислению: <strong class="inline-flex items-baseline gap-1">${splitProfit.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</strong><br>
                   Банк: ОАО «Белгазпромбанк»<br>
                   Р/С: BY12BGPB3012000000002000
                 </div>
@@ -1732,7 +1732,7 @@ function attachAdminHandlers() {
            if (u) {
              await supabaseClient.from('users').update({ ices_balance: (u.ices_balance || 0) + 5 }).eq('user_id', rev.user_id);
              await supabaseClient.from('reviews').update({ cashback_granted: true }).eq('id', id);
-             alertMsg += '. Начислено 5 ICE за фото!';
+             alertMsg += '. Начислено 5 бонусов за фото!';
            }
         }
         
@@ -2619,7 +2619,7 @@ if (downloadBackupBtn) {
       const amount = parseFloat(btn.dataset.amount || 0);
       const orderId = btn.dataset.orderId;
       
-      if (!(await tgUtil.confirm(`Одобрить страховую претензию и выплатить ${amount.toFixed(2)} BYN на баланс клиента?`))) return;
+      if (!(await tgUtil.confirm(`Одобрить страховую претензию и выплатить ${amount.toFixed(2)} на баланс клиента?`))) return;
       tgUtil.haptic('medium');
       
       try {
@@ -2646,7 +2646,7 @@ if (downloadBackupBtn) {
         if (claimErr) throw claimErr;
         
         // 5. Send notification to user
-        await sendNotification(claimUserId, `🛡️ Ваша страховая претензия по заказу #${orderId.slice(0, 8)} одобрена! Выплата ${amount.toFixed(2)} BYN зачислена на ваш баланс.`, orderId);
+        await sendNotification(claimUserId, `🛡️ Ваша страховая претензия по заказу #${orderId.slice(0, 8)} одобрена! Выплата ${amount.toFixed(2)} зачислена на ваш баланс.`, orderId);
         
         glassToast('Страховая претензия успешно одобрена!', { kind: 'success' });
         if (window.adminCache) window.adminCache.claims = (window.adminCache.claims || []).filter(c => c.id !== claimId);
@@ -2865,7 +2865,7 @@ function attachAnalyticsHandlers() {
             labels: days.map(d => d.slice(5)),
             datasets: [
               { label: 'Заказов', data: days.map(d => byDay[d].count), borderColor: '#00c2ff', backgroundColor: '#00c2ff20', tension: 0.4, yAxisID: 'y' },
-              { label: 'Выручка BYN', data: days.map(d => +byDay[d].rev.toFixed(2)), borderColor: '#4ade80', backgroundColor: '#4ade8020', tension: 0.4, yAxisID: 'y1' }
+              { label: 'Выручка', data: days.map(d => +byDay[d].rev.toFixed(2)), borderColor: '#4ade80', backgroundColor: '#4ade8020', tension: 0.4, yAxisID: 'y1' }
             ]
           },
           options: {
@@ -2933,7 +2933,7 @@ function attachAnalyticsHandlers() {
   document.getElementById('loadAnalyticsBtn')?.addEventListener('click', loadAnalytics);
   document.getElementById('exportTopProductsBtn')?.addEventListener('click', () => {
     if (!_topData.length) { tgUtil.alert('Сначала загрузите аналитику'); return; }
-    const rows = [['Товар','Продано шт.','Выручка BYN'], ..._topData.map(p=>[p.title, p.count, p.rev.toFixed(2)])];
+    const rows = [['Товар','Продано шт.','Выручка'], ..._topData.map(p=>[p.title, p.count, p.rev.toFixed(2)])];
     downloadCSV(rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n'), 'top_products.csv');
     logAdminAction('export_csv', { type: 'top_products' });
   });
@@ -2981,7 +2981,7 @@ async function openPromotionForm(promotion = null) {
           <input type="url" id="promoBanner" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="URL баннера" value="${promotion?.banner_url || ''}">
           <select id="promoDiscountType" class="btn-secondary w-full p-3 rounded-xl border border-white/30">
             <option value="percent" ${promotion?.discount_type === 'percent' ? 'selected' : ''}>Процент (%)</option>
-            <option value="fixed" ${promotion?.discount_type === 'fixed' ? 'selected' : ''}>Фикс (BYN)</option>
+            <option value="fixed" ${promotion?.discount_type === 'fixed' ? 'selected' : ''}>Фикс (сумма)</option>
           </select>
           <input type="number" id="promoDiscountValue" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Значение скидки *" value="${promotion?.discount_value || ''}">
           <input type="number" id="promoMinAmount" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Мин. сумма заказа (0 - без ограничений)" value="${promotion?.min_order_amount || 0}">

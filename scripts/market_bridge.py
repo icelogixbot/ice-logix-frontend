@@ -310,15 +310,22 @@ def format_standard_size(val: str) -> str:
         return ""
     clean = val.strip()
     
+    # Strip marketing junk like （关注优先发货）, (优先发货), etc.
+    clean = re.sub(r"[\(（].*?优先发货[\)）]|关注优先发货|优先发货", "", clean).strip()
+    clean = re.sub(r"[\(（].*?发货[\)）]", "", clean).strip()
+
     # Convert weight recommendations from Chinese jin (斤 = 0.5 kg) to kg
-    # e.g., "M 建议90-110斤" -> "M (45–55 кг)"
-    m_range = re.search(r'(?:建议)?\s*(\d+)\s*[-–—~至]\s*(\d+)\s*斤', clean)
+    # e.g., "M 建议90-110斤" -> "M (45–55 кг)", or "S  80-100" -> "S (40–50 кг)"
+    m_range = re.search(r'(?:建议)?\s*(\d+)\s*[-–—~至]\s*(\d+)\s*(?:斤)?', clean)
     weight_part = ""
     if m_range:
-        w1 = int(int(m_range.group(1)) * 0.5)
-        w2 = int(int(m_range.group(2)) * 0.5)
-        weight_part = f" ({w1}–{w2} кг)"
-        clean = re.sub(r'\(?(?:建议)?\s*\d+\s*[-–—~至]\s*\d+\s*斤\)?', '', clean).strip()
+        v1, v2 = int(m_range.group(1)), int(m_range.group(2))
+        # If numbers are typical jin range (e.g. 70-220 jin), convert to kg
+        if 60 <= v1 <= 240 and 60 <= v2 <= 260:
+            w1 = int(v1 * 0.5)
+            w2 = int(v2 * 0.5)
+            weight_part = f" ({w1}–{w2} кг)"
+            clean = re.sub(r'\(?(?:建议)?\s*\d+\s*[-–—~至]\s*\d+\s*(?:斤)?\)?', '', clean).strip()
     else:
         m_single = re.search(r'(?:建议)?\s*(\d+)\s*斤', clean)
         if m_single:
@@ -395,6 +402,16 @@ def clean_and_translate_option(name_cn: str, is_color: bool = True) -> str:
         "毛衣": "свитер",
         "抹茶绿": "Матча зеленый",
         "摩卡棕": "Мокко коричневый",
+        "杏色": "Бежевый",
+        "长袖T恤": "",
+        "长袖t恤": "",
+        "长袖": "",
+        "短袖T恤": "",
+        "短袖t恤": "",
+        "短袖": "",
+        "260克": "260 г",
+        "300克": "300 г",
+        "加绒": "с начесом",
     }
     
     main_color = ""
@@ -541,6 +558,10 @@ def synthesize_smart_title(raw_title: str, brand: str = "", category: str = "") 
             detected_model = "Mercurial"
     elif any(k in raw_lower for k in ["毛衣", "针织衫"]) or any(k in clean_low for k in ["свитер", "вязаный", "джемпер", "пуловер"]):
         lead = "Вязаный свитер"
+    elif any(k in raw_lower for k in ["长袖t恤", "长袖", "long sleeve"]) or any(k in clean_low for k in ["лонгслив"]):
+        lead = "Лонгслив"
+    elif any(k in raw_lower for k in ["短袖t恤", "短袖", "t恤"]) or any(k in clean_low for k in ["футболка"]):
+        lead = "Футболка"
     elif any(k in raw_lower for k in ["连帽卫衣", "连帽"]) or any(k in clean_low for k in ["худи", "толстовка"]):
         lead = "Худи"
     elif any(k in raw_lower for k in ["卫衣", "卫衣上衣"]) or any(k in clean_low for k in ["свитшот"]):
@@ -564,8 +585,12 @@ def synthesize_smart_title(raw_title: str, brand: str = "", category: str = "") 
         
     # Extract distinct feature
     features = []
+    if any(k in raw_lower for k in ["机车风", "机车"]):
+        features.append("в мото-стиле")
     if any(k in raw_lower for k in ["蝴蝶"]):
         features.append("с принтом бабочки")
+    if any(k in raw_lower for k in ["印花", "字母", "图案"]) or "принт" in clean_low:
+        features.append("с принтом")
     if any(k in raw_lower for k in ["免系带"]):
         features.append("без шнурков")
     if any(k in raw_lower for k in ["阔腿直筒", "阔腿"]):
@@ -1135,15 +1160,15 @@ def capture_hd_studio_and_variants(
         cls = n.attrib.get('class', '')
         cd = (n.attrib.get('content-desc', '') or n.attrib.get('text', '')).strip()
         b = n.attrib.get('bounds', '')
-        if b and ('Image' in cls or 'ImageView' in cls or 'View' in cls):
+        if b and ('Image' in cls or 'ImageView' in cls or 'View' in cls or 'FrameLayout' in cls):
             x1, y1, x2, y2 = parse_bounds(b)
             w, h = x2 - x1, y2 - y1
-            if 100 <= w <= 320 and 100 <= h <= 320 and x1 < 250 and 380 <= y1 <= 700:
+            if 80 <= w <= 320 and 80 <= h <= 320 and x1 < 250 and 200 <= y1 <= 700:
                 thumb_bounds = (x1, y1, x2, y2)
                 if cd in ["点击查看大图", "商品主图"]:
                     break
     if not thumb_bounds:
-        thumb_bounds = (25, 439, 228, 642)
+        thumb_bounds = (18, 314, 198, 494)
 
     # Extract 100% genuine studio 900x900 photo via full-screen viewer
     try:
@@ -1394,17 +1419,28 @@ def parse_product(req: ParseRequest):
         raw_title = re.sub(r'^\d+人(收藏|关注|购买|好评|说)\s*', '', raw_title).strip()
 
     # 3. Check if SKU drawer is open, or tap buy button
+    # 3.1 Dismiss any blocking popup dialogs (e.g., '可参与的拼单')
+    for n in root_init.iter("node"):
+        t = (n.attrib.get("text", "") or n.attrib.get("content-desc", "")).strip()
+        if "可参与的拼单" in t or "参与拼单" in t:
+            print("[*] Dismissing active buyer dialog with Back key...", flush=True)
+            run_adb(["shell", "input", "keyevent", "4"])
+            time.sleep(0.4)
+            root_init = dump_ui_xml()
+            break
+
     has_sku_drawer = is_sku_drawer_open(root_init)
     if not has_sku_drawer:
         print("[*] SKU drawer not open yet. Locating bottom buy button...", flush=True)
         clicked_btn = False
-        for target_text in ["发起拼单", "单独购买", "免拼购买", "立即购买", "去拼单", "品牌直供"]:
+        # Priority order: strictly group-buy / flash-buy first, single purchase last
+        for target_text in ["免拼购买", "发起拼单", "立即购买", "去拼单", "单独购买", "品牌直供"]:
             for n in root_init.iter("node"):
                 t = (n.attrib.get("text", "") or n.attrib.get("content-desc", "")).strip()
                 b = n.attrib.get("bounds", "")
                 if target_text in t and b:
                     x1, y1, x2, y2 = parse_bounds(b)
-                    if y1 >= 1400:
+                    if y1 >= 1470:
                         human_tap(b)
                         clicked_btn = True
                         break
@@ -1424,10 +1460,24 @@ def parse_product(req: ParseRequest):
                         break
 
         if not clicked_btn:
-            human_tap("[675,1550]")
+            print("[*] Direct bottom right buy button tap at (740, 1535)...", flush=True)
+            run_adb(["shell", "input", "tap", "740", "1535"])
 
         time.sleep(random.uniform(1.2, 1.8))
         root = dump_ui_xml()
+
+        # If '可参与的拼单' dialog popped up accidentally after tap, dismiss and tap (740, 1535)
+        for n in root.iter("node"):
+            t = (n.attrib.get("text", "") or n.attrib.get("content-desc", "")).strip()
+            if "可参与的拼单" in t or "参与拼单" in t:
+                print("[*] Dismissing accidental buyer popup with Back key...", flush=True)
+                run_adb(["shell", "input", "keyevent", "4"])
+                time.sleep(0.4)
+                run_adb(["shell", "input", "tap", "740", "1535"])
+                time.sleep(1.2)
+                root = dump_ui_xml()
+                break
+
         has_sku_drawer = is_sku_drawer_open(root)
     else:
         print("[*] SKU drawer is already open! Skipping bottom buy button tap.", flush=True)

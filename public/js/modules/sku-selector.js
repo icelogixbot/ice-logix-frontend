@@ -113,14 +113,22 @@
       if (!val) return '';
       let str = String(val).trim();
 
-      // Convert weight recommendations from Chinese jin to kg: e.g. "M 建议90-110斤" -> "M (45–55 кг)"
+      // Strip marketing junk like （关注优先发货）, (优先发货), etc.
+      str = str.replace(/[\(（].*?优先发货[\)）]|关注优先发货|优先发货/g, '').trim();
+      str = str.replace(/[\(（].*?发货[\)）]/g, '').trim();
+
+      // Convert weight recommendations from Chinese jin to kg: e.g. "M 建议90-110斤" -> "M (45–55 кг)" or "S 80-100" -> "S (40–50 кг)"
       let weightPart = '';
-      const rangeMatch = str.match(/(?:建议)?\s*(\d+)\s*[-–—~至]\s*(\d+)\s*斤/);
+      const rangeMatch = str.match(/(?:建议)?\s*(\d+)\s*[-–—~至]\s*(\d+)\s*(?:斤)?/);
       if (rangeMatch) {
-        const w1 = Math.round(parseInt(rangeMatch[1], 10) * 0.5);
-        const w2 = Math.round(parseInt(rangeMatch[2], 10) * 0.5);
-        weightPart = ` (${w1}–${w2} кг)`;
-        str = str.replace(/\(?(?:建议)?\s*\d+\s*[-–—~至]\s*\d+\s*斤\)?/g, '').trim();
+        const v1 = parseInt(rangeMatch[1], 10);
+        const v2 = parseInt(rangeMatch[2], 10);
+        if (v1 >= 60 && v1 <= 240 && v2 >= 60 && v2 <= 260) {
+          const w1 = Math.round(v1 * 0.5);
+          const w2 = Math.round(v2 * 0.5);
+          weightPart = ` (${w1}–${w2} кг)`;
+          str = str.replace(/\(?(?:建议)?\s*\d+\s*[-–—~至]\s*\d+\s*(?:斤)?\)?/g, '').trim();
+        }
       } else {
         const singleMatch = str.match(/(?:建议)?\s*(\d+)\s*斤/);
         if (singleMatch) {
