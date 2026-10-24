@@ -94,7 +94,7 @@
 
     if (typeof tgUtil !== 'undefined') {
       if (tgUtil.haptic) tgUtil.haptic('success');
-      tgUtil.alert(successMsg || `Кошелек успешно пополнен на +${addedVal.toFixed(2)} BYN!`);
+      tgUtil.alert(successMsg || `Счёт успешно пополнен на +${addedVal.toFixed(2)}!`);
     }
   }
 
@@ -355,11 +355,11 @@
           id="walletTopupSubmitBtn"
           class="btn-primary w-full py-4 rounded-2xl font-black text-sm shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2 active:scale-95 transition"
         >
-          <span>Пополнить на ${_selectedTopupAmount} BYN</span>
+          <span>Пополнить на ${_selectedTopupAmount} ${window.bynSign ? window.bynSign({ color: 'white' }) : ''}</span>
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
 
-        <!-- 4 Преимущества ICE Wallet (Инфо-сетка) -->
+        <!-- 4 Преимущества ICE LOGIX PAY (Инфо-сетка) -->
         <div class="grid grid-cols-2 gap-2 pt-1 text-[11px]">
           <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
             <div class="flex items-center gap-1.5 text-cyan-300 font-bold">
@@ -379,15 +379,15 @@
 
           <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
             <div class="flex items-center gap-1.5 text-purple-400 font-bold">
-              <svg class="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
-              <span>Скидка 3% на заказ</span>
+              <span class="text-xs">🎁</span>
+              <span>Бонусы 7% за друзей</span>
             </div>
-            <p class="text-[10px] text-white/50 leading-tight">Автоматическая скидка в корзине при оплате с кошелька</p>
+            <p class="text-[10px] text-white/50 leading-tight">Зачисление реферальных выплат прямо на лицевой счёт</p>
           </div>
 
           <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
             <div class="flex items-center gap-1.5 text-amber-400 font-bold">
-              <svg class="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              <span class="text-xs">💳</span>
               <span>0% комиссий</span>
             </div>
             <p class="text-[10px] text-white/50 leading-tight">Никаких скрытых платежей при пополнении и покупках</p>
@@ -514,7 +514,7 @@
   }
 
   // ============================================================
-  // Главная функция рендера страницы ICE Wallet
+  // Главная функция рендера страницы ICE LOGIX PAY (Лицевой счёт)
   // ============================================================
   window.renderWallet = async function () {
     const curBal = getLiveUserBalance();
@@ -536,25 +536,7 @@
       }).catch(() => {});
     }
 
-    let subTabContent = '';
-    if (_activeWalletSubTab === 'topup') {
-      subTabContent = renderTopupTabHtml(curBal);
-    } else if (_activeWalletSubTab === 'cards') {
-      // Используем проверенный рендер карт из finances.js
-      if (typeof window._renderPaymentTabHtml === 'function') {
-        subTabContent = window._renderPaymentTabHtml();
-      } else {
-        subTabContent = '<div class="text-center py-6 text-xs text-white/50">Загрузка карт...</div>';
-      }
-    } else if (_activeWalletSubTab === 'history') {
-      const entries = await loadLedgerHistory();
-      subTabContent = renderHistoryTabHtml(entries);
-    } else if (_activeWalletSubTab === 'coupons') {
-      if (typeof window._renderCouponsTabHtml === 'function') {
-        const cached = window._financesCache?.coupons || { totalSpentByn: 0, ordersCount: 0 };
-        subTabContent = window._renderCouponsTabHtml(cached);
-      }
-    }
+    const entries = await loadLedgerHistory();
 
     return `
       <div class="page-enter px-4 max-w-md mx-auto pb-24">
@@ -568,8 +550,8 @@
               </svg>
             </button>
             <div>
-              <h2 class="text-xl font-black text-white tracking-wide">Кошелек ICE</h2>
-              <p class="text-[11px] text-white/40">Персональный счет и моментальная оплата</p>
+              <h2 class="text-xl font-black text-white tracking-wide">ICE LOGIX <span class="text-cyan-400">PAY</span></h2>
+              <p class="text-[11px] text-white/40">Лицевой счёт и моментальная оплата</p>
             </div>
           </div>
 
@@ -580,128 +562,40 @@
           </div>
         </div>
 
-        <!-- 1. Цифровая карта ICE Wallet -->
+        <!-- 1. Цифровая карта ICE LOGIX PAY -->
         <div class="mb-5">
           ${renderWalletVirtualCard(curBal, curUser)}
         </div>
 
-        <!-- 2. Сегментированное меню подразделов (4 таба) -->
-        <div class="grid grid-cols-4 gap-1 mb-4 p-1 rounded-2xl bg-slate-900/90 border border-white/10 shadow-lg backdrop-blur-md">
-          <button
-            id="walletTabTopup"
-            type="button"
-            onclick="window.switchWalletTab('topup')"
-            class="py-2 px-1 rounded-xl text-[11px] font-bold transition-all flex flex-col items-center justify-center gap-1 ${
-              _activeWalletSubTab === 'topup'
-                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20'
-                : 'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'
-            }"
-          >
-            <span class="text-sm leading-none">➕</span>
-            <span class="truncate">Баланс</span>
-          </button>
-
-          <button
-            id="walletTabCards"
-            type="button"
-            onclick="window.switchWalletTab('cards')"
-            class="py-2 px-1 rounded-xl text-[11px] font-bold transition-all flex flex-col items-center justify-center gap-1 ${
-              _activeWalletSubTab === 'cards'
-                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20'
-                : 'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'
-            }"
-          >
-            <span class="text-sm leading-none">💳</span>
-            <span class="truncate">Карты</span>
-          </button>
-
-          <button
-            id="walletTabHistory"
-            type="button"
-            onclick="window.switchWalletTab('history')"
-            class="py-2 px-1 rounded-xl text-[11px] font-bold transition-all flex flex-col items-center justify-center gap-1 ${
-              _activeWalletSubTab === 'history'
-                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20'
-                : 'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'
-            }"
-          >
-            <span class="text-sm leading-none">📜</span>
-            <span class="truncate">История</span>
-          </button>
-
-          <button
-            id="walletTabCoupons"
-            type="button"
-            onclick="window.switchWalletTab('coupons')"
-            class="py-2 px-1 rounded-xl text-[11px] font-bold transition-all flex flex-col items-center justify-center gap-1 ${
-              _activeWalletSubTab === 'coupons'
-                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20'
-                : 'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'
-            }"
-          >
-            <span class="text-sm leading-none">🏷️</span>
-            <span class="truncate">Купоны</span>
-          </button>
+        <!-- 2. Блок пополнения счёта (чипсы, поле ввода, методы: ЕРИП, Оплати, Карта, кнопка) -->
+        <div class="mb-5">
+          ${renderTopupTabHtml(curBal)}
         </div>
 
-        <!-- 3. Динамический контент активного таба -->
-        <div id="walletSubContent" class="space-y-4">
-          ${subTabContent}
+        <!-- 3. История операций лицевого счёта (balance_entries) -->
+        <div class="space-y-3 pt-2">
+          <div class="flex items-center justify-between px-1">
+            <h3 class="text-white font-bold text-sm flex items-center gap-2">
+              <span>📜</span>
+              <span>История операций</span>
+            </h3>
+            <span class="text-[10px] text-white/40 font-mono">Последние 30 транзакций</span>
+          </div>
+          <div id="walletHistoryContainer">
+            ${renderHistoryTabHtml(entries)}
+          </div>
         </div>
 
       </div>
     `;
   };
 
-  // Переключение табов кошелька за 0 мс
-  window.switchWalletTab = async function (targetTab) {
-    _activeWalletSubTab = targetTab;
-    if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
-
-    // Обновляем кнопки
-    ['topup', 'cards', 'history', 'coupons'].forEach(t => {
-      const btn = document.getElementById('walletTab' + t.charAt(0).toUpperCase() + t.slice(1));
-      if (btn) {
-        if (t === targetTab) {
-          btn.className = 'py-2 px-1 rounded-xl text-[11px] font-bold transition-all flex flex-col items-center justify-center gap-1 bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20';
-        } else {
-          btn.className = 'py-2 px-1 rounded-xl text-[11px] font-bold transition-all flex flex-col items-center justify-center gap-1 text-white/60 hover:text-white hover:bg-white/5 active:scale-95';
-        }
-      }
-    });
-
-    const container = document.getElementById('walletSubContent');
-    if (!container) return;
-
-    const curBal = getLiveUserBalance();
-
-    if (targetTab === 'topup') {
-      container.innerHTML = renderTopupTabHtml(curBal);
-      attachTopupHandlers();
-    } else if (targetTab === 'cards') {
-      if (typeof window._renderPaymentTabHtml === 'function') {
-        container.innerHTML = window._renderPaymentTabHtml();
-        if (typeof window._attachPaymentTabHandlers === 'function') window._attachPaymentTabHandlers();
-      }
-    } else if (targetTab === 'history') {
-      container.innerHTML = '<div class="text-center py-6 text-xs text-white/50"><div class="inline-block w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin mb-2"></div><br>Загрузка операций...</div>';
-      const entries = await loadLedgerHistory();
-      container.innerHTML = renderHistoryTabHtml(entries);
-    } else if (targetTab === 'coupons') {
-      if (typeof window._renderCouponsTabHtml === 'function') {
-        const cached = window._financesCache?.coupons || { totalSpentByn: 0, ordersCount: 0 };
-        container.innerHTML = window._renderCouponsTabHtml(cached);
-        if (typeof window._attachCouponsTabHandlers === 'function') window._attachCouponsTabHandlers();
-      }
-    }
-  };
-
-  // Фильтр истории
+  // Фильтр истории транзакций
   window.setWalletHistoryFilter = async function (filterId) {
     _activeHistoryFilter = filterId;
     if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
-    const container = document.getElementById('walletSubContent');
-    if (container && _activeWalletSubTab === 'history') {
+    const container = document.getElementById('walletHistoryContainer');
+    if (container) {
       const entries = await loadLedgerHistory();
       container.innerHTML = renderHistoryTabHtml(entries);
     }
@@ -784,13 +678,13 @@
           if (typeof window.openEripPaymentModal === 'function') {
             window.openEripPaymentModal(amt);
           } else {
-            tgUtil.alert(`Счет в ЕРИП на сумму ${amt} BYN сформирован!`);
+            tgUtil.alert(`Счет в ЕРИП на сумму ${amt} сформирован!`);
           }
         } else if (_selectedTopupMethod === 'oplati') {
           if (typeof window.openOplatiPaymentModal === 'function') {
             window.openOplatiPaymentModal(amt);
           } else {
-            tgUtil.alert(`QR-код «Оплати» на сумму ${amt} BYN сформирован!`);
+            tgUtil.alert(`QR-код «Оплати» на сумму ${amt} сформирован!`);
           }
         } else if (_selectedTopupMethod === 'card') {
           const cards = Array.isArray(window.userCards) ? window.userCards : [];
@@ -813,7 +707,7 @@
           if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('medium');
 
           await new Promise(r => setTimeout(r, 1200));
-          await applyWalletCredit(amt, 'TOPUP_CARD', `Кошелек успешно пополнен на +${amt} BYN с банковской карты!`);
+          await applyWalletCredit(amt, 'TOPUP_CARD', `Счёт ICE LOGIX PAY успешно пополнен на +${amt} с банковской карты!`);
 
           submitBtn.disabled = false;
           updateAmount(_selectedTopupAmount);
@@ -822,15 +716,9 @@
     }
   }
 
-  // Привязка обработчиков при открытии страницы
+  // Привязка обработчиков при открытии страницы ICE LOGIX PAY
   window.attachWalletHandlers = function () {
-    if (_activeWalletSubTab === 'topup') {
-      attachTopupHandlers();
-    } else if (_activeWalletSubTab === 'cards') {
-      if (typeof window._attachPaymentTabHandlers === 'function') window._attachPaymentTabHandlers();
-    } else if (_activeWalletSubTab === 'coupons') {
-      if (typeof window._attachCouponsTabHandlers === 'function') window._attachCouponsTabHandlers();
-    }
+    attachTopupHandlers();
   };
 
   // Навигация «Назад»
@@ -844,25 +732,21 @@
   };
 
   // Быстрый вызов открытия счета ICE LOGIX PAY из любой части приложения
-  window.openWallet = function (subTab = 'pay', defaultAmount = 50) {
+  window.openWallet = function (subTab = 'topup', defaultAmount = 50) {
     if (typeof defaultAmount === 'number' && defaultAmount > 0) {
       _selectedTopupAmount = defaultAmount;
     }
-    window._financesSubTab = 'pay';
     if (typeof switchTab === 'function') {
-      switchTab('finances');
-      if (typeof window.switchFinancesSubTab === 'function') {
-        window.switchFinancesSubTab('pay');
-      }
+      switchTab('wallet');
     }
   };
 
   // Обратная совместимость с вызовами topup
   window.openBalanceTopupModal = function (defaultAmount = 50) {
-    window.openWallet('pay', defaultAmount);
+    window.openWallet('topup', defaultAmount);
   };
   window.openBalanceTopup = function (defaultAmount = 50) {
-    window.openWallet('pay', defaultAmount);
+    window.openWallet('topup', defaultAmount);
   };
 
   window.applyWalletCredit = applyWalletCredit;
@@ -873,7 +757,7 @@
     const refundAmt = parseFloat(amount) || 0;
     if (refundAmt <= 0) return false;
 
-    await applyWalletCredit(refundAmt, reason, `Мгновенный возврат: +${refundAmt.toFixed(2)} BYN зачислено на счёт ICE LOGIX PAY!`);
+    await applyWalletCredit(refundAmt, reason, `Мгновенный возврат: +${refundAmt.toFixed(2)} зачислено на счёт ICE LOGIX PAY!`);
     
     if (curUserId && typeof supabaseClient !== 'undefined' && supabaseClient) {
       try {

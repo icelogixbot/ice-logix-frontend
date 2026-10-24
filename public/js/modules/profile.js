@@ -105,7 +105,7 @@
       ` : ''}
     </div>
     ` : `
-    <div onclick="window._financesSubTab = 'pay'; switchTab('finances');" class="inline-flex items-center gap-3 px-5 py-3 rounded-2xl mb-4 cursor-pointer active:scale-95 transition" style="background: linear-gradient(135deg, rgba(91,191,235,0.2), rgba(46,158,212,0.1)); border: 1px solid rgba(91,191,235,0.3);" title="Баланс">
+    <div onclick="switchTab('wallet');" class="inline-flex items-center gap-3 px-5 py-3 rounded-2xl mb-4 cursor-pointer active:scale-95 transition" style="background: linear-gradient(135deg, rgba(91,191,235,0.2), rgba(46,158,212,0.1)); border: 1px solid rgba(91,191,235,0.3);" title="Баланс">
       <span class="text-2xl animate-float"><span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></span>
       <div class="text-left">
         <p class="text-xs" style="color: var(--text-secondary);">${t('balance', 'Баланс')}</p>
@@ -218,11 +218,22 @@
         </div>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
-      <button id="financesBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition border-t border-white/5" onclick="window._financesSubTab = 'pay'; switchTab('finances')">
+      <button id="iceLogixPayBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition border-t border-white/5" onclick="switchTab('wallet')">
+        <span class="text-xl">⚡</span>
+        <div class="flex-1">
+          <div class="flex items-center gap-2">
+            <p class="font-semibold text-white text-sm">ICE LOGIX PAY</p>
+            <span class="text-[9px] font-black px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">0% КОМИССИИ</span>
+          </div>
+          <p class="text-xs" style="color: var(--text-muted);">Лицевой счёт, пополнение и моментальная оплата</p>
+        </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <button id="financesBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition border-t border-white/5" onclick="switchTab('finances')">
         <span class="text-xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span></span>
         <div class="flex-1">
           <p class="font-semibold text-white text-sm">Финансы</p>
-          <p class="text-xs" style="color: var(--text-muted);">Счёт ICE LOGIX PAY, карты и возвраты</p>
+          <p class="text-xs" style="color: var(--text-muted);">Банковские карты, промокоды и возвраты</p>
         </div>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
       </button>

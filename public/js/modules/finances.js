@@ -319,7 +319,7 @@ function _renderCouponsTabHtml(stats) {
         <div class="p-4 rounded-3xl bg-gradient-to-r from-cyan-950/60 via-slate-900/80 to-slate-900 border border-cyan-500/30 flex items-center justify-between">
           <div>
             <p class="text-[11px] text-white/50 mb-0.5">Всего выкуплено через ICE LOGIX</p>
-            <p class="text-lg font-black text-cyan-300 font-mono tracking-tight">${totalSpentByn.toFixed(2)} BYN</p>
+            <p class="text-lg font-black text-cyan-300 font-mono tracking-tight inline-flex items-baseline gap-1">${totalSpentByn.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.9em' }) : ''}</p>
           </div>
           <div class="text-right">
             <span class="text-[10px] px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 font-bold">
@@ -445,7 +445,7 @@ function _renderRefundsTabHtml(refundItems) {
                   <p class="text-[10px] text-white/40 mt-0.5">ID: ${(rf.id || '').slice(0, 8)}</p>
                 </div>
                 <div class="text-right">
-                  <p class="text-xs font-bold text-emerald-400 font-mono">+${Number(rf.amount || 0).toFixed(2)} BYN</p>
+                  <p class="text-xs font-bold text-emerald-400 font-mono inline-flex items-baseline gap-1">+${Number(rf.amount || 0).toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'emerald', size: '0.85em' }) : ''}</p>
                   <span class="text-[9px] px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-semibold">${rf.status || 'Завершен'}</span>
                 </div>
               </div>
@@ -795,31 +795,33 @@ function _attachPayTabHandlers() {
 
 // Быстрое переключение табов за 0 мс (без перезагрузки экрана)
 function switchFinancesSubTab(targetTab) {
-  if (targetTab === 'history' || targetTab === 'topup') targetTab = 'pay';
+  if (targetTab === 'pay' || targetTab === 'wallet' || targetTab === 'topup') {
+    if (typeof switchTab === 'function') switchTab('wallet');
+    return;
+  }
   window._financesSubTab = targetTab;
   if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
 
   // 1. Мгновенно обновляем стили кнопок и заголовок в DOM
   const titles = {
-    pay: { title: 'ICE LOGIX <span class="text-cyan-400">PAY</span>', sub: 'Лицевой счёт и пополнение баланса' },
     payment: { title: 'Банковские карты', sub: 'Привязанные карты для быстрой оплаты' },
     coupons: { title: 'Купоны и промокоды', sub: 'Активация скидок и баллов' },
     refunds: { title: 'Гарантия и возвраты', sub: 'История возвратов средств' }
   };
-  const meta = titles[targetTab] || titles.pay;
+  const meta = titles[targetTab] || titles.payment;
   const headerTitleEl = document.getElementById('financesHeaderTitle');
   const headerSubEl = document.getElementById('financesHeaderSub');
   if (headerTitleEl) headerTitleEl.innerHTML = meta.title;
   if (headerSubEl) headerSubEl.innerText = meta.sub;
 
-  const tabs = ['pay', 'payment', 'coupons', 'refunds'];
+  const tabs = ['payment', 'coupons', 'refunds'];
   tabs.forEach(tab => {
     const btn = document.getElementById('financesTab' + tab.charAt(0).toUpperCase() + tab.slice(1));
     if (btn) {
       if (tab === targetTab) {
-        btn.className = 'w-full py-2.5 px-1 rounded-xl text-[11px] font-bold transition-all duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20';
+        btn.className = 'w-full py-2.5 px-1 rounded-xl text-[11px] font-bold transition-all duration-200 flex flex-col sm:flex-row items-center justify-center gap-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20';
       } else {
-        btn.className = 'w-full py-2.5 px-1 rounded-xl text-[11px] font-bold transition-all duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 text-white/60 hover:text-white hover:bg-white/5 active:scale-95';
+        btn.className = 'w-full py-2.5 px-1 rounded-xl text-[11px] font-bold transition-all duration-200 flex flex-col sm:flex-row items-center justify-center gap-1.5 text-white/60 hover:text-white hover:bg-white/5 active:scale-95';
       }
     }
   });
@@ -828,10 +830,7 @@ function switchFinancesSubTab(targetTab) {
   const container = document.getElementById('financesSubContent');
   if (!container) return;
 
-  if (targetTab === 'pay') {
-    container.innerHTML = _renderPayTabHtml();
-    _attachPayTabHandlers();
-  } else if (targetTab === 'payment') {
+  if (targetTab === 'payment') {
     container.innerHTML = _renderPaymentTabHtml();
     _attachPaymentTabHandlers();
   } else if (targetTab === 'coupons') {
@@ -867,22 +866,20 @@ function switchFinancesSubTab(targetTab) {
 // Главная точка входа рендера раздела Финансы
 async function renderFinances() {
   _ensureCardsLoadedSync();
-  let subTab = window._financesSubTab || 'pay';
-  if (subTab === 'history' || subTab === 'topup') subTab = 'pay';
+  let subTab = window._financesSubTab || 'payment';
+  if (subTab === 'pay' || subTab === 'history' || subTab === 'topup') subTab = 'payment';
   window._financesSubTab = subTab;
 
+  const curBal = typeof window.balance === 'number' ? window.balance : 0;
   const titles = {
-    pay: { title: 'ICE LOGIX <span class="text-cyan-400">PAY</span>', sub: 'Лицевой счёт и пополнение баланса' },
     payment: { title: 'Банковские карты', sub: 'Привязанные карты для быстрой оплаты' },
     coupons: { title: 'Купоны и промокоды', sub: 'Активация скидок и баллов' },
     refunds: { title: 'Гарантия и возвраты', sub: 'История возвратов средств' }
   };
-  const curMeta = titles[subTab] || titles.pay;
+  const curMeta = titles[subTab] || titles.payment;
 
   let initialContent = '';
-  if (subTab === 'pay') {
-    initialContent = _renderPayTabHtml();
-  } else if (subTab === 'payment') {
+  if (subTab === 'payment') {
     initialContent = _renderPaymentTabHtml();
   } else if (subTab === 'coupons') {
     const cached = window._financesCache?.coupons;
@@ -927,29 +924,29 @@ async function renderFinances() {
         </div>
       </div>
 
-      <!-- Сегментированная навигация по подразделам с четкими SVG-иконками -->
-      <div class="grid grid-cols-4 gap-1 mb-5 p-1 rounded-2xl bg-slate-900/90 border border-white/10 shadow-lg backdrop-blur-md">
-        <button
-          id="financesTabPay"
-          type="button"
-          onclick="window.switchFinancesSubTab('pay')"
-          class="w-full py-2.5 px-1 rounded-xl text-[11px] font-bold transition-all duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 ${
-            subTab === 'pay'
-              ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20'
-              : 'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'
-          }"
-        >
-          <svg class="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-          </svg>
-          <span class="truncate">ICE LOGIX PAY</span>
-        </button>
+      <!-- Баннер быстрого перехода в ICE LOGIX PAY -->
+      <div onclick="switchTab('wallet')" class="p-3.5 mb-5 rounded-2xl bg-gradient-to-r from-cyan-950/70 via-slate-900/90 to-slate-900 border border-cyan-500/30 flex items-center justify-between cursor-pointer active:scale-95 transition hover:border-cyan-400/50 shadow-lg shadow-cyan-950/20">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-md shadow-cyan-500/30 text-white font-black text-sm">
+            ⚡
+          </div>
+          <div>
+            <p class="text-xs font-black text-white tracking-wide">Лицевой счёт ICE LOGIX <span class="text-cyan-400">PAY</span></p>
+            <p class="text-[10px] text-cyan-300 font-mono inline-flex items-baseline gap-1 mt-0.5">Баланс: ${curBal.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</p>
+          </div>
+        </div>
+        <span class="text-[10px] font-bold px-3 py-1.5 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 flex items-center gap-1 active:scale-95">
+          Пополнить счёт →
+        </span>
+      </div>
 
+      <!-- Сегментированная навигация по подразделам Финансов (3 таба: Карты, Купоны, Возвраты) -->
+      <div class="grid grid-cols-3 gap-1 mb-5 p-1 rounded-2xl bg-slate-900/90 border border-white/10 shadow-lg backdrop-blur-md">
         <button
           id="financesTabPayment"
           type="button"
           onclick="window.switchFinancesSubTab('payment')"
-          class="w-full py-2.5 px-1 rounded-xl text-[11px] font-bold transition-all duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 ${
+          class="w-full py-2.5 px-1 rounded-xl text-[11px] font-bold transition-all duration-200 flex flex-col sm:flex-row items-center justify-center gap-1.5 ${
             subTab === 'payment'
               ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20'
               : 'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'
@@ -966,7 +963,7 @@ async function renderFinances() {
           id="financesTabCoupons"
           type="button"
           onclick="window.switchFinancesSubTab('coupons')"
-          class="w-full py-2.5 px-1 rounded-xl text-[11px] font-bold transition-all duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 ${
+          class="w-full py-2.5 px-1 rounded-xl text-[11px] font-bold transition-all duration-200 flex flex-col sm:flex-row items-center justify-center gap-1.5 ${
             subTab === 'coupons'
               ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20'
               : 'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'
@@ -983,7 +980,7 @@ async function renderFinances() {
           id="financesTabRefunds"
           type="button"
           onclick="window.switchFinancesSubTab('refunds')"
-          class="w-full py-2.5 px-1 rounded-xl text-[11px] font-bold transition-all duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 ${
+          class="w-full py-2.5 px-1 rounded-xl text-[11px] font-bold transition-all duration-200 flex flex-col sm:flex-row items-center justify-center gap-1.5 ${
             subTab === 'refunds'
               ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20'
               : 'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'

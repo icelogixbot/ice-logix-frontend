@@ -845,7 +845,7 @@
       _selectedTopupAmount = defaultAmount;
     }
     if (typeof switchTab === 'function') {
-      switchTab('topup');
+      switchTab('wallet');
     }
   };
 
@@ -854,7 +854,7 @@
       _selectedTopupAmount = defaultAmount;
     }
     if (typeof switchTab === 'function') {
-      switchTab('topup');
+      switchTab('wallet');
     }
   };
 
