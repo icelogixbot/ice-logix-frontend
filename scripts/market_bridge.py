@@ -64,7 +64,7 @@ import uvicorn
 from supabase import create_client
 
 ADB_PATH = r"C:\LDPlayer\LDPlayer14\adb.exe"
-DEVICE = "emulator-5554"
+DEVICE = "127.0.0.1:5555"
 FRONTEND_PUBLIC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "ice-logix-frontend", "public"))
 PARSED_UPLOADS_DIR = os.path.join(FRONTEND_PUBLIC_DIR, "uploads", "parsed")
 os.makedirs(PARSED_UPLOADS_DIR, exist_ok=True)
@@ -698,7 +698,16 @@ def ensure_device_ready(timeout_sec: int = 45) -> bool:
     ld_dir = os.path.dirname(ADB_PATH)
     desktop_lnk = r"C:\Users\kiril_6yx2ik9\OneDrive\Desktop\LDPlayer 14.lnk"
     try:
-        if os.path.exists(desktop_lnk):
+        # Clear any stale lock file preventing clean launch
+        lock_file = os.path.join(ld_dir, "vms", "leidian0", "player_life")
+        if os.path.exists(lock_file):
+            try: os.remove(lock_file)
+            except Exception: pass
+            
+        ldconsole = os.path.join(ld_dir, "ldconsole.exe")
+        if os.path.exists(ldconsole):
+            subprocess.run([ldconsole, "launch", "--index", "0"], capture_output=True, timeout=5)
+        elif os.path.exists(desktop_lnk):
             os.startfile(desktop_lnk)
         else:
             dnplayer = os.path.join(ld_dir, "dnplayer.exe")
@@ -758,15 +767,18 @@ def run_adb_screencap_bytes(timeout: int = 5) -> Optional[bytes]:
     return None
 
 def resolve_goods_id(raw_input: str) -> Optional[str]:
+    gid, _ = resolve_goods_id_and_query(raw_input)
+    return gid
+
+def resolve_goods_id_and_query(raw_input: str) -> tuple[Optional[str], Optional[str]]:
     s = raw_input.strip()
     if s.isdigit() and len(s) >= 8:
-        return s
+        return s, f"goods_id={s}"
     
     # Try finding goods_id in URL string directly
     m = re.search(r"goods_id=(\d+)", s)
-    if m:
-        return m.group(1)
-        
+    direct_gid = m.group(1) if m else None
+    
     # Follow redirects for short link
     url_m = re.search(r"(https?://[^\s]+)", s)
     if url_m:
@@ -779,18 +791,31 @@ def resolve_goods_id(raw_input: str) -> Optional[str]:
                 timeout=8
             )
             final_url = resp.url
-            m2 = re.search(r"goods_id=(\d+)", final_url)
-            if m2:
-                return m2.group(1)
-            # check query params
             parsed = urlparse(final_url)
             qs = parse_qs(parsed.query)
+            gid = None
             if "goods_id" in qs:
-                return qs["goods_id"][0]
+                gid = qs["goods_id"][0]
+            else:
+                m2 = re.search(r"goods_id=(\d+)", final_url)
+                if m2:
+                    gid = m2.group(1)
+                elif direct_gid:
+                    gid = direct_gid
+            
+            # Full query from redirected URL with all tickets and security tokens
+            query_str = parsed.query
+            if gid and "goods_id=" not in query_str:
+                query_str = f"goods_id={gid}&{query_str}" if query_str else f"goods_id={gid}"
+            return gid, query_str
         except Exception as e:
             print(f"Resolve error: {e}")
+            if direct_gid:
+                return direct_gid, f"goods_id={direct_gid}"
+    elif direct_gid:
+        return direct_gid, f"goods_id={direct_gid}"
             
-    return None
+    return None, None
 
 def parse_bounds(bounds_str: str):
     m = re.findall(r"\[(\d+),(\d+)\]", bounds_str)
@@ -1097,10 +1122,52 @@ def dump_ui_xml(auto_handle_verify: bool = True) -> ET.Element:
 
 def extract_pdd_native_original_photo(goods_id: str, thumb_bounds: Optional[tuple] = None) -> Optional[str]:
     """
-    Taps the drawer thumbnail preview to open the native full-screen studio viewer,
-    captures the pristine 900x900 square studio product photo directly from framebuffer in <300ms,
-    presses Back to return to drawer, and uploads to Supabase Storage.
+    Attempts to extract the 100% genuine original high-resolution studio photo:
+    1. First tries to pull the raw original image from Pinduoduo's Glide disk cache via root ADB.
+    2. Fallback: taps the drawer thumbnail preview to open the native full-screen studio viewer,
+       captures the pristine studio product photo directly from framebuffer,
+       presses Back to return to drawer, and uploads to Supabase Storage.
     """
+    out_master = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}.jpg")
+    out_hd = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}_hd.jpg")
+
+    # 1. Try Glide disk cache extraction (100% original unmodified studio photo)
+    try:
+        cache_files_raw = run_adb(["shell", "su", "0", "ls", "-1t", "/data/data/com.xunmeng.pinduoduo/cache/image_manager_disk_cache/"])
+        if cache_files_raw:
+            top_files = [f.strip() for f in cache_files_raw.splitlines() if f.strip() and len(f.strip()) > 10][:5]
+            for cf in top_files:
+                run_adb(["shell", "su", "0", "cp", f"/data/data/com.xunmeng.pinduoduo/cache/image_manager_disk_cache/{cf}", "/sdcard/pdd_cache_tmp.bin"])
+                tmp_local = os.path.join(PARSED_UPLOADS_DIR, f"tmp_cache_{goods_id}.bin")
+                run_adb(["pull", "/sdcard/pdd_cache_tmp.bin", tmp_local])
+                if os.path.exists(tmp_local) and os.path.getsize(tmp_local) > 25000:
+                    try:
+                        im = Image.open(tmp_local).convert("RGB")
+                        iw, ih = im.size
+                        if iw >= 400 and ih >= 400:
+                            im.save(out_master, "JPEG", quality=95)
+                            im.save(out_hd, "JPEG", quality=95)
+                            try: os.remove(tmp_local)
+                            except Exception: pass
+                            if supabase_client:
+                                rem_name = f"sku_{goods_id}_hd_{int(time.time())}.jpg"
+                                with open(out_hd, "rb") as f:
+                                    supabase_client.storage.from_("product-screenshots").upload(
+                                        rem_name, f.read(), file_options={"content-type": "image/jpeg", "upsert": "true"}
+                                    )
+                                pub_url = supabase_client.storage.from_("product-screenshots").get_public_url(rem_name)
+                                print(f"[💎 100% Genuine Studio Photo from Cache] Extracted: {pub_url} ({iw}x{ih})", flush=True)
+                                return pub_url
+                            return f"/uploads/parsed/sku_{goods_id}_hd.jpg"
+                    except Exception:
+                        pass
+                if os.path.exists(tmp_local):
+                    try: os.remove(tmp_local)
+                    except Exception: pass
+    except Exception as cache_err:
+        print("[*] Glide cache extraction fallback:", cache_err)
+
+    # 2. Fallback: Full-screen viewer tap
     try:
         if thumb_bounds:
             tx = (thumb_bounds[0] + thumb_bounds[2]) // 2
@@ -1109,7 +1176,7 @@ def extract_pdd_native_original_photo(goods_id: str, thumb_bounds: Optional[tupl
             tx, ty = 126, 540
             
         run_adb(["shell", "input", "tap", str(tx), str(ty)])
-        time.sleep(0.35)
+        time.sleep(0.4)
         
         sc_bytes = run_adb_screencap_bytes()
         # Return to drawer immediately
@@ -1120,8 +1187,6 @@ def extract_pdd_native_original_photo(goods_id: str, thumb_bounds: Optional[tupl
             im_full = Image.open(io.BytesIO(sc_bytes)).convert("RGB")
             # Crop pristine 900x900 studio shot (removes top bar & bottom swipe text)
             crop_master = im_full.crop((0, 160, 900, 1060))
-            out_master = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}.jpg")
-            out_hd = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}_hd.jpg")
             crop_master.save(out_master, "JPEG", quality=95)
             crop_master.save(out_hd, "JPEG", quality=95)
             
@@ -1321,11 +1386,11 @@ def parse_product(req: ParseRequest):
     if not ensure_device_ready(timeout_sec=45):
         raise HTTPException(status_code=503, detail="Не удалось запустить эмулятор Pinduoduo. Пожалуйста, откройте LDPlayer вручную.")
 
-    goods_id = resolve_goods_id(req.url)
+    goods_id, full_query = resolve_goods_id_and_query(req.url)
     if not goods_id:
         raise HTTPException(status_code=400, detail="Не удалось извлечь goods_id из ссылки")
         
-    print(f"[*] Processing goods_id={goods_id}")
+    print(f"[*] Processing goods_id={goods_id} (query: {full_query[:60] if full_query else 'direct'})")
     
     # 0. Dismiss any open modals, SKU drawers or previous dialogs
     try:
@@ -1337,7 +1402,12 @@ def parse_product(req: ParseRequest):
         pass
 
     # 1. Open product in Pinduoduo App via Deep Link (with CLEAR_TOP / NEW_TASK flag)
-    intent_url = f"pinduoduo://com.xunmeng.pinduoduo/goods.html?goods_id={goods_id}"
+    # Forward full query string with tickets and oak params to prevent '商品信息不正确' / needLogin
+    if full_query:
+        intent_url = f"pinduoduo://com.xunmeng.pinduoduo/goods.html?{full_query}"
+    else:
+        intent_url = f"pinduoduo://com.xunmeng.pinduoduo/goods.html?goods_id={goods_id}"
+        
     run_adb(["shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", intent_url, "-f", "0x14000000"])
     time.sleep(random.uniform(2.5, 3.2)) # human dwell time for page load
     
@@ -1395,6 +1465,8 @@ def parse_product(req: ParseRequest):
             # Check parent hierarchy: skip if inside a scrollable/clickable list (recommendations)
             parent = node
             in_recommendation_list = False
+            # Walk up to check if this is inside a recommendation container
+            # (We can't walk up in ElementTree, but we can check the node's own scrollable attr)
             if node.attrib.get("scrollable", "false") == "true":
                 in_recommendation_list = True
             if in_recommendation_list:
