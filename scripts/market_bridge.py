@@ -403,6 +403,8 @@ def get_connected_device() -> Optional[str]:
         active = [parts[0] for parts in lines if len(parts) >= 2 and parts[1] == "device"]
         if not active:
             return None
+        if "127.0.0.1:5555" in active:
+            return "127.0.0.1:5555"
         if "emulator-5554" in active:
             return "emulator-5554"
         return active[0]
@@ -450,13 +452,14 @@ def ensure_device_ready(timeout_sec: int = 45) -> bool:
 
     print("[*] Device not connected. Launching LDPlayer on user screen...")
     ld_dir = os.path.dirname(ADB_PATH)
-    dnplayer = os.path.join(ld_dir, "dnplayer.exe")
     desktop_lnk = r"C:\Users\kiril_6yx2ik9\OneDrive\Desktop\LDPlayer 14.lnk"
     try:
         if os.path.exists(desktop_lnk):
-            subprocess.run(["powershell", "-NoProfile", "-Command", f"Start-Process '{desktop_lnk}'"], timeout=10)
-        elif os.path.exists(dnplayer):
-            subprocess.Popen(f'cmd /c "cd /d {ld_dir} && dnplayer.exe"', shell=True)
+            os.startfile(desktop_lnk)
+        else:
+            dnplayer = os.path.join(ld_dir, "dnplayer.exe")
+            if os.path.exists(dnplayer):
+                subprocess.Popen(f'cmd /c "cd /d {ld_dir} && dnplayer.exe"', shell=True)
     except Exception as e:
         print("[!] Auto-launch error:", e)
 
@@ -475,7 +478,13 @@ def ensure_device_ready(timeout_sec: int = 45) -> bool:
 
 def run_adb(args: List[str], timeout: int = 15) -> str:
     dev = get_connected_device() or DEVICE
-    cmd = [ADB_PATH, "-s", dev] + args
+    flat_args = []
+    for a in args:
+        if isinstance(a, str) and (" " in a and any(k in a for k in ["input ", "am ", "screencap ", "cat ", "pm "])):
+            flat_args.extend(a.split())
+        else:
+            flat_args.append(str(a))
+    cmd = [ADB_PATH, "-s", dev] + flat_args
     try:
         res = subprocess.run(
             cmd,
@@ -821,7 +830,7 @@ def capture_hd_studio_and_variants(goods_id: str, root: ET.Element, colors: List
     # 1. Tap thumbnail to capture full Ultra-HD Studio photo
     if thumb_bounds:
         cx, cy = (thumb_bounds[0] + thumb_bounds[2]) // 2, (thumb_bounds[1] + thumb_bounds[3]) // 2
-        run_adb(["shell", f"input tap {cx} {cy}"])
+        run_adb(["shell", "input", "tap", str(cx), str(cy)])
         time.sleep(0.4)
         temp_hd = os.path.join(PARSED_UPLOADS_DIR, f"temp_hd_{goods_id}.png")
         run_adb(["shell", "screencap", "-p", "/sdcard/hd_prev.png"])
@@ -982,6 +991,13 @@ def parse_product(req: ParseRequest):
         
     print(f"[*] Processing goods_id={goods_id}")
     
+    # 0. Dismiss any open modals, SKU drawers or previous dialogs
+    try:
+        run_adb(["shell", "input", "keyevent", "4"])
+        time.sleep(0.3)
+    except Exception:
+        pass
+
     # 1. Open product in Pinduoduo App via Deep Link (with CLEAR_TOP / NEW_TASK flag)
     intent_url = f"pinduoduo://com.xunmeng.pinduoduo/goods.html?goods_id={goods_id}"
     run_adb(["shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", intent_url, "-f", "0x14000000"])
@@ -1052,24 +1068,29 @@ def parse_product(req: ParseRequest):
     # 3. Check if SKU drawer is open, or tap buy button
     has_sku_drawer = any(any(x in (n.attrib.get("text", "") or n.attrib.get("content-desc", "")) for x in ["提交订单", "立即支付", "选择尺码后", "选择款式后", "大图"]) for n in root_init.iter("node"))
     if not has_sku_drawer:
-        print("[*] SKU drawer not open yet. Tapping bottom action area...", flush=True)
-        # 1. First priority: Tap the bottom-right action area [675, 1550] (reliably opens SKU drawer)
-        human_tap("[675,1550]")
+        print("[*] SKU drawer not open yet. Locating bottom buy button...", flush=True)
+        clicked_btn = False
+        # First priority: find explicit action buttons in the bottom navigation bar
+        for target_text in ["发起拼单", "单独购买", "免拼购买", "立即购买", "去拼单"]:
+            for n in root_init.iter("node"):
+                t = (n.attrib.get("text", "") or n.attrib.get("content-desc", "")).strip()
+                b = n.attrib.get("bounds", "")
+                if target_text in t and b:
+                    x1, y1, x2, y2 = parse_bounds(b)
+                    if y1 >= 1400:
+                        human_tap(b)
+                        clicked_btn = True
+                        break
+            if clicked_btn:
+                break
+        
+        # Second fallback: tap standard bottom action area
+        if not clicked_btn:
+            human_tap("[675,1550]")
+
         time.sleep(random.uniform(1.8, 2.3))
         root = dump_ui_xml()
         has_sku_drawer = any(any(x in (n.attrib.get("text", "") or n.attrib.get("content-desc", "")) for x in ["提交订单", "立即支付", "选择尺码后", "选择款式后", "大图"]) for n in root.iter("node"))
-        
-        # 2. Secondary fallback: Tap explicit buy button text node if drawer still closed
-        if not has_sku_drawer:
-            for target_text in ["免拼购买", "发起拼单", "立即购买", "单独购买"]:
-                for n in root_init.iter("node"):
-                    t = (n.attrib.get("text", "") or n.attrib.get("content-desc", "")).strip()
-                    b = n.attrib.get("bounds", "")
-                    if target_text in t and b:
-                        human_tap(b)
-                        time.sleep(random.uniform(1.6, 2.0))
-                        root = dump_ui_xml()
-                        break
     else:
         root = root_init
         
