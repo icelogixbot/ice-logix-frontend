@@ -154,6 +154,10 @@ window.ICON_PATHS = {
       snowflake:    '<line x1=\"12\" y1=\"2\" x2=\"12\" y2=\"22\"/><line x1=\"2\" y1=\"12\" x2=\"22\" y2=\"12\"/><line x1=\"4.93\" y1=\"4.93\" x2=\"19.07\" y2=\"19.07\"/><line x1=\"19.07\" y1=\"4.93\" x2=\"4.93\" y2=\"19.07\"/><line x1=\"2\" y1=\"12\"/><polyline points=\"16.5 7.5 19 5 22 12 19 18 16.5 17\"/>',
       crystalBall:  '<path d=\"M12 2v4M8 4l2 6-2 4M16 4l-2 6 2 4M12 22c-3.3 0-6-2.7-6-6h12c0 3.3-.7 6-6 6zm-4-6c0 2.2 1.8 4 4 4s4-1.8 4-4H8z\"/>',
       largeDot:     '<circle cx=\"12\" cy=\"12\" r=\"6\" fill=\"currentColor\"/>',
+      // Belarusian Ruble Official Currency Symbol (Geometric Vector)
+      byn:          '<path fill=\"currentColor\" fill-rule=\"evenodd\" stroke=\"none\" d=\"M7.26 3.0H17.27V5.0H9.27V10.4H13.99A5.29 5.29 0 0 1 19.28 15.69A5.29 5.29 0 0 1 13.99 21.0H7.26V16.68H4.72V14.68H7.26ZM9.27 12.4H13.99A3.28 3.28 0 0 1 17.27 15.69A3.28 3.28 0 0 1 13.99 18.98H9.27V16.68H13.81V14.68H9.27Z\"/>',
+      bynSign:      '<path fill=\"currentColor\" fill-rule=\"evenodd\" stroke=\"none\" d=\"M7.26 3.0H17.27V5.0H9.27V10.4H13.99A5.29 5.29 0 0 1 19.28 15.69A5.29 5.29 0 0 1 13.99 21.0H7.26V16.68H4.72V14.68H7.26ZM9.27 12.4H13.99A3.28 3.28 0 0 1 17.27 15.69A3.28 3.28 0 0 1 13.99 18.98H9.27V16.68H13.81V14.68H9.27Z\"/>',
+      belarusRuble: '<path fill=\"currentColor\" fill-rule=\"evenodd\" stroke=\"none\" d=\"M7.26 3.0H17.27V5.0H9.27V10.4H13.99A5.29 5.29 0 0 1 19.28 15.69A5.29 5.29 0 0 1 13.99 21.0H7.26V16.68H4.72V14.68H7.26ZM9.27 12.4H13.99A3.28 3.28 0 0 1 17.27 15.69A3.28 3.28 0 0 1 13.99 18.98H9.27V16.68H13.81V14.68H9.27Z\"/>',
       // Marketplace dots — accent colors used by mpDot()
       // (no path — handled by mpDot helper)
     };

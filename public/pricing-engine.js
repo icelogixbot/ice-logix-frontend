@@ -453,6 +453,8 @@
   // =====================================================================
   // 6. ФОРМАТТЕРЫ
   // =====================================================================
+  const BYN_SIGN_HTML = '<svg class="byn-sign" viewBox="0 0 650 800" fill="currentColor" aria-label="BYN" role="img"><path fill-rule="evenodd" d="M113 0H558V89H202V329H412A235 235 0 0 1 647 564A235 235 0 0 1 412 800H113V608H0V519H113V0ZM202 418H412A146 146 0 0 1 558 564A146 146 0 0 1 412 710H202V608H404V519H202V418Z"/></svg>';
+
   function formatBreakdownHTML(result) {
     if (!result.available) {
       return `<div class="bg-orange-500/20 border border-orange-500/50 rounded-xl p-3 text-center">
@@ -475,7 +477,7 @@
     const firstRowsHtml = firstRows.map(([label, val]) => `
       <div class="flex justify-between text-xs py-1 ${val < 0 ? 'text-green-400 font-semibold' : 'text-white/80'}">
         <span>${label}</span>
-        <span class="font-mono">${val >= 0 ? '' : '-'}${Math.abs(val).toFixed(2)} BYN</span>
+        <span class="font-mono inline-flex items-baseline gap-1">${val >= 0 ? '' : '-'}${Math.abs(val).toFixed(2)} ${BYN_SIGN_HTML}</span>
       </div>`).join('');
 
     const secondRows = [];
@@ -486,7 +488,7 @@
     const secondRowsHtml = secondRows.length > 0 ? secondRows.map(([label, val]) => `
       <div class="flex justify-between text-xs py-1 text-white/70">
         <span>${label}</span>
-        <span class="font-mono">${Math.abs(val).toFixed(2)} BYN</span>
+        <span class="font-mono inline-flex items-baseline gap-1">${Math.abs(val).toFixed(2)} ${BYN_SIGN_HTML}</span>
       </div>`).join('') : '';
 
     const warnsHtml = result.warnings.length > 0
@@ -504,7 +506,7 @@
         <div class="p-2.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30">
           <div class="flex justify-between items-center mb-2 pb-1 border-b border-cyan-500/20">
             <span class="text-cyan-300 text-xs font-bold uppercase tracking-wider">1-й этап: Оплата при заказе</span>
-            <span class="text-cyan-400 font-bold text-sm">${firstPay.toFixed(2)} BYN</span>
+            <span class="text-cyan-400 font-bold text-sm inline-flex items-baseline gap-1">${firstPay.toFixed(2)} ${BYN_SIGN_HTML}</span>
           </div>
           ${firstRowsHtml}
         </div>
@@ -513,7 +515,7 @@
         <div class="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
           <div class="flex justify-between items-center mb-2 pb-1 border-b border-amber-500/20">
             <span class="text-amber-300 text-xs font-bold uppercase tracking-wider">2-й этап: Оплата на складе</span>
-            <span class="text-amber-400 font-bold text-sm">~${secondPay.toFixed(2)} BYN</span>
+            <span class="text-amber-400 font-bold text-sm inline-flex items-baseline gap-1">~${secondPay.toFixed(2)} ${BYN_SIGN_HTML}</span>
           </div>
           ${secondRowsHtml || '<p class="text-[11px] text-white/50">Точный расчет по факту взвешивания</p>'}
         </div>
@@ -521,10 +523,10 @@
         <!-- Полный итог -->
         <div class="border-t border-white/20 pt-2 flex justify-between items-baseline">
           <span class="text-white font-bold text-sm">ИТОГО ЗАКАЗ</span>
-          <span class="text-white font-bold text-lg">${result.total_byn.toFixed(2)} <span class="text-xs text-white/60">BYN</span></span>
+          <span class="text-white font-bold text-lg inline-flex items-baseline gap-1">${result.total_byn.toFixed(2)} ${BYN_SIGN_HTML}</span>
         </div>
         <div class="text-right text-white/50 text-[11px]">
-          ${result.total_ice.toFixed(2)} ICE · 1 BYN = 1 ICE
+          ${result.total_ice.toFixed(2)} ICE · 1 ${BYN_SIGN_HTML} = 1 ICE
         </div>
         <div class="text-white/60 text-xs">
           ⏱️ Срок доставки: ${result.delivery_days[0]}-${result.delivery_days[1]} рабочих дней

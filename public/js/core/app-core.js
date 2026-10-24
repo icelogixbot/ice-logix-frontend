@@ -929,6 +929,37 @@
       return `<span class="${cls}"${szAttr}${stl}><svg viewBox="${vb}" fill="${fill}" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg></span>`;
     }
 
+    /**
+     * Render the official Belarusian Ruble currency symbol SVG.
+     * @param {object} opts - { cls, size, style, color }
+     * @returns {string} HTML string of SVG.
+     */
+    function bynSign(opts = {}) {
+      const cls = ['byn-sign', opts.cls || '', opts.color ? `byn-${opts.color}` : ''].filter(Boolean).join(' ');
+      const stl = opts.style ? ` style="${opts.style}"` : '';
+      const szAttr = opts.size ? ` style="height:${opts.size};${opts.style || ''}"` : stl;
+      return `<svg class="${cls}"${szAttr} viewBox="0 0 650 800" fill="currentColor" aria-label="BYN" role="img"><path fill-rule="evenodd" d="M113 0H558V89H202V329H412A235 235 0 0 1 647 564A235 235 0 0 1 412 800H113V608H0V519H113V0ZM202 418H412A146 146 0 0 1 558 564A146 146 0 0 1 412 710H202V608H404V519H202V418Z"/></svg>`;
+    }
+
+    /**
+     * Format an amount with the Belarusian Ruble currency symbol.
+     * @param {number|string} amount
+     * @param {object} opts - { decimals: 2, cls, color, signPrefix, wrapCls }
+     * @returns {string} HTML string.
+     */
+    function formatBYN(amount, opts = {}) {
+      const num = Number(amount) || 0;
+      const dec = opts.decimals ?? 2;
+      const prefix = opts.signPrefix && num > 0 ? '+' : '';
+      const formattedNum = prefix + (dec > 0 ? num.toFixed(dec) : Math.round(num).toString());
+      const wrapCls = ['byn-price', opts.wrapCls || ''].filter(Boolean).join(' ');
+      return `<span class="${wrapCls}"><span class="byn-val">${formattedNum}</span>${bynSign(opts)}</span>`;
+    }
+
+    window.ix = ix;
+    window.bynSign = bynSign;
+    window.formatBYN = formatBYN;
+
     // Legacy content still contains emoji in a number of dynamically-rendered
     // modules. Normalize it at the DOM boundary so every screen uses one icon
     // language without changing the behavior or copy of those modules.

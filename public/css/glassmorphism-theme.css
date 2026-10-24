@@ -3223,3 +3223,46 @@
         transform: scale(1.04) translateY(-3px);
       }
     }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       BELARUSIAN RUBLE (BYN) OFFICIAL CURRENCY SYMBOL SYSTEM
+       ═══════════════════════════════════════════════════════════════════════ */
+    .byn-sign {
+      display: inline-block;
+      vertical-align: -0.1em;
+      height: 0.92em;
+      width: auto;
+      aspect-ratio: 650 / 800;
+      fill: currentColor;
+      flex-shrink: 0;
+      transition: fill 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+    }
+    .byn-price {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 0.25ch;
+    }
+    .byn-sign.byn-cyan {
+      fill: #00e5ff;
+      filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.45));
+    }
+    .byn-sign.byn-gold {
+      fill: #fbbf24;
+      filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.4));
+    }
+    .byn-sign.byn-emerald {
+      fill: #34d399;
+      filter: drop-shadow(0 0 6px rgba(52, 211, 153, 0.4));
+    }
+    .byn-sign.byn-purple {
+      fill: #c084fc;
+      filter: drop-shadow(0 0 6px rgba(192, 132, 252, 0.4));
+    }
+    .byn-sign.byn-white {
+      fill: #ffffff;
+      filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.3));
+    }
+    .byn-sign.byn-muted {
+      fill: rgba(255, 255, 255, 0.55);
+    }
+
