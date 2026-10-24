@@ -98,15 +98,15 @@
 
       if (diffPercent > 3.0) {
         bannerClass = 'bg-red-500/15 border-red-500/40 text-red-200';
-        msg = `🚫 <b>ВЫКУП БЛОКИРУЕТСЯ</b> (Раздел 8 ТЗ)<br>Подорожание: <b>+${diffPercent.toFixed(1)}%</b> (+${diffBYN.toFixed(2)} BYN > 3%).<br>Заказ перейдет в <i>AWAITING_CUSTOMER_DECISION</i> с запросом доплаты.`;
+        msg = `🚫 <b>ВЫКУП БЛОКИРУЕТСЯ</b> (Раздел 8 ТЗ)<br>Подорожание: <b>+${diffPercent.toFixed(1)}%</b> (+${diffBYN.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''} > 3%).<br>Заказ перейдет в <i>AWAITING_CUSTOMER_DECISION</i> с запросом доплаты.`;
         btnText = '⚠️ Зафиксировать подорожание и запросить доплату';
       } else if (diffPercent > 0.05) {
         bannerClass = 'bg-amber-500/15 border-amber-500/40 text-amber-200';
-        msg = `⚠️ <b>Незначительное подорожание</b> (Пример B ТЗ)<br>Разница: <b>+${diffBYN.toFixed(2)} BYN</b> (+${diffPercent.toFixed(1)}% ≤ 3%).<br>Выкуп разрешен, сумма будет добавлена во 2-й платеж клиента.`;
+        msg = `⚠️ <b>Незначительное подорожание</b> (Пример B ТЗ)<br>Разница: <b>+${diffBYN.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'gold', size: '0.85em' }) : ''}</b> (+${diffPercent.toFixed(1)}% ≤ 3%).<br>Выкуп разрешен, сумма будет добавлена во 2-й платеж клиента.`;
         btnText = '🛒 Выкупить (+добавить разницу во 2-й счет)';
       } else if (diffPercent < -0.05) {
         bannerClass = 'bg-green-500/15 border-green-500/40 text-green-200';
-        msg = `🎉 <b>Товар подешевел!</b> (Пример D ТЗ)<br>Разница: <b>${diffBYN.toFixed(2)} BYN</b>.<br>Сумма ${Math.abs(diffBYN).toFixed(2)} BYN будет автоматически зачислена на баланс клиента.`;
+        msg = `🎉 <b>Товар подешевел!</b> (Пример D ТЗ)<br>Разница: <b>${diffBYN.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'emerald', size: '0.85em' }) : ''}</b>.<br>Сумма ${Math.abs(diffBYN).toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'emerald', size: '0.85em' }) : ''} будет автоматически зачислена на баланс клиента.`;
         btnText = '✅ Выкупить и начислить излишек на баланс';
       } else {
         msg = `✅ Цена совпадает с плановой (¥${plannedCNY.toFixed(2)}). Стандартный выкуп (Пример A ТЗ).`;
@@ -115,7 +115,7 @@
       previewBox.className = `p-3 rounded-xl border text-xs space-y-1.5 ${bannerClass}`;
       previewBox.innerHTML = `
         <div class="flex justify-between"><span>Плановая цена:</span><span class="font-mono">¥${plannedCNY.toFixed(2)}</span></div>
-        <div class="flex justify-between"><span>Факт выкупа:</span><span class="font-mono font-bold">¥${pCNY.toFixed(2)} (${(pCNY * rate).toFixed(2)} BYN)</span></div>
+        <div class="flex justify-between"><span>Факт выкупа:</span><span class="font-mono font-bold inline-flex items-baseline gap-1">¥${pCNY.toFixed(2)} (${(pCNY * rate).toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''})</span></div>
         ${hasFee ? `<div class="flex justify-between text-white/60"><span>Сбор DuoDuo Pay (3%):</span><span class="font-mono">+¥${feeCNY.toFixed(2)}</span></div>` : ''}
         <div class="border-t border-white/10 pt-1 text-[11px] leading-relaxed">${msg}</div>
       `;
@@ -302,19 +302,19 @@
       if (actShip >= reserve) {
         shippingRemainder = actShip - reserve;
         secondPaymentTotal = shippingRemainder + insurance + nesvizh + extra;
-        bannerHtml = `📦 <b>К оплате 2-го этапа:</b> <span class="text-amber-400 font-bold font-mono text-sm">${secondPaymentTotal.toFixed(2)} BYN</span><br>Остаток доставки: ${shippingRemainder.toFixed(2)} BYN | Страховка 2%: ${insurance.toFixed(2)} BYN | Несвиж: ${nesvizh.toFixed(2)} BYN`;
+        bannerHtml = `📦 <b>К оплате 2-го этапа:</b> <span class="text-amber-400 font-bold font-mono text-sm inline-flex items-baseline gap-1">${secondPaymentTotal.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'gold', size: '0.85em' }) : ''}</span><br>Остаток доставки: ${shippingRemainder.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''} | Страховка 2%: ${insurance.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''} | Несвиж: ${nesvizh.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}`;
       } else {
         surplus = reserve - actShip;
         secondPaymentTotal = insurance + nesvizh + extra;
         bannerClass = 'bg-green-500/15 border-green-500/40 text-green-200';
-        bannerHtml = `🎉 <b>Доставка дешевле резерва!</b> (Пример F ТЗ)<br>Излишек: <b>+${surplus.toFixed(2)} BYN</b> будет автоматически зачислен на баланс клиента.<br>К оплате во 2-м этапе только: <span class="font-bold font-mono text-white">${secondPaymentTotal.toFixed(2)} BYN</span> (страховка + Несвиж)`;
+        bannerHtml = `🎉 <b>Доставка дешевле резерва!</b> (Пример F ТЗ)<br>Излишек: <b>+${surplus.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'emerald', size: '0.85em' }) : ''}</b> будет автоматически зачислен на баланс клиента.<br>К оплате во 2-м этапе только: <span class="font-bold font-mono text-white inline-flex items-baseline gap-1">${secondPaymentTotal.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span> (страховка + Несвиж)`;
       }
 
       previewBox.className = `p-3 rounded-xl border text-xs space-y-1.5 ${bannerClass}`;
       previewBox.innerHTML = `
-        <div class="flex justify-between"><span>Оплаченный резерв (70%):</span><span class="font-mono">${reserve.toFixed(2)} BYN</span></div>
-        <div class="flex justify-between"><span>Факт доставки склада:</span><span class="font-mono font-bold">${actShip.toFixed(2)} BYN</span></div>
-        <div class="flex justify-between text-white/60"><span>Страховка (2%):</span><span class="font-mono">${insurance.toFixed(2)} BYN</span></div>
+        <div class="flex justify-between"><span>Оплаченный резерв (70%):</span><span class="font-mono inline-flex items-baseline gap-1">${reserve.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span></div>
+        <div class="flex justify-between"><span>Факт доставки склада:</span><span class="font-mono font-bold inline-flex items-baseline gap-1">${actShip.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span></div>
+        <div class="flex justify-between text-white/60"><span>Страховка (2%):</span><span class="font-mono inline-flex items-baseline gap-1">${insurance.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span></div>
         <div class="border-t border-white/10 pt-1 text-[11px] leading-relaxed">${bannerHtml}</div>
       `;
     };
@@ -385,7 +385,7 @@
 
         if (window.tgUtil) {
           window.tgUtil.haptic('success');
-          window.tgUtil.alert(`✅ Данные склада сохранены!\\n2-й этап выставлен на ${secondPaymentTotal.toFixed(2)} BYN${surplus > 0 ? ` (клиенту начислен излишек ${surplus.toFixed(2)} BYN на баланс)` : ''}`);
+          window.tgUtil.alert(`✅ Данные склада сохранены!\\n2-й этап выставлен на ${secondPaymentTotal.toFixed(2)} (клиенту ${surplus > 0 ? `начислен излишек ${surplus.toFixed(2)} на баланс` : 'готово'})`);
         }
         close();
         if (typeof window.preloadAdminData === 'function') await window.preloadAdminData(true);
@@ -490,27 +490,27 @@
         <div class="bg-white/5 p-3 rounded-xl space-y-1.5 border border-white/10">
           <div class="flex justify-between">
             <span class="text-white/70">Получено от клиента:</span>
-            <span class="font-mono font-bold text-cyan-400">${totalInflow.toFixed(2)} BYN</span>
+            <span class="font-mono font-bold text-cyan-400 inline-flex items-baseline gap-1">${totalInflow.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</span>
           </div>
           <div class="flex justify-between">
             <span class="text-white/70">Подтвержденные расходы:</span>
-            <span class="font-mono font-bold text-white">${totalOutflow.toFixed(2)} BYN</span>
+            <span class="font-mono font-bold text-white inline-flex items-baseline gap-1">${totalOutflow.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
           </div>
           ${surplusCredited > 0 ? `
           <div class="flex justify-between text-green-400">
             <span>Начислено на баланс:</span>
-            <span class="font-mono">+${surplusCredited.toFixed(2)} BYN</span>
+            <span class="font-mono inline-flex items-baseline gap-1">+${surplusCredited.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'emerald', size: '0.85em' }) : ''}</span>
           </div>` : ''}
           <div class="flex justify-between border-t border-white/10 pt-1.5 font-bold">
             <span>Дельта равенства (Раздел 39):</span>
-            <span class="font-mono ${isMatched ? 'text-green-400' : 'text-red-400'}">${delta > 0 ? '+' : ''}${delta.toFixed(2)} BYN</span>
+            <span class="font-mono ${isMatched ? 'text-green-400' : 'text-red-400'} inline-flex items-baseline gap-1">${delta > 0 ? '+' : ''}${delta.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
           </div>
         </div>
 
         ${!isMatched ? `
         <div class="bg-red-500/10 border border-red-500/30 p-3 rounded-xl space-y-2">
           <p class="font-bold text-red-300">⚠️ Зафиксировано расхождение</p>
-          <p class="text-[11px] text-white/70">Сумма внесенных средств отличается от итоговых расходов на ${Math.abs(delta).toFixed(2)} BYN.</p>
+          <p class="text-[11px] text-white/70">Сумма внесенных средств отличается от итоговых расходов на ${Math.abs(delta).toFixed(2)}.</p>
           <input type="text" id="reconResolveComment" class="w-full p-2 rounded-lg bg-black/40 border border-white/20 text-white text-xs" placeholder="Обоснование оператора для закрытия...">
           <button id="reconResolveBtn" class="w-full btn-secondary bg-red-600/50 hover:bg-red-600 text-white py-2 rounded-lg font-bold text-xs transition">
             🛠️ Утвердить решение и закрыть
@@ -639,7 +639,7 @@
               <div class="p-2.5 rounded-xl border ${isProblem ? 'bg-red-500/10 border-red-500/30' : 'bg-white/5 border-white/10'} flex items-center justify-between">
                 <div>
                   <p class="font-mono text-white font-bold">#${o.id.slice(0, 8)} <span class="text-white/50 text-[10px]">(${o.status})</span></p>
-                  <p class="text-[10px] text-white/60">Итого: ${Number(o.total_byn || 0).toFixed(2)} BYN | Внесено: ${Number(o.prepayment_amount || 0).toFixed(2)} BYN</p>
+                  <p class="text-[10px] text-white/60 inline-flex items-baseline gap-1">Итого: ${Number(o.total_byn || 0).toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''} | Внесено: ${Number(o.prepayment_amount || 0).toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</p>
                 </div>
                 <button class="px-2.5 py-1 rounded-lg text-[10px] font-semibold ${isProblem ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-purple-600/40 hover:bg-purple-600 text-purple-200'} transition" onclick="window.openOrderReconciliationModal('${o.id}')">
                   ${isProblem ? '⚠️ Расследовать' : '🔍 Проверить'}

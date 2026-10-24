@@ -556,7 +556,7 @@
     const numMatch = q.match(/^(\d{2,6})\s*(¥|юаней|юань|ю|cny)?$/);
     if (numMatch) {
       const val = numMatch[1];
-      suggestions.push({ icon: '🇨🇳', text: `${val} ¥ в рублях (BYN / RUB)`, q: `${val} ¥` });
+      suggestions.push({ icon: '🇨🇳', text: `${val} ¥ в белорусских рублях`, q: `${val} ¥` });
       suggestions.push({ icon: '⚡', text: `${val} ¥ вес 1.5 кг «под ключ»`, q: `кроссовки ${val}¥ вес 1.5 кг` });
       suggestions.push({ icon: '🧥', text: `Пуховик ${val} ¥ вес 2 кг`, q: `пуховик ${val}¥ вес 2 кг` });
     }

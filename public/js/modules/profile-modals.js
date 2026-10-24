@@ -783,7 +783,7 @@ async function showCurrencyAlertsModal() {
       <div class="space-y-4">
         <div class="bg-white/5 p-3 rounded-xl border border-white/10">
           <p class="text-xs font-bold text-white mb-2 flex items-center justify-between">
-            <span>🇨🇳 Динамика CNY/BYN (7 дней)</span>
+            <span>🇨🇳 Динамика CNY (7 дней)</span>
             <span class="text-cyan-400 font-mono text-xs">текущий ~${cnyRate.toFixed(4)}</span>
           </p>
           <div class="relative h-20 w-full overflow-hidden mt-1 bg-slate-950/40 rounded-lg">
@@ -803,7 +803,7 @@ async function showCurrencyAlertsModal() {
 
         <div class="bg-white/5 p-3 rounded-xl border border-white/10">
           <p class="text-xs font-bold text-white mb-2 flex items-center justify-between">
-            <span>🇵🇱🇪🇺 Динамика EUR/BYN (7 дней)</span>
+            <span>🇵🇱🇪🇺 Динамика EUR (7 дней)</span>
             <span class="text-violet-400 font-mono text-xs">текущий ~${eurRate.toFixed(4)}</span>
           </p>
           <div class="relative h-20 w-full overflow-hidden mt-1 bg-slate-950/40 rounded-lg">
@@ -833,7 +833,7 @@ async function showCurrencyAlertsModal() {
               </select>
             </div>
             <div>
-              <label class="text-[10px] text-white/50 block mb-1">Целевой курс (BYN)</label>
+              <label class="text-[10px] text-white/50 block mb-1">Целевой курс</label>
               <input type="number" step="0.01" id="alertTarget" placeholder="напр. 0.44" class="w-full p-2.5 rounded-xl border border-white/20 text-xs bg-slate-900 text-white">
             </div>
           </div>

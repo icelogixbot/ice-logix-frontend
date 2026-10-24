@@ -151,7 +151,7 @@ async function renderAdminReviewsConfig() {
 
         <div class="space-y-1">
           <label class="text-white/60 text-xs font-bold">Детали (JSON форматированный)</label>
-          <textarea id="dispenseDetails" class="btn-secondary w-full p-2.5 rounded-xl border border-white/10 text-xs text-white font-mono" rows="3">{"product": "Реклама у Блогера X", "amount": "50 BYN", "delivery": "Минск"}</textarea>
+          <textarea id="dispenseDetails" class="btn-secondary w-full p-2.5 rounded-xl border border-white/10 text-xs text-white font-mono" rows="3">{"product": "Реклама у Блогера X", "amount": "50", "delivery": "Минск"}</textarea>
         </div>
 
         <button id="dispenseActionBtn" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold w-full py-3 rounded-xl transition">
