@@ -67,7 +67,7 @@ async function renderAdminResale() {
             <div class="flex-1">
               <p class="font-bold text-sm text-white">${item.title}</p>
               <p class="text-xs text-white/70 mb-1">От: @${item.users?.username || item.user_id}</p>
-              <p class="text-xs text-white/70 mb-2">Цена: ${item.price_byn} BYN</p>
+              <p class="text-xs text-white/70 mb-2 inline-flex items-baseline gap-1">Цена: ${item.price_byn} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</p>
               <p class="text-xs text-white/50 italic mb-3">"${item.description}"</p>
               <div class="flex gap-2">
                 <button class="btn-primary flex-1 bg-green-500/20 text-green-400 text-xs" onclick="approveResale('${item.id}')">Одобрить</button>
@@ -180,7 +180,7 @@ window.attachAdminCRMHandlers = async () => {
     }
 
     const ltvEl = document.getElementById('crmAvgLtv');
-    if (ltvEl) ltvEl.innerText = (buyers ? (totalSpent / buyers) : 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 }) + ' BYN';
+    if (ltvEl) ltvEl.innerText = (buyers ? (totalSpent / buyers) : 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 });
     const baseEl = document.getElementById('crmActiveBase');
     if (baseEl) baseEl.innerText = active + ' / ' + clients.length;
 
@@ -200,7 +200,7 @@ window.attachAdminCRMHandlers = async () => {
               <p class="text-white/40 text-[11px]">${c.frequency} зак. · посл. ${c.recencyDays} дн. назад</p>
             </div>
             <div class="flex items-center gap-3 shrink-0">
-              <span class="text-white font-bold text-sm">${c.monetary.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} BYN</span>
+              <span class="text-white font-bold text-sm inline-flex items-baseline gap-1">${c.monetary.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
               <span class="px-2 py-0.5 rounded-full text-[10px] font-bold" style="background:${s.bg};color:${s.color}">${s.icon} ${c.segment}</span>
             </div>
           </div>
@@ -262,12 +262,12 @@ async function renderAdminAnalytics() {
     <div class="grid grid-cols-2 gap-3 mb-6">
       <div class="relative overflow-hidden p-4 rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 to-slate-900 shadow-[0_0_20px_rgba(34,211,238,0.1)]">
         <div class="absolute top-0 right-0 p-2 opacity-20"><span class="ix text-5xl text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span></div>
-        <p class="text-[10px] text-cyan-400/80 mb-1 uppercase tracking-wider font-bold">Оборот (BYN)</p>
+        <p class="text-[10px] text-cyan-400/80 mb-1 uppercase tracking-wider font-bold">Оборот</p>
         <p class="text-2xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" id="stat-revenue">0</p>
       </div>
       <div class="relative overflow-hidden p-4 rounded-2xl border border-green-500/30 bg-gradient-to-br from-green-500/10 to-slate-900 shadow-[0_0_20px_rgba(74,222,128,0.1)]">
         <div class="absolute top-0 right-0 p-2 opacity-20"><span class="ix text-5xl text-green-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span></div>
-        <p class="text-[10px] text-green-400/80 mb-1 uppercase tracking-wider font-bold">Чистая прибыль (BYN)</p>
+        <p class="text-[10px] text-green-400/80 mb-1 uppercase tracking-wider font-bold">Чистая прибыль</p>
         <p class="text-2xl font-black text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.5)]" id="stat-profit">0</p>
         <p class="text-[9px] text-green-400/50 mt-1">15% от стоимости товаров</p>
       </div>
@@ -474,7 +474,7 @@ window.attachAdminAnalyticsHandlers = async () => {
                         <p class="text-white/60 text-xs">${e.description || ''}</p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <span class="text-red-400 font-bold text-sm">-${e.amount} BYN</span>
+                        <span class="text-red-400 font-bold text-sm inline-flex items-baseline gap-1">-${e.amount} ${window.bynSign ? window.bynSign({ color: 'emerald', size: '0.85em' }) : ''}</span>
                         <button class="deleteExpenseBtn text-white/30 hover:text-red-400 transition" data-id="${e.id}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></button>
                     </div>
                 </div>
@@ -490,7 +490,7 @@ window.attachAdminAnalyticsHandlers = async () => {
             modal.innerHTML = `
                 <div class="glass-card max-w-sm w-full">
                     <h3 class="text-white font-bold mb-4">Добавить расход</h3>
-                    <input type="number" id="expAmount" class="btn-secondary w-full p-3 rounded-xl mb-3" placeholder="Сумма (BYN)">
+                    <input type="number" id="expAmount" class="btn-secondary w-full p-3 rounded-xl mb-3" placeholder="Сумма">
                     <select id="expCategory" class="btn-secondary w-full p-3 rounded-xl mb-3">
                         <option value="Аренда">Аренда</option>
                         <option value="Зарплата">Зарплата</option>
@@ -746,7 +746,7 @@ window.downloadTaxInvoicePDF = async () => {
 
     let totalSum = 0;
     const tableBody = [
-      [{ text: 'Дата', style: 'tableHeader' }, { text: 'Номер заказа', style: 'tableHeader' }, { text: 'Сумма (BYN)', style: 'tableHeader' }]
+      [{ text: 'Дата', style: 'tableHeader' }, { text: 'Номер заказа', style: 'tableHeader' }, { text: 'Сумма', style: 'tableHeader' }]
     ];
 
     orders.forEach(o => {
