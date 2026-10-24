@@ -486,21 +486,328 @@ function _renderLoadingSkeletonHtml(msg) {
 }
 
 
+let _selectedPayAmount = 50;
+let _selectedPayMethod = 'erip';
+
+// Генератор HTML: Премиальная цифровая карта и блок пополнения «ICE LOGIX PAY»
+function _renderPayTabHtml() {
+  const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : 0);
+  const curBal = typeof window.balance === 'number' ? window.balance : 0;
+  const accountNum = `ICE-${String(curUserId).padStart(7, '0')}`;
+  const userName = (window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name || 'Клиент ICE LOGIX').toUpperCase();
+
+  return `
+    <div class="space-y-4">
+      <!-- 1. Премиальная цифровая карта «ICE LOGIX PAY» -->
+      <div class="relative w-full aspect-[1.586/1] max-w-[340px] mx-auto rounded-3xl p-5 flex flex-col justify-between overflow-hidden select-none transition-all duration-300 bg-gradient-to-br from-slate-900 via-cyan-950/70 to-slate-950 border border-cyan-400/40 shadow-2xl shadow-cyan-950/60 ring-1 ring-white/10">
+        <!-- Световые неоновые блики -->
+        <div class="absolute -top-12 -right-12 w-36 h-36 rounded-full bg-cyan-400/15 blur-2xl pointer-events-none"></div>
+        <div class="absolute -bottom-10 -left-10 w-32 h-32 rounded-full bg-blue-600/20 blur-xl pointer-events-none"></div>
+
+        <!-- Верхний ряд: Логотип ICE LOGIX PAY + Статус счета -->
+        <div class="relative z-10 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-md shadow-cyan-500/40">
+              <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>
+            </div>
+            <div>
+              <span class="text-sm font-black tracking-wider text-white font-sans drop-shadow-sm">ICE LOGIX <span class="text-cyan-400">PAY</span></span>
+            </div>
+          </div>
+          <span class="px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest bg-cyan-400/20 text-cyan-300 border border-cyan-400/40 shadow-sm shadow-cyan-400/20 uppercase">
+            Лицевой счёт
+          </span>
+        </div>
+
+        <!-- Центральный ряд: Баланс счета -->
+        <div class="relative z-10 my-auto py-1">
+          <p class="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-0.5">Доступный баланс</p>
+          <div class="flex items-baseline gap-2.5">
+            <span class="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight" id="payLiveBalance">${curBal.toFixed(2)} BYN</span>
+            <span class="text-xs font-bold text-cyan-400 font-mono" id="payLiveIce">≈ ${curBal.toFixed(0)} ICE</span>
+          </div>
+        </div>
+
+        <!-- Нижний ряд: Чип, Номер счета и Владелец -->
+        <div class="relative z-10 flex items-end justify-between">
+          <div class="space-y-0.5">
+            <p class="text-[8px] uppercase tracking-widest text-white/40 font-bold">Номер счёта</p>
+            <p class="font-mono text-xs font-bold text-white/90 tracking-widest">${accountNum}</p>
+            <p class="text-[9px] font-medium text-white/50 truncate max-w-[160px]">${userName}</p>
+          </div>
+          <div class="flex items-center gap-1.5 opacity-80">
+            <div class="w-8 h-6 rounded-md bg-gradient-to-br from-amber-200 to-amber-500 border border-amber-300/60 p-0.5 flex flex-col justify-around shadow-sm">
+              <div class="w-full h-[1px] bg-amber-900/40"></div>
+              <div class="w-full h-[1px] bg-amber-900/40"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Блок пополнения счёта ICE LOGIX PAY -->
+      <div class="glass-card p-4 rounded-3xl border border-white/10 space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2 text-white font-bold text-sm">
+            <svg class="w-4 h-4 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>Пополнить счёт ICE LOGIX PAY</span>
+          </div>
+          <span class="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+            0% КОМИССИЯ
+          </span>
+        </div>
+
+        <!-- Быстрые чипы сумм -->
+        <div class="space-y-1.5">
+          <label class="text-[11px] text-white/50 font-medium">Сумма пополнения (BYN)</label>
+          <div class="grid grid-cols-5 gap-1.5" id="payChipsGrid">
+            <button type="button" class="pay-amount-chip py-2 px-1 rounded-xl text-xs font-mono font-bold transition active:scale-95 text-center bg-white/5 hover:bg-white/10 text-white/70 border border-white/5" data-amount="25">25</button>
+            <button type="button" class="pay-amount-chip py-2 px-1 rounded-xl text-xs font-mono font-bold transition active:scale-95 text-center bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20" data-amount="50">50</button>
+            <button type="button" class="pay-amount-chip py-2 px-1 rounded-xl text-xs font-mono font-bold transition active:scale-95 text-center bg-white/5 hover:bg-white/10 text-white/70 border border-white/5" data-amount="100">100</button>
+            <button type="button" class="pay-amount-chip py-2 px-1 rounded-xl text-xs font-mono font-bold transition active:scale-95 text-center bg-white/5 hover:bg-white/10 text-white/70 border border-white/5" data-amount="200">200</button>
+            <button type="button" class="pay-amount-chip py-2 px-1 rounded-xl text-xs font-mono font-bold transition active:scale-95 text-center bg-white/5 hover:bg-white/10 text-white/70 border border-white/5" data-amount="500">500</button>
+          </div>
+        </div>
+
+        <!-- Поле ввода своей суммы -->
+        <div class="relative">
+          <input
+            type="number"
+            id="payCustomAmountInput"
+            min="1"
+            max="10000"
+            step="1"
+            value="50"
+            class="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-4 pr-16 text-base font-mono font-black text-white placeholder-white/20 focus:outline-none focus:border-cyan-400 transition"
+            placeholder="Своя сумма"
+          >
+          <span class="absolute right-4 top-1/2 -translate-y-1/2 font-mono font-bold text-xs text-cyan-400">BYN</span>
+        </div>
+
+        <!-- Способы пополнения -->
+        <div class="space-y-2">
+          <label class="text-[11px] text-white/50 font-medium">Способ пополнения</label>
+          <div class="space-y-2" id="payMethodsList">
+            <!-- ЕРИП -->
+            <label class="pay-method-card flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer bg-cyan-500/10 border-cyan-500/50 shadow-md shadow-cyan-950/40" data-method="erip">
+              <div class="flex items-center gap-3">
+                <input type="radio" name="payTopupMethod" value="erip" checked class="hidden">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                  🏛️
+                </div>
+                <div>
+                  <p class="text-xs font-bold text-white">ЕРИП (АИС «Расчет»)</p>
+                  <p class="text-[10px] text-white/50">Мгновенно из любого банкинга Беларуси</p>
+                </div>
+              </div>
+              <span class="text-[10px] font-bold text-cyan-400">0%</span>
+            </label>
+
+            <!-- Оплати -->
+            <label class="pay-method-card flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer bg-white/[0.03] border-white/10 hover:border-white/20" data-method="oplati">
+              <div class="flex items-center gap-3">
+                <input type="radio" name="payTopupMethod" value="oplati" class="hidden">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                  📱
+                </div>
+                <div>
+                  <p class="text-xs font-bold text-white">Оплати</p>
+                  <p class="text-[10px] text-white/50">По QR-коду или через приложение</p>
+                </div>
+              </div>
+              <span class="text-[10px] font-bold text-emerald-400">0%</span>
+            </label>
+
+            <!-- Банковская карта онлайн -->
+            <label class="pay-method-card flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer bg-white/[0.03] border-white/10 hover:border-white/20" data-method="card">
+              <div class="flex items-center gap-3">
+                <input type="radio" name="payTopupMethod" value="card" class="hidden">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                  💳
+                </div>
+                <div>
+                  <p class="text-xs font-bold text-white">Банковская карта онлайн</p>
+                  <p class="text-[10px] text-white/50">Белкарт, Mastercard, Visa, МИР</p>
+                </div>
+              </div>
+              <span class="text-[10px] font-bold text-purple-400">0%</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Кнопка пополнения -->
+        <button
+          type="button"
+          id="paySubmitTopupBtn"
+          class="w-full btn-primary py-3.5 rounded-2xl text-xs font-bold shadow-lg shadow-cyan-500/25 active:scale-95 transition flex items-center justify-center gap-2"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+          <span id="paySubmitBtnText">Пополнить на 50 BYN</span>
+        </button>
+      </div>
+
+      <!-- 3. Преимущества ICE LOGIX PAY (3 карточки) -->
+      <div class="grid grid-cols-3 gap-2">
+        <div class="p-3 rounded-2xl bg-slate-900/60 border border-white/5 text-center space-y-1">
+          <div class="text-lg">⚡</div>
+          <p class="text-[10px] font-bold text-white leading-tight">Оплата в 1 клик</p>
+          <p class="text-[9px] text-white/40 leading-snug">Без SMS и ввода данных карты</p>
+        </div>
+        <div class="p-3 rounded-2xl bg-slate-900/60 border border-white/5 text-center space-y-1">
+          <div class="text-lg">🎁</div>
+          <p class="text-[10px] font-bold text-white leading-tight">Бонусы и кэшбэк</p>
+          <p class="text-[9px] text-white/40 leading-snug">7% за друзей на баланс</p>
+        </div>
+        <div class="p-3 rounded-2xl bg-slate-900/60 border border-white/5 text-center space-y-1">
+          <div class="text-lg">🛡️</div>
+          <p class="text-[10px] font-bold text-white leading-tight">Мгновенный возврат</p>
+          <p class="text-[9px] text-white/40 leading-snug">За 1 секунду при отмене</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Обработчики вкладки «ICE LOGIX PAY»
+function _attachPayTabHandlers() {
+  const customInput = document.getElementById('payCustomAmountInput');
+  const submitBtn = document.getElementById('paySubmitTopupBtn');
+  const submitBtnText = document.getElementById('paySubmitBtnText');
+
+  function updateAmount(val) {
+    _selectedPayAmount = Math.max(1, parseFloat(val) || 1);
+    if (customInput && document.activeElement !== customInput) {
+      customInput.value = _selectedPayAmount;
+    }
+    if (submitBtnText) {
+      submitBtnText.innerText = `Пополнить на ${_selectedPayAmount} BYN`;
+    }
+
+    document.querySelectorAll('#payChipsGrid button').forEach(chip => {
+      const v = parseFloat(chip.dataset.amount);
+      if (v === _selectedPayAmount) {
+        chip.className = 'pay-amount-chip py-2 px-1 rounded-xl text-xs font-mono font-bold transition active:scale-95 text-center bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20';
+      } else {
+        chip.className = 'pay-amount-chip py-2 px-1 rounded-xl text-xs font-mono font-bold transition active:scale-95 text-center bg-white/5 hover:bg-white/10 text-white/70 border border-white/5';
+      }
+    });
+  }
+
+  document.querySelectorAll('#payChipsGrid button').forEach(chip => {
+    chip.onclick = () => {
+      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
+      updateAmount(chip.dataset.amount);
+    };
+  });
+
+  if (customInput) {
+    customInput.oninput = () => {
+      updateAmount(customInput.value);
+    };
+  }
+
+  // Выбор метода пополнения
+  document.querySelectorAll('#payMethodsList .pay-method-card').forEach(card => {
+    card.onclick = () => {
+      const radio = card.querySelector('input[type="radio"]');
+      if (radio) {
+        radio.checked = true;
+        _selectedPayMethod = radio.value;
+        if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+
+        document.querySelectorAll('#payMethodsList .pay-method-card').forEach(c => {
+          if (c === card) {
+            c.className = 'pay-method-card flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer bg-cyan-500/10 border-cyan-500/50 shadow-md shadow-cyan-950/40';
+          } else {
+            c.className = 'pay-method-card flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer bg-white/[0.03] border-white/10 hover:border-white/20';
+          }
+        });
+      }
+    };
+  });
+
+  // Отправка пополнения
+  if (submitBtn) {
+    submitBtn.onclick = async () => {
+      const amt = _selectedPayAmount;
+      if (amt <= 0 || isNaN(amt)) {
+        if (typeof tgUtil !== 'undefined') tgUtil.alert('Укажите корректную сумму пополнения.');
+        return;
+      }
+
+      if (_selectedPayMethod === 'erip') {
+        if (typeof window.openEripPaymentModal === 'function') {
+          window.openEripPaymentModal(amt);
+        } else {
+          tgUtil.alert(`Счет в ЕРИП на сумму ${amt} BYN сформирован!`);
+        }
+      } else if (_selectedPayMethod === 'oplati') {
+        if (typeof window.openOplatiPaymentModal === 'function') {
+          window.openOplatiPaymentModal(amt);
+        } else {
+          tgUtil.alert(`QR-код «Оплати» на сумму ${amt} BYN сформирован!`);
+        }
+      } else if (_selectedPayMethod === 'card') {
+        const cards = Array.isArray(window.userCards) ? window.userCards : [];
+        if (cards.length === 0) {
+          if (typeof window.openFinancesAddCard === 'function') {
+            window.openFinancesAddCard();
+          } else if (typeof window.openAddCardModal === 'function') {
+            window.openAddCardModal(() => {
+              if (typeof tgUtil !== 'undefined') tgUtil.alert('Карта привязана! Повторите пополнение.');
+            });
+          } else {
+            tgUtil.alert('Привяжите банковскую карту во вкладке «Карты».');
+          }
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `
+          <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          <span>Авторизация bePaid...</span>
+        `;
+        if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('medium');
+
+        await new Promise(r => setTimeout(r, 1200));
+        if (typeof window.applyWalletCredit === 'function') {
+          await window.applyWalletCredit(amt, 'TOPUP_CARD', `Счёт ICE LOGIX PAY успешно пополнен на +${amt} BYN с банковской карты!`);
+        } else {
+          window.balance = (window.balance || 0) + amt;
+          const liveB = document.getElementById('payLiveBalance');
+          if (liveB) liveB.innerText = `${window.balance.toFixed(2)} BYN`;
+          const liveI = document.getElementById('payLiveIce');
+          if (liveI) liveI.innerText = `≈ ${window.balance.toFixed(0)} ICE`;
+          if (typeof tgUtil !== 'undefined') tgUtil.alert(`Счёт ICE LOGIX PAY успешно пополнен на +${amt} BYN!`);
+        }
+
+        submitBtn.disabled = false;
+        updateAmount(_selectedPayAmount);
+      }
+    };
+  }
+}
+
 // Быстрое переключение табов за 0 мс (без перезагрузки экрана)
 function switchFinancesSubTab(targetTab) {
-  if (targetTab === 'history' || targetTab === 'topup') targetTab = 'payment'; // Защита от старых вызовов
+  if (targetTab === 'history' || targetTab === 'topup') targetTab = 'pay';
   window._financesSubTab = targetTab;
   if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
 
   // 1. Мгновенно обновляем стили кнопок в DOM
-  const tabs = ['payment', 'coupons', 'refunds'];
+  const tabs = ['pay', 'payment', 'coupons', 'refunds'];
   tabs.forEach(tab => {
     const btn = document.getElementById('financesTab' + tab.charAt(0).toUpperCase() + tab.slice(1));
     if (btn) {
       if (tab === targetTab) {
-        btn.className = 'w-full py-2.5 px-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20';
+        btn.className = 'w-full py-2.5 px-1 rounded-xl text-[11px] font-bold transition-all duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20';
       } else {
-        btn.className = 'w-full py-2.5 px-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 text-white/60 hover:text-white hover:bg-white/5 active:scale-95';
+        btn.className = 'w-full py-2.5 px-1 rounded-xl text-[11px] font-bold transition-all duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 text-white/60 hover:text-white hover:bg-white/5 active:scale-95';
       }
     }
   });
@@ -509,7 +816,10 @@ function switchFinancesSubTab(targetTab) {
   const container = document.getElementById('financesSubContent');
   if (!container) return;
 
-  if (targetTab === 'payment') {
+  if (targetTab === 'pay') {
+    container.innerHTML = _renderPayTabHtml();
+    _attachPayTabHandlers();
+  } else if (targetTab === 'payment') {
     container.innerHTML = _renderPaymentTabHtml();
     _attachPaymentTabHandlers();
   } else if (targetTab === 'coupons') {
@@ -545,12 +855,14 @@ function switchFinancesSubTab(targetTab) {
 // Главная точка входа рендера раздела Финансы
 async function renderFinances() {
   _ensureCardsLoadedSync();
-  let subTab = window._financesSubTab || 'payment';
-  if (subTab === 'history' || subTab === 'topup') subTab = 'payment';
+  let subTab = window._financesSubTab || 'pay';
+  if (subTab === 'history' || subTab === 'topup') subTab = 'pay';
   window._financesSubTab = subTab;
 
   let initialContent = '';
-  if (subTab === 'payment') {
+  if (subTab === 'pay') {
+    initialContent = _renderPayTabHtml();
+  } else if (subTab === 'payment') {
     initialContent = _renderPaymentTabHtml();
   } else if (subTab === 'coupons') {
     const cached = window._financesCache?.coupons;
@@ -591,40 +903,56 @@ async function renderFinances() {
         </button>
         <div>
           <h2 class="text-xl font-bold text-white tracking-wide">Финансы</h2>
-          <p class="text-[11px] text-white/40">Способы оплаты, купоны и возвраты</p>
+          <p class="text-[11px] text-white/40">Счёт ICE LOGIX PAY, карты и возвраты</p>
         </div>
       </div>
 
       <!-- Сегментированная навигация по подразделам с четкими SVG-иконками -->
-      <div class="grid grid-cols-3 gap-1.5 mb-5 p-1.5 rounded-2xl bg-slate-900/90 border border-white/10 shadow-lg backdrop-blur-md">
+      <div class="grid grid-cols-4 gap-1 mb-5 p-1 rounded-2xl bg-slate-900/90 border border-white/10 shadow-lg backdrop-blur-md">
+        <button
+          id="financesTabPay"
+          type="button"
+          onclick="window.switchFinancesSubTab('pay')"
+          class="w-full py-2.5 px-1 rounded-xl text-[11px] font-bold transition-all duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 ${
+            subTab === 'pay'
+              ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20'
+              : 'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'
+          }"
+        >
+          <svg class="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+          <span class="truncate">ICE PAY</span>
+        </button>
+
         <button
           id="financesTabPayment"
           type="button"
           onclick="window.switchFinancesSubTab('payment')"
-          class="w-full py-2.5 px-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 ${
+          class="w-full py-2.5 px-1 rounded-xl text-[11px] font-bold transition-all duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 ${
             subTab === 'payment'
               ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20'
               : 'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'
           }"
         >
-          <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg class="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="2" y="5" width="20" height="14" rx="3"/>
             <line x1="2" y1="10" x2="22" y2="10"/>
           </svg>
-          <span class="truncate">Оплата</span>
+          <span class="truncate">Карты</span>
         </button>
 
         <button
           id="financesTabCoupons"
           type="button"
           onclick="window.switchFinancesSubTab('coupons')"
-          class="w-full py-2.5 px-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 ${
+          class="w-full py-2.5 px-1 rounded-xl text-[11px] font-bold transition-all duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 ${
             subTab === 'coupons'
               ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20'
               : 'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'
           }"
         >
-          <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg class="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
             <circle cx="7" cy="7" r="1.5" fill="currentColor"/>
           </svg>
@@ -635,15 +963,14 @@ async function renderFinances() {
           id="financesTabRefunds"
           type="button"
           onclick="window.switchFinancesSubTab('refunds')"
-          class="w-full py-2.5 px-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 ${
+          class="w-full py-2.5 px-1 rounded-xl text-[11px] font-bold transition-all duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 ${
             subTab === 'refunds'
               ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20'
               : 'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'
           }"
         >
-          <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-            <path d="M3 3v5h5"/>
+          <svg class="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
           </svg>
           <span class="truncate">Возвраты</span>
         </button>
@@ -710,16 +1037,19 @@ function attachFinancesHandlers() {
     if (btn) btn.onclick = () => window.switchFinancesSubTab(tabName);
   };
 
+  bindTab('financesTabPay', 'pay');
   bindTab('financesTabPayment', 'payment');
   bindTab('financesTabCoupons', 'coupons');
   bindTab('financesTabRefunds', 'refunds');
 
-  const curSub = window._financesSubTab || 'payment';
-  if (curSub === 'payment') _attachPaymentTabHandlers();
-  if (curSub === 'coupons') _attachCouponsTabHandlers();
+  const curSub = window._financesSubTab || 'pay';
+  if (curSub === 'pay') _attachPayTabHandlers();
+  else if (curSub === 'payment') _attachPaymentTabHandlers();
+  else if (curSub === 'coupons') _attachCouponsTabHandlers();
 }
 
 window.renderFinances = renderFinances;
 window.attachFinancesHandlers = attachFinancesHandlers;
 window.switchFinancesSubTab = switchFinancesSubTab;
 window._renderFinancesCardsOnly = _renderFinancesCardsOnly;
+

@@ -156,7 +156,7 @@
             <div class="flex items-center gap-2">
               <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400 animate-pulse"></span>
               <span class="text-sm font-black tracking-widest text-white uppercase flex items-center gap-1.5 font-sans">
-                ICE <span class="text-cyan-400">WALLET</span>
+                ICE LOGIX <span class="text-cyan-400">PAY</span>
               </span>
             </div>
 
@@ -843,32 +843,37 @@
     }
   };
 
-  // Быстрый вызов открытия кошелька из любой части приложения
-  window.openWallet = function (subTab = 'topup', defaultAmount = 50) {
-    _activeWalletSubTab = subTab;
+  // Быстрый вызов открытия счета ICE LOGIX PAY из любой части приложения
+  window.openWallet = function (subTab = 'pay', defaultAmount = 50) {
     if (typeof defaultAmount === 'number' && defaultAmount > 0) {
       _selectedTopupAmount = defaultAmount;
     }
+    window._financesSubTab = 'pay';
     if (typeof switchTab === 'function') {
-      switchTab('wallet');
+      switchTab('finances');
+      if (typeof window.switchFinancesSubTab === 'function') {
+        window.switchFinancesSubTab('pay');
+      }
     }
   };
 
   // Обратная совместимость с вызовами topup
   window.openBalanceTopupModal = function (defaultAmount = 50) {
-    window.openWallet('topup', defaultAmount);
+    window.openWallet('pay', defaultAmount);
   };
   window.openBalanceTopup = function (defaultAmount = 50) {
-    window.openWallet('topup', defaultAmount);
+    window.openWallet('pay', defaultAmount);
   };
 
-  // Экспорт функции моментального возврата на кошелек (Instant Refund)
+  window.applyWalletCredit = applyWalletCredit;
+
+  // Экспорт функции моментального возврата на счёт (Instant Refund)
   window.refundToWallet = async function (orderId, amount, reason = 'REFUND_TO_BALANCE') {
     const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
     const refundAmt = parseFloat(amount) || 0;
     if (refundAmt <= 0) return false;
 
-    await applyWalletCredit(refundAmt, reason, `Мгновенный возврат: +${refundAmt.toFixed(2)} BYN зачислено на кошелек ICE!`);
+    await applyWalletCredit(refundAmt, reason, `Мгновенный возврат: +${refundAmt.toFixed(2)} BYN зачислено на счёт ICE LOGIX PAY!`);
     
     if (curUserId && typeof supabaseClient !== 'undefined' && supabaseClient) {
       try {
