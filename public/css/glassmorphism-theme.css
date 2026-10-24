@@ -2364,7 +2364,7 @@
     .card-photo-container {
       position: relative;
       width: 100%;
-      aspect-ratio: 1 / 1;
+      aspect-ratio: 3 / 4 !important;
       overflow: hidden;
       background: rgba(255, 255, 255, 0.05);
       border-radius: 14px 14px 0 0;

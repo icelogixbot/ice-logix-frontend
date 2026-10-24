@@ -2690,9 +2690,11 @@ html.light-theme .product-card:hover {
   box-shadow: 0 16px 40px rgba(26,123,181,0.12) !important;
   border-color: var(--ice-light-line-strong) !important;
 }
-.product-card .card-media {
+.product-card .card-media,
+.product-card .card-photo-container {
   border-radius: 20px 20px 0 0 !important;
   overflow: hidden !important;
+  aspect-ratio: 3 / 4 !important;
 }
 
 /* GLASS-CARD — Arctic Frosted Panel */

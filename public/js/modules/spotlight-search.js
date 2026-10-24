@@ -2101,7 +2101,7 @@
           <div class="grid grid-cols-2 gap-2">
             ${matchingProducts.map(p => `
               <div class="p-2.5 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-400/40 cursor-pointer transition active:scale-98 flex flex-col justify-between" onclick="window.spotlightOpenProduct('${p.id}')">
-                <div class="aspect-square w-full rounded-xl bg-black/40 mb-2 overflow-hidden flex items-center justify-center border border-white/5">
+                <div class="aspect-[3/4] w-full rounded-xl bg-black/40 mb-2 overflow-hidden flex items-center justify-center border border-white/5" style="aspect-ratio: 3/4;">
                   ${p.image_url ? `<img src="${p.image_url}" class="w-full h-full object-cover">` : `<span class="text-2xl">👟</span>`}
                 </div>
                 <div>
