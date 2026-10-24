@@ -282,18 +282,9 @@
 
     function ensureGlobalFooter() {
       const contentDiv = document.getElementById('content');
-      if (!contentDiv || typeof renderFooter !== 'function') return;
+      if (!contentDiv) return;
       const footers = contentDiv.querySelectorAll('.app-footer');
-      if (footers.length === 0) {
-        contentDiv.insertAdjacentHTML('beforeend', renderFooter());
-      } else {
-        // Remove duplicate footers if any
-        for (let i = 0; i < footers.length - 1; i++) {
-          footers[i].remove();
-        }
-        // Always refresh footer in place to update stale cached links/styles
-        footers[footers.length - 1].outerHTML = renderFooter();
-      }
+      footers.forEach(f => f.remove());
     }
     window.ensureGlobalFooter = ensureGlobalFooter;
 

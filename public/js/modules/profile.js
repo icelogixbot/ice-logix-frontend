@@ -149,7 +149,19 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
 
-      <!-- 8. Админ-панель (если владелец) -->
+      <!-- 8. О сервисе и помощь -->
+      <button id="aboutServiceBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 active:scale-[0.99] transition border-t border-white/5" onclick="currentSubScreen = 'about'; renderCurrentScreen();">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg bg-teal-500/10 border border-teal-500/20 shrink-0 text-teal-400">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="font-semibold text-white text-sm">О сервисе и помощь</p>
+          <p class="text-xs truncate" style="color: var(--text-muted);">Условия, поддержка, соцсети, оферта и реквизиты</p>
+        </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+
+      <!-- 9. Админ-панель (если владелец) -->
       ${isOwner ? `
       <button id="adminPanelBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 active:scale-[0.99] transition border-t border-white/5" onclick="switchTab('admin')">
         <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg bg-amber-500/10 border border-amber-500/20 shrink-0 text-amber-400">
@@ -165,7 +177,10 @@
     </div>
   </div>
   
-  ${renderFooter()}
+  <div class="text-center py-5 pb-2 text-[11px] text-white/30 space-y-1">
+    <p>ICE LOGIX © 2026 • Доставка мечты</p>
+    <p class="text-[10px] text-white/20">ИП Иванов И.И. • УНП 123456789</p>
+  </div>
 `;
     }
 
@@ -229,6 +244,14 @@
   const adminBtn = document.getElementById('adminPanelBtn');
   if (adminBtn) {
     adminBtn.onclick = () => switchTab('admin');
+  }
+
+  const aboutServiceBtn = document.getElementById('aboutServiceBtn');
+  if (aboutServiceBtn) {
+    aboutServiceBtn.onclick = () => {
+      currentSubScreen = 'about';
+      renderCurrentScreen();
+    };
   }
 
   // themeToggle removed
