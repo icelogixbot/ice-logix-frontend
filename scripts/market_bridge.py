@@ -300,40 +300,103 @@ def preprocess_fashion_text(t: str) -> str:
     res = re.sub(r"\s+", " ", res).strip()
     return res
 
+def humanize_size(val: str) -> str:
+    clean = val.strip()
+    # Convert weight recommendations from Chinese jin (斤 = 0.5 kg) to kg
+    # e.g., "M 建议90-110斤" -> "M (45–55 кг)"
+    m_range = re.search(r'(?:建议)?\s*(\d+)\s*[-–—~至]\s*(\d+)\s*斤', clean)
+    if m_range:
+        w1 = int(int(m_range.group(1)) * 0.5)
+        w2 = int(int(m_range.group(2)) * 0.5)
+        clean = re.sub(r'\(?(?:建议)?\s*\d+\s*[-–—~至]\s*\d+\s*斤\)?', f' ({w1}–{w2} кг)', clean)
+    else:
+        m_single = re.search(r'(?:建议)?\s*(\d+)\s*斤', clean)
+        if m_single:
+            w = int(int(m_single.group(1)) * 0.5)
+            clean = re.sub(r'\(?(?:建议)?\s*\d+\s*斤\)?', f' ({w} кг)', clean)
+            
+    clean = clean.replace("亚洲尺码", "").replace("尺码", "").replace("建议", "").strip()
+    clean = re.sub(r'\s+', ' ', clean)
+    return clean
+
 def clean_and_translate_option(name_cn: str, is_color: bool = True) -> str:
-    clean = re.sub(r"[🔥\s]|快要抢光|热卖|爆款|大促", " ", name_cn).strip()
+    clean = re.sub(r"[🔥\s]|快要抢光|热卖|爆款|大促|马上卖完", " ", name_cn).strip()
+    if not clean:
+        return "Стандарт"
+        
+    if not is_color:
+        return humanize_size(clean)
+        
+    # Translate compound options like "白金-免系带-碎钉" or "灰色 蝴蝶提花毛衣"
+    parts = re.split(r'[-–—/,\s]+', clean)
     
-    # 1. Direct dictionary match
-    for cn, ru in COLOR_DICT.items():
-        if clean == cn:
-            return ru
+    subst_map = {
+        "白金": "Бело-золотой",
+        "黑红": "Черно-красный",
+        "米黑": "Бежево-черный",
+        "月色": "Лунный серый",
+        "红色": "Красный",
+        "白色": "Белый",
+        "黑色": "Черный",
+        "蓝色": "Синий",
+        "灰色": "Серый",
+        "深灰": "Темно-серый",
+        "深灰色": "Темно-серый",
+        "浅灰": "Светло-серый",
+        "浅灰色": "Светло-серый",
+        "棕色": "Коричневый",
+        "免系带": "без шнурков",
+        "系带": "на шнурках",
+        "碎钉": "шипы TF",
+        "长钉": "шипы FG",
+        "高帮": "высокий носок",
+        "低帮": "низкий профиль",
+        "蝴蝶提花毛衣": "свитер с бабочкой",
+        "蝴蝶提花": "с бабочкой",
+        "毛衣": "свитер",
+        "抹茶绿": "Матча зеленый",
+        "摩卡棕": "Мокко коричневый",
+    }
+    
+    main_color = ""
+    extra_specs = []
+    
+    for p in parts:
+        p = p.strip()
+        if not p:
+            continue
+        if p in subst_map:
+            t = subst_map[p]
+        elif p in COLOR_DICT:
+            t = COLOR_DICT[p]
+        else:
+            t = translate_raw_gtx(p)
+            for cn, ru in subst_map.items():
+                t = t.replace(cn, ru)
+            t = re.sub(r'[\u4e00-\u9fff]', '', t).strip()
             
-    # 2. Preprocess specialized fashion terms
-    pre = preprocess_fashion_text(clean)
-    
-    # 3. Model replacements (iPhone, sizes)
-    pre = pre.replace("苹果", "iPhone ")
-    pre = pre.replace("PROMAX", "Pro Max").replace("PRO", "Pro").replace("PLUS", "Plus")
-    pre = pre.replace("码", " EU").replace("尺码", "Размер ")
-    
-    # If contains Chinese characters, run live neural translate
-    if re.search(r"[\u4e00-\u9fa5]", pre):
-        trans = translate_raw_gtx(pre)
-        if trans and trans != pre:
-            trans = re.sub(r"поставляется только с коробкой для обуви и мешком для сбора пыли|с коробкой для обуви и мешком для сбора пыли|только коробка для обуви и мешок для пыли", "(коробка + пыльник)", trans, flags=re.IGNORECASE)
-            trans = re.sub(r"с коробкой для обуви|только коробка для обуви", "(с коробкой)", trans, flags=re.IGNORECASE)
-            trans = re.sub(r"белый круг", "белый ободок", trans, flags=re.IGNORECASE)
-            trans = re.sub(r"синяя поверхность", "синий циферблат", trans, flags=re.IGNORECASE)
-            trans = re.sub(r"черная поверхность", "черный циферблат", trans, flags=re.IGNORECASE)
-            trans = re.sub(r"белая поверхность", "белый циферблат", trans, flags=re.IGNORECASE)
-            trans = re.sub(r"серебряный пояс|серебряный ремень", "серебряный корпус", trans, flags=re.IGNORECASE)
-            trans = re.sub(r"золотой пояс|золотой ремень", "золотой корпус", trans, flags=re.IGNORECASE)
-            trans = re.sub(r"черный пояс", "черный корпус", trans, flags=re.IGNORECASE)
-            trans = re.sub(r"пояс|ремень", "кожаный ремешок", trans, flags=re.IGNORECASE)
-            trans = re.sub(r"\s+", " ", trans).strip()
-            return trans.capitalize()
+        if not t:
+            continue
             
-    return pre.strip()
+        if t in ["шипы TF", "шипы FG", "без шнурков", "на шнурках", "высокий носок", "низкий профиль", "свитер с бабочкой", "с бабочкой"]:
+            extra_specs.append(t)
+        else:
+            if not main_color:
+                main_color = t.capitalize()
+            else:
+                extra_specs.append(t.lower())
+                
+    if main_color and extra_specs:
+        res = f"{main_color} ({', '.join(extra_specs)})"
+    elif main_color:
+        res = main_color
+    elif extra_specs:
+        res = ", ".join(extra_specs).capitalize()
+    else:
+        res = translate_raw_gtx(clean)
+        res = re.sub(r'[\u4e00-\u9fff]', '', res).strip()
+        
+    return res or clean
 
 def detect_category_and_brand(title_cn: str, selected_summary: str = ""):
     full_text = f"{title_cn} {selected_summary}".lower()
@@ -349,7 +412,7 @@ def detect_category_and_brand(title_cn: str, selected_summary: str = ""):
         category = "Джинсы"
     elif any(x in full_text for x in ["鞋", "运动鞋", "板鞋", "球鞋", "sneaker", "靴"]):
         category = "Обувь"
-    elif any(x in full_text for x in ["卫衣", "t恤", "外套", "裤", "短袖", "衣服", "羽绒服", "夹克", "长裤", "卫裤", "休闲裤", "工装裤", "运动裤", "短裤"]):
+    elif any(x in full_text for x in ["卫衣", "t恤", "外套", "裤", "短袖", "衣服", "羽绒服", "夹克", "长裤", "卫裤", "休闲裤", "工装裤", "运动裤", "短裤", "毛衣", "针织衫"]):
         category = "Одежда"
     elif any(x in full_text for x in ["包", "双肩包", "单肩包", "手提包", "斜挎包"]):
         category = "Сумки"
@@ -362,111 +425,129 @@ def detect_category_and_brand(title_cn: str, selected_summary: str = ""):
         
     return category, detected_brand
 
-def synthesize_smart_title(raw_title: str, brand: str, category: str) -> str:
+def synthesize_smart_title(raw_title: str, brand: str = "", category: str = "") -> str:
     if not raw_title:
         return "Товар с Pinduoduo"
         
-    pre = preprocess_fashion_text(raw_title)
-    trans = translate_raw_gtx(pre)
+    # Strip marketing & junk from Chinese
+    clean_cn = re.sub(r"【.*?】|\[.*?\]|店铺热销|24小时发货|快要抢光|爆款|大促|官方正品|原装|🔥|颜值逆天|贼好|很满意|走时很准|断码清仓|限时秒杀", " ", raw_title)
+    clean_cn = re.sub(r"\b202\d\b|26秋冬季|202\d新款|新款", " ", clean_cn)
+    clean_cn = re.sub(r"\s+", " ", clean_cn).strip()
     
-    # Filter e-commerce garbage words and spam
-    clean_ru = re.sub(
-        r"\b202\d\b|202\d新款|新款|Внешняя торговля|Одинаковая обувь|повседневная и универсальная|для мужчин и женщин|для пап|туфли|одинаковая|рекомендация блогера|горячая распродажа|24 часа|взрывная модель|чистый красный|в наличии|магазин горячие продажи|горячие продажи|популярный|топ продаж",
-        " ",
-        trans,
-        flags=re.IGNORECASE
-    )
-    if "джинсы" in clean_ru.lower() or category == "Джинсы":
-        clean_ru = re.sub(r"\bбрюки\b|\bштаны\b", " ", clean_ru, flags=re.IGNORECASE)
-    clean_ru = re.sub(r"\bсвободная кроя\b|\bсвободный крой\b|\bсвободная\b|\bсвободный\b", "свободного кроя", clean_ru, flags=re.IGNORECASE)
+    # Live neural translation of clean Chinese
+    trans = translate_raw_gtx(clean_cn)
+    
+    fashion_cleanup = {
+        "毛衣": "свитер",
+        "针织衫": "вязаный свитер",
+        "提花": "жаккардовый",
+        "蝴蝶": "с принтом бабочки",
+        "慵懒风": "оверсайз",
+        "潮牌": "",
+        "保暖": "теплый",
+        "秋冬季": "",
+        "秋冬": "",
+        "男女同款": "унисекс",
+        "足球鞋": "футбольные бутсы",
+        "碎钉": "шипы TF",
+        "长钉": "шипы FG",
+        "猎鹰": "Predator",
+        "刺客": "Mercurial",
+        "免系带": "без шнурков",
+        "系带": "на шнурках",
+        "连帽卫衣": "худи",
+        "卫衣": "худи",
+        "外套": "куртка",
+    }
+    for cn, ru in fashion_cleanup.items():
+        if cn in trans:
+            trans = trans.replace(cn, ru)
+    trans = re.sub(r'[\u4e00-\u9fff]', '', trans)
+    
+    # Strip e-commerce marketing spam in Russian
+    spam_patterns = [
+        r"\b202\d\b", r"\b26\b", r"осенне-зимн\w*", r"весенн\w*", r"летн\w*", r"зимн\w*", r"осенн\w*",
+        r"новый\b", r"новинка\b", r"модный бренд\b", r"в ленивом стиле\b", r"ленивый стиль\b", r"стиль ленивого\b",
+        r"повседневная и универсальная\b", r"для мужчин и женщин\b", r"мужчин и женщин\b", r"унисекс\b",
+        r"взрывная модель\b", r"чистый красный\b", r"магазин горячие продажи\b", r"горячие продажи\b",
+        r"популярный\b", r"топ продаж\b", r"высокое качество\b", r"корейская версия\b", r"ретро\b",
+        r"студент\w*", r"соревновани\w*", r"обучени\w*", r"водонепроницаем\w*", r"для пап\b", r"рекомендация блогера\b"
+    ]
+    clean_ru = trans
+    for sp in spam_patterns:
+        clean_ru = re.sub(sp, " ", clean_ru, flags=re.IGNORECASE)
+        
     clean_ru = re.sub(r"\s+", " ", clean_ru).strip(" ,.-:;!?")
     
-    lead = ""
+    # Detect core category lead from both Chinese and translated Russian
+    raw_lower = raw_title.lower()
     clean_low = clean_ru.lower()
-    if category == "Джинсы" or "джинсы" in clean_low:
-        lead = "Джинсы"
-        clean_ru = re.sub(r"\bджинсы\b|\bбрюки\b|\bштаны\b", " ", clean_ru, flags=re.IGNORECASE)
-    elif "пуховик" in clean_low:
-        lead = "Пуховик"
-        clean_ru = re.sub(r"\bпуховик\b", " ", clean_ru, flags=re.IGNORECASE)
-    elif "куртка" in clean_low:
-        lead = "Куртка"
-        clean_ru = re.sub(r"\bкуртка\b", " ", clean_ru, flags=re.IGNORECASE)
-    elif "бомбер" in clean_low:
-        lead = "Бомбер"
-        clean_ru = re.sub(r"\bбомбер\b", " ", clean_ru, flags=re.IGNORECASE)
-    elif "худи" in clean_low:
+    lead = ""
+    feature = ""
+    detected_model = ""
+    
+    if any(k in raw_lower for k in ["足球鞋", "猎鹰", "刺客", "碎钉", "长钉"]) or any(k in clean_low for k in ["бутсы", "футбольн"]):
+        lead = "Футбольные бутсы"
+        if "猎鹰" in raw_lower:
+            detected_model = "Predator"
+        elif "刺客" in raw_lower:
+            detected_model = "Mercurial"
+    elif any(k in raw_lower for k in ["毛衣", "针织衫"]) or any(k in clean_low for k in ["свитер", "вязаный", "джемпер", "пуловер"]):
+        lead = "Вязаный свитер"
+    elif any(k in raw_lower for k in ["连帽卫衣", "连帽"]) or any(k in clean_low for k in ["худи", "толстовка"]):
         lead = "Худи"
-        clean_ru = re.sub(r"\bхуди\b", " ", clean_ru, flags=re.IGNORECASE)
-    elif "свитшот" in clean_low:
+    elif any(k in raw_lower for k in ["卫衣", "卫衣上衣"]) or any(k in clean_low for k in ["свитшот"]):
         lead = "Свитшот"
-        clean_ru = re.sub(r"\bсвитшот\b", " ", clean_ru, flags=re.IGNORECASE)
-    elif "лонгслив" in clean_low:
-        lead = "Лонгслив"
-        clean_ru = re.sub(r"\bлонгслив\b", " ", clean_ru, flags=re.IGNORECASE)
-    elif "футболка" in clean_low:
-        lead = "Футболка"
-        clean_ru = re.sub(r"\bфутболка\b", " ", clean_ru, flags=re.IGNORECASE)
-    elif "шорты" in clean_low:
-        lead = "Шорты"
-        clean_ru = re.sub(r"\bшорты\b", " ", clean_ru, flags=re.IGNORECASE)
-    elif "кеды" in clean_low:
-        lead = "Кеды"
-        clean_ru = re.sub(r"\bкеды\b", " ", clean_ru, flags=re.IGNORECASE)
-    elif "кроссовки" in clean_low or category == "Обувь":
+    elif any(k in raw_lower for k in ["牛仔裤", "牛仔"]) or any(k in clean_low for k in ["джинсы"]):
+        lead = "Джинсы"
+    elif any(k in raw_lower for k in ["运动鞋", "球鞋", "跑鞋"]) or any(k in clean_low for k in ["кроссовки"]):
         lead = "Кроссовки"
-        clean_ru = re.sub(r"\bкроссовки\b|\bобувь\b", " ", clean_ru, flags=re.IGNORECASE)
-    elif "ботинки" in clean_low:
-        lead = "Ботинки"
-        clean_ru = re.sub(r"\bботинки\b", " ", clean_ru, flags=re.IGNORECASE)
-    elif "угги" in clean_low:
-        lead = "Угги"
-        clean_ru = re.sub(r"\bугги\b", " ", clean_ru, flags=re.IGNORECASE)
-    elif "чехол" in clean_low or category == "Чехлы":
-        lead = "Чехол"
-        clean_ru = re.sub(r"\bчехол\b", " ", clean_ru, flags=re.IGNORECASE)
-    elif "часы" in clean_low or category == "Часы":
+    elif any(k in raw_lower for k in ["板鞋", "帆布鞋"]) or any(k in clean_low for k in ["кеды"]):
+        lead = "Кеды"
+    elif any(k in raw_lower for k in ["夹克", "外套"]) or any(k in clean_low for k in ["куртка"]):
+        lead = "Куртка"
+    elif any(k in raw_lower for k in ["羽绒服"]) or any(k in clean_low for k in ["пуховик"]):
+        lead = "Пуховик"
+    elif any(k in raw_lower for k in ["手表", "机械表", "石英表"]) or any(k in clean_low for k in ["часы"]):
         lead = "Часы"
-        clean_ru = re.sub(r"\bчасы\b", " ", clean_ru, flags=re.IGNORECASE)
-    elif category == "Одежда":
-        lead = "Одежда"
+    elif any(k in raw_lower for k in ["手机壳"]) or any(k in clean_low for k in ["чехол"]):
+        lead = "Чехол"
+    else:
+        lead = category if category and category != "Товары из Китая" else ""
         
-    title_parts = []
+    # Extract distinct feature
+    features = []
+    if any(k in raw_lower for k in ["蝴蝶"]):
+        features.append("с принтом бабочки")
+    if any(k in raw_lower for k in ["免系带"]):
+        features.append("без шнурков")
+    if any(k in raw_lower for k in ["阔腿直筒", "阔腿"]):
+        features.append("широкие")
+    if any(k in raw_lower for k in ["直筒"]):
+        features.append("прямые")
+    if any(k in raw_lower for k in ["慵懒风", "宽松"]) or "оверсайз" in clean_low:
+        features.append("оверсайз")
+    if any(k in raw_lower for k in ["印花logo", "logo", "标志"]):
+        features.append("с логотипом")
+        
+    parts = []
     if lead:
-        title_parts.append(lead)
+        parts.append(lead)
     if brand and brand.lower() not in lead.lower():
-        title_parts.append(brand)
+        parts.append(brand)
+    if detected_model and detected_model.lower() not in " ".join(parts).lower():
+        parts.append(detected_model)
         
-    clean_ru = re.sub(r"\s+", " ", clean_ru).strip(" ,.-:;!?")
-    raw_words = clean_ru.split()
-    collected_words = []
-    
-    keep_short = {"в", "с", "из", "на", "для", "со", "от", "по"}
-    stopwords = {"очень", "сверху", "снизу", "просто", "это", "тут", "здесь", "все"}
-    
-    for raw_w in raw_words:
-        w = raw_w.strip(" ,.-:;!?()[]{}\"'`/")
-        if not w:
-            continue
-        low = w.lower()
-        if low in stopwords:
-            continue
-        if low in " ".join(title_parts).lower():
-            continue
-        if len(w) <= 2 and low not in keep_short:
-            continue
-        collected_words.append(w)
-        if len(collected_words) >= 6:
+    for feat in features:
+        if feat.lower() not in " ".join(parts).lower():
+            parts.append(feat)
+        if len(parts) >= 5:
             break
             
-    while collected_words and collected_words[-1].lower() in keep_short:
-        collected_words.pop()
-        
-    title_parts.extend(collected_words)
-    res = " ".join(title_parts).strip(" ,.-:;!?")
-    res = re.sub(r"\s+", " ", res)
-    res = re.sub(r"\s+([,.:;!?])", r"\1", res)
-    return res if res else (f"{lead} {brand}".strip() or "Товар с Pinduoduo")
+    res = " ".join(parts).strip(" ,.-:;!?")
+    res = re.sub(r'\s+(?:с|в|из|на|для|от|по|со|к|о|об)$', '', res, flags=re.IGNORECASE)
+    res = re.sub(r'[\u4e00-\u9fff]', '', res).strip(" ,.-:;!?")
+    return res.capitalize() if res else (f"{lead} {brand}".strip() or "Товар с Pinduoduo")
 
 def translate_color(name_cn: str) -> str:
     return clean_and_translate_option(name_cn, is_color=True)
@@ -961,23 +1042,24 @@ def extract_pdd_native_original_photo(goods_id: str, thumb_bounds: Optional[tupl
         else:
             run_adb(["shell", "input", "tap", "108", "404"])
             
-        time.sleep(0.6)
+        time.sleep(1.0)
         
         # 2. Long-press the center of the photo viewer (450, 750)
-        run_adb(["shell", "input", "swipe", "450", "750", "450", "750", "800"])
-        time.sleep(0.5)
+        run_adb(["shell", "input", "swipe", "450", "750", "450", "750", "600"])
+        time.sleep(0.8)
         
-        # 3. Tap '保存图片' (located at bounds [0,1380][900,1449], center is 450, 1410)
+        # 3. Tap '保存图片' (located at bounds [0,1370][900,1450], center is 450, 1410)
         run_adb(["shell", "input", "tap", "450", "1410"])
-        time.sleep(0.7)
+        time.sleep(0.8)
         
         # 4. Return to drawer by pressing Back key
         run_adb(["shell", "input", "keyevent", "4"])
-        time.sleep(0.3)
+        time.sleep(0.5)
         
         # 5. Check if photo was saved
         res = run_adb(["shell", "ls", "-t", "/sdcard/DCIM/Pindd/save_image/"])
         files = [f.strip() for f in res.splitlines() if f.strip().endswith(".jpg") or f.strip().endswith(".png")]
+        pub_url = None
         if files:
             latest_file = files[0]
             remote_sd_path = f"/sdcard/DCIM/Pindd/save_image/{latest_file}"
@@ -997,12 +1079,27 @@ def extract_pdd_native_original_photo(goods_id: str, thumb_bounds: Optional[tupl
                         supabase_client.storage.from_("product-screenshots").upload(rem_name, f.read(), {"content-type": "image/jpeg"})
                     pub_url = supabase_client.storage.from_("product-screenshots").get_public_url(rem_name)
                     print(f"[+] Uploaded Genuine Original PDD Photo to Supabase: {pub_url}")
-                    return pub_url
-                return f"/uploads/parsed/sku_{goods_id}.jpg"
+                else:
+                    pub_url = f"/uploads/parsed/sku_{goods_id}.jpg"
+                    
+        # 6. CRITICAL INVARIANT: Re-verify if SKU drawer is open after returning from photo viewer
+        try:
+            root_chk = dump_ui_xml(auto_handle_verify=False)
+            if not is_sku_drawer_open(root_chk):
+                print("[*] SKU drawer closed after photo viewer exit. Re-opening drawer...")
+                human_tap("[675,1550]")
+                time.sleep(1.2)
+        except Exception as chk_e:
+            print("[!] Drawer check error:", chk_e)
+            
+        if pub_url:
+            return pub_url
     except Exception as e:
         print("[!] Native original photo extraction error:", e)
         try:
             run_adb(["shell", "input", "keyevent", "4"])
+            time.sleep(0.4)
+            human_tap("[675,1550]")
         except Exception:
             pass
             
@@ -1096,29 +1193,49 @@ def capture_hd_studio_and_variants(
             if not b_str:
                 continue
             bx1, by1, bx2, by2 = parse_bounds(b_str)
-            cx = (bx1 + bx2) // 2
-            cy = (by1 + by2) // 2
-            run_adb(["shell", "input", "tap", str(cx), str(cy)])
-            time.sleep(0.12)
-            sc_bytes = run_adb_screencap_bytes()
-            if sc_bytes:
+            w_box, h_box = bx2 - bx1, by2 - by1
+            
+            # If the option button itself has a card image in the drawer (e.g. sweater cards: 278x278)
+            card_cropped = False
+            if w_box >= 80 and h_box >= 80 and im_d:
                 try:
-                    im_sc = Image.open(io.BytesIO(sc_bytes)).convert("RGB")
-                    var_crop = im_sc.crop(thumb_bounds)
+                    col_img = im_d.crop((bx1 + 3, by1 + 3, bx2 - 3, by2 - 3))
                     icon_path = os.path.join(PARSED_UPLOADS_DIR, f"col_{goods_id}_{idx}_icon.jpg")
-                    var_crop.save(icon_path, "JPEG", quality=92)
+                    col_img.save(icon_path, "JPEG", quality=92)
                     col["thumb_url"] = f"/uploads/parsed/col_{goods_id}_{idx}_icon.jpg"
                     col["image_url"] = col["thumb_url"]
                     if supabase_client:
                         rem_icon = f"col_{goods_id}_{idx}_{int(time.time())}_{idx}.jpg"
                         upload_tasks.append((idx, icon_path, rem_icon))
-                except Exception as var_e:
-                    print(f"Variant {idx} capture error:", var_e)
+                    card_cropped = True
+                except Exception as card_err:
+                    print(f"Card crop error for var {idx}:", card_err)
+            
+            if not card_cropped:
+                cx = (bx1 + bx2) // 2
+                cy = (by1 + by2) // 2
+                run_adb(["shell", "input", "tap", str(cx), str(cy)])
+                time.sleep(0.35)
+                sc_bytes = run_adb_screencap_bytes()
+                if sc_bytes:
+                    try:
+                        im_sc = Image.open(io.BytesIO(sc_bytes)).convert("RGB")
+                        var_crop = im_sc.crop(thumb_bounds)
+                        icon_path = os.path.join(PARSED_UPLOADS_DIR, f"col_{goods_id}_{idx}_icon.jpg")
+                        var_crop.save(icon_path, "JPEG", quality=92)
+                        col["thumb_url"] = f"/uploads/parsed/col_{goods_id}_{idx}_icon.jpg"
+                        col["image_url"] = col["thumb_url"]
+                        if supabase_client:
+                            rem_icon = f"col_{goods_id}_{idx}_{int(time.time())}_{idx}.jpg"
+                            upload_tasks.append((idx, icon_path, rem_icon))
+                    except Exception as var_e:
+                        print(f"Variant {idx} capture error:", var_e)
 
         # Restore drawer to the first variant selection
         if colors and colors[0].get("bounds"):
             bx1, by1, bx2, by2 = parse_bounds(colors[0]["bounds"])
             run_adb(["shell", "input", "tap", str((bx1 + bx2) // 2), str((by1 + by2) // 2)])
+            time.sleep(0.2)
     else:
         # Fallback to embedded button crops if thumb_bounds was absent
         for idx, col in enumerate(colors):
@@ -1147,15 +1264,19 @@ def capture_hd_studio_and_variants(
     if supabase_client and upload_tasks:
         def _do_upload(task):
             i, p, r = task
-            try:
-                with open(p, "rb") as fl:
-                    supabase_client.storage.from_("product-screenshots").upload(
-                        r, fl.read(), file_options={"content-type": "image/jpeg", "upsert": "true"}
-                    )
-                return i, supabase_client.storage.from_("product-screenshots").get_public_url(r)
-            except Exception as up_err:
-                print(f"Supabase upload error for var {i}:", up_err)
-                return i, None
+            for attempt in range(2):
+                try:
+                    with open(p, "rb") as fl:
+                        supabase_client.storage.from_("product-screenshots").upload(
+                            r, fl.read(), file_options={"content-type": "image/jpeg", "upsert": "true"}
+                        )
+                    return i, supabase_client.storage.from_("product-screenshots").get_public_url(r)
+                except Exception as up_err:
+                    if attempt == 0:
+                        time.sleep(0.4)
+                    else:
+                        print(f"Supabase upload error for var {i}:", up_err)
+            return i, None
 
         with ThreadPoolExecutor(max_workers=min(len(upload_tasks), 4)) as ex:
             for i, pub_url in ex.map(_do_upload, upload_tasks):
@@ -1366,12 +1487,12 @@ def parse_product(req: ParseRequest):
     
     # Non-sku blacklist keywords: filter out e-commerce UI controls, guide links, and service texts
     blacklist_terms = [
-        "看对比", "查看对比", "对比", "尺码建议", "查看尺码建议", "尺码对照表", "尺码表", "计算尺码",
+        "看对比", "查看对比", "对比", "尺码建议", "查看尺码建议", "尺码对照表", "尺码表", "计算尺码", "建议尺码",
         "查看全部", "全部款式", "展开", "收起", "打开大图", "大图", "已选", "请选择",
-        "已拼", "折", "包邮", "退货", "发货", "对照表", "体重", "详情", "举报", "店铺",
+        "已拼", "折", "包邮", "退货", "发货", "对照表", "详情", "举报", "店铺",
         "收藏", "客服", "返回", "大促", "买过", "即将结束", "无需等待", "匿名", "进店", "保障",
         "评价", "全场", "领型", "穿着方式", "面料", "风格", "适用", "多款", "列表",
-        "减少数量", "增加数量", "数量", "去支付", "组合", "查收", "建议", "关闭弹窗",
+        "减少数量", "增加数量", "数量", "去支付", "组合", "查收", "关闭弹窗",
         "当前收货地址", "送达", "同行", "马上卖完", "抢光", "热卖", "爆款", "活动优惠", "服务",
         "使用#支付宝", "更换支付方式", "提交订单", "立即支付", "选择尺码后", "选择款式后", "一次选多款"
     ]
