@@ -15,7 +15,7 @@
       .replace(/(\d+(?:\.\d+)?)\s*BYN\b/gi, `$1 ${signHtml}`)
       .replace(/\bBYN\b/gi, signHtml)
       .replace(/(\d+(?:\.\d+)?)\s*ICE\b/gi, `$1 ${signHtml}`)
-      .replace(/\bICE\b/gi, signHtml);
+      .replace(/\bICE\b(?!\s*LOGIX\b)/gi, signHtml);
   }
 
   function getCategoryIconEmoji(cat) {
