@@ -11,11 +11,13 @@
   function formatRewardText(text) {
     if (!text) return '';
     const signHtml = window.bynSign ? window.bynSign({ color: 'cyan', size: '0.82em' }) : '';
-    return String(text)
-      .replace(/(\d+(?:\.\d+)?)\s*BYN\b/gi, `$1 ${signHtml}`)
-      .replace(/\bBYN\b/gi, signHtml)
-      .replace(/(\d+(?:\.\d+)?)\s*ICE\b/gi, `$1 ${signHtml}`)
-      .replace(/\bICE\b(?!\s*LOGIX\b)/gi, signHtml);
+    // Single-pass replacement prevents re-scanning and corrupting the inserted SVG markup
+    return String(text).replace(/(\d+(?:\.\d+)?)\s*(?:BYN|ICE)\b|\bBYN\b|\bICE\b(?!\s*LOGIX\b)/gi, (match, num) => {
+      if (num) {
+        return `${num}&nbsp;${signHtml}`;
+      }
+      return signHtml;
+    });
   }
 
   function getCategoryIconEmoji(cat) {
