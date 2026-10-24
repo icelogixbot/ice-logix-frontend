@@ -26,3 +26,8 @@ supabase/.temp/
 
 # Uploads
 public/uploads/
+
+# Python cache
+__pycache__/
+*.pyc
+

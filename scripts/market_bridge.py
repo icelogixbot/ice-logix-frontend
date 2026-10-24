@@ -372,6 +372,7 @@ def synthesize_smart_title(raw_title: str, brand: str, category: str) -> str:
     )
     if "джинсы" in clean_ru.lower() or category == "Джинсы":
         clean_ru = re.sub(r"\bбрюки\b|\bштаны\b", " ", clean_ru, flags=re.IGNORECASE)
+    clean_ru = re.sub(r"\bсвободная кроя\b|\bсвободный крой\b|\bсвободная\b|\bсвободный\b", "свободного кроя", clean_ru, flags=re.IGNORECASE)
     clean_ru = re.sub(r"\s+", " ", clean_ru).strip(" ,.-")
     
     lead = ""
@@ -941,13 +942,34 @@ def capture_hd_studio_and_variants(
     if main_screen_path and os.path.exists(main_screen_path) and root_main:
         try:
             im_m_vars = Image.open(main_screen_path).convert("RGB")
+            label_sep_x = 0
+            for n in root_main.iter("node"):
+                txt = n.attrib.get("text", "")
+                if ("颜色" in txt or "款式" in txt) and ("\n" in txt or len(txt) <= 6):
+                    b = n.attrib.get("bounds", "")
+                    if b:
+                        lx1, ly1, lx2, ly2 = parse_bounds(b)
+                        if 500 <= ly1 <= 750:
+                            label_sep_x = lx2
+                            break
+
+            all_strip_crops = []
             for n in root_main.iter("node"):
                 cd = n.attrib.get("content-desc", "")
                 b = n.attrib.get("bounds", "")
                 if cd == "商品款式图" and b:
                     x1, y1, x2, y2 = parse_bounds(b)
                     if 500 <= y1 <= 750 and (x2 - x1) >= 50:
-                        main_var_crops.append(im_m_vars.crop((x1, y1, x2, y2)))
+                        all_strip_crops.append((x1, im_m_vars.crop((x1, y1, x2, y2))))
+
+            if label_sep_x > 0:
+                main_var_crops = [crop for x1, crop in all_strip_crops if x1 >= label_sep_x]
+            else:
+                main_var_crops = [crop for _, crop in all_strip_crops]
+
+            # If strip still has more items than colors, take the trailing items matching len(colors)
+            if colors and len(main_var_crops) > len(colors):
+                main_var_crops = main_var_crops[-len(colors):]
         except Exception as v_err:
             print("Main var crop error:", v_err)
 
