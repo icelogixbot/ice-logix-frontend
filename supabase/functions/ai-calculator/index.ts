@@ -1559,6 +1559,46 @@ Return ONLY a JSON object:
         );
       }
 
+      // 🚀 ПРИОРИТЕТ 1: Собственный суверенный движок ICE LOGIX на VPS (FastAPI / RapidOCR / Tesseract / Checksums)
+      try {
+        const vpsController = new AbortController();
+        const vpsTimer = setTimeout(() => vpsController.abort(), 14000);
+        const vpsResp = await fetch("http://80.94.235.37/scan-passport", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            frame1: frame1 || null,
+            frame2: frame2,
+            frame3: frame3 || null,
+            mode: mode || "passport"
+          }),
+          signal: vpsController.signal
+        });
+        clearTimeout(vpsTimer);
+
+        if (vpsResp.ok) {
+          const vpsData = await vpsResp.json();
+          if (vpsData?.ok && vpsData?.result) {
+            const r = vpsData.result;
+            const hasValidId = /^[1-7]\d{6}[A-Z]\d{3}[A-Z]{2}\d$/i.test(r.id_number || "");
+            if (hasValidId || r.mrz_verified) {
+              console.log("[ai-calculator] Успешно распознано суверенным движком ICE LOGIX за", r.duration_ms, "мс");
+              return new Response(
+                JSON.stringify({
+                  ok: true,
+                  result: r,
+                  engine: "ice-logix-doc-ai-sovereign",
+                  duration_ms: r.duration_ms
+                }),
+                { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              );
+            }
+          }
+        }
+      } catch (vpsErr) {
+        console.warn("[ai-calculator] Предупреждение при вызове суверенного VPS:", vpsErr);
+      }
+
       let img1 = typeof frame1 === "string" ? frame1.trim() : "";
       if (img1 && !img1.startsWith("data:") && !img1.startsWith("http")) {
         img1 = `data:image/jpeg;base64,${img1}`;
