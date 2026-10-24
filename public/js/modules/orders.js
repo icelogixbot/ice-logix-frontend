@@ -1568,11 +1568,31 @@ window.applySmartShareLink = applySmartShareLink;
                 tgUtil.alert(`✅ Заказ #${createdOrderId.slice(0, 8)} успешно оформлен!\n1-й этап (${firstPaymentToPay.toFixed(2)} BYN) оплачен.`);
               }
 
-              const cartIds = window.tempOrder.items.map(item => item.cartId).filter(Boolean);
-              if (cartIds.length > 0) {
-                await supabaseClient.from('cart').delete().in('id', cartIds);
-                await updateCartBadge();
+              const dbCartIds = [];
+              const customCartIds = [];
+              if (window.tempOrder && Array.isArray(window.tempOrder.items)) {
+                window.tempOrder.items.forEach(item => {
+                  if (!item.cartId) return;
+                  if (String(item.cartId).startsWith('c_')) {
+                    customCartIds.push(String(item.cartId));
+                  } else {
+                    dbCartIds.push(item.cartId);
+                  }
+                });
               }
+              if (dbCartIds.length > 0) {
+                try {
+                  await supabaseClient.from('cart').delete().in('id', dbCartIds);
+                } catch(e) { console.error('Failed to delete db cart items:', e); }
+              }
+              if (customCartIds.length > 0) {
+                try {
+                  let localCustom = JSON.parse(localStorage.getItem('ice_custom_cart') || '[]');
+                  localCustom = localCustom.filter(x => !customCartIds.includes(String(x.id)));
+                  localStorage.setItem('ice_custom_cart', JSON.stringify(localCustom));
+                } catch(_) {}
+              }
+              await updateCartBadge();
 
               if (!userLimits.isTrusted) {
                 await supabaseClient.from('users').update({ is_trusted: true }).eq('user_id', userId);

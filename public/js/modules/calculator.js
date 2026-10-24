@@ -1683,7 +1683,7 @@ window.renderSmartCalculator = async function() {
                       );
 
                       if (effectivePrice <= 0 && !hasOptions) {
-                        if (i < 15) {
+                        if (i < 40) {
                           continue;
                         }
                         throw new Error('Не удалось автоматически считать цену для этого товара. Пожалуйста, введите цену вручную.');

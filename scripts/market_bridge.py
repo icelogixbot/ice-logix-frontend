@@ -677,17 +677,52 @@ def human_scroll(direction: str = 'down'):
     run_adb(["shell", "input", "swipe", str(start_x), str(start_y), str(end_x), str(end_y), str(duration_ms)])
     time.sleep(random.uniform(0.5, 0.9))
 
+def is_sku_drawer_open(root: ET.Element) -> bool:
+    """
+    Universally detects whether the SKU selection bottom sheet is open in Pinduoduo.
+    Key invariants:
+    1. The main product page ALWAYS has bottom navigation tabs ('店铺', '收藏', '客服') at y1 >= 1400.
+       If bottom navigation is present, the SKU drawer is NEVER open.
+    2. The SKU drawer ALWAYS has quantity stepper ('减少数量'/'增加数量') or top close button ('关闭' at x1 >= 750, y1 <= 300).
+    """
+    has_bottom_nav = False
+    has_stepper = False
+    has_drawer_close = False
+    
+    for n in root.iter("node"):
+        t = (n.attrib.get("text", "") or n.attrib.get("content-desc", "")).strip()
+        b = n.attrib.get("bounds", "")
+        if not t or not b:
+            continue
+        try:
+            x1, y1, x2, y2 = parse_bounds(b)
+        except Exception:
+            continue
+            
+        if y1 >= 1400 and t in ["店铺", "收藏", "客服"]:
+            has_bottom_nav = True
+        if t in ["减少数量", "增加数量"]:
+            has_stepper = True
+        if x1 >= 750 and y1 <= 300 and t in ["关闭", "✕", "X", "close"]:
+            has_drawer_close = True
+            
+    return (has_stepper or has_drawer_close) and not has_bottom_nav
+
 def handle_popups_and_verification(root: ET.Element) -> bool:
     """
     Detects and automatically resolves verification modals ('安全验证', '前往验证')
     and coupon/promo popups with humanized taps.
     Crucially avoids closing the SKU options drawer.
     """
-    has_sku_drawer = any(any(x in (n.attrib.get("text", "") or n.attrib.get("content-desc", "")) for x in ["提交订单", "立即支付", "选择尺码后", "选择款式后"]) for n in root.iter("node"))
+    drawer_active = is_sku_drawer_open(root)
 
     for node in root.iter("node"):
         txt = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
         bounds = node.attrib.get("bounds", "")
+        if not bounds:
+            continue
+        x1, y1, x2, y2 = parse_bounds(bounds)
+
         if txt in ["安全验证", "前往验证"]:
             print(f"[🛡️] Detected verification prompt: '{txt}' at {bounds}. Auto-tapping with human touch...")
             human_tap(bounds)
@@ -695,7 +730,7 @@ def handle_popups_and_verification(root: ET.Element) -> bool:
             return True
 
         # Handle Network error screen ("手机网络有问题", "请检查网络", "刷新")
-        if any(net in txt for net in ["手机网络有问题", "请检查网络", "网络开小差", "刷新", "重新加载"]) and bounds:
+        if any(net in txt for net in ["手机网络有问题", "请检查网络", "网络开小差", "刷新", "重新加载"]):
             if "刷新" in txt or "重新加载" in txt:
                 print(f"[🔄] Detected network retry button: '{txt}' at {bounds}. Auto-tapping Refresh...")
                 human_tap(bounds)
@@ -707,7 +742,13 @@ def handle_popups_and_verification(root: ET.Element) -> bool:
                 time.sleep(random.uniform(2.5, 3.5))
                 return True
 
-        if not has_sku_drawer and txt in ["关闭", "放弃", "去领券", "知道了"] and bounds:
+        # NEVER close the SKU options drawer! (Top-right close button x1 > 700, y1 < 350, or when drawer is active)
+        if drawer_active and (txt in ["关闭", "close", "✕", "X"] or (x1 > 700 and y1 < 350)):
+            continue
+        if x1 > 700 and y1 < 350 and txt in ["关闭", "close", "✕", "X"]:
+            continue
+
+        if not drawer_active and txt in ["关闭", "放弃", "去领券", "知道了"]:
             print(f"[*] Auto-dismissing promo popup '{txt}' at {bounds}")
             human_tap(bounds)
             time.sleep(random.uniform(0.4, 0.8))
@@ -906,19 +947,19 @@ def extract_pdd_native_original_photo(goods_id: str, thumb_bounds: Optional[tupl
         else:
             run_adb(["shell", "input", "tap", "108", "404"])
             
-        time.sleep(1.0)
+        time.sleep(0.6)
         
         # 2. Long-press the center of the photo viewer (450, 750)
-        run_adb(["shell", "input", "swipe", "450", "750", "450", "750", "1200"])
-        time.sleep(0.7)
+        run_adb(["shell", "input", "swipe", "450", "750", "450", "750", "800"])
+        time.sleep(0.5)
         
         # 3. Tap '保存图片' (located at bounds [0,1380][900,1449], center is 450, 1410)
         run_adb(["shell", "input", "tap", "450", "1410"])
-        time.sleep(1.1)
+        time.sleep(0.7)
         
         # 4. Return to drawer by pressing Back key
         run_adb(["shell", "input", "keyevent", "4"])
-        time.sleep(0.5)
+        time.sleep(0.3)
         
         # 5. Check if photo was saved
         res = run_adb(["shell", "ls", "-t", "/sdcard/DCIM/Pindd/save_image/"])
@@ -1261,11 +1302,11 @@ def parse_product(req: ParseRequest):
         raw_title = re.sub(r'^\d+人(收藏|关注|购买|好评|说)\s*', '', raw_title).strip()
 
     # 3. Check if SKU drawer is open, or tap buy button
-    has_sku_drawer = any(any(x in (n.attrib.get("text", "") or n.attrib.get("content-desc", "")) for x in ["提交订单", "立即支付", "选择尺码后", "选择款式后", "大图"]) for n in root_init.iter("node"))
+    has_sku_drawer = is_sku_drawer_open(root_init)
     if not has_sku_drawer:
         print("[*] SKU drawer not open yet. Locating bottom buy button...", flush=True)
         clicked_btn = False
-        for target_text in ["发起拼单", "单独购买", "免拼购买", "立即购买", "去拼单"]:
+        for target_text in ["发起拼单", "单独购买", "免拼购买", "立即购买", "去拼单", "品牌直供"]:
             for n in root_init.iter("node"):
                 t = (n.attrib.get("text", "") or n.attrib.get("content-desc", "")).strip()
                 b = n.attrib.get("bounds", "")
@@ -1278,13 +1319,26 @@ def parse_product(req: ParseRequest):
             if clicked_btn:
                 break
         
+        # Also look for '选择 款式/尺码 >' row in product body if bottom buttons were not matched
+        if not clicked_btn:
+            for n in root_init.iter("node"):
+                t = (n.attrib.get("text", "") or n.attrib.get("content-desc", "")).strip()
+                b = n.attrib.get("bounds", "")
+                if ("选择" in t or "已选" in t) and (">" in t or "尺码" in t or "款式" in t) and b:
+                    x1, y1, x2, y2 = parse_bounds(b)
+                    if 450 <= y1 <= 1350:
+                        human_tap(b)
+                        clicked_btn = True
+                        break
+
         if not clicked_btn:
             human_tap("[675,1550]")
 
-        time.sleep(random.uniform(1.8, 2.3))
+        time.sleep(random.uniform(1.2, 1.8))
         root = dump_ui_xml()
-        has_sku_drawer = any(any(x in (n.attrib.get("text", "") or n.attrib.get("content-desc", "")) for x in ["提交订单", "立即支付", "选择尺码后", "选择款式后", "大图"]) for n in root.iter("node"))
+        has_sku_drawer = is_sku_drawer_open(root)
     else:
+        print("[*] SKU drawer is already open! Skipping bottom buy button tap.", flush=True)
         root = root_init
         
     # 4. Parse SKU Drawer with Universal Dynamic Groups
