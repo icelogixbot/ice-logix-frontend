@@ -1336,7 +1336,7 @@ def supabase_queue_worker():
                 supabase_client.from_("parse_queue")
                 .select("*")
                 .in_("status", ["pdd_pending", "hardware_pending", "pending"])
-                .order("created_at", desc=False)
+                .order("id", desc=True)
                 .limit(1)
                 .execute()
             )
@@ -1352,16 +1352,19 @@ def supabase_queue_worker():
                     continue
 
                 print(f"[*] Claiming task #{task_id} ({task_status}): {task_url}")
-                if not ensure_device_ready(timeout_sec=45):
+                # Claim task immediately to update mobile UI status to 'processing'
+                try:
+                    supabase_client.from_("parse_queue").update({"status": "processing"}).eq("id", task_id).execute()
+                except Exception:
+                    pass
+
+                if not ensure_device_ready(timeout_sec=65):
                     print(f"[!] Device failed to become ready for task #{task_id}")
                     supabase_client.from_("parse_queue").update({
                         "status": "error",
                         "error_message": "Эмулятор не смог запуститься автоматически. Запустите ярлык LDPlayer 14 на рабочем столе."
                     }).eq("id", task_id).execute()
                     continue
-
-                # Claim task immediately to prevent race conditions
-                supabase_client.from_("parse_queue").update({"status": "processing"}).eq("id", task_id).execute()
 
                 try:
                     parsed = parse_product(ParseRequest(url=task_url))
@@ -1399,6 +1402,15 @@ def supabase_queue_worker():
                                     print("Storage upload error:", up_err)
 
                         effective_price = parsed.get("price_cny") or parsed.get("page_price_cny") or 0.0
+                        has_opts = parsed.get("has_options") or bool(parsed.get("colors")) or bool(parsed.get("sizes"))
+
+                        if effective_price <= 0.0 and not has_opts:
+                            print(f"[!] Warning: task #{task_id} price is 0 and no options, marking as error")
+                            supabase_client.from_("parse_queue").update({
+                                "status": "error",
+                                "error_message": "Не удалось автоматически считать цену для этого товара. Пожалуйста, введите цену вручную."
+                            }).eq("id", task_id).execute()
+                            continue
 
                         sku_bundle = {
                             "is_sku_bundle": True,
@@ -1449,9 +1461,24 @@ def supabase_queue_worker():
             pass
         time.sleep(1.0)
 
-# Start background thread automatically
+def ldplayer_watchdog():
+    while True:
+        try:
+            if not check_device_ready():
+                try:
+                    subprocess.run([ADB_PATH, "connect", "127.0.0.1:5555"], capture_output=True, timeout=3)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        time.sleep(15)
+
+# Start background threads automatically
 queue_thread = threading.Thread(target=supabase_queue_worker, daemon=True)
 queue_thread.start()
+
+watchdog_thread = threading.Thread(target=ldplayer_watchdog, daemon=True)
+watchdog_thread.start()
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=3007)

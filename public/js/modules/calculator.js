@@ -1574,6 +1574,7 @@ window.renderSmartCalculator = async function() {
                 // 1. FAST CACHE HIT: Instant load if product was parsed recently
                 try {
                   const mGid = url.match(/goods_id=(\d+)/);
+                  const mPs = url.match(/ps=([a-zA-Z0-9_-]+)/);
                   let cacheQuery = supabaseClient
                     .from('parse_queue')
                     .select('status, price, title, weight_kg, currency, country, category, description, color, brand, marketplace_name, error_message, image_url')
@@ -1584,6 +1585,8 @@ window.renderSmartCalculator = async function() {
 
                   if (mGid) {
                     cacheQuery = cacheQuery.ilike('url', `%goods_id=${mGid[1]}%`);
+                  } else if (mPs) {
+                    cacheQuery = cacheQuery.ilike('url', `%ps=${mPs[1]}%`);
                   } else {
                     cacheQuery = cacheQuery.eq('url', url);
                   }
@@ -1604,7 +1607,7 @@ window.renderSmartCalculator = async function() {
                       }
                     }
                     const effectivePrice = Number(skuBundle?.price_cny) || Number(cachedItem.price) || 0;
-                    if (effectivePrice > 0) {
+                    if (effectivePrice > 0 || (skuBundle && skuBundle.has_options)) {
                       const bundleData = skuBundle || {
                         title: cachedItem.title,
                         title_ru: cachedItem.title,
@@ -1638,16 +1641,24 @@ window.renderSmartCalculator = async function() {
 
                 if (!qErr && queueData?.id) {
                   const taskId = queueData.id;
-                  for (let i = 0; i < 75; i++) {
+                  for (let i = 0; i < 90; i++) {
                     await new Promise(r => setTimeout(r, 2000));
-                    const { data: checkData } = await supabaseClient
+                    const { data: checkData, error: pollErr } = await supabaseClient
                       .from('parse_queue')
                       .select('status, price, title, weight_kg, currency, country, category, description, color, brand, marketplace_name, error_message, image_url')
                       .eq('id', taskId)
                       .single();
 
-                    if (checkData?.status === 'processing' && statusBox) {
-                      statusBox.innerHTML = '<span class="animate-spin inline-block mr-1">📲</span> Эмулятор считывает опции, размеры и студийные фото…';
+                    if (pollErr) {
+                      continue;
+                    }
+
+                    if (statusBox) {
+                      if (checkData?.status === 'processing') {
+                        statusBox.innerHTML = '<span class="animate-spin inline-block mr-1">📲</span> Эмулятор считывает опции, размеры и студийные фото…';
+                      } else if (checkData?.status === 'pdd_pending' && i > 5) {
+                        statusBox.innerHTML = '<span class="animate-spin inline-block mr-1">⚡</span> Эмулятор в очереди, запуск защищенного шлюза…';
+                      }
                     }
 
                     if (checkData?.status === 'done') {
@@ -1672,6 +1683,9 @@ window.renderSmartCalculator = async function() {
                       );
 
                       if (effectivePrice <= 0 && !hasOptions) {
+                        if (i < 15) {
+                          continue;
+                        }
                         throw new Error('Не удалось автоматически считать цену для этого товара. Пожалуйста, введите цену вручную.');
                       }
 
