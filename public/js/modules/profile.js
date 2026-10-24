@@ -87,7 +87,7 @@
     <!-- Balance Display -->
     ${isFamilyEnabled ? `
     <div class="flex gap-3 justify-center mb-4 flex-wrap">
-      <div onclick="window._financesSubTab = 'pay'; switchTab('finances');" class="flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer active:scale-95 transition" style="background: linear-gradient(135deg, rgba(91,191,235,0.2), rgba(46,158,212,0.1)); border: 1px solid rgba(91,191,235,0.3);" title="Мой баланс">
+      <div onclick="switchTab('wallet');" class="flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer active:scale-95 transition" style="background: linear-gradient(135deg, rgba(91,191,235,0.2), rgba(46,158,212,0.1)); border: 1px solid rgba(91,191,235,0.3);" title="Мой баланс">
         <span class="text-xl animate-float"><span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></span>
         <div class="text-left">
           <p class="text-[10px] uppercase tracking-wider" style="color: var(--text-muted);">Мой баланс</p>
@@ -105,7 +105,7 @@
       ` : ''}
     </div>
     ` : `
-    <div onclick="window._financesSubTab = 'pay'; switchTab('finances');" class="inline-flex items-center gap-3 px-5 py-3 rounded-2xl mb-4 cursor-pointer active:scale-95 transition" style="background: linear-gradient(135deg, rgba(91,191,235,0.2), rgba(46,158,212,0.1)); border: 1px solid rgba(91,191,235,0.3);" title="Баланс">
+    <div onclick="switchTab('wallet');" class="inline-flex items-center gap-3 px-5 py-3 rounded-2xl mb-4 cursor-pointer active:scale-95 transition" style="background: linear-gradient(135deg, rgba(91,191,235,0.2), rgba(46,158,212,0.1)); border: 1px solid rgba(91,191,235,0.3);" title="Баланс">
       <span class="text-2xl animate-float"><span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></span>
       <div class="text-left">
         <p class="text-xs" style="color: var(--text-secondary);">${t('balance', 'Баланс')}</p>

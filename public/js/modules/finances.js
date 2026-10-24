@@ -496,6 +496,26 @@ function _renderPayTabHtml() {
   const accountNum = `ICE-${String(curUserId).padStart(7, '0')}`;
   const userName = (window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name || 'Клиент ICE LOGIX').toUpperCase();
 
+  const fam = window.userSettings?.family || {};
+  const famRole = fam.role || null;
+  const isFamilyActive = Boolean(famRole);
+  let familyTitle = 'Семейный баланс';
+  let familySub = 'Общий баланс для совместных покупок';
+  let familyBalanceDisplay = 'Не подключен';
+  let familyBtnText = 'Подключить семью';
+
+  if (famRole === 'head') {
+    familyTitle = 'Семейный баланс (Вы — глава)';
+    familySub = `В группе: ${(fam.members?.length || 0) + 1} чел.`;
+    familyBalanceDisplay = `${curBal.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'emerald', size: '0.9em' }) : ''}`;
+    familyBtnText = 'Управление семейной группой';
+  } else if (famRole === 'member' && fam.head_id) {
+    familyTitle = 'Семейный баланс (Участник)';
+    familySub = 'Оплата заказов с единого счёта главы семьи';
+    familyBalanceDisplay = 'Счёт главы';
+    familyBtnText = 'Настройки семейного аккаунта';
+  }
+
   return `
     <div class="space-y-4">
       <!-- 1. Премиальная цифровая карта «ICE LOGIX PAY» -->
@@ -545,7 +565,34 @@ function _renderPayTabHtml() {
         </div>
       </div>
 
-      <!-- 2. Блок пополнения счёта ICE LOGIX PAY -->
+      <!-- 2. Семейный баланс в ICE LOGIX PAY -->
+      <div class="glass-card p-4 rounded-3xl border border-white/10 space-y-3 bg-gradient-to-br from-slate-900 to-slate-950">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 flex items-center justify-center text-lg">
+              👨‍👩‍👧
+            </div>
+            <div>
+              <p class="font-bold text-white text-sm">${familyTitle}</p>
+              <p class="text-[11px] text-white/50">${familySub}</p>
+            </div>
+          </div>
+          <span class="text-xs font-bold font-mono px-2.5 py-1 rounded-full ${isFamilyActive ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-white/10 text-white/50'}">
+            ${familyBalanceDisplay}
+          </span>
+        </div>
+        <p class="text-xs text-white/60 leading-relaxed">
+          ${isFamilyActive 
+            ? 'Члены вашей семьи могут выбирать товары, а оплата списывается с единого баланса после одобрения Главы в один клик.' 
+            : 'Объединяйте баланс с близкими, друзьями или закупщиками. Оплачивайте совместные посылки с единого счёта!'}
+        </p>
+        <button type="button" onclick="if (typeof window.showFamilySettingsModal === 'function') window.showFamilySettingsModal();" class="w-full py-2.5 px-4 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-white border border-white/10">
+          <svg class="w-3.5 h-3.5 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>${familyBtnText}</span>
+        </button>
+      </div>
+
+      <!-- 3. Блок пополнения счёта ICE LOGIX PAY -->
       <div class="glass-card p-4 rounded-3xl border border-white/10 space-y-4">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2 text-white font-bold text-sm">

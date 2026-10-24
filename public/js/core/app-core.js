@@ -3231,12 +3231,10 @@ let adminOrdersTotalPages = 1;
     window.animateClick = animateClick;
 
     window.openBalanceTopup = function(defaultAmount = 50) {
-      window._financesSubTab = 'pay';
-      if (typeof switchTab === 'function') {
-        switchTab('finances');
-        if (typeof window.switchFinancesSubTab === 'function') {
-          window.switchFinancesSubTab('pay');
-        }
+      if (typeof window.openWallet === 'function') {
+        window.openWallet('topup', defaultAmount);
+      } else if (typeof switchTab === 'function') {
+        switchTab('wallet');
       }
     };
 

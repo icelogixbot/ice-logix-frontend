@@ -599,7 +599,7 @@ window.applySmartShareLink = applySmartShareLink;
                       <option value="EUR">EUR (€)</option>
                       <option value="PLN">PLN (zł)</option>
                       <option value="RUB">RUB (₽)</option>
-                      <option value="BYN">BYN (Br)</option>
+                      <option value="BYN">Белорусский рубль</option>
                     </select>
                   </div>
                 </div>
@@ -4429,7 +4429,7 @@ window.openInvoiceModal = (orderId, originalPrice) => {
       </div>
       
       <div id="b2bPriceBlock" class="hidden mt-4 pt-4 border-t border-white/10 space-y-3">
-        <label class="text-white/70 text-xs block">Укажите цену для клиента (BYN):</label>
+        <label class="text-white/70 text-xs block inline-flex items-center gap-1">Укажите цену для клиента (${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}):</label>
         <input type="number" id="b2bPriceInput" class="w-full bg-black/40 border border-white/20 rounded-xl p-3 text-white text-sm" value="${originalPrice}">
         <button id="btnGenerateB2b" class="btn-primary w-full bg-fuchsia-600 hover:bg-fuchsia-500 text-white">Сгенерировать</button>
       </div>

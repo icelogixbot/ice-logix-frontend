@@ -224,7 +224,7 @@
                 <div>
                   <div class="flex items-center gap-1.5">
                     <span class="text-cyan-400 font-black text-base">${item.price_ice}</span>
-                    ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}
+                    <span class="text-[11px] font-bold text-cyan-300">ICE</span>
                   </div>
                   ${item.stock > 0 ? `<p class="text-[10px] text-white/40">Осталось: ${item.stock} шт.</p>` : ''}
                 </div>

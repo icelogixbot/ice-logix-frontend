@@ -182,6 +182,11 @@
           contentDiv.innerHTML = shadowBannerHtml + await renderBonusShop();
           if (typeof attachBonusShopHandlers === 'function') attachBonusShopHandlers();
         }
+      } else if (currentTab === 'referral') {
+        if (typeof renderReferralPage === 'function') {
+          contentDiv.innerHTML = shadowBannerHtml + await renderReferralPage();
+          if (typeof attachReferralPageHandlers === 'function') attachReferralPageHandlers();
+        }
       } else if (currentTab === 'admin_marketing' && isOwner) {
         if (!adminAuthenticated) { switchTab('admin'); return; }
         contentDiv.innerHTML = await renderAdminMarketing();
@@ -210,10 +215,13 @@
           if (typeof attachSettingsPageHandlers === 'function') attachSettingsPageHandlers(window._settingsInitialTab || 'account');
         }
       } else if (currentTab === 'wallet' || currentTab === 'topup') {
-        window._financesSubTab = 'pay';
-        currentTab = 'finances';
-        contentDiv.innerHTML = shadowBannerHtml + await renderFinances();
-        attachFinancesHandlers();
+        if (typeof renderWallet === 'function') {
+          contentDiv.innerHTML = shadowBannerHtml + await renderWallet();
+          if (typeof attachWalletHandlers === 'function') attachWalletHandlers();
+        } else if (typeof renderBalanceTopupPage === 'function') {
+          contentDiv.innerHTML = shadowBannerHtml + await renderBalanceTopupPage();
+          if (typeof attachBalanceTopupPageHandlers === 'function') attachBalanceTopupPageHandlers();
+        }
       } else if (currentTab === 'kyc') {
         if (typeof openKycScreen === 'function') {
           await openKycScreen();
