@@ -305,6 +305,17 @@
   font-variant-numeric: tabular-nums;
 }
 
+.wb-current-price .byn-sign,
+.wb-old-price .byn-sign,
+.wb-checkout-cta .byn-sign {
+  height: 0.71em;
+  vertical-align: -0.03em;
+  margin-left: 2px;
+  display: inline-block;
+  aspect-ratio: 650 / 800;
+  fill: currentColor;
+}
+
 /* Stepper Component */
 .wb-stepper {
   display: inline-flex;
