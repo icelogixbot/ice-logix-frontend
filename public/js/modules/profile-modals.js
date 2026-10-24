@@ -196,8 +196,8 @@ async function showCommissionContractModal() {
           
           <h3>1. ПРЕДМЕТ ДОГОВОРА</h3>
           <p>1.1. Комиссионер обязуется по поручению Комитента за вознаграждение совершить от своего имени, но за счет Комитента одну или несколько сделок по приобретению и организации доставки товаров народного потребления из зарубежных интернет-магазинов (включая Poizon, Zalando, ASOS, Dewu, Taobao, 1688).</p>
-          <p>1.2. Общая стоимость заказанных товаров и услуг логистики по настоящему поручению составляет <strong>${totalSum.toFixed(2)} бел. рублей (BYN)</strong>.</p>
-          <p>1.3. Комиссионное вознаграждение Исполнителя за услуги выкупа и сопровождения сделки составляет 20% от базовой стоимости товара (включено в общую сумму договора и составляет <strong>${commission.toFixed(2)} BYN</strong>).</p>
+          <p>1.2. Общая стоимость заказанных товаров и услуг логистики по настоящему поручению составляет <strong>${totalSum.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</strong>.</p>
+          <p>1.3. Комиссионное вознаграждение Исполнителя за услуги выкупа и сопровождения сделки составляет 20% от базовой стоимости товара (включено в общую сумму договора и составляет <strong class="inline-flex items-baseline gap-0.5">${commission.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</strong>).</p>
 
           <h3>2. ПРАВА И ОБЯЗАННОСТИ СТОРОН</h3>
           <p>2.1. Комиссионер обязуется произвести выкуп товара в зарубежном магазине в течение 3-х рабочих дней после получения 75% предоплаты от Комитента.</p>
@@ -276,7 +276,7 @@ async function showCommissionContractModal() {
         <div class="bg-white/5 rounded-xl p-2 text-center relative overflow-hidden group">
           <div class="absolute inset-0 bg-cyan-500/10 opacity-0 group-hover:opacity-100 transition"></div>
           <p class="text-white/50 text-xs mb-1">Чистая прибыль (30д)</p>
-          <p class="text-green-400 font-bold text-lg">${profit30d.toFixed(0)} BYN</p>
+          <p class="text-green-400 font-bold text-lg inline-flex items-baseline gap-1">${profit30d.toFixed(0)} ${window.bynSign ? window.bynSign({ color: 'emerald', size: '0.85em' }) : ''}</p>
         </div>
         <div class="bg-white/5 rounded-xl p-2 text-center relative overflow-hidden group">
           <div class="absolute inset-0 bg-purple-500/10 opacity-0 group-hover:opacity-100 transition"></div>
@@ -365,7 +365,7 @@ async function showFamilySettingsModal() {
           <div class="bg-white/5 p-3 rounded-xl border border-cyan-500/30 space-y-2 page-enter">
             <div class="flex justify-between items-baseline">
               <span class="text-white/60 text-[10px]">От: ID ${o.user_id}</span>
-              <span class="text-cyan-400 font-bold text-sm">${o.total_byn.toFixed(2)} BYN</span>
+              <span class="text-cyan-400 font-bold text-sm inline-flex items-baseline gap-1">${o.total_byn.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</span>
             </div>
             <p class="text-xs text-white font-semibold truncate">${_esc(itemsSummary)}</p>
             <div class="flex gap-2 mt-2 pt-1 border-t border-white/5">
@@ -430,7 +430,7 @@ async function showFamilySettingsModal() {
               <p class="text-xs text-white font-bold truncate">${_esc(itemsSummary)}</p>
               <p class="text-[10px] text-amber-400 mt-0.5">⏱️ Ожидает одобрения</p>
             </div>
-            <span class="text-white font-mono text-xs font-bold text-right">${o.total_byn.toFixed(2)} BYN</span>
+            <span class="text-white font-mono text-xs font-bold text-right inline-flex items-baseline gap-1">${o.total_byn.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'white', size: '0.85em' }) : ''}</span>
           </div>
         `;
       }).join('') || '<p class="text-xs text-white/40 text-center py-2">Нет активных запросов</p>';
@@ -751,7 +751,7 @@ async function showCurrencyAlertsModal() {
         <div>
           <span class="font-bold text-white">${a.currency === 'CNY' ? '🇨🇳 CNY' : '🇵🇱 EUR'}</span>
           <span class="text-xs text-white/50 ml-1">при курсе ≤</span>
-          <span class="font-mono font-bold text-cyan-400 ml-1">${a.target.toFixed(2)} BYN</span>
+          <span class="font-mono font-bold text-cyan-400 ml-1 inline-flex items-baseline gap-1">${a.target.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</span>
         </div>
         <button class="text-red-400 hover:text-red-300 text-xs font-bold" onclick="window.deleteCurrencyAlert(${idx})">Удалить</button>
       </div>
@@ -1255,8 +1255,8 @@ window.showVipSectionModal = () => {
                 </div>
                 <div class="flex justify-between items-end mt-2">
                   <div>
-                    <span class="text-[9px] text-white/40 line-through font-mono">${item.oldPrice} BYN</span>
-                    <p class="text-green-400 font-bold font-mono text-sm leading-none mt-0.5">${item.price} BYN</p>
+                    <span class="text-[9px] text-white/40 line-through font-mono inline-flex items-baseline gap-0.5">${item.oldPrice} ${window.bynSign ? window.bynSign({ color: 'white', size: '0.85em' }) : ''}</span>
+                    <p class="text-green-400 font-bold font-mono text-sm leading-none mt-0.5 inline-flex items-baseline gap-0.5">${item.price} ${window.bynSign ? window.bynSign({ color: 'emerald', size: '0.85em' }) : ''}</p>
                   </div>
                   <button class="bg-green-600 hover:bg-green-700 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] transition flex items-center gap-1" onclick="window.buyVipItem('${item.id}')">
                     Купить

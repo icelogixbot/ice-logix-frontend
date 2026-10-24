@@ -136,7 +136,7 @@ async function renderHistory() {
             <span class="text-xs px-2 py-0.5 rounded-full" style="background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.6);">${o.status || '—'}</span>
           </div>
           <p class="text-white/40 text-xs">${new Date(o.created_at).toLocaleDateString('ru-RU')}</p>
-          ${o.total_price ? `<p class="text-cyan-400 text-sm font-bold mt-1">${o.total_price} BYN</p>` : ''}
+          ${o.total_price ? `<p class="text-cyan-400 text-sm font-bold mt-1 inline-flex items-baseline gap-1">${o.total_price} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</p>` : ''}
         </div>
       `).join('');
     }
@@ -217,7 +217,7 @@ async function renderHistory() {
       content = '<div class="space-y-3">';
       content += data.map(p => {
         const isActive = p.is_active;
-        const discountText = p.discount_type === 'percent' ? `${p.discount_value}%` : `${p.discount_value} BYN`;
+        const discountText = p.discount_type === 'percent' ? `${p.discount_value}%` : `${p.discount_value} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}`;
         const expiresStr = p.expires_at ? new Date(p.expires_at).toLocaleDateString('ru-RU') : 'Бессрочно';
         const startsStr = p.starts_at ? new Date(p.starts_at).toLocaleDateString('ru-RU') : '';
         
@@ -282,7 +282,7 @@ async function renderHistory() {
                 <p class="text-white/60 text-xs mt-0.5">Размер: ${escHtmlC(c.size || '—')} · Цвет: ${escHtmlC(c.color || '—')} · Вес: ${c.weight || 1.0} кг</p>
               </div>
               <div class="flex justify-between items-baseline mt-1 border-t border-white/5 pt-2">
-                <span class="text-cyan-400 font-extrabold text-base font-mono">${c.total_byn.toFixed(2)} BYN</span>
+                <span class="text-cyan-400 font-extrabold text-base font-mono inline-flex items-baseline gap-1">${c.total_byn.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</span>
                 <div class="flex gap-2">
                   <button class="px-3 py-1.5 rounded-lg text-xs font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 transition active:scale-95 flex items-center gap-1" onclick="window.restoreCalculation(${idx})">
                     🔄 Восстановить

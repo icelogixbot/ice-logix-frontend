@@ -2467,7 +2467,7 @@ if (typeof attachCalculatorHandlers === 'function') {
           } else {
             splitPlaceholder.innerHTML = `
               <div class="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 mb-4 text-xs text-amber-300 page-enter">
-                💡 <strong>Превышен лимит пошлины €200!</strong> Вы можете добавить родственника в <span class="underline cursor-pointer font-bold hover:text-white" onclick="switchTab('profile')">Профиле (Мои получатели)</span>, чтобы разделить посылку и сэкономить <strong>${aggregatedBreakdown.customs_duty_byn.toFixed(2)} BYN</strong> на пошлине.
+                💡 <strong>Превышен лимит пошлины €200!</strong> Вы можете добавить родственника в <span class="underline cursor-pointer font-bold hover:text-white" onclick="switchTab('profile')">Профиле (Мои получатели)</span>, чтобы разделить посылку и сэкономить <strong class="inline-flex items-baseline gap-0.5">${aggregatedBreakdown.customs_duty_byn.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'gold', size: '0.85em' }) : ''}</strong> на пошлине.
               </div>
             `;
           }

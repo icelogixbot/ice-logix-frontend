@@ -131,7 +131,7 @@
           🎁
         </div>
         <div class="flex-1 min-w-0">
-          <p class="font-semibold text-white text-sm">Магазин бонусов ICE</p>
+          <p class="font-semibold text-white text-sm">Магазин бонусов</p>
           <p class="text-xs truncate" style="color: var(--text-muted);">Обмен накопленных баллов на скидки и призы</p>
         </div>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
@@ -410,7 +410,7 @@ window.showFortuneWheel = () => {
       <h3 class="text-white font-bold text-xl mb-2 flex items-center justify-center gap-2">
         <span>🔮</span> Колесо Фортуны
       </h3>
-      <p class="text-white/60 text-xs mb-6">Испытайте удачу! Вы можете выиграть до 10 ICE на баланс.</p>
+      <p class="text-white/60 text-xs mb-6">Испытайте удачу! Вы можете выиграть до 10 ${window.bynSign ? window.bynSign({ color: 'cyan' }) : ''} на баланс.</p>
       
       <div class="relative w-48 h-48 mx-auto mb-8">
         <!-- Указатель -->
@@ -477,7 +477,7 @@ window.showFortuneWheel = () => {
         await supabaseClient.from('users').update({ ices_balance: newBal }).eq('user_id', userId);
         
         balance = newBal; // локально
-        glassToast(`Поздравляем! Вы выиграли ${winAmount} ICE! 🎁`, { kind: 'success' });
+        glassToast(`Поздравляем! Вы выиграли ${winAmount} на баланс! 🎁`, { kind: 'success' });
       } catch (err) {
         glassToast('Ошибка начисления бонуса', { kind: 'error' });
       }
@@ -539,7 +539,7 @@ async function renderReferralPage() {
           </span>
         </div>
         <p class="text-xs text-white/70 leading-relaxed mb-4">
-          Делитесь персональной ссылкой с друзьями: вы получаете <span class="text-emerald-400 font-bold">7% от комиссии</span> за каждый выполненный ими заказ, а ваш друг — <span class="text-cyan-400 font-bold">3% приветственный кэшбэк</span> на баланс ICE!
+          Делитесь персональной ссылкой с друзьями: вы получаете <span class="text-emerald-400 font-bold">7% от комиссии</span> за каждый выполненный ими заказ, а ваш друг — <span class="text-cyan-400 font-bold">3% приветственный кэшбэк</span> на баланс!
         </p>
 
         <!-- Счетчики статистики -->
@@ -551,7 +551,7 @@ async function renderReferralPage() {
           <div class="p-3.5 rounded-2xl bg-white/5 border border-white/5 text-center">
             <p class="text-2xl font-black text-emerald-400 flex items-center justify-center gap-1.5">
               <span>${stats.bonus}</span>
-              <span class="text-xs font-mono text-emerald-300">ICE</span>
+              <span class="inline-flex items-center text-xs font-mono text-emerald-300">${window.bynSign ? window.bynSign({ color: 'emerald' }) : ''}</span>
             </p>
             <p class="text-[10px] uppercase font-bold tracking-wider text-white/40 mt-0.5">Заработано бонусов</p>
           </div>
@@ -593,7 +593,7 @@ async function renderReferralPage() {
             <div class="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 font-bold text-xs flex items-center justify-center shrink-0 border border-cyan-500/30">2</div>
             <div>
               <p class="text-xs font-semibold text-white">Друг оформляет заказ</p>
-              <p class="text-[11px] text-white/50">При первом заказе он получает приветственный кэшбэк 3% баллами ICE.</p>
+              <p class="text-[11px] text-white/50">При первом заказе он получает приветственный кэшбэк 3% на баланс.</p>
             </div>
           </div>
           <div class="flex items-start gap-3">

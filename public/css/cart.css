@@ -308,8 +308,8 @@
 .wb-current-price .byn-sign,
 .wb-old-price .byn-sign,
 .wb-checkout-cta .byn-sign {
-  height: 0.71em;
-  vertical-align: -0.03em;
+  height: 0.68em;
+  vertical-align: -0.02em;
   margin-left: 2px;
   display: inline-block;
   aspect-ratio: 650 / 800;
