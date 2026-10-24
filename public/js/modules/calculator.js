@@ -1725,14 +1725,18 @@ window.renderSmartCalculator = async function() {
             } catch (err) {
               let rawMsg = (err && err.message) ? String(err.message) : '';
               let friendlyMsg = 'Не удалось распознать ссылку. Попробуйте еще раз или введите цену вручную.';
-              if (rawMsg.includes('LDPlayer') || rawMsg.includes('эмулятор') || rawMsg.includes('Эмулятор')) {
+              if (rawMsg.includes('распродан') || rawMsg.includes('Распродан') || rawMsg.includes('нет в наличии') || rawMsg.includes('售罄')) {
+                friendlyMsg = rawMsg.replace(/^[⚠️❌ℹ️\s]+/, '');
+              } else if (rawMsg.includes('перегружен') || rawMsg.includes('Сбой связи')) {
+                friendlyMsg = rawMsg.replace(/^[⚠️❌ℹ️\s]+/, '');
+              } else if (rawMsg.includes('LDPlayer') || rawMsg.includes('эмулятор') || rawMsg.includes('Эмулятор')) {
                 friendlyMsg = rawMsg.replace(/^❌\s*/, '');
               } else if (rawMsg.includes('no element found') || rawMsg.includes('XML') || rawMsg.includes('dump') || rawMsg.includes('adb') || rawMsg.includes('line 1')) {
                 friendlyMsg = 'Эмулятор Pinduoduo сейчас не на связи. Откройте ярлык LDPlayer 14 на компьютере и попробуйте снова.';
               } else if (rawMsg.includes('Таймаут')) {
                 friendlyMsg = 'Сервер маркетплейса не ответил вовремя. Пожалуйста, попробуйте снова через пару секунд.';
               } else if (rawMsg) {
-                friendlyMsg = rawMsg;
+                friendlyMsg = rawMsg.replace(/^[⚠️❌ℹ️\s]+/, '');
               }
 
               if (statusBox) {

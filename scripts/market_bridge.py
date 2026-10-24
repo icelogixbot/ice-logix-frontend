@@ -1348,6 +1348,30 @@ def parse_product(req: ParseRequest):
         run_adb(["shell", "input", "keyevent", "4"])
         time.sleep(0.3)
         root_init = dump_ui_xml()
+
+    # Check for Pinduoduo sold-out, rate-limit, or network states
+    for node in root_init.iter("node"):
+        t = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
+        if any(k in t for k in ["商品已售罄", "已售罄", "已下架", "已售完", "商品已售完"]):
+            if not any(rj in t for rj in ["评价", "好评", "买过", "大家说", "收到了", "人买过"]):
+                print(f"[*] Detected sold out state: '{t}'", flush=True)
+                return {
+                    "success": False,
+                    "is_sold_out": True,
+                    "error": "Данный товар распродан у продавца на Pinduoduo. Пожалуйста, выберите другой лот или аналогичный товар."
+                }
+        if "系统繁忙" in t:
+            print(f"[*] Detected Pinduoduo rate limit / busy state: '{t}'", flush=True)
+            return {
+                "success": False,
+                "error": "Сервер Pinduoduo временно перегружен запросами. Пожалуйста, попробуйте снова через минуту."
+            }
+        if "网络不太顺畅" in t or "网络不稳定" in t:
+            print(f"[*] Detected Pinduoduo network retry screen: '{t}'", flush=True)
+            return {
+                "success": False,
+                "error": "Сбой связи с сервером Pinduoduo. Пожалуйста, повторите попытку через минуту."
+            }
     
     # Capture main screen screenshot for studio hero and variant icons
     main_screen_local = os.path.join(PARSED_UPLOADS_DIR, f"temp_main_{goods_id}.png")
@@ -1947,9 +1971,10 @@ def supabase_queue_worker():
                         }).eq("id", task_id).execute()
                         print(f"[OK] Task #{task_id} successfully parsed and updated in Supabase!")
                     else:
+                        err_msg = (parsed.get("error") if parsed else None) or "Не удалось распарсить товар через аппаратный мост"
                         supabase_client.from_("parse_queue").update({
                             "status": "error",
-                            "error_message": "Не удалось распарсить товар через аппаратный мост"
+                            "error_message": err_msg
                         }).eq("id", task_id).execute()
                 except Exception as p_err:
                     print(f"[!] Parse error on task #{task_id}: {p_err}")

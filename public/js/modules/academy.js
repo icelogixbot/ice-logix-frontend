@@ -136,11 +136,11 @@ async function renderAcademy() {
                 </div>
               </div>
               <div class="ml-3 text-right flex-shrink-0">
-                <span class="text-cyan-400 font-bold text-sm">${course.price_ice > 0 ? course.price_ice + ' <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span>' : 'Бесплатно'}</span>
+                <span class="text-cyan-400 font-bold text-sm inline-flex items-baseline gap-1">${course.price_ice > 0 ? `${course.price_ice} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}` : 'Бесплатно'}</span>
                 ${course.isPurchased && course.price_ice > 0 ? '<p class="text-green-400 text-xs mt-1"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Куплено</p>' : ''}
               </div>
             </div>
-            ${!course.isPurchased && course.price_ice > 0 ? `<button class="buyCourseBtn mt-3 w-full bg-gradient-to-r from-cyan-500 to-blue-500 py-2.5 rounded-xl font-bold text-sm" data-course-id="${course.id}" data-price="${course.price_ice}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span> Купить за ${course.price_ice} <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></button>` : ''}
+            ${!course.isPurchased && course.price_ice > 0 ? `<button class="buyCourseBtn mt-3 w-full bg-gradient-to-r from-cyan-500 to-blue-500 py-2.5 rounded-xl font-bold text-sm inline-flex items-center justify-center gap-1.5" data-course-id="${course.id}" data-price="${course.price_ice}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span> Купить за ${course.price_ice} ${window.bynSign ? window.bynSign({ color: 'white', size: '0.85em' }) : ''}</button>` : ''}
             ${course.allCompleted && course.lessons.length > 0 ? `<button class="getCertBtn mt-2 w-full bg-gradient-to-r from-yellow-400 to-orange-500 py-2.5 rounded-xl font-bold text-sm text-slate-900" data-course-id="${course.id}" data-title="${course.title.replace(/"/g,'&quot;')}"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16M10 14.66V17c0 .55-.47 1-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47 1 .97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></span> Получить сертификат</button>` : ''}
             <div class="lessons-container hidden mt-3 space-y-1.5" data-course="${course.id}" data-loaded="true">
               ${course.lessons.length === 0
@@ -475,7 +475,7 @@ async function renderAcademy() {
           <input id="mCourseTitle" class="btn-secondary w-full mt-1 p-3 rounded-xl border border-white/30 mb-3" placeholder="Название курса" value="${course?.title || ''}">
           <label class="text-white/60 text-xs">Описание</label>
           <textarea id="mCourseDesc" class="btn-secondary w-full mt-1 p-3 rounded-xl border border-white/30 mb-3" rows="2" placeholder="Описание">${course?.description || ''}</textarea>
-          <label class="text-white/60 text-xs">Цена (айсы, 0 = бесплатно)</label>
+          <label class="text-white/60 text-xs">Цена (0 = бесплатно)</label>
           <input type="number" id="mCoursePrice" class="btn-secondary w-full mt-1 p-3 rounded-xl border border-white/30 mb-3" value="${course?.price_ice ?? 0}">
           <label class="text-white/60 text-xs">Доступ для</label>
           <select id="mCourseAccess" class="btn-secondary w-full mt-1 p-3 rounded-xl border border-white/30 mb-3">

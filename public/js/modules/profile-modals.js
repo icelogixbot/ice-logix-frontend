@@ -2356,7 +2356,7 @@ async function loadProfileExtras() {
     container.innerHTML = txs.map(tx => `
       <div class="flex justify-between text-xs py-1">
         <span class="text-white/70">${getTransactionTypeText(tx.type)}</span>
-        <span class="${tx.amount >= 0 ? 'text-green-400' : 'text-red-400'}">${tx.amount >= 0 ? '+' : ''}${tx.amount} <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></span>
+        <span class="${tx.amount >= 0 ? 'text-green-400' : 'text-red-400'} inline-flex items-baseline gap-1">${tx.amount >= 0 ? '+' : ''}${tx.amount} ${window.bynSign ? window.bynSign({ color: tx.amount >= 0 ? 'emerald' : 'purple', size: '0.85em' }) : ''}</span>
       </div>
     `).join('');
   }

@@ -43,7 +43,7 @@
               <input type="number" step="0.01" id="opActualPriceCNY" class="w-full p-2.5 rounded-xl bg-white/10 border border-white/20 text-white font-mono text-xs focus:border-cyan-400" value="${defaultPrice.toFixed(2)}">
             </div>
             <div>
-              <label class="block text-white/70 mb-1">Курс CNY/BYN:</label>
+              <label class="block text-white/70 mb-1">Курс CNY:</label>
               <input type="number" step="0.001" id="opExchangeRate" class="w-full p-2.5 rounded-xl bg-white/10 border border-white/20 text-white font-mono text-xs focus:border-cyan-400" value="${defaultRate}">
             </div>
           </div>
@@ -239,18 +239,18 @@
               <input type="number" step="0.01" id="opActualWeight" class="w-full p-2.5 rounded-xl bg-white/10 border border-white/20 text-white font-mono text-xs focus:border-amber-400" value="${defaultWeight.toFixed(2)}">
             </div>
             <div>
-              <label class="block text-white/70 mb-1">Факт. доставка (BYN):</label>
+              <label class="block text-white/70 mb-1">Факт. доставка:</label>
               <input type="number" step="0.1" id="opActualShipping" class="w-full p-2.5 rounded-xl bg-white/10 border border-white/20 text-white font-mono text-xs focus:border-amber-400" value="${(defaultWeight * 25.0).toFixed(1)}">
             </div>
           </div>
 
           <div class="grid grid-cols-2 gap-2">
             <div>
-              <label class="block text-white/70 mb-1">Минск→Несвиж (BYN):</label>
+              <label class="block text-white/70 mb-1">Минск→Несвиж:</label>
               <input type="number" step="0.1" id="opMinskNesvizh" class="w-full p-2.5 rounded-xl bg-white/10 border border-white/20 text-white font-mono text-xs focus:border-amber-400" value="3.40">
             </div>
             <div>
-              <label class="block text-white/70 mb-1">Услуги склада (BYN):</label>
+              <label class="block text-white/70 mb-1">Услуги склада:</label>
               <input type="number" step="0.1" id="opExtraServices" class="w-full p-2.5 rounded-xl bg-white/10 border border-white/20 text-white font-mono text-xs focus:border-amber-400" value="0.00">
             </div>
           </div>
@@ -717,9 +717,9 @@
 
       if (window.tgUtil) {
         window.tgUtil.haptic('success');
-        window.tgUtil.showPopup('Заказ отменен', `Заказ отменен. ${refundAmount.toFixed(2)} BYN возвращено на ваш баланс.`);
+        window.tgUtil.showPopup('Заказ отменен', `Заказ отменен. ${refundAmount.toFixed(2)} зачислено на ваш баланс.`);
       } else {
-        alert(`Заказ отменен. ${refundAmount.toFixed(2)} BYN зачислено на баланс.`);
+        alert(`Заказ отменен. ${refundAmount.toFixed(2)} зачислено на баланс.`);
       }
       if (typeof window.switchTab === 'function') window.switchTab('my_orders');
     } catch (e) {

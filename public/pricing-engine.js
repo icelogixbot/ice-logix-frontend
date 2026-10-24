@@ -191,13 +191,13 @@
       const overage = productCostBYN - limitBYN;
       // В РБ пошлина = 15% от превышения лимита + 10 BYN таможенный сбор
       dutyBYN += (overage * (CONFIG.customs_duty_pct / 100)) + 10;
-      warning = `⚠️ Превышен лимит беспошлинного ввоза в РБ €${CONFIG.customs_limit_eur} (пошлина 15% от превышения + 10 BYN сбор)`;
+      warning = `⚠️ Превышен лимит беспошлинного ввоза в РБ €${CONFIG.customs_limit_eur} (пошлина 15% от превышения + 10 сбор)`;
     }
     if (exceedsWeight) {
       // По весу — отдельная логика, упрощённо: фикс 5 BYN/кг сверх лимита
       const overKg = weightKg - CONFIG.customs_limit_kg;
       dutyBYN += overKg * 5;
-      warning = (warning ? warning + ' ' : '') + `Превышен лимит веса ${CONFIG.customs_limit_kg} кг (+5 BYN/кг)`;
+      warning = (warning ? warning + ' ' : '') + `Превышен лимит веса ${CONFIG.customs_limit_kg} кг (+5/кг)`;
     }
     return { duty: dutyBYN, warning };
   }

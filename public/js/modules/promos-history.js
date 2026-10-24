@@ -453,7 +453,7 @@ async function showAllTransactions() {
             <p class="text-white/40 text-xs mt-0.5">${new Date(tx.created_at).toLocaleString('ru-RU')}</p>
             ${tx.description ? `<p class="text-white/70 text-xs mt-1">${tx.description}</p>` : ''}
           </div>
-          <p class="${tx.amount >= 0 ? 'text-green-400' : 'text-red-400'} font-bold text-sm leading-none flex items-center gap-1">${tx.amount >= 0 ? '+' : ''}${tx.amount} <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-4 h-4 object-contain inline-block"></span></p>
+          <p class="${tx.amount >= 0 ? 'text-green-400' : 'text-red-400'} font-bold text-sm leading-none inline-flex items-baseline gap-1">${tx.amount >= 0 ? '+' : ''}${tx.amount} ${window.bynSign ? window.bynSign({ color: tx.amount >= 0 ? 'emerald' : 'purple', size: '0.85em' }) : ''}</p>
         </div>
       `).join('') : '<p class="text-white/50 text-center py-10">Транзакций пока нет</p>'}
     </div>

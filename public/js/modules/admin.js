@@ -1107,7 +1107,7 @@ async function renderAdmin() {
               <div class="flex items-center gap-2 p-2 bg-white/5 rounded-xl">
                 <div class="flex-1 min-w-0">
                   <p class="text-white text-sm truncate">${c.title}</p>
-                  <p class="text-white/40 text-xs">${c.price_ice > 0 ? c.price_ice + ' <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span>' : 'Бесплатно'} · ${c.role_access} · ${c.is_active ? '<span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Активен' : '<span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span> Скрыт'}</p>
+                  <p class="text-white/40 text-xs inline-flex items-baseline gap-1">${c.price_ice > 0 ? `${c.price_ice} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}` : 'Бесплатно'} · ${c.role_access} · ${c.is_active ? '<span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Активен' : '<span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span> Скрыт'}</p>
                 </div>
                 <button class="btn-secondary adminEditCourseBtn" data-course-id="${c.id}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span></button>
                 <button class="adminManageLessonsBtn bg-blue-600/60 px-2 py-1 rounded text-xs" data-course-id="${c.id}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span></button>
@@ -1134,7 +1134,7 @@ async function renderAdmin() {
         <!-- Заявки на вывод -->
         <div class="glass-card">
           <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18M7 6h1v4M16.71 13.88l.7.71-2.82 2.82"/></svg></span> Заявки на вывод</h3>
-          ${payoutRequests.length === 0 ? '<p class="text-white/70">Нет заявок</p>' : payoutRequests.map(req => `<div class="flex justify-between items-center p-2 bg-white/5 rounded-lg mb-2"><div><span class="text-white">${req.user_id}</span><span class="text-cyan-400 ml-2">${req.amount} <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></span></div><div><button class="approvePayoutBtn bg-green-600 px-3 py-1 rounded text-sm mr-2" data-id="${req.id}">Одобрить</button><button class="rejectPayoutBtn bg-red-600 px-3 py-1 rounded text-sm" data-id="${req.id}">Отклонить</button></div></div>`).join('')}
+          ${payoutRequests.length === 0 ? '<p class="text-white/70">Нет заявок</p>' : payoutRequests.map(req => `<div class="flex justify-between items-center p-2 bg-white/5 rounded-lg mb-2"><div><span class="text-white">${req.user_id}</span><span class="text-cyan-400 ml-2 inline-flex items-baseline gap-1">${req.amount} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</span></div><div><button class="approvePayoutBtn bg-green-600 px-3 py-1 rounded text-sm mr-2" data-id="${req.id}">Одобрить</button><button class="rejectPayoutBtn bg-red-600 px-3 py-1 rounded text-sm" data-id="${req.id}">Отклонить</button></div></div>`).join('')}
         </div>
         
         <!-- AI Аналитика -->
@@ -2774,8 +2774,8 @@ function attachAnalyticsHandlers() {
       const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString();
       const sum = (type, since) => (txs || []).filter(t => t.type === type && t.created_at >= since).reduce((s, t) => s + Math.abs(t.amount || 0), 0);
       el.innerHTML = `
-        <div class="bg-white/5 rounded-xl p-2 text-center"><p class="text-white/50 text-xs">Общий баланс</p><p class="text-cyan-400 font-bold text-sm">${total.toFixed(0)} <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></p></div>
-        <div class="bg-white/5 rounded-xl p-2 text-center"><p class="text-white/50 text-xs">Баланс дропш.</p><p class="text-yellow-400 font-bold text-sm">${dropTotal.toFixed(0)} <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></p></div>
+        <div class="bg-white/5 rounded-xl p-2 text-center"><p class="text-white/50 text-xs">Общий баланс</p><p class="text-cyan-400 font-bold text-sm inline-flex items-baseline gap-1">${total.toFixed(0)} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</p></div>
+        <div class="bg-white/5 rounded-xl p-2 text-center"><p class="text-white/50 text-xs">Баланс дропш.</p><p class="text-yellow-400 font-bold text-sm inline-flex items-baseline gap-1">${dropTotal.toFixed(0)} ${window.bynSign ? window.bynSign({ color: 'gold', size: '0.85em' }) : ''}</p></div>
         <div class="bg-white/5 rounded-xl p-2 text-center"><p class="text-white/50 text-xs">Пополнения (30д)</p><p class="text-green-400 font-bold text-sm">+${sum('topup', monthAgo).toFixed(0)}</p></div>
         <div class="bg-white/5 rounded-xl p-2 text-center"><p class="text-white/50 text-xs">Выплаты (30д)</p><p class="text-red-400 font-bold text-sm">-${sum('withdrawal', monthAgo).toFixed(0)}</p></div>`;
     } catch { el.innerHTML = '<p class="text-white/30 text-xs col-span-2 text-center">Сводка недоступна</p>'; }
@@ -2815,7 +2815,7 @@ function attachAnalyticsHandlers() {
             <p class="text-white/40">${new Date(t.created_at).toLocaleDateString('ru-RU')} · ${t.type || '—'} · ${t.description || ''}</p>
           </div>
           <div class="ml-2 text-right flex-shrink-0">
-            <p class="font-bold ${(t.amount||0) >= 0 ? 'text-green-400' : 'text-red-400'}">${(t.amount||0)>=0?'+':''}${t.amount} <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></p>
+            <p class="font-bold ${(t.amount||0) >= 0 ? 'text-green-400' : 'text-red-400'} inline-flex items-baseline gap-1">${(t.amount||0)>=0?'+':''}${t.amount} ${window.bynSign ? window.bynSign({ color: (t.amount||0) >= 0 ? 'emerald' : 'purple', size: '0.85em' }) : ''}</p>
             <p class="text-white/40">${t.status || ''}</p>
           </div>
         </div>`).join('');
@@ -3984,15 +3984,15 @@ function attachAdminSuppliersHandlers() {
               ${statusLabel(v.status)}
             </div>
             ${v.caption ? `<p class="text-white/60 text-xs mt-1">${v.caption}</p>` : ''}
-            ${v.status === 'approved' && v.reward_ices ? `<p class="text-green-400 text-xs mt-1">Начислено: ${v.reward_ices} айсов</p>` : ''}
+            ${v.status === 'approved' && v.reward_ices ? `<p class="text-green-400 text-xs mt-1">Начислено: ${v.reward_ices} бонусов</p>` : ''}
             ${v.status === 'rejected' && v.reject_reason ? `<p class="text-red-400 text-xs mt-1">Причина: ${v.reject_reason}</p>` : ''}
           </div>`).join('');
 
       return `
         <button id="ugcBackBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
         <div class="glass-card mb-3">
-          <h3 class="text-white font-bold text-lg mb-2">🎬 Распаковка за айсы</h3>
-          <p class="text-white/60 text-sm mb-3">Снимите видео-распаковку вашего заказа и получите айсы на баланс после проверки модератором!</p>
+          <h3 class="text-white font-bold text-lg mb-2">🎬 Распаковка за бонусы</h3>
+          <p class="text-white/60 text-sm mb-3">Снимите видео-распаковку вашего заказа и получите бонусы на баланс после проверки модератором!</p>
           <input type="file" id="ugcFileInput" accept="video/*" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-2 text-sm">
           <textarea id="ugcCaption" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-2" placeholder="Комментарий (необязательно)" rows="2"></textarea>
           <button id="ugcUploadBtn" class="btn-primary w-full">Отправить на модерацию</button>
@@ -4094,7 +4094,7 @@ function attachAdminSuppliersHandlers() {
             <div class="bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-2 text-center"><p class="text-cyan-400 text-lg font-black">${(+earned.earned_l2).toFixed(0)}</p><p class="text-white/50 text-[10px]">Ур. 2</p></div>
             <div class="bg-purple-500/10 border border-purple-500/20 rounded-xl p-2 text-center"><p class="text-purple-400 text-lg font-black">${(+earned.earned_l3).toFixed(0)}</p><p class="text-white/50 text-[10px]">Ур. 3</p></div>
           </div>
-          <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/60 text-xs uppercase tracking-wider">Всего заработано</p><p class="text-green-400 text-2xl font-black">${(+earned.total_earned).toFixed(0)} айсов</p></div>
+          <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/60 text-xs uppercase tracking-wider">Всего заработано</p><p class="text-green-400 text-2xl font-black">${(+earned.total_earned).toFixed(0)} бонусов</p></div>
         </div>`;
 
       return `
@@ -4138,7 +4138,7 @@ function attachAdminSuppliersHandlers() {
             <p class="text-white/60 text-xs mb-1">От ID: ${v.user_id} · ${new Date(v.created_at).toLocaleString('ru-RU')}</p>
             ${v.caption ? `<p class="text-white/70 text-sm mb-2">${v.caption}</p>` : ''}
             <div class="flex gap-2 items-center">
-              <input type="number" class="ugcRewardInput btn-secondary w-24 p-2 rounded-lg border border-white/30" value="100" placeholder="айсы">
+              <input type="number" class="ugcRewardInput btn-secondary w-24 p-2 rounded-lg border border-white/30" value="100" placeholder="бонусы">
               <button class="ugcApproveBtn btn-primary flex-1 text-sm" data-id="${v.id}" data-uploader="${v.user_id}">✅ Одобрить</button>
               <button class="ugcRejectBtn bg-red-600 px-3 py-2 rounded-lg text-sm text-white" data-id="${v.id}">❌</button>
             </div>
@@ -4202,7 +4202,7 @@ function attachAdminSuppliersHandlers() {
           const uploader = parseInt(btn.getAttribute('data-uploader'));
           const container = btn.closest('[data-ugc]');
           const reward = parseFloat(container.querySelector('.ugcRewardInput').value) || 0;
-          if (!(await tgUtil.confirm(`Начислить ${reward} айсов пользователю ${uploader}?`))) return;
+          if (!(await tgUtil.confirm(`Начислить ${reward} бонусов пользователю ${uploader}?`))) return;
           btn.disabled = true;
           try {
             const { data: u } = await supabaseClient.from('users').select('ices_balance').eq('user_id', uploader).single();
