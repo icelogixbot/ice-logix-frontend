@@ -64,7 +64,7 @@
     if (tb) tb.innerText = `${nextBal} ICE`;
 
     const tbByn = document.getElementById('topupCurrentBalByn');
-    if (tbByn) tbByn.innerText = `(~${nextBal} BYN)`;
+    if (tbByn) tbByn.innerHTML = `(~${nextBal} ${window.bynSign ? window.bynSign() : ''})`;
 
     try {
       const cached = localStorage.getItem('ice_cached_user');
@@ -178,7 +178,7 @@
 
           <div>
             <p class="text-xs text-white/50">Сумма к оплате</p>
-            <p class="text-3xl font-black text-white font-mono tracking-tight">${amountVal.toFixed(2)} <span class="text-cyan-400 text-lg">BYN</span></p>
+            <p class="text-3xl font-black text-white font-mono tracking-tight">${amountVal.toFixed(2)} <span class="text-cyan-400 text-lg">${window.bynSign ? window.bynSign({ color: 'cyan' }) : ''}</span></p>
             <p class="text-[11px] text-emerald-400 font-semibold mt-0.5">Комиссия 0% • Оплата без ввода данных карты</p>
           </div>
 
@@ -328,7 +328,7 @@
 
           <div>
             <p class="text-xs text-white/50">К оплате через кошелек</p>
-            <p class="text-3xl font-black text-white font-mono tracking-tight">${amountVal.toFixed(2)} <span class="text-emerald-400 text-lg">BYN</span></p>
+            <p class="text-3xl font-black text-white font-mono tracking-tight">${amountVal.toFixed(2)} <span class="text-emerald-400 text-lg">${window.bynSign ? window.bynSign({ color: 'emerald' }) : ''}</span></p>
             <p class="text-[11px] text-emerald-300/80 font-medium mt-0.5">Кэшбэк и бонусы в приложении «Оплати»</p>
           </div>
 
@@ -467,7 +467,7 @@
               <div>
                 <span class="text-xs font-bold text-white tracking-wide">Текущий баланс</span>
                 <p class="text-[10px] text-emerald-400 flex items-center gap-1 font-semibold">
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> 1 ICE = 1 BYN
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> 1 ICE = 1 ${window.bynSign ? window.bynSign({ size: '1em' }) : ''}
                 </p>
               </div>
             </div>
@@ -483,7 +483,7 @@
 
           <div class="flex items-baseline gap-2 relative z-10">
             <span class="text-3xl font-black text-white font-mono tracking-tight" id="topupCurrentBalText">${curBalance} ICE</span>
-            <span class="text-xs font-bold text-white/40 font-mono" id="topupCurrentBalByn">(~${curBalance} BYN)</span>
+            <span class="text-xs font-bold text-white/40 font-mono inline-flex items-baseline gap-1" id="topupCurrentBalByn">(~${curBalance} ${window.bynSign ? window.bynSign({ size: '0.9em' }) : ''})</span>
           </div>
         </div>
 
@@ -494,8 +494,8 @@
               <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
               <h4 class="text-xs font-bold text-white uppercase tracking-wider">О валюте ICE Coin (ICL)</h4>
             </div>
-            <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 font-mono">
-              КУРС: 1 ICE = 1 BYN
+            <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 font-mono inline-flex items-baseline gap-1">
+              КУРС: 1 ICE = 1 ${window.bynSign ? window.bynSign({ size: '1em' }) : ''}
             </span>
           </div>
 
@@ -541,7 +541,7 @@
         <!-- 3. Калькулятор суммы пополнения -->
         <div class="glass-card p-4 rounded-3xl border border-white/10 space-y-3">
           <label class="block text-white font-bold text-xs uppercase tracking-wider flex items-center justify-between">
-            <span>Сумма пополнения (BYN)</span>
+            <span class="inline-flex items-center gap-1">Сумма пополнения (${window.bynSign ? window.bynSign({ color: 'cyan', size: '1em' }) : ''})</span>
             <span class="text-[10px] font-mono text-cyan-300 normal-case">Зачисление: <b id="topupConvertedIceText">${_selectedTopupAmount} ICE</b></span>
           </label>
 
@@ -574,8 +574,8 @@
               placeholder="Введите сумму"
               class="w-full bg-slate-900/90 border border-white/15 focus:border-cyan-400 rounded-2xl py-3 px-4 pr-16 text-white font-mono font-bold text-base focus:outline-none transition shadow-inner"
             >
-            <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-white/40 font-mono pointer-events-none">
-              BYN
+            <span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-white/50 font-mono pointer-events-none flex items-center">
+              ${window.bynSign ? window.bynSign({ size: '1.1em' }) : ''}
             </span>
           </div>
         </div>
@@ -654,7 +654,7 @@
             id="proceedTopupSubmitBtn"
             class="btn-primary w-full py-4 rounded-2xl font-black text-sm shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2 active:scale-95 transition"
           >
-            <span>Пополнить на ${_selectedTopupAmount} BYN (${_selectedTopupAmount} ICE)</span>
+            <span>Пополнить на ${_selectedTopupAmount} ${window.bynSign ? window.bynSign({ color: 'white' }) : ''} (${_selectedTopupAmount} ICE)</span>
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
         </div>
@@ -734,7 +734,7 @@
 
       if (submitBtn) {
         submitBtn.innerHTML = `
-          <span>Пополнить на ${_selectedTopupAmount} BYN (${_selectedTopupAmount} ICE)</span>
+          <span>Пополнить на ${_selectedTopupAmount} ${window.bynSign ? window.bynSign({ color: 'white' }) : ''} (${_selectedTopupAmount} ICE)</span>
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
         `;
       }

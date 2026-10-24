@@ -2383,15 +2383,15 @@ let adminOrdersTotalPages = 1;
               ${totalByn ? `
                 <div class="flex justify-between text-base font-bold pt-2 border-t border-white/10 mb-2">
                   <span class="text-white">Итого:</span>
-                  <span class="text-cyan-400">${_ipMoneyFmt(totalByn - discount)} BYN</span>
+                  <span class="text-cyan-400 inline-flex items-baseline gap-1">${_ipMoneyFmt(totalByn - discount)} ${bynSign()}</span>
                 </div>
                 <div class="p-2.5 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[10px] space-y-1 mt-2">
                   <p class="text-yellow-400 font-bold flex items-center gap-1">
                     ${ix('trending-up', { size: '12px' })} Выгода заказа в ICE LOGIX
                   </p>
                   <p class="text-white/70">
-                    Цена в ТЦ Минска: <span class="text-red-400 line-through font-mono font-bold">${_ipMoneyFmt((totalByn - discount) * 1.7)} BYN</span><br>
-                    🔥 Ваша экономия: <strong class="text-green-400 font-bold font-mono">${_ipMoneyFmt((totalByn - discount) * 0.7)} BYN (41%)</strong>!
+                    Цена в ТЦ Минска: <span class="text-red-400 line-through font-mono font-bold inline-flex items-baseline gap-1">${_ipMoneyFmt((totalByn - discount) * 1.7)} ${bynSign()}</span><br>
+                    🔥 Ваша экономия: <strong class="text-green-400 font-bold font-mono inline-flex items-baseline gap-1">${_ipMoneyFmt((totalByn - discount) * 0.7)} ${bynSign()} (41%)</strong>!
                   </p>
                 </div>
               ` : ''}
@@ -3520,7 +3520,7 @@ let adminOrdersTotalPages = 1;
       }
 
       // 4. Primary bottom navigation tabs (cannot be swiped back - navigation handled via bottom bar)
-      const bottomRootTabs = ['home', 'calculator', 'neworder', 'new-order', 'catalogs', 'profile'];
+      const bottomRootTabs = ['home', 'calculator', 'neworder', 'new-order', 'catalogs', 'profile', 'cart'];
       if (!bottomRootTabs.includes(currentTab)) {
         window._isNavigatingBack = true;
         if (previousTab && previousTab !== currentTab) {
@@ -3537,7 +3537,7 @@ let adminOrdersTotalPages = 1;
     // Wires Telegram's native BackButton based on current tab/subscreen.
     function syncTelegramBackButton() {
       // Bottom tabs that do not have on-screen back button
-      const noHeaderBackTabs = ['home', 'calculator', 'neworder', 'new-order', 'catalogs', 'profile'];
+      const noHeaderBackTabs = ['home', 'calculator', 'neworder', 'new-order', 'catalogs', 'profile', 'cart'];
       const isHomeSubmode = currentTab === 'home' && window._calcMode && window._calcMode !== 'menu';
       const hasOrderItems = Boolean(window.tempOrder && window.tempOrder.items && window.tempOrder.items.length > 0);
       const isOrderSubmode = (currentTab === 'neworder' || currentTab === 'new-order') && 
@@ -3605,7 +3605,10 @@ let adminOrdersTotalPages = 1;
 
         if (isHorizontalSwipe && isNotVertical && isWithinTime) {
           const target = e.target;
-          if (target && target.closest && target.closest('input, textarea, select, [contenteditable="true"], .no-swipe-back, input[type="range"]')) {
+          if (target && target.closest && target.closest('input, textarea, select, [contenteditable="true"], .no-swipe-back, input[type="range"], .wb-cart-screen')) {
+            return;
+          }
+          if (currentTab === 'cart' || (typeof bottomRootTabs !== 'undefined' && bottomRootTabs.includes(currentTab) && !currentSubScreen)) {
             return;
           }
           // Если жест внутри горизонтального скроллера, не находящегося в самом начале — не перехватываем

@@ -130,7 +130,7 @@
         <span class="text-black/30">·</span>
         <span id="wbCheckoutCount">${count} шт.</span>
         <span class="text-black/30">·</span>
-        <span id="wbCheckoutTotal">${Number(total || 0).toFixed(2)} BYN</span>
+        <span id="wbCheckoutTotal" class="inline-flex items-baseline gap-1">${Number(total || 0).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
       `;
     } else {
       checkoutBtn.className = 'wb-checkout-cta disabled';
@@ -187,12 +187,7 @@
         <div class="wb-cart-screen screen-fade-in">
           <div class="wb-cart-header">
             <div class="wb-cart-title-row">
-              <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="15 18 9 12 15 6"/>
-                </svg>
-              </button>
-              <h2 class="wb-cart-title flex-1 ml-3">Корзина</h2>
+              <h2 class="wb-cart-title">Корзина</h2>
             </div>
           </div>
           <div class="wb-empty-cart">
@@ -254,8 +249,8 @@
 
               <div class="wb-card-bottom-line">
                 <div class="wb-price-block">
-                  <span class="wb-current-price"><span class="wb-row-price" data-unit-price="${it.priceByn}">${itemSubtotal}</span> BYN</span>
-                  <span class="wb-old-price">${(it.oldPriceByn * it.quantity).toFixed(2)} BYN</span>
+                  <span class="wb-current-price inline-flex items-baseline gap-1"><span class="wb-row-price" data-unit-price="${it.priceByn}">${itemSubtotal}</span> ${window.bynSign ? window.bynSign() : ''}</span>
+                  <span class="wb-old-price inline-flex items-baseline gap-1">${(it.oldPriceByn * it.quantity).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
                 </div>
 
                 <div class="wb-stepper">
@@ -275,12 +270,7 @@
         <!-- 1. Header -->
         <div class="wb-cart-header">
           <div class="wb-cart-title-row">
-            <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="15 18 9 12 15 6"/>
-              </svg>
-            </button>
-            <h2 class="wb-cart-title flex-1 ml-3">Корзина</h2>
+            <h2 class="wb-cart-title">Корзина</h2>
             <span class="wb-cart-count-badge" id="wbCartTotalBadge">${items.length} поз.</span>
           </div>
         </div>

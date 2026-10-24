@@ -57,7 +57,7 @@
     if (hb) hb.innerText = nextBal;
 
     const cardBal = document.getElementById('walletCardLiveBalance');
-    if (cardBal) cardBal.innerText = `${nextBal.toFixed(2)} BYN`;
+    if (cardBal) cardBal.innerHTML = `${nextBal.toFixed(2)} ${window.bynSign ? window.bynSign() : ''}`;
 
     const cardBalIce = document.getElementById('walletCardLiveIce');
     if (cardBalIce) cardBalIce.innerText = `≈ ${nextBal.toFixed(0)} ICE`;
@@ -139,7 +139,7 @@
     const isVerified = user?.kyc_status === 'verified';
     const curUserId = user?.user_id || window.userId || '739210';
     const walletAccountNum = `ICE-${String(curUserId).padStart(7, '0')}`;
-    const limitText = isVerified ? 'Лимит 5 000 BYN • Верифицирован' : 'Базовый лимит 500 BYN';
+    const limitText = isVerified ? `Лимит 5 000 ${window.bynSign ? window.bynSign({ size: '0.9em' }) : ''} • Верифицирован` : `Базовый лимит 500 ${window.bynSign ? window.bynSign({ size: '0.9em' }) : ''}`;
 
     return `
       <div class="relative w-full max-w-[340px] mx-auto select-none">
@@ -183,7 +183,7 @@
               <div>
                 <p class="text-[10px] font-bold uppercase tracking-wider text-white/50 mb-0.5">Доступный баланс</p>
                 <div class="flex items-baseline gap-2">
-                  <span class="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight" id="walletCardLiveBalance">${bal.toFixed(2)} BYN</span>
+                  <span class="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight inline-flex items-baseline gap-1" id="walletCardLiveBalance">${bal.toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
                   <span class="text-xs font-bold text-cyan-400 font-mono" id="walletCardLiveIce">≈ ${bal.toFixed(0)} ICE</span>
                 </div>
               </div>
@@ -243,7 +243,7 @@
         <!-- Калькулятор суммы пополнения -->
         <div class="glass-card p-4 rounded-3xl border border-white/10 space-y-3">
           <label class="block text-white font-bold text-xs uppercase tracking-wider flex items-center justify-between">
-            <span>Сумма пополнения (BYN)</span>
+            <span class="inline-flex items-center gap-1">Сумма пополнения (${window.bynSign ? window.bynSign({ color: 'cyan', size: '1em' }) : ''})</span>
             <span class="text-[10px] font-mono text-cyan-300 normal-case">Зачисление: <b id="topupConvertedIceText">${_selectedTopupAmount} ICE</b></span>
           </label>
 
@@ -276,8 +276,8 @@
               placeholder="Введите сумму"
               class="w-full bg-slate-900/90 border border-white/15 focus:border-cyan-400 rounded-2xl py-3 px-4 pr-16 text-white font-mono font-bold text-base focus:outline-none transition shadow-inner"
             >
-            <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-white/40 font-mono pointer-events-none">
-              BYN
+            <span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-white/50 font-mono pointer-events-none flex items-center">
+              ${window.bynSign ? window.bynSign({ size: '1.1em' }) : ''}
             </span>
           </div>
         </div>
@@ -476,7 +476,7 @@
                   </div>
 
                   <div class="text-right flex-shrink-0">
-                    <p class="text-sm font-black font-mono ${amountClass}">${amountSign}${Number(item.amount || 0).toFixed(2)} BYN</p>
+                    <p class="text-sm font-black font-mono inline-flex items-baseline gap-1 ${amountClass}">${amountSign}${Number(item.amount || 0).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</p>
                     <span class="text-[9px] font-bold text-white/50">Успешно</span>
                   </div>
                 </div>
@@ -530,7 +530,7 @@
           if (typeof data.ices_balance === 'number') {
             window.balance = data.ices_balance;
             const bEl = document.getElementById('walletCardLiveBalance');
-            if (bEl) bEl.innerText = `${data.ices_balance.toFixed(2)} BYN`;
+            if (bEl) bEl.innerHTML = `${data.ices_balance.toFixed(2)} ${window.bynSign ? window.bynSign() : ''}`;
           }
         }
       }).catch(() => {});
@@ -722,7 +722,7 @@
         convertedIceText.innerText = `${_selectedTopupAmount} ICE`;
       }
       if (submitBtn) {
-        submitBtn.querySelector('span').innerText = `Пополнить на ${_selectedTopupAmount} BYN`;
+        submitBtn.querySelector('span').innerHTML = `Пополнить на ${_selectedTopupAmount} ${window.bynSign ? window.bynSign({ color: 'white' }) : ''}`;
       }
 
       document.querySelectorAll('#topupChipsGrid button').forEach(chip => {

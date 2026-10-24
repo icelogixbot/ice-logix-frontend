@@ -225,7 +225,7 @@
                   <div class="flex items-center gap-1.5">
                     <span class="text-cyan-400 font-black text-base">${item.price_ice}</span>
                     <span class="text-[11px] font-bold text-cyan-300/80">ICE</span>
-                    <span class="text-[10px] text-white/40">(~${item.price_ice} BYN)</span>
+                    <span class="text-[10px] text-white/40 inline-flex items-baseline gap-0.5">(~${item.price_ice} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''})</span>
                   </div>
                   ${item.stock > 0 ? `<p class="text-[10px] text-white/40">Осталось: ${item.stock} шт.</p>` : ''}
                 </div>
@@ -284,7 +284,7 @@
             <div class="flex items-baseline gap-1.5 mt-0.5">
               <span class="text-2xl font-black text-cyan-400" id="bonusShopUserBal">${userBalance.toFixed(2)}</span>
               <span class="text-xs font-bold text-white/70">ICE</span>
-              <span class="text-[11px] text-emerald-400 font-semibold">(1 ICE = 1 BYN)</span>
+              <span class="text-[11px] text-emerald-400 font-semibold inline-flex items-baseline gap-1">(1 ICE = 1 ${window.bynSign ? window.bynSign({ color: 'emerald', size: '0.9em' }) : ''})</span>
             </div>
           </div>
           <button onclick="switchTab('reftree')" class="px-3 py-2 rounded-xl text-xs font-bold text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/10 transition-all flex items-center gap-1.5">
@@ -353,7 +353,7 @@
               </div>
               <label class="text-white/70 text-xs font-bold block">Способ получения:</label>
               <select id="physicalDeliverySelect" class="btn-secondary w-full p-2.5 rounded-xl text-xs text-white">
-                <option value="SELF_PICKUP">Самовывоз (Несвиж Hub, 0 BYN)</option>
+                <option value="SELF_PICKUP">Самовывоз (Несвиж Hub, 0 руб.)</option>
                 <option value="EVROPOCHTA">Европочта до ПВЗ</option>
                 <option value="CDEK">СДЭК по Беларуси</option>
               </select>

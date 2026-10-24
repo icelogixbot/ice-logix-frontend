@@ -2107,7 +2107,7 @@
                 <div>
                   <p class="text-[10px] text-cyan-400 font-bold uppercase tracking-wider">${p.brand || 'Товар'}</p>
                   <p class="text-white text-xs font-bold truncate mt-0.5">${highlightMatches(p.title, query)}</p>
-                  <p class="text-xs font-black text-white/90 mt-1">${p.price ? p.price + ' BYN' : 'По запросу'}</p>
+                  <p class="text-xs font-black text-white/90 mt-1 inline-flex items-baseline gap-1">${p.price ? p.price + ' ' + (window.bynSign ? window.bynSign() : '') : 'По запросу'}</p>
                 </div>
               </div>
             `).join('')}
