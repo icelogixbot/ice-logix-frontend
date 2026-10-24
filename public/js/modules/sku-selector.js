@@ -216,7 +216,6 @@
           <div class="flex gap-3.5 items-center">
             <div class="relative w-24 h-24 rounded-2xl overflow-hidden border border-cyan-500/30 flex-shrink-0 bg-black/40 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
               <img id="skuModalImg" src="${currentImgUrl}" alt="Product" class="w-full h-full object-cover transition-opacity duration-200">
-              <span class="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-xs text-[9px] font-black font-mono text-cyan-300 border border-white/10">HD</span>
               <div id="skuImgLoader" class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity">
                 <span class="ix animate-spin text-cyan-400 text-lg">⏳</span>
               </div>

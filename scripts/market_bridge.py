@@ -265,8 +265,14 @@ CHINESE_FASHION_SUBST = {
     "热卖": " ",
     "百搭": " ",
     "休闲": " ",
-    "增高": " ",
-    "厚底": " на платформе ",
+    "升级款": " (улучшенная модель) ",
+    "经典款": " (классическая модель) ",
+    "做旧擦色脏脏鞋": " винтажные кеды с потертостями ",
+    "脏脏鞋": " винтажные кеды ",
+    "擦色": " с потертостями ",
+    "帆布鞋": " парусиновые кеды ",
+    "高街": " High-Street ",
+    "通勤": " повседневные ",
     "官方标配": "Стандартный комплект",
     "套餐一": "Комплект 1",
     "套餐二": "Комплект 2",
@@ -373,7 +379,7 @@ def synthesize_smart_title(raw_title: str, brand: str, category: str) -> str:
     if "джинсы" in clean_ru.lower() or category == "Джинсы":
         clean_ru = re.sub(r"\bбрюки\b|\bштаны\b", " ", clean_ru, flags=re.IGNORECASE)
     clean_ru = re.sub(r"\bсвободная кроя\b|\bсвободный крой\b|\bсвободная\b|\bсвободный\b", "свободного кроя", clean_ru, flags=re.IGNORECASE)
-    clean_ru = re.sub(r"\s+", " ", clean_ru).strip(" ,.-")
+    clean_ru = re.sub(r"\s+", " ", clean_ru).strip(" ,.-:;!?")
     
     lead = ""
     clean_low = clean_ru.lower()
@@ -431,14 +437,35 @@ def synthesize_smart_title(raw_title: str, brand: str, category: str) -> str:
     if brand and brand.lower() not in lead.lower():
         title_parts.append(brand)
         
-    clean_ru = re.sub(r"\s+", " ", clean_ru).strip(" ,.-")
-    words = clean_ru.split()
-    for w in words[:4]:
+    clean_ru = re.sub(r"\s+", " ", clean_ru).strip(" ,.-:;!?")
+    raw_words = clean_ru.split()
+    collected_words = []
+    
+    keep_short = {"в", "с", "из", "на", "для", "со", "от", "по"}
+    stopwords = {"очень", "сверху", "снизу", "просто", "это", "тут", "здесь", "все"}
+    
+    for raw_w in raw_words:
+        w = raw_w.strip(" ,.-:;!?()[]{}\"'`/")
+        if not w:
+            continue
         low = w.lower()
-        if low not in " ".join(title_parts).lower() and len(w) > 2 and low not in ["очень", "сверху", "снизу", "просто"]:
-            title_parts.append(w)
+        if low in stopwords:
+            continue
+        if low in " ".join(title_parts).lower():
+            continue
+        if len(w) <= 2 and low not in keep_short:
+            continue
+        collected_words.append(w)
+        if len(collected_words) >= 6:
+            break
             
-    res = " ".join(title_parts).strip()
+    while collected_words and collected_words[-1].lower() in keep_short:
+        collected_words.pop()
+        
+    title_parts.extend(collected_words)
+    res = " ".join(title_parts).strip(" ,.-:;!?")
+    res = re.sub(r"\s+", " ", res)
+    res = re.sub(r"\s+([,.:;!?])", r"\1", res)
     return res if res else (f"{lead} {brand}".strip() or "Товар с Pinduoduo")
 
 def translate_color(name_cn: str) -> str:
@@ -457,6 +484,14 @@ def get_connected_device() -> Optional[str]:
         res = subprocess.run([ADB_PATH, "devices"], capture_output=True, text=True, timeout=5)
         lines = [line.strip().split() for line in res.stdout.splitlines() if line.strip() and not line.startswith("List")]
         active = [parts[0] for parts in lines if len(parts) >= 2 and parts[1] == "device"]
+        if not active:
+            try:
+                subprocess.run([ADB_PATH, "connect", "127.0.0.1:5555"], capture_output=True, timeout=3)
+                res2 = subprocess.run([ADB_PATH, "devices"], capture_output=True, text=True, timeout=3)
+                lines2 = [line.strip().split() for line in res2.stdout.splitlines() if line.strip() and not line.startswith("List")]
+                active = [parts[0] for parts in lines2 if len(parts) >= 2 and parts[1] == "device"]
+            except Exception:
+                pass
         if not active:
             return None
         if "127.0.0.1:5555" in active:
@@ -852,6 +887,72 @@ def dump_ui_xml(auto_handle_verify: bool = True) -> ET.Element:
         
     return root
 
+def extract_pdd_native_original_photo(goods_id: str, thumb_bounds: Optional[tuple] = None) -> Optional[str]:
+    """
+    Taps the drawer thumbnail or full-screen photo viewer, triggers long-press to execute
+    native Pinduoduo '保存图片' (Save Image to Gallery), and retrieves the genuine
+    100% original 800x800 studio product photo directly from /sdcard/DCIM/Pindd/save_image/.
+    Uploads to Supabase Storage and returns the public CDN URL.
+    """
+    try:
+        # Clear previous saved images in /sdcard/DCIM/Pindd/save_image/ to guarantee freshness
+        run_adb(["shell", "rm", "-f", "/sdcard/DCIM/Pindd/save_image/*"])
+        
+        # 1. Tap thumbnail in drawer if bounds provided
+        if thumb_bounds:
+            tx = (thumb_bounds[0] + thumb_bounds[2]) // 2
+            ty = (thumb_bounds[1] + thumb_bounds[3]) // 2
+            run_adb(["shell", "input", "tap", str(tx), str(ty)])
+        else:
+            run_adb(["shell", "input", "tap", "108", "404"])
+            
+        time.sleep(1.0)
+        
+        # 2. Long-press the center of the photo viewer (450, 750)
+        run_adb(["shell", "input", "swipe", "450", "750", "450", "750", "1200"])
+        time.sleep(0.7)
+        
+        # 3. Tap '保存图片' (located at bounds [0,1380][900,1449], center is 450, 1410)
+        run_adb(["shell", "input", "tap", "450", "1410"])
+        time.sleep(1.1)
+        
+        # 4. Return to drawer by pressing Back key
+        run_adb(["shell", "input", "keyevent", "4"])
+        time.sleep(0.5)
+        
+        # 5. Check if photo was saved
+        res = run_adb(["shell", "ls", "-t", "/sdcard/DCIM/Pindd/save_image/"])
+        files = [f.strip() for f in res.splitlines() if f.strip().endswith(".jpg") or f.strip().endswith(".png")]
+        if files:
+            latest_file = files[0]
+            remote_sd_path = f"/sdcard/DCIM/Pindd/save_image/{latest_file}"
+            local_target = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}.jpg")
+            local_hd = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}_hd.jpg")
+            run_adb(["pull", remote_sd_path, local_target])
+            if os.path.exists(local_target) and os.path.getsize(local_target) > 5000:
+                try:
+                    import shutil
+                    shutil.copyfile(local_target, local_hd)
+                except Exception:
+                    pass
+                print(f"[🔥 Native Original PDD Photo] Pulled 800x800 original: {local_target} ({os.path.getsize(local_target)} bytes)")
+                if supabase_client:
+                    rem_name = f"sku_{goods_id}_original_{int(time.time())}.jpg"
+                    with open(local_target, "rb") as f:
+                        supabase_client.storage.from_("product-screenshots").upload(rem_name, f.read(), {"content-type": "image/jpeg"})
+                    pub_url = supabase_client.storage.from_("product-screenshots").get_public_url(rem_name)
+                    print(f"[+] Uploaded Genuine Original PDD Photo to Supabase: {pub_url}")
+                    return pub_url
+                return f"/uploads/parsed/sku_{goods_id}.jpg"
+    except Exception as e:
+        print("[!] Native original photo extraction error:", e)
+        try:
+            run_adb(["shell", "input", "keyevent", "4"])
+        except Exception:
+            pass
+            
+    return None
+
 def capture_hd_studio_and_variants(
     goods_id: str, 
     root: ET.Element, 
@@ -862,43 +963,15 @@ def capture_hd_studio_and_variants(
     """
     Captures:
     1. The master Studio image:
-       - Top ViewPager of the main screen (crystal clear original studio/model photo), or
-       - Clean drawer thumbnail (cd="商品主图" / [18,356][198,536]).
-    2. Clean micro-thumbnail icons for each color variant:
-       - From main screen '商品款式图' if available,
-       - Or from drawer buttons ONLY if they actually contain a card image (not text pills).
+       - 100% Genuine original 800x800 photo via native Pinduoduo gallery save
+       - Fallback: Clean centered square hero from ViewPager (never starting from y=0 status bar)
+    2. Clean micro-thumbnail icons for each color variant
     """
     out_master = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}.jpg")
     out_hd = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}_hd.jpg")
     hd_pub_url = ""
 
-    # 1. Primary Master Studio Photo: Crop from main product screen top carousel
-    if main_screen_path and os.path.exists(main_screen_path):
-        try:
-            im_m = Image.open(main_screen_path).convert("RGB")
-            vp_y2 = 495
-            if root_main:
-                for n in root_main.iter("node"):
-                    if "ViewPager" in n.attrib.get("class", "") and n.attrib.get("bounds"):
-                        _, _, _, y2 = parse_bounds(n.attrib.get("bounds"))
-                        if y2 > 200:
-                            vp_y2 = y2
-                            break
-            # Crop square product hero (0, 0, min(size[0], vp_y2), vp_y2)
-            w_crop = min(im_m.size[0], vp_y2 if vp_y2 <= 550 else im_m.size[0])
-            crop_master = im_m.crop((0, 0, w_crop, vp_y2))
-            crop_master.save(out_hd, "JPEG", quality=92)
-            crop_master.save(out_master, "JPEG", quality=92)
-            if supabase_client:
-                rem_name = f"sku_{goods_id}_hd_{int(time.time())}.jpg"
-                with open(out_hd, "rb") as f:
-                    supabase_client.storage.from_("product-screenshots").upload(rem_name, f.read(), {"content-type": "image/jpeg"})
-                hd_pub_url = supabase_client.storage.from_("product-screenshots").get_public_url(rem_name)
-                print(f"[+] Extracted Master Studio Image from Main Page: {hd_pub_url}")
-        except Exception as me:
-            print("Main page master crop error:", me)
-
-    # 2. Locate Drawer Selected Thumbnail
+    # 1. Locate Drawer Selected Thumbnail bounds
     thumb_bounds = None
     for n in root.iter('node'):
         cls = n.attrib.get('class', '')
@@ -910,6 +983,30 @@ def capture_hd_studio_and_variants(
             if 130 <= w <= 260 and 130 <= h <= 260 and x1 < 120 and 180 <= y1 <= 550:
                 thumb_bounds = (x1, y1, x2, y2)
                 break
+
+    # PRIORITY 1: Extract 100% genuine original 800x800 studio photo via native PDD save
+    try:
+        hd_pub_url = extract_pdd_native_original_photo(goods_id, thumb_bounds)
+    except Exception as orig_e:
+        print("[!] Original photo extraction failed, using fallback crop:", orig_e)
+
+    # PRIORITY 2 (Fallback): Clean crop from main screen ViewPager (centered 900x900 square, never y=0)
+    if not hd_pub_url and main_screen_path and os.path.exists(main_screen_path):
+        try:
+            im_m = Image.open(main_screen_path).convert("RGB")
+            # Photo in ViewPager is centered vertically (typically y: 350..1250)
+            # NEVER start from y=0 to completely avoid the Android status bar (clock/wifi) and back arrow!
+            crop_master = im_m.crop((0, 350, 900, 1250))
+            crop_master.save(out_hd, "JPEG", quality=95)
+            crop_master.save(out_master, "JPEG", quality=95)
+            if supabase_client:
+                rem_name = f"sku_{goods_id}_hd_{int(time.time())}.jpg"
+                with open(out_hd, "rb") as f:
+                    supabase_client.storage.from_("product-screenshots").upload(rem_name, f.read(), {"content-type": "image/jpeg"})
+                hd_pub_url = supabase_client.storage.from_("product-screenshots").get_public_url(rem_name)
+                print(f"[+] Extracted Clean Studio Image from Main Page: {hd_pub_url}")
+        except Exception as me:
+            print("Main page master crop error:", me)
 
     temp_drawer = os.path.join(PARSED_UPLOADS_DIR, f"temp_drawer_{goods_id}.png")
     run_adb(["shell", "screencap", "-p", "/sdcard/drawer_screen.png"])
@@ -939,7 +1036,7 @@ def capture_hd_studio_and_variants(
 
     # 3. Extract Clean Micro-Thumbnails for Color Variants
     main_var_crops = []
-    if main_screen_path and os.path.exists(main_screen_path) and root_main:
+    if main_screen_path and os.path.exists(main_screen_path) and root_main is not None:
         try:
             im_m_vars = Image.open(main_screen_path).convert("RGB")
             label_sep_x = 0
@@ -1203,7 +1300,7 @@ def parse_product(req: ParseRequest):
     blacklist_terms = [
         "看对比", "查看对比", "对比", "尺码建议", "查看尺码建议", "尺码对照表", "尺码表", "计算尺码",
         "查看全部", "全部款式", "展开", "收起", "打开大图", "大图", "已选", "请选择",
-        "¥", "元", "已拼", "折", "包邮", "退货", "发货", "对照表", "体重", "详情", "举报", "店铺",
+        "已拼", "折", "包邮", "退货", "发货", "对照表", "体重", "详情", "举报", "店铺",
         "收藏", "客服", "返回", "大促", "买过", "即将结束", "无需等待", "匿名", "进店", "保障",
         "评价", "全场", "领型", "穿着方式", "面料", "风格", "适用", "多款", "列表",
         "减少数量", "增加数量", "数量", "去支付", "组合", "查收", "建议", "关闭弹窗",
@@ -1317,7 +1414,12 @@ def parse_product(req: ParseRequest):
             current_group_dict = None
             
         if current_group_dict and any(k in cls for k in ["TextView", "Button", "View"]):
-            clean = re.sub(r"[🔥\s]|快要抢光|热卖|爆款|大促", "", val).strip()
+            # Extract optional price from button text (e.g. "白色 ¥138", "卡其升级款 ¥168 起")
+            m_opt_price = re.search(r"¥\s*(\d+\.?\d*)", val)
+            opt_price_cny = float(m_opt_price.group(1)) if m_opt_price else 0.0
+
+            clean = re.sub(r"¥\s*\d+(\.\d+)?|起$", "", val)
+            clean = re.sub(r"[🔥\s]|快要抢光|热卖|爆款|大促", "", clean).strip()
             if any(b_word in clean for b_word in blacklist_terms) or clean in blacklist_terms:
                 continue
             header_y = current_group_dict.get("header_y", -999)
@@ -1334,6 +1436,8 @@ def parse_product(req: ParseRequest):
                         "selected": is_sel,
                         "bounds": bounds
                     }
+                    if opt_price_cny > 0:
+                        opt_entry["price_cny"] = opt_price_cny
                     current_group_dict["options"].append(opt_entry)
 
     # Populate backward-compatible colors and sizes
