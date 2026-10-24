@@ -1597,6 +1597,11 @@ window.renderSmartCalculator = async function() {
                         }
                       }
 
+                      const effectivePrice = Number(skuBundle?.price_cny) || Number(checkData.price) || 0;
+                      if (effectivePrice <= 0) {
+                        throw new Error('Облачный шлюз был временно ограничен защитой Pinduoduo. Пожалуйста, убедитесь, что фоновый аппаратный мост активен на компьютере, или введите цену вручную.');
+                      }
+
                       const bundleData = skuBundle || {
                         title: checkData.title,
                         title_ru: checkData.title,

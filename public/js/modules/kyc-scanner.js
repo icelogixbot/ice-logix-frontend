@@ -896,10 +896,9 @@
       document.body.appendChild(flash);
       setTimeout(() => flash.remove(), 300);
 
-      // КРОП ВИДОИСКАТЕЛЯ: Извлекаем чисто разворот паспорта в высоком разрешении
-      // Для Шага 3 (рукописный адрес в ячейках штампа) используем оптимальное разрешение в зависимости от ориентации
-      const targetCropWidth = (currentStep === 3) ? (isPortraitOrientation ? 1300 : 1800) : 1300;
-      const targetQuality = (currentStep === 3) ? 0.94 : 0.88;
+      // Оптимальное разрешение для мгновенной передачи по сети и сверхбыстрого распознавания нейросетью
+      const targetCropWidth = (currentStep === 3) ? (isPortraitOrientation ? 1100 : 1200) : 1080;
+      const targetQuality = (currentStep === 3) ? 0.84 : 0.80;
       const shotDataUrl = cropViewfinderFromVideo(videoElem, viewfinder, targetCropWidth, targetQuality, currentStep === 3) || canvasToDataUrl(videoElem, targetCropWidth, targetQuality);
 
       if (currentStep === 1) {
@@ -948,8 +947,10 @@
 
       // Санитизация технического текста ошибок и JSON-дампов от внешних API
       let cleanMsg = message || '';
-      if (cleanMsg.includes('OpenRouter') || cleanMsg.includes('credits') || cleanMsg.includes('HTTP 402') || cleanMsg.includes('HTTP 429') || cleanMsg.includes('Rate limit') || cleanMsg.includes('models failed') || cleanMsg.length > 200) {
-        cleanMsg = 'Сервер распознавания временно перегружен или исчерпал лимит запросов OpenRouter. Пожалуйста, повторите попытку позже либо заполните данные вручную.';
+      if (cleanMsg.includes('Edge Function') || cleanMsg.includes('non-2xx') || cleanMsg.includes('FunctionsHttpError') || cleanMsg.includes('status code')) {
+        cleanMsg = 'Не удалось получить ответ от сервера распознавания документов. Пожалуйста, повторите попытку или заполните данные вручную.';
+      } else if (cleanMsg.includes('OpenRouter') || cleanMsg.includes('credits') || cleanMsg.includes('HTTP 402') || cleanMsg.includes('HTTP 429') || cleanMsg.includes('Rate limit') || cleanMsg.includes('models failed') || cleanMsg.length > 200) {
+        cleanMsg = 'Сервер распознавания временно перегружен. Пожалуйста, повторите попытку позже либо заполните данные вручную.';
       }
 
       const isStep3 = errorStep === 3 || currentStep === 3 || Boolean(frame3DataUrl) || (cleanMsg && cleanMsg.includes('прописк'));
@@ -1153,7 +1154,12 @@
       }
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error('[KYC] Ошибка функции:', error);
+      const customErr = new Error('Не удалось связаться с сервером распознавания документов. Пожалуйста, повторите попытку.');
+      customErr.error_step = 0;
+      throw customErr;
+    }
 
     // Адаптивное извлечение данных (как { ok: true, result }, так и прямой объект от Document AI VPS)
     let res = null;

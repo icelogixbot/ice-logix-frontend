@@ -1552,23 +1552,23 @@ Return ONLY a JSON object:
       );
     } else if (action === "parse_passport_alipay") {
       const { frame1, frame2, frame3, mode } = payload;
-      if (!frame2) {
+      if (!frame2 && !frame1 && !frame3) {
         return new Response(
-          JSON.stringify({ ok: false, error: "Отсутствует кадр 2 (страница с MRZ)" }),
+          JSON.stringify({ ok: false, error: "Отсутствуют кадры документа для распознавания" }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      // 🚀 ПРИОРИТЕТ 1: Собственный суверенный движок ICE LOGIX на VPS (FastAPI / RapidOCR / Tesseract / Checksums)
+      // 🚀 ЕДИНЫЙ СУВЕРЕННЫЙ ИИ-ДВИЖОК ICE LOGIX НА VPS (FastAPI / RapidOCR / Tesseract / Checksums)
       try {
         const vpsController = new AbortController();
-        const vpsTimer = setTimeout(() => vpsController.abort(), 14000);
+        const vpsTimer = setTimeout(() => vpsController.abort(), 40000); // 40 секунд гарантируют завершение при любом качестве мобильного интернета
         const vpsResp = await fetch("http://80.94.235.37/scan-passport", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             frame1: frame1 || null,
-            frame2: frame2,
+            frame2: frame2 || null,
             frame3: frame3 || null,
             mode: mode || "passport"
           }),
@@ -1579,518 +1579,63 @@ Return ONLY a JSON object:
         if (vpsResp.ok) {
           const vpsData = await vpsResp.json();
           if (vpsData?.ok && vpsData?.result) {
-            const r = vpsData.result;
+            let r = vpsData.result;
             const hasValidId = /^[1-7]\d{6}[A-Z]\d{3}[A-Z]{2}\d$/i.test(r.id_number || "");
-            if (hasValidId || r.mrz_verified) {
-              console.log("[ai-calculator] Успешно распознано суверенным движком ICE LOGIX за", r.duration_ms, "мс");
+
+            // Если штамп прописки был передан, обогащаем адрес Белпочтой при необходимости
+            if (frame3 && r) {
+              try {
+                r = await enrichBelarusAddress(r);
+              } catch (enrichErr) {
+                console.warn("[ai-calculator] Address enrichment error:", enrichErr);
+              }
+            }
+
+            // Если ни личный номер, ни MRZ, ни серия паспорта не определены
+            if (!hasValidId && !r.mrz_verified && !r.series_number) {
               return new Response(
                 JSON.stringify({
-                  ok: true,
-                  result: r,
-                  engine: "ice-logix-doc-ai-sovereign",
-                  duration_ms: r.duration_ms
+                  ok: false,
+                  error_step: 2,
+                  error: "Не удалось четко распознать страницу 33 со строками MRZ (<<<). Пожалуйста, держите документ ровно и избегайте бликов."
                 }),
                 { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
               );
             }
+
+            console.log("[ai-calculator] Успешно распознано суверенным движком ICE LOGIX за", r.duration_ms, "мс");
+            return new Response(
+              JSON.stringify({
+                ok: true,
+                result: r,
+                engine: "ice-logix-doc-ai-sovereign",
+                duration_ms: r.duration_ms
+              }),
+              { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
           }
         }
-      } catch (vpsErr) {
-        console.warn("[ai-calculator] Предупреждение при вызове суверенного VPS:", vpsErr);
-      }
 
-      let img1 = typeof frame1 === "string" ? frame1.trim() : "";
-      if (img1 && !img1.startsWith("data:") && !img1.startsWith("http")) {
-        img1 = `data:image/jpeg;base64,${img1}`;
-      }
-
-      let img2 = typeof frame2 === "string" ? frame2.trim() : "";
-      if (img2 && !img2.startsWith("data:") && !img2.startsWith("http")) {
-        img2 = `data:image/jpeg;base64,${img2}`;
-      }
-
-      let img3 = typeof frame3 === "string" ? frame3.trim() : "";
-      if (img3 && !img3.startsWith("data:") && !img3.startsWith("http")) {
-        img3 = `data:image/jpeg;base64,${img3}`;
-      }
-
-      const prompt = `Ты — эксперт по оптическому считыванию и декодированию паспортов и ID-карт Республики Беларусь (стандарт ICAO 9303).
-Тебе предоставлены изображения документа одного гражданина Беларуси:
-${img1 ? `- Кадр 1: Разворот страницы 31 паспорта или лицевая сторона ID (ФИО гражданина, орган выдачи МВД).
-  ВАЖНЕЙШЕЕ ПРАВИЛО ПО СТРАНИЦЕ 31 (ДВУЯЗЫЧНЫЙ ТЕКСТ):
-  На странице 31 каждое поле (Фамилия, Имя, Отчество) напечатано в ДВЕ СТРОКИ:
-  * ВЕРХНЯЯ СТРОКА: на белорусском языке (например: 'БАГДАНОВІЧ', 'КІРЫЛ', 'АЛЯКСАНДРАВІЧ'). ЕЁ БРАТЬ КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО!
-  * НИЖНЯЯ СТРОКА ПОД НЕЙ: на РУССКОМ языке (например: 'БОГДАНОВИЧ', 'КИРИЛЛ', 'АЛЕКСАНДРОВИЧ').
-  ОБЯЗАТЕЛЬНО ИЗВЛЕКАЙ СТРОГО НИЖНЮЮ СТРОКУ НА РУССКОМ ЯЗЫКЕ!
-  В русском языке нет белорусского аканья: фамилия пишется через "О" (БОГДАНОВИЧ, а не Багданович; ГОЛУБЕВ, а не Галубеў; КОЗЛОВ, а не Казлоў), отчество через "Е" (АЛЕКСАНДРОВИЧ, а не Аляксандравіч; СЕРГЕЕВИЧ, а не Сяргеевіч).
-  Всегда сверяй гласные с латинской зоной MRZ на Кадре 2: если в MRZ написано BOGDANOVICH, русская фамилия строго 'БОГДАНОВИЧ'; если в MRZ написано KIRILL, имя строго 'КИРИЛЛ'!` : ""}
-- Кадр 2: Разворот страницы 33 паспорта или обратная сторона ID (фотография, 14-значный личный номер и в самом низу обязательные две строки машиночитаемой зоны MRZ со знаками <<<).
-${img3 ? `- Кадр 3: Разворот или отдельная страница со штампом регистрации (прописки) по месту жительства (страницы 25-28 паспорта РБ).
-
-🧭 АВТОМАТИЧЕСКОЕ ОПРЕДЕЛЕНИЕ ОРИЕНТАЦИИ И ПОВОРОТА КАДРА 3 (0°, 90°, 180°, 270°):
-- Фотография страницы со штампом может быть сделана как вертикально (размер страницы паспорта РБ 88×125 мм), так и повернута боком (на 90° или 270°).
-- СНАЧАЛА ВИЗУАЛЬНО ОПРЕДЕЛИ ПРАВИЛЬНЫЙ ВЕРХ ШТАМПА:
-  1. ВЕРХ ШТАМПА: содержит крупное печатное слово «ЗАРЭГІСТРАВАНЫ» или «ЗАРЕГИСТРИРОВАН».
-  2. НИЗ ШТАМПА: круглая синяя гербовая печать и строка даты «Дата: "..." ... 20.. г.».
-- ⚠️ КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО ЧИТАТЬ ВЕРТИКАЛЬНЫЕ КОЛОНКИ ПОПЕРЁК ШТАМПА!
-  Если кадр снят боком, мысленно поверни его параллельно строкам штампа (заголовком вверх) и читай строго слева направо построчно сверху вниз:
-  • СТРОКА 1 (вверху): Заголовок «ЗАРЭГІСТРАВАНЫ / ЗАРЕГИСТРИРОВАН».
-  • СТРОКА 2 (под заголовком): Населенный пункт -> ТОЛЬКО В ПОЛЕ "address_city" (например: "г. Минск", "г. Несвиж", "аг. Хатежино", "г. Брест").
-  • СТРОКА 3: Название улицы / проспекта / переулка -> ТОЛЬКО В ПОЛЕ "address_street" (например: "ул. Советская", "пр-т Дзержинского", "ул. Ленина").
-    ⚠️ ВНИМАНИЕ: НЕ добавляй в address_street дом и квартиру! Поле address_street содержит ТОЛЬКО улицу.
-  • СТРОКА 4: «Дом [XX] Корп. [X/-] Кв./пакой [XX]» — строго строка для номеров дома, корпуса и квартиры.
-  • СТРОКА 5 (в самом низу): Дата регистрации и подпись инспектора.
-
-🎯 АЛГОРИТМ ЧТЕНИЯ РУКОПИСНОГО ТЕКСТА РУЧКОЙ НА ШТАМПЕ ПРОПИСКИ:
-В штампе типографские слова напечатаны синим/фиолетовым шрифтом.
-Все адресные данные вписаны ОТ РУКИ СИНЕЙ ИЛИ ЧЕРНОЙ ШАРИКОВОЙ РУЧКОЙ!
-
-⚠️ СТРОЖАЙШИЙ ЗАПРЕТ НА ЧИСЛО 26:
-- На странице паспорта в углу напечатан номер страницы «26» (или «25», «27», «28»). ЭТО НЕ ДОМ! ИГНОРИРУЙ ЕГО!
-- Внизу штампа в строке «Дата:» написано «26.08.2023» (или «"26" августа 2023»). Число 26 здесь — ЭТО ДЕНЬ ДАТЫ, а 08 — МЕСЯЦ! ЭТО НЕ ДОМ И НЕ КВАРТИРА!
-- КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО брать числа 26 и 8 из строки даты или номера страницы!
-
-📍 ВИЗУАЛЬНЫЕ ЯКОРЯ В 4-Й СТРОКЕ ШТАМПА:
-Строка 4 имеет строго фиксированную структуру с печатными словами-якорями:
-«Дом: [РУКОПИСНЫЕ ЦИФРЫ] Корп.: [СИМВОЛ] Кв./пакой: [РУКОПИСНЫЕ ЦИФРЫ]»
-
-1. ДЛЯ ПОЛЯ "address_house" (НОМЕР ДОМА):
-   - Найди печатное слово-якорь «Дом» (или «Дом:», «д.») в левой части 4-й строки штампа.
-   - Посмотри СТРОГО ВПРАВО от слова «Дом» (на линейку перед словом «Корп.»).
-   - Там от руки шариковой ручкой написан номер дома (например "12", "7", "34", "102").
-   - Считай написанные ручкой цифры.
-   - Запрещено путать с датой 26.08 внизу!
-
-2. ДЛЯ ПОЛЯ "address_building" (КОРПУС):
-   - Найди печатное слово-якорь «Корп.» в центре 4-й строки штампа.
-   - Посмотри строго вправо от него перед словом «Кв.».
-   - Если ручкой написана цифра — верни её (напр. "1" или "2").
-   - Если там прочерк «-», слэш «/» или пусто — верни строго "-".
-
-3. ДЛЯ ПОЛЯ "address_apartment" (НОМЕР КВАРТИРЫ) — 🚨 ЗАДАЧА СО ЗВЕЗДОЧКОЙ! 🚨:
-   - Найди печатное слово-якорь «Кв.» (или «Кватэра», «Кв./пакой», «пакой:») в правой части 4-й строки.
-   - Посмотри СТРОГО ВПРАВО от слова «Кв.» (до правого края рамки штампа).
-   - Там от руки шариковой ручкой написан номер квартиры!
-   - ⚠️ ОБЯЗАТЕЛЬНО СЧИТАЙ И ИЗВЛЕКИ ЭТИ РУКОПИСНЫЕ ЦИФРЫ В ПОЛЕ address_apartment!
-   - Не стирай квартиру! Если напротив слова «Кв.» написаны цифры (например "7", "4", "18", "45", "104") — запиши их!
-   - Только если напротив «Кв.» стоит явный прочерк «-» (частный дом) — верни пустую строку "".
-
-4. ЭКСПЕРТНЫЙ РАЗБОР ПОЧЕРКА ШАРИКОВОЙ РУЧКИ И АНАТОМИЯ РУКОПИСНЫХ ЦИФР:
-
-🔬 КРИТИЧЕСКОЕ РАЗЛИЧИЕ МЕЖДУ ЦИФРАМИ 7 И 4 (КАТЕГОРИЧЕСКИ НЕ ПУТАТЬ 7 И 4!):
-⚠️ В Беларуси и СНГ цифра 7 ВСЕГДА пишется с горизонтальным перечеркиванием ножки (советская/европейская семерка <s>7</s>)!
-⚠️ САМАЯ ЧАСТАЯ ОШИБКА АМЕРИКАНСКИХ НЕЙРОСЕТЕЙ: ПРИНИМАТЬ ПЕРЕЧЕРКНУТУЮ СЕМЕРКУ ЗА ЦИФРУ 4!
-
-• ЦИФРА 7 (СЕМЕРКА) — ПРИЗНАКИ:
-  1) ОДНА НАКЛОННАЯ НОЖКА: Семерка состоит СТРОГО ИЗ ОДНОЙ наклонной палочки, идущей вниз-влево от верхней горизонтальной крышки («шляпки» или волны).
-  2) ГОРИЗОНТАЛЬНАЯ ЧЕРТОЧКА ПОСЕРЕДИНЕ: На этой одиночной ножке посередине нарисована короткая черточка (<s>7</s>).
-  3) СЛЕВА ПУСТО: Слева от ножки НЕТ никакой вертикальной стенки, НЕТ L-угла, НЕТ замкнутого контура!
-  4) ⚠️ ЖЕЛЕЗНЫЙ ВЫВОД: Если в знаке есть верхняя горизонтальная шляпка и ОДНА наклонная ножка с перечеркиванием посередине — ЭТО 100% ЦИФРА 7 (СЕМЬ)! КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО ПИСАТЬ 4!
-
-• ЦИФРА 4 (ЧЕТВЕРКА) — ПРИЗНАКИ:
-  1) ДВЕ ВЕРТИКАЛИ: У цифры 4 ОБЯЗАТЕЛЬНО ДВЕ вертикальные линии (левая стенка и правая мачта), соединенные горизонтальной перемычкой.
-  2) ФОРМА: Образует стульчик (букву «ч») с L-образным углом слева или ЗАМКНУТЫЙ ТРЕУГОЛЬНИК ▵.
-  3) Если второй левой стойки нет — ЭТО НЕ 4, ЭТО СЕМЕРКА (7)!
-
-🔬 ДРУГИЕ ТОНКИЕ РУКОПИСНЫЕ ПАРЫ:
-• 1 vs 7:
-  - У 1 носик короткий диагональный (движение снизу-вверх под 30-45°), а основная стойка вертикальная, без широкой горизонтальной крыши и без перечеркивания.
-  - У 7 крыша горизонтальная на всю ширину знака, ножка сильно наклонная, по центру черточка <s>7</s>.
-• 1 vs 4:
-  - У 1 нет горизонтальной полки вправо.
-  - У 4 есть горизонтальная полка, соединяющая левый угол с правой вертикалью.
-• 3 vs 8 vs 5:
-  - 3: два правых полуовала, левая сторона открыта.
-  - 8: две замкнутые круглые петли (верхняя и нижняя), непрерывная восьмерка.
-  - 5: верхний флажок + вертикальный спуск + круглый выпуклый животик.
-• 0 vs 6 vs 9:
-  - 0: замкнутый ровный овал.
-  - 6: дуга сверху закручивается в замкнутый кружок внизу.
-  - 9: замкнутый кружок вверху и ножка вниз.
-
-- ОБЛАСТЬ (address_region): СТРОГО одно из 7 значений: 'г. Минск', 'Минская область', 'Брестская область', 'Витебская область', 'Гомельская область', 'Гродненская область', 'Могилевская область'.
-- ПОЧТОВЫЙ ИНДЕКС (address_postcode): верни строго пустую строку "", сервер определит официальный индекс Белпочты.` : ""}
-
-КРИТИЧЕСКИ ВАЖНАЯ ВАЛИДАЦИЯ СТРАНИЦ:
-1. Если Кадр 1 не является разворотом страницы 31 с русскими ФИО (например, это посторонний предмет, стол, коврик, одежда или страница 33):
-   ВЕРНИ ТОЛЬКО JSON:
-   {"ok": false, "error_step": 1, "error": "Кадр 1 не является страницей 31 с русскими ФИО. Пожалуйста, сфотографируйте разворот стр. 31."}
-
-2. Если Кадр 2 не является страницей 33 (нет фото, нет строк MRZ с символами <<<) или является повтором Кадра 1 / ковриком / посторонним предметом:
-   ВЕРНИ ТОЛЬКО JSON:
-   {"ok": false, "error_step": 2, "error": "Кадр 2 не содержит строки MRZ со знаками <<<. Пожалуйста, переверните паспорт на страницу 33 (с фото и строками <<<)."}
-
-${img3 ? `3. Если Кадр 3 не содержит штампа регистрации/прописки по месту жительства (например, пустая страница, стол или посторонний предмет):
-   (Если штампа нет или он поврежден, верни пустые строки в полях адреса, но НЕ выдавай ошибку).` : ""}
-
-Если кадры корректны — извлеки данные в формате строгого JSON:
-1. raw_mrz: ровно две строки по 44 символа со знаками < (напр. P<BLR...\\nMP12345678BLR...)
-2. last_name: Фамилия (русскими буквами, строго нижняя строка стр. 31)
-3. first_name: Имя (русскими буквами, строго нижняя строка стр. 31)
-4. patronymic: Отчество (русскими буквами, строго нижняя строка стр. 31)
-5. series_number: Серия и номер паспорта (например MP1234567)
-6. birth_date: Дата рождения (YYYY-MM-DD)
-7. gender: Пол ("Мужской" или "Женский")
-8. id_number: Идентификационный номер РБ (14 символов)
-9. issue_date: Дата выдачи документа (YYYY-MM-DD)
-10. issued_by: Орган выдачи документа на русском языке (например "ФРУНЗЕНСКИМ РУВД Г. МИНСКА")
-${img3 ? `11. address_region: Область РБ (строго одно из: "г. Минск", "Минская область", "Брестская область", "Витебская область", "Гомельская область", "Гродненская область", "Могилевская область")
-12. address_city: Населенный пункт на русском языке (например "г. Несвиж", "г. Минск", "аг. Хатежино", "г. Брест")
-13. address_street: Улица/проспект/переулок на русском языке (например "ул. Советская", "пр-т Мира", "ул. Ленина")
-14. address_house: Номер дома (число или число с буквой/дробью, строго напротив слова «Дом»)
-15. address_building: Корпус дома (если нет корпуса или прочерк — строго "-", если есть — например "1" или "2")
-16. address_apartment: Номер квартиры (рукописные цифры строго напротив слова «Кв.», если частный дом или прочерк — "")
-17. is_crossed_seven: true если в номере квартиры написана перечеркнутая семерка <s>7</s>, иначе false
-18. stamp_date: Дата регистрации со штампа (например "26.08.2023" или "")
-19. address_postcode: строго пустая строка ""` : ""}
-
-ВЕРНИ ТОЛЬКО ЧИСТЫЙ JSON-ОБЪЕКТ СЛЕДУЮЩЕЙ СТРУКТУРЫ (без \`\`\`json markdown):
-{
-  "ok": true,
-  "raw_mrz": "P<BLR...\\nMP...",
-  "last_name": "Богданович",
-  "first_name": "Кирилл",
-  "patronymic": "Александрович",
-  "series_number": "MP1234567",
-  "birth_date": "2000-05-15",
-  "gender": "Мужской",
-  "id_number": "3010195A012PB3",
-  "issue_date": "2021-08-10",
-  "issued_by": "ФРУНЗЕНСКИМ РУВД Г. МИНСКА"${img3 ? `,
-  "address_region": "Минская область",
-  "address_city": "г. Несвиж",
-  "address_street": "ул. Советская",
-  "address_house": "12",
-  "address_building": "-",
-  "address_apartment": "7",
-  "is_crossed_seven": true,
-  "stamp_date": "26.08.2023",
-  "address_postcode": ""` : ""}
-}`;
-
-      const contentItems: any[] = [{ type: "text", text: prompt }];
-      if (img1) {
-        contentItems.push({ type: "text", text: "=== КАДР 1: Страница 31 паспорта (ФИО на русском языке, орган МВД) ===" });
-        contentItems.push({ type: "image_url", image_url: { url: img1 } });
-      }
-      contentItems.push({ type: "text", text: "=== КАДР 2: Страница 33 паспорта (MRZ со знаками <<<, фото, личный номер) ===" });
-      contentItems.push({ type: "image_url", image_url: { url: img2 } });
-      if (img3) {
-        contentItems.push({ type: "text", text: "=== КАДР 3: ШТАМП РЕГИСТРАЦИИ (СТР. 25–28). ОПРЕДЕЛИ ВЕРХ ШТАМПА («ЗАРЭГІСТРАВАНЫ»). СТРОКИ СВЕРХУ ВНИЗ: 1) ГОРОД, 2) УЛИЦА, 3) ДОМ/КОРП/КВ, 4) ДАТА. НЕ СМЕШИВАЙ УЛИЦУ С ДОМОМ И КВАРТИРОЙ! ===" });
-        contentItems.push({ type: "image_url", image_url: { url: img3 } });
-      }
-
-      const data = await callVisionChatWithFallback(
-        [
-          {
-            role: "user",
-            content: contentItems,
-          },
-        ],
-        4000,
-        "ICE LOGIX Alipay MRZ Scanner"
-      );
-
-      const choice = data?.choices?.[0]?.message;
-      const contentStr = (choice?.content || "").trim();
-      const reasoningStr = (choice?.reasoning || "").trim();
-      const combined = (contentStr ? contentStr + "\n" : "") + reasoningStr;
-
-      let parsed = parseAssistantJson(contentStr);
-      if (!parsed || (!parsed.id_number && !parsed.series_number && !parsed.raw_mrz && !parsed.last_name)) {
-        parsed = parseAssistantJson(combined);
-      }
-
-      if (parsed?.ok === false) {
-        return new Response(
-          JSON.stringify({
-            ok: false,
-            error_step: parsed.error_step || 2,
-            error: parsed.error || "Не удалось различить реквизиты документа",
-            raw_output: combined,
-          }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      const hasRequiredFields = parsed && (parsed.id_number || parsed.series_number || parsed.last_name || parsed.first_name || parsed.raw_mrz || (img3 && (parsed.address_house || parsed.address_street || parsed.address_city)));
-      if (!hasRequiredFields) {
+        // Если VPS ответил с ошибкой валидации
         return new Response(
           JSON.stringify({
             ok: false,
             error_step: 0,
-            error: "Не удалось различить реквизиты документа на фотографии. Пожалуйста, держите документ ровно и избегайте бликов.",
-            raw_output: combined,
+            error: "Не удалось различить реквизиты документа на фотографии. Пожалуйста, держите документ ровно и избегайте бликов."
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (vpsErr) {
+        console.error("[ai-calculator] Ошибка при вызове суверенного VPS:", vpsErr);
+        return new Response(
+          JSON.stringify({
+            ok: false,
+            error_step: 0,
+            error: "Сервер распознавания документов временно недоступен или превышено время ожидания. Пожалуйста, повторите попытку."
           }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-
-      // 1. Очистка идентификационного номера (строго 14 символов стандарта РБ / ICAO 9303: [1-7]\d{6}[A-Z]\d{3}[A-Z]{2}\d)
-      let cleanId = "";
-      if (parsed.id_number) {
-        const mId = String(parsed.id_number).match(/[1-7]\d{6}[A-Z]\d{3}[A-Z]{2}\d/i);
-        if (mId) {
-          cleanId = mId[0].toUpperCase();
-        }
-      }
-      if (!cleanId && parsed.raw_mrz) {
-        const mrzLines = String(parsed.raw_mrz).split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-        const l2 = mrzLines.find(l => l.length >= 42 && /BLR/i.test(l)) || (mrzLines.length > 1 ? mrzLines[1] : "");
-        if (l2 && l2.length >= 42) {
-          const candidate = l2.slice(28, 42).replace(/</g, "").toUpperCase();
-          if (/[1-7]\d{6}[A-Z]\d{3}[A-Z]{2}\d/i.test(candidate)) {
-            cleanId = candidate;
-          }
-        }
-      }
-      if (cleanId) {
-        parsed.id_number = cleanId;
-      } else if (parsed.id_number) {
-        parsed.id_number = String(parsed.id_number).replace(/[^A-Z0-9]/gi, "").slice(0, 14).toUpperCase();
-      }
-
-      // 2. Очистка серии и номера паспорта (2 буквы + 7 цифр = 9 символов) / ID карты (9 цифр)
-      if (parsed.series_number) {
-        let s = String(parsed.series_number).replace(/[^A-Za-z0-9]/g, "").toUpperCase();
-        const mSeries = s.match(/([A-Z]{2}\d{7})/i);
-        if (mSeries) {
-          s = mSeries[1].toUpperCase();
-        } else if (/^[A-Z]{2}\d{8}$/i.test(s)) {
-          s = s.slice(0, 9);
-        }
-        parsed.series_number = s;
-      }
-
-      // 3. Очистка и гармонизация ФИО: устранение белорусского аканья и сверка с MRZ
-      const cleanCyrillicName = (val?: any): string => {
-        if (!val) return "";
-        let s = String(val).trim();
-        if (s.includes("/") || s.includes("\\")) {
-          const parts = s.split(/[\/\\]/).map(p => p.trim()).filter(Boolean);
-          s = parts.find(p => /[А-Яа-яЁё]/.test(p)) || parts[0];
-        }
-        s = s.replace(/І/g, "И").replace(/і/g, "и").replace(/Ў/g, "У").replace(/ў/g, "у");
-        return s.replace(/[^А-Яа-яЁё\s-]/g, "").trim().toUpperCase();
-      };
-
-      const extractNamesFromMrz = (rawMrz?: string): { mrzLastName: string; mrzFirstName: string } => {
-        if (!rawMrz) return { mrzLastName: "", mrzFirstName: "" };
-        const lines = String(rawMrz).split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-        const l1 = lines.find(l => l.startsWith("P<BLR") || l.startsWith("P<")) || lines[0] || "";
-        if (!l1) return { mrzLastName: "", mrzFirstName: "" };
-        const cleanLine = l1.replace(/^P<[A-Z0-9]{3}/, "");
-        const parts = cleanLine.split("<<");
-        const mrzLastName = (parts[0] || "").replace(/</g, "").trim().toUpperCase();
-        const mrzFirstName = (parts[1] || "").split("<")[0].trim().toUpperCase();
-        return { mrzLastName, mrzFirstName };
-      };
-
-      const reconcileBelarusianToRussian = (name: string, isPatronymic = false): string => {
-        if (!name) return "";
-        let n = name.trim().toUpperCase()
-          .replace(/І/g, "И").replace(/і/g, "и")
-          .replace(/Ў/g, "У").replace(/ў/g, "у")
-          .replace(/'/g, "Ь").replace(/’/g, "Ь");
-
-        // Отчества
-        if (isPatronymic || n.endsWith("ВИЧ") || n.endsWith("ВНА") || n.endsWith("ИЧ") || n.endsWith("НА")) {
-          n = n.replace(/^АЛЯКСАНДР/g, "АЛЕКСАНДР")
-               .replace(/^СЯРГЕ/g, "СЕРГЕ")
-               .replace(/^ВЯЧАСЛАВ/g, "ВЯЧЕСЛАВ")
-               .replace(/^ВЯЧЕСЛАВ/g, "ВЯЧЕСЛАВ")
-               .replace(/^ДЗМІТР/g, "ДМИТР")
-               .replace(/^ДЗМИТР/g, "ДМИТР")
-               .replace(/^АНДРЭ/g, "АНДРЕ")
-               .replace(/^ЯЎГЕН/g, "ЕВГЕН")
-               .replace(/^ЯУГЕН/g, "ЕВГЕН")
-               .replace(/^ЕВГЕНА/g, "ЕВГЕНЬЕ")
-               .replace(/^УЛАДЗІМІР/g, "ВЛАДИМИР")
-               .replace(/^ВЛАДЗИМИР/g, "ВЛАДИМИР")
-               .replace(/^АРЦЁМ/g, "АРТЕМ")
-               .replace(/^АРЦЕМ/g, "АРТЕМ")
-               .replace(/^ГЕНАДЗ/g, "ГЕННАД")
-               .replace(/^КІРЫЛ/g, "КИРИЛЛ")
-               .replace(/^КИРИЛА/g, "КИРИЛЛО")
-               .replace(/^МІХАЙЛ/g, "МИХАЙЛ")
-               .replace(/^ВІКТАР/g, "ВИКТОР")
-               .replace(/^ВИКТАРА/g, "ВИКТОР")
-               .replace(/^АЛЕГ/g, "ОЛЕГ")
-               .replace(/^МАТВЕ/g, "МАТВЕ")
-               .replace(/^МАЦВЕ/g, "МАТВЕ")
-               .replace(/^ЮРЬ/g, "ЮРЬ")
-               .replace(/^ІГАР/g, "ИГОР")
-               .replace(/^ИГАРА/g, "ИГОРЕ")
-               .replace(/^ВАЛЕР/g, "ВАЛЕР")
-               .replace(/^АНАТОЛ/g, "АНАТОЛЬ")
-               .replace(/АВІЧ$/g, "ОВИЧ")
-               .replace(/АВИЧ$/g, "ОВИЧ")
-               .replace(/АЎНА$/g, "ОВНА")
-               .replace(/АВНА$/g, "ОВНА")
-               .replace(/ЕВІЧ$/g, "ЕВИЧ")
-               .replace(/ЕЎНА$/g, "ЕВНА");
-          return n;
-        }
-
-        // Имена
-        const NAME_MAP: Record<string, string> = {
-          "КІРЫЛ": "КИРИЛЛ", "КИРИЛ": "КИРИЛЛ",
-          "МІХАІЛ": "МИХАИЛ", "МІХАЛ": "МИХАИЛ",
-          "ДАНІІЛ": "ДАНИИЛ", "ДАНИІЛ": "ДАНИИЛ", "ДАНІЛА": "ДАНИИЛ",
-          "АЛЯКСАНДР": "АЛЕКСАНДР",
-          "АЛЯКСЕЙ": "АЛЕКСЕЙ",
-          "СЯРГЕЙ": "СЕРГЕЙ",
-          "ВЯЧАСЛАЎ": "ВЯЧЕСЛАВ", "ВЯЧЕСЛАВ": "ВЯЧЕСЛАВ",
-          "ЯЎГЕН": "ЕВГЕНИЙ", "ЯУГЕН": "ЕВГЕНИЙ",
-          "ДЗМІТРЫЙ": "ДМИТРИЙ", "ДЗМИТРИЙ": "ДМИТРИЙ", "ДЗМІТРЫ": "ДМИТРИЙ",
-          "АНДРЭЙ": "АНДРЕЙ",
-          "АРЦЁМ": "АРТЕМ", "АРЦЕМ": "АРТЕМ",
-          "УЛАДЗІМІР": "ВЛАДИМИР", "ВЛАДЗИМИР": "ВЛАДИМИР",
-          "УЛАДЗІСЛАЎ": "ВЛАДИСЛАВ", "УЛАДИСЛАВ": "ВЛАДИСЛАВ",
-          "ЦІМАФЕЙ": "ТИМОФЕЙ",
-          "ГЕНАДЗЬ": "ГЕННАДИЙ", "ГЕНАДИЙ": "ГЕННАДИЙ",
-          "ІГАР": "ИГОРЬ", "ИГАР": "ИГОРЬ",
-          "ПАВЕЛ": "ПАВЕЛ", "ПАВАЛ": "ПАВЕЛ",
-          "ІЛЬЯ": "ИЛЬЯ",
-          "МАЦВЕЙ": "МАТВЕЙ",
-          "МІКІТА": "НИКИТА", "МИКИТА": "НИКИТА",
-          "ЮРЫЙ": "ЮРИЙ", "ЮРЫ": "ЮРИЙ",
-          "АЛЕГ": "ОЛЕГ",
-          "АНАТОЛЬ": "АНАТОЛИЙ",
-          "ВАСІЛЬ": "ВАСИЛИЙ",
-          "ВАЛЕРЫЙ": "ВАЛЕРИЙ", "ВАЛЕРЫ": "ВАЛЕРИЙ",
-          "ВІКТАР": "ВИКТОР", "ВИКТАР": "ВИКТОР",
-          "КАНСТАНЦІН": "КОНСТАНТИН",
-          "МАКСІМ": "МАКСИМ",
-          "ФЁДАР": "ФЕДОР", "ФЕДАР": "ФЕДОР",
-          "АЛЕНА": "ЕЛЕНА",
-          "НАСТАССЯ": "АНАСТАСИЯ",
-          "КРЫСЦІНА": "КРИСТИНА",
-          "КАТЯРЫНА": "ЕКАТЕРИНА",
-          "ВОЛЬГА": "ОЛЬГА",
-          "ТАЦЦЯНА": "ТАТЬЯНА",
-          "АКСАНА": "ОКСАНА",
-          "ГАЛІНА": "ГАЛИНА",
-          "СВЯТЛАНА": "СВЕТЛАНА",
-          "УЛЬЯНА": "УЛЬЯНА",
-          "ДАР'Я": "ДАРЬЯ", "ДАРЬЯ": "ДАРЬЯ",
-          "МАРЫЯ": "МАРИЯ"
-        };
-
-        if (NAME_MAP[n]) return NAME_MAP[n];
-        return n;
-      };
-
-      const reconcileRussianNameWithMrz = (cyrName: string, mrzLatin: string): string => {
-        if (!cyrName) return "";
-        let cyr = cyrName.trim().toUpperCase()
-          .replace(/І/g, "И").replace(/Ў/g, "У");
-        if (!mrzLatin) return cyr;
-        const mrz = mrzLatin.trim().toUpperCase();
-
-        // Посимвольная гармонизация гласных (устранение белорусского аканья 'А' -> 'О', если в MRZ 'O')
-        let cyrArr = cyr.split("");
-        let mrzIdx = 0;
-        for (let cIdx = 0; cIdx < cyrArr.length && mrzIdx < mrz.length; cIdx++) {
-          const c = cyrArr[cIdx];
-          const m = mrz[mrzIdx];
-          if (c === "А" && m === "O") {
-            cyrArr[cIdx] = "О";
-            mrzIdx++;
-          } else if (c === "О" && m === "O") {
-            mrzIdx++;
-          } else if (c === "А" && m === "A") {
-            mrzIdx++;
-          } else if (c === "Е" && m === "E") {
-            mrzIdx++;
-          } else if (c === "Я" && m === "E") {
-            cyrArr[cIdx] = "Е";
-            mrzIdx++;
-          } else if (c === "И" && m === "I") {
-            mrzIdx++;
-          } else if (c === "У" && m === "U") {
-            mrzIdx++;
-          } else if (c === "Ы" && m === "Y") {
-            mrzIdx++;
-          } else if (c === "Ж" && mrz.slice(mrzIdx, mrzIdx + 2) === "ZH") {
-            mrzIdx += 2;
-          } else if (c === "Х" && mrz.slice(mrzIdx, mrzIdx + 2) === "KH") {
-            mrzIdx += 2;
-          } else if (c === "Ц" && mrz.slice(mrzIdx, mrzIdx + 2) === "TS") {
-            mrzIdx += 2;
-          } else if (c === "Ч" && mrz.slice(mrzIdx, mrzIdx + 2) === "CH") {
-            mrzIdx += 2;
-          } else if (c === "Ш" && mrz.slice(mrzIdx, mrzIdx + 2) === "SH") {
-            mrzIdx += 2;
-          } else {
-            mrzIdx++;
-          }
-        }
-        let reconciled = cyrArr.join("");
-
-        // Проверка удвоения букв по MRZ (напр. KIRILL -> КИРИЛЛ, ANNA -> АННА)
-        if (mrz.includes("LL") && reconciled.endsWith("Л") && !reconciled.endsWith("ЛЛ")) {
-          reconciled += "Л";
-        }
-        if (mrz.includes("NN") && reconciled.includes("Н") && !reconciled.includes("НН")) {
-          reconciled = reconciled.replace(/Н/g, "НН");
-        }
-
-        return reconciled;
-      };
-
-      const { mrzLastName, mrzFirstName } = extractNamesFromMrz(parsed.raw_mrz);
-
-      if (parsed.last_name) {
-        let ln = cleanCyrillicName(parsed.last_name);
-        ln = reconcileBelarusianToRussian(ln, false);
-        if (mrzLastName) {
-          ln = reconcileRussianNameWithMrz(ln, mrzLastName);
-        }
-        parsed.last_name = ln;
-      }
-
-      if (parsed.first_name) {
-        let fn = cleanCyrillicName(parsed.first_name);
-        fn = reconcileBelarusianToRussian(fn, false);
-        if (mrzFirstName) {
-          fn = reconcileRussianNameWithMrz(fn, mrzFirstName);
-        }
-        parsed.first_name = fn;
-      }
-
-      if (parsed.patronymic) {
-        let pt = cleanCyrillicName(parsed.patronymic);
-        pt = reconcileBelarusianToRussian(pt, true);
-        parsed.patronymic = pt;
-      }
-
-      // 4. Очистка органа выдачи МВД
-      if (parsed.issued_by) {
-        parsed.issued_by = String(parsed.issued_by)
-          .replace(/І/g, "И").replace(/і/g, "и")
-          .replace(/^[":']+|[":']+$/g, "")
-          .trim().toUpperCase();
-      }
-
-      // 5. Интеллектуальное обогащение адреса: автоопределение области, почтового индекса Белпочты и нормализация корпуса
-      if (img3 && parsed) {
-        try {
-          parsed = await enrichBelarusAddress(parsed);
-        } catch (enrichErr) {
-          console.warn("Address enrichment error:", enrichErr);
-        }
-      }
-
-      return new Response(
-        JSON.stringify({
-          ok: true,
-          result: parsed,
-          engine: "vision-ai",
-          raw_output: combined,
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
     } else {
       return new Response(
         JSON.stringify({ error: "Unknown action" }),

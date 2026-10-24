@@ -1,5 +1,47 @@
 import os
 import sys
+
+# Safe stdout/stderr redirection for background pythonw.exe execution
+LOG_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "logs"))
+os.makedirs(LOG_DIR, exist_ok=True)
+LOG_FILE = os.path.join(LOG_DIR, "market_bridge.log")
+
+if hasattr(sys.stdout, "reconfigure") and sys.stdout is not None:
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if hasattr(sys.stderr, "reconfigure") and sys.stderr is not None:
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+try:
+    log_fp = open(LOG_FILE, "a", encoding="utf-8", buffering=1, errors="replace")
+    if sys.stdout is None:
+        sys.stdout = log_fp
+    if sys.stderr is None:
+        sys.stderr = log_fp
+except Exception:
+    pass
+
+def _handle_exception(exc_type, exc_value, exc_traceback):
+    import traceback
+    err_text = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+    try:
+        with open(LOG_FILE, "a", encoding="utf-8", errors="replace") as f:
+            f.write("\n[CRITICAL UNCAUGHT EXCEPTION]\n" + err_text + "\n")
+    except Exception:
+        pass
+    if sys.__stderr__:
+        try:
+            sys.__stderr__.write(err_text)
+        except Exception:
+            pass
+
+sys.excepthook = _handle_exception
+
 import re
 import time
 import json
@@ -20,9 +62,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
 from supabase import create_client
-
-if sys.stdout and hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8")
 
 ADB_PATH = r"C:\LDPlayer\LDPlayer14\adb.exe"
 DEVICE = "emulator-5554"
@@ -424,8 +463,12 @@ def ensure_device_ready(timeout_sec: int = 45) -> bool:
     start_time = time.time()
     while time.time() - start_time < timeout_sec:
         time.sleep(2.0)
+        try:
+            subprocess.run([ADB_PATH, "connect", "127.0.0.1:5555"], capture_output=True, timeout=3)
+        except Exception:
+            pass
         if check_device_ready():
-            print("[✓] Device connected and ready!")
+            print("[OK] Device connected and ready!")
             bring_ldplayer_to_front()
             return True
     return False
@@ -801,7 +844,7 @@ def capture_hd_studio_and_variants(goods_id: str, root: ET.Element, colors: List
                     with open(out_hd, "rb") as f:
                         supabase_client.storage.from_("product-screenshots").upload(rem_name, f.read(), {"content-type": "image/jpeg"})
                     hd_pub_url = supabase_client.storage.from_("product-screenshots").get_public_url(rem_name)
-                    print(f"[✨] Uploaded Ultra-HD Studio Image: {hd_pub_url}")
+                    print(f"[+] Uploaded Ultra-HD Studio Image: {hd_pub_url}")
             except Exception as e:
                 print("HD photo capture error:", e)
 
@@ -968,7 +1011,8 @@ def parse_product(req: ParseRequest):
         "评价", "进店", "分享", "已选:", "二次销售", "不支持七天", "退换", "如出现已洗涤", "顶部", 
         "活动优惠", "服务", "更换支付方式", "提交订单", "在拼", "参与可立即", "拼单即将结束", 
         "去拼单", "元", "¥", "电影", "男神", "人好评", "人说", "买过", "回头客", "满意", "很喜欢", 
-        "太好看", "很棒", "穿上", "很帅", "推荐", "超赞", "好看", "质量", "材质", "手感", "面料"
+        "太好看", "很棒", "穿上", "很帅", "推荐", "超赞", "好看", "质量", "材质", "手感", "面料",
+        "配送", "收货地址", "工业区", "横路", "外箱唛头", "唛头", "转 注", "街道", "社区", "自提", "门牌", "邮政", "编码", "号.", "省", "市"
     ]
     
     # Primary title sweep: wide product header text below main photo (y1 between 450 and 1150)
@@ -980,8 +1024,10 @@ def parse_product(req: ParseRequest):
             # Must be in main product header zone, not phantom, wide width >= 250
             if 350 <= y1 <= 1450 and (x2 - x1) >= 250:
                 if not any(x in txt for x in review_and_ad_junk):
-                    if len(txt) > len(raw_title):
-                        raw_title = txt
+                    cleaned_txt = re.sub(r'^\d+人(收藏|关注|购买|好评|说)\s*#?\s*', '', txt).strip()
+                    cleaned_txt = re.sub(r'#.*', '', cleaned_txt).strip()
+                    if len(cleaned_txt) > len(raw_title):
+                        raw_title = cleaned_txt
 
     # Secondary title sweep if still empty: search for branded brackets or fashion keywords
     if not raw_title:
@@ -994,9 +1040,11 @@ def parse_product(req: ParseRequest):
                 score = len(txt)
                 if txt.startswith("【") or txt.startswith("["):
                     score += 50
-                if any(k in txt for k in ["同款", "T恤", "短袖", "长袖", "卫衣", "外套", "羽绒服", "裤", "鞋", "手表", "表", "包", "壳", "帽"]):
-                    score += 30
-                candidates.append((score, txt))
+                if any(k in txt for k in ["同款", "T恤", "短袖", "长袖", "卫衣", "外套", "羽绒服", "裤", "鞋", "手表", "表", "包", "壳", "帽", "老爹鞋", "男鞋", "女鞋", "运动鞋"]):
+                    score += 50
+                cleaned_txt = re.sub(r'^\d+人(收藏|关注|购买|好评|说)\s*#?\s*', '', txt).strip()
+                cleaned_txt = re.sub(r'#.*', '', cleaned_txt).strip()
+                candidates.append((score, cleaned_txt))
         if candidates:
             candidates.sort(key=lambda c: c[0], reverse=True)
             raw_title = candidates[0][1]
@@ -1383,7 +1431,7 @@ def supabase_queue_worker():
                             "description": json.dumps(sku_bundle, ensure_ascii=False),
                             "parse_method": "hardware_bridge"
                         }).eq("id", task_id).execute()
-                        print(f"[✓] Task #{task_id} successfully parsed and updated in Supabase!")
+                        print(f"[OK] Task #{task_id} successfully parsed and updated in Supabase!")
                     else:
                         supabase_client.from_("parse_queue").update({
                             "status": "error",
