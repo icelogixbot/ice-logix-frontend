@@ -52,7 +52,7 @@ from concurrent.futures import ThreadPoolExecutor
 import xml.etree.ElementTree as ET
 from urllib.parse import urlparse, parse_qs
 from typing import Optional, Dict, Any, List
-
+import io
 import requests
 import cv2
 import numpy as np
@@ -590,6 +590,20 @@ def run_adb(args: List[str], timeout: int = 15) -> str:
         print(f"ADB Error {args}: {e}")
         return ""
 
+def run_adb_screencap_bytes(timeout: int = 5) -> Optional[bytes]:
+    dev = get_connected_device() or DEVICE
+    try:
+        res = subprocess.run(
+            [ADB_PATH, "-s", dev, "exec-out", "screencap", "-p"],
+            capture_output=True,
+            timeout=timeout
+        )
+        if res.stdout and len(res.stdout) > 5000:
+            return res.stdout
+    except Exception as e:
+        print(f"ADB screencap error: {e}")
+    return None
+
 def resolve_goods_id(raw_input: str) -> Optional[str]:
     s = raw_input.strip()
     if s.isdigit() and len(s) >= 8:
@@ -1021,7 +1035,7 @@ def capture_hd_studio_and_variants(
         if (cd == "商品主图" or 'ImageView' in cls) and b:
             x1, y1, x2, y2 = parse_bounds(b)
             w, h = x2 - x1, y2 - y1
-            if 130 <= w <= 260 and 130 <= h <= 260 and x1 < 120 and 180 <= y1 <= 550:
+            if 100 <= w <= 300 and 100 <= h <= 300 and x1 < 150 and 150 <= y1 <= 550:
                 thumb_bounds = (x1, y1, x2, y2)
                 break
 
@@ -1035,15 +1049,13 @@ def capture_hd_studio_and_variants(
     if not hd_pub_url and main_screen_path and os.path.exists(main_screen_path):
         try:
             im_m = Image.open(main_screen_path).convert("RGB")
-            # Photo in ViewPager is centered vertically (typically y: 350..1250)
-            # NEVER start from y=0 to completely avoid the Android status bar (clock/wifi) and back arrow!
             crop_master = im_m.crop((0, 350, 900, 1250))
             crop_master.save(out_hd, "JPEG", quality=95)
             crop_master.save(out_master, "JPEG", quality=95)
             if supabase_client:
                 rem_name = f"sku_{goods_id}_hd_{int(time.time())}.jpg"
                 with open(out_hd, "rb") as f:
-                    supabase_client.storage.from_("product-screenshots").upload(rem_name, f.read(), {"content-type": "image/jpeg"})
+                    supabase_client.storage.from_("product-screenshots").upload(rem_name, f.read(), file_options={"content-type": "image/jpeg", "upsert": "true"})
                 hd_pub_url = supabase_client.storage.from_("product-screenshots").get_public_url(rem_name)
                 print(f"[+] Extracted Clean Studio Image from Main Page: {hd_pub_url}")
         except Exception as me:
@@ -1069,95 +1081,97 @@ def capture_hd_studio_and_variants(
             if supabase_client:
                 rem_name = f"sku_{goods_id}_{int(time.time())}.jpg"
                 with open(out_master, "rb") as f:
-                    supabase_client.storage.from_("product-screenshots").upload(rem_name, f.read(), {"content-type": "image/jpeg"})
+                    supabase_client.storage.from_("product-screenshots").upload(rem_name, f.read(), file_options={"content-type": "image/jpeg", "upsert": "true"})
                 hd_pub_url = supabase_client.storage.from_("product-screenshots").get_public_url(rem_name)
                 print(f"[+] Extracted clean Studio Thumbnail from Drawer: {hd_pub_url}")
         except Exception as te:
             print("Drawer thumb crop error:", te)
 
-    # 3. Extract Clean Micro-Thumbnails for Color Variants
-    main_var_crops = []
-    if main_screen_path and os.path.exists(main_screen_path) and root_main is not None:
-        try:
-            im_m_vars = Image.open(main_screen_path).convert("RGB")
-            label_sep_x = 0
-            for n in root_main.iter("node"):
-                txt = n.attrib.get("text", "")
-                if ("颜色" in txt or "款式" in txt) and ("\n" in txt or len(txt) <= 6):
-                    b = n.attrib.get("bounds", "")
-                    if b:
-                        lx1, ly1, lx2, ly2 = parse_bounds(b)
-                        if 500 <= ly1 <= 750:
-                            label_sep_x = lx2
-                            break
-
-            all_strip_crops = []
-            for n in root_main.iter("node"):
-                cd = n.attrib.get("content-desc", "")
-                b = n.attrib.get("bounds", "")
-                if cd == "商品款式图" and b:
-                    x1, y1, x2, y2 = parse_bounds(b)
-                    if 500 <= y1 <= 750 and (x2 - x1) >= 50:
-                        all_strip_crops.append((x1, im_m_vars.crop((x1, y1, x2, y2))))
-
-            if label_sep_x > 0:
-                main_var_crops = [crop for x1, crop in all_strip_crops if x1 >= label_sep_x]
-            else:
-                main_var_crops = [crop for _, crop in all_strip_crops]
-
-            # If strip still has more items than colors, take the trailing items matching len(colors)
-            if colors and len(main_var_crops) > len(colors):
-                main_var_crops = main_var_crops[-len(colors):]
-        except Exception as v_err:
-            print("Main var crop error:", v_err)
-
+    # 3. Dynamic Studio Variant Photo Capture (Universal across ALL products on Pinduoduo)
     upload_tasks = []
-    for idx, col in enumerate(colors):
-        b_str = col.get("bounds")
-        col_img = None
+    if thumb_bounds and colors:
+        print(f"[*] Dynamically capturing distinct studio photos for {len(colors)} variants...")
+        for idx, col in enumerate(colors[:14]):
+            b_str = col.get("bounds")
+            if not b_str:
+                continue
+            bx1, by1, bx2, by2 = parse_bounds(b_str)
+            cx = (bx1 + bx2) // 2
+            cy = (by1 + by2) // 2
+            run_adb(["shell", "input", "tap", str(cx), str(cy)])
+            time.sleep(0.12)
+            sc_bytes = run_adb_screencap_bytes()
+            if sc_bytes:
+                try:
+                    im_sc = Image.open(io.BytesIO(sc_bytes)).convert("RGB")
+                    var_crop = im_sc.crop(thumb_bounds)
+                    icon_path = os.path.join(PARSED_UPLOADS_DIR, f"col_{goods_id}_{idx}_icon.jpg")
+                    var_crop.save(icon_path, "JPEG", quality=92)
+                    col["thumb_url"] = f"/uploads/parsed/col_{goods_id}_{idx}_icon.jpg"
+                    col["image_url"] = col["thumb_url"]
+                    if supabase_client:
+                        rem_icon = f"col_{goods_id}_{idx}_{int(time.time())}_{idx}.jpg"
+                        upload_tasks.append((idx, icon_path, rem_icon))
+                except Exception as var_e:
+                    print(f"Variant {idx} capture error:", var_e)
 
-        # Check if button in drawer has actual card/icon image
-        if b_str and im_d:
-            x1, y1, x2, y2 = parse_bounds(b_str)
-            w, h = x2 - x1, y2 - y1
-            if h >= 80 and w >= 80:
-                col_img = im_d.crop((x1 + 3, y1 + 3, x2 - 3, y2 - 3))
-            elif w > h + 20 and h >= 68:
-                col_img = im_d.crop((x1 + 2, y1 + 2, x1 + h - 2, y2 - 2))
+        # Restore drawer to the first variant selection
+        if colors and colors[0].get("bounds"):
+            bx1, by1, bx2, by2 = parse_bounds(colors[0]["bounds"])
+            run_adb(["shell", "input", "tap", str((bx1 + bx2) // 2), str((by1 + by2) // 2)])
+    else:
+        # Fallback to embedded button crops if thumb_bounds was absent
+        for idx, col in enumerate(colors):
+            b_str = col.get("bounds")
+            col_img = None
+            if b_str and im_d:
+                x1, y1, x2, y2 = parse_bounds(b_str)
+                w, h = x2 - x1, y2 - y1
+                if h >= 80 and w >= 80:
+                    col_img = im_d.crop((x1 + 3, y1 + 3, x2 - 3, y2 - 3))
+                elif w > h + 20 and h >= 68:
+                    col_img = im_d.crop((x1 + 2, y1 + 2, x1 + h - 2, y2 - 2))
+            if col_img is not None:
+                icon_path = os.path.join(PARSED_UPLOADS_DIR, f"col_{goods_id}_{idx}_icon.jpg")
+                col_img.save(icon_path, "JPEG", quality=92)
+                col["thumb_url"] = f"/uploads/parsed/col_{goods_id}_{idx}_icon.jpg"
+                col["image_url"] = col["thumb_url"]
+                if supabase_client:
+                    rem_icon = f"col_{goods_id}_{idx}_{int(time.time())}_{idx}.jpg"
+                    upload_tasks.append((idx, icon_path, rem_icon))
             else:
-                col_img = None
+                col["thumb_url"] = None
+                col["image_url"] = None
 
-        # Fallback to main screen variant photo if button had no embedded image
-        if col_img is None and idx < len(main_var_crops):
-            col_img = main_var_crops[idx]
-
-        if col_img is not None:
-            icon_path = os.path.join(PARSED_UPLOADS_DIR, f"col_{goods_id}_{idx}_icon.jpg")
-            col_img.save(icon_path, "JPEG", quality=92)
-            col["thumb_url"] = f"/uploads/parsed/col_{goods_id}_{idx}_icon.jpg"
-            if supabase_client:
-                rem_icon = f"col_{goods_id}_{idx}_icon_{int(time.time())}_{idx}.jpg"
-                upload_tasks.append((idx, icon_path, rem_icon))
-        else:
-            col["thumb_url"] = None
-
+    # Parallel resilient upload to Supabase with upsert
     if supabase_client and upload_tasks:
         def _do_upload(task):
             i, p, r = task
             try:
                 with open(p, "rb") as fl:
-                    supabase_client.storage.from_("product-screenshots").upload(r, fl.read(), {"content-type": "image/jpeg"})
+                    supabase_client.storage.from_("product-screenshots").upload(
+                        r, fl.read(), file_options={"content-type": "image/jpeg", "upsert": "true"}
+                    )
                 return i, supabase_client.storage.from_("product-screenshots").get_public_url(r)
-            except Exception:
+            except Exception as up_err:
+                print(f"Supabase upload error for var {i}:", up_err)
                 return i, None
 
-        with ThreadPoolExecutor(max_workers=min(len(upload_tasks), 6)) as ex:
+        with ThreadPoolExecutor(max_workers=min(len(upload_tasks), 4)) as ex:
             for i, pub_url in ex.map(_do_upload, upload_tasks):
                 if pub_url:
                     colors[i]["thumb_url"] = pub_url
+                    colors[i]["image_url"] = pub_url
 
-    for col in colors:
-        col["image_url"] = col.get("thumb_url") or hd_pub_url or f"/uploads/parsed/sku_{goods_id}.jpg"
+    # Fallback ONLY for primary default variant, NEVER poison other variants with identical photo!
+    for idx, col in enumerate(colors):
+        if not col.get("image_url"):
+            if idx == 0 and hd_pub_url:
+                col["image_url"] = hd_pub_url
+                col["thumb_url"] = hd_pub_url
+            else:
+                col["image_url"] = None
+                col["thumb_url"] = None
 
     if os.path.exists(temp_drawer):
         try:
@@ -1580,7 +1594,7 @@ def select_sku(req: SelectSkuRequest):
         if 'ImageView' in cls and b:
             x1, y1, x2, y2 = parse_bounds(b)
             w, h = x2 - x1, y2 - y1
-            if 130 <= w <= 260 and 130 <= h <= 260 and x1 < 120 and 180 <= y1 <= 550:
+            if 100 <= w <= 300 and 100 <= h <= 300 and x1 < 150 and 150 <= y1 <= 550:
                 thumb_bounds = (x1, y1, x2, y2)
                 break
 
@@ -1593,24 +1607,22 @@ def select_sku(req: SelectSkuRequest):
             if m_price:
                 price_cny = float(m_price.group(1))
 
-    # Dynamic studio preview capture for selected variant
+    # Dynamic studio preview capture for selected variant via fast in-memory screencap
     if thumb_bounds:
         try:
-            temp_sel = os.path.join(PARSED_UPLOADS_DIR, f"temp_sel_{req.goods_id}.png")
-            run_adb(["shell", "screencap", "-p", "/sdcard/sel_prev.png"])
-            run_adb(["pull", "/sdcard/sel_prev.png", temp_sel])
-            if os.path.exists(temp_sel):
-                im_sel = Image.open(temp_sel).convert("RGB")
+            sc_bytes = run_adb_screencap_bytes()
+            if sc_bytes:
+                im_sel = Image.open(io.BytesIO(sc_bytes)).convert("RGB")
                 c_sel = im_sel.crop(thumb_bounds)
                 out_name = f"sku_{req.goods_id}_sel_{int(time.time())}.jpg"
                 out_path = os.path.join(PARSED_UPLOADS_DIR, out_name)
                 c_sel.save(out_path, "JPEG", quality=92)
-                try: os.remove(temp_sel)
-                except Exception: pass
                 if supabase_client:
                     try:
                         with open(out_path, "rb") as f:
-                            supabase_client.storage.from_("product-screenshots").upload(out_name, f.read(), {"content-type": "image/jpeg"})
+                            supabase_client.storage.from_("product-screenshots").upload(
+                                out_name, f.read(), file_options={"content-type": "image/jpeg", "upsert": "true"}
+                            )
                         updated_img_url = supabase_client.storage.from_("product-screenshots").get_public_url(out_name)
                     except Exception as up_err:
                         print("Dynamic option upload error:", up_err)

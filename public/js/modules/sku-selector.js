@@ -509,10 +509,8 @@
 
         // 1. If Visual group (Color/Appearance): Smooth hero photo swap to clean studio shot
         if (grp.type === 'visual') {
-          // Resolve true image: unique image_url or thumb_url of button, never stick on default if option has its own image!
-          const targetImg = (opt.image_url && opt.image_url !== masterStudioImg)
-            ? opt.image_url 
-            : (opt.thumb_url || opt.image_url || masterStudioImg);
+          // Always pick the variant's own distinct photo, falling back to master studio photo
+          const targetImg = opt.image_url || opt.thumb_url || masterStudioImg;
 
           if (targetImg && targetImg !== currentImgUrl) {
             currentImgUrl = targetImg;
