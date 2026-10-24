@@ -1171,8 +1171,9 @@
     }
 
     // Дополнительная валидация через локальный MrzParser (если вернулся raw_mrz)
-    if (res.raw_mrz && window.MrzParser) {
-      const localMrz = window.MrzParser.parseMrzText(res.raw_mrz);
+    const rawMrzString = Array.isArray(res.raw_mrz) ? res.raw_mrz.join('\n') : (typeof res.raw_mrz === 'string' ? res.raw_mrz : '');
+    if (rawMrzString && window.MrzParser) {
+      const localMrz = window.MrzParser.parseMrzText(rawMrzString);
       if (localMrz && localMrz.isValid) {
         if (!res.id_number || res.id_number.length !== 14) {
           res.id_number = localMrz.idNumber;
