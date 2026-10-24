@@ -167,11 +167,6 @@
       initialTotal += it.priceByn * it.quantity;
     });
 
-    const walletBal = typeof window.balance === 'number' ? window.balance : 0;
-    const walletMethodActive = (window._cartPaymentMethod || 'wallet') === 'wallet';
-    const discountedTotal = Math.round(initialTotal * 0.97 * 100) / 100;
-    const displayTotal = walletMethodActive ? discountedTotal : initialTotal;
-
     // Items Cards HTML
     const cardsHtml = items.map(it => {
       const itemSubtotal = (it.priceByn * it.quantity).toFixed(2);
@@ -190,11 +185,18 @@
             <div class="wb-card-right">
               <div class="wb-card-header-line">
                 <div class="wb-product-title" title="${it.title.replace(/"/g, '&quot;')}">${it.title}</div>
-                <button class="wb-item-remove-btn" data-id="${it.id}" aria-label="Удалить товар" title="Удалить">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
-                </button>
+                <div class="wb-card-actions-top">
+                  <button class="wb-menu-btn" data-cart-id="${it.id}" aria-label="Действия" title="Действия">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+                      <circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/>
+                    </svg>
+                  </button>
+                  <button class="wb-item-remove-btn" data-id="${it.id}" aria-label="Удалить товар" title="Удалить">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               ${variantText ? `<div class="wb-product-variant">${variantText}</div>` : ''}
@@ -218,7 +220,7 @@
     }).join('');
 
     return `
-      <div class="page-enter wb-cart-screen">
+      <div class="wb-cart-screen screen-fade-in">
         <!-- 1. Header -->
         <div class="wb-cart-header">
           <div class="wb-cart-title-row">
@@ -232,19 +234,30 @@
           </div>
         </div>
 
-        <!-- 2. Bulk Action Bar -->
+        <!-- 2. Bulk Action Bar (Select All, Wishlist, Share, Delete) -->
         <div class="wb-bulk-bar">
           <label class="wb-select-all-label">
             <input type="checkbox" class="wb-checkbox" id="wbSelectAllCb" checked>
             <span>Выбрать все</span>
           </label>
 
-          <button class="wb-delete-selected-btn" id="wbDeleteSelectedBtn" title="Удалить выбранные">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-            </svg>
-            <span>Удалить выбранные</span>
-          </button>
+          <div class="wb-bulk-actions">
+            <button class="wb-action-icon-btn" id="wbWishlistAllBtn" title="В избранное" aria-label="В избранное">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+              </svg>
+            </button>
+            <button class="wb-action-icon-btn" id="wbShareCartBtn" title="Поделиться" aria-label="Поделиться">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
+              </svg>
+            </button>
+            <button class="wb-action-icon-btn wb-trash-btn" id="wbDeleteSelectedBtn" title="Удалить выбранные" aria-label="Удалить выбранные">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+            </button>
+          </div>
         </div>
 
         <!-- 3. Cart Items List -->
@@ -252,71 +265,15 @@
           ${cardsHtml}
         </div>
 
-        <!-- 4. Payment Method Selector Box (ICE Wallet vs Bank Card) -->
-        <div class="wb-payment-method-box" id="wbPaymentMethodBox">
-          <div class="wb-payment-box-header">
-            <span class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-              <span>Способ оплаты</span>
-            </span>
-            <span class="text-[10px] text-cyan-300 font-extrabold px-2 py-0.5 rounded-full bg-cyan-400/20 border border-cyan-400/30" id="wbWalletDiscountTag">
-              🔥 СКИДКА 3% С КОШЕЛЬКОМ
-            </span>
-          </div>
-
-          <div class="wb-payment-options-grid">
-            <!-- Опция 1: ICE Кошелек (Скидка 3%) -->
-            <label class="wb-pay-option-card ${walletMethodActive ? 'active' : ''}" id="wbPayOptionWallet" data-method="wallet">
-              <input type="radio" name="wbCartPayMethod" value="wallet" ${walletMethodActive ? 'checked' : ''} class="hidden">
-              <div class="flex items-center gap-2.5 min-w-0">
-                <div class="wb-pay-radio-dot"></div>
-                <div class="min-w-0">
-                  <div class="flex items-center gap-1.5">
-                    <span class="text-xs font-black text-white">Кошелек ICE</span>
-                    <span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-cyan-400/20 text-cyan-300 border border-cyan-400/30">-3%</span>
-                  </div>
-                  <p class="text-[10px] text-white/50 mt-0.5 truncate" id="wbCartWalletBalText">
-                    Баланс: ${walletBal.toFixed(2)} BYN
-                  </p>
-                </div>
-              </div>
-              <div class="text-right flex-shrink-0">
-                <span class="text-xs font-black text-cyan-400 font-mono" id="wbWalletDiscountPrice">
-                  ${discountedTotal.toFixed(2)} BYN
-                </span>
-                <span class="block text-[9px] text-white/40 line-through" id="wbWalletOriginalPrice">
-                  ${initialTotal.toFixed(2)} BYN
-                </span>
-              </div>
-            </label>
-
-            <!-- Опция 2: Банковская карта / ЕРИП (Стандартная цена) -->
-            <label class="wb-pay-option-card ${!walletMethodActive ? 'active' : ''}" id="wbPayOptionCard" data-method="card">
-              <input type="radio" name="wbCartPayMethod" value="card" ${!walletMethodActive ? 'checked' : ''} class="hidden">
-              <div class="flex items-center gap-2.5 min-w-0">
-                <div class="wb-pay-radio-dot"></div>
-                <div class="min-w-0">
-                  <span class="text-xs font-bold text-white">Карта онлайн / ЕРИП</span>
-                  <p class="text-[10px] text-white/50 mt-0.5">Белкарт, Mastercard, Visa, МИР</p>
-                </div>
-              </div>
-              <div class="text-right flex-shrink-0">
-                <span class="text-xs font-bold text-white/80 font-mono" id="wbStandardCartPrice">
-                  ${initialTotal.toFixed(2)} BYN
-                </span>
-              </div>
-            </label>
-          </div>
-        </div>
-
-        <!-- 5. Fixed Sticky Checkout Dock (Above Navigation Bar) -->
+        <!-- 4. Fixed Sticky Checkout Dock (Above Navigation Bar) -->
         <div class="wb-sticky-dock" id="wbStickyDock">
           <div class="wb-sticky-content">
             <button class="wb-checkout-cta active" id="wbCheckoutBtn">
-              <span>Оформить заказ</span>
-              <span class="text-black/40">·</span>
+              <span>Заказать</span>
+              <span class="text-black/30">·</span>
               <span id="wbCheckoutCount">${items.length} шт.</span>
-              <span class="text-black/40">·</span>
-              <span id="wbCheckoutTotal">${displayTotal.toFixed(2)} BYN</span>
+              <span class="text-black/30">·</span>
+              <span id="wbCheckoutTotal">${initialTotal.toFixed(2)} BYN</span>
             </button>
           </div>
         </div>
@@ -365,31 +322,17 @@
       const totalBadge = document.getElementById('wbCartTotalBadge');
       if (totalBadge) totalBadge.innerText = `${visibleCards.length} поз.`;
 
-      // Update pricing for payment options
-      const isWallet = (window._cartPaymentMethod || 'wallet') === 'wallet';
-      const discountedTotal = Math.round(totalAmount * 0.97 * 100) / 100;
-      const displayTotal = isWallet ? discountedTotal : totalAmount;
-
-      const wbWalletDiscountPrice = document.getElementById('wbWalletDiscountPrice');
-      if (wbWalletDiscountPrice) wbWalletDiscountPrice.innerText = discountedTotal.toFixed(2) + ' BYN';
-
-      const wbWalletOriginalPrice = document.getElementById('wbWalletOriginalPrice');
-      if (wbWalletOriginalPrice) wbWalletOriginalPrice.innerText = totalAmount.toFixed(2) + ' BYN';
-
-      const wbStandardCartPrice = document.getElementById('wbStandardCartPrice');
-      if (wbStandardCartPrice) wbStandardCartPrice.innerText = totalAmount.toFixed(2) + ' BYN';
-
       // Update Sticky Checkout Button
       const checkoutBtn = document.getElementById('wbCheckoutBtn');
       if (checkoutBtn) {
         if (totalCount > 0) {
           checkoutBtn.className = 'wb-checkout-cta active';
           checkoutBtn.innerHTML = `
-            <span>Оформить заказ</span>
-            <span class="text-black/40">·</span>
+            <span>Заказать</span>
+            <span class="text-black/30">·</span>
             <span>${totalCount} шт.</span>
-            <span class="text-black/40">·</span>
-            <span>${displayTotal.toFixed(2)} BYN${isWallet ? ' <span class="text-[11px] font-mono font-black text-black/60">(-3%)</span>' : ''}</span>
+            <span class="text-black/30">·</span>
+            <span>${totalAmount.toFixed(2)} BYN</span>
           `;
         } else {
           checkoutBtn.className = 'wb-checkout-cta disabled';
@@ -398,24 +341,7 @@
       }
     }
 
-    // 3. Payment Method Switcher (ICE Wallet vs Bank Card)
-    const payWalletCard = document.getElementById('wbPayOptionWallet');
-    const payBankCard = document.getElementById('wbPayOptionCard');
-
-    function setPaymentMethod(method) {
-      window._cartPaymentMethod = method;
-      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
-      if (payWalletCard && payBankCard) {
-        payWalletCard.classList.toggle('active', method === 'wallet');
-        payBankCard.classList.toggle('active', method === 'card');
-      }
-      updateWbTotals();
-    }
-
-    if (payWalletCard) payWalletCard.onclick = () => setPaymentMethod('wallet');
-    if (payBankCard) payBankCard.onclick = () => setPaymentMethod('card');
-
-    // 4. "Выбрать все" Checkbox Handler
+    // 3. "Выбрать все" Checkbox Handler
     const selectAllCb = document.getElementById('wbSelectAllCb');
     if (selectAllCb) {
       selectAllCb.onchange = () => {
@@ -430,7 +356,7 @@
       };
     }
 
-    // 5. Individual Checkboxes Handler
+    // 4. Individual Checkboxes Handler
     document.querySelectorAll('.wb-item-cb').forEach(cb => {
       cb.onchange = () => {
         if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
@@ -438,7 +364,7 @@
       };
     });
 
-    // 6. Stepper +/- Logic
+    // 5. Stepper +/- Logic
     document.querySelectorAll('.wb-step-dec, .wb-step-inc').forEach(btn => {
       btn.onclick = async (e) => {
         e.preventDefault();
@@ -529,7 +455,7 @@
       if (typeof _tabCache !== 'undefined') delete _tabCache['cart:'];
     }
 
-    // 7. Individual Item Delete Button (X)
+    // 6. Individual Item Delete Button (X)
     document.querySelectorAll('.wb-item-remove-btn').forEach(btn => {
       btn.onclick = async (e) => {
         e.stopPropagation();
@@ -550,7 +476,164 @@
       };
     });
 
-    // 8. Bulk Delete Selected Button
+    // 7. Context Menu `•••` Action Sheet
+    document.querySelectorAll('.wb-menu-btn').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+
+        const card = btn.closest('.wb-cart-card');
+        if (!card) return;
+
+        const cartId = card.dataset.cartId;
+        const isCustom = card.dataset.isCustom === 'true';
+        const productId = card.dataset.productId;
+        const title = card.querySelector('.wb-product-title')?.innerText || 'Товар';
+
+        // Remove any existing backdrop
+        const oldBackdrop = document.querySelector('.wb-sheet-backdrop');
+        if (oldBackdrop) oldBackdrop.remove();
+
+        // Create bottom sheet
+        const backdrop = document.createElement('div');
+        backdrop.className = 'wb-sheet-backdrop';
+        backdrop.innerHTML = `
+          <div class="wb-sheet">
+            <div class="wb-sheet-handle"></div>
+            <div class="wb-sheet-title truncate">${title}</div>
+            
+            <button class="wb-sheet-action" id="wbSheetWishlist">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+              </svg>
+              <span>Переместить в избранное</span>
+            </button>
+
+            <button class="wb-sheet-action" id="wbSheetCopy">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+              </svg>
+              <span>Скопировать название</span>
+            </button>
+
+            <button class="wb-sheet-action danger" id="wbSheetDelete">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+              <span>Удалить из корзины</span>
+            </button>
+          </div>
+        `;
+
+        document.body.appendChild(backdrop);
+
+        const closeSheet = () => {
+          backdrop.classList.add('closing');
+          setTimeout(() => backdrop.remove(), 200);
+        };
+
+        backdrop.onclick = (event) => {
+          if (event.target === backdrop) closeSheet();
+        };
+
+        backdrop.querySelector('#wbSheetWishlist').onclick = async () => {
+          closeSheet();
+          if (productId && typeof supabaseClient !== 'undefined' && window.userId) {
+            try {
+              await supabaseClient.from('wishlist').insert({ user_id: window.userId, product_id: productId });
+            } catch (_) {}
+          }
+          await removeCartItem(cartId, isCustom, productId);
+          card.remove();
+          updateWbTotals();
+          if (typeof updateCartBadge === 'function') updateCartBadge();
+          if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
+          tgUtil.alert('Товар перемещен в избранное ♡');
+          if (document.querySelectorAll('.wb-cart-card').length === 0) {
+            renderCurrentScreen();
+          }
+        };
+
+        backdrop.querySelector('#wbSheetCopy').onclick = () => {
+          closeSheet();
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(title);
+            if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+            tgUtil.alert('Название скопировано в буфер обмена');
+          }
+        };
+
+        backdrop.querySelector('#wbSheetDelete').onclick = async () => {
+          closeSheet();
+          await removeCartItem(cartId, isCustom, productId);
+          card.remove();
+          updateWbTotals();
+          if (typeof updateCartBadge === 'function') updateCartBadge();
+          if (document.querySelectorAll('.wb-cart-card').length === 0) {
+            renderCurrentScreen();
+          }
+        };
+      };
+    });
+
+    // 8. Bulk Wishlist (Heart Icon)
+    const wishlistAllBtn = document.getElementById('wbWishlistAllBtn');
+    if (wishlistAllBtn) {
+      wishlistAllBtn.onclick = async () => {
+        const checkedCards = document.querySelectorAll('.wb-cart-card:has(.wb-item-cb:checked)');
+        if (checkedCards.length === 0) {
+          tgUtil.alert('Выберите хотя бы один товар');
+          return;
+        }
+
+        let addedCount = 0;
+        for (const card of checkedCards) {
+          const pid = card.dataset.productId;
+          if (pid && typeof supabaseClient !== 'undefined' && window.userId) {
+            try {
+              await supabaseClient.from('wishlist').insert({ user_id: window.userId, product_id: pid });
+              addedCount++;
+            } catch (_) {}
+          }
+        }
+
+        if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
+        tgUtil.alert(`Добавлено в избранное: ${addedCount || checkedCards.length} поз. ♡`);
+      };
+    }
+
+    // 9. Bulk Share
+    const shareCartBtn = document.getElementById('wbShareCartBtn');
+    if (shareCartBtn) {
+      shareCartBtn.onclick = () => {
+        const checkedCards = document.querySelectorAll('.wb-cart-card:has(.wb-item-cb:checked)');
+        if (checkedCards.length === 0) {
+          tgUtil.alert('Выберите хотя бы один товар');
+          return;
+        }
+
+        const lines = [];
+        lines.push('🛒 Корзина ICE LOGIX:');
+        checkedCards.forEach(c => {
+          const t = c.querySelector('.wb-product-title')?.innerText || 'Товар';
+          const p = c.querySelector('.wb-row-price')?.innerText || '0';
+          const q = c.querySelector('.wb-qty-val')?.innerText || '1';
+          lines.push(`• ${t} (${q} шт.) — ${p} BYN`);
+        });
+
+        const shareText = lines.join('\n');
+        if (navigator.share) {
+          navigator.share({ title: 'Корзина ICE LOGIX', text: shareText }).catch(() => {});
+        } else if (navigator.clipboard) {
+          navigator.clipboard.writeText(shareText);
+          if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+          tgUtil.alert('Список товаров скопирован в буфер обмена!');
+        }
+      };
+    }
+
+    // 10. Bulk Delete Selected Button
     const deleteSelectedBtn = document.getElementById('wbDeleteSelectedBtn');
     if (deleteSelectedBtn) {
       deleteSelectedBtn.onclick = async () => {
@@ -576,7 +659,7 @@
       };
     }
 
-    // 9. Sticky Checkout Button
+    // 11. Sticky Checkout Button
     const checkoutBtn = document.getElementById('wbCheckoutBtn');
     if (checkoutBtn) {
       checkoutBtn.onclick = () => {
@@ -621,17 +704,12 @@
 
         if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
 
-        const isWallet = (window._cartPaymentMethod || 'wallet') === 'wallet';
-        const finalTotal = isWallet ? Math.round(total * 0.97 * 100) / 100 : total;
-        const discountAmount = isWallet ? Math.round(total * 0.03 * 100) / 100 : 0;
-
         window.tempOrder = {
           items: selectedItems,
-          total: finalTotal,
+          total: total,
           originalTotal: total,
-          discountAmount: discountAmount,
-          appliedPromo: isWallet ? { code: 'ICE-WALLET-3%', discount_type: 'percent', discount_value: 3 } : null,
-          paymentMethod: isWallet ? 'wallet' : 'card'
+          discountAmount: 0,
+          appliedPromo: null
         };
 
         if (typeof switchTab === 'function') {

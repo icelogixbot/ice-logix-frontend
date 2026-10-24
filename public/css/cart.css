@@ -4,12 +4,17 @@
    ============================================================ */
 
 .wb-cart-screen {
-  padding-bottom: calc(180px + var(--tg-viewport-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))) !important;
+  padding-bottom: calc(160px + var(--tg-viewport-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))) !important;
   max-width: 480px;
   margin: 0 auto;
   position: relative;
   padding-left: 12px;
   padding-right: 12px;
+  animation: none !important;
+  transform: none !important;
+  -webkit-transform: none !important;
+  filter: none !important;
+  perspective: none !important;
 }
 
 /* 1. Clean Cart Header */
@@ -40,7 +45,7 @@
   border-radius: 9999px;
 }
 
-/* 2. Bulk Action Bar (Select All & Delete) */
+/* 2. Bulk Action Bar (Select All, Wishlist, Share, Delete) */
 .wb-bulk-bar {
   display: flex;
   align-items: center;
@@ -61,24 +66,37 @@
   user-select: none;
 }
 
-.wb-delete-selected-btn {
-  display: inline-flex;
+.wb-bulk-actions {
+  display: flex;
   align-items: center;
   gap: 6px;
-  background: transparent;
-  border: none;
-  font-size: 12px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
+}
+
+.wb-action-icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.7);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   touch-action: manipulation;
-  padding: 6px 8px;
-  border-radius: 8px;
   transition: all 0.2s ease;
 }
 
-.wb-delete-selected-btn:active {
+.wb-action-icon-btn:active {
+  transform: scale(0.92);
+  color: #00e5ff;
+  border-color: rgba(0, 229, 255, 0.3);
+  background: rgba(0, 229, 255, 0.1);
+}
+
+.wb-action-icon-btn.wb-trash-btn:active {
   color: #ff4d6d;
+  border-color: rgba(255, 77, 109, 0.3);
   background: rgba(255, 77, 109, 0.1);
 }
 
@@ -196,6 +214,35 @@
   flex: 1;
 }
 
+.wb-card-actions-top {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  margin-top: -2px;
+}
+
+.wb-menu-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.45);
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: all 0.2s ease;
+}
+
+.wb-menu-btn:active {
+  color: #00e5ff;
+  background: rgba(0, 229, 255, 0.12);
+  transform: scale(0.92);
+}
+
 .wb-item-remove-btn {
   background: transparent;
   border: none;
@@ -208,8 +255,6 @@
   border-radius: 50%;
   cursor: pointer;
   touch-action: manipulation;
-  flex-shrink: 0;
-  margin-top: -2px;
   transition: all 0.2s ease;
 }
 
@@ -300,95 +345,30 @@
   text-align: center;
 }
 
-/* 5. Payment Method Selector Box (ICE Wallet vs Bank Card) */
-.wb-payment-method-box {
-  margin: 16px 0 12px 0;
-  padding: 14px;
-  background: rgba(14, 20, 32, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 18px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-}
-
-.wb-payment-box-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.wb-payment-options-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.wb-pay-option-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  user-select: none;
-}
-
-.wb-pay-option-card.active {
-  background: rgba(0, 229, 255, 0.08);
-  border-color: rgba(0, 229, 255, 0.4);
-  box-shadow: 0 2px 12px rgba(0, 229, 255, 0.1);
-}
-
-.wb-pay-radio-dot {
-  width: 16px;
-  height: 16px;
-  border-radius: 9999px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
-}
-
-.wb-pay-option-card.active .wb-pay-radio-dot {
-  border-color: #00e5ff;
-  background: #00e5ff;
-}
-
-.wb-pay-option-card.active .wb-pay-radio-dot::after {
-  content: '';
-  width: 6px;
-  height: 6px;
-  border-radius: 9999px;
-  background: #041019;
-}
-
-/* 6. Sticky Bottom Checkout Bar (Permanently Fixed Above Navigation Tab Bar) */
+/* 5. Sticky Bottom Checkout Bar (Permanently Fixed Above Navigation Tab Bar) */
 .wb-sticky-dock {
   position: fixed !important;
   left: 0 !important;
   right: 0 !important;
-  bottom: calc(74px + var(--tg-viewport-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))) !important;
-  z-index: 95 !important;
+  bottom: calc(76px + var(--tg-viewport-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))) !important;
+  z-index: 99 !important;
   pointer-events: auto !important;
   padding: 0 12px !important;
+  display: flex !important;
+  justify-content: center !important;
 }
 
 .wb-sticky-content {
+  width: 100%;
   max-width: 480px;
   margin: 0 auto;
-  padding: 8px;
+  padding: 6px;
   background: rgba(10, 16, 28, 0.94);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(0, 229, 255, 0.25);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(0, 229, 255, 0.28);
   border-radius: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 229, 255, 0.12);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.65), 0 0 24px rgba(0, 229, 255, 0.15);
 }
 
 .wb-checkout-cta {
@@ -424,6 +404,87 @@
   color: rgba(255, 255, 255, 0.3) !important;
   box-shadow: none !important;
   cursor: not-allowed;
+}
+
+/* 6. Context Action Sheet (••• menu) */
+.wb-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 10, 18, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  animation: screenFadeIn 0.2s ease;
+}
+
+.wb-sheet-backdrop.closing {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.wb-sheet {
+  background: #0d1522;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  border-bottom: none;
+  padding: 12px 16px calc(24px + var(--tg-viewport-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))) 16px;
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.6);
+  animation: slideUp 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.wb-sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 2px;
+  margin: 4px auto 14px auto;
+}
+
+.wb-sheet-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  padding: 0 4px 12px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 6px;
+}
+
+.wb-sheet-action {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: all 0.15s ease;
+}
+
+.wb-sheet-action:active {
+  background: rgba(0, 229, 255, 0.1);
+  color: #00e5ff;
+}
+
+.wb-sheet-action.danger {
+  color: #ff4d6d;
+}
+
+.wb-sheet-action.danger:active {
+  background: rgba(255, 77, 109, 0.12);
 }
 
 /* 7. Empty State */
@@ -478,3 +539,4 @@
 .wb-empty-btn:active {
   transform: scale(0.96);
 }
+
