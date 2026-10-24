@@ -525,8 +525,8 @@
           <span class="text-white font-bold text-sm">ИТОГО ЗАКАЗ</span>
           <span class="text-white font-bold text-lg inline-flex items-baseline gap-1">${result.total_byn.toFixed(2)} ${BYN_SIGN_HTML}</span>
         </div>
-        <div class="text-right text-white/50 text-[11px]">
-          ${result.total_ice.toFixed(2)} ICE · 1 ${BYN_SIGN_HTML} = 1 ICE
+        <div class="text-right text-emerald-400 font-semibold text-[11px]">
+          ✓ Без скрытых комиссий
         </div>
         <div class="text-white/60 text-xs">
           ⏱️ Срок доставки: ${result.delivery_days[0]}-${result.delivery_days[1]} рабочих дней
