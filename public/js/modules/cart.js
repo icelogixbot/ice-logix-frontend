@@ -102,10 +102,50 @@
     return unified;
   }
 
+  // --- Global Helpers for Fixed Checkout Dock (Locked Above Tab Bar) ---
+  function showWbCheckoutDock(count, total) {
+    const dock = document.getElementById('wbStickyDock');
+    if (!dock) return;
+    dock.classList.remove('hidden');
+    updateWbCheckoutDock(count, total);
+  }
+  window.showWbCheckoutDock = showWbCheckoutDock;
+
+  function hideWbCheckoutDock() {
+    const dock = document.getElementById('wbStickyDock');
+    if (dock) dock.classList.add('hidden');
+  }
+  window.hideWbCheckoutDock = hideWbCheckoutDock;
+
+  function updateWbCheckoutDock(count, total) {
+    const dock = document.getElementById('wbStickyDock');
+    const checkoutBtn = document.getElementById('wbCheckoutBtn');
+    if (!checkoutBtn) return;
+    if (dock && dock.classList.contains('hidden')) {
+      dock.classList.remove('hidden');
+    }
+
+    if (count > 0) {
+      checkoutBtn.className = 'wb-checkout-cta active';
+      checkoutBtn.innerHTML = `
+        <span>Заказать</span>
+        <span class="text-black/30">·</span>
+        <span id="wbCheckoutCount">${count} шт.</span>
+        <span class="text-black/30">·</span>
+        <span id="wbCheckoutTotal">${Number(total || 0).toFixed(2)} BYN</span>
+      `;
+    } else {
+      checkoutBtn.className = 'wb-checkout-cta disabled';
+      checkoutBtn.innerHTML = `<span>Выберите товары для заказа</span>`;
+    }
+  }
+  window.updateWbCheckoutDock = updateWbCheckoutDock;
+
   // --- Render Clean Cart Screen ---
   async function renderCart() {
     const currentUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
     if (!currentUserId) {
+      hideWbCheckoutDock();
       return `
         <div class="page-enter wb-cart-screen px-4 py-12 text-center max-w-md mx-auto">
           <div class="wb-empty-icon-wrap mx-auto mb-4">
@@ -124,6 +164,7 @@
     try {
       items = await loadAllCartItems();
     } catch (e) {
+      hideWbCheckoutDock();
       return `
         <div class="wb-cart-screen px-4 py-8 text-center max-w-md mx-auto">
           <p class="text-red-400 font-bold mb-2">Ошибка загрузки корзины</p>
@@ -135,8 +176,9 @@
 
     // 0 items: Empty State
     if (items.length === 0) {
+      hideWbCheckoutDock();
       return `
-        <div class="page-enter wb-cart-screen">
+        <div class="wb-cart-screen screen-fade-in">
           <div class="wb-cart-header">
             <div class="wb-cart-title-row">
               <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
@@ -166,6 +208,9 @@
     items.forEach(it => {
       initialTotal += it.priceByn * it.quantity;
     });
+
+    // Make sure the fixed dock is visible with current state
+    showWbCheckoutDock(items.length, initialTotal);
 
     // Items Cards HTML
     const cardsHtml = items.map(it => {
@@ -264,19 +309,6 @@
         <div class="wb-cart-list" id="wbCartList">
           ${cardsHtml}
         </div>
-
-        <!-- 4. Fixed Sticky Checkout Dock (Above Navigation Bar) -->
-        <div class="wb-sticky-dock" id="wbStickyDock">
-          <div class="wb-sticky-content">
-            <button class="wb-checkout-cta active" id="wbCheckoutBtn">
-              <span>Заказать</span>
-              <span class="text-black/30">·</span>
-              <span id="wbCheckoutCount">${items.length} шт.</span>
-              <span class="text-black/30">·</span>
-              <span id="wbCheckoutTotal">${initialTotal.toFixed(2)} BYN</span>
-            </button>
-          </div>
-        </div>
       </div>
     `;
   }
@@ -323,22 +355,7 @@
       if (totalBadge) totalBadge.innerText = `${visibleCards.length} поз.`;
 
       // Update Sticky Checkout Button
-      const checkoutBtn = document.getElementById('wbCheckoutBtn');
-      if (checkoutBtn) {
-        if (totalCount > 0) {
-          checkoutBtn.className = 'wb-checkout-cta active';
-          checkoutBtn.innerHTML = `
-            <span>Заказать</span>
-            <span class="text-black/30">·</span>
-            <span>${totalCount} шт.</span>
-            <span class="text-black/30">·</span>
-            <span>${totalAmount.toFixed(2)} BYN</span>
-          `;
-        } else {
-          checkoutBtn.className = 'wb-checkout-cta disabled';
-          checkoutBtn.innerHTML = `<span>Выберите товары</span>`;
-        }
-      }
+      updateWbCheckoutDock(totalCount, totalAmount);
     }
 
     // 3. "Выбрать все" Checkbox Handler
@@ -392,6 +409,7 @@
             updateWbTotals();
             if (typeof updateCartBadge === 'function') updateCartBadge();
             if (document.querySelectorAll('.wb-cart-card').length === 0) {
+              hideWbCheckoutDock();
               renderCurrentScreen();
             }
             return;
@@ -471,6 +489,7 @@
         updateWbTotals();
         if (typeof updateCartBadge === 'function') updateCartBadge();
         if (document.querySelectorAll('.wb-cart-card').length === 0) {
+          hideWbCheckoutDock();
           renderCurrentScreen();
         }
       };
@@ -551,6 +570,7 @@
           if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
           tgUtil.alert('Товар перемещен в избранное ♡');
           if (document.querySelectorAll('.wb-cart-card').length === 0) {
+            hideWbCheckoutDock();
             renderCurrentScreen();
           }
         };
@@ -571,6 +591,7 @@
           updateWbTotals();
           if (typeof updateCartBadge === 'function') updateCartBadge();
           if (document.querySelectorAll('.wb-cart-card').length === 0) {
+            hideWbCheckoutDock();
             renderCurrentScreen();
           }
         };
@@ -581,7 +602,7 @@
     const wishlistAllBtn = document.getElementById('wbWishlistAllBtn');
     if (wishlistAllBtn) {
       wishlistAllBtn.onclick = async () => {
-        const checkedCards = document.querySelectorAll('.wb-cart-card:has(.wb-item-cb:checked)');
+        const checkedCards = Array.from(document.querySelectorAll('.wb-cart-card')).filter(c => c.querySelector('.wb-item-cb')?.checked);
         if (checkedCards.length === 0) {
           tgUtil.alert('Выберите хотя бы один товар');
           return;
@@ -607,7 +628,7 @@
     const shareCartBtn = document.getElementById('wbShareCartBtn');
     if (shareCartBtn) {
       shareCartBtn.onclick = () => {
-        const checkedCards = document.querySelectorAll('.wb-cart-card:has(.wb-item-cb:checked)');
+        const checkedCards = Array.from(document.querySelectorAll('.wb-cart-card')).filter(c => c.querySelector('.wb-item-cb')?.checked);
         if (checkedCards.length === 0) {
           tgUtil.alert('Выберите хотя бы один товар');
           return;
@@ -637,7 +658,7 @@
     const deleteSelectedBtn = document.getElementById('wbDeleteSelectedBtn');
     if (deleteSelectedBtn) {
       deleteSelectedBtn.onclick = async () => {
-        const checkedCards = document.querySelectorAll('.wb-cart-card:has(.wb-item-cb:checked)');
+        const checkedCards = Array.from(document.querySelectorAll('.wb-cart-card')).filter(c => c.querySelector('.wb-item-cb')?.checked);
         if (checkedCards.length === 0) {
           tgUtil.alert('Выберите хотя бы один товар для удаления');
           return;
@@ -654,6 +675,7 @@
         updateWbTotals();
         if (typeof updateCartBadge === 'function') updateCartBadge();
         if (document.querySelectorAll('.wb-cart-card').length === 0) {
+          hideWbCheckoutDock();
           renderCurrentScreen();
         }
       };
@@ -674,25 +696,28 @@
         }
 
         const selectedItems = [];
-        const checkedCards = document.querySelectorAll('.wb-cart-card:has(.wb-item-cb:checked)');
+        const visibleCards = document.querySelectorAll('.wb-cart-card');
 
-        checkedCards.forEach(card => {
-          const cartId = card.dataset.cartId;
-          const productId = card.dataset.productId;
-          const title = card.querySelector('.wb-product-title')?.innerText || 'Товар';
-          const price = parseFloat(card.dataset.price || '0');
-          const quantity = parseInt(card.querySelector('.wb-qty-val')?.innerText || '1', 10);
-          const imageUrl = card.querySelector('.wb-product-thumb')?.src || '';
+        visibleCards.forEach(card => {
+          const cb = card.querySelector('.wb-item-cb');
+          if (cb && cb.checked) {
+            const cartId = card.dataset.cartId;
+            const productId = card.dataset.productId;
+            const title = card.querySelector('.wb-product-title')?.innerText || 'Товар';
+            const price = parseFloat(card.dataset.price || '0');
+            const quantity = parseInt(card.querySelector('.wb-qty-val')?.innerText || '1', 10);
+            const imageUrl = card.querySelector('.wb-product-thumb')?.src || '';
 
-          selectedItems.push({
-            cartId: cartId,
-            productId: productId,
-            title: title,
-            price: price,
-            imageUrl: imageUrl,
-            image_url: imageUrl,
-            quantity: quantity
-          });
+            selectedItems.push({
+              cartId: cartId,
+              productId: productId,
+              title: title,
+              price: price,
+              imageUrl: imageUrl,
+              image_url: imageUrl,
+              quantity: quantity
+            });
+          }
         });
 
         if (selectedItems.length === 0) {
@@ -711,6 +736,8 @@
           discountAmount: 0,
           appliedPromo: null
         };
+
+        hideWbCheckoutDock();
 
         if (typeof switchTab === 'function') {
           switchTab('neworder');

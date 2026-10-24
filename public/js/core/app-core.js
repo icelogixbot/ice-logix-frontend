@@ -3202,10 +3202,8 @@ let adminOrdersTotalPages = 1;
     window.animateClick = animateClick;
 
     window.openBalanceTopup = function(defaultAmount = 50) {
-      if (typeof window.openWallet === 'function') {
-        window.openWallet('topup', defaultAmount);
-      } else if (typeof switchTab === 'function') {
-        switchTab('wallet');
+      if (typeof switchTab === 'function') {
+        switchTab('topup');
       } else if (typeof window.openBalanceTopupModal === 'function') {
         window.openBalanceTopupModal(defaultAmount);
       }
@@ -3217,10 +3215,8 @@ let adminOrdersTotalPages = 1;
         addBalBtn.onclick = (e) => {
           if (e) e.stopPropagation();
           if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
-          if (typeof window.openWallet === 'function') {
-            window.openWallet('topup');
-          } else if (typeof switchTab === 'function') {
-            switchTab('wallet');
+          if (typeof switchTab === 'function') {
+            switchTab('topup');
           } else if (typeof window.openBalanceTopup === 'function') {
             window.openBalanceTopup();
           }
@@ -3231,10 +3227,8 @@ let adminOrdersTotalPages = 1;
         balanceIsland.onclick = (e) => {
           if (e) e.stopPropagation();
           if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
-          if (typeof window.openWallet === 'function') {
-            window.openWallet('topup');
-          } else if (typeof switchTab === 'function') {
-            switchTab('wallet');
+          if (typeof switchTab === 'function') {
+            switchTab('finances');
           }
         };
       }

@@ -87,7 +87,7 @@
     <!-- Balance Display -->
     ${isFamilyEnabled ? `
     <div class="flex gap-3 justify-center mb-4 flex-wrap">
-      <div onclick="window.openWallet()" class="flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer active:scale-95 transition" style="background: linear-gradient(135deg, rgba(91,191,235,0.2), rgba(46,158,212,0.1)); border: 1px solid rgba(91,191,235,0.3);" title="Открыть Кошелек ICE">
+      <div onclick="switchTab('finances')" class="flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer active:scale-95 transition" style="background: linear-gradient(135deg, rgba(91,191,235,0.2), rgba(46,158,212,0.1)); border: 1px solid rgba(91,191,235,0.3);" title="Мой баланс">
         <span class="text-xl animate-float"><span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></span>
         <div class="text-left">
           <p class="text-[10px] uppercase tracking-wider" style="color: var(--text-muted);">Мой баланс</p>
@@ -105,10 +105,10 @@
       ` : ''}
     </div>
     ` : `
-    <div onclick="window.openWallet()" class="inline-flex items-center gap-3 px-5 py-3 rounded-2xl mb-4 cursor-pointer active:scale-95 transition" style="background: linear-gradient(135deg, rgba(91,191,235,0.2), rgba(46,158,212,0.1)); border: 1px solid rgba(91,191,235,0.3);" title="Открыть Кошелек ICE">
+    <div onclick="switchTab('finances')" class="inline-flex items-center gap-3 px-5 py-3 rounded-2xl mb-4 cursor-pointer active:scale-95 transition" style="background: linear-gradient(135deg, rgba(91,191,235,0.2), rgba(46,158,212,0.1)); border: 1px solid rgba(91,191,235,0.3);" title="Баланс">
       <span class="text-2xl animate-float"><span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span></span>
       <div class="text-left">
-        <p class="text-xs" style="color: var(--text-secondary);">Кошелек ICE</p>
+        <p class="text-xs" style="color: var(--text-secondary);">${t('balance', 'Баланс')}</p>
         <p class="text-xl font-bold" style="color: var(--ice-primary);">${displayedBalance} ICE</p>
       </div>
     </div>
@@ -218,14 +218,11 @@
         </div>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
-      <button id="financesBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition border-t border-white/5" onclick="switchTab('wallet')">
-        <span class="text-xl">💳</span>
+      <button id="financesBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 transition border-t border-white/5" onclick="switchTab('finances')">
+        <span class="text-xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span></span>
         <div class="flex-1">
-          <div class="flex items-center gap-2">
-            <p class="font-semibold text-white text-sm">Кошелек ICE</p>
-            <span class="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-cyan-400/20 text-cyan-300 border border-cyan-400/30">СКИДКА 3%</span>
-          </div>
-          <p class="text-xs" style="color: var(--text-muted);">Баланс, пополнение, карты и история операций</p>
+          <p class="font-semibold text-white text-sm">Финансы</p>
+          <p class="text-xs" style="color: var(--text-muted);">История баланса и транзакций</p>
         </div>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
       </button>

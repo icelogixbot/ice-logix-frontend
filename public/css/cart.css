@@ -356,6 +356,14 @@
   padding: 0 12px !important;
   display: flex !important;
   justify-content: center !important;
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.wb-sticky-dock.hidden {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(24px) !important;
+  display: none !important;
 }
 
 .wb-sticky-content {
@@ -401,7 +409,8 @@
 
 .wb-checkout-cta.disabled {
   background: rgba(255, 255, 255, 0.08) !important;
-  color: rgba(255, 255, 255, 0.3) !important;
+  color: rgba(255, 255, 255, 0.55) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
   box-shadow: none !important;
   cursor: not-allowed;
 }
