@@ -108,36 +108,174 @@ COLOR_DICT = {
     "焦糖色": "Карамельный",
 }
 
-def translate_color(name_cn: str) -> str:
-    clean = re.sub(r"[🔥\s]|快要抢光|热卖|爆款|大促", "", name_cn).strip()
+# ==================== FASHION & LUXURY INTELLIGENCE ENGINE ====================
+BRAND_RULES = [
+    (["bottega veneta", "bottega", "bv", "葆蝶家"], "Bottega Veneta"),
+    (["balenciaga", "巴黎世家", "3xl", "defender", "triple s", "runner"], "Balenciaga"),
+    (["maison margiela", "margiela", "马吉拉", "德训", "tabi"], "Maison Margiela"),
+    (["rick owens", "大匡威", "ro暗黑"], "Rick Owens"),
+    (["c.p. company", "cp company", "cp公司", "护目镜", "goggle"], "C.P. Company"),
+    (["stone island", "石头岛", "罗盘"], "Stone Island"),
+    (["arc'teryx", "arcteryx", "始祖鸟"], "Arc'teryx"),
+    (["salomon", "萨洛蒙", "xt-6", "xt6", "acs pro"], "Salomon"),
+    (["nike", "耐克", "dunk", "jordan", "air force", "kobe", "vomero"], "Nike"),
+    (["adidas", "阿迪达斯", "samba", "gazelle", "yeezy", "spezial", "campus", "bad bunny"], "Adidas"),
+    (["new balance", "nb", "1906r", "2002r", "9060", "530", "990"], "New Balance"),
+    (["asics", "亚瑟士", "kayano", "gt-2160", "nimbus"], "Asics"),
+    (["on running", "昂跑", "cloudmonster", "cloudtilt"], "On Running"),
+    (["hoka", "霍卡", "clifton", "bondi", "tor ultra"], "Hoka One One"),
+    (["casio", "卡西欧", "g-shock", "edifice"], "Casio"),
+    (["rolex", "劳力士", "submariner", "daytona", "datejust"], "Rolex"),
+    (["tissot", "天梭", "prx"], "Tissot"),
+    (["apple", "苹果", "iphone", "airpods"], "Apple"),
+    (["supreme"], "Supreme"),
+    (["stussy", "斯图西"], "Stussy"),
+    (["trapstar"], "Trapstar"),
+    (["syna world", "syna"], "Syna World"),
+    (["corteiz", "crtz"], "Corteiz"),
+    (["hellstar"], "Hellstar"),
+    (["represent"], "Represent"),
+    (["fear of god", "essentials", "fog"], "Essentials (FOG)"),
+    (["rhude"], "Rhude"),
+    (["amiri"], "Amiri"),
+    (["off-white", "off white", "ow"], "Off-White"),
+    (["palm angels"], "Palm Angels"),
+    (["vetements"], "Vetements"),
+    (["jacquemus"], "Jacquemus"),
+    (["gucci", "古驰"], "Gucci"),
+    (["prada", "普拉达"], "Prada"),
+    (["louis vuitton", "lv", "路易威登"], "Louis Vuitton"),
+    (["dior", "迪奥"], "Dior"),
+    (["celine", "思琳"], "Celine"),
+    (["saint laurent", "ysl", "圣罗兰"], "Saint Laurent"),
+    (["loewe", "罗意威"], "Loewe"),
+    (["miu miu", "缪缪"], "Miu Miu"),
+    (["moncler", "盟可睐", "蒙口"], "Moncler"),
+    (["zara"], "Zara"),
+    (["uniqlo", "优衣库"], "Uniqlo"),
+]
+
+CHINESE_FASHION_SUBST = {
+    "老爹鞋": " массивные кроссовки ",
+    "面包鞋": " дутые кеды ",
+    "德训鞋": " кеды Replica ",
+    "小白鞋": " белые кеды ",
+    "板鞋": " кеды ",
+    "运动鞋": " кроссовки ",
+    "球鞋": " кроссовки ",
+    "雪地靴": " зимние угги ",
+    "马丁靴": " ботинки ",
+    "切尔西靴": " ботинки челси ",
+    "羽绒服": " пуховик ",
+    "冲锋衣": " мембранная ветровка ",
+    "棒球服": " куртка-бомбер ",
+    "夹克": " куртка ",
+    "外套": " куртка ",
+    "皮衣": " кожаная куртка ",
+    "卫衣": " худи ",
+    "卫裤": " спортивные брюки ",
+    "工装裤": " брюки карго ",
+    "牛仔裤": " джинсы ",
+    "短裤": " шорты ",
+    "手表": " часы наручные ",
+    "机械表": " механические часы ",
+    "石英表": " кварцевые часы ",
+    "手机壳": " чехол для iPhone ",
+    "只配鞋盒和防尘袋": " (коробка + пыльник) ",
+    "配鞋盒和防尘袋": " (коробка + пыльник) ",
+    "防尘袋": " пыльник ",
+    "鞋盒": " коробка ",
+    "带鞋盒": " (с коробкой) ",
+    "原装盒": " (фирменная коробка) ",
+    "加绒": " с утеплением ",
+    "加厚": " утепленный ",
+    "薄款": " облегченный ",
+    "黑武士": " Black Phantom ",
+    "白冰蓝": " Ice Blue ",
+    "灰橙": " Beluga ",
+    "男女同款": " унисекс ",
+    "情侣款": " унисекс ",
+    "男女款": " унисекс ",
+    "男女": " унисекс ",
+    "同款": " ",
+    "外贸": " ",
+    "爆款": " ",
+    "热卖": " ",
+    "百搭": " ",
+    "休闲": " ",
+    "增高": " ",
+    "厚底": " на платформе ",
+    "官方标配": "Стандартный комплект",
+    "套餐一": "Комплект 1",
+    "套餐二": "Комплект 2",
+}
+
+def translate_raw_gtx(text: str) -> str:
+    if not text or not text.strip():
+        return ""
+    try:
+        r = requests.get(
+            "https://translate.googleapis.com/translate_a/single",
+            params={"client": "gtx", "sl": "zh-CN", "tl": "ru", "dt": "t", "q": text},
+            timeout=3.5
+        )
+        if r.ok:
+            return "".join([p[0] for p in r.json()[0] if p and p[0]]).strip()
+    except Exception:
+        pass
+    return text
+
+def preprocess_fashion_text(t: str) -> str:
+    res = re.sub(r"【.*?】|\[.*?\]|店铺热销|24小时发货|快要抢光|爆款|大促|官方正品|原装|🔥|颜值逆天|贼好|很满意|走时很准", " ", t)
+    for cn, ru in CHINESE_FASHION_SUBST.items():
+        res = res.replace(cn, ru)
+    res = re.sub(r"\s+", " ", res).strip()
+    return res
+
+def clean_and_translate_option(name_cn: str, is_color: bool = True) -> str:
+    clean = re.sub(r"[🔥\s]|快要抢光|热卖|爆款|大促", " ", name_cn).strip()
+    
+    # 1. Direct dictionary match
     for cn, ru in COLOR_DICT.items():
-        if cn in clean:
+        if clean == cn:
             return ru
-    return clean
+            
+    # 2. Preprocess specialized fashion terms
+    pre = preprocess_fashion_text(clean)
+    
+    # 3. Model replacements (iPhone, sizes)
+    pre = pre.replace("苹果", "iPhone ")
+    pre = pre.replace("PROMAX", "Pro Max").replace("PRO", "Pro").replace("PLUS", "Plus")
+    pre = pre.replace("码", " EU").replace("尺码", "Размер ")
+    
+    # If contains Chinese characters, run live neural translate
+    if re.search(r"[\u4e00-\u9fa5]", pre):
+        trans = translate_raw_gtx(pre)
+        if trans and trans != pre:
+            trans = re.sub(r"поставляется только с коробкой для обуви и мешком для сбора пыли|с коробкой для обуви и мешком для сбора пыли|только коробка для обуви и мешок для пыли", "(коробка + пыльник)", trans, flags=re.IGNORECASE)
+            trans = re.sub(r"с коробкой для обуви|только коробка для обуви", "(с коробкой)", trans, flags=re.IGNORECASE)
+            trans = re.sub(r"белый круг", "белый ободок", trans, flags=re.IGNORECASE)
+            trans = re.sub(r"синяя поверхность", "синий циферблат", trans, flags=re.IGNORECASE)
+            trans = re.sub(r"черная поверхность", "черный циферблат", trans, flags=re.IGNORECASE)
+            trans = re.sub(r"белая поверхность", "белый циферблат", trans, flags=re.IGNORECASE)
+            trans = re.sub(r"серебряный пояс|серебряный ремень", "серебряный корпус", trans, flags=re.IGNORECASE)
+            trans = re.sub(r"золотой пояс|золотой ремень", "золотой корпус", trans, flags=re.IGNORECASE)
+            trans = re.sub(r"черный пояс", "черный корпус", trans, flags=re.IGNORECASE)
+            trans = re.sub(r"пояс|ремень", "кожаный ремешок", trans, flags=re.IGNORECASE)
+            trans = re.sub(r"\s+", " ", trans).strip()
+            return trans.capitalize()
+            
+    return pre.strip()
 
-def translate_size_or_model(val: str) -> str:
-    clean = re.sub(r"[🔥\s]|快要抢光|热卖|爆款|大促", "", val).strip()
-    s = clean
-    s = s.replace("苹果", "iPhone ")
-    s = s.replace("【带一体ai键】", " (кнопка AI Control)")
-    s = s.replace("【带镜头膜】", " (с защитой камеры)")
-    s = s.replace("带一体ai键", " (кнопка AI Control)")
-    s = s.replace("苹果其他型号联系客服备注", "Другая модель (под заказ)")
-    s = s.replace("PROMAX", "Pro Max")
-    s = s.replace("PRO", "Pro")
-    s = s.replace("PLUS", "Plus")
-    s = s.replace("AIR", "Air")
-    s = s.replace("MINI", "mini")
-    s = s.replace("码", " EU")
-    s = s.replace("尺码", "Размер")
-    s = s.replace("官方标配", "Стандартный комплект")
-    s = s.replace("套餐一", "Комплект 1")
-    s = s.replace("套餐二", "Комплект 2")
-    return s.strip()
-
-def detect_category_and_brand(title_cn: str, selected_summary: str):
+def detect_category_and_brand(title_cn: str, selected_summary: str = ""):
     full_text = f"{title_cn} {selected_summary}".lower()
     
+    detected_brand = ""
+    for patterns, bname in BRAND_RULES:
+        if any(p in full_text for p in patterns):
+            detected_brand = bname
+            break
+            
     category = "Товары из Китая"
     if any(x in full_text for x in ["鞋", "运动鞋", "板鞋", "球鞋", "sneaker", "靴"]):
         category = "Обувь"
@@ -145,79 +283,65 @@ def detect_category_and_brand(title_cn: str, selected_summary: str):
         category = "Одежда"
     elif any(x in full_text for x in ["包", "双肩包", "单肩包", "手提包", "斜挎包"]):
         category = "Сумки"
-    elif any(x in full_text for x in ["表", "手表"]):
+    elif any(x in full_text for x in ["表", "手表", "石英表", "机械表", "watch"]):
         category = "Часы"
     elif any(x in full_text for x in ["耳机", "音箱"]):
         category = "Электроника"
     elif any(x in full_text for x in ["壳", "手机壳", "膜"]):
         category = "Чехлы"
         
-    brands = ["Nike", "Adidas", "Jordan", "New Balance", "Puma", "Converse", "Vans", "Apple", "Samsung", "Xiaomi", "Huawei", "Sony", "Casio", "Zara", "Uniqlo", "Supreme", "Stussy", "Balenciaga", "Gucci", "C.P. Company", "Stone Island", "Arc'teryx", "Trapstar", "Syna World", "Corteiz"]
-    brand = ""
-    for b in brands:
-        if b.lower() in full_text:
-            brand = b
-            break
+    return category, detected_brand
+
+def synthesize_smart_title(raw_title: str, brand: str, category: str) -> str:
+    if not raw_title:
+        return "Товар с Pinduoduo"
+        
+    pre = preprocess_fashion_text(raw_title)
+    trans = translate_raw_gtx(pre)
+    
+    # Filter e-commerce garbage words
+    clean_ru = re.sub(
+        r"Внешняя торговля|Одинаковая обувь|повседневная и универсальная|для мужчин и женщин|для пап|туфли|одинаковая|рекомендация блогера|горячая распродажа|24 часа|взрывная модель|чистый красный|в наличии",
+        " ",
+        trans,
+        flags=re.IGNORECASE
+    )
+    clean_ru = re.sub(r"\s+", " ", clean_ru).strip(" ,.-")
+    
+    lead = ""
+    if category == "Обувь":
+        lead = "Кроссовки" if not any(k in clean_ru.lower() for k in ["кеды", "ботинки", "угги", "сапоги", "лоферы"]) else ""
+    elif category == "Часы":
+        lead = "Часы" if "часы" not in clean_ru.lower() else ""
+    elif category == "Одежда":
+        lead = "Одежда" if not any(k in clean_ru.lower() for k in ["пуховик", "куртка", "худи", "брюки", "джинсы", "футболка", "ветровка"]) else ""
+    elif category == "Чехлы":
+        lead = "Чехол" if "чехол" not in clean_ru.lower() else ""
+        
+    title_parts = []
+    if lead:
+        title_parts.append(lead)
+    if brand:
+        title_parts.append(brand)
+        
+    words = clean_ru.split()
+    for w in words[:6]:
+        low = w.lower()
+        if low not in " ".join(title_parts).lower() and len(w) > 2 and low not in ["очень", "сверху", "снизу", "просто"]:
+            title_parts.append(w)
             
-    return category, brand
+    res = " ".join(title_parts).strip()
+    return res.capitalize() if res else (f"{lead} {brand}".strip() or "Товар с Pinduoduo")
+
+def translate_color(name_cn: str) -> str:
+    return clean_and_translate_option(name_cn, is_color=True)
+
+def translate_size_or_model(val: str) -> str:
+    return clean_and_translate_option(val, is_color=False)
 
 def translate_title(cn_title: str) -> str:
-    if not cn_title:
-        return "Товар с Pinduoduo"
-    t = cn_title
-    t = re.sub(r"^[^\w\s]*店铺热销\s*\|\s*", "", t)
-    t = re.sub(r"24小时发货", "", t)
-    t = re.sub(r"【.*?】", " ", t)
-    t = re.sub(r"\[.*?\]", " ", t)
-    
-    parts = []
-    if "手机壳" in t or "壳" in t:
-        parts.append("Чехол")
-        if "液态硅胶" in t or "硅胶" in t:
-            parts.append("жидкий силикон")
-        if "苹果" in t or "iphone" in t.lower():
-            parts.append("для iPhone")
-        if "防摔" in t:
-            parts.append("ударопрочный")
-    elif any(x in t for x in ["鞋", "运动鞋", "板鞋", "球鞋"]):
-        parts.append("Кроссовки")
-    elif any(x in t for x in ["卫裤", "休闲长裤", "运动裤", "束脚裤"]):
-        parts.append("Спортивные брюки")
-    elif "牛仔裤" in t:
-        parts.append("Джинсы")
-    elif "短裤" in t:
-        parts.append("Шорты")
-    elif "工装裤" in t:
-        parts.append("Брюки-карго")
-    elif "裤" in t:
-        parts.append("Штаны / Брюки")
-    elif "卫衣" in t:
-        parts.append("Худи")
-    elif "t恤" in t.lower() or "短袖" in t:
-        parts.append("Футболка")
-    elif "羽绒服" in t:
-        parts.append("Пуховик")
-    elif "外套" in t or "夹克" in t:
-        parts.append("Куртка")
-    elif "包" in t:
-        parts.append("Сумка")
-    elif any(x in t for x in ["手表", "表", "石英表", "机械表"]) or "watch" in t.lower():
-        parts.append("Часы")
-    elif "耳机" in t:
-        parts.append("Наушники")
-        
-    if parts:
-        clean = re.sub(r"[\u4e00-\u9fa5]", "", t)
-        clean = re.sub(r"[^\w\s\-\/]", " ", clean)
-        clean = re.sub(r"\s+", " ", clean).strip()
-        res = " ".join(parts)
-        if clean:
-            res += " " + clean
-        return res[:70].strip()
-        
-    clean = re.sub(r"[^\w\s\-\(\)\/\.\,]", " ", t)
-    clean = re.sub(r"\s+", " ", clean).strip()
-    return clean[:60] if clean else "Товар с Pinduoduo"
+    cat, br = detect_category_and_brand(cn_title)
+    return synthesize_smart_title(cn_title, br, cat)
 
 # ==================== ADB ДВИЖОК ====================
 def get_connected_device() -> Optional[str]:
@@ -618,6 +742,18 @@ def capture_hd_studio_and_variants(goods_id: str, root: ET.Element, colors: List
     2. Clean micro-thumbnail icons for each color variant (cropping left square only, 0 Chinese text),
        uploaded concurrently in parallel via ThreadPoolExecutor for lightning speed (< 2-3s total).
     """
+    # 0. Check if "大图" mode exists on screen to get high-res 156x143 card photographs
+    for n in root.iter('node'):
+        t_val = (n.attrib.get('text', '') or n.attrib.get('content-desc', '')).strip()
+        if t_val == "大图":
+            b_dt = n.attrib.get('bounds', '')
+            if b_dt:
+                print(f"[*] Activating High-Res Studio Grid Mode ('大图') at {b_dt}...")
+                human_tap(b_dt)
+                time.sleep(0.4)
+                root = dump_ui_xml()
+                break
+
     thumb_bounds = None
     for n in root.iter('node'):
         cls = n.attrib.get('class', '')
@@ -683,7 +819,7 @@ def capture_hd_studio_and_variants(goods_id: str, root: ET.Element, colors: List
                     except Exception as me:
                         print("Failed main thumbnail upload:", me)
 
-            # Crop clean micro-thumbnail icons for each color button (0 Chinese text!)
+            # Crop clean high-resolution studio icons for each color option (0 Chinese text!)
             for idx, col in enumerate(colors):
                 if col.get("selected"):
                     col["image_url"] = hd_pub_url or f"/uploads/parsed/sku_{goods_id}.jpg"
@@ -695,15 +831,19 @@ def capture_hd_studio_and_variants(goods_id: str, root: ET.Element, colors: List
                     x1, y1, x2, y2 = parse_bounds(b_str)
                     w, h = x2 - x1, y2 - y1
                     if w > 10 and h > 10:
-                        if w > h + 10:
+                        # Check if this card has an image above its text (in '大图' card grid: text is below the 156x143 image!)
+                        if y1 >= 220 and w >= 80:
+                            # Card layout: image is directly above the button text
+                            c_icon = im_d.crop((x1 + 2, max(0, y1 - 145), x2 - 2, y1 - 2))
+                        elif w > h + 10:
                             # Horizontal pill button: icon is strictly the left square [x1, y1, x1+h, y2]
                             c_icon = im_d.crop((x1 + 2, y1 + 2, x1 + h - 2, y2 - 2))
                         else:
-                            # Square card button
+                            # Square button
                             c_icon = im_d.crop((x1 + 3, y1 + 3, x2 - 3, y1 + w - 3))
                         
                         icon_path = os.path.join(PARSED_UPLOADS_DIR, f"col_{goods_id}_{idx}_icon.jpg")
-                        c_icon.save(icon_path, "JPEG", quality=90)
+                        c_icon.save(icon_path, "JPEG", quality=92)
                         col["thumb_url"] = f"/uploads/parsed/col_{goods_id}_{idx}_icon.jpg"
                         
                         if supabase_client:
@@ -999,7 +1139,7 @@ def parse_product(req: ParseRequest):
                 
     # Detect category and brand dynamically
     category, brand = detect_category_and_brand(raw_title, selected_summary)
-    title_ru = translate_title(raw_title)
+    title_ru = synthesize_smart_title(raw_title, brand, category)
 
     # 4. Capture current SKU image (Ultra-HD Studio + Color Thumbnails)
     image_rel_url = capture_hd_studio_and_variants(goods_id, root, colors)
@@ -1026,13 +1166,25 @@ def parse_product(req: ParseRequest):
 def select_sku(req: SelectSkuRequest):
     print(f"[*] Human tapping SKU option for goods_id={req.goods_id} at {req.bounds}")
     human_tap(req.bounds)
-    time.sleep(random.uniform(0.35, 0.5))
+    time.sleep(random.uniform(0.35, 0.45))
     
-    # Re-dump to get updated price and selected text
+    # Re-dump to get updated price, summary and thumbnail bounds
     root = dump_ui_xml()
     price_cny = 0.0
     selected_summary = ""
+    updated_img_url = ""
     
+    thumb_bounds = None
+    for n in root.iter('node'):
+        cls = n.attrib.get('class', '')
+        b = n.attrib.get('bounds', '')
+        if 'ImageView' in cls and b:
+            x1, y1, x2, y2 = parse_bounds(b)
+            w, h = x2 - x1, y2 - y1
+            if 130 <= w <= 260 and 130 <= h <= 260 and x1 < 120 and 180 <= y1 <= 550:
+                thumb_bounds = (x1, y1, x2, y2)
+                break
+
     for node in root.iter("node"):
         val = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
         if "已选:" in val or "请选择:" in val:
@@ -1042,10 +1194,37 @@ def select_sku(req: SelectSkuRequest):
             if m_price:
                 price_cny = float(m_price.group(1))
 
+    # Dynamic studio preview capture for selected variant
+    if thumb_bounds:
+        try:
+            temp_sel = os.path.join(PARSED_UPLOADS_DIR, f"temp_sel_{req.goods_id}.png")
+            run_adb(["shell", "screencap", "-p", "/sdcard/sel_prev.png"])
+            run_adb(["pull", "/sdcard/sel_prev.png", temp_sel])
+            if os.path.exists(temp_sel):
+                im_sel = Image.open(temp_sel).convert("RGB")
+                c_sel = im_sel.crop(thumb_bounds)
+                out_name = f"sku_{req.goods_id}_sel_{int(time.time())}.jpg"
+                out_path = os.path.join(PARSED_UPLOADS_DIR, out_name)
+                c_sel.save(out_path, "JPEG", quality=92)
+                try: os.remove(temp_sel)
+                except Exception: pass
+                if supabase_client:
+                    try:
+                        with open(out_path, "rb") as f:
+                            supabase_client.storage.from_("product-screenshots").upload(out_name, f.read(), {"content-type": "image/jpeg"})
+                        updated_img_url = supabase_client.storage.from_("product-screenshots").get_public_url(out_name)
+                    except Exception as up_err:
+                        print("Dynamic option upload error:", up_err)
+                if not updated_img_url:
+                    updated_img_url = f"/uploads/parsed/{out_name}"
+        except Exception as sel_err:
+            print("Select SKU photo error:", sel_err)
+
     return {
         "success": True,
         "price_cny": price_cny or 0.0,
-        "selected_summary": selected_summary
+        "selected_summary": selected_summary,
+        "image_url": updated_img_url
     }
 
 # ==================== SUPABASE REAL-TIME QUEUE WORKER ====================

@@ -1113,32 +1113,33 @@
    * Склейка и распознавание кадров паспорта через Vision + ICAO декодер + штамп прописки
    */
   async function processPassportFrames(frame1DataUrl, frame2DataUrl, frame3DataUrl, mode) {
-    // 🚀 ПРИОРИТЕТ 1: Собственный независимый Document AI микросервис (0$, ~180 мс, 100% точность)
-    try {
-      const docAiUrl = window.DOC_AI_API_URL || 'http://127.0.0.1:8095';
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 15000);
-      const resp = await fetch(`${docAiUrl}/scan-passport`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          frame1: frame1DataUrl,
-          frame2: frame2DataUrl,
-          frame3: frame3DataUrl || null,
-          mode: mode
-        }),
-        signal: controller.signal
-      });
-      clearTimeout(timer);
-      if (resp.ok) {
-        const docRes = await resp.json();
-        if (docRes && docRes.ok && docRes.result) {
-          console.log('[Document AI] Распознано через собственный автономный движок за', docRes.duration_ms, 'мс');
-          return docRes.result;
+    // 🚀 ПРИОРИТЕТ 1: Собственный независимый Document AI микросервис (если явно настроен и проверен)
+    if (window.DOC_AI_API_URL) {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 8000);
+        const resp = await fetch(`${window.DOC_AI_API_URL}/scan-passport`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            frame1: frame1DataUrl,
+            frame2: frame2DataUrl,
+            frame3: frame3DataUrl || null,
+            mode: mode
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timer);
+        if (resp.ok) {
+          const docRes = await resp.json();
+          if (docRes && docRes.ok && docRes.result && /^[1-7]\d{6}[A-Z]\d{3}[A-Z]{2}\d$/i.test(docRes.result.id_number || '')) {
+            console.log('[Document AI] Распознано через собственный автономный движок за', docRes.duration_ms, 'мс');
+            return docRes.result;
+          }
         }
+      } catch (_) {
+        // Микросервис недоступен - мягкий переход к облачному каскаду
       }
-    } catch (_) {
-      // Автономный микросервис не запущен локально - мягкий переход к облачному каскаду
     }
 
     // 🚀 ПРИОРИТЕТ 2: Облачный каскад Edge Function ai-calculator

@@ -500,51 +500,55 @@ function attachHomeHandlers() {
     }
 
 
-// ==================== ВЕЧНЫЙ ДВИЖОК РУЛЕТКИ ПЛОЩАДОК (Perpetual Global Engine) ====================
-// Движок живет автономно в глобальном scope window и непрерывно тикает по реальному настенному времени (wall-clock).
-// Свайпы происходят регулярно и никогда не останавливаются и не сбрасывают отсчет заново при смене экранов.
+// ==================== ВЕЧНЫЙ ДВИЖОК РУЛЕТКИ ПЛОЩАДОК (Exactly 2.0s Dwell) ====================
+// Каждый логотип строго находится в видоискателе ровно 2.0 секунды (2000 мс).
+const MP_DWELL_MS = 2000;    // Строго ровно 2.0 секунды фиксации каждого логотипа в окне
+const MP_ANIM_MS = 450;      // 0.45 секунды мягкий плавный ход
+const MP_CYCLE_MS = MP_DWELL_MS + MP_ANIM_MS; // 2450 мс полный шаг
+
 if (typeof window !== 'undefined') {
   if (!window.__mpEngine) {
     window.__mpEngine = {
       index: 14, // Базовый старт: средний сет (Dewu)
-      lastStepTime: Date.now(),
-      nextStepTime: Date.now() + 2000,
-      stepInterval: 2000, // 2.0 секунды комфортной фиксации логотипа
-      animDuration: 0.52, // 0.52 секунды мягкий ход свайпа
-      timerId: null,
+      stepTimerId: null,
+      animTimerId: null,
       isDragging: false,
       isTransitioning: false
     };
 
-    window.__mpEngineTick = function() {
-      const engine = window.__mpEngine;
-      if (!engine) return;
-      if (engine.isDragging) return;
-
-      const ribbon = document.getElementById('marketplaceRibbon');
-      const track = document.getElementById('marketplaceRouletteTrack');
-
-      if (ribbon && track && typeof window.__mpGoToIndex === 'function') {
-        // Мы на Главной: запускаем плавный видимый свайп
-        window.__mpGoToIndex(engine.index + 1, engine.animDuration);
-      } else {
-        // Мы в другом разделе (калькулятор, корзина, профиль):
-        // Сквозной индекс продолжает равномерный ход в фоне без остановок!
-        engine.index++;
-        while (engine.index > 20) engine.index -= 7;
-        while (engine.index < 14) engine.index += 7;
-        window.__mpGlobalIndex = engine.index;
-
-        engine.lastStepTime = Date.now();
-        engine.nextStepTime = engine.lastStepTime + engine.stepInterval;
-
-        clearTimeout(engine.timerId);
-        engine.timerId = setTimeout(window.__mpEngineTick, engine.stepInterval);
-      }
+    window.__mpClearTimers = function() {
+      const eng = window.__mpEngine;
+      if (!eng) return;
+      if (eng.stepTimerId) { clearTimeout(eng.stepTimerId); eng.stepTimerId = null; }
+      if (eng.animTimerId) { clearTimeout(eng.animTimerId); eng.animTimerId = null; }
     };
 
-    // Запускаем вечный цикл сразу при загрузке скрипта
-    window.__mpEngine.timerId = setTimeout(window.__mpEngineTick, 2000);
+    window.__mpScheduleStep = function(delay = MP_DWELL_MS) {
+      if (typeof window === 'undefined') return;
+      window.__mpClearTimers();
+      const eng = window.__mpEngine;
+      if (!eng || eng.isDragging) return;
+
+      eng.stepTimerId = setTimeout(() => {
+        const ribbon = document.getElementById('marketplaceRibbon');
+        const track = document.getElementById('marketplaceRouletteTrack');
+
+        if (ribbon && track && typeof window.__mpGoToIndex === 'function') {
+          // Экран Главной активен: запускаем видимый свайп
+          window.__mpGoToIndex(eng.index + 1);
+        } else {
+          // Фоновый режим: аккуратно передвигаем индекс и планируем следующий шаг
+          eng.index++;
+          while (eng.index > 20) eng.index -= 7;
+          while (eng.index < 14) eng.index += 7;
+          window.__mpGlobalIndex = eng.index;
+          window.__mpScheduleStep(MP_CYCLE_MS);
+        }
+      }, delay);
+    };
+
+    // Запуск первичного отсчета при загрузке скрипта: ровно 2.0 секунды
+    window.__mpScheduleStep(MP_DWELL_MS);
   }
 }
 
@@ -552,6 +556,12 @@ function initMarketplaceRoulette() {
   const track = document.getElementById('marketplaceRouletteTrack');
   const ribbon = document.getElementById('marketplaceRibbon');
   if (!track || !ribbon) return;
+
+  // Защита от повторной инициализации на одном и том же элементе (исключает сбои таймера)
+  if (ribbon.dataset.mpInitialized === 'true') {
+    return;
+  }
+  ribbon.dataset.mpInitialized = 'true';
 
   // Очистка предыдущих слушателей событий окна для предотвращения утечек памяти
   if (window.__mpCleanup) {
@@ -569,11 +579,8 @@ function initMarketplaceRoulette() {
 
   const engine = window.__mpEngine || {
     index: 14,
-    lastStepTime: Date.now(),
-    nextStepTime: Date.now() + 2000,
-    stepInterval: 2000,
-    animDuration: 0.52,
-    timerId: null,
+    stepTimerId: null,
+    animTimerId: null,
     isDragging: false,
     isTransitioning: false
   };
@@ -595,7 +602,6 @@ function initMarketplaceRoulette() {
   engine.index = currentIndex;
   window.__mpGlobalIndex = currentIndex;
 
-  let isTransitioning = false;
   let currentX = -(currentIndex * STEP + CARD_WIDTH / 2);
 
   function getXForIndex(idx) {
@@ -608,7 +614,7 @@ function initMarketplaceRoulette() {
     });
   }
 
-  function applyPosition(idx, animate = true, duration = 0.5) {
+  function applyPosition(idx, animate = true, duration = 0.45) {
     const targetX = getXForIndex(idx);
     currentX = targetX;
     if (animate) {
@@ -642,26 +648,24 @@ function initMarketplaceRoulette() {
     window.__mpGlobalIndex = currentIndex;
   }
 
-  window.__mpGoToIndex = function(targetIdx, duration = 0.52) {
+  window.__mpGoToIndex = function(targetIdx, duration = 0.45) {
     if (engine.isDragging) return;
-    isTransitioning = true;
+    engine.isTransitioning = true;
     currentIndex = targetIdx;
     engine.index = currentIndex;
     window.__mpGlobalIndex = currentIndex;
 
     applyPosition(currentIndex, true, duration);
 
-    setTimeout(() => {
+    window.__mpClearTimers();
+    engine.animTimerId = setTimeout(() => {
       if (!ribbon) return;
       normalizeIndex();
-      isTransitioning = false;
+      engine.isTransitioning = false;
 
-      // Планируем следующий шаг ровно через stepInterval
-      clearTimeout(engine.timerId);
-      engine.lastStepTime = Date.now();
-      engine.nextStepTime = engine.lastStepTime + engine.stepInterval;
-      engine.timerId = setTimeout(window.__mpEngineTick, engine.stepInterval);
-    }, Math.round(duration * 1000) + 30);
+      // Логотип встал ровно по центру: фиксация ровно на 2.0 секунды!
+      window.__mpScheduleStep(MP_DWELL_MS);
+    }, Math.round(duration * 1000));
   };
 
   // ==================== СВОБОДНЫЙ И ЛЕГКИЙ СКРОЛЛ / СВАЙП С ИНЕРЦИЕЙ ====================
@@ -683,15 +687,15 @@ function initMarketplaceRoulette() {
   }
 
   function onPointerDown(e) {
-    clearTimeout(engine.timerId);
+    window.__mpClearTimers();
     clearTimeout(window.__mpResumeTimer);
 
     // Если карточки были в движении — мгновенно подхватываем их с текущего пикселя без задержек и залипаний!
-    if (isTransitioning) {
+    if (engine.isTransitioning) {
       currentX = getCurrentTransformX();
       ribbon.style.transition = 'none';
       ribbon.style.transform = `translate3d(${currentX}px, 0, 0)`;
-      isTransitioning = false;
+      engine.isTransitioning = false;
     } else {
       currentX = getXForIndex(currentIndex);
     }
@@ -740,10 +744,7 @@ function initMarketplaceRoulette() {
     if (!hasDragged) {
       // Обычный тап без перемещения: мягко центруем текущую карточку
       applyPosition(currentIndex, true, 0.25);
-      clearTimeout(engine.timerId);
-      engine.lastStepTime = Date.now();
-      engine.nextStepTime = engine.lastStepTime + engine.stepInterval;
-      engine.timerId = setTimeout(window.__mpEngineTick, engine.stepInterval);
+      window.__mpScheduleStep(MP_DWELL_MS);
       return;
     }
 
@@ -799,21 +800,8 @@ function initMarketplaceRoulette() {
   // Мгновенная фиксация текущего положения без рывка
   applyPosition(currentIndex, false);
 
-  // ГЛАВНОЕ: Рассчитываем оставшееся время до следующего свайпа по абсолютным настенным часам (wall-clock)!
-  // Никакого искусственного сброса таймера на 3 секунды заново!
-  const now = Date.now();
-  const nextTarget = engine.nextStepTime || (engine.lastStepTime + engine.stepInterval);
-  const remaining = nextTarget - now;
-
-  clearTimeout(engine.timerId);
-  if (remaining > 150) {
-    // Естественное продолжение оставшегося времени такта (например, осталось 400 мс — свайп пойдет ровно через 400 мс!)
-    engine.timerId = setTimeout(window.__mpEngineTick, remaining);
-  } else {
-    // Если такт уже истек во время переключения экранов — сразу мягко запускаем следующий свайп через 120 мс
-    engine.nextStepTime = now + 120;
-    engine.timerId = setTimeout(window.__mpEngineTick, 120);
-  }
+  // Каждый логотип находится в окне РОВНО 2 секунды (2000 мс)
+  window.__mpScheduleStep(MP_DWELL_MS);
 }
 
 // Global Exports
