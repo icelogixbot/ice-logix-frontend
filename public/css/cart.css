@@ -693,3 +693,73 @@
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
 }
+
+/* 8. Wildberries-Style Payment Method Box & ICE Wallet Selector */
+.wb-payment-method-box {
+  margin: 16px 12px 20px 12px;
+  padding: 14px 16px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.wb-payment-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.wb-payment-options-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.wb-pay-option-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.wb-pay-option-card.active {
+  background: rgba(6, 182, 212, 0.12);
+  border-color: rgba(6, 182, 212, 0.5);
+  box-shadow: 0 4px 14px rgba(6, 182, 212, 0.15);
+}
+
+.wb-pay-radio-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.wb-pay-option-card.active .wb-pay-radio-dot {
+  border-color: #06b6d4;
+  background: #06b6d4;
+  box-shadow: 0 0 8px #06b6d4;
+}
+
+.wb-pay-option-card.active .wb-pay-radio-dot::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: #ffffff;
+}
+

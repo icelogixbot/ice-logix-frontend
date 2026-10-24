@@ -203,11 +203,15 @@
           contentDiv.innerHTML = shadowBannerHtml + await renderSettingsPage(window._settingsInitialTab || 'account');
           if (typeof attachSettingsPageHandlers === 'function') attachSettingsPageHandlers(window._settingsInitialTab || 'account');
         }
-      } else if (currentTab === 'topup') {
-        if (typeof renderBalanceTopupPage === 'function') {
+      } else if (currentTab === 'wallet' || currentTab === 'topup') {
+        if (typeof renderWallet === 'function') {
+          contentDiv.innerHTML = shadowBannerHtml + await renderWallet();
+          if (typeof attachWalletHandlers === 'function') attachWalletHandlers();
+        } else if (typeof renderBalanceTopupPage === 'function') {
           contentDiv.innerHTML = shadowBannerHtml + await renderBalanceTopupPage();
           if (typeof attachBalanceTopupPageHandlers === 'function') attachBalanceTopupPageHandlers();
         }
+      }
       } else if (currentTab === 'kyc') {
         if (typeof openKycScreen === 'function') {
           await openKycScreen();

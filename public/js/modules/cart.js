@@ -211,6 +211,11 @@
       totalSavings += (it.oldPriceByn - it.priceByn) * it.quantity;
     });
 
+    const walletBal = typeof window.balance === 'number' ? window.balance : 0;
+    const walletMethodActive = (window._cartPaymentMethod || 'wallet') === 'wallet';
+    const discountedTotal = Math.round(initialTotal * 0.97 * 100) / 100;
+    const displayTotal = walletMethodActive ? discountedTotal : initialTotal;
+
     // Check if club banner was dismissed
     const hideClubBanner = localStorage.getItem('ice_hide_wb_club_banner') === '1';
 
@@ -351,6 +356,62 @@
           ${cardsHtml}
         </div>
 
+        <!-- 5.5 Wildberries-Style Payment Method Selector with ICE Wallet 3% Discount -->
+        <div class="wb-payment-method-box" id="wbPaymentMethodBox">
+          <div class="wb-payment-box-header">
+            <span class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+              <span>Способ оплаты</span>
+            </span>
+            <span class="text-[10px] text-cyan-300 font-extrabold px-2 py-0.5 rounded-full bg-cyan-400/20 border border-cyan-400/30" id="wbWalletDiscountTag">
+              🔥 СКИДКА 3% С КОШЕЛЬКОМ
+            </span>
+          </div>
+
+          <div class="wb-payment-options-grid">
+            <!-- Опция 1: ICE Кошелек (Скидка 3%) -->
+            <label class="wb-pay-option-card ${walletMethodActive ? 'active' : ''}" id="wbPayOptionWallet" data-method="wallet">
+              <input type="radio" name="wbCartPayMethod" value="wallet" ${walletMethodActive ? 'checked' : ''} class="hidden">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="wb-pay-radio-dot"></div>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-xs font-black text-white">Кошелек ICE</span>
+                    <span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-cyan-400/20 text-cyan-300 border border-cyan-400/30">-3%</span>
+                  </div>
+                  <p class="text-[10px] text-white/50 mt-0.5 truncate" id="wbCartWalletBalText">
+                    Баланс: ${walletBal.toFixed(2)} BYN
+                  </p>
+                </div>
+              </div>
+              <div class="text-right flex-shrink-0">
+                <span class="text-xs font-black text-cyan-400 font-mono" id="wbWalletDiscountPrice">
+                  ${discountedTotal.toFixed(2)} BYN
+                </span>
+                <span class="block text-[9px] text-white/40 line-through" id="wbWalletOriginalPrice">
+                  ${initialTotal.toFixed(2)} BYN
+                </span>
+              </div>
+            </label>
+
+            <!-- Опция 2: Банковская карта / ЕРИП (Стандартная цена) -->
+            <label class="wb-pay-option-card ${!walletMethodActive ? 'active' : ''}" id="wbPayOptionCard" data-method="card">
+              <input type="radio" name="wbCartPayMethod" value="card" ${!walletMethodActive ? 'checked' : ''} class="hidden">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="wb-pay-radio-dot"></div>
+                <div class="min-w-0">
+                  <span class="text-xs font-bold text-white">Карта онлайн / ЕРИП</span>
+                  <p class="text-[10px] text-white/50 mt-0.5">Белкарт, Mastercard, Visa, МИР</p>
+                </div>
+              </div>
+              <div class="text-right flex-shrink-0">
+                <span class="text-xs font-bold text-white/80 font-mono" id="wbStandardCartPrice">
+                  ${initialTotal.toFixed(2)} BYN
+                </span>
+              </div>
+            </label>
+          </div>
+        </div>
+
         <!-- 6. Bottom Sticky Checkout Bar (Above Tab Bar) -->
         <div class="wb-sticky-dock" id="wbStickyDock">
           <div class="wb-sticky-content">
@@ -359,7 +420,7 @@
               <span class="text-white/60">·</span>
               <span id="wbCheckoutCount">${items.length} шт.</span>
               <span class="text-white/60">·</span>
-              <span id="wbCheckoutTotal">${initialTotal.toFixed(2)} BYN</span>
+              <span id="wbCheckoutTotal">${displayTotal.toFixed(2)} BYN</span>
             </button>
           </div>
         </div>
@@ -468,6 +529,19 @@
 
       if (savingsText) savingsText.innerText = totalSavings.toFixed(2) + ' BYN';
 
+      const isWallet = (window._cartPaymentMethod || 'wallet') === 'wallet';
+      const discountedTotal = Math.round(totalAmount * 0.97 * 100) / 100;
+      const displayTotal = isWallet ? discountedTotal : totalAmount;
+
+      const wbWalletDiscountPrice = document.getElementById('wbWalletDiscountPrice');
+      if (wbWalletDiscountPrice) wbWalletDiscountPrice.innerText = discountedTotal.toFixed(2) + ' BYN';
+
+      const wbWalletOriginalPrice = document.getElementById('wbWalletOriginalPrice');
+      if (wbWalletOriginalPrice) wbWalletOriginalPrice.innerText = totalAmount.toFixed(2) + ' BYN';
+
+      const wbStandardCartPrice = document.getElementById('wbStandardCartPrice');
+      if (wbStandardCartPrice) wbStandardCartPrice.innerText = totalAmount.toFixed(2) + ' BYN';
+
       if (checkoutBtn) {
         if (totalCount > 0) {
           checkoutBtn.className = 'wb-checkout-cta active';
@@ -476,7 +550,7 @@
             <span class="text-white/60">·</span>
             <span>${totalCount} шт.</span>
             <span class="text-white/60">·</span>
-            <span>${totalAmount.toFixed(2)} BYN</span>
+            <span>${displayTotal.toFixed(2)} BYN${isWallet ? ' <span class="text-[11px] text-cyan-300 font-mono font-bold">(-3%)</span>' : ''}</span>
           `;
         } else {
           checkoutBtn.className = 'wb-checkout-cta disabled';
@@ -484,6 +558,23 @@
         }
       }
     }
+
+    // 5.1 Payment Method Switcher (ICE Wallet vs Bank Card)
+    const payWalletCard = document.getElementById('wbPayOptionWallet');
+    const payBankCard = document.getElementById('wbPayOptionCard');
+
+    function setPaymentMethod(method) {
+      window._cartPaymentMethod = method;
+      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
+      if (payWalletCard && payBankCard) {
+        payWalletCard.classList.toggle('active', method === 'wallet');
+        payBankCard.classList.toggle('active', method === 'card');
+      }
+      updateWbTotals();
+    }
+
+    if (payWalletCard) payWalletCard.onclick = () => setPaymentMethod('wallet');
+    if (payBankCard) payBankCard.onclick = () => setPaymentMethod('card');
 
     // 6. "Все" Select All Checkbox Handler
     const selectAllCb = document.getElementById('wbSelectAllCb');
@@ -853,11 +944,17 @@
 
         if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
 
+        const isWallet = (window._cartPaymentMethod || 'wallet') === 'wallet';
+        const finalTotal = isWallet ? Math.round(total * 0.97 * 100) / 100 : total;
+        const discountAmount = isWallet ? Math.round(total * 0.03 * 100) / 100 : 0;
+
         window.tempOrder = {
           items: selectedItems,
-          total: total,
-          discountAmount: 0,
-          appliedPromo: null
+          total: finalTotal,
+          originalTotal: total,
+          discountAmount: discountAmount,
+          appliedPromo: isWallet ? { code: 'ICE-WALLET-3%', discount_type: 'percent', discount_value: 3 } : null,
+          paymentMethod: isWallet ? 'wallet' : 'card'
         };
 
         if (typeof switchTab === 'function') {

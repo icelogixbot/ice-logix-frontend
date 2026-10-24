@@ -3202,8 +3202,10 @@ let adminOrdersTotalPages = 1;
     window.animateClick = animateClick;
 
     window.openBalanceTopup = function(defaultAmount = 50) {
-      if (typeof switchTab === 'function') {
-        switchTab('topup');
+      if (typeof window.openWallet === 'function') {
+        window.openWallet('topup', defaultAmount);
+      } else if (typeof switchTab === 'function') {
+        switchTab('wallet');
       } else if (typeof window.openBalanceTopupModal === 'function') {
         window.openBalanceTopupModal(defaultAmount);
       }
@@ -3215,10 +3217,24 @@ let adminOrdersTotalPages = 1;
         addBalBtn.onclick = (e) => {
           if (e) e.stopPropagation();
           if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
-          if (typeof switchTab === 'function') {
-            switchTab('topup');
+          if (typeof window.openWallet === 'function') {
+            window.openWallet('topup');
+          } else if (typeof switchTab === 'function') {
+            switchTab('wallet');
           } else if (typeof window.openBalanceTopup === 'function') {
             window.openBalanceTopup();
+          }
+        };
+      }
+      const balanceIsland = document.getElementById('balanceIsland');
+      if (balanceIsland) {
+        balanceIsland.onclick = (e) => {
+          if (e) e.stopPropagation();
+          if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
+          if (typeof window.openWallet === 'function') {
+            window.openWallet('topup');
+          } else if (typeof switchTab === 'function') {
+            switchTab('wallet');
           }
         };
       }
@@ -3318,7 +3334,7 @@ let adminOrdersTotalPages = 1;
         window.orderAddSubMode = null;
         window.orderAddMode = false;
       }
-      if (tabName === 'finances' || tabName === 'topup') {
+      if (tabName === 'finances' || tabName === 'topup' || tabName === 'wallet') {
         try { delete _tabCache[tabName + ':']; } catch(_) {}
       }
 
@@ -3367,7 +3383,7 @@ let adminOrdersTotalPages = 1;
 
       // Restore from HTML cache for instant screen switch (0ms delay, no flicker)
       const _ck = (tabName || '') + ':' + (subScreen || '');
-      const dynamicTabs = ['finances', 'search', 'notifications', 'settings', 'topup'];
+      const dynamicTabs = ['finances', 'search', 'notifications', 'settings', 'topup', 'wallet'];
       if (!dynamicTabs.includes(tabName) && _tabCache[_ck] && Date.now() - _tabCache[_ck].ts < 600000) {
         const _cd = document.getElementById('content');
         if (_cd) {
