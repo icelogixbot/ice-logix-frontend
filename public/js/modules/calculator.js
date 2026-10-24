@@ -1586,11 +1586,15 @@ window.renderSmartCalculator = async function() {
 
                     if (checkData?.status === 'done') {
                       let skuBundle = null;
-                      if (checkData.description && typeof checkData.description === 'string' && checkData.description.startsWith('{')) {
-                        try {
-                          const parsedDesc = JSON.parse(checkData.description);
-                          if (parsedDesc && parsedDesc.is_sku_bundle) skuBundle = parsedDesc;
-                        } catch(e) {}
+                      if (checkData.description) {
+                        if (typeof checkData.description === 'object' && checkData.description.is_sku_bundle) {
+                          skuBundle = checkData.description;
+                        } else if (typeof checkData.description === 'string') {
+                          try {
+                            const parsedDesc = JSON.parse(checkData.description);
+                            if (parsedDesc && parsedDesc.is_sku_bundle) skuBundle = parsedDesc;
+                          } catch(e) {}
+                        }
                       }
 
                       const bundleData = skuBundle || {

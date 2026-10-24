@@ -1953,12 +1953,16 @@ window.applySmartShareLink = applySmartShareLink;
 
               let skuBundle = null;
               if (result.description) {
-                try {
-                  const parsedDesc = JSON.parse(result.description);
-                  if (parsedDesc && parsedDesc.is_sku_bundle) {
-                    skuBundle = parsedDesc;
-                  }
-                } catch (e) {}
+                if (typeof result.description === 'object' && result.description.is_sku_bundle) {
+                  skuBundle = result.description;
+                } else if (typeof result.description === 'string') {
+                  try {
+                    const parsedDesc = JSON.parse(result.description);
+                    if (parsedDesc && parsedDesc.is_sku_bundle) {
+                      skuBundle = parsedDesc;
+                    }
+                  } catch (e) {}
+                }
               }
 
               const applyResolvedData = (data) => {

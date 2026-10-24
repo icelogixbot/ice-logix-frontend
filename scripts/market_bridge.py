@@ -106,10 +106,14 @@ COLOR_DICT = {
     "燕麦色": "Овсяный",
     "驼色": "Верблюжий",
     "焦糖色": "Карамельный",
+    "冰川蓝": "Ледниковый синий",
+    "蜜桃粉": "Персиковый розовый",
+    "藏青": "Темно-синий",
 }
 
 # ==================== FASHION & LUXURY INTELLIGENCE ENGINE ====================
 BRAND_RULES = [
+    (["acne studios", "acne", "ac", "ac同款"], "Acne Studios"),
     (["bottega veneta", "bottega", "bv", "葆蝶家"], "Bottega Veneta"),
     (["balenciaga", "巴黎世家", "3xl", "defender", "triple s", "runner"], "Balenciaga"),
     (["maison margiela", "margiela", "马吉拉", "德训", "tabi"], "Maison Margiela"),
@@ -173,6 +177,15 @@ CHINESE_FASHION_SUBST = {
     "外套": " куртка ",
     "皮衣": " кожаная куртка ",
     "卫衣": " худи ",
+    "长袖T恤": " лонгслив ",
+    "长袖t恤": " лонгслив ",
+    "短袖T恤": " футболка ",
+    "T恤": " футболка ",
+    "t恤": " футболка ",
+    "做旧": " винтажный с потертостями ",
+    "磨破洞": " с рваным эффектом ",
+    "防晒": " легкий ",
+    "圆领": " с круглым вырезом ",
     "卫裤": " спортивные брюки ",
     "工装裤": " брюки карго ",
     "牛仔裤": " джинсы ",
@@ -497,12 +510,8 @@ def human_tap(bounds_str: str) -> bool:
         cx = int(random.triangular(min_x, max_x, (min_x + max_x) / 2))
         cy = int(random.triangular(min_y, max_y, (min_y + max_y) / 2))
 
-    touch_ms = random.randint(85, 135)
-    drift_x = cx + random.choice([-1, 0, 1])
-    drift_y = cy + random.choice([-1, 0, 1])
-    
-    print(f"[*] Human tap at ({cx}, {cy}) bounds={bounds_str} dwell={touch_ms}ms")
-    run_adb(["shell", "input", "swipe", str(cx), str(cy), str(drift_x), str(drift_y), str(touch_ms)])
+    print(f"[*] Human tap at ({cx}, {cy}) bounds={bounds_str}")
+    run_adb(["shell", "input", "tap", str(cx), str(cy)])
     time.sleep(random.uniform(0.3, 0.6))
     return True
 
@@ -935,56 +944,84 @@ def parse_product(req: ParseRequest):
     run_adb(["shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", intent_url, "-f", "0x14000000"])
     time.sleep(random.uniform(2.5, 3.2)) # human dwell time for page load
     
-    # 2. Capture title directly from initial page state
+    # 2. Capture title & page price directly from initial page state
     root_init = dump_ui_xml()
     
+    # Save initial price from the main product screen as rock-solid fallback
+    page_price_cny = 0.0
+    for node in root_init.iter("node"):
+        txt = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
+        m_p = re.search(r"¥\s*(\d+\.?\d*)", txt)
+        if m_p:
+            try:
+                p = float(m_p.group(1))
+                if p > 0:
+                    page_price_cny = p
+                    break
+            except Exception:
+                pass
+
     raw_title = ""
-    # Look for title node in top half of screen (below image y1 >= 850)
+    # Review/marketing blacklist to guarantee 0 buyer review pollution
+    review_and_ad_junk = [
+        "收到了", "退货", "假一赔十", "正品保障", "客服", "店铺", "收藏", "已拼", "券后", "免拼", 
+        "评价", "进店", "分享", "已选:", "二次销售", "不支持七天", "退换", "如出现已洗涤", "顶部", 
+        "活动优惠", "服务", "更换支付方式", "提交订单", "在拼", "参与可立即", "拼单即将结束", 
+        "去拼单", "元", "¥", "电影", "男神", "人好评", "人说", "买过", "回头客", "满意", "很喜欢", 
+        "太好看", "很棒", "穿上", "很帅", "推荐", "超赞", "好看", "质量", "材质", "手感", "面料"
+    ]
+    
+    # Primary title sweep: wide product header text below main photo (y1 between 450 and 1150)
     for node in root_init.iter("node"):
         txt = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
         b = node.attrib.get("bounds", "")
         if b and len(txt) >= 8:
             x1, y1, x2, y2 = parse_bounds(b)
-            # True title is on screen (y1 between 850 and 1350, wide width >= 400), not a review or phantom
-            if 850 <= y1 <= 1350 and (x2 - x1) >= 400 and not any(x in txt for x in ["收到了", "退货", "假一赔十", "正品保障", "客服", "店铺", "收藏", "已拼", "券后", "免拼", "评价", "进店", "分享", "已选:", "二次销售", "不支持七天", "退换", "如出现已洗涤", "顶部", "活动优惠", "服务", "更换支付方式", "提交订单", "在拼", "参与可立即", "拼单即将结束", "去拼单", "元", "¥", "保暖", "舒服", "穿搭", "手感", "面料", "好评"]):
-                if len(txt) > len(raw_title):
-                    raw_title = txt
-    
+            # Must be in main product header zone, not phantom, wide width >= 250
+            if 350 <= y1 <= 1450 and (x2 - x1) >= 250:
+                if not any(x in txt for x in review_and_ad_junk):
+                    if len(txt) > len(raw_title):
+                        raw_title = txt
+
+    # Secondary title sweep if still empty: search for branded brackets or fashion keywords
     if not raw_title:
         candidates = []
         for node in root_init.iter("node"):
             txt = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
             b = node.attrib.get("bounds", "")
             x1, y1, x2, y2 = parse_bounds(b) if b else (0,0,0,0)
-            if (x1 > 0 or y1 > 0) and len(txt) >= 10 and not any(x in txt for x in ["收到了", "退货包运费", "假一赔十", "正品保障", "客服", "店铺", "收藏", "已拼", "券后", "免拼", "评价", "进店", "分享", "已选:", "二次销售", "不支持七天", "退换", "如出现已洗涤", "顶部", "活动优惠", "服务", "更换支付方式", "提交订单", "在拼", "参与可立即", "拼单即将结束", "去拼单", "保暖", "舒服", "穿搭", "手感", "面料", "好评"]):
-                candidates.append(txt)
+            if (x1 > 0 or y1 > 0) and len(txt) >= 8 and not any(x in txt for x in review_and_ad_junk):
+                score = len(txt)
+                if txt.startswith("【") or txt.startswith("["):
+                    score += 50
+                if any(k in txt for k in ["同款", "T恤", "短袖", "长袖", "卫衣", "外套", "羽绒服", "裤", "鞋", "手表", "表", "包", "壳", "帽"]):
+                    score += 30
+                candidates.append((score, txt))
         if candidates:
-            raw_title = max(candidates, key=len)
+            candidates.sort(key=lambda c: c[0], reverse=True)
+            raw_title = candidates[0][1]
 
     # 3. Check if SKU drawer is open, or tap buy button
-    has_sku_drawer = any(any(x in (n.attrib.get("text", "") or n.attrib.get("content-desc", "")) for x in ["提交订单", "立即支付", "选择尺码后", "选择款式后"]) for n in root_init.iter("node"))
+    has_sku_drawer = any(any(x in (n.attrib.get("text", "") or n.attrib.get("content-desc", "")) for x in ["提交订单", "立即支付", "选择尺码后", "选择款式后", "大图"]) for n in root_init.iter("node"))
     if not has_sku_drawer:
-        print("[*] SKU drawer not open yet. Tapping bottom buy button...")
-        buy_bounds = None
-        # Strict priority: discount/group buy first, expensive single buy last
-        for target_text in ["免拼购买", "发起拼单", "立即购买", "单独购买"]:
-            for n in root_init.iter("node"):
-                t = (n.attrib.get("text", "") or n.attrib.get("content-desc", "")).strip()
-                b = n.attrib.get("bounds", "")
-                if target_text in t and b:
-                    x1, y1, x2, y2 = parse_bounds(b)
-                    if y1 >= 1300 and x2 > x1 and y2 > y1:
-                        buy_bounds = b
-                        break
-            if buy_bounds:
-                break
-
-        if buy_bounds:
-            human_tap(buy_bounds)
-        else:
-            human_tap("[740,1535]") # Center of right bottom buy button
-        time.sleep(random.uniform(1.8, 2.5))
+        print("[*] SKU drawer not open yet. Tapping bottom action area...", flush=True)
+        # 1. First priority: Tap the bottom-right action area [675, 1550] (reliably opens SKU drawer)
+        human_tap("[675,1550]")
+        time.sleep(random.uniform(1.8, 2.3))
         root = dump_ui_xml()
+        has_sku_drawer = any(any(x in (n.attrib.get("text", "") or n.attrib.get("content-desc", "")) for x in ["提交订单", "立即支付", "选择尺码后", "选择款式后", "大图"]) for n in root.iter("node"))
+        
+        # 2. Secondary fallback: Tap explicit buy button text node if drawer still closed
+        if not has_sku_drawer:
+            for target_text in ["免拼购买", "发起拼单", "立即购买", "单独购买"]:
+                for n in root_init.iter("node"):
+                    t = (n.attrib.get("text", "") or n.attrib.get("content-desc", "")).strip()
+                    b = n.attrib.get("bounds", "")
+                    if target_text in t and b:
+                        human_tap(b)
+                        time.sleep(random.uniform(1.6, 2.0))
+                        root = dump_ui_xml()
+                        break
     else:
         root = root_init
         
@@ -998,7 +1035,7 @@ def parse_product(req: ParseRequest):
     selected_summary = ""
     
     # Non-sku blacklist keywords
-    blacklist_terms = ["¥", "元", "已拼", "折", "包邮", "退货", "发货", "对照表", "体重", "详情", "举报", "店铺", "收藏", "客服", "返回", "大促", "买过", "即将结束", "无需等待", "匿名", "进店", "保障", "评价", "全场", "领型", "穿着方式", "面料", "风格", "适用", "多款", "列表", "打开大图", "减少数量", "增加数量", "数量", "请选择", "去支付", "组合", "查收", "尺码建议", "查看尺码建议", "建议", "关闭弹窗", "当前收货地址", "送达", "同行"]
+    blacklist_terms = ["¥", "元", "已拼", "折", "包邮", "退货", "发货", "对照表", "体重", "详情", "举报", "店铺", "收藏", "客服", "返回", "大促", "买过", "即将结束", "无需等待", "匿名", "进店", "保障", "评价", "全场", "领型", "穿着方式", "面料", "风格", "适用", "多款", "列表", "打开大图", "减少数量", "增加数量", "数量", "请选择", "去支付", "组合", "查收", "尺码建议", "查看尺码建议", "建议", "关闭弹窗", "当前收货地址", "送达", "同行", "马上卖完", "抢光", "热卖", "爆款"]
 
     for node in root.iter("node"):
         txt = node.attrib.get("text", "").strip()
@@ -1126,9 +1163,17 @@ def parse_product(req: ParseRequest):
     if spec_only_groups:
         sizes = spec_only_groups[0]["options"]
 
+    # Filter out marketing badges from colors
+    marketing_junk = ["马上卖完", "抢光", "热卖", "爆款", "大促", "降价", "限时", "秒杀", "包邮", "已选", "请选择"]
+    colors = [c for c in colors if not any(j in c.get("name", "") for j in marketing_junk) and len(c.get("name", "").strip()) > 0]
+    if visual_groups:
+        visual_groups[0]["options"] = colors
+
     if price_cny == 0.0:
         if orig_price_cny > 0.0:
             price_cny = orig_price_cny
+        elif page_price_cny > 0.0:
+            price_cny = page_price_cny
         else:
             for node in root.iter("node"):
                 val = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
@@ -1136,7 +1181,10 @@ def parse_product(req: ParseRequest):
                 if m_any:
                     price_cny = float(m_any.group(1))
                     break
-                
+
+    if price_cny == 0.0 and page_price_cny > 0.0:
+        price_cny = page_price_cny
+
     # Detect category and brand dynamically
     category, brand = detect_category_and_brand(raw_title, selected_summary)
     title_ru = synthesize_smart_title(raw_title, brand, category)
@@ -1152,11 +1200,11 @@ def parse_product(req: ParseRequest):
         "title_ru": title_ru,
         "brand": brand,
         "category": category,
-        "price_cny": price_cny or 5.43,
-        "orig_price_cny": orig_price_cny or 10.22,
+        "price_cny": price_cny or page_price_cny or 0.0,
+        "orig_price_cny": orig_price_cny or price_cny or page_price_cny or 0.0,
         "image_url": image_rel_url,
         "selected_summary": selected_summary,
-        "has_options": len(colors) > 1 or len(sizes) > 1 or len(spec_groups) > 1,
+        "has_options": len(colors) > 0 or len(sizes) > 0 or len(spec_groups) > 0,
         "colors": colors,
         "sizes": sizes,
         "spec_groups": spec_groups
