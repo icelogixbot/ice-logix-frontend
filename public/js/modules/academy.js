@@ -812,7 +812,7 @@ async function renderAcademy() {
               <div style="padding: 10px 8px 10px 8px; display: flex; flex-direction: column; flex: 1;">
                 <p class="text-white font-bold text-sm truncate" style="font-size: 13px; font-weight: 700; line-height: 1.2;">${_esc(p.title)}</p>
                 <div class="flex items-center justify-between mt-1.5">
-                  <p class="text-cyan-400 font-bold text-sm font-mono leading-none">${p.price} ${p.currency || 'BYN'}</p>
+                  <p class="text-cyan-400 font-bold text-sm font-mono leading-none inline-flex items-center gap-1">${p.price} ${window.bynSign ? window.bynSign() : ''}</p>
                   ${p.category ? `<span class="text-[10px] text-white/40 truncate max-w-[80px]">${_esc(p.category)}</span>` : ''}
                 </div>
                 <div class="flex gap-1.5 mt-2.5">

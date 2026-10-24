@@ -26,7 +26,7 @@ async function renderAboutUs() {
       <div class="flex flex-wrap justify-center gap-2 relative z-10">
         <span class="status-badge bg-white/10 border-white/20 text-white">📍 Беларусь, г. Несвиж</span>
         <span class="status-badge bg-white/10 border-white/20 text-white">📦 Выкуп и Доставка</span>
-        <span class="status-badge bg-cyan-500/20 border-cyan-500/50 text-cyan-300">🧊 1 ICE = 1 BYN</span>
+        <span class="status-badge bg-cyan-500/20 border-cyan-500/50 text-cyan-300">🛡️ Официальные расчеты</span>
       </div>
     </div>
 

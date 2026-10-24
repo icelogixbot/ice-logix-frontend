@@ -541,7 +541,7 @@
         <div class="glass-card p-4 rounded-3xl border border-white/10 space-y-3">
           <label class="block text-white font-bold text-xs uppercase tracking-wider flex items-center justify-between">
             <span class="inline-flex items-center gap-1">Сумма пополнения (${window.bynSign ? window.bynSign({ color: 'cyan', size: '1em' }) : ''})</span>
-            <span class="text-[10px] font-mono text-cyan-300 normal-case">Зачисление: <b id="topupConvertedIceText">${_selectedTopupAmount} ICE</b></span>
+            <span class="text-[10px] font-mono text-cyan-300 normal-case">Комиссия: <b id="topupConvertedIceText">0% (без переплат)</b></span>
           </label>
 
           <!-- Быстрые чипсы выбора сумм -->
@@ -653,7 +653,7 @@
             id="proceedTopupSubmitBtn"
             class="btn-primary w-full py-4 rounded-2xl font-black text-sm shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2 active:scale-95 transition"
           >
-            <span>Пополнить на ${_selectedTopupAmount} ${window.bynSign ? window.bynSign({ color: 'white' }) : ''} (${_selectedTopupAmount} ICE)</span>
+            <span>Пополнить на ${_selectedTopupAmount} ${window.bynSign ? window.bynSign({ color: 'white' }) : ''}</span>
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
         </div>
@@ -700,10 +700,10 @@
           if (hb) hb.innerText = data.ices_balance;
 
           const tb = document.getElementById('topupCurrentBalText');
-          if (tb) tb.innerText = `${data.ices_balance} ICE`;
+          if (tb) tb.innerHTML = `${data.ices_balance} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}`;
 
           const tbByn = document.getElementById('topupCurrentBalByn');
-          if (tbByn) tbByn.innerText = `(~${data.ices_balance} BYN)`;
+          if (tbByn) tbByn.innerHTML = '';
 
           try {
             const cached = localStorage.getItem('ice_cached_user');
@@ -728,12 +728,12 @@
         customInput.value = _selectedTopupAmount;
       }
       if (convertedIceText) {
-        convertedIceText.innerText = `${_selectedTopupAmount} ICE`;
+        convertedIceText.innerText = '0% (без переплат)';
       }
 
       if (submitBtn) {
         submitBtn.innerHTML = `
-          <span>Пополнить на ${_selectedTopupAmount} ${window.bynSign ? window.bynSign({ color: 'white' }) : ''} (${_selectedTopupAmount} ICE)</span>
+          <span>Пополнить на ${_selectedTopupAmount} ${window.bynSign ? window.bynSign({ color: 'white' }) : ''}</span>
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
         `;
       }
@@ -829,7 +829,7 @@
           if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('medium');
 
           await new Promise(r => setTimeout(r, 1400));
-          await applyTopupCredit(amountVal, `Баланс успешно пополнен на +${amountVal} ICE с банковской карты!`);
+          await applyTopupCredit(amountVal, `Баланс успешно пополнен на +${amountVal} с банковской карты!`);
 
           submitBtn.disabled = false;
           updateTopupAmount(_selectedTopupAmount);

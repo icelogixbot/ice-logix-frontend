@@ -895,12 +895,12 @@ window.updateLiveCalcBreakdown = function() {
   const qtyValEl = document.getElementById('calcQtyVal');
 
   if (priceCnyEl) priceCnyEl.innerText = calc.priceCny;
-  if (totalBynEl) totalBynEl.innerText = calc.totalByn.toFixed(2) + ' BYN';
+  if (totalBynEl) totalBynEl.innerHTML = `${calc.totalByn.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}`;
   if (detailCnyEl) detailCnyEl.innerText = calc.priceCny;
-  if (detailProdBynEl) detailProdBynEl.innerText = calc.productByn.toFixed(2) + ' BYN';
-  if (detailShipBynEl) detailShipBynEl.innerText = calc.shippingByn.toFixed(2) + ' BYN';
-  if (detailInsBynEl) detailInsBynEl.innerText = calc.insuranceByn.toFixed(2) + ' BYN';
-  if (detailCommBynEl) detailCommBynEl.innerText = calc.commissionByn.toFixed(2) + ' BYN';
+  if (detailProdBynEl) detailProdBynEl.innerHTML = `${calc.productByn.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}`;
+  if (detailShipBynEl) detailShipBynEl.innerHTML = `${calc.shippingByn.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}`;
+  if (detailInsBynEl) detailInsBynEl.innerHTML = `${calc.insuranceByn.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}`;
+  if (detailCommBynEl) detailCommBynEl.innerHTML = `${calc.commissionByn.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}`;
   if (qtyValEl) qtyValEl.innerText = qty;
 };
 
@@ -1313,7 +1313,7 @@ window.renderSmartCalculator = async function() {
           <div class="bg-cyan-500/10 border border-cyan-500/25 p-4 rounded-2xl text-left space-y-3 mt-4">
             <div class="text-center pb-2 border-b border-white/10">
               <span class="text-white/50 text-[11px] block">Итоговая стоимость «под ключ» в Беларуси</span>
-              <span class="text-3xl font-black text-cyan-400 font-mono tracking-tight" id="calcTotalBynDisplay">${calc.totalByn.toFixed(2)} BYN</span>
+              <span class="text-3xl font-black text-cyan-400 font-mono tracking-tight inline-flex items-center justify-center gap-1.5" id="calcTotalBynDisplay">${calc.totalByn.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</span>
               <span class="text-[10px] text-emerald-400 font-semibold block mt-1">✓ Товар + доставка в РБ + страховка + Европочта</span>
             </div>
 
@@ -1326,23 +1326,23 @@ window.renderSmartCalculator = async function() {
               <div class="space-y-1.5 pt-2 text-[11px]">
                 <div class="flex justify-between text-white/60">
                   <span>Выкуп товара (<span id="calcDetailCnyPrice">${calc.priceCny}</span> ¥ по курсу ${calc.cnyRate}):</span>
-                  <span class="font-mono text-white font-semibold" id="calcDetailProductByn">${calc.productByn.toFixed(2)} BYN</span>
+                  <span class="font-mono text-white font-semibold inline-flex items-center gap-0.5" id="calcDetailProductByn">${calc.productByn.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
                 </div>
                 <div class="flex justify-between text-white/60">
                   <span>Международная доставка (~${calc.weightKg} кг):</span>
-                  <span class="font-mono text-white" id="calcDetailShippingByn">${calc.shippingByn.toFixed(2)} BYN</span>
+                  <span class="font-mono text-white inline-flex items-center gap-0.5" id="calcDetailShippingByn">${calc.shippingByn.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
                 </div>
                 <div class="flex justify-between text-white/60">
                   <span>Обязательная страховка (2%):</span>
-                  <span class="font-mono text-white" id="calcDetailInsuranceByn">${calc.insuranceByn.toFixed(2)} BYN</span>
+                  <span class="font-mono text-white inline-flex items-center gap-0.5" id="calcDetailInsuranceByn">${calc.insuranceByn.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
                 </div>
                 <div class="flex justify-between text-white/60">
                   <span>Доставка Европочтой по Беларуси:</span>
-                  <span class="font-mono text-white">5.00 BYN</span>
+                  <span class="font-mono text-white inline-flex items-center gap-0.5">5.00 ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
                 </div>
                 <div class="flex justify-between text-white/60">
                   <span>Комиссия сервиса ICE LOGIX:</span>
-                  <span class="font-mono text-white" id="calcDetailCommissionByn">${calc.commissionByn.toFixed(2)} BYN</span>
+                  <span class="font-mono text-white inline-flex items-center gap-0.5" id="calcDetailCommissionByn">${calc.commissionByn.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
                 </div>
               </div>
             </details>
@@ -1520,11 +1520,16 @@ window.renderSmartCalculator = async function() {
             const handleParsedBundle = (bundleData) => {
               if (statusBox) statusBox.classList.add('hidden');
               const hasOpts = bundleData.has_options || (bundleData.colors && bundleData.colors.length > 0) || (bundleData.sizes && bundleData.sizes.length > 0) || (bundleData.spec_groups && bundleData.spec_groups.length > 0) || (bundleData.visual_options && bundleData.visual_options.length > 0);
-              if (hasOpts && typeof window.openSkuSelectorModal === 'function') {
-                window.openSkuSelectorModal(bundleData, (selected) => {
-                  finalizeParsedItem(bundleData, selected);
-                });
-              } else {
+              try {
+                if (hasOpts && typeof window.openSkuSelectorModal === 'function') {
+                  window.openSkuSelectorModal(bundleData, (selected) => {
+                    finalizeParsedItem(bundleData, selected);
+                  });
+                } else {
+                  finalizeParsedItem(bundleData, null);
+                }
+              } catch (modalErr) {
+                console.error('[!] Error opening SKU modal, falling back directly:', modalErr);
                 finalizeParsedItem(bundleData, null);
               }
             };
@@ -2356,7 +2361,7 @@ if (typeof attachCalculatorHandlers === 'function') {
           serviceBreakdownHtmlRows.push(`
             <div class="flex justify-between text-xs py-1 text-green-400">
               <span>📦 Консолидация (${countryLabel})</span>
-              <span class="font-mono">-3.00 BYN</span>
+              <span class="font-mono inline-flex items-center gap-0.5">-3.00 ${window.bynSign ? window.bynSign({ color: 'emerald', size: '0.85em' }) : ''}</span>
             </div>
           `);
         }
@@ -2368,7 +2373,7 @@ if (typeof attachCalculatorHandlers === 'function') {
           serviceBreakdownHtmlRows.push(`
             <div class="flex justify-between text-xs py-1 text-white/80">
               <span>🫧 Плёнка для посылки (${countryLabel})</span>
-              <span class="font-mono">+3.00 BYN</span>
+              <span class="font-mono inline-flex items-center gap-0.5">+3.00 ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
             </div>
           `);
         }
@@ -2377,7 +2382,7 @@ if (typeof attachCalculatorHandlers === 'function') {
           serviceBreakdownHtmlRows.push(`
             <div class="flex justify-between text-xs py-1 text-white/80">
               <span>🪵 Обрешётка посылки (${countryLabel})</span>
-              <span class="font-mono">+10.00 BYN</span>
+              <span class="font-mono inline-flex items-center gap-0.5">+10.00 ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
             </div>
           `);
         }
@@ -2386,7 +2391,7 @@ if (typeof attachCalculatorHandlers === 'function') {
           serviceBreakdownHtmlRows.push(`
             <div class="flex justify-between text-xs py-1 text-white/80">
               <span>🔍 Проверка на брак (${countryLabel})</span>
-              <span class="font-mono">+5.00 BYN</span>
+              <span class="font-mono inline-flex items-center gap-0.5">+5.00 ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
             </div>
           `);
         }
@@ -2550,7 +2555,7 @@ if (typeof attachCalculatorHandlers === 'function') {
       if (firstPaySpan) firstPaySpan.innerText = firstPaymentFinal.toFixed(2);
       if (secondPaySpan) secondPaySpan.innerText = secondPaymentEst.toFixed(2);
       if (btnPaySpan) btnPaySpan.innerText = firstPaymentFinal.toFixed(2);
-      if (balText) balText.innerText = '-' + balanceUsed.toFixed(2) + ' BYN';
+      if (balText) balText.innerHTML = '-' + balanceUsed.toFixed(2) + ' ' + (window.bynSign ? window.bynSign({ color: 'emerald', size: '0.85em' }) : '');
       if (balRow) balRow.classList.toggle('hidden', !applyBalance || balanceUsed <= 0);
 
       if (breakdownEl) {

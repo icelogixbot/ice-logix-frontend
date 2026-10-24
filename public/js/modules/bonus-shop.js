@@ -12,8 +12,8 @@
   const FALLBACK_ITEMS = [
     {
       id: 'coupon-10',
-      title: 'Купон на скидку 10 BYN',
-      description: 'Скидка 10 BYN на комиссию вашего следующего заказа',
+      title: 'Купон на скидку 10',
+      description: 'Скидка на комиссию вашего следующего заказа',
       category: 'coupons',
       price_ice: 10,
       image_url: './assets/icl_currency_icon.png',
@@ -22,8 +22,8 @@
     },
     {
       id: 'coupon-25',
-      title: 'Купон на скидку 25 BYN',
-      description: 'Скидка 25 BYN на комиссию любого крупного заказа',
+      title: 'Купон на скидку 25',
+      description: 'Скидка на комиссию любого крупного заказа',
       category: 'coupons',
       price_ice: 25,
       image_url: './assets/icl_currency_icon.png',
@@ -42,7 +42,7 @@
     },
     {
       id: 'mobile-5',
-      title: 'Пополнение телефона 5 BYN',
+      title: 'Пополнение телефона на 5',
       description: 'Моментальное пополнение баланса МТС, А1 или Life:)',
       category: 'mobile',
       price_ice: 5,
@@ -52,7 +52,7 @@
     },
     {
       id: 'mobile-10',
-      title: 'Пополнение телефона 10 BYN',
+      title: 'Пополнение телефона на 10',
       description: 'Пополнение номера телефона любого мобильного оператора Беларуси',
       category: 'mobile',
       price_ice: 10,
@@ -62,7 +62,7 @@
     },
     {
       id: 'mobile-20',
-      title: 'Пополнение телефона 20 BYN',
+      title: 'Пополнение телефона на 20',
       description: 'Пополнение номера телефона любого мобильного оператора Беларуси',
       category: 'mobile',
       price_ice: 20,
@@ -224,8 +224,7 @@
                 <div>
                   <div class="flex items-center gap-1.5">
                     <span class="text-cyan-400 font-black text-base">${item.price_ice}</span>
-                    <span class="text-[11px] font-bold text-cyan-300/80">ICE</span>
-                    <span class="text-[10px] text-white/40 inline-flex items-baseline gap-0.5">(~${item.price_ice} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''})</span>
+                    ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}
                   </div>
                   ${item.stock > 0 ? `<p class="text-[10px] text-white/40">Осталось: ${item.stock} шт.</p>` : ''}
                 </div>
@@ -257,7 +256,7 @@
           </svg>
         </button>
         <div>
-          <h2 class="text-xl font-bold text-white tracking-wide">Магазин бонусов ICE</h2>
+          <h2 class="text-xl font-bold text-white tracking-wide">Магазин бонусов</h2>
           <p class="text-[11px] text-white/40">Обменивайте баллы на реальные награды</p>
         </div>
       </div>
@@ -268,7 +267,7 @@
           <div>
             <div class="flex items-center gap-1.5">
               <span class="text-xl">🎁</span>
-              <h2 class="text-lg font-black text-white">Магазин бонусов ICE</h2>
+              <h2 class="text-lg font-black text-white">Магазин бонусов</h2>
             </div>
             <p class="text-white/60 text-xs mt-0.5">Обменивайте баллы за заказы и рефералов на реальные награды</p>
           </div>
@@ -280,11 +279,10 @@
         <!-- Виджет баланса и кнопка перехода в рефералку -->
         <div class="p-3 rounded-xl flex items-center justify-between" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06);">
           <div>
-            <p class="text-[10px] uppercase font-bold tracking-wider text-white/50">Ваш баланс ICE</p>
-            <div class="flex items-baseline gap-1.5 mt-0.5">
+            <p class="text-[10px] uppercase font-bold tracking-wider text-white/50">Ваш баланс</p>
+            <div class="flex items-center gap-1.5 mt-0.5">
               <span class="text-2xl font-black text-cyan-400" id="bonusShopUserBal">${userBalance.toFixed(2)}</span>
-              <span class="text-xs font-bold text-white/70">ICE</span>
-              <span class="text-[11px] text-emerald-400 font-semibold inline-flex items-baseline gap-1">(1 ICE = 1 ${window.bynSign ? window.bynSign({ color: 'emerald', size: '0.9em' }) : ''})</span>
+              ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}
             </div>
           </div>
           <button onclick="switchTab('reftree')" class="px-3 py-2 rounded-xl text-xs font-bold text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/10 transition-all flex items-center gap-1.5">
@@ -322,7 +320,7 @@
           <div class="text-center mb-4">
             <span class="text-3xl">🎉</span>
             <h3 class="text-white font-bold text-base mt-1" id="modalItemTitle">Обмен наград</h3>
-            <p class="text-cyan-400 font-black text-sm mt-0.5" id="modalItemPrice">0 ICE</p>
+            <p class="text-cyan-400 font-black text-sm mt-0.5 inline-flex items-center justify-center gap-1" id="modalItemPrice">0</p>
           </div>
 
           <form id="bonusRedeemForm" class="space-y-3">
@@ -422,9 +420,9 @@
         const userBalance = Number(window.balance || window.icesBalance || 0);
         if (userBalance < item.price_ice) {
           if (typeof tgUtil !== 'undefined' && tgUtil.popup) {
-            tgUtil.popup(`Для получения этой награды необходимо ${item.price_ice} ICE. На вашем балансе сейчас ${userBalance.toFixed(2)} ICE. Приглашайте друзей, чтобы накопить баллы!`, 'Недостаточно ICE');
+            tgUtil.popup(`Для получения этой награды необходимо ${item.price_ice}. На вашем балансе сейчас ${userBalance.toFixed(2)}. Приглашайте друзей, чтобы накопить средства!`, 'Недостаточно средств');
           } else {
-            alert(`Недостаточно ICE (${userBalance.toFixed(2)} из ${item.price_ice})`);
+            alert(`Недостаточно средств на балансе (${userBalance.toFixed(2)} из ${item.price_ice})`);
           }
           return;
         }
@@ -459,7 +457,7 @@
               ${statusMap[ord.status] || ord.status}
             </div>
             <div class="flex items-center justify-between text-[11px] text-white/50">
-              <span>Списано: <strong class="text-cyan-400">${ord.price_ice} ICE</strong></span>
+              <span class="inline-flex items-center gap-1">Списано: <strong class="text-cyan-400">${ord.price_ice}</strong> ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</span>
               <span>${new Date(ord.created_at).toLocaleDateString()}</span>
             </div>
           </div>
@@ -501,7 +499,7 @@
 
     document.getElementById('modalItemId').value = item.id;
     document.getElementById('modalItemTitle').textContent = item.title;
-    document.getElementById('modalItemPrice').textContent = `${item.price_ice} ICE`;
+    document.getElementById('modalItemPrice').innerHTML = `${item.price_ice} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}`;
 
     const mobileFields = document.getElementById('mobileFields');
     const physicalFields = document.getElementById('physicalFields');
@@ -534,7 +532,7 @@
 
     const userBalance = Number(window.balance || window.icesBalance || 0);
     if (userBalance < item.price_ice) {
-      alert('Недостаточно ICE');
+      alert('Недостаточно средств на балансе');
       return;
     }
 
@@ -630,9 +628,9 @@
 
       // Показываем подтверждение
       if (typeof tgUtil !== 'undefined' && tgUtil.popup) {
-        tgUtil.popup(`Награда «${item.title}» успешно оформлена! Заявка передана оператору ICE LOGIX. Списано: ${item.price_ice} ICE.`, 'Успешный обмен');
+        tgUtil.popup(`Награда «${item.title}» успешно оформлена! Заявка передана оператору ICE LOGIX. Списано: ${item.price_ice}.`, 'Успешный обмен');
       } else {
-        alert(`Награда «${item.title}» оформлена! Списано: ${item.price_ice} ICE.`);
+        alert(`Награда «${item.title}» оформлена! Списано: ${item.price_ice}.`);
       }
 
       // Перезагрузка страницы

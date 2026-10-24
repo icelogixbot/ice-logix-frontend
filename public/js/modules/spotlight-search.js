@@ -188,7 +188,7 @@
       id: 'faq_payments',
       title: 'Способы оплаты и валюта',
       keywords: ['оплата', 'карта', 'карты', 'белкарт', 'мир', 'bepaid', 'visa', 'mastercard', 'валюта', 'рубли', 'byn', 'платеж'],
-      summary: 'Принимаем карты банков РБ (Белкарт) и РФ (МИР) через bePaid. 1 ICE = 1 BYN.',
+      summary: 'Принимаем карты банков РБ (Белкарт), ЕРИП, Оплати и РФ (МИР) через bePaid без скрытых комиссий.',
       details: 'Безопасная оплата через шлюз bePaid с поддержкой 3D-Secure. Данные карт шифруются по стандарту PCI-DSS.',
       badge: '💳 Оплата',
       color: 'cyan'
@@ -1217,7 +1217,7 @@
       bullets: [
         '📦 <span class="font-bold text-white">Пункты выдачи:</span> Более 500 отделений Европочты и СДЭК по всей Беларуси — забирайте рядом с домом.',
         '⏱️ <span class="font-bold text-white">Сроки:</span> Авиарейс из Китая 8–12 рабочих дней + 1–2 дня пересылка по Беларуси.',
-        '💳 <span class="font-bold text-white">Оплата:</span> Карты любых белорусских банков (Белкарт, Visa, Mastercard) в BYN без скрытых комиссий.'
+        '💳 <span class="font-bold text-white">Оплата:</span> Карты любых белорусских банков (Белкарт, Visa, Mastercard), ЕРИП и Оплати без скрытых комиссий.'
       ],
       actionTitle: 'Рассчитать доставку в калькуляторе →',
       actionType: 'calculator',
@@ -1275,7 +1275,7 @@
       badge: '⚖️ Таможенные правила',
       summary: 'Для физических лиц в Беларуси и России действует беспошлинный порог в 200 евро и 31 кг на одно международное отправление.',
       bullets: [
-        '📦 <span class="font-bold text-white">Без пошлины:</span> Любые товары до 200€ (≈ 1550–1600 ¥) ввозятся с нулевой пошлиной (0 BYN / 0 ₽).',
+        '📦 <span class="font-bold text-white">Без пошлины:</span> Любые товары до 200€ (≈ 1550–1600 ¥) ввозятся с нулевой пошлиной (0 ₽).',
         '📊 <span class="font-bold text-white">При превышении:</span> Пошлина составляет 15% только от суммы превышения (например, при заказе на 250€ пошлина 15% от 50€ = 7.5€).',
         '🤝 <span class="font-bold text-white">Помощь сервиса:</span> Поможем грамотно распределить позиции на несколько посылок, если заказывается несколько дорогих вещей.'
       ],
@@ -1732,10 +1732,10 @@
     else if (aiIntent && aiIntent.type === 'complex_calc') {
       bodyHtml = `ИИ выполнил полный экспресс-расчет «под ключ» для категории <span class="text-white font-bold">${aiIntent.itemName}</span> (${aiIntent.priceCny} ¥, вес ${aiIntent.weightKg} кг):`;
       bullets = [
-        `💰 <span class="font-bold text-white">Итоговая стоимость с доставкой:</span> <span class="text-cyan-300 font-extrabold text-sm">≈ ${aiIntent.totalRub.toLocaleString('ru-RU')} ₽</span> или <span class="text-white font-bold">≈ ${aiIntent.totalByn} BYN</span>.`,
-        `🇨🇳 <span class="font-bold text-white">Выкуп товара в Китае:</span> ${aiIntent.buyCostByn} BYN (по курсу ЦБ с официальной комиссией сервиса 20%).`,
-        `✈️ <span class="font-bold text-white">Экспресс-авиадоставка:</span> ${aiIntent.shippingCostByn} BYN (тариф $10 за 1 кг). Оплачивается вторым этапом по точному весу.`,
-        `⚖️ <span class="font-bold text-white">Таможня:</span> Пошлина 0 BYN (стоимость не превышает беспошлинный лимит 200€ на посылку).`
+        `💰 <span class="font-bold text-white">Итоговая стоимость с доставкой:</span> <span class="text-cyan-300 font-extrabold text-sm">≈ ${aiIntent.totalRub.toLocaleString('ru-RU')} ₽</span> или <span class="text-white font-bold inline-flex items-center gap-0.5">≈ ${aiIntent.totalByn} ${window.bynSign ? window.bynSign({ color: 'white', size: '0.85em' }) : ''}</span>.`,
+        `🇨🇳 <span class="font-bold text-white">Выкуп товара в Китае:</span> <span class="inline-flex items-center gap-0.5">${aiIntent.buyCostByn} ${window.bynSign ? window.bynSign({ color: 'white', size: '0.85em' }) : ''}</span> (по курсу ЦБ с официальной комиссией сервиса 20%).`,
+        `✈️ <span class="font-bold text-white">Экспресс-авиадоставка:</span> <span class="inline-flex items-center gap-0.5">${aiIntent.shippingCostByn} ${window.bynSign ? window.bynSign({ color: 'white', size: '0.85em' }) : ''}</span> (тариф $10 за 1 кг). Оплачивается вторым этапом по точному весу.`,
+        `⚖️ <span class="font-bold text-white">Таможня:</span> Пошлина 0 (стоимость не превышает беспошлинный лимит 200€ на посылку).`
       ];
       actions = [
         `<button id="aiOverviewApplyCalcBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md flex items-center gap-1.5">
@@ -1749,8 +1749,8 @@
       if (mathResult.type === 'cny') {
         bodyHtml = `Экспресс-конвертация суммы в юанях по актуальному курсу с учетом официального выкупа и комиссии ICE LOGIX (20%):`;
         bullets = [
-          `💵 <span class="font-bold text-white">Примерная стоимость под ключ:</span> <span class="text-cyan-300 font-black text-sm">≈ ${mathResult.totalEstRub.toLocaleString('ru-RU')} ₽</span> или <span class="text-white font-bold">≈ ${mathResult.totalEstByn} BYN</span> (${mathResult.cnyAmount} ¥).`,
-          `📦 <span class="font-bold text-white">Выкуп без доставки:</span> ${mathResult.subtotalByn} BYN (курс ${mathResult.cnyRateByn} BYN/CNY).`
+          `💵 <span class="font-bold text-white">Примерная стоимость под ключ:</span> <span class="text-cyan-300 font-black text-sm">≈ ${mathResult.totalEstRub.toLocaleString('ru-RU')} ₽</span> или <span class="text-white font-bold inline-flex items-center gap-0.5">≈ ${mathResult.totalEstByn} ${window.bynSign ? window.bynSign({ color: 'white', size: '0.85em' }) : ''}</span> (${mathResult.cnyAmount} ¥).`,
+          `📦 <span class="font-bold text-white">Выкуп без доставки:</span> <span class="inline-flex items-center gap-0.5">${mathResult.subtotalByn} ${window.bynSign ? window.bynSign({ color: 'white', size: '0.85em' }) : ''}</span> (курс ${mathResult.cnyRateByn} к CNY).`
         ];
         actions = [
           `<button id="aiOverviewOpenCalcBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md">
@@ -1761,7 +1761,7 @@
       } else if (mathResult.type === 'currency') {
         bodyHtml = `Конвертация валюты по официальному курсу:`;
         bullets = [
-          `💵 <span class="font-bold text-white">${mathResult.amount} ${mathResult.currency}</span> = <span class="text-cyan-300 font-bold">≈ ${mathResult.bynEquivalent} BYN</span> (или ≈ ${mathResult.rubEquivalent.toLocaleString('ru-RU')} ₽).`
+          `💵 <span class="font-bold text-white">${mathResult.amount} ${mathResult.currency}</span> = <span class="text-cyan-300 font-bold inline-flex items-center gap-0.5">≈ ${mathResult.bynEquivalent} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</span> (или ≈ ${mathResult.rubEquivalent.toLocaleString('ru-RU')} ₽).`
         ];
         sources = [`🏦 Официальный курс валют`];
       } else if (mathResult.type === 'math') {
@@ -1775,10 +1775,10 @@
     // --- Scenario 4: User Profile Intent (Balance or Saved Cards or Delivery Address) ---
     else if (profileMatch) {
       if (profileMatch.type === 'balance') {
-        bodyHtml = `Здравствуйте, ${userCtx.userName}! На вашем персональном балансе сейчас <span class="text-cyan-300 font-black text-sm">${userCtx.balance || 0} ICE</span> (эквивалент ${userCtx.balance || 0} BYN).`;
+        bodyHtml = `Здравствуйте, ${userCtx.userName}! На вашем персональном балансе сейчас <span class="text-cyan-300 font-black text-sm inline-flex items-center gap-1">${userCtx.balance || 0} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</span>.`;
         bullets = [
-          `💡 <span class="font-bold text-white">Номинал:</span> 1 ICE = 1 BYN. Баллы можно использовать для оплаты выкупа товаров на Poizon и доставки без банковских комиссий.`,
-          `⚡ <span class="font-bold text-white">Пополнение:</span> Моментальное зачисление картами любых банков Беларуси через платежный шлюз bePaid (0% комиссии).`
+          `💡 <span class="font-bold text-white">Использование:</span> Средства на балансе можно использовать для моментальной оплаты выкупа товаров и доставки без банковских комиссий.`,
+          `⚡ <span class="font-bold text-white">Пополнение:</span> Моментальное зачисление через ЕРИП, Оплати и картами любых банков Беларуси (0% комиссии).`
         ];
         actions = [
           `<button id="aiOverviewFinancesBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md">

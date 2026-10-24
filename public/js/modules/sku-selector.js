@@ -104,7 +104,10 @@
 
     // Format exchange estimates
     const calcRub = (cny) => Math.round(cny * 13.8);
-    const calcByn = (cny) => (cny * 0.46).toFixed(2);
+    const calcBynStr = (cny) => {
+      const val = (cny * 0.46).toFixed(2);
+      return typeof window.formatBYN === 'function' ? window.formatBYN(val) : val;
+    };
 
     function formatStandardSize(val) {
       if (!val) return '';
@@ -300,7 +303,7 @@
               </div>
               <div class="mt-1.5 flex items-baseline gap-2">
                 <span id="skuModalPrice" class="text-xl font-black text-cyan-400">¥${currentPriceCny}</span>
-                <span id="skuModalPriceRu" class="text-xs text-white/50">≈ ${calcRub(currentPriceCny)} ₽ / ${calcByn(currentPriceCny)} Br</span>
+                <span id="skuModalPriceRu" class="text-xs text-white/50">≈ ${calcRub(currentPriceCny)} ₽ / ${calcBynStr(currentPriceCny)}</span>
               </div>
               <div class="text-[11px] text-white/40 mt-0.5">
                 Доставка по Китаю: <span class="text-emerald-400 font-semibold">0 ¥ (Бесплатно)</span>
@@ -384,7 +387,7 @@
       const pEl = overlay.querySelector('#skuModalPrice');
       const prEl = overlay.querySelector('#skuModalPriceRu');
       if (pEl) pEl.innerText = `¥${price}`;
-      if (prEl) prEl.innerText = `≈ ${calcRub(price)} ₽ / ${calcByn(price)} Br`;
+      if (prEl) prEl.innerHTML = `≈ ${calcRub(price)} ₽ / ${calcBynStr(price)}`;
       updateFooterButton();
     }
 
