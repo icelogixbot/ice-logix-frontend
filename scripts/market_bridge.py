@@ -1350,16 +1350,16 @@ def parse_product(req: ParseRequest):
         root_init = dump_ui_xml()
 
     # Check for Pinduoduo sold-out, rate-limit, or network states
+    # IMPORTANT: sold-out check is STRICTLY limited to the product header zone (y < 700px)
+    # and short text nodes (< 30 chars) to avoid false positives from recommendation blocks
+    # at the bottom of the page where OTHER sold-out products may appear.
+    sold_out_keywords = ["商品已售罄", "已售罄", "已下架", "已售完", "商品已售完"]
+    sold_out_reject = ["评价", "好评", "买过", "大家说", "收到了", "人买过", "推荐", "猜你喜欢", "为你推荐"]
     for node in root_init.iter("node"):
         t = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
-        if any(k in t for k in ["商品已售罄", "已售罄", "已下架", "已售完", "商品已售完"]):
-            if not any(rj in t for rj in ["评价", "好评", "买过", "大家说", "收到了", "人买过"]):
-                print(f"[*] Detected sold out state: '{t}'", flush=True)
-                return {
-                    "success": False,
-                    "is_sold_out": True,
-                    "error": "Данный товар распродан у продавца на Pinduoduo. Пожалуйста, выберите другой лот или аналогичный товар."
-                }
+        if not t:
+            continue
+        # Rate-limit and network checks apply globally (full page)
         if "系统繁忙" in t:
             print(f"[*] Detected Pinduoduo rate limit / busy state: '{t}'", flush=True)
             return {
@@ -1371,6 +1371,40 @@ def parse_product(req: ParseRequest):
             return {
                 "success": False,
                 "error": "Сбой связи с сервером Pinduoduo. Пожалуйста, повторите попытку через минуту."
+            }
+        # Sold-out check: only in product header zone with strict filtering
+        if any(k in t for k in sold_out_keywords):
+            # Skip if text contains recommendation/review junk (other products' labels)
+            if any(rj in t for rj in sold_out_reject):
+                continue
+            # Skip long text nodes — real sold-out banners are short (< 30 chars)
+            if len(t) > 30:
+                continue
+            # Check spatial position: only trust nodes in the top product header area
+            b = node.attrib.get("bounds", "")
+            if b:
+                try:
+                    bx1, by1, bx2, by2 = parse_bounds(b)
+                    # Only trigger if the node is in the top ~700px (product card area)
+                    # Nodes below 700px are typically recommendations / other products
+                    if by1 > 700:
+                        print(f"[*] Ignoring sold-out text below product zone (y={by1}): '{t}'", flush=True)
+                        continue
+                except Exception:
+                    pass
+            # Check parent hierarchy: skip if inside a scrollable/clickable list (recommendations)
+            parent = node
+            in_recommendation_list = False
+            if node.attrib.get("scrollable", "false") == "true":
+                in_recommendation_list = True
+            if in_recommendation_list:
+                print(f"[*] Ignoring sold-out text inside scrollable container: '{t}'", flush=True)
+                continue
+            print(f"[*] Detected sold out state in product header zone: '{t}'", flush=True)
+            return {
+                "success": False,
+                "is_sold_out": True,
+                "error": "Данный товар распродан у продавца на Pinduoduo. Пожалуйста, выберите другой лот или аналогичный товар."
             }
     
     # Capture main screen screenshot for studio hero and variant icons
