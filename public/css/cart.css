@@ -1,132 +1,53 @@
 /* ============================================================
-   ICE LOGIX — WILDBERRIES-STYLE CART DESIGN SYSTEM (WB CART)
-   Luxury Glassmorphism + Mobile-First Ergonomics
+   ICE LOGIX — SHOPPING CART DESIGN SYSTEM
+   Clean Mobile Ergonomics + Brand Ice-Glass Luxury (Cyan & Sapphire)
    ============================================================ */
 
 .wb-cart-screen {
-  padding-bottom: calc(140px + var(--tg-viewport-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+  padding-bottom: calc(180px + var(--tg-viewport-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))) !important;
   max-width: 480px;
   margin: 0 auto;
   position: relative;
+  padding-left: 12px;
+  padding-right: 12px;
 }
 
-/* 1. Header with Address Selector */
+/* 1. Clean Cart Header */
 .wb-cart-header {
-  padding: 8px 12px 12px 12px;
+  padding: 10px 0 12px 0;
 }
 
 .wb-cart-title-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
 }
 
-.wb-address-selector {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  padding: 7px 12px;
-  border-radius: 14px;
-  cursor: pointer;
-  touch-action: manipulation;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  width: 100%;
+.wb-cart-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
 }
 
-.wb-address-selector:active {
-  transform: scale(0.985);
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(0, 229, 255, 0.3);
-}
-
-.wb-address-pin {
-  width: 16px;
-  height: 16px;
-  color: #00e5ff;
-  flex-shrink: 0;
-}
-
-.wb-address-text {
-  font-size: 13px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.92);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1;
-}
-
-.wb-address-chevron {
-  width: 16px;
-  height: 16px;
-  color: rgba(255, 255, 255, 0.45);
-  flex-shrink: 0;
-}
-
-/* 2. Store / Marketplace Tabs (Pills) */
-.wb-store-tabs {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  overflow-x: auto;
-  padding: 2px 12px 8px 12px;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-
-.wb-store-tabs::-webkit-scrollbar {
-  display: none;
-}
-
-.wb-store-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 9999px;
+.wb-cart-count-badge {
   font-size: 12px;
   font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-  touch-action: manipulation;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  color: rgba(255, 255, 255, 0.75);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  color: #00e5ff;
+  background: rgba(0, 229, 255, 0.12);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  padding: 2px 8px;
+  border-radius: 9999px;
 }
 
-.wb-store-pill:active {
-  transform: scale(0.96);
-}
-
-.wb-store-pill.active {
-  background: linear-gradient(135deg, rgba(192, 52, 235, 0.25), rgba(0, 229, 255, 0.2));
-  border-color: rgba(0, 229, 255, 0.45);
-  color: #ffffff;
-  box-shadow: 0 2px 12px rgba(0, 229, 255, 0.15);
-}
-
-.wb-store-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1px 6px;
-  border-radius: 8px;
-  font-size: 10px;
-  font-weight: 700;
-  background: rgba(192, 52, 235, 0.3);
-  color: #e879f9;
-}
-
-/* 3. Bulk Selection & Actions Row */
+/* 2. Bulk Action Bar (Select All & Delete) */
 .wb-bulk-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 14px 10px 14px;
+  padding: 6px 2px 14px 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 12px;
 }
 
 .wb-select-all-label {
@@ -140,107 +61,36 @@
   user-select: none;
 }
 
-.wb-bulk-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.wb-action-icon-btn {
-  width: 38px;
-  height: 38px;
+.wb-delete-selected-btn {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
   background: transparent;
   border: none;
-  border-radius: 50%;
-  color: rgba(255, 255, 255, 0.65);
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   touch-action: manipulation;
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 6px 8px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
 }
 
-.wb-action-icon-btn:active {
-  transform: scale(0.9);
-  color: #00e5ff;
-  background: rgba(255, 255, 255, 0.08);
+.wb-delete-selected-btn:active {
+  color: #ff4d6d;
+  background: rgba(255, 77, 109, 0.1);
 }
 
-.wb-action-icon-btn.wb-trash-btn:active {
-  color: #ff3366;
-}
-
-/* 4. WB Club / Promo Banner */
-.wb-club-banner {
-  margin: 0 12px 12px 12px;
-  background: linear-gradient(135deg, rgba(217, 70, 239, 0.16) 0%, rgba(147, 51, 234, 0.12) 50%, rgba(0, 229, 255, 0.08) 100%);
-  border: 1px solid rgba(217, 70, 239, 0.28);
-  border-radius: 16px;
-  padding: 10px 14px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 4px 16px rgba(147, 51, 234, 0.12);
-  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.wb-club-banner-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
-  min-width: 0;
-  cursor: pointer;
-}
-
-.wb-club-icon {
-  width: 22px;
-  height: 22px;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #d946ef, #9333ea);
-  border-radius: 7px;
-  color: white;
-}
-
-.wb-club-text {
-  font-size: 13px;
-  font-weight: 600;
-  color: #ffffff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.wb-club-text span {
-  color: #f0abfc;
-}
-
-.wb-club-close {
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.4);
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-/* 5. Custom Round Checkbox (WB Style) */
+/* 3. Custom Round Checkbox (Ice Cyan Brand) */
 .wb-checkbox {
   appearance: none;
   -webkit-appearance: none;
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.04);
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.05);
   cursor: pointer;
   position: relative;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -249,9 +99,9 @@
 }
 
 .wb-checkbox:checked {
-  background: linear-gradient(135deg, #c034eb, #00e5ff);
-  border-color: transparent;
-  box-shadow: 0 0 10px rgba(192, 52, 235, 0.5);
+  background: #00e5ff !important;
+  border-color: #00e5ff !important;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.45) !important;
 }
 
 .wb-checkbox:checked::after {
@@ -261,28 +111,27 @@
   left: 6px;
   width: 5px;
   height: 10px;
-  border: solid white;
-  border-width: 0 2px 2px 0;
+  border: solid #041019;
+  border-width: 0 2.2px 2.2px 0;
   transform: rotate(45deg);
 }
 
-/* 6. Product Item Card (WB Grid Layout) */
+/* 4. Product Item Card (Ice-Glass Luxury Grid) */
 .wb-cart-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 0 12px;
 }
 
 .wb-cart-card {
-  background: rgba(18, 24, 38, 0.72);
+  background: rgba(14, 20, 32, 0.75);
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 18px;
   padding: 12px;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
 }
 
@@ -293,41 +142,31 @@
 .wb-card-main-row {
   display: flex;
   gap: 12px;
-  align-items: flex-start;
+  align-items: center;
 }
 
 .wb-card-left {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
   flex-shrink: 0;
 }
 
-.wb-card-left .wb-checkbox {
-  margin-top: 4px;
-}
-
 .wb-product-thumb-wrap {
-  width: 82px;
-  height: 102px;
+  width: 76px;
+  height: 76px;
   border-radius: 12px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   position: relative;
   flex-shrink: 0;
-  cursor: pointer;
 }
 
 .wb-product-thumb {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.3s ease;
-}
-
-.wb-cart-card:hover .wb-product-thumb {
-  transform: scale(1.04);
 }
 
 .wb-card-right {
@@ -338,68 +177,13 @@
   gap: 4px;
 }
 
-/* Price & Menu Top Row */
-.wb-price-menu-row {
+.wb-card-header-line {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
 }
 
-.wb-price-block {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.wb-current-price {
-  font-size: 18px;
-  font-weight: 800;
-  color: #e879f9;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.wb-wallet-icon {
-  width: 15px;
-  height: 15px;
-  color: #e879f9;
-  flex-shrink: 0;
-}
-
-.wb-old-price {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.4);
-  text-decoration: line-through;
-  font-variant-numeric: tabular-nums;
-}
-
-.wb-menu-btn {
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.45);
-  width: 32px;
-  height: 32px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  cursor: pointer;
-  touch-action: manipulation;
-  margin-top: -6px;
-  margin-right: -4px;
-}
-
-.wb-menu-btn:active {
-  background: rgba(255, 255, 255, 0.08);
-  color: white;
-}
-
-/* Product Info Text */
 .wb-product-title {
   font-size: 13px;
   font-weight: 600;
@@ -409,298 +193,120 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  flex: 1;
+}
+
+.wb-item-remove-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
   cursor: pointer;
+  touch-action: manipulation;
+  flex-shrink: 0;
+  margin-top: -2px;
+  transition: all 0.2s ease;
+}
+
+.wb-item-remove-btn:active {
+  color: #ff4d6d;
+  background: rgba(255, 77, 109, 0.12);
 }
 
 .wb-product-variant {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.5);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.wb-delivery-forecast {
-  font-size: 12px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.88);
-  margin-top: 2px;
-}
-
-.wb-free-badge {
-  font-size: 11px;
-  font-weight: 600;
-  color: #00e676;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* Bottom Stepper & Buy Row */
-.wb-card-actions-row {
+/* Bottom line: Price on left, Stepper on right */
+.wb-card-bottom-line {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 10px;
-  padding-left: 32px; /* aligns with content */
+  justify-content: space-between;
+  margin-top: 6px;
+  padding-top: 4px;
 }
 
+.wb-price-block {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.wb-current-price {
+  font-size: 16px;
+  font-weight: 800;
+  color: #00e5ff;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.wb-old-price {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.35);
+  text-decoration: line-through;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Stepper Component */
 .wb-stepper {
   display: inline-flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 9999px;
-  padding: 3px;
-  min-width: 105px;
-  justify-content: space-between;
+  padding: 2px 4px;
+  gap: 2px;
 }
 
 .wb-stepper-btn {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 17px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 16px;
   font-weight: 600;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   touch-action: manipulation;
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.15s ease;
 }
 
 .wb-stepper-btn:active {
-  background: rgba(255, 255, 255, 0.18);
-  transform: scale(0.9);
+  background: rgba(0, 229, 255, 0.2);
   color: #00e5ff;
+  transform: scale(0.9);
 }
 
 .wb-stepper-value {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: #ffffff;
-  padding: 0 6px;
+  padding: 0 4px;
   font-variant-numeric: tabular-nums;
   min-width: 20px;
   text-align: center;
 }
 
-.wb-buy-btn {
-  flex: 1;
-  max-width: 140px;
-  height: 38px;
-  background: rgba(192, 52, 235, 0.12);
-  border: 1px solid rgba(192, 52, 235, 0.38);
-  border-radius: 9999px;
-  color: #f0abfc;
-  font-size: 13px;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  touch-action: manipulation;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.wb-buy-btn:active {
-  background: rgba(192, 52, 235, 0.25);
-  transform: scale(0.96);
-  border-color: #d946ef;
-  color: #ffffff;
-}
-
-/* 7. Bottom Floating Checkout Bar (Strictly Above Tab Bar) */
-.wb-sticky-dock {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: calc(64px + var(--tg-viewport-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
-  z-index: 45;
-  pointer-events: none;
-}
-
-.wb-sticky-content {
-  max-width: 480px;
-  margin: 0 auto;
-  padding: 8px 12px 10px 12px;
-  background: rgba(10, 14, 23, 0.92);
-  backdrop-filter: blur(24px) saturate(200%);
-  -webkit-backdrop-filter: blur(24px) saturate(200%);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.45);
-  pointer-events: auto;
-}
-
-.wb-checkout-cta {
-  width: 100%;
-  height: 50px;
-  border-radius: 16px;
-  font-size: 15px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: none;
-  cursor: pointer;
-  touch-action: manipulation;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  user-select: none;
-}
-
-.wb-checkout-cta.active {
-  background: linear-gradient(135deg, #a855f7 0%, #00e5ff 100%);
-  color: #ffffff;
-  box-shadow: 0 4px 20px rgba(168, 85, 247, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-}
-
-.wb-checkout-cta.active:active {
-  transform: scale(0.985);
-  box-shadow: 0 2px 10px rgba(168, 85, 247, 0.5);
-}
-
-.wb-checkout-cta.disabled {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.32);
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-/* 8. Action Sheet / Context Modal */
-.wb-sheet-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: 90;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  animation: fadeIn 0.2s ease;
-}
-
-.wb-sheet {
-  background: #121826;
-  border-top-left-radius: 24px;
-  border-top-right-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-bottom: none;
-  padding: 12px 16px 32px 16px;
-  max-width: 480px;
-  margin: 0 auto;
-  width: 100%;
-  animation: slideUp 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.wb-sheet-handle {
-  width: 36px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 2px;
-  margin: 4px auto 14px auto;
-}
-
-.wb-sheet-action {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 12px;
-  background: transparent;
-  border: none;
-  border-radius: 12px;
-  font-size: 15px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.9);
-  cursor: pointer;
-  touch-action: manipulation;
-  transition: background 0.15s ease;
-}
-
-.wb-sheet-action:active {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.wb-sheet-action.danger {
-  color: #ff4d6d;
-}
-
-/* 9. Empty State */
-.wb-empty-cart {
-  text-align: center;
-  padding: 48px 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.wb-empty-icon-wrap {
-  width: 88px;
-  height: 88px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, rgba(192, 52, 235, 0.15), rgba(0, 229, 255, 0.1));
-  border: 1px solid rgba(192, 52, 235, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
-  color: #d946ef;
-}
-
-.wb-empty-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #ffffff;
-  margin-bottom: 8px;
-}
-
-.wb-empty-desc {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.55);
-  max-width: 280px;
-  line-height: 1.45;
-  margin-bottom: 24px;
-}
-
-.wb-empty-btn {
-  background: linear-gradient(135deg, #a855f7 0%, #00e5ff 100%);
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 700;
-  padding: 12px 28px;
-  border-radius: 9999px;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 4px 18px rgba(168, 85, 247, 0.35);
-}
-
-.wb-empty-btn:active {
-  transform: scale(0.96);
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
-
-/* 8. Wildberries-Style Payment Method Box & ICE Wallet Selector */
+/* 5. Payment Method Selector Box (ICE Wallet vs Bank Card) */
 .wb-payment-method-box {
-  margin: 16px 12px 20px 12px;
-  padding: 14px 16px;
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
+  margin: 16px 0 12px 0;
+  padding: 14px;
+  background: rgba(14, 20, 32, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 18px;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
@@ -709,12 +315,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .wb-payment-options-grid {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
@@ -732,9 +338,9 @@
 }
 
 .wb-pay-option-card.active {
-  background: rgba(6, 182, 212, 0.12);
-  border-color: rgba(6, 182, 212, 0.5);
-  box-shadow: 0 4px 14px rgba(6, 182, 212, 0.15);
+  background: rgba(0, 229, 255, 0.08);
+  border-color: rgba(0, 229, 255, 0.4);
+  box-shadow: 0 2px 12px rgba(0, 229, 255, 0.1);
 }
 
 .wb-pay-radio-dot {
@@ -750,9 +356,8 @@
 }
 
 .wb-pay-option-card.active .wb-pay-radio-dot {
-  border-color: #06b6d4;
-  background: #06b6d4;
-  box-shadow: 0 0 8px #06b6d4;
+  border-color: #00e5ff;
+  background: #00e5ff;
 }
 
 .wb-pay-option-card.active .wb-pay-radio-dot::after {
@@ -760,6 +365,116 @@
   width: 6px;
   height: 6px;
   border-radius: 9999px;
-  background: #ffffff;
+  background: #041019;
 }
 
+/* 6. Sticky Bottom Checkout Bar (Permanently Fixed Above Navigation Tab Bar) */
+.wb-sticky-dock {
+  position: fixed !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: calc(74px + var(--tg-viewport-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))) !important;
+  z-index: 95 !important;
+  pointer-events: auto !important;
+  padding: 0 12px !important;
+}
+
+.wb-sticky-content {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 8px;
+  background: rgba(10, 16, 28, 0.94);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 229, 255, 0.12);
+}
+
+.wb-checkout-cta {
+  width: 100%;
+  height: 48px;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.wb-checkout-cta.active {
+  background: linear-gradient(135deg, #00b4d8 0%, #00e5ff 100%) !important;
+  color: #041019 !important;
+  box-shadow: 0 4px 18px rgba(0, 229, 255, 0.38);
+}
+
+.wb-checkout-cta.active:active {
+  transform: scale(0.985);
+  box-shadow: 0 2px 10px rgba(0, 229, 255, 0.5);
+}
+
+.wb-checkout-cta.disabled {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.3) !important;
+  box-shadow: none !important;
+  cursor: not-allowed;
+}
+
+/* 7. Empty State */
+.wb-empty-cart {
+  text-align: center;
+  padding: 56px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.wb-empty-icon-wrap {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(0, 229, 255, 0.08);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+  color: #00e5ff;
+}
+
+.wb-empty-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 8px;
+}
+
+.wb-empty-desc {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+  max-width: 280px;
+  line-height: 1.45;
+  margin-bottom: 22px;
+}
+
+.wb-empty-btn {
+  background: linear-gradient(135deg, #00b4d8 0%, #00e5ff 100%);
+  color: #041019;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 12px 28px;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 229, 255, 0.35);
+}
+
+.wb-empty-btn:active {
+  transform: scale(0.96);
+}
