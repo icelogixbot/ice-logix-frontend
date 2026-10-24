@@ -144,30 +144,32 @@
         if (isVisual) {
           const thumbSrc = opt.thumb_url || opt.image_url;
           const imgHtml = thumbSrc 
-            ? `<img src="${thumbSrc}" class="w-7 h-7 rounded-lg object-cover flex-shrink-0 border border-white/20 bg-black/40 shadow-sm" alt="${opt.name_ru || opt.name}" loading="lazy">` 
-            : `<span class="w-7 h-7 rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-xs">🎨</span>`;
+            ? `<img src="${thumbSrc}" class="w-10 h-10 rounded-xl object-cover flex-shrink-0 border border-white/20 bg-black/40 shadow-sm" alt="${opt.name_ru || opt.name}" loading="lazy">` 
+            : `<span class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-xs">🎨</span>`;
           
           return `
             <button type="button" 
-              class="sku-chip sku-visual-chip flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all duration-200 cursor-pointer text-left ${isSel ? 'active-chip bg-gradient-to-r from-cyan-500/25 to-blue-500/25 border-cyan-400 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.35)]' : 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10'}" 
+              class="sku-chip sku-visual-chip w-full min-h-[52px] flex items-center gap-2.5 p-2 rounded-2xl text-xs font-semibold border transition-all duration-200 cursor-pointer text-left ${isSel ? 'active-chip bg-gradient-to-r from-cyan-500/25 to-blue-500/25 border-cyan-400 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.35)]' : 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10'}" 
               data-group-id="${grp.id}"
               data-opt-idx="${optIdx}"
               data-bounds="${opt.bounds || ''}"
               data-img-url="${opt.image_url || ''}"
               data-name-ru="${opt.name_ru || opt.name}">
               ${imgHtml}
-              <span class="truncate max-w-[120px]">${opt.name_ru || opt.name}</span>
+              <div class="flex-1 min-w-0 flex flex-col justify-center">
+                <span class="truncate font-bold text-xs text-white leading-tight">${opt.name_ru || opt.name}</span>
+              </div>
             </button>
           `;
         } else {
           return `
             <button type="button" 
-              class="sku-chip sku-spec-chip px-3.5 py-2.5 rounded-xl text-xs font-semibold border transition-all duration-200 cursor-pointer text-left ${isSel ? 'active-chip bg-gradient-to-r from-cyan-500/25 to-blue-500/25 border-cyan-400 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.35)]' : 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10'}" 
+              class="sku-chip sku-spec-chip h-10 w-full flex items-center justify-center rounded-xl text-xs font-bold font-mono border transition-all duration-200 cursor-pointer text-center ${isSel ? 'active-chip bg-gradient-to-r from-cyan-500/25 to-blue-500/25 border-cyan-400 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.35)]' : 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10'}" 
               data-group-id="${grp.id}"
               data-opt-idx="${optIdx}"
               data-bounds="${opt.bounds || ''}"
               data-name-ru="${opt.name_ru || opt.name}">
-              ${opt.name_ru || opt.name}
+              <span class="truncate px-1">${opt.name_ru || opt.name}</span>
             </button>
           `;
         }
@@ -180,11 +182,11 @@
               <span>${isVisual ? '🎨' : '📏'}</span>
               ${grp.title}
             </span>
-            <span id="skuSelectedLabel_${grp.id}" class="text-xs font-bold text-cyan-400">
+            <span id="skuSelectedLabel_${grp.id}" class="text-xs font-bold text-cyan-400 truncate max-w-[180px]">
               ${selOpt ? (selOpt.name_ru || selOpt.name) : 'Не выбран'}
             </span>
           </div>
-          <div class="flex flex-wrap gap-2 ${!isVisual && (grp.options || []).length > 8 ? 'max-h-40 overflow-y-auto pr-1' : ''}">
+          <div class="${isVisual ? 'grid grid-cols-2 gap-2.5' : 'grid grid-cols-4 sm:grid-cols-5 gap-2'} ${!isVisual && (grp.options || []).length > 10 ? 'max-h-48 overflow-y-auto pr-1' : ''}">
             ${optionsHtml}
           </div>
         </div>
@@ -192,11 +194,11 @@
     }).join('');
 
     overlay.innerHTML = `
-      <div class="sku-bottom-sheet w-full max-w-lg mx-auto bg-[#0d1424] border-t border-cyan-500/30 rounded-t-[28px] shadow-[0_-10px_40px_rgba(0,0,0,0.8)] flex flex-col max-h-[85vh] transition-all duration-300 transform translate-y-full" style="background: radial-gradient(130% 120% at 50% 0%, rgba(20, 32, 54, 0.98) 0%, rgba(10, 16, 28, 0.99) 100%);">
+      <div class="sku-bottom-sheet w-full max-w-lg mx-auto bg-[#0d1424] border-t border-cyan-500/30 rounded-t-[28px] shadow-[0_-10px_40px_rgba(0,0,0,0.8)] flex flex-col max-h-[88vh] transition-all duration-300 transform translate-y-full" style="background: radial-gradient(130% 120% at 50% 0%, rgba(20, 32, 54, 0.98) 0%, rgba(10, 16, 28, 0.99) 100%);">
         
         <!-- Drag pill & header -->
-        <div class="p-4 pb-2 border-b border-white/10 flex-shrink-0">
-          <div class="w-12 h-1.5 rounded-full bg-white/20 mx-auto mb-3 cursor-pointer" onclick="window.closeSkuModal()"></div>
+        <div class="px-4 pt-3 pb-2 border-b border-white/10 flex-shrink-0">
+          <div class="w-12 h-1.5 rounded-full bg-white/20 mx-auto mb-2 cursor-pointer" onclick="window.closeSkuModal()"></div>
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1.5">
@@ -209,13 +211,12 @@
           </div>
         </div>
 
-        <!-- Scrollable Options Body -->
-        <div class="p-4 overflow-y-auto space-y-4 flex-1">
-          
-          <!-- Product Summary Card -->
-          <div class="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 flex gap-3.5 items-center">
+        <!-- FIXED HERO HEADER (Always pinned and visible!) -->
+        <div class="p-3.5 flex-shrink-0 bg-[#0c1322]/95 border-b border-white/10 backdrop-blur-md">
+          <div class="flex gap-3.5 items-center">
             <div class="relative w-24 h-24 rounded-2xl overflow-hidden border border-cyan-500/30 flex-shrink-0 bg-black/40 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
               <img id="skuModalImg" src="${currentImgUrl}" alt="Product" class="w-full h-full object-cover transition-opacity duration-200">
+              <span class="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-xs text-[9px] font-black font-mono text-cyan-300 border border-white/10">HD</span>
               <div id="skuImgLoader" class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity">
                 <span class="ix animate-spin text-cyan-400 text-lg">⏳</span>
               </div>
@@ -236,7 +237,10 @@
               </div>
             </div>
           </div>
+        </div>
 
+        <!-- Scrollable Options Body -->
+        <div id="skuScrollableBody" class="p-4 overflow-y-auto space-y-4 flex-1">
           <!-- Dynamic Spec Groups -->
           ${groupsHtml}
 
@@ -540,6 +544,14 @@
             if (resp.ok) {
               const resData = await resp.json();
               if (resData.price_cny) updatePriceDisplay(resData.price_cny);
+              if (resData.image_url) {
+                const imgEl = overlay.querySelector('#skuModalImg');
+                if (imgEl) {
+                  imgEl.src = resData.image_url;
+                  currentImgUrl = resData.image_url;
+                }
+                opt.image_url = resData.image_url;
+              }
             }
           } catch (e) {
             // Expected on mobile devices without direct localhost access
