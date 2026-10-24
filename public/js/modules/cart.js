@@ -120,10 +120,8 @@
   function updateWbCheckoutDock(count, total) {
     const dock = document.getElementById('wbStickyDock');
     const checkoutBtn = document.getElementById('wbCheckoutBtn');
-    if (!checkoutBtn) return;
-    if (dock && dock.classList.contains('hidden')) {
-      dock.classList.remove('hidden');
-    }
+    if (!dock || !checkoutBtn) return;
+    dock.classList.remove('hidden');
 
     if (count > 0) {
       checkoutBtn.className = 'wb-checkout-cta active';
@@ -159,6 +157,14 @@
         </div>
       `;
     }
+
+    // Immediate 0ms dock visibility from cached count while Supabase loads
+    try {
+      const cachedCount = parseInt(localStorage.getItem('ice_cart_count') || '0', 10);
+      if (cachedCount > 0) {
+        showWbCheckoutDock(cachedCount, 0);
+      }
+    } catch (_) {}
 
     let items = [];
     try {

@@ -35,6 +35,12 @@
       const thisNavId = ++window._navEpoch;
       const contentDiv = document.getElementById('content');
       syncTelegramBackButton();
+
+      if (currentTab !== 'cart') {
+        if (typeof window.hideWbCheckoutDock === 'function') {
+          window.hideWbCheckoutDock();
+        }
+      }
       
       let shadowBannerHtml = '';
       if (isShadowMode && originalAdminId) {

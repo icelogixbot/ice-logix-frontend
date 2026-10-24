@@ -350,19 +350,20 @@
   position: fixed !important;
   left: 0 !important;
   right: 0 !important;
-  bottom: calc(76px + var(--tg-viewport-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))) !important;
+  bottom: 76px !important;
   z-index: 99 !important;
   pointer-events: auto !important;
   padding: 0 12px !important;
   display: flex !important;
   justify-content: center !important;
-  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: opacity 0.18s ease, transform 0.18s ease !important;
+  will-change: transform, opacity;
 }
 
 .wb-sticky-dock.hidden {
   opacity: 0 !important;
   pointer-events: none !important;
-  transform: translateY(24px) !important;
+  transform: translateY(20px) !important;
   display: none !important;
 }
 
@@ -394,6 +395,8 @@
   touch-action: manipulation;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
+  background: linear-gradient(135deg, #00b4d8 0%, #00e5ff 100%);
+  color: #041019;
 }
 
 .wb-checkout-cta.active {

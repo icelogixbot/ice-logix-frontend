@@ -3375,9 +3375,23 @@ let adminOrdersTotalPages = 1;
       if (notifBtn) notifBtn.classList.toggle('active-header-btn', tabName === 'notifications');
       if (settBtn) settBtn.classList.toggle('active-header-btn', tabName === 'settings');
 
+      // Synchronize Fixed Cart Checkout Dock (Locked Above Tab Bar)
+      if (tabName !== 'cart') {
+        if (typeof window.hideWbCheckoutDock === 'function') {
+          window.hideWbCheckoutDock();
+        }
+      } else {
+        try {
+          const cachedCount = parseInt(localStorage.getItem('ice_cart_count') || '0', 10);
+          if (cachedCount > 0 && typeof window.showWbCheckoutDock === 'function') {
+            window.showWbCheckoutDock(cachedCount, 0);
+          }
+        } catch (_) {}
+      }
+
       // Restore from HTML cache for instant screen switch (0ms delay, no flicker)
       const _ck = (tabName || '') + ':' + (subScreen || '');
-      const dynamicTabs = ['finances', 'search', 'notifications', 'settings', 'topup', 'wallet'];
+      const dynamicTabs = ['finances', 'search', 'notifications', 'settings', 'topup', 'wallet', 'cart'];
       if (!dynamicTabs.includes(tabName) && _tabCache[_ck] && Date.now() - _tabCache[_ck].ts < 600000) {
         const _cd = document.getElementById('content');
         if (_cd) {
