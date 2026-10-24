@@ -196,6 +196,7 @@ BRAND_RULES = [
     (["moncler", "盟可睐", "蒙口"], "Moncler"),
     (["zara"], "Zara"),
     (["uniqlo", "优衣库"], "Uniqlo"),
+    (["4tothe9"], "4tothe9"),
 ]
 
 CHINESE_FASHION_SUBST = {
@@ -221,14 +222,23 @@ CHINESE_FASHION_SUBST = {
     "短袖T恤": " футболка ",
     "T恤": " футболка ",
     "t恤": " футболка ",
-    "做旧": " винтажный с потертостями ",
+    "做旧": " винтажные ",
     "磨破洞": " с рваным эффектом ",
     "防晒": " легкий ",
     "圆领": " с круглым вырезом ",
     "卫裤": " спортивные брюки ",
     "工装裤": " брюки карго ",
     "牛仔裤": " джинсы ",
+    "牛仔": " джинсы ",
+    "阔腿直筒裤": " широкие прямые ",
+    "阔腿裤": " широкие ",
+    "直筒裤": " прямые ",
     "短裤": " шорты ",
+    "长裤": " брюки ",
+    "宽松": " свободного кроя ",
+    "水洗": " ",
+    "渐变": " градиент ",
+    "抹茶": " Matcha ",
     "手表": " часы наручные ",
     "机械表": " механические часы ",
     "石英表": " кварцевые часы ",
@@ -329,9 +339,11 @@ def detect_category_and_brand(title_cn: str, selected_summary: str = ""):
             break
             
     category = "Товары из Китая"
-    if any(x in full_text for x in ["鞋", "运动鞋", "板鞋", "球鞋", "sneaker", "靴"]):
+    if any(x in full_text for x in ["牛仔裤", "牛仔"]):
+        category = "Джинсы"
+    elif any(x in full_text for x in ["鞋", "运动鞋", "板鞋", "球鞋", "sneaker", "靴"]):
         category = "Обувь"
-    elif any(x in full_text for x in ["卫衣", "t恤", "外套", "裤", "短袖", "衣服", "羽绒服", "夹克", "牛仔", "长裤", "卫裤", "休闲裤", "工装裤", "运动裤", "短裤"]):
+    elif any(x in full_text for x in ["卫衣", "t恤", "外套", "裤", "短袖", "衣服", "羽绒服", "夹克", "长裤", "卫裤", "休闲裤", "工装裤", "运动裤", "短裤"]):
         category = "Одежда"
     elif any(x in full_text for x in ["包", "双肩包", "单肩包", "手提包", "斜挎包"]):
         category = "Сумки"
@@ -351,39 +363,82 @@ def synthesize_smart_title(raw_title: str, brand: str, category: str) -> str:
     pre = preprocess_fashion_text(raw_title)
     trans = translate_raw_gtx(pre)
     
-    # Filter e-commerce garbage words
+    # Filter e-commerce garbage words and spam
     clean_ru = re.sub(
-        r"Внешняя торговля|Одинаковая обувь|повседневная и универсальная|для мужчин и женщин|для пап|туфли|одинаковая|рекомендация блогера|горячая распродажа|24 часа|взрывная модель|чистый красный|в наличии",
+        r"\b202\d\b|202\d新款|新款|Внешняя торговля|Одинаковая обувь|повседневная и универсальная|для мужчин и женщин|для пап|туфли|одинаковая|рекомендация блогера|горячая распродажа|24 часа|взрывная модель|чистый красный|в наличии|магазин горячие продажи|горячие продажи|популярный|топ продаж",
         " ",
         trans,
         flags=re.IGNORECASE
     )
+    if "джинсы" in clean_ru.lower() or category == "Джинсы":
+        clean_ru = re.sub(r"\bбрюки\b|\bштаны\b", " ", clean_ru, flags=re.IGNORECASE)
     clean_ru = re.sub(r"\s+", " ", clean_ru).strip(" ,.-")
     
     lead = ""
-    if category == "Обувь":
-        lead = "Кроссовки" if not any(k in clean_ru.lower() for k in ["кеды", "ботинки", "угги", "сапоги", "лоферы"]) else ""
-    elif category == "Часы":
-        lead = "Часы" if "часы" not in clean_ru.lower() else ""
+    clean_low = clean_ru.lower()
+    if category == "Джинсы" or "джинсы" in clean_low:
+        lead = "Джинсы"
+        clean_ru = re.sub(r"\bджинсы\b|\bбрюки\b|\bштаны\b", " ", clean_ru, flags=re.IGNORECASE)
+    elif "пуховик" in clean_low:
+        lead = "Пуховик"
+        clean_ru = re.sub(r"\bпуховик\b", " ", clean_ru, flags=re.IGNORECASE)
+    elif "куртка" in clean_low:
+        lead = "Куртка"
+        clean_ru = re.sub(r"\bкуртка\b", " ", clean_ru, flags=re.IGNORECASE)
+    elif "бомбер" in clean_low:
+        lead = "Бомбер"
+        clean_ru = re.sub(r"\bбомбер\b", " ", clean_ru, flags=re.IGNORECASE)
+    elif "худи" in clean_low:
+        lead = "Худи"
+        clean_ru = re.sub(r"\bхуди\b", " ", clean_ru, flags=re.IGNORECASE)
+    elif "свитшот" in clean_low:
+        lead = "Свитшот"
+        clean_ru = re.sub(r"\bсвитшот\b", " ", clean_ru, flags=re.IGNORECASE)
+    elif "лонгслив" in clean_low:
+        lead = "Лонгслив"
+        clean_ru = re.sub(r"\bлонгслив\b", " ", clean_ru, flags=re.IGNORECASE)
+    elif "футболка" in clean_low:
+        lead = "Футболка"
+        clean_ru = re.sub(r"\bфутболка\b", " ", clean_ru, flags=re.IGNORECASE)
+    elif "шорты" in clean_low:
+        lead = "Шорты"
+        clean_ru = re.sub(r"\bшорты\b", " ", clean_ru, flags=re.IGNORECASE)
+    elif "кеды" in clean_low:
+        lead = "Кеды"
+        clean_ru = re.sub(r"\bкеды\b", " ", clean_ru, flags=re.IGNORECASE)
+    elif "кроссовки" in clean_low or category == "Обувь":
+        lead = "Кроссовки"
+        clean_ru = re.sub(r"\bкроссовки\b|\bобувь\b", " ", clean_ru, flags=re.IGNORECASE)
+    elif "ботинки" in clean_low:
+        lead = "Ботинки"
+        clean_ru = re.sub(r"\bботинки\b", " ", clean_ru, flags=re.IGNORECASE)
+    elif "угги" in clean_low:
+        lead = "Угги"
+        clean_ru = re.sub(r"\bугги\b", " ", clean_ru, flags=re.IGNORECASE)
+    elif "чехол" in clean_low or category == "Чехлы":
+        lead = "Чехол"
+        clean_ru = re.sub(r"\bчехол\b", " ", clean_ru, flags=re.IGNORECASE)
+    elif "часы" in clean_low or category == "Часы":
+        lead = "Часы"
+        clean_ru = re.sub(r"\bчасы\b", " ", clean_ru, flags=re.IGNORECASE)
     elif category == "Одежда":
-        lead = "Одежда" if not any(k in clean_ru.lower() for k in ["пуховик", "куртка", "худи", "брюки", "джинсы", "футболка", "ветровка"]) else ""
-    elif category == "Чехлы":
-        lead = "Чехол" if "чехол" not in clean_ru.lower() else ""
+        lead = "Одежда"
         
     title_parts = []
     if lead:
         title_parts.append(lead)
-    if brand:
+    if brand and brand.lower() not in lead.lower():
         title_parts.append(brand)
         
+    clean_ru = re.sub(r"\s+", " ", clean_ru).strip(" ,.-")
     words = clean_ru.split()
-    for w in words[:6]:
+    for w in words[:4]:
         low = w.lower()
         if low not in " ".join(title_parts).lower() and len(w) > 2 and low not in ["очень", "сверху", "снизу", "просто"]:
             title_parts.append(w)
             
     res = " ".join(title_parts).strip()
-    return res.capitalize() if res else (f"{lead} {brand}".strip() or "Товар с Pinduoduo")
+    return res if res else (f"{lead} {brand}".strip() or "Товар с Pinduoduo")
 
 def translate_color(name_cn: str) -> str:
     return clean_and_translate_option(name_cn, is_color=True)
@@ -796,148 +851,159 @@ def dump_ui_xml(auto_handle_verify: bool = True) -> ET.Element:
         
     return root
 
-def capture_hd_studio_and_variants(goods_id: str, root: ET.Element, colors: List[Dict[str, Any]]) -> str:
+def capture_hd_studio_and_variants(
+    goods_id: str, 
+    root: ET.Element, 
+    colors: List[Dict[str, Any]], 
+    main_screen_path: Optional[str] = None, 
+    root_main: Optional[ET.Element] = None
+) -> str:
     """
     Captures:
-    1. The master Ultra-HD studio image (900x900) by tapping drawer preview box -> full-screen gallery.
-    2. Clean micro-thumbnail icons for each color variant (cropping left square only, 0 Chinese text),
-       uploaded concurrently in parallel via ThreadPoolExecutor for lightning speed (< 2-3s total).
+    1. The master Studio image:
+       - Top ViewPager of the main screen (crystal clear original studio/model photo), or
+       - Clean drawer thumbnail (cd="商品主图" / [18,356][198,536]).
+    2. Clean micro-thumbnail icons for each color variant:
+       - From main screen '商品款式图' if available,
+       - Or from drawer buttons ONLY if they actually contain a card image (not text pills).
     """
-    # 0. Check if "大图" mode exists on screen to get high-res 156x143 card photographs
-    for n in root.iter('node'):
-        t_val = (n.attrib.get('text', '') or n.attrib.get('content-desc', '')).strip()
-        if t_val == "大图":
-            b_dt = n.attrib.get('bounds', '')
-            if b_dt:
-                print(f"[*] Activating High-Res Studio Grid Mode ('大图') at {b_dt}...")
-                human_tap(b_dt)
-                time.sleep(0.4)
-                root = dump_ui_xml()
-                break
+    out_master = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}.jpg")
+    out_hd = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}_hd.jpg")
+    hd_pub_url = ""
 
+    # 1. Primary Master Studio Photo: Crop from main product screen top carousel
+    if main_screen_path and os.path.exists(main_screen_path):
+        try:
+            im_m = Image.open(main_screen_path).convert("RGB")
+            vp_y2 = 495
+            if root_main:
+                for n in root_main.iter("node"):
+                    if "ViewPager" in n.attrib.get("class", "") and n.attrib.get("bounds"):
+                        _, _, _, y2 = parse_bounds(n.attrib.get("bounds"))
+                        if y2 > 200:
+                            vp_y2 = y2
+                            break
+            # Crop square product hero (0, 0, min(size[0], vp_y2), vp_y2)
+            w_crop = min(im_m.size[0], vp_y2 if vp_y2 <= 550 else im_m.size[0])
+            crop_master = im_m.crop((0, 0, w_crop, vp_y2))
+            crop_master.save(out_hd, "JPEG", quality=92)
+            crop_master.save(out_master, "JPEG", quality=92)
+            if supabase_client:
+                rem_name = f"sku_{goods_id}_hd_{int(time.time())}.jpg"
+                with open(out_hd, "rb") as f:
+                    supabase_client.storage.from_("product-screenshots").upload(rem_name, f.read(), {"content-type": "image/jpeg"})
+                hd_pub_url = supabase_client.storage.from_("product-screenshots").get_public_url(rem_name)
+                print(f"[+] Extracted Master Studio Image from Main Page: {hd_pub_url}")
+        except Exception as me:
+            print("Main page master crop error:", me)
+
+    # 2. Locate Drawer Selected Thumbnail
     thumb_bounds = None
     for n in root.iter('node'):
         cls = n.attrib.get('class', '')
+        cd = n.attrib.get('content-desc', '')
         b = n.attrib.get('bounds', '')
-        if 'ImageView' in cls and b:
+        if (cd == "商品主图" or 'ImageView' in cls) and b:
             x1, y1, x2, y2 = parse_bounds(b)
             w, h = x2 - x1, y2 - y1
             if 130 <= w <= 260 and 130 <= h <= 260 and x1 < 120 and 180 <= y1 <= 550:
                 thumb_bounds = (x1, y1, x2, y2)
                 break
 
-    hd_pub_url = ""
-    # 1. Tap thumbnail to capture full Ultra-HD Studio photo
-    if thumb_bounds:
-        cx, cy = (thumb_bounds[0] + thumb_bounds[2]) // 2, (thumb_bounds[1] + thumb_bounds[3]) // 2
-        run_adb(["shell", "input", "tap", str(cx), str(cy)])
-        time.sleep(0.4)
-        temp_hd = os.path.join(PARSED_UPLOADS_DIR, f"temp_hd_{goods_id}.png")
-        run_adb(["shell", "screencap", "-p", "/sdcard/hd_prev.png"])
-        run_adb(["pull", "/sdcard/hd_prev.png", temp_hd])
-        run_adb(["shell", "input", "keyevent", "4"])  # Close gallery back to drawer
-        time.sleep(0.3)
-        
-        if os.path.exists(temp_hd):
-            try:
-                im = Image.open(temp_hd)
-                crop = im.crop((0, 280, 900, 1180)).convert("RGB")
-                out_hd = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}_hd.jpg")
-                crop.save(out_hd, "JPEG", quality=92)
-                try:
-                    os.remove(temp_hd)
-                except Exception:
-                    pass
-                if supabase_client:
-                    rem_name = f"sku_{goods_id}_hd_{int(time.time())}.jpg"
-                    with open(out_hd, "rb") as f:
-                        supabase_client.storage.from_("product-screenshots").upload(rem_name, f.read(), {"content-type": "image/jpeg"})
-                    hd_pub_url = supabase_client.storage.from_("product-screenshots").get_public_url(rem_name)
-                    print(f"[+] Uploaded Ultra-HD Studio Image: {hd_pub_url}")
-            except Exception as e:
-                print("HD photo capture error:", e)
-
-    # 2. Capture clean drawer screenshot for color micro-thumbnails
     temp_drawer = os.path.join(PARSED_UPLOADS_DIR, f"temp_drawer_{goods_id}.png")
     run_adb(["shell", "screencap", "-p", "/sdcard/drawer_screen.png"])
     run_adb(["pull", "/sdcard/drawer_screen.png", temp_drawer])
-    
-    upload_tasks = []
+
+    im_d = None
     if os.path.exists(temp_drawer):
         try:
             im_d = Image.open(temp_drawer).convert("RGB")
-            # If HD capture failed, crop clean thumbnail from drawer
-            if not hd_pub_url and thumb_bounds:
-                c_main = im_d.crop(thumb_bounds)
-                out_main = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}.jpg")
-                c_main.save(out_main, "JPEG", quality=90)
-                if supabase_client:
-                    rem_name = f"sku_{goods_id}_{int(time.time())}.jpg"
-                    try:
-                        with open(out_main, "rb") as f:
-                            supabase_client.storage.from_("product-screenshots").upload(rem_name, f.read(), {"content-type": "image/jpeg"})
-                        hd_pub_url = supabase_client.storage.from_("product-screenshots").get_public_url(rem_name)
-                    except Exception as me:
-                        print("Failed main thumbnail upload:", me)
+        except Exception:
+            im_d = None
 
-            # Crop clean high-resolution studio icons for each color option (0 Chinese text!)
-            for idx, col in enumerate(colors):
-                if col.get("selected"):
-                    col["image_url"] = hd_pub_url or f"/uploads/parsed/sku_{goods_id}.jpg"
-                else:
-                    col["image_url"] = None
+    # Fallback to drawer thumbnail if master hero not uploaded yet
+    if not hd_pub_url and thumb_bounds and im_d:
+        try:
+            c_main = im_d.crop(thumb_bounds)
+            c_main.save(out_master, "JPEG", quality=92)
+            c_main.save(out_hd, "JPEG", quality=92)
+            if supabase_client:
+                rem_name = f"sku_{goods_id}_{int(time.time())}.jpg"
+                with open(out_master, "rb") as f:
+                    supabase_client.storage.from_("product-screenshots").upload(rem_name, f.read(), {"content-type": "image/jpeg"})
+                hd_pub_url = supabase_client.storage.from_("product-screenshots").get_public_url(rem_name)
+                print(f"[+] Extracted clean Studio Thumbnail from Drawer: {hd_pub_url}")
+        except Exception as te:
+            print("Drawer thumb crop error:", te)
 
-                b_str = col.get("bounds")
-                if b_str:
-                    x1, y1, x2, y2 = parse_bounds(b_str)
-                    w, h = x2 - x1, y2 - y1
-                    if w > 10 and h > 10:
-                        # Check if this card has an image above its text (in '大图' card grid: text is below the 156x143 image!)
-                        if y1 >= 220 and w >= 80:
-                            # Card layout: image is directly above the button text
-                            c_icon = im_d.crop((x1 + 2, max(0, y1 - 145), x2 - 2, y1 - 2))
-                        elif w > h + 10:
-                            # Horizontal pill button: icon is strictly the left square [x1, y1, x1+h, y2]
-                            c_icon = im_d.crop((x1 + 2, y1 + 2, x1 + h - 2, y2 - 2))
-                        else:
-                            # Square button
-                            c_icon = im_d.crop((x1 + 3, y1 + 3, x2 - 3, y1 + w - 3))
-                        
-                        icon_path = os.path.join(PARSED_UPLOADS_DIR, f"col_{goods_id}_{idx}_icon.jpg")
-                        c_icon.save(icon_path, "JPEG", quality=92)
-                        col["thumb_url"] = f"/uploads/parsed/col_{goods_id}_{idx}_icon.jpg"
-                        
-                        if supabase_client:
-                            rem_icon = f"col_{goods_id}_{idx}_icon_{int(time.time())}_{idx}.jpg"
-                            upload_tasks.append((idx, icon_path, rem_icon))
+    # 3. Extract Clean Micro-Thumbnails for Color Variants
+    main_var_crops = []
+    if main_screen_path and os.path.exists(main_screen_path) and root_main:
+        try:
+            im_m_vars = Image.open(main_screen_path).convert("RGB")
+            for n in root_main.iter("node"):
+                cd = n.attrib.get("content-desc", "")
+                b = n.attrib.get("bounds", "")
+                if cd == "商品款式图" and b:
+                    x1, y1, x2, y2 = parse_bounds(b)
+                    if 500 <= y1 <= 750 and (x2 - x1) >= 50:
+                        main_var_crops.append(im_m_vars.crop((x1, y1, x2, y2)))
+        except Exception as v_err:
+            print("Main var crop error:", v_err)
 
-            # Concurrently upload micro-thumbnails to Supabase
-            if supabase_client and upload_tasks:
-                def _do_upload(task):
-                    i, p, r = task
-                    try:
-                        with open(p, "rb") as fl:
-                            supabase_client.storage.from_("product-screenshots").upload(r, fl.read(), {"content-type": "image/jpeg"})
-                        return i, supabase_client.storage.from_("product-screenshots").get_public_url(r)
-                    except Exception:
-                        return i, None
+    upload_tasks = []
+    for idx, col in enumerate(colors):
+        b_str = col.get("bounds")
+        col_img = None
 
-                with ThreadPoolExecutor(max_workers=min(len(upload_tasks), 6)) as ex:
-                    for i, pub_url in ex.map(_do_upload, upload_tasks):
-                        if pub_url:
-                            colors[i]["thumb_url"] = pub_url
+        # Check if button in drawer has actual card/icon image
+        if b_str and im_d:
+            x1, y1, x2, y2 = parse_bounds(b_str)
+            w, h = x2 - x1, y2 - y1
+            if h >= 80 and w >= 80:
+                col_img = im_d.crop((x1 + 3, y1 + 3, x2 - 3, y2 - 3))
+            elif w > h + 20 and h >= 68:
+                col_img = im_d.crop((x1 + 2, y1 + 2, x1 + h - 2, y2 - 2))
+            else:
+                col_img = None
 
-            # Ensure every color variant has a dedicated distinct image_url
-            for col in colors:
-                if not col.get("image_url"):
-                    col["image_url"] = col.get("thumb_url") or hd_pub_url or f"/uploads/parsed/sku_{goods_id}.jpg"
+        # Fallback to main screen variant photo if button had no embedded image
+        if col_img is None and idx < len(main_var_crops):
+            col_img = main_var_crops[idx]
 
+        if col_img is not None:
+            icon_path = os.path.join(PARSED_UPLOADS_DIR, f"col_{goods_id}_{idx}_icon.jpg")
+            col_img.save(icon_path, "JPEG", quality=92)
+            col["thumb_url"] = f"/uploads/parsed/col_{goods_id}_{idx}_icon.jpg"
+            if supabase_client:
+                rem_icon = f"col_{goods_id}_{idx}_icon_{int(time.time())}_{idx}.jpg"
+                upload_tasks.append((idx, icon_path, rem_icon))
+        else:
+            col["thumb_url"] = None
+
+    if supabase_client and upload_tasks:
+        def _do_upload(task):
+            i, p, r = task
             try:
-                os.remove(temp_drawer)
+                with open(p, "rb") as fl:
+                    supabase_client.storage.from_("product-screenshots").upload(r, fl.read(), {"content-type": "image/jpeg"})
+                return i, supabase_client.storage.from_("product-screenshots").get_public_url(r)
             except Exception:
-                pass
-        except Exception as d_err:
-            print("Color variant icons error:", d_err)
+                return i, None
+
+        with ThreadPoolExecutor(max_workers=min(len(upload_tasks), 6)) as ex:
+            for i, pub_url in ex.map(_do_upload, upload_tasks):
+                if pub_url:
+                    colors[i]["thumb_url"] = pub_url
+
+    for col in colors:
+        col["image_url"] = col.get("thumb_url") or hd_pub_url or f"/uploads/parsed/sku_{goods_id}.jpg"
+
+    if os.path.exists(temp_drawer):
+        try:
+            os.remove(temp_drawer)
+        except Exception:
+            pass
 
     return hd_pub_url or f"/uploads/parsed/sku_{goods_id}.jpg"
 
@@ -1006,6 +1072,11 @@ def parse_product(req: ParseRequest):
     # 2. Capture title & page price directly from initial page state
     root_init = dump_ui_xml()
     
+    # Capture main screen screenshot for studio hero and variant icons
+    main_screen_local = os.path.join(PARSED_UPLOADS_DIR, f"temp_main_{goods_id}.png")
+    run_adb(["shell", "screencap", "-p", "/sdcard/main_screen.png"])
+    run_adb(["pull", "/sdcard/main_screen.png", main_screen_local])
+
     # Save initial price from the main product screen as rock-solid fallback
     page_price_cny = 0.0
     for node in root_init.iter("node"):
@@ -1031,46 +1102,50 @@ def parse_product(req: ParseRequest):
         "配送", "收货地址", "工业区", "横路", "外箱唛头", "唛头", "转 注", "街道", "社区", "自提", "门牌", "邮政", "编码", "号.", "省", "市"
     ]
     
-    # Primary title sweep: wide product header text below main photo (y1 between 450 and 1150)
+    # Priority 1: Check ViewPager content-desc (contains 100% original, clean title in Pinduoduo)
     for node in root_init.iter("node"):
-        txt = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
-        b = node.attrib.get("bounds", "")
-        if b and len(txt) >= 8:
-            x1, y1, x2, y2 = parse_bounds(b)
-            # Must be in main product header zone, not phantom, wide width >= 250
-            if 350 <= y1 <= 1450 and (x2 - x1) >= 250:
-                if not any(x in txt for x in review_and_ad_junk):
-                    cleaned_txt = re.sub(r'^\d+人(收藏|关注|购买|好评|说)\s*#?\s*', '', txt).strip()
-                    cleaned_txt = re.sub(r'#.*', '', cleaned_txt).strip()
-                    if len(cleaned_txt) > len(raw_title):
-                        raw_title = cleaned_txt
+        cls = node.attrib.get("class", "")
+        cd = (node.attrib.get("content-desc", "") or "").strip()
+        if "ViewPager" in cls and len(cd) >= 6:
+            raw_title = cd
+            break
 
-    # Secondary title sweep if still empty: search for branded brackets or fashion keywords
+    # Priority 2: Check resource-id ending with tv_title with y < 950 (strictly product header, above reviews)
     if not raw_title:
-        candidates = []
+        for node in root_init.iter("node"):
+            res_id = node.attrib.get("resource-id", "")
+            txt = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
+            b = node.attrib.get("bounds", "")
+            if "tv_title" in res_id and b and len(txt) >= 6:
+                x1, y1, x2, y2 = parse_bounds(b)
+                if y1 < 950 and not any(x in txt for x in ["评价", "好评", "推荐", "买过"]):
+                    raw_title = txt
+                    break
+
+    # Priority 3: Fallback strictly above y < 950
+    if not raw_title:
         for node in root_init.iter("node"):
             txt = (node.attrib.get("text", "") or node.attrib.get("content-desc", "")).strip()
             b = node.attrib.get("bounds", "")
-            x1, y1, x2, y2 = parse_bounds(b) if b else (0,0,0,0)
-            if (x1 > 0 or y1 > 0) and len(txt) >= 8 and not any(x in txt for x in review_and_ad_junk):
-                score = len(txt)
-                if txt.startswith("【") or txt.startswith("["):
-                    score += 50
-                if any(k in txt for k in ["同款", "T恤", "短袖", "长袖", "卫衣", "外套", "羽绒服", "裤", "鞋", "手表", "表", "包", "壳", "帽", "老爹鞋", "男鞋", "女鞋", "运动鞋"]):
-                    score += 50
-                cleaned_txt = re.sub(r'^\d+人(收藏|关注|购买|好评|说)\s*#?\s*', '', txt).strip()
-                cleaned_txt = re.sub(r'#.*', '', cleaned_txt).strip()
-                candidates.append((score, cleaned_txt))
-        if candidates:
-            candidates.sort(key=lambda c: c[0], reverse=True)
-            raw_title = candidates[0][1]
+            if b and len(txt) >= 8:
+                x1, y1, x2, y2 = parse_bounds(b)
+                if 450 <= y1 <= 950 and (x2 - x1) >= 250:
+                    if not any(x in txt for x in review_and_ad_junk):
+                        cleaned_txt = re.sub(r'^\d+人(收藏|关注|购买|好评|说)\s*#?\s*', '', txt).strip()
+                        cleaned_txt = re.sub(r'#.*', '', cleaned_txt).strip()
+                        if len(cleaned_txt) > len(raw_title):
+                            raw_title = cleaned_txt
+
+    # Clean prefix like "店铺热销 # "
+    if raw_title:
+        raw_title = re.sub(r'^[^\#]*#\s*', '', raw_title).strip()
+        raw_title = re.sub(r'^\d+人(收藏|关注|购买|好评|说)\s*', '', raw_title).strip()
 
     # 3. Check if SKU drawer is open, or tap buy button
     has_sku_drawer = any(any(x in (n.attrib.get("text", "") or n.attrib.get("content-desc", "")) for x in ["提交订单", "立即支付", "选择尺码后", "选择款式后", "大图"]) for n in root_init.iter("node"))
     if not has_sku_drawer:
         print("[*] SKU drawer not open yet. Locating bottom buy button...", flush=True)
         clicked_btn = False
-        # First priority: find explicit action buttons in the bottom navigation bar
         for target_text in ["发起拼单", "单独购买", "免拼购买", "立即购买", "去拼单"]:
             for n in root_init.iter("node"):
                 t = (n.attrib.get("text", "") or n.attrib.get("content-desc", "")).strip()
@@ -1084,7 +1159,6 @@ def parse_product(req: ParseRequest):
             if clicked_btn:
                 break
         
-        # Second fallback: tap standard bottom action area
         if not clicked_btn:
             human_tap("[675,1550]")
 
@@ -1103,8 +1177,17 @@ def parse_product(req: ParseRequest):
     orig_price_cny = 0.0
     selected_summary = ""
     
-    # Non-sku blacklist keywords
-    blacklist_terms = ["¥", "元", "已拼", "折", "包邮", "退货", "发货", "对照表", "体重", "详情", "举报", "店铺", "收藏", "客服", "返回", "大促", "买过", "即将结束", "无需等待", "匿名", "进店", "保障", "评价", "全场", "领型", "穿着方式", "面料", "风格", "适用", "多款", "列表", "打开大图", "减少数量", "增加数量", "数量", "请选择", "去支付", "组合", "查收", "尺码建议", "查看尺码建议", "建议", "关闭弹窗", "当前收货地址", "送达", "同行", "马上卖完", "抢光", "热卖", "爆款"]
+    # Non-sku blacklist keywords: filter out e-commerce UI controls, guide links, and service texts
+    blacklist_terms = [
+        "看对比", "查看对比", "对比", "尺码建议", "查看尺码建议", "尺码对照表", "尺码表", "计算尺码",
+        "查看全部", "全部款式", "展开", "收起", "打开大图", "大图", "已选", "请选择",
+        "¥", "元", "已拼", "折", "包邮", "退货", "发货", "对照表", "体重", "详情", "举报", "店铺",
+        "收藏", "客服", "返回", "大促", "买过", "即将结束", "无需等待", "匿名", "进店", "保障",
+        "评价", "全场", "领型", "穿着方式", "面料", "风格", "适用", "多款", "列表",
+        "减少数量", "增加数量", "数量", "去支付", "组合", "查收", "建议", "关闭弹窗",
+        "当前收货地址", "送达", "同行", "马上卖完", "抢光", "热卖", "爆款", "活动优惠", "服务",
+        "使用#支付宝", "更换支付方式", "提交订单", "立即支付", "选择尺码后", "选择款式后", "一次选多款"
+    ]
 
     for node in root.iter("node"):
         txt = node.attrib.get("text", "").strip()
@@ -1117,7 +1200,6 @@ def parse_product(req: ParseRequest):
             continue
 
         x1, y1, x2, y2 = parse_bounds(bounds)
-        # Filter phantom nodes with (0,0) or zero dimensions (e.g. background review tags)
         if (x1 == 0 and y1 == 0 and x2 == 0 and y2 == 0) or (x2 - x1 < 10) or (y2 - y1 < 10):
             continue
             
@@ -1139,26 +1221,28 @@ def parse_product(req: ParseRequest):
                     orig_price_cny = p
 
         # Check section headers dynamically (visible on screen, short title <= 6 chars)
-        if len(val) <= 6 and any(h in val for h in ["颜色", "款式", "分类", "花色", "外观"]) and not any(x in val for x in ["大图", "已选", "请选择", "建议"]):
+        if len(val) <= 6 and any(h in val for h in ["颜色", "款式", "分类", "花色", "外观"]) and not any(x in val for x in ["大图", "已选", "请选择", "建议", "对比"]):
             existing_visual = next((g for g in spec_groups if g["title"] == "Цвет / Расцветка"), None)
             if not existing_visual:
                 current_group_dict = {
                     "id": f"group_{len(spec_groups)}",
                     "title": "Цвет / Расцветка",
                     "type": "visual",
+                    "header_y": y1,
                     "options": []
                 }
                 spec_groups.append(current_group_dict)
             else:
                 current_group_dict = existing_visual
             continue
-        elif len(val) <= 6 and any(h in val for h in ["尺码", "鞋码", "尺寸", "身高"]) and not any(x in val for x in ["建议", "对照", "已选", "请选择", "表"]):
+        elif len(val) <= 6 and any(h in val for h in ["尺码", "鞋码", "尺寸", "身高"]) and not any(x in val for x in ["建议", "对照", "已选", "请选择", "表", "对比"]):
             existing_size = next((g for g in spec_groups if g["title"] == "Размер"), None)
             if not existing_size:
                 current_group_dict = {
                     "id": f"group_{len(spec_groups)}",
                     "title": "Размер",
                     "type": "spec",
+                    "header_y": y1,
                     "options": []
                 }
                 spec_groups.append(current_group_dict)
@@ -1172,6 +1256,7 @@ def parse_product(req: ParseRequest):
                     "id": f"group_{len(spec_groups)}",
                     "title": "Модель / Версия",
                     "type": "spec",
+                    "header_y": y1,
                     "options": []
                 }
                 spec_groups.append(current_group_dict)
@@ -1185,6 +1270,7 @@ def parse_product(req: ParseRequest):
                     "id": f"group_{len(spec_groups)}",
                     "title": "Объем памяти",
                     "type": "spec",
+                    "header_y": y1,
                     "options": []
                 }
                 spec_groups.append(current_group_dict)
@@ -1198,6 +1284,7 @@ def parse_product(req: ParseRequest):
                     "id": f"group_{len(spec_groups)}",
                     "title": "Комплектация",
                     "type": "spec",
+                    "header_y": y1,
                     "options": []
                 }
                 spec_groups.append(current_group_dict)
@@ -1209,7 +1296,13 @@ def parse_product(req: ParseRequest):
             
         if current_group_dict and any(k in cls for k in ["TextView", "Button", "View"]):
             clean = re.sub(r"[🔥\s]|快要抢光|热卖|爆款|大促", "", val).strip()
-            if clean and 1 <= len(clean) < 35 and clean != "大图" and not any(b in clean for b in blacklist_terms):
+            if any(b_word in clean for b_word in blacklist_terms) or clean in blacklist_terms:
+                continue
+            header_y = current_group_dict.get("header_y", -999)
+            if abs(y1 - header_y) <= 25 and x1 > 400:
+                # Auxiliary link on same row as header (like "看对比" or "尺码建议")
+                continue
+            if clean and 1 <= len(clean) < 35 and clean != "大图":
                 if not any(opt["name"] == clean for opt in current_group_dict["options"]):
                     is_sel = clean in selected_summary
                     ru_val = translate_color(clean) if current_group_dict["type"] == "visual" else translate_size_or_model(clean)
@@ -1259,7 +1352,16 @@ def parse_product(req: ParseRequest):
     title_ru = synthesize_smart_title(raw_title, brand, category)
 
     # 4. Capture current SKU image (Ultra-HD Studio + Color Thumbnails)
-    image_rel_url = capture_hd_studio_and_variants(goods_id, root, colors)
+    image_rel_url = capture_hd_studio_and_variants(
+        goods_id, 
+        root, 
+        colors, 
+        main_screen_path=main_screen_local, 
+        root_main=root_init
+    )
+    if os.path.exists(main_screen_local):
+        try: os.remove(main_screen_local)
+        except Exception: pass
     
     return {
         "success": True,
