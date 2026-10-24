@@ -1301,6 +1301,20 @@
     let firstNameVal = (scanData.first_name || '').trim();
     let patronymicVal = (scanData.patronymic || '').trim();
 
+    // Если фамилия или имя пришли в двуязычном виде (напр. 'НАДЗЕЯ НАДЕЖДА' или 'БАГДАНОВІЧ БОГДАНОВИЧ')
+    if (lastNameVal.includes(' ')) {
+      const parts = lastNameVal.split(/\s+/).filter(Boolean);
+      if (parts.length === 2) {
+        lastNameVal = parts[1];
+      }
+    }
+    if (firstNameVal.includes(' ')) {
+      const parts = firstNameVal.split(/\s+/).filter(Boolean);
+      if (parts.length === 2) {
+        firstNameVal = parts[1];
+      }
+    }
+
     let mrzLines = [];
     if (Array.isArray(scanData.raw_mrz)) {
       mrzLines = scanData.raw_mrz.map(l => String(l || '').trim()).filter(Boolean);
@@ -1319,6 +1333,20 @@
       }
       if (mrzGiv === 'KIRILL' && (firstNameVal === 'КІРЫЛ' || firstNameVal === 'КИРИЛ' || firstNameVal === 'КИРИЛЛ')) {
         firstNameVal = 'КИРИЛЛ';
+      }
+    }
+    if (patronymicVal) {
+      patronymicVal = patronymicVal
+        .replace(/АЎНА$/i, 'ОВНА')
+        .replace(/ЯЎНА$/i, 'ЕВНА')
+        .replace(/ЕЎНА$/i, 'ЕВНА')
+        .replace(/АВІЧ$/i, 'ОВИЧ')
+        .replace(/ЕВІЧ$/i, 'ЕВИЧ')
+        .replace(/ЯВІЧ$/i, 'ЕВИЧ')
+        .replace(/АВИЧ$/i, 'ОВИЧ');
+      if (patronymicVal === 'ИГОР' || patronymicVal === 'ИГАР') {
+        const isFem = (scanData.gender === 'F' || (scanData.id_number && /^[246]/.test(scanData.id_number)));
+        patronymicVal = isFem ? 'ИГОРЕВНА' : 'ИГОРЕВИЧ';
       }
     }
     if (patronymicVal === 'АЛЯКСАНДРАВІЧ' || patronymicVal === 'АЛЯКСАНДРАВИЧ') {
@@ -1366,7 +1394,7 @@
     let house = (scanData.address_house || d.address?.house || '').trim();
     let apt = (scanData.address_apartment || d.address?.room || '').trim();
     if (apt === '-' || apt === '—' || apt.toLowerCase() === 'нет' || apt === 'null') apt = '';
-    if (scanData.is_crossed_seven || apt === '4') apt = '7';
+    if (scanData.is_crossed_seven) apt = '7';
 
     if (scanData.inspection) {
       const inspH = scanData.inspection.house_handwritten_digits || scanData.inspection.step5_handwritten_after_word_dom || scanData.inspection.step2_handwritten_house;
@@ -1382,7 +1410,9 @@
     }
 
     let corpus = (scanData.address_building || d.address?.corpus || '').trim();
-    if (corpus === '-' || corpus === '—' || corpus.toLowerCase() === 'нет' || corpus.toLowerCase() === 'null' || (corpus.length > 2 && !/\d/.test(corpus))) {
+    if (corpus === '-' || corpus === '—') {
+      corpus = '—';
+    } else if (corpus.toLowerCase() === 'нет' || corpus.toLowerCase() === 'null' || (corpus.length > 2 && !/\d/.test(corpus))) {
       corpus = '';
     }
     let zipCode = (scanData.address_postcode || d.address?.zip_code || '').trim();
