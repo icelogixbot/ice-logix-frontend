@@ -339,7 +339,7 @@ function _renderCouponsTabHtml(stats) {
           <span>Активировать промокод</span>
         </div>
         <p class="text-xs text-white/50 leading-relaxed">
-          Введите промокод для получения скидки на доставку или бонусных баллов ICE.
+          Введите промокод для получения скидки на доставку или бонусных баллов.
         </p>
         <div class="flex gap-2">
           <input
@@ -525,8 +525,7 @@ function _renderPayTabHtml() {
         <div class="relative z-10 my-auto py-1">
           <p class="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-0.5">Доступный баланс</p>
           <div class="flex items-baseline gap-2.5">
-            <span class="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight" id="payLiveBalance">${curBal.toFixed(2)} BYN</span>
-            <span class="text-xs font-bold text-cyan-400 font-mono" id="payLiveIce">≈ ${curBal.toFixed(0)} ICE</span>
+            <span class="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight inline-flex items-baseline gap-1" id="payLiveBalance">${curBal.toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
           </div>
         </div>
 
@@ -562,7 +561,7 @@ function _renderPayTabHtml() {
 
         <!-- Быстрые чипы сумм -->
         <div class="space-y-1.5">
-          <label class="text-[11px] text-white/50 font-medium">Сумма пополнения (BYN)</label>
+          <label class="text-[11px] text-white/50 font-medium flex items-center gap-1">Сумма пополнения (${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.9em' }) : ''})</label>
           <div class="grid grid-cols-5 gap-1.5" id="payChipsGrid">
             <button type="button" class="pay-amount-chip py-2 px-1 rounded-xl text-xs font-mono font-bold transition active:scale-95 text-center bg-white/5 hover:bg-white/10 text-white/70 border border-white/5" data-amount="25">25</button>
             <button type="button" class="pay-amount-chip py-2 px-1 rounded-xl text-xs font-mono font-bold transition active:scale-95 text-center bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20" data-amount="50">50</button>
@@ -584,7 +583,7 @@ function _renderPayTabHtml() {
             class="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-4 pr-16 text-base font-mono font-black text-white placeholder-white/20 focus:outline-none focus:border-cyan-400 transition"
             placeholder="Своя сумма"
           >
-          <span class="absolute right-4 top-1/2 -translate-y-1/2 font-mono font-bold text-xs text-cyan-400">BYN</span>
+          <span class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center font-mono font-bold text-xs text-cyan-400">${window.bynSign ? window.bynSign({ color: 'cyan', size: '1.05em' }) : ''}</span>
         </div>
 
         <!-- Способы пополнения -->
@@ -647,7 +646,7 @@ function _renderPayTabHtml() {
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
           </svg>
-          <span id="paySubmitBtnText">Пополнить на 50 BYN</span>
+          <span id="paySubmitBtnText" class="inline-flex items-center gap-1">Пополнить на 50 ${window.bynSign ? window.bynSign() : ''}</span>
         </button>
       </div>
 
@@ -685,7 +684,7 @@ function _attachPayTabHandlers() {
       customInput.value = _selectedPayAmount;
     }
     if (submitBtnText) {
-      submitBtnText.innerText = `Пополнить на ${_selectedPayAmount} BYN`;
+      submitBtnText.innerHTML = `Пополнить на ${_selectedPayAmount} ${window.bynSign ? window.bynSign() : ''}`;
     }
 
     document.querySelectorAll('#payChipsGrid button').forEach(chip => {
@@ -744,13 +743,13 @@ function _attachPayTabHandlers() {
         if (typeof window.openEripPaymentModal === 'function') {
           window.openEripPaymentModal(amt);
         } else {
-          tgUtil.alert(`Счет в ЕРИП на сумму ${amt} BYN сформирован!`);
+          tgUtil.alert(`Счет в ЕРИП на сумму ${amt} сформирован!`);
         }
       } else if (_selectedPayMethod === 'oplati') {
         if (typeof window.openOplatiPaymentModal === 'function') {
           window.openOplatiPaymentModal(amt);
         } else {
-          tgUtil.alert(`QR-код «Оплати» на сумму ${amt} BYN сформирован!`);
+          tgUtil.alert(`QR-код «Оплати» на сумму ${amt} сформирован!`);
         }
       } else if (_selectedPayMethod === 'card') {
         const cards = Array.isArray(window.userCards) ? window.userCards : [];
@@ -776,14 +775,12 @@ function _attachPayTabHandlers() {
 
         await new Promise(r => setTimeout(r, 1200));
         if (typeof window.applyWalletCredit === 'function') {
-          await window.applyWalletCredit(amt, 'TOPUP_CARD', `Счёт ICE LOGIX PAY успешно пополнен на +${amt} BYN с банковской карты!`);
+          await window.applyWalletCredit(amt, 'TOPUP_CARD', `Счёт успешно пополнен на +${amt} с банковской карты!`);
         } else {
           window.balance = (window.balance || 0) + amt;
           const liveB = document.getElementById('payLiveBalance');
-          if (liveB) liveB.innerText = `${window.balance.toFixed(2)} BYN`;
-          const liveI = document.getElementById('payLiveIce');
-          if (liveI) liveI.innerText = `≈ ${window.balance.toFixed(0)} ICE`;
-          if (typeof tgUtil !== 'undefined') tgUtil.alert(`Счёт ICE LOGIX PAY успешно пополнен на +${amt} BYN!`);
+          if (liveB) liveB.innerHTML = `${window.balance.toFixed(2)} ${window.bynSign ? window.bynSign() : ''}`;
+          if (typeof tgUtil !== 'undefined') tgUtil.alert(`Счёт успешно пополнен на +${amt}!`);
         }
 
         submitBtn.disabled = false;
@@ -795,9 +792,8 @@ function _attachPayTabHandlers() {
 
 // Быстрое переключение табов за 0 мс (без перезагрузки экрана)
 function switchFinancesSubTab(targetTab) {
-  if (targetTab === 'pay' || targetTab === 'wallet' || targetTab === 'topup') {
-    if (typeof switchTab === 'function') switchTab('wallet');
-    return;
+  if (targetTab === 'wallet' || targetTab === 'topup') {
+    targetTab = 'pay';
   }
   window._financesSubTab = targetTab;
   if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
@@ -805,6 +801,7 @@ function switchFinancesSubTab(targetTab) {
   // 1. Мгновенно обновляем стили кнопок и заголовок в DOM
   const titles = {
     payment: { title: 'Банковские карты', sub: 'Привязанные карты для быстрой оплаты' },
+    pay: { title: 'ICE LOGIX <span class="text-cyan-400">PAY</span>', sub: 'Лицевой счёт и пополнение баланса' },
     coupons: { title: 'Купоны и промокоды', sub: 'Активация скидок и баллов' },
     refunds: { title: 'Гарантия и возвраты', sub: 'История возвратов средств' }
   };
@@ -814,14 +811,14 @@ function switchFinancesSubTab(targetTab) {
   if (headerTitleEl) headerTitleEl.innerHTML = meta.title;
   if (headerSubEl) headerSubEl.innerText = meta.sub;
 
-  const tabs = ['payment', 'coupons', 'refunds'];
+  const tabs = ['payment', 'pay', 'coupons', 'refunds'];
   tabs.forEach(tab => {
     const btn = document.getElementById('financesTab' + tab.charAt(0).toUpperCase() + tab.slice(1));
     if (btn) {
       if (tab === targetTab) {
-        btn.className = 'w-full py-2.5 px-1 rounded-xl text-[11px] font-bold transition-all duration-200 flex flex-col sm:flex-row items-center justify-center gap-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20';
+        btn.className = 'w-full py-2.5 px-0.5 rounded-xl text-[10px] sm:text-[11px] font-bold transition-all duration-200 flex flex-col items-center justify-center gap-1 bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20';
       } else {
-        btn.className = 'w-full py-2.5 px-1 rounded-xl text-[11px] font-bold transition-all duration-200 flex flex-col sm:flex-row items-center justify-center gap-1.5 text-white/60 hover:text-white hover:bg-white/5 active:scale-95';
+        btn.className = 'w-full py-2.5 px-0.5 rounded-xl text-[10px] sm:text-[11px] font-bold transition-all duration-200 flex flex-col items-center justify-center gap-1 text-white/60 hover:text-white hover:bg-white/5 active:scale-95';
       }
     }
   });
@@ -833,6 +830,9 @@ function switchFinancesSubTab(targetTab) {
   if (targetTab === 'payment') {
     container.innerHTML = _renderPaymentTabHtml();
     _attachPaymentTabHandlers();
+  } else if (targetTab === 'pay') {
+    container.innerHTML = _renderPayTabHtml();
+    _attachPayTabHandlers();
   } else if (targetTab === 'coupons') {
     const cached = window._financesCache?.coupons;
     if (cached) {
@@ -867,12 +867,13 @@ function switchFinancesSubTab(targetTab) {
 async function renderFinances() {
   _ensureCardsLoadedSync();
   let subTab = window._financesSubTab || 'payment';
-  if (subTab === 'pay' || subTab === 'history' || subTab === 'topup') subTab = 'payment';
+  if (subTab === 'history' || subTab === 'topup' || subTab === 'wallet') subTab = 'pay';
   window._financesSubTab = subTab;
 
   const curBal = typeof window.balance === 'number' ? window.balance : 0;
   const titles = {
     payment: { title: 'Банковские карты', sub: 'Привязанные карты для быстрой оплаты' },
+    pay: { title: 'ICE LOGIX <span class="text-cyan-400">PAY</span>', sub: 'Лицевой счёт и пополнение баланса' },
     coupons: { title: 'Купоны и промокоды', sub: 'Активация скидок и баллов' },
     refunds: { title: 'Гарантия и возвраты', sub: 'История возвратов средств' }
   };
@@ -881,6 +882,8 @@ async function renderFinances() {
   let initialContent = '';
   if (subTab === 'payment') {
     initialContent = _renderPaymentTabHtml();
+  } else if (subTab === 'pay') {
+    initialContent = _renderPayTabHtml();
   } else if (subTab === 'coupons') {
     const cached = window._financesCache?.coupons;
     initialContent = _renderCouponsTabHtml(cached || { totalSpentByn: 0, ordersCount: 0 });
@@ -924,29 +927,13 @@ async function renderFinances() {
         </div>
       </div>
 
-      <!-- Баннер быстрого перехода в ICE LOGIX PAY -->
-      <div onclick="switchTab('wallet')" class="p-3.5 mb-5 rounded-2xl bg-gradient-to-r from-cyan-950/70 via-slate-900/90 to-slate-900 border border-cyan-500/30 flex items-center justify-between cursor-pointer active:scale-95 transition hover:border-cyan-400/50 shadow-lg shadow-cyan-950/20">
-        <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-md shadow-cyan-500/30 text-white font-black text-sm">
-            ⚡
-          </div>
-          <div>
-            <p class="text-xs font-black text-white tracking-wide">Лицевой счёт ICE LOGIX <span class="text-cyan-400">PAY</span></p>
-            <p class="text-[10px] text-cyan-300 font-mono inline-flex items-baseline gap-1 mt-0.5">Баланс: ${curBal.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</p>
-          </div>
-        </div>
-        <span class="text-[10px] font-bold px-3 py-1.5 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 flex items-center gap-1 active:scale-95">
-          Пополнить счёт →
-        </span>
-      </div>
-
-      <!-- Сегментированная навигация по подразделам Финансов (3 таба: Карты, Купоны, Возвраты) -->
-      <div class="grid grid-cols-3 gap-1 mb-5 p-1 rounded-2xl bg-slate-900/90 border border-white/10 shadow-lg backdrop-blur-md">
+      <!-- Сегментированная навигация по подразделам Финансов (4 таба: Карты, ICE LOGIX PAY, Купоны, Возвраты) -->
+      <div class="grid grid-cols-4 gap-1 mb-5 p-1 rounded-2xl bg-slate-900/90 border border-white/10 shadow-lg backdrop-blur-md">
         <button
           id="financesTabPayment"
           type="button"
           onclick="window.switchFinancesSubTab('payment')"
-          class="w-full py-2.5 px-1 rounded-xl text-[11px] font-bold transition-all duration-200 flex flex-col sm:flex-row items-center justify-center gap-1.5 ${
+          class="w-full py-2.5 px-0.5 rounded-xl text-[10px] sm:text-[11px] font-bold transition-all duration-200 flex flex-col items-center justify-center gap-1 ${
             subTab === 'payment'
               ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20'
               : 'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'
@@ -960,10 +947,26 @@ async function renderFinances() {
         </button>
 
         <button
+          id="financesTabPay"
+          type="button"
+          onclick="window.switchFinancesSubTab('pay')"
+          class="w-full py-2.5 px-0.5 rounded-xl text-[10px] sm:text-[11px] font-bold transition-all duration-200 flex flex-col items-center justify-center gap-1 ${
+            subTab === 'pay'
+              ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20'
+              : 'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'
+          }"
+        >
+          <svg class="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+          <span class="truncate">ICE LOGIX PAY</span>
+        </button>
+
+        <button
           id="financesTabCoupons"
           type="button"
           onclick="window.switchFinancesSubTab('coupons')"
-          class="w-full py-2.5 px-1 rounded-xl text-[11px] font-bold transition-all duration-200 flex flex-col sm:flex-row items-center justify-center gap-1.5 ${
+          class="w-full py-2.5 px-0.5 rounded-xl text-[10px] sm:text-[11px] font-bold transition-all duration-200 flex flex-col items-center justify-center gap-1 ${
             subTab === 'coupons'
               ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20'
               : 'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'
@@ -980,7 +983,7 @@ async function renderFinances() {
           id="financesTabRefunds"
           type="button"
           onclick="window.switchFinancesSubTab('refunds')"
-          class="w-full py-2.5 px-1 rounded-xl text-[11px] font-bold transition-all duration-200 flex flex-col sm:flex-row items-center justify-center gap-1.5 ${
+          class="w-full py-2.5 px-0.5 rounded-xl text-[10px] sm:text-[11px] font-bold transition-all duration-200 flex flex-col items-center justify-center gap-1 ${
             subTab === 'refunds'
               ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20'
               : 'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'
@@ -1059,9 +1062,9 @@ function attachFinancesHandlers() {
   bindTab('financesTabCoupons', 'coupons');
   bindTab('financesTabRefunds', 'refunds');
 
-  const curSub = window._financesSubTab || 'pay';
-  if (curSub === 'pay') _attachPayTabHandlers();
-  else if (curSub === 'payment') _attachPaymentTabHandlers();
+  const curSub = window._financesSubTab || 'payment';
+  if (curSub === 'payment') _attachPaymentTabHandlers();
+  else if (curSub === 'pay') _attachPayTabHandlers();
   else if (curSub === 'coupons') _attachCouponsTabHandlers();
 }
 

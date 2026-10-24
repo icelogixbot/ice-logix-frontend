@@ -636,7 +636,7 @@
           const t = c.querySelector('.wb-product-title')?.innerText || 'Товар';
           const p = c.querySelector('.wb-row-price')?.innerText || '0';
           const q = c.querySelector('.wb-qty-val')?.innerText || '1';
-          lines.push(`• ${t} (${q} шт.) — ${p} BYN`);
+          lines.push(`• ${t} (${q} шт.) — ${p}`);
         });
 
         const shareText = lines.join('\n');

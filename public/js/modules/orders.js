@@ -398,7 +398,7 @@ window.applySmartShareLink = applySmartShareLink;
                     <p class="text-white/50 text-[10px] mt-0.5">Размер: ${escHtmlC(c.size || '—')} · Цвет: ${escHtmlC(c.color || '—')} · ${c.weight || 1.0} кг</p>
                   </div>
                   <div class="flex flex-col justify-center items-end ml-2 pl-2 border-l border-white/5">
-                    <span class="text-cyan-400 font-extrabold text-xs font-mono">${c.total_byn ? Number(c.total_byn).toFixed(2) : '0.00'} BYN</span>
+                    <span class="text-cyan-400 font-extrabold text-xs font-mono inline-flex items-baseline gap-1">${c.total_byn ? Number(c.total_byn).toFixed(2) : '0.00'} ${window.bynSign ? window.bynSign() : ''}</span>
                     <span class="text-[9px] text-cyan-400/80 font-bold bg-cyan-500/10 px-1.5 py-0.5 rounded-lg border border-cyan-500/20 mt-1">Выбрать</span>
                   </div>
                 </div>
@@ -680,7 +680,7 @@ window.applySmartShareLink = applySmartShareLink;
               <div class="flex-1 min-w-0">
                 <div class="text-sm font-bold text-white truncate">${item.title}</div>
                 <div class="text-xs text-white/60 mt-0.5">Размер: ${item.size || 'не указан'} · Категория: ${item.category}</div>
-                <div class="text-xs text-cyan-400 font-bold mt-1">${item.price} ${item.currency} (${item.total_byn.toFixed(2)} BYN)</div>
+                <div class="text-xs text-cyan-400 font-bold mt-1 inline-flex items-baseline gap-1">${item.price} ${item.currency} (${item.total_byn.toFixed(2)} ${window.bynSign ? window.bynSign() : ''})</div>
               </div>
               <button type="button" class="bg-red-500/20 hover:bg-red-500/40 text-red-400 rounded-full w-8 h-8 flex items-center justify-center transition flex-shrink-0" onclick="deleteOrderItem(${item._originalIndex})">${ix('trash-2')}</button>
             </div>
@@ -695,7 +695,7 @@ window.applySmartShareLink = applySmartShareLink;
             <div class="flex items-center gap-2 text-left">
               <input type="checkbox" id="pkgConsolidationCheck" class="w-5 h-5 accent-cyan-500 cursor-pointer" ${isConsolidated ? 'checked' : ''} onchange="window.togglePackageConsolidation('${window.activePackageTab}')">
               <label for="pkgConsolidationCheck" class="text-white text-xs font-semibold leading-snug cursor-pointer">
-                📦 Объединить товары в одну коробку (скидка 3 BYN)
+                📦 Объединить товары в одну коробку (скидка 3 ${window.bynSign ? window.bynSign() : ''})
               </label>
             </div>
           </div>
@@ -710,15 +710,15 @@ window.applySmartShareLink = applySmartShareLink;
             <p class="text-white/60 font-bold uppercase tracking-wider text-[10px]">Доп. услуги склада в ${activeCountryLabel}:</p>
             <div class="flex items-center gap-2">
               <input type="checkbox" id="extraBubble" class="w-4 h-4 accent-cyan-500 cursor-pointer" ${extras.bubble ? 'checked' : ''} onchange="window.togglePackageExtra('${window.activePackageTab}', 'bubble')">
-              <label for="extraBubble" class="text-white/70 cursor-pointer">Bubble-плёнка (+3 BYN)</label>
+              <label for="extraBubble" class="text-white/70 cursor-pointer">Bubble-плёнка (+3 ${window.bynSign ? window.bynSign() : ''})</label>
             </div>
             <div class="flex items-center gap-2">
               <input type="checkbox" id="extraWood" class="w-4 h-4 accent-cyan-500 cursor-pointer" ${extras.wood ? 'checked' : ''} onchange="window.togglePackageExtra('${window.activePackageTab}', 'wood')">
-              <label for="extraWood" class="text-white/70 cursor-pointer">Деревянная обрешётка (+10 BYN)</label>
+              <label for="extraWood" class="text-white/70 cursor-pointer">Деревянная обрешётка (+10 ${window.bynSign ? window.bynSign() : ''})</label>
             </div>
             <div class="flex items-center gap-2">
               <input type="checkbox" id="extraCheck" class="w-4 h-4 accent-cyan-500 cursor-pointer" ${extras.check ? 'checked' : ''} onchange="window.togglePackageExtra('${window.activePackageTab}', 'check')">
-              <label for="extraCheck" class="text-white/70 cursor-pointer">Детальная проверка на брак/замеры (+5 BYN)</label>
+              <label for="extraCheck" class="text-white/70 cursor-pointer">Детальная проверка на брак/замеры (+5 ${window.bynSign ? window.bynSign() : ''})</label>
             </div>
           </div>
         `;
@@ -743,7 +743,7 @@ window.applySmartShareLink = applySmartShareLink;
       }
 
       const discountLine = window.tempOrder.discountAmount > 0
-        ? `<p class="text-green-400 text-sm mt-1">Скидка: -${window.tempOrder.discountAmount.toFixed(2)} BYN</p>`
+        ? `<p class="text-green-400 text-sm mt-1 inline-flex items-baseline gap-1">Скидка: -${window.tempOrder.discountAmount.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'emerald' }) : ''}</p>`
         : '';
 
       const finalTotal = Math.max(0, totalSum - (window.tempOrder.discountAmount || 0));
@@ -762,11 +762,11 @@ window.applySmartShareLink = applySmartShareLink;
           </div>
           <div class="flex items-center gap-2 mt-2">
             <input type="checkbox" id="orderExtraPhoto" ${window.tempOrder.extraPhoto ? 'checked' : ''} class="w-4 h-4 accent-cyan-500 cursor-pointer">
-            <label for="orderExtraPhoto" class="text-white/70 text-sm cursor-pointer"><span class="text-cyan-400">📸 Детальные photo со склада</span> (+3 BYN)</label>
+            <label for="orderExtraPhoto" class="text-white/70 text-sm cursor-pointer"><span class="text-cyan-400">📸 Детальные photo со склада</span> (+3 ${window.bynSign ? window.bynSign() : ''})</label>
           </div>
           <div class="flex items-center gap-2 mt-2">
             <input type="checkbox" id="orderExtraMeasure" ${window.tempOrder.extraMeasure ? 'checked' : ''} class="w-4 h-4 accent-cyan-500 cursor-pointer">
-            <label for="orderExtraMeasure" class="text-white/70 text-sm cursor-pointer"><span class="text-cyan-400">📏 Замер стельки/длины</span> (+3 BYN)</label>
+            <label for="orderExtraMeasure" class="text-white/70 text-sm cursor-pointer"><span class="text-cyan-400">📏 Замер стельки/длины</span> (+3 ${window.bynSign ? window.bynSign() : ''})</label>
           </div>
           <div class="flex items-center gap-2">
             <input type="checkbox" id="orderIsGift" ${window.tempOrder.isGift ? 'checked' : ''} class="w-4 h-4 accent-pink-500 cursor-pointer">
@@ -774,7 +774,7 @@ window.applySmartShareLink = applySmartShareLink;
           </div>
           <div class="flex items-center gap-2">
             <input type="checkbox" id="orderRequiresVideoCheck" ${window.tempOrder.requiresVideoCheck ? 'checked' : ''} class="w-4 h-4 accent-cyan-500 cursor-pointer">
-            <label for="orderRequiresVideoCheck" class="text-white/70 text-sm cursor-pointer"><span class="text-cyan-400">📹 Видео-проверка</span> со склада в Китае (+10 BYN)</label>
+            <label for="orderRequiresVideoCheck" class="text-white/70 text-sm cursor-pointer"><span class="text-cyan-400">📹 Видео-проверка</span> со склада в Китае (+10 ${window.bynSign ? window.bynSign() : ''})</label>
           </div>
         </div>
 
@@ -786,7 +786,7 @@ window.applySmartShareLink = applySmartShareLink;
           <div>
             <label class="text-white/50 text-[10px] block mb-1">Способ получения в Беларуси</label>
             <select id="pvsMethodSelect" class="w-full p-3 rounded-xl border border-white/20 text-sm bg-slate-900 text-white">
-              <option value="none" ${(!window.tempOrder.pvs || window.tempOrder.pvs.method === 'none') ? 'selected' : ''}>🏢 Самовывоз в Несвиже (0 BYN)</option>
+              <option value="none" ${(!window.tempOrder.pvs || window.tempOrder.pvs.method === 'none') ? 'selected' : ''}>🏢 Самовывоз в Несвиже (0 ${window.bynSign ? window.bynSign() : ''})</option>
               <option value="europoshta" ${(window.tempOrder.pvs?.method === 'europoshta') ? 'selected' : ''}>📦 Европочта (оплата тарифа при получении)</option>
               <option value="belpochta" ${(window.tempOrder.pvs?.method === 'belpochta') ? 'selected' : ''}>📬 Белпочта (оплата тарифа при получении)</option>
               <option value="sdek" ${(window.tempOrder.pvs?.method === 'sdek') ? 'selected' : ''}>🚚 СДЭК (оплата тарифа при получении)</option>
@@ -842,8 +842,8 @@ window.applySmartShareLink = applySmartShareLink;
             <div class="flex items-center gap-2.5">
               <span class="text-xl">🧊</span>
               <div>
-                <p class="text-white text-xs font-bold">Внутренний баланс ICE</p>
-                <p class="text-cyan-400 text-xs font-semibold">Доступно: <span id="checkoutUserBalance">${Number(typeof balance !== 'undefined' ? (balance || 0) : 0).toFixed(2)}</span> BYN</p>
+                <p class="text-white text-xs font-bold">Персональный баланс</p>
+                <p class="text-cyan-400 text-xs font-semibold inline-flex items-baseline gap-1">Доступно: <span id="checkoutUserBalance">${Number(typeof balance !== 'undefined' ? (balance || 0) : 0).toFixed(2)}</span> ${window.bynSign ? window.bynSign({ color: 'cyan' }) : ''}</p>
               </div>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
@@ -853,7 +853,7 @@ window.applySmartShareLink = applySmartShareLink;
           </div>
           <div id="checkoutBalanceAmountRow" class="hidden pt-2 border-t border-white/10 flex items-center justify-between text-xs mt-2">
             <span class="text-white/70">Списание с баланса:</span>
-            <span class="text-green-400 font-bold font-mono" id="checkoutBalanceUsedText">-0.00 BYN</span>
+            <span class="text-green-400 font-bold font-mono inline-flex items-baseline gap-1" id="checkoutBalanceUsedText">-0.00 ${window.bynSign ? window.bynSign({ color: 'emerald' }) : ''}</span>
           </div>
         </div>
 
@@ -900,7 +900,7 @@ window.applySmartShareLink = applySmartShareLink;
             <!-- Populated via window.renderCheckoutCards() -->
           </div>
           <div class="flex items-center justify-between pt-1 border-t border-white/5 flex-wrap gap-2" id="checkoutCardLogosRow">
-            <p class="text-[10px] text-white/50">🔒 Авторизация bePaid (1.00 BYN с возвратом)</p>
+            <p class="text-[10px] text-white/50">🔒 Авторизация bePaid (1.00 ${window.bynSign ? window.bynSign() : ''} с возвратом)</p>
             <div class="flex items-center gap-2.5 opacity-90 select-none">
               <img src="/assets/payment-methods/visa.webp" alt="VISA" class="h-3 w-auto object-contain" loading="lazy">
               <img src="/assets/payment-methods/mastercard.webp" alt="MC" class="h-3.5 w-auto object-contain" loading="lazy">
@@ -919,19 +919,19 @@ window.applySmartShareLink = applySmartShareLink;
           <div class="space-y-1.5 mb-3 bg-white/5 p-3 rounded-xl border border-white/10">
             <div class="flex justify-between items-baseline text-xs text-white/70">
               <span>Полная оценка заказа:</span>
-              <span class="text-white font-mono font-bold"><span id="orderTotal">${finalTotal.toFixed(2)}</span> BYN</span>
+              <span class="text-white font-mono font-bold inline-flex items-baseline gap-1"><span id="orderTotal">${finalTotal.toFixed(2)}</span> ${window.bynSign ? window.bynSign() : ''}</span>
             </div>
             <div class="flex justify-between items-baseline text-xs text-amber-300">
               <span>2-й этап (оплата на складе):</span>
-              <span class="font-mono font-bold">~<span id="secondPaymentEstimate">0.00</span> BYN</span>
+              <span class="font-mono font-bold inline-flex items-baseline gap-1">~<span id="secondPaymentEstimate">0.00</span> ${window.bynSign ? window.bynSign() : ''}</span>
             </div>
             <div class="flex justify-between items-baseline pt-2 border-t border-cyan-500/30">
               <span class="text-cyan-300 font-bold text-sm">К ОПЛАТЕ СЕЙЧАС (1-й этап):</span>
-              <span class="text-cyan-400 font-bold text-xl"><span id="firstPaymentAmount">0.00</span> <span class="text-xs">BYN</span></span>
+              <span class="text-cyan-400 font-bold text-xl inline-flex items-baseline gap-1"><span id="firstPaymentAmount">0.00</span> ${window.bynSign ? window.bynSign({ color: 'cyan' }) : ''}</span>
             </div>
           </div>
           ${discountLine}
-          <p class="text-white/60 text-[11px] mb-3">1-й этап: выкуп товара + комиссия + упаковка (18 BYN) + 70% резерв доставки.<br>*Обязательная предоплата: <span id="prepaymentAmount" class="font-bold text-cyan-300">0.00</span> BYN</p>
+          <p class="text-white/60 text-[11px] mb-3">1-й этап: выкуп товара + комиссия + упаковка (18 ${window.bynSign ? window.bynSign() : ''}) + 70% резерв доставки.<br>*Обязательная предоплата: <span id="prepaymentAmount" class="font-bold text-cyan-300 inline-flex items-baseline gap-1">0.00 ${window.bynSign ? window.bynSign({ color: 'cyan' }) : ''}</span></p>
           
           <!-- Agree Offer -->
           <div class="mt-4 flex items-start gap-2 border-t border-white/10 pt-3 mb-2">
@@ -964,7 +964,7 @@ window.applySmartShareLink = applySmartShareLink;
 
           <button id="createOrderFinal" class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg transition">
             <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span>
-            <span>Оплатить 1-й этап (<span id="btnPayAmount">0.00</span> BYN)</span>
+            <span>Оплатить 1-й этап (<span id="btnPayAmount">0.00</span> ${window.bynSign ? window.bynSign({ color: 'white' }) : ''})</span>
           </button>
         </div>
       ` : '';
@@ -1258,7 +1258,7 @@ window.applySmartShareLink = applySmartShareLink;
               window.tempOrder.appliedPromo = data;
               recalculateOrderTotals();
               
-              promoMessage.innerHTML = `Промокод применён! Скидка: ${discountAmount.toFixed(2)} <span class="brand-flake" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain"></span>`;
+              promoMessage.innerHTML = `Промокод применён! Скидка: ${discountAmount.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'emerald' }) : ''}`;
               promoMessage.classList.remove('hidden');
               promoMessage.style.color = '#4ade80';
             } catch (err) {
@@ -1565,7 +1565,7 @@ window.applySmartShareLink = applySmartShareLink;
               } else if (window._checkoutPaymentMethod === 'oplati' && typeof window.openOplatiPaymentModal === 'function') {
                 window.openOplatiPaymentModal(firstPaymentToPay, { order_id: 'OPL-' + createdOrderId.slice(0, 8).toUpperCase() });
               } else {
-                tgUtil.alert(`✅ Заказ #${createdOrderId.slice(0, 8)} успешно оформлен!\n1-й этап (${firstPaymentToPay.toFixed(2)} BYN) оплачен.`);
+                tgUtil.alert(`✅ Заказ #${createdOrderId.slice(0, 8)} успешно оформлен!\n1-й этап (${firstPaymentToPay.toFixed(2)}) оплачен.`);
               }
 
               const dbCartIds = [];
@@ -2756,18 +2756,18 @@ async function renderMyOrders() {
                   return `<p class="text-white/70 text-xs mt-1">Вес: ${est} кг</p>`;
                 })()}
                 ${order.extra_services?.is_gift ? `
-                  <div class="mt-2 bg-pink-500/10 p-3 rounded-lg border border-pink-500/20 text-center cursor-pointer hover:bg-pink-500/20 transition-colors" onclick="this.innerHTML='<div class=\\'text-left text-xs space-y-1\\'><div class=\\'flex justify-between text-white/70\\'><span>Сумма заказа:</span><span>${Number(order.total_byn || 0).toFixed(2)} BYN</span></div><div class=\\'flex justify-between text-cyan-400 font-bold\\'><span>Внесено (70%):</span><span>${Number(order.prepayment_amount || 0).toFixed(2)} BYN</span></div><div class=\\'flex justify-between text-amber-400 font-bold border-t border-white/10 pt-1 mt-1\\'><span>Остаток:</span><span>${(Number(order.total_byn || 0) - Number(order.prepayment_amount || 0)).toFixed(2)} BYN</span></div></div>'">
+                  <div class="mt-2 bg-pink-500/10 p-3 rounded-lg border border-pink-500/20 text-center cursor-pointer hover:bg-pink-500/20 transition-colors" onclick="this.innerHTML='<div class=\\'text-left text-xs space-y-1\\'><div class=\\'flex justify-between text-white/70\\'><span>Сумма заказа:</span><span>${Number(order.total_byn || 0).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span></div><div class=\\'flex justify-between text-cyan-400 font-bold\\'><span>Внесено (70%):</span><span>${Number(order.prepayment_amount || 0).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span></div><div class=\\'flex justify-between text-amber-400 font-bold border-t border-white/10 pt-1 mt-1\\'><span>Остаток:</span><span>${(Number(order.total_byn || 0) - Number(order.prepayment_amount || 0)).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span></div></div>'">
                     <p class="text-pink-400 font-bold text-xs">🎁 Сюрприз (Нажмите, чтобы показать цену)</p>
                   </div>
                 ` : `
                   <div class="mt-2 bg-white/5 p-2.5 rounded-xl text-xs space-y-1.5 border border-white/10">
                     <div class="flex justify-between text-white/70">
                       <span>Полная стоимость заказа:</span>
-                      <span class="font-mono font-semibold">${Number(order.total_byn || 0).toFixed(2)} BYN</span>
+                      <span class="font-mono font-semibold inline-flex items-baseline gap-1">${Number(order.total_byn || 0).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
                     </div>
                     <div class="flex justify-between items-center text-cyan-400">
                       <span class="flex items-center gap-1 font-semibold"><span>💳 1-й этап:</span> <span class="text-[9px] text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded border border-green-500/30">Оплачен</span></span>
-                      <span class="font-mono font-bold">${Number(order.prepayment_amount || 0).toFixed(2)} BYN</span>
+                      <span class="font-mono font-bold inline-flex items-baseline gap-1">${Number(order.prepayment_amount || 0).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
                     </div>
                     ${(() => {
                       const secondPayRemaining = Math.max(0, Number(order.total_byn || 0) - Number(order.prepayment_amount || 0));
@@ -2777,7 +2777,7 @@ async function renderMyOrders() {
                         return `
                           <div class="flex justify-between items-center text-green-400 border-t border-white/10 pt-1.5">
                             <span class="flex items-center gap-1 font-semibold"><span>📦 2-й этап:</span> <span class="text-[9px] text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded border border-green-500/30">Оплачен</span></span>
-                            <span class="font-mono font-bold">${secondPayRemaining.toFixed(2)} BYN</span>
+                            <span class="font-mono font-bold inline-flex items-baseline gap-1">${secondPayRemaining.toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
                           </div>
                         `;
                       }
@@ -2786,10 +2786,10 @@ async function renderMyOrders() {
                           <div class="border-t border-amber-500/30 pt-1.5 space-y-1.5">
                             <div class="flex justify-between items-center text-amber-300 font-bold">
                               <span>📦 2-й этап (К оплате):</span>
-                              <span class="font-mono text-sm">${secondPayRemaining.toFixed(2)} BYN</span>
+                              <span class="font-mono text-sm inline-flex items-baseline gap-1">${secondPayRemaining.toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
                             </div>
                             <button type="button" class="w-full btn-primary bg-amber-500 hover:bg-amber-400 text-black font-bold py-2 rounded-lg text-xs flex items-center justify-center gap-1 shadow-md" onclick="window.openSecondPaymentModal('${order.id}', ${secondPayRemaining})">
-                              💳 Оплатить 2-й этап (${secondPayRemaining.toFixed(2)} BYN)
+                              💳 Оплатить 2-й этап (${secondPayRemaining.toFixed(2)} ${window.bynSign ? window.bynSign() : ''})
                             </button>
                           </div>
                         `;
@@ -2797,7 +2797,7 @@ async function renderMyOrders() {
                       return `
                         <div class="flex justify-between items-center text-amber-300 border-t border-white/10 pt-1.5">
                           <span class="text-white/60">📦 2-й этап (Остаток на складе):</span>
-                          <span class="font-mono font-semibold">~${secondPayRemaining.toFixed(2)} BYN</span>
+                          <span class="font-mono font-semibold inline-flex items-baseline gap-1">~${secondPayRemaining.toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
                         </div>
                       `;
                     })()}
@@ -2836,7 +2836,7 @@ async function renderMyOrders() {
             ` : ''}
             ${order.requires_video_check ? `
               <div class="mt-3 bg-cyan-500/10 border border-cyan-500/20 p-3 rounded-xl">
-                <p class="text-cyan-400 text-xs font-bold mb-1 flex items-center gap-1"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span> Оплачена Видео-проверка (10 BYN)</p>
+                <p class="text-cyan-400 text-xs font-bold mb-1 flex items-center gap-1"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span> Оплачена Видео-проверка (10 ${window.bynSign ? window.bynSign({ color: 'cyan' }) : ''})</p>
                 ${order.video_url ? `
                   <a href="${order.video_url}" target="_blank" class="mt-2 btn-primary w-full py-2 text-xs flex justify-center items-center gap-2">
                     Посмотреть видео
@@ -3679,7 +3679,7 @@ window.openAddCardModal = function(onSuccess) {
           <span>Безопасный эквайринг <strong>bePaid (РБ)</strong> · Стандарт PCI DSS</span>
         </div>
         <p class="text-[10px] text-white/40 text-center leading-relaxed px-2">
-          Для проверки карты блокируется <strong>1.00 BYN</strong> и сразу возвращается.
+          Для проверки карты блокируется <strong>1.00 ${window.bynSign ? window.bynSign() : ''}</strong> и сразу возвращается.
         </p>
       </div>
 
@@ -3953,7 +3953,7 @@ window.openAddCardModal = function(onSuccess) {
     submitBtn.disabled = true;
     submitBtn.innerHTML = `
       <svg class="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
-      <span>Проверка bePaid (1.00 BYN)...</span>
+      <span>Проверка bePaid...</span>
     `;
 
     const cardType = detectCardType(rawNum);
@@ -4001,7 +4001,7 @@ window.openAddCardModal = function(onSuccess) {
 
     const bankGreeting = bankInfo ? ` (${bankInfo.name})` : '';
     tgUtil.haptic('success');
-    tgUtil.alert(`✅ Карта ${cardType}${bankGreeting} •••• ${newCard.last4} успешно привязана!\n1.00 BYN возвращен на ваш счет.`);
+    tgUtil.alert(`✅ Карта ${cardType}${bankGreeting} •••• ${newCard.last4} успешно привязана!\nПроверочный платёж возвращен на ваш счет.`);
     close();
 
     window.renderCheckoutCards();
@@ -4245,7 +4245,7 @@ window.openSecondPaymentModal = function(orderId, amount) {
       <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-1">
         <div class="flex justify-between text-white/80">
           <span>Сумма к оплате:</span>
-          <span class="text-amber-400 font-bold font-mono text-sm">${totalDue.toFixed(2)} BYN</span>
+          <span class="text-amber-400 font-bold font-mono text-sm inline-flex items-baseline gap-1">${totalDue.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'gold' }) : ''}</span>
         </div>
         <p class="text-[10px] text-white/50">Включает остаток международной доставки за вычетом 70% резерва, страховку 2% и долю сборной посылки.</p>
       </div>
@@ -4254,8 +4254,8 @@ window.openSecondPaymentModal = function(orderId, amount) {
       ${curBal > 0 ? `
         <div class="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
           <div>
-            <p class="text-xs font-bold text-white">Списать с баланса ICE</p>
-            <p class="text-[10px] text-cyan-400">Доступно: ${curBal.toFixed(2)} BYN</p>
+            <p class="text-xs font-bold text-white">Списать с персонального баланса</p>
+            <p class="text-[10px] text-cyan-400 inline-flex items-baseline gap-1">Доступно: ${curBal.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'cyan' }) : ''}</p>
           </div>
           <input type="checkbox" id="secondPayApplyBalance" class="w-5 h-5 accent-cyan-500 cursor-pointer">
         </div>
@@ -4264,7 +4264,7 @@ window.openSecondPaymentModal = function(orderId, amount) {
       <!-- Итог к оплате картой -->
       <div class="flex justify-between items-baseline pt-2 border-t border-white/10 text-xs">
         <span class="text-white font-bold">К оплате картой:</span>
-        <span class="text-amber-400 font-bold text-base font-mono" id="secondPayCardAmount">${totalDue.toFixed(2)} BYN</span>
+        <span class="text-amber-400 font-bold text-base font-mono inline-flex items-baseline gap-1" id="secondPayCardAmount">${totalDue.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'gold' }) : ''}</span>
       </div>
 
       <button id="submitSecondPayBtn" class="btn-primary w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black py-3 rounded-xl font-bold flex items-center justify-center gap-2 text-sm shadow-lg shadow-amber-500/20">
@@ -4298,7 +4298,7 @@ window.openSecondPaymentModal = function(orderId, amount) {
       balUsed = Math.min(curBal, totalDue);
     }
     const cardDue = Math.max(0, totalDue - balUsed);
-    if (cardAmountSpan) cardAmountSpan.innerText = cardDue.toFixed(2) + ' BYN';
+    if (cardAmountSpan) cardAmountSpan.innerHTML = `${cardDue.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'gold' }) : ''}`;
   };
 
   if (balChk) balChk.onchange = updateCardDue;
@@ -4616,7 +4616,7 @@ window.generatePdfInvoice = async (orderId, isB2b = false, customPrice = null) =
               <span style="color: #6b7280; font-size: 12px;">Weight: ~${order.weight_estimated} kg</span>
             </td>
             <td style="padding: 15px 12px; text-align: right; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600;">
-              ${Number(goodsByn).toFixed(2)} BYN
+              ${Number(goodsByn).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}
             </td>
           </tr>
           ${!isB2b ? `
@@ -4625,7 +4625,7 @@ window.generatePdfInvoice = async (orderId, isB2b = false, customPrice = null) =
               <strong>Service Fee (Commission)</strong>
             </td>
             <td style="padding: 15px 12px; text-align: right; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600;">
-              ${Number(order.commission_byn||0).toFixed(2)} BYN
+              ${Number(order.commission_byn||0).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}
             </td>
           </tr>
           ` : ''}
@@ -4636,17 +4636,17 @@ window.generatePdfInvoice = async (orderId, isB2b = false, customPrice = null) =
         <div style="width: 300px;">
           <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
             <span style="font-size: 14px; color: #4b5563;">Subtotal:</span>
-            <span style="font-weight: 600;">${Number(totalByn).toFixed(2)} BYN</span>
+            <span style="font-weight: 600;">${Number(totalByn).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
           </div>
           ${!isB2b ? `
           <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 2px solid #111827;">
             <span style="font-size: 14px; color: #4b5563;">Paid (Prepayment):</span>
-            <span style="font-weight: 600;">${Number(order.prepayment_amount||0).toFixed(2)} BYN</span>
+            <span style="font-weight: 600;">${Number(order.prepayment_amount||0).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
           </div>
           ` : ''}
           <div style="display: flex; justify-content: space-between; padding: 15px 0;">
             <span style="font-size: 18px; font-weight: 800; color: #111827;">TOTAL DUE:</span>
-            <span style="font-size: 18px; font-weight: 800; color: #0284c7;">${Number(isB2b ? totalByn : (totalByn - (order.prepayment_amount||0))).toFixed(2)} BYN</span>
+            <span style="font-size: 18px; font-weight: 800; color: #0284c7;">${Number(isB2b ? totalByn : (totalByn - (order.prepayment_amount||0))).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
           </div>
         </div>
       </div>
@@ -4797,7 +4797,7 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
         <ul class="space-y-1.5 pl-1 relative z-10">
           <li class="flex items-start gap-1.5">
             <span class="text-amber-400 mt-0.5">•</span>
-            <span>Полный возврат стоимости (<strong>${orderTotal.toFixed(2)} BYN</strong>) начисляется на ваш баланс после проверки.</span>
+            <span>Полный возврат стоимости (<strong>${orderTotal.toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</strong>) начисляется на ваш баланс после проверки.</span>
           </li>
           <li class="flex items-start gap-1.5">
             <span class="text-amber-400 mt-0.5">•</span>

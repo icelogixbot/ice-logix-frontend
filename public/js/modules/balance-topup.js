@@ -61,10 +61,10 @@
     if (hb) hb.innerText = nextBal;
 
     const tb = document.getElementById('topupCurrentBalText');
-    if (tb) tb.innerText = `${nextBal} ICE`;
+    if (tb) tb.innerHTML = `${nextBal.toFixed(2)} ${window.bynSign ? window.bynSign() : ''}`;
 
     const tbByn = document.getElementById('topupCurrentBalByn');
-    if (tbByn) tbByn.innerHTML = `(~${nextBal} ${window.bynSign ? window.bynSign() : ''})`;
+    if (tbByn) tbByn.innerHTML = '';
 
     try {
       const cached = localStorage.getItem('ice_cached_user');
@@ -77,7 +77,7 @@
 
     if (typeof tgUtil !== 'undefined') {
       if (tgUtil.haptic) tgUtil.haptic('success');
-      tgUtil.alert(successMsg || `Баланс успешно пополнен на +${addedIce} ICE!`);
+      tgUtil.alert(successMsg || `Баланс успешно пополнен на +${addedIce}!`);
     }
   }
 
@@ -277,7 +277,7 @@
       await new Promise(r => setTimeout(r, 1500));
 
       if (!isOrder) {
-        await applyTopupCredit(amountVal, `Счёт ЕРИП подтверждён! Начислено +${amountVal} ICE на ваш баланс.`);
+        await applyTopupCredit(amountVal, `Счёт ЕРИП подтверждён! Начислено +${amountVal} на ваш баланс.`);
       } else {
         if (typeof tgUtil !== 'undefined') {
           if (tgUtil.haptic) tgUtil.haptic('success');
@@ -418,7 +418,7 @@
       await new Promise(r => setTimeout(r, 1400));
 
       if (!isOrder) {
-        await applyTopupCredit(amountVal, `Платеж получен! Начислено +${amountVal} ICE на ваш баланс.`);
+        await applyTopupCredit(amountVal, `Платеж получен! Начислено +${amountVal} на ваш баланс.`);
       } else {
         if (typeof tgUtil !== 'undefined') {
           if (tgUtil.haptic) tgUtil.haptic('success');
@@ -451,7 +451,7 @@
           </button>
           <div>
             <h2 class="text-xl font-bold text-white tracking-wide">Пополнение баланса</h2>
-            <p class="text-[11px] text-white/40">О валюте ICE Coin и способы пополнения</p>
+            <p class="text-[11px] text-white/40">Удобные способы пополнения без комиссии</p>
           </div>
         </div>
 
@@ -461,13 +461,13 @@
 
           <div class="flex items-center justify-between mb-3 relative z-10">
             <div class="flex items-center gap-2.5">
-              <div class="w-9 h-9 rounded-2xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center p-1.5 shadow-md shadow-cyan-500/20">
-                <img src="./assets/icl_currency_icon.png" alt="ICL" class="w-full h-full object-contain drop-shadow-[0_0_6px_rgba(6,182,212,0.6)]">
+              <div class="w-9 h-9 rounded-2xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center p-2 shadow-md shadow-cyan-500/20">
+                <svg class="byn-sign byn-cyan w-full h-full" viewBox="0 0 650 800" fill="currentColor"><path fill-rule="evenodd" d="M113 0H558V89H202V329H412A235 235 0 0 1 647 564A235 235 0 0 1 412 800H113V608H0V519H113V0ZM202 418H412A146 146 0 0 1 558 564A146 146 0 0 1 412 710H202V608H404V519H202V418Z"/></svg>
               </div>
               <div>
                 <span class="text-xs font-bold text-white tracking-wide">Текущий баланс</span>
                 <p class="text-[10px] text-emerald-400 flex items-center gap-1 font-semibold">
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> 1 ICE = 1 ${window.bynSign ? window.bynSign({ size: '1em' }) : ''}
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Лицевой счёт в бел. рублях
                 </p>
               </div>
             </div>
@@ -482,25 +482,24 @@
           </div>
 
           <div class="flex items-baseline gap-2 relative z-10">
-            <span class="text-3xl font-black text-white font-mono tracking-tight" id="topupCurrentBalText">${curBalance} ICE</span>
-            <span class="text-xs font-bold text-white/40 font-mono inline-flex items-baseline gap-1" id="topupCurrentBalByn">(~${curBalance} ${window.bynSign ? window.bynSign({ size: '0.9em' }) : ''})</span>
+            <span class="text-3xl font-black text-white font-mono tracking-tight inline-flex items-baseline gap-1" id="topupCurrentBalText">${curBalance.toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
           </div>
         </div>
 
-        <!-- 2. Карточка: О внутренней валюте ICE Coin (ICL) -->
+        <!-- 2. Карточка: О балансе лицевого счёта -->
         <div class="glass-card p-4 rounded-3xl border border-white/10 bg-slate-900/60 shadow-lg space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
-              <h4 class="text-xs font-bold text-white uppercase tracking-wider">О валюте ICE Coin (ICL)</h4>
+              <h4 class="text-xs font-bold text-white uppercase tracking-wider">О лицевом счёте</h4>
             </div>
             <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 font-mono inline-flex items-baseline gap-1">
-              КУРС: 1 ICE = 1 ${window.bynSign ? window.bynSign({ size: '1em' }) : ''}
+              БЕЗ КОМИССИИ 0%
             </span>
           </div>
 
           <p class="text-[11px] text-white/70 leading-relaxed">
-            <b>ICE Coin</b> — расчётная единица экосистемы ICE LOGIX. Баланс хранится в белорусских рублях по фиксированному курсу 1 к 1.
+            Баланс хранится в официальной белорусской валюте. Расчёты и выкуп товаров производятся 1 к 1 без конвертаций и скрытых комиссий.
           </p>
 
           <div class="grid grid-cols-2 gap-2 pt-1 text-[11px]">

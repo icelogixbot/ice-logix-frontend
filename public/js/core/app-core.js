@@ -1020,9 +1020,7 @@
      * for non-balance places that still want a stylized snowflake).
      */
     function brandFlake(opts = {}) {
-      const sz = opts.size || '1.35em';
-      const cls = ['brand-flake', opts.cls || ''].filter(Boolean).join(' ');
-      return `<span class="${cls}" style="width:${sz};height:${sz}" aria-hidden="true"><img src="./assets/icl_currency_icon.png" alt="ICL" style="width:100%;height:100%;object-fit:contain;"></span>`;
+      return bynSign(opts);
     }
 
     /** Render a marketplace colored dot — replaces 🟢🟠🟡🟤⚫🔵 emoji. */
@@ -3233,10 +3231,12 @@ let adminOrdersTotalPages = 1;
     window.animateClick = animateClick;
 
     window.openBalanceTopup = function(defaultAmount = 50) {
-      if (typeof window.openWallet === 'function') {
-        window.openWallet('topup', defaultAmount);
-      } else if (typeof switchTab === 'function') {
-        switchTab('wallet');
+      window._financesSubTab = 'pay';
+      if (typeof switchTab === 'function') {
+        switchTab('finances');
+        if (typeof window.switchFinancesSubTab === 'function') {
+          window.switchFinancesSubTab('pay');
+        }
       }
     };
 
@@ -3778,16 +3778,15 @@ let adminOrdersTotalPages = 1;
                     <span class="cny-tagline">Poizon • Taobao • 1688</span>
                   </div>
                   <div class="cny-main-rate">
-                    1 ¥ ≈ <span class="cny-rate-val">${s.cnyRate}</span> <span class="cny-rate-curr">BYN</span>
+                    1 ¥ ≈ <span class="cny-rate-val">${s.cnyRate}</span> <span class="cny-rate-curr">${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</span>
                   </div>
                   <p class="banner-subtitle cny-subtitle">
-                    Честный курс без наценок • 100 ¥ ≈ <strong style="color: #67e8f9;">${s.cny100} BYN</strong>
+                    Честный курс без наценок • 100 ¥ ≈ <strong style="color: #67e8f9;">${s.cny100} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</strong>
                   </p>
                   <div class="cny-footer-row">
                     <span class="banner-btn cny-btn">
                       Рассчитать заказ →
                     </span>
-                    <span class="cny-ice-note">1 BYN = 1 ICE</span>
                   </div>
                 </div>
               </div>
@@ -3802,7 +3801,7 @@ let adminOrdersTotalPages = 1;
                   </div>
                   <h3 class="banner-title referral-title">ДО 1% С КАЖДОГО ЗАКАЗА</h3>
                   <p class="banner-subtitle referral-subtitle">
-                    Пожизненный пассивный доход на баланс ICE с покупок твоих друзей
+                    Пожизненный пассивный доход на ваш баланс с покупок твоих друзей
                   </p>
                   <div class="referral-footer-row">
                     <span class="banner-btn referral-btn">

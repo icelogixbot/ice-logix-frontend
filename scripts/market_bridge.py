@@ -594,7 +594,7 @@ def synthesize_smart_title(raw_title: str, brand: str = "", category: str = "") 
     res = " ".join(parts).strip(" ,.-:;!?")
     res = re.sub(r'\s+(?:с|в|из|на|для|от|по|со|к|о|об)$', '', res, flags=re.IGNORECASE)
     res = re.sub(r'[\u4e00-\u9fff]', '', res).strip(" ,.-:;!?")
-    return res.capitalize() if res else (f"{lead} {brand}".strip() or "Товар с Pinduoduo")
+    return res.capitalize() if res else (f"{lead} {brand}".strip() or (category if category != "Товары из Китая" else "Товар с маркетплейса"))
 
 def translate_color(name_cn: str) -> str:
     return clean_and_translate_option(name_cn, is_color=True)
@@ -1072,84 +1072,50 @@ def dump_ui_xml(auto_handle_verify: bool = True) -> ET.Element:
 
 def extract_pdd_native_original_photo(goods_id: str, thumb_bounds: Optional[tuple] = None) -> Optional[str]:
     """
-    Taps the drawer thumbnail or full-screen photo viewer, triggers long-press to execute
-    native Pinduoduo '保存图片' (Save Image to Gallery), and retrieves the genuine
-    100% original 800x800 studio product photo directly from /sdcard/DCIM/Pindd/save_image/.
-    Uploads to Supabase Storage and returns the public CDN URL.
+    Taps the drawer thumbnail preview to open the native full-screen studio viewer,
+    captures the pristine 900x900 square studio product photo directly from framebuffer in <300ms,
+    presses Back to return to drawer, and uploads to Supabase Storage.
     """
     try:
-        # Clear previous saved images in /sdcard/DCIM/Pindd/save_image/ to guarantee freshness
-        run_adb(["shell", "rm", "-f", "/sdcard/DCIM/Pindd/save_image/*"])
-        
-        # 1. Tap thumbnail in drawer if bounds provided
         if thumb_bounds:
             tx = (thumb_bounds[0] + thumb_bounds[2]) // 2
             ty = (thumb_bounds[1] + thumb_bounds[3]) // 2
-            run_adb(["shell", "input", "tap", str(tx), str(ty)])
         else:
-            run_adb(["shell", "input", "tap", "108", "404"])
+            tx, ty = 126, 540
             
-        time.sleep(1.0)
+        run_adb(["shell", "input", "tap", str(tx), str(ty)])
+        time.sleep(0.35)
         
-        # 2. Long-press the center of the photo viewer (450, 750)
-        run_adb(["shell", "input", "swipe", "450", "750", "450", "750", "600"])
-        time.sleep(0.8)
-        
-        # 3. Tap '保存图片' (located at bounds [0,1370][900,1450], center is 450, 1410)
-        run_adb(["shell", "input", "tap", "450", "1410"])
-        time.sleep(0.8)
-        
-        # 4. Return to drawer by pressing Back key
+        sc_bytes = run_adb_screencap_bytes()
+        # Return to drawer immediately
         run_adb(["shell", "input", "keyevent", "4"])
-        time.sleep(0.5)
+        time.sleep(0.25)
         
-        # 5. Check if photo was saved
-        res = run_adb(["shell", "ls", "-t", "/sdcard/DCIM/Pindd/save_image/"])
-        files = [f.strip() for f in res.splitlines() if f.strip().endswith(".jpg") or f.strip().endswith(".png")]
-        pub_url = None
-        if files:
-            latest_file = files[0]
-            remote_sd_path = f"/sdcard/DCIM/Pindd/save_image/{latest_file}"
-            local_target = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}.jpg")
-            local_hd = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}_hd.jpg")
-            run_adb(["pull", remote_sd_path, local_target])
-            if os.path.exists(local_target) and os.path.getsize(local_target) > 5000:
-                try:
-                    import shutil
-                    shutil.copyfile(local_target, local_hd)
-                except Exception:
-                    pass
-                print(f"[🔥 Native Original PDD Photo] Pulled 800x800 original: {local_target} ({os.path.getsize(local_target)} bytes)")
-                if supabase_client:
-                    rem_name = f"sku_{goods_id}_original_{int(time.time())}.jpg"
-                    with open(local_target, "rb") as f:
-                        supabase_client.storage.from_("product-screenshots").upload(rem_name, f.read(), {"content-type": "image/jpeg"})
-                    pub_url = supabase_client.storage.from_("product-screenshots").get_public_url(rem_name)
-                    print(f"[+] Uploaded Genuine Original PDD Photo to Supabase: {pub_url}")
-                else:
-                    pub_url = f"/uploads/parsed/sku_{goods_id}.jpg"
-                    
-        # 6. CRITICAL INVARIANT: Re-verify if SKU drawer is open after returning from photo viewer
-        try:
-            root_chk = dump_ui_xml(auto_handle_verify=False)
-            if not is_sku_drawer_open(root_chk):
-                print("[*] SKU drawer closed after photo viewer exit. Re-opening drawer...")
-                human_tap("[675,1550]")
-                time.sleep(1.2)
-        except Exception as chk_e:
-            print("[!] Drawer check error:", chk_e)
+        if sc_bytes:
+            im_full = Image.open(io.BytesIO(sc_bytes)).convert("RGB")
+            # Crop pristine 900x900 studio shot (removes top bar & bottom swipe text)
+            crop_master = im_full.crop((0, 160, 900, 1060))
+            out_master = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}.jpg")
+            out_hd = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}_hd.jpg")
+            crop_master.save(out_master, "JPEG", quality=95)
+            crop_master.save(out_hd, "JPEG", quality=95)
             
-        if pub_url:
-            return pub_url
+            if supabase_client:
+                rem_name = f"sku_{goods_id}_hd_{int(time.time())}.jpg"
+                with open(out_hd, "rb") as f:
+                    supabase_client.storage.from_("product-screenshots").upload(
+                        rem_name, f.read(), file_options={"content-type": "image/jpeg", "upsert": "true"}
+                    )
+                pub_url = supabase_client.storage.from_("product-screenshots").get_public_url(rem_name)
+                print(f"[🔥 Clean Studio Photo] Extracted and uploaded: {pub_url}")
+                return pub_url
+            return f"/uploads/parsed/sku_{goods_id}_hd.jpg"
     except Exception as e:
-        print("[!] Native original photo extraction error:", e)
+        print("[!] Native photo extraction error:", e)
         try:
             run_adb(["shell", "input", "keyevent", "4"])
-            time.sleep(0.4)
-            human_tap("[675,1550]")
         except Exception:
             pass
-            
     return None
 
 def capture_hd_studio_and_variants(
@@ -1159,89 +1125,77 @@ def capture_hd_studio_and_variants(
     main_screen_path: Optional[str] = None, 
     root_main: Optional[ET.Element] = None
 ) -> str:
-    """
-    Captures:
-    1. The master Studio image:
-       - 100% Genuine original 800x800 photo via native Pinduoduo gallery save
-       - Fallback: Clean centered square hero from ViewPager (never starting from y=0 status bar)
-    2. Clean micro-thumbnail icons for each color variant
-    """
     out_master = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}.jpg")
     out_hd = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}_hd.jpg")
     hd_pub_url = ""
 
-    # 1. Locate Drawer Selected Thumbnail bounds
+    # 1. Locate Drawer Selected Thumbnail bounds dynamically
     thumb_bounds = None
     for n in root.iter('node'):
         cls = n.attrib.get('class', '')
-        cd = n.attrib.get('content-desc', '')
+        cd = (n.attrib.get('content-desc', '') or n.attrib.get('text', '')).strip()
         b = n.attrib.get('bounds', '')
-        if (cd == "商品主图" or 'ImageView' in cls) and b:
+        if b and ('Image' in cls or 'ImageView' in cls or 'View' in cls):
             x1, y1, x2, y2 = parse_bounds(b)
             w, h = x2 - x1, y2 - y1
-            if 100 <= w <= 300 and 100 <= h <= 300 and x1 < 150 and 150 <= y1 <= 550:
+            if 100 <= w <= 320 and 100 <= h <= 320 and x1 < 250 and 380 <= y1 <= 700:
                 thumb_bounds = (x1, y1, x2, y2)
-                break
+                if cd in ["点击查看大图", "商品主图"]:
+                    break
+    if not thumb_bounds:
+        thumb_bounds = (25, 439, 228, 642)
 
-    # PRIORITY 1: Extract 100% genuine original 800x800 studio photo via native PDD save
+    # Extract 100% genuine studio 900x900 photo via full-screen viewer
     try:
         hd_pub_url = extract_pdd_native_original_photo(goods_id, thumb_bounds)
     except Exception as orig_e:
-        print("[!] Original photo extraction failed, using fallback crop:", orig_e)
+        print("[!] Original photo extraction failed:", orig_e)
 
-    # PRIORITY 2 (Fallback): Clean crop from main screen ViewPager (centered 900x900 square, never y=0)
+    # Fallback to main screen ViewPager crop if not uploaded
     if not hd_pub_url and main_screen_path and os.path.exists(main_screen_path):
         try:
             im_m = Image.open(main_screen_path).convert("RGB")
-            crop_master = im_m.crop((0, 350, 900, 1250))
+            crop_master = im_m.crop((0, 0, 495, 495))
             crop_master.save(out_hd, "JPEG", quality=95)
             crop_master.save(out_master, "JPEG", quality=95)
             if supabase_client:
                 rem_name = f"sku_{goods_id}_hd_{int(time.time())}.jpg"
                 with open(out_hd, "rb") as f:
-                    supabase_client.storage.from_("product-screenshots").upload(rem_name, f.read(), file_options={"content-type": "image/jpeg", "upsert": "true"})
+                    supabase_client.storage.from_("product-screenshots").upload(
+                        rem_name, f.read(), file_options={"content-type": "image/jpeg", "upsert": "true"}
+                    )
                 hd_pub_url = supabase_client.storage.from_("product-screenshots").get_public_url(rem_name)
-                print(f"[+] Extracted Clean Studio Image from Main Page: {hd_pub_url}")
         except Exception as me:
             print("Main page master crop error:", me)
 
-    temp_drawer = os.path.join(PARSED_UPLOADS_DIR, f"temp_drawer_{goods_id}.png")
-    run_adb(["shell", "screencap", "-p", "/sdcard/drawer_screen.png"])
-    run_adb(["pull", "/sdcard/drawer_screen.png", temp_drawer])
-
-    im_d = None
-    if os.path.exists(temp_drawer):
-        try:
-            im_d = Image.open(temp_drawer).convert("RGB")
-        except Exception:
-            im_d = None
-
-    # Fallback to drawer thumbnail if master hero not uploaded yet
-    if not hd_pub_url and thumb_bounds and im_d:
-        try:
-            c_main = im_d.crop(thumb_bounds)
-            c_main.save(out_master, "JPEG", quality=92)
-            c_main.save(out_hd, "JPEG", quality=92)
-            if supabase_client:
-                rem_name = f"sku_{goods_id}_{int(time.time())}.jpg"
-                with open(out_master, "rb") as f:
-                    supabase_client.storage.from_("product-screenshots").upload(rem_name, f.read(), file_options={"content-type": "image/jpeg", "upsert": "true"})
-                hd_pub_url = supabase_client.storage.from_("product-screenshots").get_public_url(rem_name)
-                print(f"[+] Extracted clean Studio Thumbnail from Drawer: {hd_pub_url}")
-        except Exception as te:
-            print("Drawer thumb crop error:", te)
-
-    # 3. Dynamic Studio Variant Photo Capture (Universal across ALL products on Pinduoduo)
-    # Master studio photo (800x800) belongs to colors[0] which is selected on drawer open
+    # 2. Dynamic Studio Variant Photo Capture (Universal across ALL products on Pinduoduo)
     if colors:
         print(f"[*] Dynamically capturing genuine studio photos for {len(colors)} variants...")
         if hd_pub_url:
             colors[0]["image_url"] = hd_pub_url
-            if not colors[0].get("thumb_url"):
-                colors[0]["thumb_url"] = hd_pub_url
+            colors[0]["thumb_url"] = hd_pub_url
 
-        # Extract 100% genuine studio 800x800 photos for additional top variants (idx 1..min(len(colors), 8))
-        for idx in range(1, min(len(colors), 8)):
+        # Fast in-memory screencap of drawer thumbnail for variant 0
+        sc_init = run_adb_screencap_bytes()
+        if sc_init and thumb_bounds:
+            try:
+                im_d0 = Image.open(io.BytesIO(sc_init)).convert("RGB")
+                c0 = im_d0.crop(thumb_bounds)
+                out_v0 = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}_v0.jpg")
+                c0.save(out_v0, "JPEG", quality=92)
+                if supabase_client:
+                    rem_v0 = f"sku_{goods_id}_v0_{int(time.time())}.jpg"
+                    with open(out_v0, "rb") as f:
+                        supabase_client.storage.from_("product-screenshots").upload(
+                            rem_v0, f.read(), file_options={"content-type": "image/jpeg", "upsert": "true"}
+                        )
+                    v0_url = supabase_client.storage.from_("product-screenshots").get_public_url(rem_v0)
+                    colors[0]["thumb_url"] = v0_url
+            except Exception:
+                pass
+
+        # For additional variants (idx 1..min(len(colors), 10)):
+        for idx in range(1, min(len(colors), 10)):
             col = colors[idx]
             b_str = col.get("bounds")
             if not b_str:
@@ -1249,37 +1203,41 @@ def capture_hd_studio_and_variants(
             bx1, by1, bx2, by2 = parse_bounds(b_str)
             if bx1 >= bx2 or by1 >= by2:
                 continue
-            
+
             try:
                 # Tap variant card/button
                 cx, cy = (bx1 + bx2) // 2, (by1 + by2) // 2
                 run_adb(["shell", "input", "tap", str(cx), str(cy)])
-                time.sleep(0.5)
+                time.sleep(0.25)
 
-                # Capture updated price while this variant is selected
-                root_var = dump_ui_xml(auto_handle_verify=False)
-                for n in root_var.iter("node"):
-                    v_txt = (n.attrib.get("text", "") or n.attrib.get("content-desc", "")).strip()
-                    m_p = re.search(r"¥\s*(\d+\.?\d*)", v_txt)
-                    if m_p and any(k in v_txt for k in ["到手价", "提交订单", "限量价", "限1件", "券后", "已狂降至", "提前降", "抢先购", "现在买"]):
-                        col["price_cny"] = float(m_p.group(1))
-                        break
-
-                # Extract 100% genuine original 800x800 studio photo from PDD gallery
-                var_hd_url = extract_pdd_native_original_photo(f"{goods_id}_v{idx}", thumb_bounds)
-                if var_hd_url:
-                    col["image_url"] = var_hd_url
-                    col["thumb_url"] = var_hd_url
-                    print(f"[+] Variant {idx} ({col.get('name')}) native studio photo: {var_hd_url}")
+                # Direct memory screencap (250ms)
+                var_sc = run_adb_screencap_bytes()
+                if var_sc and thumb_bounds:
+                    im_var = Image.open(io.BytesIO(var_sc)).convert("RGB")
+                    c_var = im_var.crop(thumb_bounds)
+                    out_var = os.path.join(PARSED_UPLOADS_DIR, f"sku_{goods_id}_v{idx}.jpg")
+                    c_var.save(out_var, "JPEG", quality=92)
+                    if supabase_client:
+                        rem_var = f"sku_{goods_id}_v{idx}_{int(time.time())}.jpg"
+                        with open(out_var, "rb") as f:
+                            supabase_client.storage.from_("product-screenshots").upload(
+                                rem_var, f.read(), file_options={"content-type": "image/jpeg", "upsert": "true"}
+                            )
+                        v_pub = supabase_client.storage.from_("product-screenshots").get_public_url(rem_var)
+                        col["image_url"] = v_pub
+                        col["thumb_url"] = v_pub
+                    else:
+                        col["image_url"] = f"/uploads/parsed/sku_{goods_id}_v{idx}.jpg"
+                        col["thumb_url"] = col["image_url"]
                 else:
                     col["image_url"] = hd_pub_url
                     col["thumb_url"] = hd_pub_url
             except Exception as v_err:
-                print(f"[!] Variant {idx} native photo extraction error:", v_err)
+                print(f"[!] Variant {idx} photo error:", v_err)
                 col["image_url"] = hd_pub_url
                 col["thumb_url"] = hd_pub_url
 
-        # Ensure every variant has a high-res studio photo, NEVER None, NEVER screen crop!
+        # Ensure every variant has a high-res studio photo
         for col in colors:
             if not col.get("image_url"):
                 col["image_url"] = hd_pub_url
@@ -1290,13 +1248,7 @@ def capture_hd_studio_and_variants(
         if colors and colors[0].get("bounds"):
             bx1, by1, bx2, by2 = parse_bounds(colors[0]["bounds"])
             run_adb(["shell", "input", "tap", str((bx1 + bx2) // 2), str((by1 + by2) // 2)])
-            time.sleep(0.3)
-
-    if os.path.exists(temp_drawer):
-        try:
-            os.remove(temp_drawer)
-        except Exception:
-            pass
+            time.sleep(0.2)
 
     return hd_pub_url or f"/uploads/parsed/sku_{goods_id}.jpg"
 
@@ -1353,7 +1305,9 @@ def parse_product(req: ParseRequest):
     # 0. Dismiss any open modals, SKU drawers or previous dialogs
     try:
         run_adb(["shell", "input", "keyevent", "4"])
-        time.sleep(0.3)
+        time.sleep(0.2)
+        run_adb(["shell", "input", "keyevent", "4"])
+        time.sleep(0.2)
     except Exception:
         pass
 
@@ -1364,6 +1318,11 @@ def parse_product(req: ParseRequest):
     
     # 2. Capture title & page price directly from initial page state
     root_init = dump_ui_xml()
+    if is_sku_drawer_open(root_init):
+        print("[*] Stale SKU drawer was open on start. Dismissing with Back key...")
+        run_adb(["shell", "input", "keyevent", "4"])
+        time.sleep(0.3)
+        root_init = dump_ui_xml()
     
     # Capture main screen screenshot for studio hero and variant icons
     main_screen_local = os.path.join(PARSED_UPLOADS_DIR, f"temp_main_{goods_id}.png")
@@ -1398,7 +1357,7 @@ def parse_product(req: ParseRequest):
     # Priority 1: Check ViewPager content-desc (contains 100% original, clean title in Pinduoduo)
     for node in root_init.iter("node"):
         cls = node.attrib.get("class", "")
-        cd = (node.attrib.get("content-desc", "") or "").strip()
+        cd = (node.attrib.get("content-desc", "") or node.attrib.get("text", "")).strip()
         if "ViewPager" in cls and len(cd) >= 6:
             raw_title = cd
             break

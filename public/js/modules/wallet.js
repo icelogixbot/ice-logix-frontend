@@ -59,9 +59,6 @@
     const cardBal = document.getElementById('walletCardLiveBalance');
     if (cardBal) cardBal.innerHTML = `${nextBal.toFixed(2)} ${window.bynSign ? window.bynSign() : ''}`;
 
-    const cardBalIce = document.getElementById('walletCardLiveIce');
-    if (cardBalIce) cardBalIce.innerText = `≈ ${nextBal.toFixed(0)} ICE`;
-
     try {
       const cached = localStorage.getItem('ice_cached_user');
       if (cached) {
@@ -184,7 +181,6 @@
                 <p class="text-[10px] font-bold uppercase tracking-wider text-white/50 mb-0.5">Доступный баланс</p>
                 <div class="flex items-baseline gap-2">
                   <span class="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight inline-flex items-baseline gap-1" id="walletCardLiveBalance">${bal.toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
-                  <span class="text-xs font-bold text-cyan-400 font-mono" id="walletCardLiveIce">≈ ${bal.toFixed(0)} ICE</span>
                 </div>
               </div>
 
@@ -221,7 +217,7 @@
             <span class="w-7 h-7 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 flex items-center justify-center text-sm font-black flex-shrink-0">%</span>
             <div class="min-w-0">
               <p class="text-xs font-extrabold text-white truncate">Скидка 3% на все заказы</p>
-              <p class="text-[10px] text-white/50 leading-tight">При оплате с кошелька ICE (как на Wildberries)</p>
+              <p class="text-[10px] text-white/50 leading-tight">При оплате со счёта кошелька (как на Wildberries)</p>
             </div>
           </div>
           <span class="px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider bg-cyan-400/20 text-cyan-300 border border-cyan-400/30 flex-shrink-0">
@@ -244,7 +240,7 @@
         <div class="glass-card p-4 rounded-3xl border border-white/10 space-y-3">
           <label class="block text-white font-bold text-xs uppercase tracking-wider flex items-center justify-between">
             <span class="inline-flex items-center gap-1">Сумма пополнения (${window.bynSign ? window.bynSign({ color: 'cyan', size: '1em' }) : ''})</span>
-            <span class="text-[10px] font-mono text-cyan-300 normal-case">Зачисление: <b id="topupConvertedIceText">${_selectedTopupAmount} ICE</b></span>
+            <span class="text-[10px] font-mono text-cyan-300 normal-case">Зачисление: <b id="topupConvertedIceText">без комиссии 0%</b></span>
           </label>
 
           <!-- Быстрые чипсы выбора сумм -->
@@ -611,9 +607,6 @@
       _selectedTopupAmount = Math.max(1, parseFloat(val) || 1);
       if (customInput && document.activeElement !== customInput) {
         customInput.value = _selectedTopupAmount;
-      }
-      if (convertedIceText) {
-        convertedIceText.innerText = `${_selectedTopupAmount} ICE`;
       }
       if (submitBtn) {
         submitBtn.querySelector('span').innerHTML = `Пополнить на ${_selectedTopupAmount} ${window.bynSign ? window.bynSign({ color: 'white' }) : ''}`;

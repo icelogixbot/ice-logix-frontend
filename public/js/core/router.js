@@ -210,13 +210,10 @@
           if (typeof attachSettingsPageHandlers === 'function') attachSettingsPageHandlers(window._settingsInitialTab || 'account');
         }
       } else if (currentTab === 'wallet' || currentTab === 'topup') {
-        if (typeof renderWallet === 'function') {
-          contentDiv.innerHTML = shadowBannerHtml + await renderWallet();
-          if (typeof attachWalletHandlers === 'function') attachWalletHandlers();
-        } else if (typeof renderBalanceTopupPage === 'function') {
-          contentDiv.innerHTML = shadowBannerHtml + await renderBalanceTopupPage();
-          if (typeof attachBalanceTopupPageHandlers === 'function') attachBalanceTopupPageHandlers();
-        }
+        window._financesSubTab = 'pay';
+        currentTab = 'finances';
+        contentDiv.innerHTML = shadowBannerHtml + await renderFinances();
+        attachFinancesHandlers();
       } else if (currentTab === 'kyc') {
         if (typeof openKycScreen === 'function') {
           await openKycScreen();
