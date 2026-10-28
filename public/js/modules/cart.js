@@ -32,8 +32,6 @@
               priceByn = Number(prod.price || 0) * 0.52;
             }
 
-            const oldPriceByn = priceByn * 1.35;
-
             let images = [];
             if (typeof getProductImages === 'function') {
               images = getProductImages(prod.image_url);
@@ -49,7 +47,6 @@
               imageUrl: images[0] || 'https://via.placeholder.com/150',
               priceCny: Number(prod.price || 0),
               priceByn: Number(priceByn.toFixed(2)),
-              oldPriceByn: Number(oldPriceByn.toFixed(2)),
               quantity: Number(row.quantity || 1),
               size: prod.size || '',
               color: prod.color || '',
@@ -76,8 +73,6 @@
               priceByn = Number(it.price || 0) * 0.52;
             }
           }
-          const oldPriceByn = priceByn * 1.35;
-
           unified.push({
             id: it.id,
             isCustom: true,
@@ -86,7 +81,6 @@
             imageUrl: it.image_url || 'https://via.placeholder.com/150',
             priceCny: Number(it.price || 0),
             priceByn: Number(priceByn.toFixed(2)),
-            oldPriceByn: Number(oldPriceByn.toFixed(2)),
             quantity: Number(it.quantity || 1),
             size: it.size || '',
             color: it.color || '',
@@ -235,10 +229,6 @@
                   <span class="wb-current-price inline-flex items-baseline gap-1 font-mono font-extrabold text-[15px] text-cyan-400">
                     <span class="wb-row-price" data-unit-price="${it.priceByn}">${itemSubtotal}</span>
                     ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.82em' }) : ''}
-                  </span>
-                  <span class="wb-old-price inline-flex items-baseline gap-0.5 text-[11px] text-white/35 line-through ml-1 font-mono">
-                    ${(it.oldPriceByn * it.quantity).toFixed(2)}
-                    ${window.bynSign ? window.bynSign({ color: 'muted', size: '0.72em' }) : ''}
                   </span>
                 </div>
                 <div class="wb-card-actions-top">

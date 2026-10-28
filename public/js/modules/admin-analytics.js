@@ -89,7 +89,7 @@ const CRM_SEGMENTS = {
   'VIP':         { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)',  border: 'rgba(251,191,36,0.35)',  icon: '⭐️' },
   'Постоянный':  { color: '#4ade80', bg: 'rgba(74,222,128,0.12)',  border: 'rgba(74,222,128,0.35)',  icon: '🔁' },
   'Новичок':     { color: '#38bdf8', bg: 'rgba(56,189,248,0.12)',  border: 'rgba(56,189,248,0.35)',  icon: '🌱' },
-  'Активный':    { color: '#22d3ee', bg: 'rgba(34,211,238,0.12)',  border: 'rgba(34,211,238,0.35)',  icon: '✅' },
+  'Активный':    { color: '#4DA3FF', bg: 'rgba(77, 163, 255,0.12)',  border: 'rgba(77, 163, 255,0.35)',  icon: '✅' },
   'Спящий':      { color: '#f472b6', bg: 'rgba(244,114,182,0.12)', border: 'rgba(244,114,182,0.35)', icon: '😴' },
   'Потерянный':  { color: '#f87171', bg: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.35)', icon: '💤' },
 };
@@ -260,7 +260,7 @@ async function renderAdminAnalytics() {
 
     <!-- KPI Cards -->
     <div class="grid grid-cols-2 gap-3 mb-6">
-      <div class="relative overflow-hidden p-4 rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 to-slate-900 shadow-[0_0_20px_rgba(34,211,238,0.1)]">
+      <div class="relative overflow-hidden p-4 rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 to-slate-900 shadow-[0_0_20px_rgba(77, 163, 255,0.1)]">
         <div class="absolute top-0 right-0 p-2 opacity-20"><span class="ix text-5xl text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span></div>
         <p class="text-[10px] text-cyan-400/80 mb-1 uppercase tracking-wider font-bold">Оборот</p>
         <p class="text-2xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" id="stat-revenue">0</p>
@@ -271,12 +271,12 @@ async function renderAdminAnalytics() {
         <p class="text-2xl font-black text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.5)]" id="stat-profit">0</p>
         <p class="text-[9px] text-green-400/50 mt-1">15% от стоимости товаров</p>
       </div>
-      <div class="relative overflow-hidden p-4 rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-500/10 to-slate-900 shadow-[0_0_20px_rgba(139,92,246,0.1)]">
+      <div class="relative overflow-hidden p-4 rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-500/10 to-slate-900 shadow-[0_0_20px_rgba(77, 163, 255,0.1)]">
         <div class="absolute top-0 right-0 p-2 opacity-20"><span class="ix text-5xl text-violet-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span></div>
         <p class="text-[10px] text-violet-400/80 mb-1 uppercase tracking-wider font-bold">Пользователи</p>
         <p class="text-2xl font-black text-white" id="stat-users">0</p>
       </div>
-      <div class="relative overflow-hidden p-4 rounded-2xl border border-pink-500/30 bg-gradient-to-br from-pink-500/10 to-slate-900 shadow-[0_0_20px_rgba(236,72,153,0.1)]">
+      <div class="relative overflow-hidden p-4 rounded-2xl border border-pink-500/30 bg-gradient-to-br from-pink-500/10 to-slate-900 shadow-[0_0_20px_rgba(77, 163, 255,0.1)]">
         <div class="absolute top-0 right-0 p-2 opacity-20"><span class="ix text-5xl text-pink-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span></div>
         <p class="text-[10px] text-pink-400/80 mb-1 uppercase tracking-wider font-bold">Заказов в работе</p>
         <p class="text-2xl font-black text-white" id="stat-active">0</p>
@@ -324,7 +324,7 @@ async function renderAdminAnalytics() {
       <p class="text-[10px] text-white/50 mb-3">Распределение по областям (поле получения)</p>
       <div class="flex flex-col md:flex-row items-center gap-4">
         <div class="relative w-full max-w-[360px] mx-auto">
-          <svg viewBox="0 0 400 340" class="w-full h-auto drop-shadow-[0_0_25px_rgba(34,211,238,0.15)]">
+          <svg viewBox="0 0 400 340" class="w-full h-auto drop-shadow-[0_0_25px_rgba(77, 163, 255,0.15)]">
             <g stroke="#0f172a" stroke-width="2.5" stroke-linejoin="round">
               <path id="hm-vitebsk" d="M150,20 L260,30 L300,90 L210,110 L150,80 Z" fill="#1e293b"/>
               <path id="hm-grodno"  d="M40,110 L150,80 L160,150 L90,190 L30,150 Z" fill="#1e293b"/>
@@ -555,8 +555,8 @@ window.attachAdminAnalyticsHandlers = async () => {
             {
               label: 'Выручка',
               data: Object.values(revenueByDay),
-              borderColor: 'rgba(34,211,238, 1)',
-              backgroundColor: 'rgba(34,211,238, 0.1)',
+              borderColor: 'rgba(77, 163, 255, 1)',
+              backgroundColor: 'rgba(77, 163, 255, 0.1)',
               borderWidth: 3,
               tension: 0.4,
               fill: true,
@@ -582,7 +582,7 @@ window.attachAdminAnalyticsHandlers = async () => {
           interaction: { mode: 'index', intersect: false },
           plugins: { 
             legend: { position: 'top', align: 'end', labels: { boxWidth: 10, usePointStyle: true } },
-            tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', titleColor: '#22d3ee', padding: 10, cornerRadius: 10, borderColor: 'rgba(34,211,238,0.2)', borderWidth: 1 }
+            tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', titleColor: '#4DA3FF', padding: 10, cornerRadius: 10, borderColor: 'rgba(77, 163, 255,0.2)', borderWidth: 1 }
           },
           scales: {
             x: { grid: { display: false } },
@@ -604,7 +604,7 @@ window.attachAdminAnalyticsHandlers = async () => {
             data: Object.values(countryCounts),
             backgroundColor: [
               'rgba(239,68,68, 0.8)',   // Red - China
-              'rgba(59,130,246, 0.8)',  // Blue - EU
+              'rgba(77, 163, 255, 0.8)',  // Blue - EU
               'rgba(249,115,22, 0.8)'   // Orange - RU
             ],
             borderWidth: 0,
@@ -632,7 +632,7 @@ window.attachAdminAnalyticsHandlers = async () => {
           datasets: [{
             data: Object.values(statusCounts),
             backgroundColor: [
-              'rgba(34,211,238, 0.8)',
+              'rgba(77, 163, 255, 0.8)',
               'rgba(167,139,250, 0.8)',
               'rgba(244,114,182, 0.8)',
               'rgba(251,146,60, 0.8)',

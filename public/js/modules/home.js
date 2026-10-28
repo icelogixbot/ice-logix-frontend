@@ -32,9 +32,7 @@ let _memHomeProductsList = null;
 function renderWbProductCard(p, inWish) {
   const brand = p.brand ? p.brand.trim() : 'ICE LOGIX';
   const priceVal = Number(p.price || 0);
-  const oldPriceVal = priceVal * 1.35;
   const bynSignHtml = window.bynSign ? window.bynSign({ color: 'cyan', size: '0.82em' }) : '';
-  const bynMutedSign = window.bynSign ? window.bynSign({ color: 'muted', size: '0.72em' }) : '';
 
   return `
     <div class="product-card cursor-pointer" data-product-id="${p.id}" data-url="${p.url || ''}" data-price="${p.price}">
@@ -68,9 +66,6 @@ function renderWbProductCard(p, inWish) {
           <span class="text-cyan-400 font-extrabold text-[15px] font-mono leading-none inline-flex items-baseline gap-0.5">
             ${priceVal.toFixed(2)} ${bynSignHtml}
           </span>
-          <span class="text-[11px] text-white/35 line-through font-mono">
-            ${oldPriceVal.toFixed(2)} ${bynMutedSign}
-          </span>
         </div>
 
         <!-- Row 2: Brand -->
@@ -83,13 +78,6 @@ function renderWbProductCard(p, inWish) {
           ${_esc(p.title)}
         </div>
 
-        <!-- Row 4: Rating -->
-        <div class="flex items-center gap-1 text-[10px] text-white/45 mt-1.5">
-          <span class="text-amber-400">★</span>
-          <span class="font-bold text-white/80">4.9</span>
-          <span>·</span>
-          <span>128 оценок</span>
-        </div>
       </div>
     </div>
   `;
@@ -255,7 +243,7 @@ async function renderHome() {
     <div class="mb-4">
     <div class="scroll-x" style="padding: 2px 0 6px;">
       <div class="story-card" data-story="onboarding">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(99,202,253,0.25), rgba(59,130,246,0.12));">
+        <div class="story-icon" style="background: linear-gradient(145deg, rgba(99,202,253,0.25), rgba(77, 163, 255,0.12));">
           <span style="font-size: 24px;"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span></span>
         </div>
         <span class="story-label">Гайд</span>
@@ -267,7 +255,7 @@ async function renderHome() {
         <span class="story-label">Легит-чек</span>
       </div>
       <div class="story-card" data-story="my_orders">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(6,182,212,0.25), rgba(14,165,233,0.12));">
+        <div class="story-icon" style="background: linear-gradient(145deg, rgba(77, 163, 255,0.25), rgba(77, 163, 255,0.12));">
           <span style="font-size: 24px;"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span></span>
         </div>
         <span class="story-label">Заказы</span>
@@ -295,15 +283,9 @@ async function renderHome() {
     
     <!-- Сегодняшние подборки товаров (автопарсинг из @icelogix_selection) -->
     <div class="mb-6">
-      <div class="flex justify-between items-center mb-3">
-        <h3 class="text-white font-bold text-sm flex items-center gap-1.5">
-          <span style="font-size: 18px;"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></span></span>
-          Сегодняшние подборки товаров
-        </h3>
-        <span class="text-[11px] font-bold text-cyan-400 bg-cyan-400/10 border border-cyan-400/20 px-2 py-0.5 rounded-full flex items-center gap-1">
-          <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-          9 дропов
-        </span>
+      <div class="rd-sec-h">
+        <h3>Подборки дня</h3>
+        <span class="rd-pill"><i></i>9 дропов</span>
       </div>
       <div class="grid grid-cols-2 gap-2" id="homeProductsGrid" style="margin-left: -6px; margin-right: -6px;">
         ${homeProductsList.map(p => {

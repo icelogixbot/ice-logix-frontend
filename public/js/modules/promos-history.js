@@ -41,14 +41,14 @@ async function renderPromoPage() {
       <div>
 
         <!-- Колесо Фортуны -->
-        <div class="glass-card mb-5 overflow-hidden relative cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-transform" id="promoFortuneBtn" style="background: linear-gradient(135deg, rgba(91,191,235,0.15), rgba(139,92,246,0.15)); border: 1px solid rgba(139,92,246,0.25);">
-          <div class="absolute -right-10 -top-10 w-32 h-32 rounded-full blur-2xl" style="background: rgba(139,92,246,0.3);"></div>
+        <div class="glass-card mb-5 overflow-hidden relative cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-transform" id="promoFortuneBtn" style="background: linear-gradient(135deg, rgba(77, 163, 255,0.15), rgba(77, 163, 255,0.15)); border: 1px solid rgba(77, 163, 255,0.25);">
+          <div class="absolute -right-10 -top-10 w-32 h-32 rounded-full blur-2xl" style="background: rgba(77, 163, 255,0.3);"></div>
           <div class="flex items-center justify-between p-4 relative z-10">
             <div class="space-y-0.5 text-left">
               <h3 class="text-white font-bold text-sm flex items-center gap-1.5"><span>🔮 Колесо Фортуны</span></h3>
               <p class="text-white/60 text-[10px]">Крутите барабан каждый день бесплатно! До 10 ICE!</p>
             </div>
-            <button class="btn-primary py-2 px-4 rounded-xl text-xs font-bold shadow-lg flex items-center gap-1" style="background: linear-gradient(135deg, var(--ice-primary), #8B5CF6); border: none;">Крутить!</button>
+            <button class="btn-primary py-2 px-4 rounded-xl text-xs font-bold shadow-lg flex items-center gap-1" style="background: linear-gradient(135deg, var(--ice-primary), #4DA3FF); border: none;">Крутить!</button>
           </div>
         </div>
 
@@ -129,11 +129,17 @@ async function renderHistory() {
     if (error || !data || !data.length) {
       content = '<p class="text-white/50 text-center py-8">Архив заказов пуст. Заказы появятся здесь через 7 дней после завершения.</p>';
     } else {
+      const _orderStatusRu = {
+        pending: 'Принят в обработку', paid: 'Оплачен', bought: 'Выкуплен', on_sklad_cn: 'На складе в Китае',
+        in_transit: 'Летит в Беларусь', customs: 'На таможне', awaiting_payment: 'Ждёт доплаты', paid_second: 'Доплачен',
+        in_belarus: 'В Беларуси', dispatched: 'Отправлен вам', delivered: 'Получен', awaiting_decision: 'Ждёт вашего решения',
+        problem_order: 'Есть проблема', refunded: 'Возврат на баланс', cancelled: 'Отменён'
+      };
       content = data.map(o => `
         <div class="glass-card p-4 mb-3">
           <div class="flex justify-between items-start mb-1">
             <p class="text-white font-semibold text-sm flex-1 mr-2">${o.title || o.url || 'Заказ'}</p>
-            <span class="text-xs px-2 py-0.5 rounded-full" style="background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.6);">${o.status || '—'}</span>
+            <span class="text-xs px-2 py-0.5 rounded-full" style="background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.6);">${_orderStatusRu[o.status] || o.status || '—'}</span>
           </div>
           <p class="text-white/40 text-xs">${new Date(o.created_at).toLocaleDateString('ru-RU')}</p>
           ${o.total_price ? `<p class="text-cyan-400 text-sm font-bold mt-1 inline-flex items-baseline gap-1">${o.total_price} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</p>` : ''}
@@ -1690,8 +1696,8 @@ function showAuthPage() {
       </button>
       
       <div class="text-center mb-6 mt-2">
-        <div class="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style="background: linear-gradient(135deg, rgba(6,182,212,0.2), rgba(139,92,246,0.2)); border: 1px solid rgba(6,182,212,0.3);">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#22d3ee;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <div class="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style="background: linear-gradient(135deg, rgba(77, 163, 255,0.2), rgba(77, 163, 255,0.2)); border: 1px solid rgba(77, 163, 255,0.3);">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#4DA3FF;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         </div>
         <h2 class="text-white text-2xl font-bold mb-1">ICE LOGIX</h2>
         <p class="text-white/50 text-sm" id="authSubtitle">Вход в систему</p>
@@ -1699,7 +1705,7 @@ function showAuthPage() {
 
       <!-- Главные табы: Вход / Регистрация -->
       <div class="flex rounded-xl p-1 mb-5 bg-white/5 border border-white/10 text-xs">
-        <button id="authTabLogin" class="flex-1 py-2.5 rounded-lg font-bold transition-all text-white" style="background: linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3));">Вход</button>
+        <button id="authTabLogin" class="flex-1 py-2.5 rounded-lg font-bold transition-all text-white" style="background: linear-gradient(135deg, rgba(77, 163, 255,0.4), rgba(77, 163, 255,0.3));">Вход</button>
         <button id="authTabRegister" class="flex-1 py-2.5 rounded-lg font-bold transition-all text-white/50 bg-transparent">Регистрация</button>
       </div>
 
@@ -1714,7 +1720,7 @@ function showAuthPage() {
         <div id="phoneInputStep">
           <label class="text-white/60 text-xs font-semibold block mb-1">Номер телефона</label>
           <input type="tel" id="authPhoneInput" class="w-full p-3.5 rounded-xl text-white text-base bg-white/5 border border-white/20 focus:border-cyan-500 transition-colors" placeholder="+375XXXXXXXXX">
-          <button id="authPhoneSendCodeBtn" class="w-full py-3.5 rounded-xl font-bold text-white text-sm mt-4 transition-all" style="background: linear-gradient(135deg, #06b6d4, #8b5cf6);">Получить код</button>
+          <button id="authPhoneSendCodeBtn" class="w-full py-3.5 rounded-xl font-bold text-white text-sm mt-4 transition-all" style="background: linear-gradient(135deg, #2F86F5, #4DA3FF);">Получить код</button>
         </div>
       </div>
 
@@ -1732,7 +1738,7 @@ function showAuthPage() {
           <label class="text-white/60 text-xs font-semibold block mb-1">Подтвердите пароль</label>
           <input type="password" id="authConfirmPasswordInput" class="w-full p-3.5 rounded-xl text-white text-base bg-white/5 border border-white/20 focus:border-cyan-500 transition-colors" placeholder="••••••••">
         </div>
-        <button id="authEmailSubmitBtn" class="w-full py-3.5 rounded-xl font-bold text-white text-sm mt-2 transition-all" style="background: linear-gradient(135deg, #06b6d4, #8b5cf6);">Войти</button>
+        <button id="authEmailSubmitBtn" class="w-full py-3.5 rounded-xl font-bold text-white text-sm mt-2 transition-all" style="background: linear-gradient(135deg, #2F86F5, #4DA3FF);">Войти</button>
       </div>
 
       <p id="authErrorMsg" class="text-red-400 text-xs text-center mb-4 hidden bg-red-500/10 p-2 rounded-lg"></p>
@@ -1824,7 +1830,7 @@ function showAuthPage() {
     switchMethodTab('email');
     
     if (tab === 'login') {
-      loginTabBtn.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3))';
+      loginTabBtn.style.background = 'linear-gradient(135deg, rgba(77, 163, 255,0.4), rgba(77, 163, 255,0.3))';
       loginTabBtn.style.color = '#fff';
       registerTabBtn.style.background = 'transparent';
       registerTabBtn.style.color = 'rgba(255,255,255,0.5)';
@@ -1832,7 +1838,7 @@ function showAuthPage() {
       confirmPwdContainer.classList.add('hidden');
       emailSubmitBtn.textContent = 'Войти';
     } else {
-      registerTabBtn.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.3))';
+      registerTabBtn.style.background = 'linear-gradient(135deg, rgba(77, 163, 255,0.4), rgba(77, 163, 255,0.3))';
       registerTabBtn.style.color = '#fff';
       loginTabBtn.style.background = 'transparent';
       loginTabBtn.style.color = 'rgba(255,255,255,0.5)';

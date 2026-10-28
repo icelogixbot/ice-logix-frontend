@@ -912,71 +912,51 @@ window.renderSmartCalculator = async function() {
   // 1. HUB MODE (Selection of calculation method)
   if (mode === 'hub') {
     return `
-      <div class="space-y-4 page-enter">
-        <div class="glass-card text-left p-5 space-y-4 shadow-2xl border border-white/10 rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
-          <div class="text-center space-y-1 mb-2">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-2xl shadow-lg shadow-cyan-500/20 mb-1">
-              🧮
-            </div>
-            <h2 class="text-xl font-extrabold text-white">Калькулятор доставки</h2>
-            <p class="text-white/60 text-xs max-w-xs mx-auto">Узнайте стоимость товара под ключ в Беларуси с выкупом, доставкой и страховкой</p>
+      <div class="rd-screen page-enter">
+        <h1 class="rd-h1">Расчёт заказа</h1>
+        <p class="rd-sub">Цена под ключ в Беларуси: выкуп, доставка и страховка уже внутри.</p>
+
+        <div class="rd-modes">
+          <div class="calc-mode-card rd-mode rd-mode-main" role="button" tabindex="0" onclick="window.setCalcMode('link')">
+            <span class="rd-mode-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.2 13.8a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1.1 1.1"/><path d="M13.8 10.2a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1.1-1.1"/></svg></span>
+            <span class="rd-mode-body">
+              <span class="rd-mode-title">По ссылке</span>
+              <span class="rd-mode-text">Вставьте ссылку с Poizon, Taobao, Pinduoduo или 1688, а цену и размеры мы найдём сами.</span>
+            </span>
+            <svg class="rd-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg>
           </div>
 
-          <div class="flex flex-col gap-3 pt-2">
-            <!-- 1. По фото -->
-            <div class="calc-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-200 active:scale-[0.98]" onclick="window.setCalcMode('photo')">
-              <div class="flex items-center gap-3.5">
-                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-pink-500/30 flex items-center justify-center text-pink-400 text-2xl flex-shrink-0 shadow-lg shadow-pink-500/10">
-                  📸
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center justify-between">
-                    <h3 class="font-bold text-white text-sm">По фото или скриншоту</h3>
-                    <span class="text-[10px] text-pink-400 font-bold bg-pink-500/10 px-2 py-0.5 rounded-full border border-pink-500/20">ИИ поиск</span>
-                  </div>
-                  <p class="text-white/50 text-[11px] leading-normal mt-1">Загрузите фото — нейросеть распознает вещь и найдет её на площадках Poizon/Taobao.</p>
-                </div>
-              </div>
-            </div>
+          <div class="calc-mode-card rd-mode" role="button" tabindex="0" onclick="window.setCalcMode('photo')">
+            <span class="rd-mode-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 8h3l1.5-2.3h6L16.5 8h3a1 1 0 0 1 1 1v9.2a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.2" r="3.3"/></svg></span>
+            <span class="rd-mode-body">
+              <span class="rd-mode-title">По фото<span class="rd-badge">ИИ</span></span>
+              <span class="rd-mode-text">Загрузите фото или скриншот, а мы найдём такую же вещь на площадках.</span>
+            </span>
+            <svg class="rd-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg>
+          </div>
 
-            <!-- 2. По описанию -->
-            <div class="calc-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-200 active:scale-[0.98]" onclick="window.setCalcMode('text')">
-              <div class="flex items-center gap-3.5">
-                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 text-2xl flex-shrink-0 shadow-lg shadow-amber-500/10">
-                  📝
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center justify-between">
-                    <h3 class="font-bold text-white text-sm">По названию или описанию</h3>
-                    <span class="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">Каталог</span>
-                  </div>
-                  <p class="text-white/50 text-[11px] leading-normal mt-1">Введите бренд и модель (например: Nike Dunk Low) — подберем актуальные цены.</p>
-                </div>
-              </div>
-            </div>
+          <div class="calc-mode-card rd-mode" role="button" tabindex="0" onclick="window.setCalcMode('text')">
+            <span class="rd-mode-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7V5h14v2M12 5v14M9 19h6"/></svg></span>
+            <span class="rd-mode-body">
+              <span class="rd-mode-title">По названию</span>
+              <span class="rd-mode-text">Напишите бренд и модель, например Nike Dunk Low, и мы подберём актуальные цены.</span>
+            </span>
+            <svg class="rd-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg>
+          </div>
+        </div>
 
-            <!-- 3. По ссылке (ЭМУЛЯТОР) -->
-            <div class="calc-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-200 active:scale-[0.98]" onclick="window.setCalcMode('link')">
-              <div class="flex items-center gap-3.5">
-                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-2xl flex-shrink-0 shadow-lg shadow-cyan-500/10">
-                  🔗
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center justify-between">
-                    <h3 class="font-bold text-white text-sm">По ссылке на товар</h3>
-                    <span class="text-[10px] text-cyan-400 font-bold bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20">Эмулятор</span>
-                  </div>
-                  <p class="text-white/50 text-[11px] leading-normal mt-1">Вставьте ссылку из Poizon, Dewu, Taobao или 1688 — эмулятор считает параметры.</p>
-                </div>
-              </div>
-            </div>
+        <button type="button" class="rd-btn rd-btn-ghost rd-btn-block" onclick="window.setCalcMode('manual')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></svg>
+          Ввести цену вручную
+        </button>
 
-            <!-- Ручной расчет -->
-            <div class="text-center pt-2">
-              <button type="button" class="text-xs text-white/40 hover:text-cyan-400 transition underline underline-offset-4 cursor-pointer bg-transparent border-0" onclick="window.setCalcMode('manual')">
-                Или ввести стоимость товара вручную
-              </button>
-            </div>
+        <div class="rd-card rd-incl">
+          <div class="rd-incl-title">Что входит в итоговую цену</div>
+          <div class="rd-incl-grid">
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Выкуп товара</span>
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Доставка из Китая</span>
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Страховка 2%</span>
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Доставка по РБ</span>
           </div>
         </div>
       </div>

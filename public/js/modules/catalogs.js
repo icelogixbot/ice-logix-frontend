@@ -4,71 +4,24 @@
     // ==================== РЕНДЕР КАТАЛОГОВ (ВЫБОР) ====================
 async function renderCatalogs() {
   return `
-    <div class="space-y-4 page-enter">
-      <h2 class="text-white text-xl font-bold mb-5 flex items-center gap-3">
-        <span class="text-2xl"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span></span>
-        Каталоги
-      </h2>
-      <div class="grid grid-cols-1 gap-4">
-        <div class="glass-card cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all" id="openMarketplacesBtn">
-          <div class="flex items-center gap-4">
-            <div class="w-16 h-16 rounded-2xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(96,165,250,0.25), rgba(59,130,246,0.15));">
-              <span class="text-3xl" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span></span>
-            </div>
-            <div class="flex-1">
-              <h3 class="text-white font-bold text-lg mb-1">Площадки</h3>
-              <p class="text-sm" style="color: var(--text-secondary);">Dewu, TaoBao, Pinduoduo, Goofish, 95, JD, Tmall</p>
-            </div>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);">
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
-          </div>
+    <div class="rd-screen page-enter">
+      <h1 class="rd-h1">Каталоги</h1>
+      <div class="rd-card rd-list" style="margin-top: 16px;">
+        <div class="rd-row rd-row-main" id="openMarketplacesBtn" role="button" tabindex="0">
+          <span class="rd-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span>
+          <span class="rd-row-body"><span class="rd-row-title">Площадки</span><span class="rd-row-text">Dewu, TaoBao, Pinduoduo, Goofish, 95, JD, Tmall</span></span>
+          <svg class="rd-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg>
         </div>
-        <div class="glass-card cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all relative overflow-hidden border border-amber-500/20" id="openProductsCatalogBtn">
-          <div class="flex items-center gap-4">
-            <div class="w-16 h-16 rounded-2xl flex items-center justify-center relative flex-shrink-0" style="background: linear-gradient(135deg, rgba(251,191,36,0.25), rgba(245,158,11,0.15));">
-              <span class="text-3xl" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span></span>
-              <span class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-500 text-black flex items-center justify-center text-[10px] shadow-md font-bold">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              </span>
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 flex-wrap mb-1">
-                <h3 class="text-white font-bold text-lg leading-tight">Товары</h3>
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 uppercase tracking-wide">
-                  <span class="ix" style="width:10px;height:10px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span> В разработке
-                </span>
-              </div>
-              <p class="text-sm" style="color: var(--text-secondary);">Готовые предложения от нашей команды. Скоро открытие!</p>
-            </div>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);" class="flex-shrink-0">
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
-          </div>
+        <div class="rd-row" id="openProductsCatalogBtn" role="button" tabindex="0">
+          <span class="rd-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h12l2 4.5v11a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19V8z"/><path d="M4 8h16M9 12a3 3 0 0 0 6 0"/></svg></span>
+          <span class="rd-row-body"><span class="rd-row-title">Товары<span class="rd-soon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>Скоро</span></span><span class="rd-row-text">Готовые предложения от нашей команды.</span></span>
+          <svg class="rd-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg>
         </div>
-        <div class="glass-card cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all relative overflow-hidden border border-pink-500/20" id="openResaleBtn">
-          <div class="flex items-center gap-4">
-            <div class="w-16 h-16 rounded-2xl flex items-center justify-center relative flex-shrink-0" style="background: linear-gradient(135deg, rgba(236,72,153,0.25), rgba(219,39,119,0.15));">
-              <span class="text-3xl" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"><span class="ix text-pink-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg></span></span>
-              <span class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-pink-500 text-white flex items-center justify-center text-[10px] shadow-md font-bold">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              </span>
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 flex-wrap mb-1">
-                <h3 class="text-white font-bold text-lg leading-tight">Наличие</h3>
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-pink-500/15 text-pink-300 border border-pink-500/30 uppercase tracking-wide">
-                  <span class="ix" style="width:10px;height:10px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span> В разработке
-                </span>
-              </div>
-              <p class="text-sm" style="color: var(--text-secondary);">Покупка и продажа вещей клиентов (комиссия 2%). Скоро запуск!</p>
-            </div>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);" class="flex-shrink-0">
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
-          </div>
+        <div class="rd-row" id="openResaleBtn" role="button" tabindex="0">
+          <span class="rd-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.5 1.5 0 0 1 0 2.1l-6.6 6.6a1.5 1.5 0 0 1-2.1 0z"/><circle cx="8" cy="8" r="1.1"/></svg></span>
+          <span class="rd-row-body"><span class="rd-row-title">Наличие<span class="rd-soon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>Скоро</span></span><span class="rd-row-text">Покупка и продажа вещей клиентов, комиссия 2%.</span></span>
+          <svg class="rd-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg>
         </div>
-
       </div>
     </div>
     ${renderFooter()}

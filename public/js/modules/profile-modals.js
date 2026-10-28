@@ -790,13 +790,13 @@ async function showCurrencyAlertsModal() {
             <svg class="w-full h-full" viewBox="0 0 330 80" preserveAspectRatio="none">
               <defs>
                 <linearGradient id="cnyGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="rgba(34,211,238,0.25)"/>
-                  <stop offset="100%" stop-color="rgba(34,211,238,0)"/>
+                  <stop offset="0%" stop-color="rgba(77, 163, 255,0.25)"/>
+                  <stop offset="100%" stop-color="rgba(77, 163, 255,0)"/>
                 </linearGradient>
               </defs>
               <path d="${cnyChart.fillPath}" fill="url(#cnyGrad)"/>
-              <path d="${cnyChart.linePath}" fill="none" stroke="#22d3ee" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-              ${cnyChart.coords.map((c, i) => `<circle cx="${c.x}" cy="${c.y}" r="3" fill="#22d3ee"/>`).join('')}
+              <path d="${cnyChart.linePath}" fill="none" stroke="#4DA3FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              ${cnyChart.coords.map((c, i) => `<circle cx="${c.x}" cy="${c.y}" r="3" fill="#4DA3FF"/>`).join('')}
             </svg>
           </div>
         </div>
@@ -815,8 +815,8 @@ async function showCurrencyAlertsModal() {
                 </linearGradient>
               </defs>
               <path d="${eurChart.fillPath}" fill="url(#eurGrad)"/>
-              <path d="${eurChart.linePath}" fill="none" stroke="#a78bfa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-              ${eurChart.coords.map((c, i) => `<circle cx="${c.x}" cy="${c.y}" r="3" fill="#a78bfa"/>`).join('')}
+              <path d="${eurChart.linePath}" fill="none" stroke="#8CC6FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              ${eurChart.coords.map((c, i) => `<circle cx="${c.x}" cy="${c.y}" r="3" fill="#8CC6FF"/>`).join('')}
             </svg>
           </div>
         </div>
@@ -1182,7 +1182,7 @@ window.openSupportChat = (orderId, isAdmin = false) => {
 };
 
   window.triggerConfetti = () => {
-    const colors = ['#22d3ee', '#3b82f6', '#b8e0f6', '#ffffff', '#fbbf24'];
+    const colors = ['#4DA3FF', '#2F86F5', '#b8e0f6', '#ffffff', '#fbbf24'];
   const shapes = ['square', 'circle', 'diamond'];
   const particleCount = 80;
   
@@ -2235,12 +2235,12 @@ function showFortuneWheel() {
     </div>
     <div class="full-screen-modal-body flex flex-col items-center justify-center py-6">
       <div class="relative w-64 h-64 mb-8">
-        <div id="wheel" class="w-full h-full rounded-full border-4 border-cyan-500 shadow-[0_0_20px_#06b6d4] transition-all duration-[3000ms] ease-out flex items-center justify-center overflow-hidden" style="background: conic-gradient(#ec4899 0deg 90deg, #8b5cf6 90deg 180deg, #06b6d4 180deg 270deg, #10b981 270deg 360deg);">
+        <div id="wheel" class="w-full h-full rounded-full border-4 border-cyan-500 shadow-[0_0_20px_#2F86F5] transition-all duration-[3000ms] ease-out flex items-center justify-center overflow-hidden" style="background: conic-gradient(#4DA3FF 0deg 90deg, #4DA3FF 90deg 180deg, #2F86F5 180deg 270deg, #10b981 270deg 360deg);">
            <div class="absolute inset-0 flex items-center justify-center font-bold text-white text-xl drop-shadow-md">КРУТИ!</div>
         </div>
         <div class="absolute top-0 left-1/2 -ml-3 -mt-2 w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-t-[20px] border-t-white z-10"></div>
       </div>
-      <button id="spinWheelBtn" class="bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold py-3.5 px-10 rounded-2xl text-base shadow-[0_0_15px_#ec4899] hover:scale-105 transition">Крутить (1 раз в месяц)</button>
+      <button id="spinWheelBtn" class="bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold py-3.5 px-10 rounded-2xl text-base shadow-[0_0_15px_#4DA3FF] hover:scale-105 transition">Крутить (1 раз в месяц)</button>
     </div>
   `;
   document.body.appendChild(modal);

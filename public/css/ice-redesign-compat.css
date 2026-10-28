@@ -1,0 +1,194 @@
+/* ЭТОТ ФАЙЛ СГЕНЕРИРОВАН scripts/gen-redesign-compat.py. Руками не править. */
+/* Перевод акцентных утилит Tailwind в палитру нового дизайна: только те классы, что реально есть в коде. */
+
+html body .bg-blue-500\/10 { background-color: rgba(77, 163, 255, 0.1) !important; }
+html body .bg-blue-500\/15 { background-color: rgba(77, 163, 255, 0.15) !important; }
+html body .bg-blue-500\/20 { background-color: rgba(77, 163, 255, 0.2) !important; }
+html body .bg-blue-500\/50 { background-color: rgba(77, 163, 255, 0.5) !important; }
+html body .bg-blue-600\/15 { background-color: rgba(77, 163, 255, 0.15) !important; }
+html body .bg-blue-600\/20 { background-color: rgba(77, 163, 255, 0.2) !important; }
+html body .bg-blue-600\/60 { background-color: rgba(77, 163, 255, 0.6) !important; }
+html body .bg-blue-600\/80 { background-color: rgba(77, 163, 255, 0.8) !important; }
+html body .bg-cyan-400 { background-color: var(--rd-blue-hi) !important; }
+html body .bg-cyan-400\/10 { background-color: rgba(77, 163, 255, 0.1) !important; }
+html body .bg-cyan-400\/15 { background-color: rgba(77, 163, 255, 0.15) !important; }
+html body .bg-cyan-400\/20 { background-color: rgba(77, 163, 255, 0.2) !important; }
+html body .bg-cyan-500 { background-color: var(--rd-blue) !important; }
+html body .bg-cyan-500\/10 { background-color: rgba(77, 163, 255, 0.1) !important; }
+html body .bg-cyan-500\/15 { background-color: rgba(77, 163, 255, 0.15) !important; }
+html body .bg-cyan-500\/20 { background-color: rgba(77, 163, 255, 0.2) !important; }
+html body .bg-cyan-500\/30 { background-color: rgba(77, 163, 255, 0.3) !important; }
+html body .bg-cyan-500\/5 { background-color: rgba(77, 163, 255, 0.05) !important; }
+html body .bg-cyan-500\/50 { background-color: rgba(77, 163, 255, 0.5) !important; }
+html body .bg-cyan-500\/80 { background-color: rgba(77, 163, 255, 0.8) !important; }
+html body .bg-cyan-600\/70 { background-color: rgba(77, 163, 255, 0.7) !important; }
+html body .bg-cyan-950\/20 { background-color: rgba(77, 163, 255, 0.2) !important; }
+html body .bg-cyan-950\/30 { background-color: rgba(77, 163, 255, 0.3) !important; }
+html body .bg-cyan-950\/80 { background-color: rgba(77, 163, 255, 0.8) !important; }
+html body .bg-fuchsia-600 { background-color: var(--rd-blue) !important; }
+html body .bg-indigo-400\/10 { background-color: rgba(77, 163, 255, 0.1) !important; }
+html body .bg-indigo-500\/10 { background-color: rgba(77, 163, 255, 0.1) !important; }
+html body .bg-indigo-500\/20 { background-color: rgba(77, 163, 255, 0.2) !important; }
+html body .bg-pink-400 { background-color: var(--rd-blue-hi) !important; }
+html body .bg-pink-500 { background-color: var(--rd-blue) !important; }
+html body .bg-pink-500\/10 { background-color: rgba(77, 163, 255, 0.1) !important; }
+html body .bg-pink-500\/20 { background-color: rgba(77, 163, 255, 0.2) !important; }
+html body .bg-purple-500 { background-color: var(--rd-blue) !important; }
+html body .bg-purple-500\/10 { background-color: rgba(77, 163, 255, 0.1) !important; }
+html body .bg-purple-500\/15 { background-color: rgba(77, 163, 255, 0.15) !important; }
+html body .bg-purple-500\/20 { background-color: rgba(77, 163, 255, 0.2) !important; }
+html body .bg-purple-600\/40 { background-color: rgba(77, 163, 255, 0.4) !important; }
+html body .bg-sky-500\/20 { background-color: rgba(77, 163, 255, 0.2) !important; }
+html body .bg-teal-500\/10 { background-color: rgba(77, 163, 255, 0.1) !important; }
+html body .bg-teal-500\/20 { background-color: rgba(77, 163, 255, 0.2) !important; }
+html body .border-blue-400\/40 { border-color: rgba(77, 163, 255, 0.5) !important; }
+html body .border-blue-500\/20 { border-color: rgba(77, 163, 255, 0.30000000000000004) !important; }
+html body .border-blue-500\/30 { border-color: rgba(77, 163, 255, 0.4) !important; }
+html body .border-blue-500\/50 { border-color: rgba(77, 163, 255, 0.6) !important; }
+html body .border-cyan-400 { border-color: rgba(77, 163, 255, 0.5) !important; }
+html body .border-cyan-400\/20 { border-color: rgba(77, 163, 255, 0.30000000000000004) !important; }
+html body .border-cyan-400\/25 { border-color: rgba(77, 163, 255, 0.35) !important; }
+html body .border-cyan-400\/30 { border-color: rgba(77, 163, 255, 0.4) !important; }
+html body .border-cyan-400\/40 { border-color: rgba(77, 163, 255, 0.5) !important; }
+html body .border-cyan-400\/50 { border-color: rgba(77, 163, 255, 0.6) !important; }
+html body .border-cyan-400\/60 { border-color: rgba(77, 163, 255, 0.7) !important; }
+html body .border-cyan-500 { border-color: rgba(77, 163, 255, 0.5) !important; }
+html body .border-cyan-500\/20 { border-color: rgba(77, 163, 255, 0.30000000000000004) !important; }
+html body .border-cyan-500\/25 { border-color: rgba(77, 163, 255, 0.35) !important; }
+html body .border-cyan-500\/30 { border-color: rgba(77, 163, 255, 0.4) !important; }
+html body .border-cyan-500\/40 { border-color: rgba(77, 163, 255, 0.5) !important; }
+html body .border-cyan-500\/50 { border-color: rgba(77, 163, 255, 0.6) !important; }
+html body .border-cyan-500\/60 { border-color: rgba(77, 163, 255, 0.7) !important; }
+html body .border-fuchsia-500\/30 { border-color: rgba(77, 163, 255, 0.4) !important; }
+html body .border-indigo-400\/40 { border-color: rgba(77, 163, 255, 0.5) !important; }
+html body .border-indigo-500\/30 { border-color: rgba(77, 163, 255, 0.4) !important; }
+html body .border-indigo-500\/50 { border-color: rgba(77, 163, 255, 0.6) !important; }
+html body .border-pink-500\/20 { border-color: rgba(77, 163, 255, 0.30000000000000004) !important; }
+html body .border-pink-500\/25 { border-color: rgba(77, 163, 255, 0.35) !important; }
+html body .border-pink-500\/30 { border-color: rgba(77, 163, 255, 0.4) !important; }
+html body .border-pink-500\/40 { border-color: rgba(77, 163, 255, 0.5) !important; }
+html body .border-purple-400\/30 { border-color: rgba(77, 163, 255, 0.4) !important; }
+html body .border-purple-400\/40 { border-color: rgba(77, 163, 255, 0.5) !important; }
+html body .border-purple-500\/20 { border-color: rgba(77, 163, 255, 0.30000000000000004) !important; }
+html body .border-purple-500\/30 { border-color: rgba(77, 163, 255, 0.4) !important; }
+html body .border-purple-500\/40 { border-color: rgba(77, 163, 255, 0.5) !important; }
+html body .border-purple-500\/50 { border-color: rgba(77, 163, 255, 0.6) !important; }
+html body .border-sky-400\/40 { border-color: rgba(77, 163, 255, 0.5) !important; }
+html body .border-sky-500\/30 { border-color: rgba(77, 163, 255, 0.4) !important; }
+html body .border-teal-400\/40 { border-color: rgba(77, 163, 255, 0.5) !important; }
+html body .border-teal-500\/20 { border-color: rgba(77, 163, 255, 0.30000000000000004) !important; }
+html body .border-teal-500\/50 { border-color: rgba(77, 163, 255, 0.6) !important; }
+html body .border-violet-500\/30 { border-color: rgba(77, 163, 255, 0.4) !important; }
+html body .ring-blue-400\/20 { --tw-ring-color: rgba(77, 163, 255, 0.5) !important; }
+html body .ring-cyan-400\/50 { --tw-ring-color: rgba(77, 163, 255, 0.5) !important; }
+html body .ring-indigo-400\/20 { --tw-ring-color: rgba(77, 163, 255, 0.5) !important; }
+html body .ring-purple-400\/20 { --tw-ring-color: rgba(77, 163, 255, 0.5) !important; }
+html body .ring-sky-400\/20 { --tw-ring-color: rgba(77, 163, 255, 0.5) !important; }
+html body .ring-teal-400\/20 { --tw-ring-color: rgba(77, 163, 255, 0.5) !important; }
+html body .shadow-blue-950\/60 { --tw-shadow-color: transparent !important; box-shadow: none !important; }
+html body .shadow-cyan-400 { --tw-shadow-color: transparent !important; box-shadow: none !important; }
+html body .shadow-cyan-400\/20 { --tw-shadow-color: transparent !important; box-shadow: none !important; }
+html body .shadow-cyan-500\/10 { --tw-shadow-color: transparent !important; box-shadow: none !important; }
+html body .shadow-cyan-500\/15 { --tw-shadow-color: transparent !important; box-shadow: none !important; }
+html body .shadow-cyan-500\/20 { --tw-shadow-color: transparent !important; box-shadow: none !important; }
+html body .shadow-cyan-500\/25 { --tw-shadow-color: transparent !important; box-shadow: none !important; }
+html body .shadow-cyan-500\/30 { --tw-shadow-color: transparent !important; box-shadow: none !important; }
+html body .shadow-cyan-500\/40 { --tw-shadow-color: transparent !important; box-shadow: none !important; }
+html body .shadow-cyan-950\/40 { --tw-shadow-color: transparent !important; box-shadow: none !important; }
+html body .shadow-cyan-950\/60 { --tw-shadow-color: transparent !important; box-shadow: none !important; }
+html body .shadow-cyan-950\/70 { --tw-shadow-color: transparent !important; box-shadow: none !important; }
+html body .shadow-indigo-950\/60 { --tw-shadow-color: transparent !important; box-shadow: none !important; }
+html body .shadow-purple-950\/60 { --tw-shadow-color: transparent !important; box-shadow: none !important; }
+html body .shadow-sky-950\/60 { --tw-shadow-color: transparent !important; box-shadow: none !important; }
+html body .shadow-teal-950\/60 { --tw-shadow-color: transparent !important; box-shadow: none !important; }
+html body .text-blue-300 { color: var(--rd-b300) !important; }
+html body .text-blue-400 { color: var(--rd-b400) !important; }
+html body .text-blue-400\/50 { color: rgba(77, 163, 255, 0.6) !important; }
+html body .text-cyan-100 { color: var(--rd-b300) !important; }
+html body .text-cyan-200 { color: var(--rd-b300) !important; }
+html body .text-cyan-200\/90 { color: rgba(77, 163, 255, 0.9) !important; }
+html body .text-cyan-300 { color: var(--rd-b300) !important; }
+html body .text-cyan-300\/70 { color: rgba(77, 163, 255, 0.7) !important; }
+html body .text-cyan-300\/80 { color: rgba(77, 163, 255, 0.8) !important; }
+html body .text-cyan-400 { color: var(--rd-b400) !important; }
+html body .text-cyan-400\/50 { color: rgba(77, 163, 255, 0.6) !important; }
+html body .text-cyan-400\/70 { color: rgba(77, 163, 255, 0.7) !important; }
+html body .text-cyan-400\/80 { color: rgba(77, 163, 255, 0.8) !important; }
+html body .text-fuchsia-400 { color: var(--rd-b400) !important; }
+html body .text-indigo-300 { color: var(--rd-b300) !important; }
+html body .text-indigo-300\/70 { color: rgba(77, 163, 255, 0.7) !important; }
+html body .text-indigo-400 { color: var(--rd-b400) !important; }
+html body .text-pink-300 { color: var(--rd-b300) !important; }
+html body .text-pink-400 { color: var(--rd-b400) !important; }
+html body .text-pink-400\/50 { color: rgba(77, 163, 255, 0.6) !important; }
+html body .text-pink-400\/80 { color: rgba(77, 163, 255, 0.8) !important; }
+html body .text-purple-200 { color: var(--rd-b300) !important; }
+html body .text-purple-300 { color: var(--rd-b300) !important; }
+html body .text-purple-300\/80 { color: rgba(77, 163, 255, 0.8) !important; }
+html body .text-purple-400 { color: var(--rd-b400) !important; }
+html body .text-purple-400\/50 { color: rgba(77, 163, 255, 0.6) !important; }
+html body .text-sky-300 { color: var(--rd-b300) !important; }
+html body .text-sky-400 { color: var(--rd-b400) !important; }
+html body .text-sky-400\/80 { color: rgba(77, 163, 255, 0.8) !important; }
+html body .text-teal-300 { color: var(--rd-b300) !important; }
+html body .text-teal-400 { color: var(--rd-b400) !important; }
+html body .text-violet-400 { color: var(--rd-b400) !important; }
+html body .text-violet-400\/80 { color: rgba(77, 163, 255, 0.8) !important; }
+html body .focus\:border-cyan-400:focus { border-color: rgba(77, 163, 255, 0.5) !important; }
+html body .focus\:border-cyan-400\/50:focus { border-color: rgba(77, 163, 255, 0.6) !important; }
+html body .focus\:border-cyan-500:focus { border-color: rgba(77, 163, 255, 0.5) !important; }
+html body .focus\:ring-cyan-500\/20:focus { --tw-ring-color: rgba(77, 163, 255, 0.5) !important; }
+html body .group:hover .group-hover\:bg-cyan-500\/20 { background-color: rgba(77, 163, 255, 0.2) !important; }
+html body .group:hover .group-hover\:border-cyan-400\/40 { border-color: rgba(77, 163, 255, 0.5) !important; }
+html body .group:hover .group-hover\:text-cyan-200 { color: var(--rd-b300) !important; }
+html body .group:hover .group-hover\:text-cyan-300 { color: var(--rd-b300) !important; }
+html body .hover\:bg-blue-500:hover { background-color: var(--rd-blue) !important; }
+html body .hover\:bg-blue-500\/70:hover { background-color: rgba(77, 163, 255, 0.7) !important; }
+html body .hover\:bg-blue-600:hover { background-color: var(--rd-blue) !important; }
+html body .hover\:bg-cyan-300:hover { background-color: var(--rd-blue-hi) !important; }
+html body .hover\:bg-cyan-500\/10:hover { background-color: rgba(77, 163, 255, 0.1) !important; }
+html body .hover\:bg-cyan-500\/20:hover { background-color: rgba(77, 163, 255, 0.2) !important; }
+html body .hover\:bg-cyan-500\/25:hover { background-color: rgba(77, 163, 255, 0.25) !important; }
+html body .hover\:bg-cyan-500\/30:hover { background-color: rgba(77, 163, 255, 0.3) !important; }
+html body .hover\:bg-cyan-500\/40:hover { background-color: rgba(77, 163, 255, 0.4) !important; }
+html body .hover\:bg-cyan-500\/50:hover { background-color: rgba(77, 163, 255, 0.5) !important; }
+html body .hover\:bg-cyan-600:hover { background-color: var(--rd-blue) !important; }
+html body .hover\:bg-fuchsia-500:hover { background-color: var(--rd-blue) !important; }
+html body .hover\:bg-fuchsia-500\/10:hover { background-color: rgba(77, 163, 255, 0.1) !important; }
+html body .hover\:bg-indigo-500\/20:hover { background-color: rgba(77, 163, 255, 0.2) !important; }
+html body .hover\:bg-indigo-500\/40:hover { background-color: rgba(77, 163, 255, 0.4) !important; }
+html body .hover\:bg-pink-500\/20:hover { background-color: rgba(77, 163, 255, 0.2) !important; }
+html body .hover\:bg-pink-500\/30:hover { background-color: rgba(77, 163, 255, 0.3) !important; }
+html body .hover\:bg-pink-600:hover { background-color: var(--rd-blue) !important; }
+html body .hover\:bg-purple-500\/20:hover { background-color: rgba(77, 163, 255, 0.2) !important; }
+html body .hover\:bg-purple-500\/40:hover { background-color: rgba(77, 163, 255, 0.4) !important; }
+html body .hover\:bg-purple-600:hover { background-color: var(--rd-blue) !important; }
+html body .hover\:border-cyan-400:hover { border-color: rgba(77, 163, 255, 0.5) !important; }
+html body .hover\:border-cyan-400\/30:hover { border-color: rgba(77, 163, 255, 0.4) !important; }
+html body .hover\:border-cyan-400\/40:hover { border-color: rgba(77, 163, 255, 0.5) !important; }
+html body .hover\:border-cyan-500:hover { border-color: rgba(77, 163, 255, 0.5) !important; }
+html body .hover\:border-cyan-500\/20:hover { border-color: rgba(77, 163, 255, 0.30000000000000004) !important; }
+html body .hover\:border-cyan-500\/30:hover { border-color: rgba(77, 163, 255, 0.4) !important; }
+html body .hover\:border-cyan-500\/40:hover { border-color: rgba(77, 163, 255, 0.5) !important; }
+html body .hover\:border-cyan-500\/50:hover { border-color: rgba(77, 163, 255, 0.6) !important; }
+html body .hover\:text-cyan-200:hover { color: var(--rd-b300) !important; }
+html body .hover\:text-cyan-300:hover { color: var(--rd-b300) !important; }
+html body .hover\:text-cyan-400:hover { color: var(--rd-b400) !important; }
+
+/* градиенты с акцентными цветами: плоская заливка вместо неонового перелива.
+   Со слэшем (from-cyan-500/20) это мягкая подложка, без слэша это сплошная синяя заливка. */
+html body [class*="from-cyan-"] { background-image: none !important; background-color: var(--rd-blue) !important; }
+html body [class*="from-cyan-"][class*="/"] { background-color: rgba(77, 163, 255, 0.14) !important; }
+html body [class*="from-pink-"] { background-image: none !important; background-color: var(--rd-blue) !important; }
+html body [class*="from-pink-"][class*="/"] { background-color: rgba(77, 163, 255, 0.14) !important; }
+html body [class*="from-purple-"] { background-image: none !important; background-color: var(--rd-blue) !important; }
+html body [class*="from-purple-"][class*="/"] { background-color: rgba(77, 163, 255, 0.14) !important; }
+html body [class*="from-sky-"] { background-image: none !important; background-color: var(--rd-blue) !important; }
+html body [class*="from-sky-"][class*="/"] { background-color: rgba(77, 163, 255, 0.14) !important; }
+html body [class*="from-violet-"] { background-image: none !important; background-color: var(--rd-blue) !important; }
+html body [class*="from-violet-"][class*="/"] { background-color: rgba(77, 163, 255, 0.14) !important; }
+
+/* цветные свечения у теней: убираем */
+html body [class*="shadow-cyan"], html body [class*="shadow-purple"], html body [class*="shadow-pink"],
+html body [class*="shadow-blue"], html body [class*="shadow-sky"], html body [class*="shadow-indigo"] { box-shadow: none !important; }
+

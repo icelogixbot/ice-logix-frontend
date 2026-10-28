@@ -51,7 +51,7 @@
       <!-- 1. Мои данные -->
       <button id="kycVerificationBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 active:scale-[0.99] transition" onclick="switchTab('kyc')">
         <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg bg-white/5 border border-white/10 shrink-0">
-          ${kycStatus === 'verified' ? '🛡️' : (kycStatus === 'pending' ? '⏳' : (kycStatus === 'rejected' ? '⚠️' : '🪪'))}
+          ${kycStatus === 'verified' ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2 5 5.9v5.5c0 4.4 2.9 7.7 7 9.4 4.1-1.7 7-5 7-9.4V5.9z"/><path d="m8.8 12 2.3 2.3 4.2-4.4"/></svg>' : (kycStatus === 'pending' ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>' : (kycStatus === 'rejected' ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4 3 19.5h18z"/><path d="M12 10v4.5M12 17.3h.01"/></svg>' : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="11" r="2"/><path d="M5.8 16c.5-1.6 1.7-2.4 3.2-2.4s2.7.8 3.2 2.4M14.5 10h4M14.5 13.5h3"/></svg>'))}
         </div>
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2">
@@ -128,7 +128,7 @@
       <!-- 6. Магазин бонусов ICE -->
       <button id="bonusShopBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 active:scale-[0.99] transition border-t border-white/5" onclick="switchTab('bonus_shop')">
         <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg bg-amber-500/10 border border-amber-500/20 shrink-0">
-          🎁
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="9" width="17" height="11" rx="2"/><path d="M12 9v11M3.5 13.5h17M12 9S10.6 4.2 8.3 5.3 9 9 12 9zm0 0s1.4-4.8 3.7-3.7S15 9 12 9z"/></svg>
         </div>
         <div class="flex-1 min-w-0">
           <p class="font-semibold text-white text-sm">Магазин бонусов</p>
@@ -165,7 +165,7 @@
       ${isOwner ? `
       <button id="adminPanelBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 active:scale-[0.99] transition border-t border-white/5" onclick="switchTab('admin')">
         <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg bg-amber-500/10 border border-amber-500/20 shrink-0 text-amber-400">
-          👑
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.5 8 4.5 4 4-6.5 4 6.5 4.5-4-1.5 10.5h-14z"/></svg>
         </div>
         <div class="flex-1 min-w-0">
           <p class="font-semibold text-white text-sm">Админ-панель</p>
@@ -429,7 +429,7 @@ window.showFortuneWheel = () => {
   modal.id = 'fortuneWheelModal';
   
   modal.innerHTML = `
-    <div class="glass-card max-w-sm w-full mx-4 p-6 shadow-[0_15px_40px_-10px_rgba(139,92,246,0.5)] transform transition-all duration-300 scale-95 opacity-0 text-center" style="background: linear-gradient(135deg, rgba(30,41,59,0.95), rgba(15,23,42,0.98)); border: 1px solid rgba(139,92,246,0.3);" id="fortuneModalContent">
+    <div class="glass-card max-w-sm w-full mx-4 p-6 shadow-[0_15px_40px_-10px_rgba(77, 163, 255,0.5)] transform transition-all duration-300 scale-95 opacity-0 text-center" style="background: linear-gradient(135deg, rgba(30,41,59,0.95), rgba(15,23,42,0.98)); border: 1px solid rgba(77, 163, 255,0.3);" id="fortuneModalContent">
       <h3 class="text-white font-bold text-xl mb-2 flex items-center justify-center gap-2">
         <span>🔮</span> Колесо Фортуны
       </h3>
@@ -440,19 +440,19 @@ window.showFortuneWheel = () => {
         <div class="absolute -top-3 left-1/2 -translate-x-1/2 z-20 text-3xl" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">📍</div>
         <!-- Колесо -->
         <div id="wheelElement" class="w-full h-full rounded-full border-4 border-white/10 relative overflow-hidden transition-transform" style="background: conic-gradient(
-          #3b82f6 0deg 60deg, 
-          #8b5cf6 60deg 120deg, 
+          #2F86F5 0deg 60deg, 
+          #4DA3FF 60deg 120deg, 
           #10b981 120deg 180deg, 
           #f59e0b 180deg 240deg, 
           #ef4444 240deg 300deg, 
-          #ec4899 300deg 360deg
-        ); box-shadow: 0 0 20px rgba(139,92,246,0.4);">
+          #4DA3FF 300deg 360deg
+        ); box-shadow: 0 0 20px rgba(77, 163, 255,0.4);">
           <!-- Разделители -->
           <div class="absolute inset-0 rounded-full" style="background-image: repeating-conic-gradient(from 0deg, transparent 0deg 59.5deg, rgba(255,255,255,0.5) 59.5deg 60.5deg);"></div>
         </div>
       </div>
       
-      <button id="spinBtnReal" class="w-full py-3 rounded-xl text-lg font-bold shadow-[0_0_15px_rgba(139,92,246,0.6)] flex items-center justify-center gap-2 text-white" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); border: none;">
+      <button id="spinBtnReal" class="w-full py-3 rounded-xl text-lg font-bold shadow-[0_0_15px_rgba(77, 163, 255,0.6)] flex items-center justify-center gap-2 text-white" style="background: linear-gradient(135deg, #2F86F5, #4DA3FF); border: none;">
         КРУТИТЬ!
       </button>
       <button class="w-full py-2 mt-3 rounded-xl text-sm font-semibold text-white/50 hover:text-white/80 transition-colors" onclick="document.getElementById('fortuneModalContent').classList.remove('scale-100','opacity-100'); setTimeout(()=>document.getElementById('fortuneWheelModal').remove(),300);">Отмена</button>
