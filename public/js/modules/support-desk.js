@@ -9,7 +9,21 @@
 
   // Config & Security Whitelist
   const AUTHORIZED_OPERATORS = [6107097715];
-  const BOT_TOKEN = '8631939179:AAFpMXFgp1JXv084ImFvTkjzlt2CplKar9Q';
+
+  // Токен бота поддержки хранится на сервере (функция support-notify), в браузере его нет.
+  // Сервер проверяет подпись Telegram и белый список операторов, а получателя берёт из тикета.
+  async function notifyClient(action, text) {
+    const initData = window.Telegram?.WebApp?.initData || '';
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/support-notify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY },
+      body: JSON.stringify({ initData, action, ticket_id: activeTicket.id, text }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) console.warn('support-notify:', data.error || res.status);
+    return data;
+  }
+
   const SUPABASE_URL = 'https://vrvwdagjpttvfvjanbwq.supabase.co';
   const SUPABASE_ANON_KEY =
     'sb_publishable_Lg_XPmJiyjEfJ3HBZdridA_y6oozpr3';
@@ -449,23 +463,8 @@
       messagesList.push(tempMsg);
       renderMessages();
 
-      // 2. Отправляем клиенту напрямую в Telegram через Bot API
-      const tgPayload = {
-        chat_id: activeTicket.user_id,
-        text: `🎧 <b>Служба заботы ICE LOGIX:</b>\n\n${text}`,
-        parse_mode: 'HTML',
-      };
-
-      const tgResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(tgPayload),
-      });
-
-      if (!tgResponse.ok) {
-        const errJson = await tgResponse.json().catch(() => ({}));
-        console.warn('Telegram Bot API response warning:', errJson);
-      }
+      // 2. Отправляем клиенту в Telegram через серверную функцию (токен бота в браузере не хранится)
+      await notifyClient('reply', text);
 
       // 3. Сохраняем сообщение в Supabase
       await supabaseClient.from('support_messages').insert({
@@ -518,20 +517,7 @@
       const nowIso = new Date().toISOString();
 
       // Отправляем вежливое уведомление клиенту в Telegram
-      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: activeTicket.user_id,
-          text: `✅ <b>Ваш вопрос решен!</b>\n\nСпасибо, что обратились в службу заботы ICE LOGIX ❄️\nЕсли у вас возникнет новый вопрос — просто нажмите кнопку <b>«💬 Задать вопрос»</b> ниже.`,
-          parse_mode: 'HTML',
-          reply_markup: {
-            keyboard: [[{ text: '💬 Задать вопрос' }]],
-            resize_keyboard: true,
-            is_persistent: true,
-          },
-        }),
-      }).catch(() => {});
+      await notifyClient('close').catch(() => {});
 
       // Обновляем тикет в базе
       await supabaseClient
