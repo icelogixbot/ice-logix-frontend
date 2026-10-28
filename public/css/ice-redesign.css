@@ -1,0 +1,389 @@
+/* ═══════════════════════════════════════════════════════════════════
+   ICE LOGIX · Редизайн 2026-10
+   Единый слой стилей, подключается ПОСЛЕДНИМ и переопределяет старые слои.
+   Все цвета, радиусы и отступы берутся из переменных --rd-* ниже.
+   Макет: design/canvas (ссылка в PROJECT_STATUS.md).
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* поверхности: чёрный с лёгким синим подтоном */
+  --rd-bg: #05070B;
+  --rd-s1: #0B1018;
+  --rd-s2: #111926;
+  --rd-s3: #182233;
+  --rd-line: #1C2738;
+  --rd-line-2: #2A3A52;
+
+  /* текст */
+  --rd-tx: #F3F6FB;
+  --rd-tx2: #A3AFC2;
+  --rd-tx3: #7C899D;
+
+  /* синий: заливка кнопок, акцент текста, мягкие подложки */
+  --rd-blue: #1F6FE0;
+  --rd-blue-hi: #2F86F5;
+  --rd-b300: #8CC6FF;
+  --rd-b400: #4DA3FF;
+  --rd-tint: rgba(77, 163, 255, 0.13);
+  --rd-tint-2: rgba(77, 163, 255, 0.22);
+
+  --rd-ok: #3DD68C;
+  --rd-warn: #FFC24A;
+  --rd-bad: #FF6B7A;
+
+  /* радиусы: 8 чипы, 12 кнопки и поля, 16 карточки, 22 шапка, 26 нижнее меню */
+  --rd-r8: 8px;
+  --rd-r12: 12px;
+  --rd-r16: 16px;
+  --rd-r22: 22px;
+  --rd-r26: 26px;
+
+  /* стекло */
+  --rd-glass-bg: rgba(12, 19, 30, 0.62);
+  --rd-glass-line: rgba(255, 255, 255, 0.09);
+  --rd-glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+  --rd-font: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
+
+  /* связка со старыми переменными, чтобы остальные экраны подтянулись к новой палитре */
+  --ui-bg: var(--rd-bg);
+  --ui-surface: var(--rd-s1);
+  --ui-surface-raised: var(--rd-s2);
+  --ui-surface-soft: var(--rd-s3);
+  --ui-line: var(--rd-line);
+  --ui-line-strong: var(--rd-line-2);
+  --ui-blue: var(--rd-b400);
+  --ui-blue-strong: var(--rd-blue-hi);
+  --ui-blue-deep: var(--rd-blue);
+  --ui-text: var(--rd-tx);
+  --ui-text-soft: var(--rd-tx2);
+  --ui-text-muted: var(--rd-tx3);
+}
+
+/* ─── Основа ─── */
+html, body, #app { background: var(--rd-bg) !important; }
+body {
+  font-family: var(--rd-font) !important;
+  color: var(--rd-tx) !important;
+  background-image: none !important;
+  -webkit-font-smoothing: antialiased;
+}
+body::before, body::after { display: none !important; }
+button, input, textarea, select { font-family: inherit; }
+
+/* ─── Шапка: плавающая стеклянная панель ─── */
+html body .app-header {
+  top: 10px !important; left: 12px !important; right: 12px !important;
+  height: 58px;
+  padding: 0 10px 0 9px !important;
+  gap: 6px;
+  border-radius: var(--rd-r22) !important;
+  background: var(--rd-glass-bg) !important;
+  border: 1px solid var(--rd-glass-line) !important;
+  box-shadow: var(--rd-glass-shadow) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+}
+html body .header-left { gap: 6px; }
+html body .header-center { gap: 0; }
+html body .header-center + .header-spacer { display: none; }
+html body .user-card { display: flex; align-items: center; gap: 6px; }
+
+html body .user-avatar {
+  width: 40px !important; height: 40px !important; flex-shrink: 0;
+  border-radius: 50% !important;
+  background: linear-gradient(145deg, #2F86F5, #1650B8) !important;
+  border: 2px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow: none !important;
+  color: #fff; font-weight: 800; font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+
+html body .balance-island {
+  height: 36px;
+  padding: 0 4px 0 12px !important;
+  gap: 8px !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+html body .balance-amount { font-size: 14px !important; font-weight: 800 !important; color: var(--rd-tx) !important; text-shadow: none !important; gap: 3px !important; font-variant-numeric: tabular-nums; }
+html body .balance-add {
+  width: 26px; height: 26px; padding: 0;
+  border-radius: 50% !important;
+  background: var(--rd-blue) !important;
+  color: #fff !important;
+  border: 0 !important;
+  font-size: 17px; font-weight: 700; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: none !important;
+}
+
+html body .app-header .icon-btn {
+  width: 36px !important; height: 36px !important; padding: 0 !important;
+  border-radius: 12px !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: var(--rd-tx2) !important;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+html body .app-header .icon-btn:active { background: var(--rd-tint) !important; color: var(--rd-b300) !important; }
+html body .app-header .icon-btn svg { width: 20px; height: 20px; }
+html body .app-header #loginBtn {
+  height: 40px; width: auto !important;
+  padding: 0 16px !important;
+  border-radius: 12px !important;
+  background: var(--rd-blue) !important;
+  border: 0 !important;
+  color: #fff !important;
+  box-shadow: none !important;
+  font-size: 14px !important; font-weight: 700 !important;
+}
+html body .logo-img { height: 40px !important; margin-left: 2px; }
+
+/* ─── Нижнее меню: плавающая стеклянная панель, активный пункт — таблетка под иконкой ─── */
+html body .tab-bar {
+  left: 12px !important; right: 12px !important; bottom: 12px !important;
+  height: 68px;
+  padding: 6px !important;
+  border-radius: var(--rd-r26) !important;
+  background: var(--rd-glass-bg) !important;
+  border: 1px solid var(--rd-glass-line) !important;
+  box-shadow: var(--rd-glass-shadow) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+}
+html body .tab-item {
+  gap: 3px !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--rd-tx3) !important;
+  overflow: visible !important;
+  transition: color .2s ease !important;
+}
+html body .tab-item:hover { background: transparent !important; color: var(--rd-tx3) !important; }
+html body .tab-item.active { background: transparent !important; color: var(--rd-b300) !important; }
+html body .tab-item.active::after { display: none !important; }
+html body .tab-icon {
+  width: 52px !important; height: 30px !important;
+  border-radius: 15px;
+  transform: none !important;
+  transition: background-color .2s ease;
+}
+html body .tab-item:hover .tab-icon, html body .tab-item.active .tab-icon { transform: none !important; }
+html body .tab-item.active .tab-icon { background: var(--rd-tint-2); }
+html body .tab-icon svg { width: 24px; height: 24px; }
+html body .tab-label { font-size: 11px !important; font-weight: 600 !important; line-height: 1.2; }
+
+/* «Расчёт» в центре: всегда синяя таблетка */
+html body .tab-item.center-calc-tab { color: var(--rd-b300) !important; margin: 0 !important; transform: none !important; }
+html body .tab-item.center-calc-tab .tab-icon {
+  background: linear-gradient(150deg, #2F86F5, #1650B8) !important;
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(31, 111, 224, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+html body .tab-item.center-calc-tab.active .tab-icon { box-shadow: 0 0 0 3px var(--rd-tint-2), 0 6px 16px rgba(31, 111, 224, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+
+html body #tabCartBadge, html body #cartBadge {
+  top: -3px !important; right: 4px !important;
+  min-width: 15px; height: 15px;
+  padding: 0 4px !important;
+  background: var(--rd-blue-hi) !important;
+  border: 2px solid #0C131E !important;
+  box-sizing: content-box;
+  box-shadow: none !important;
+  font-size: 10px !important; font-weight: 700 !important; line-height: 15px !important;
+}
+
+/* поля экрана и отступы под плавающие панели */
+html body .main-content { padding-top: 84px !important; padding-bottom: 112px !important; padding-left: 16px !important; padding-right: 16px !important; }
+
+/* ─── Пользовательская карточка в шапке: без лишней рамки ─── */
+html body .user-card { background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; }
+
+/* ─── Площадки (рулетка): чистая карточка вместо фигурной «капсулы». Шаг 80px в JS не меняем ─── */
+html body .marketplaces-capsule-section { margin-top: 6px; margin-bottom: 18px; }
+html body .marketplaces-capsule {
+  height: 128px;
+  filter: none !important;
+  background: var(--rd-s1);
+  border: 1px solid var(--rd-line);
+  border-radius: 20px;
+}
+html body .marketplaces-capsule-svg { display: none !important; }
+html body .marketplaces-ear-title {
+  top: 12px; left: 16px; right: auto; text-align: left;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
+  color: var(--rd-tx3) !important; text-shadow: none !important;
+}
+html body .marketplaces-inner-clipper { top: 32px; left: 1px; right: 1px; bottom: 4px; border-radius: 0 0 19px 19px; }
+html body .marketplaces-reticle {
+  top: 34px; width: 74px; height: 88px;
+  border: 1.5px solid var(--rd-b400);
+  background: var(--rd-tint);
+  border-radius: 18px;
+}
+html body .marketplaces-reticle::before { display: none; }
+html body .marketplace-story .story-label { color: var(--rd-tx2) !important; font-size: 11px !important; }
+html body .story-card.marketplace-story.is-active-target .story-label { color: var(--rd-tx) !important; }
+
+/* ─── Баннеры ─── */
+html body .banner-slide-cny {
+  background: #0E2750 !important;
+  border: 1px solid #1B3B70 !important;
+  border-radius: 18px !important;
+  box-shadow: none !important;
+}
+html body .banner-slide-cny::before { display: none !important; }
+html body .cny-watermark { color: rgba(77, 163, 255, 0.14) !important; text-shadow: none !important; }
+html body .cny-badge {
+  background: transparent !important; border: 0 !important; box-shadow: none !important; padding: 0 !important;
+  color: var(--rd-b300) !important; font-size: 12px !important; font-weight: 700 !important; letter-spacing: 0.07em;
+}
+html body .cny-flag { display: none !important; }
+html body .cny-tagline { color: #B9C9E4 !important; }
+html body .cny-main-rate { font-weight: 800 !important; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+html body .cny-rate-val { font-family: var(--rd-font) !important; color: #fff !important; text-shadow: none !important; }
+html body .cny-subtitle { color: #B9C9E4 !important; }
+html body .cny-subtitle strong { color: #fff !important; }
+html body .banner-btn.cny-btn {
+  background: #fff !important; color: #0A1E3F !important;
+  border: 0 !important; border-radius: 10px !important; box-shadow: none !important;
+  height: 36px; padding: 0 14px !important; font-size: 13px !important; font-weight: 700 !important;
+  display: inline-flex; align-items: center;
+}
+html body .banner-slide { border-radius: 18px !important; }
+html body .banner-dots span, html body .banner-dot { background: var(--rd-line-2) !important; }
+html body .banner-dots .active, html body .banner-dot.active { background: var(--rd-b400) !important; }
+
+/* ─── Быстрые действия (кружки-истории): единые плитки, иконки одним синим ─── */
+html body .story-card:not(.marketplace-story) .story-icon {
+  width: 58px !important; height: 58px !important;
+  background: var(--rd-s1) !important;
+  border: 1px solid var(--rd-line) !important;
+  border-radius: 16px !important;
+  box-shadow: none !important;
+}
+html body .story-card:not(.marketplace-story) .story-icon .ix,
+html body .story-card:not(.marketplace-story) .story-icon svg { color: var(--rd-b400) !important; }
+html body .story-card:not(.marketplace-story) .story-icon svg { width: 26px; height: 26px; }
+html body .story-card:not(.marketplace-story) .story-label { color: var(--rd-tx) !important; font-size: 12px !important; font-weight: 600 !important; }
+
+/* ─── Заголовки разделов ─── */
+html body .rd-sec-h { display: flex; align-items: center; justify-content: space-between; margin: 6px 0 12px; }
+html body .rd-sec-h h3 { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.01em; color: var(--rd-tx); }
+html body .rd-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 26px; padding: 0 10px; border-radius: 999px;
+  background: var(--rd-tint); color: var(--rd-b300);
+  font-size: 12px; font-weight: 700;
+}
+html body .rd-pill i { width: 6px; height: 6px; border-radius: 50%; background: #3FD8F2; display: inline-block; }
+
+/* ─── Карточка товара ─── */
+html body .product-card {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+  transform: none !important;
+}
+html body .product-card .card-media, html body .product-card .card-photo-container { border-radius: 14px !important; aspect-ratio: 4 / 5 !important; }
+html body .product-card > div:first-child { border-radius: 14px !important; overflow: hidden; background: var(--rd-s2); }
+html body .product-card .wishlist-heart { width: 32px !important; height: 32px !important; background: rgba(8, 13, 21, 0.55) !important; }
+html body .product-card .wb-card-cart-btn {
+  width: 36px !important; height: 36px !important; border-radius: 50% !important;
+  background: var(--rd-blue) !important; color: #fff !important; border: 0 !important; box-shadow: none !important;
+}
+html body .product-card .font-mono { font-family: var(--rd-font) !important; font-variant-numeric: tabular-nums; }
+html body .product-card .text-cyan-400 { color: var(--rd-tx) !important; font-size: 17px !important; font-weight: 800 !important; }
+html body .product-card .text-amber-400 { color: var(--rd-warn) !important; }
+
+/* подписи быстрых действий не обрезаем */
+html body .story-card:not(.marketplace-story) { min-width: 66px; }
+html body .story-card:not(.marketplace-story) .story-label { max-width: none !important; overflow: visible !important; text-overflow: clip !important; white-space: nowrap; }
+
+/* баннеры: без внешней тени, содержимое курса по центру высоты */
+html body .banner-carousel-wrapper { box-shadow: none !important; }
+html body .banner-slide-cny { align-items: center !important; }
+
+/* значок рубля в шапке, баннере и карточках наследует цвет текста, а не неоновый циан */
+html body .app-header .byn-sign, html body .banner-slide-cny .byn-sign, html body .product-card .byn-sign { color: inherit !important; fill: currentColor !important; }
+html body .banner-slide-cny .cny-subtitle .byn-sign { color: #fff !important; }
+
+/* ─── Общие компоненты нового дизайна (rd-*) ─── */
+.rd-screen { display: block; }
+.rd-h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; color: var(--rd-tx); }
+.rd-sub { margin: 8px 0 0; font-size: 14px; line-height: 1.45; color: var(--rd-tx2); }
+.rd-card { background: var(--rd-s1); border: 1px solid var(--rd-line); border-radius: var(--rd-r16); }
+.rd-chev { width: 22px; height: 22px; flex-shrink: 0; color: var(--rd-tx3); }
+.rd-badge {
+  display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 6px;
+  background: var(--rd-tint-2); color: var(--rd-b300); font-size: 11px; font-weight: 800; margin-left: 8px;
+}
+
+/* кнопки */
+.rd-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 48px; padding: 0 20px; border-radius: var(--rd-r12);
+  border: 0; background: var(--rd-blue); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.rd-btn svg { width: 20px; height: 20px; }
+.rd-btn-block { width: 100%; }
+.rd-btn-ghost { background: transparent; color: var(--rd-tx); border: 1px solid var(--rd-line-2); }
+.rd-btn:active { transform: scale(0.98); }
+
+/* способы расчёта */
+.rd-modes { display: flex; flex-direction: column; gap: 10px; margin: 20px 0 14px; }
+.rd-mode {
+  display: flex; align-items: center; gap: 14px; padding: 16px;
+  background: var(--rd-s1); border: 1px solid var(--rd-line); border-radius: var(--rd-r16);
+  cursor: pointer; transition: transform .15s ease, border-color .15s ease;
+}
+.rd-mode:active { transform: scale(0.985); }
+.rd-mode-main { border-color: #25497F; background: #0B1626; }
+.rd-mode-ico {
+  width: 48px; height: 48px; border-radius: 14px; flex-shrink: 0;
+  background: var(--rd-tint); color: var(--rd-b400);
+  display: flex; align-items: center; justify-content: center;
+}
+.rd-mode-ico svg { width: 24px; height: 24px; }
+.rd-mode-main .rd-mode-ico { background: var(--rd-blue); color: #fff; }
+.rd-mode-body { flex: 1; min-width: 0; display: block; }
+.rd-mode-title { display: flex; align-items: center; font-size: 16px; font-weight: 700; color: var(--rd-tx); }
+.rd-mode-text { display: block; margin-top: 3px; font-size: 13px; line-height: 1.4; color: var(--rd-tx2); }
+
+.rd-incl { margin-top: 20px; padding: 16px; }
+.rd-incl-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: var(--rd-tx); }
+.rd-incl-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; font-size: 13px; color: var(--rd-tx2); }
+.rd-incl-grid span { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.rd-incl-grid svg { width: 16px; height: 16px; color: var(--rd-ok); flex-shrink: 0; }
+
+/* список строк (каталоги, профиль и т.п.) */
+.rd-list { overflow: hidden; }
+.rd-row {
+  display: flex; align-items: center; gap: 14px; padding: 14px 16px; min-height: 72px;
+  cursor: pointer; color: var(--rd-tx); transition: background-color .15s ease;
+}
+.rd-row + .rd-row { border-top: 1px solid var(--rd-line); }
+.rd-row:active { background: var(--rd-tint); }
+.rd-ico {
+  width: 44px; height: 44px; border-radius: 13px; flex-shrink: 0;
+  background: var(--rd-tint); color: var(--rd-b400);
+  display: flex; align-items: center; justify-content: center;
+}
+.rd-ico svg { width: 22px; height: 22px; }
+.rd-row-body { flex: 1; min-width: 0; display: block; }
+.rd-row-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 700; color: var(--rd-tx); }
+.rd-row-text { display: block; margin-top: 2px; font-size: 13px; line-height: 1.4; color: var(--rd-tx2); }
+.rd-soon {
+  display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px; border-radius: 6px;
+  background: rgba(255, 194, 74, 0.13); color: var(--rd-warn); font-size: 11px; font-weight: 700;
+}
+.rd-soon svg { width: 11px; height: 11px; }

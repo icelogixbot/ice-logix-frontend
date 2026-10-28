@@ -8,7 +8,7 @@
     const i18n = {
       ru: {
         tab_home: 'Главная',
-        tab_calc: 'Калькулятор',
+        tab_calc: 'Расчёт',
         tab_order: 'Заказ',
         tab_catalogs: 'Каталоги',
         tab_profile: 'Профиль',
@@ -38,7 +38,7 @@
       },
       be: {
         tab_home: 'Галоўная',
-        tab_calc: 'Калькулятар',
+        tab_calc: 'Разлік',
         tab_order: 'Заказ',
         tab_catalogs: 'Каталогі',
         tab_profile: 'Профіль',
@@ -68,7 +68,7 @@
       },
       en: {
         tab_home: 'Home',
-        tab_calc: 'Calculator',
+        tab_calc: 'Estimate',
         tab_order: 'Order',
         tab_catalogs: 'Catalogs',
         tab_profile: 'Profile',
@@ -175,7 +175,7 @@
       const tabLabels = {
         home: t('tab_home', 'Главная'),
         catalogs: t('tab_catalogs', 'Каталог'),
-        calculator: t('tab_calc', 'Калькулятор'),
+        calculator: t('tab_calc', 'Расчёт'),
         cart: t('tab_cart', 'Корзина'),
         profile: t('tab_profile', 'Профиль')
       };

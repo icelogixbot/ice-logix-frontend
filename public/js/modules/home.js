@@ -295,15 +295,9 @@ async function renderHome() {
     
     <!-- Сегодняшние подборки товаров (автопарсинг из @icelogix_selection) -->
     <div class="mb-6">
-      <div class="flex justify-between items-center mb-3">
-        <h3 class="text-white font-bold text-sm flex items-center gap-1.5">
-          <span style="font-size: 18px;"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></span></span>
-          Сегодняшние подборки товаров
-        </h3>
-        <span class="text-[11px] font-bold text-cyan-400 bg-cyan-400/10 border border-cyan-400/20 px-2 py-0.5 rounded-full flex items-center gap-1">
-          <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-          9 дропов
-        </span>
+      <div class="rd-sec-h">
+        <h3>Подборки дня</h3>
+        <span class="rd-pill"><i></i>9 дропов</span>
       </div>
       <div class="grid grid-cols-2 gap-2" id="homeProductsGrid" style="margin-left: -6px; margin-right: -6px;">
         ${homeProductsList.map(p => {
