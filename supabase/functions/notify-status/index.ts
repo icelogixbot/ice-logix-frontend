@@ -33,7 +33,7 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      sbSecretKey() ?? ''
     )
     
     const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN')
@@ -118,3 +118,20 @@ serve(async (req) => {
     })
   }
 })
+
+// Ключи Supabase: новый формат (sb_secret_ / sb_publishable_), а если его нет, прежний (service_role / anon)
+function sbSecretKey(): string | undefined {
+  try {
+    const key = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}")["default"];
+    if (key) return key;
+  } catch { /* новой переменной нет, берём прежний ключ */ }
+  return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+}
+
+function sbPublishableKey(): string | undefined {
+  try {
+    const key = JSON.parse(Deno.env.get("SUPABASE_PUBLISHABLE_KEYS") ?? "{}")["default"];
+    if (key) return key;
+  } catch { /* новой переменной нет, берём прежний ключ */ }
+  return Deno.env.get("SUPABASE_ANON_KEY");
+}

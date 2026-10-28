@@ -2326,7 +2326,7 @@ let adminOrdersTotalPages = 1;
     window.legitResult = null;
 
     // Global key for Edge Function calls (Authorization header)
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZydndkYWdqcHR0dmZ2amFuYndxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NTc4MzgsImV4cCI6MjA5MTIzMzgzOH0.P9GQSW6NLN1BhR66PX-LP4ysZBXFeWIXRYIRvhRjo1c';
+    const SUPABASE_ANON_KEY = 'sb_publishable_Lg_XPmJiyjEfJ3HBZdridA_y6oozpr3';
 
     // ─── ФИНАЛЬНАЯ МОДАЛКА-ПРЕВЬЮ ПЕРЕД СОХРАНЕНИЕМ ───────────────────────────
     // Показывает: фото-кандидат (image confirmation), сравнение цены с рынком,
@@ -2525,7 +2525,7 @@ let adminOrdersTotalPages = 1;
 
         // Safe Supabase check
         const SUPABASE_URL = 'https://vrvwdagjpttvfvjanbwq.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZydndkYWdqcHR0dmZ2amFuYndxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NTc4MzgsImV4cCI6MjA5MTIzMzgzOH0.P9GQSW6NLN1BhR66PX-LP4ysZBXFeWIXRYIRvhRjo1c';
+        const SUPABASE_ANON_KEY = 'sb_publishable_Lg_XPmJiyjEfJ3HBZdridA_y6oozpr3';
         
         if (window.supabase) {
           supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

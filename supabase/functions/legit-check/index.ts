@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
 const OPENROUTER_VISION_MODEL = Deno.env.get("OPENROUTER_VISION_MODEL") || "google/gemini-2.0-flash-001";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+const SUPABASE_SERVICE_ROLE_KEY = sbSecretKey();
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -214,3 +214,20 @@ Return ONLY a JSON object with:
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
+
+// Ключи Supabase: новый формат (sb_secret_ / sb_publishable_), а если его нет, прежний (service_role / anon)
+function sbSecretKey(): string | undefined {
+  try {
+    const key = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}")["default"];
+    if (key) return key;
+  } catch { /* новой переменной нет, берём прежний ключ */ }
+  return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+}
+
+function sbPublishableKey(): string | undefined {
+  try {
+    const key = JSON.parse(Deno.env.get("SUPABASE_PUBLISHABLE_KEYS") ?? "{}")["default"];
+    if (key) return key;
+  } catch { /* новой переменной нет, берём прежний ключ */ }
+  return Deno.env.get("SUPABASE_ANON_KEY");
+}

@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_KEY = sbSecretKey()!;
 const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY") || "";
 const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY") || "";
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || "";
@@ -1662,3 +1662,20 @@ Return ONLY a JSON object:
     );
   }
 });
+
+// Ключи Supabase: новый формат (sb_secret_ / sb_publishable_), а если его нет, прежний (service_role / anon)
+function sbSecretKey(): string | undefined {
+  try {
+    const key = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}")["default"];
+    if (key) return key;
+  } catch { /* новой переменной нет, берём прежний ключ */ }
+  return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+}
+
+function sbPublishableKey(): string | undefined {
+  try {
+    const key = JSON.parse(Deno.env.get("SUPABASE_PUBLISHABLE_KEYS") ?? "{}")["default"];
+    if (key) return key;
+  } catch { /* новой переменной нет, берём прежний ключ */ }
+  return Deno.env.get("SUPABASE_ANON_KEY");
+}

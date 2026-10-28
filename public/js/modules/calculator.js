@@ -95,7 +95,8 @@
           const xhr = new XMLHttpRequest();
           xhr.open('POST', 'https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/search-by-image');
           xhr.setRequestHeader('Content-Type', 'application/json');
-          xhr.setRequestHeader('Authorization', 'Bearer ' + authToken);
+          // Публичный ключ sb_publishable_ нельзя слать как Bearer: Bearer только для JWT сессии пользователя
+          if (authToken.startsWith('eyJ')) xhr.setRequestHeader('Authorization', 'Bearer ' + authToken);
           xhr.setRequestHeader('apikey', SUPABASE_ANON_KEY);
           xhr.timeout = 120000;
           xhr.onload = () => {

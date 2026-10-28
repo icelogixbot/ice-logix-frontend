@@ -71,7 +71,7 @@ serve(async (req) => {
   
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseServiceKey = sbSecretKey()!;
     const botToken = Deno.env.get('BOT_TOKEN');
     if (!botToken) throw new Error("BOT_TOKEN is not configured on the server");
     
@@ -163,7 +163,7 @@ serve(async (req) => {
         }
       } else {
         if (!password) throw new Error("Требуется ввести пароль для подтверждения");
-        const authClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY') || supabaseServiceKey);
+        const authClient = createClient(supabaseUrl, sbPublishableKey() || supabaseServiceKey);
         const signInRes = await authClient.auth.signInWithPassword({ email: user.email!, password });
         if (signInRes.error) {
           throw new Error("Неверный пароль. Подтверждение отклонено.");
@@ -219,7 +219,7 @@ serve(async (req) => {
     const email = `tg_${user.id}@icelogix.by`;
     const passwordRaw = `tg_${user.id}_${botToken.substring(0, 15)}`;
     
-    const authClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY') || supabaseServiceKey);
+    const authClient = createClient(supabaseUrl, sbPublishableKey() || supabaseServiceKey);
     
     let sessionRes = await authClient.auth.signInWithPassword({ email, password: passwordRaw });
     
@@ -294,3 +294,20 @@ serve(async (req) => {
     });
   }
 });
+
+// Ключи Supabase: новый формат (sb_secret_ / sb_publishable_), а если его нет, прежний (service_role / anon)
+function sbSecretKey(): string | undefined {
+  try {
+    const key = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}")["default"];
+    if (key) return key;
+  } catch { /* новой переменной нет, берём прежний ключ */ }
+  return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+}
+
+function sbPublishableKey(): string | undefined {
+  try {
+    const key = JSON.parse(Deno.env.get("SUPABASE_PUBLISHABLE_KEYS") ?? "{}")["default"];
+    if (key) return key;
+  } catch { /* новой переменной нет, берём прежний ключ */ }
+  return Deno.env.get("SUPABASE_ANON_KEY");
+}

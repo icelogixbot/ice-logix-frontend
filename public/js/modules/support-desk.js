@@ -12,7 +12,7 @@
   const BOT_TOKEN = '8631939179:AAFpMXFgp1JXv084ImFvTkjzlt2CplKar9Q';
   const SUPABASE_URL = 'https://vrvwdagjpttvfvjanbwq.supabase.co';
   const SUPABASE_ANON_KEY =
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZydndkYWdqcHR0dmZ2amFuYndxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NTc4MzgsImV4cCI6MjA5MTIzMzgzOH0.P9GQSW6NLN1BhR66PX-LP4ysZBXFeWIXRYIRvhRjo1c';
+    'sb_publishable_Lg_XPmJiyjEfJ3HBZdridA_y6oozpr3';
 
   let supabaseClient = null;
   let currentUser = null;
