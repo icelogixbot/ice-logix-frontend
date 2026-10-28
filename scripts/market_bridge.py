@@ -70,9 +70,32 @@ PARSED_UPLOADS_DIR = os.path.join(FRONTEND_PUBLIC_DIR, "uploads", "parsed")
 os.makedirs(PARSED_UPLOADS_DIR, exist_ok=True)
 
 SUPABASE_URL = "https://vrvwdagjpttvfvjanbwq.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZydndkYWdqcHR0dmZ2amFuYndxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTY1NzgzOCwiZXhwIjoyMDkxMjMzODM4fQ.wbxnzmz2aRGrN1Ol9Vo1752MMaHwggohrUIlbjm6U6M"
+
+
+def _load_supabase_secret_key():
+    """Секретный ключ Supabase берётся из переменной окружения или из .env рядом с проектом. В код его не зашиваем."""
+    key = os.environ.get("SUPABASE_SECRET_KEY")
+    if key:
+        return key
+    here = os.path.dirname(os.path.abspath(__file__))
+    roots = [here, os.path.dirname(here), os.path.dirname(os.path.dirname(here))]
+    for root in roots:
+        for env_path in (os.path.join(root, ".env"), os.path.join(root, "ICE LOGIX BOT", ".env")):
+            if not os.path.isfile(env_path):
+                continue
+            with open(env_path, encoding="utf-8-sig") as f:
+                for line in f:
+                    name, _, value = line.strip().partition("=")
+                    if name.strip() == "SUPABASE_SECRET_KEY" and value.strip():
+                        return value.strip().strip("'\"")
+    return None
+
+
+SUPABASE_KEY = _load_supabase_secret_key()
 
 try:
+    if not SUPABASE_KEY:
+        raise RuntimeError("не найден SUPABASE_SECRET_KEY (переменная окружения или .env)")
     supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
 except Exception as e:
     print("Supabase client init error:", e)
