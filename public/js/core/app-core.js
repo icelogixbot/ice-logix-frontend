@@ -1652,7 +1652,7 @@
             <canvas id="fortuneWheelCanvas" width="300" height="300" class="w-[300px] h-[300px]"></canvas>
           </div>
 
-          <button id="startFortuneSpinBtn" class="btn-primary w-full max-w-sm py-4 rounded-2xl font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg" style="background: linear-gradient(135deg, var(--ice-primary), #8B5CF6); border: none;">
+          <button id="startFortuneSpinBtn" class="btn-primary w-full max-w-sm py-4 rounded-2xl font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg" style="background: linear-gradient(135deg, var(--ice-primary), #4DA3FF); border: none;">
             🔮 ЗАПУСТИТЬ КОЛЕСО!
           </button>
         </div>
@@ -2690,11 +2690,11 @@ let adminOrdersTotalPages = 1;
             loginBtn.style.fontSize = '13px';
             loginBtn.style.fontWeight = '700';
             loginBtn.style.borderRadius = '14px';
-            loginBtn.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.2), rgba(139,92,246,0.15))';
-            loginBtn.style.border = '1px solid rgba(6,182,212,0.4)';
-            loginBtn.style.color = '#22d3ee';
+            loginBtn.style.background = 'linear-gradient(135deg, rgba(77, 163, 255,0.2), rgba(77, 163, 255,0.15))';
+            loginBtn.style.border = '1px solid rgba(77, 163, 255,0.4)';
+            loginBtn.style.color = '#4DA3FF';
             loginBtn.style.whiteSpace = 'nowrap';
-            loginBtn.style.boxShadow = '0 2px 12px rgba(6,182,212,0.25)';
+            loginBtn.style.boxShadow = '0 2px 12px rgba(77, 163, 255,0.25)';
             loginBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>Войти/Зарегистрироваться';
           } else {
             if (headerRight) {
@@ -3099,7 +3099,7 @@ let adminOrdersTotalPages = 1;
           <p style="color:rgba(255,255,255,0.9);font-size:13px;font-weight:600;margin-bottom:4px"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></span> Не удалось автоматически распознать товар</p>
           <p style="color:rgba(255,255,255,0.55);font-size:12px;margin-bottom:10px">${hint}</p>
           <div class="screenshot-actions">
-            <button id="swUploadBtn" style="background:#3b82f6;color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span> Загрузить скриншот</button>
+            <button id="swUploadBtn" style="background:#2F86F5;color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#2F86F5'"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span> Загрузить скриншот</button>
             <button id="swManualBtn" style="background:rgba(255,255,255,0.12);color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.12)'"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span> Ввести вручную</button>
           </div>
           <div id="swUploadZone" style="display:none;margin-top:12px">
@@ -3111,7 +3111,7 @@ let adminOrdersTotalPages = 1;
             </div>
             <img id="swPreview" class="screenshot-preview" style="display:none" alt="preview">
             <div id="swRecognizeWrap" style="display:none;text-align:center;margin-top:10px">
-              <button id="swRecognizeBtn" style="background:#06b6d4;color:#fff;border:none;border-radius:10px;padding:9px 22px;font-size:13px;font-weight:600;cursor:pointer"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Распознать товар</button>
+              <button id="swRecognizeBtn" style="background:#2F86F5;color:#fff;border:none;border-radius:10px;padding:9px 22px;font-size:13px;font-weight:600;cursor:pointer"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Распознать товар</button>
             </div>
             <div id="swStatus" style="display:none;font-size:12px;text-align:center;margin-top:8px"></div>
           </div>
@@ -3671,7 +3671,7 @@ let adminOrdersTotalPages = 1;
         const fallbackSlides = [
           {
             id: 'promo-sale',
-            bg: 'linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #f43f5e 100%)',
+            bg: 'linear-gradient(135deg, #4DA3FF 0%, #4DA3FF 50%, #f43f5e 100%)',
             badge: 'ДО 70% ВЫГОДЫ',
             title: 'БОЛЬШАЯ РАСПРОДАЖА',
             subtitle: 'Оригинальные кроссовки и одежда из Poizon, Taobao & 1688',
@@ -3730,7 +3730,7 @@ let adminOrdersTotalPages = 1;
                     1 ¥ ≈ <span class="cny-rate-val">${s.cnyRate}</span> <span class="cny-rate-curr">${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</span>
                   </div>
                   <p class="banner-subtitle cny-subtitle">
-                    Честный курс без наценок • 100 ¥ ≈ <strong style="color: #67e8f9;">${s.cny100} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</strong>
+                    Честный курс без наценок • 100 ¥ ≈ <strong style="color: #8CC6FF;">${s.cny100} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</strong>
                   </p>
                   <div class="cny-footer-row">
                     <span class="banner-btn cny-btn">

@@ -236,13 +236,13 @@
           return `
             <div class="glass-card flex flex-col justify-between p-3.5 relative overflow-hidden transition-all duration-300 hover:border-cyan-500/40" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
               ${item.badge ? `
-                <div class="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full text-[10px] font-black tracking-wide" style="background: linear-gradient(135deg, rgba(6,182,212,0.3), rgba(59,130,246,0.3)); border: 1px solid rgba(6,182,212,0.5); color: #67e8f9;">
+                <div class="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full text-[10px] font-black tracking-wide" style="background: linear-gradient(135deg, rgba(77, 163, 255,0.3), rgba(77, 163, 255,0.3)); border: 1px solid rgba(77, 163, 255,0.5); color: #8CC6FF;">
                   ${item.badge}
                 </div>
               ` : ''}
               
               <div class="flex items-start gap-3 mb-3">
-                <div class="w-14 h-14 rounded-xl flex items-center justify-center shrink-0 p-2" style="background: linear-gradient(135deg, rgba(6,182,212,0.15), rgba(14,165,233,0.05)); border: 1px solid rgba(6,182,212,0.2);">
+                <div class="w-14 h-14 rounded-xl flex items-center justify-center shrink-0 p-2" style="background: linear-gradient(135deg, rgba(77, 163, 255,0.15), rgba(77, 163, 255,0.05)); border: 1px solid rgba(77, 163, 255,0.2);">
                   ${renderRewardIcon(item)}
                 </div>
                 <div class="flex-1 min-w-0 pr-12">
@@ -265,7 +265,7 @@
                     isOutOfStock 
                       ? 'bg-white/10 text-white/30 cursor-not-allowed'
                       : canAfford 
-                        ? 'btn-primary shadow-[0_0_12px_rgba(6,182,212,0.4)]' 
+                        ? 'btn-primary shadow-[0_0_12px_rgba(77, 163, 255,0.4)]' 
                         : 'bg-white/10 text-white/50 hover:bg-white/15'
                   }"
                   data-item-id="${item.id}"
@@ -293,7 +293,7 @@
       </div>
 
       <!-- Главный баннер магазина бонусов -->
-      <div class="relative overflow-hidden p-4 mb-4 rounded-2xl" style="background: linear-gradient(135deg, rgba(6,182,212,0.18), rgba(59,130,246,0.12)); border: 1px solid rgba(6,182,212,0.35);">
+      <div class="relative overflow-hidden p-4 mb-4 rounded-2xl" style="background: linear-gradient(135deg, rgba(77, 163, 255,0.18), rgba(77, 163, 255,0.12)); border: 1px solid rgba(77, 163, 255,0.35);">
         <div class="flex items-center justify-between mb-3">
           <div>
             <div class="flex items-center gap-1.5">
@@ -328,7 +328,7 @@
           <button 
             class="bonus-category-chip px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 flex items-center gap-1.5 ${
               currentCategory === c.id 
-                ? 'bg-cyan-500 text-black shadow-[0_0_12px_rgba(6,182,212,0.4)]' 
+                ? 'bg-cyan-500 text-black shadow-[0_0_12px_rgba(77, 163, 255,0.4)]' 
                 : 'bg-white/5 text-white/70 hover:bg-white/10 border border-white/5'
             }"
             data-category="${c.id}"
@@ -400,7 +400,7 @@
             </div>
 
             <div class="pt-2">
-              <button type="submit" id="submitBonusRedeemBtn" class="btn-primary w-full py-2.5 rounded-xl font-bold text-sm shadow-[0_0_15px_rgba(6,182,212,0.4)]">
+              <button type="submit" id="submitBonusRedeemBtn" class="btn-primary w-full py-2.5 rounded-xl font-bold text-sm shadow-[0_0_15px_rgba(77, 163, 255,0.4)]">
                 Подтвердить обмен
               </button>
             </div>

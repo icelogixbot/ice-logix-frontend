@@ -278,15 +278,15 @@ window.applySmartShareLink = applySmartShareLink;
               transition: all 0.2s ease-in-out;
             }
             .order-mode-card:hover {
-              border-color: rgba(6, 182, 212, 0.4) !important;
+              border-color: rgba(77, 163, 255, 0.4) !important;
               transform: translateY(-2px) scale(1.01);
-              box-shadow: 0 4px 20px -2px rgba(6, 182, 212, 0.15);
+              box-shadow: 0 4px 20px -2px rgba(77, 163, 255, 0.15);
             }
             .order-mode-card:active {
               transform: scale(0.97) !important;
-              background-color: rgba(6, 182, 212, 0.08) !important;
-              border-color: rgba(6, 182, 212, 0.7) !important;
-              box-shadow: 0 0 10px rgba(6, 182, 212, 0.3);
+              background-color: rgba(77, 163, 255, 0.08) !important;
+              border-color: rgba(77, 163, 255, 0.7) !important;
+              box-shadow: 0 0 10px rgba(77, 163, 255, 0.3);
             }
           </style>
 
@@ -302,7 +302,7 @@ window.applySmartShareLink = applySmartShareLink;
 
             <div class="glass-card p-5 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
               <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
-              <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
+              <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #4DA3FF;"></div>
 
               <h2 class="text-xl font-extrabold text-white text-center mb-1">Добавление товара к заказу</h2>
               <p class="text-white/60 text-xs text-center mb-5">Выберите способ добавления товара</p>
@@ -420,7 +420,7 @@ window.applySmartShareLink = applySmartShareLink;
 
             <div class="glass-card p-5 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
               <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
-              <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #a855f7;"></div>
+              <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #4DA3FF;"></div>
 
               <!-- Mode Indicator -->
               <div class="flex justify-between items-center bg-white/5 p-3 rounded-2xl border border-white/5 mb-4">
@@ -2857,7 +2857,7 @@ async function renderMyOrders() {
                   const isCurrent = isPassed && (sIdx === getStatusSteps(order.status).length - 1 || !getStatusSteps(order.status)[sIdx+1].active.includes(order.status));
                   return `
                     <div class="relative flex items-center gap-3">
-                      <div class="w-3 h-3 rounded-full z-10 transition-all duration-500 ${isCurrent ? 'bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)] scale-125' : isPassed ? 'bg-cyan-500/50' : 'bg-white/20'}" style="margin-left: -4px;"></div>
+                      <div class="w-3 h-3 rounded-full z-10 transition-all duration-500 ${isCurrent ? 'bg-cyan-400 shadow-[0_0_10px_rgba(77, 163, 255,0.8)] scale-125' : isPassed ? 'bg-cyan-500/50' : 'bg-white/20'}" style="margin-left: -4px;"></div>
                       <span class="text-xs ${isCurrent ? 'text-cyan-400 font-bold' : isPassed ? 'text-white/80' : 'text-white/30'}">${step.label}</span>
                     </div>
                   `;

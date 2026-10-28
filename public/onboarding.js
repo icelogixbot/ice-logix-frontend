@@ -37,7 +37,7 @@
   .ice-story-frame { 
     max-height: 90vh; 
     border-radius: 32px; 
-    box-shadow: 0 25px 80px rgba(0,0,0,0.6), 0 0 80px rgba(91,191,235,0.15);
+    box-shadow: 0 25px 80px rgba(0,0,0,0.6), 0 0 80px rgba(77, 163, 255,0.15);
     border: 1px solid rgba(255,255,255,0.1);
   }
 }
@@ -51,10 +51,10 @@
 }
 .ice-progress-fill {
   height: 100%; width: 0; 
-  background: linear-gradient(90deg, #5BBFEB, #2E9ED4);
+  background: linear-gradient(90deg, #4DA3FF, #2E9ED4);
   border-radius: 4px;
   transition: width 0.1s linear;
-  box-shadow: 0 0 8px rgba(91,191,235,0.5);
+  box-shadow: 0 0 8px rgba(77, 163, 255,0.5);
 }
 .ice-progress-fill.complete { width: 100% !important; }
 .ice-close-btn {
@@ -179,17 +179,17 @@
 }
 .ice-btn-primary {
   width: 100%; padding: 16px 24px;
-  background: linear-gradient(135deg, #5BBFEB 0%, #2E9ED4 100%);
+  background: linear-gradient(135deg, #4DA3FF 0%, #2E9ED4 100%);
   color: white;
   border: none; border-radius: 18px;
   font-size: 16px; font-weight: 700;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 4px 20px rgba(91,191,235,0.4);
+  box-shadow: 0 4px 20px rgba(77, 163, 255,0.4);
 }
 .ice-btn-primary:hover { 
   transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 6px 30px rgba(91,191,235,0.5);
+  box-shadow: 0 6px 30px rgba(77, 163, 255,0.5);
 }
 .ice-btn-primary:active { transform: scale(0.98); }
 .ice-btn-secondary {
@@ -317,7 +317,7 @@
       emoji: '🚀',
       title: 'Готовы начать?',
       subtitle: 'Создайте первый заказ прямо сейчас',
-      bg: 'linear-gradient(165deg, #0A1628 0%, #1A7BB5 60%, #5BBFEB 100%)',
+      bg: 'linear-gradient(165deg, #0A1628 0%, #1A7BB5 60%, #4DA3FF 100%)',
       list: [
         '⚡ Регистрация за 30 секунд',
         '🎁 Приветственный бонус: <b>15 ICE</b>',

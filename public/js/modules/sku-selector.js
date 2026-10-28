@@ -220,7 +220,7 @@
           
           return `
             <button type="button" 
-              class="sku-chip sku-visual-chip w-full min-h-[52px] flex items-center gap-2.5 p-2 rounded-2xl text-xs font-semibold border transition-all duration-200 cursor-pointer text-left ${isSel ? 'active-chip bg-gradient-to-r from-cyan-500/25 to-blue-500/25 border-cyan-400 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.35)]' : 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10'}" 
+              class="sku-chip sku-visual-chip w-full min-h-[52px] flex items-center gap-2.5 p-2 rounded-2xl text-xs font-semibold border transition-all duration-200 cursor-pointer text-left ${isSel ? 'active-chip bg-gradient-to-r from-cyan-500/25 to-blue-500/25 border-cyan-400 text-cyan-300 shadow-[0_0_12px_rgba(77, 163, 255,0.35)]' : 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10'}" 
               data-group-id="${grp.id}"
               data-opt-idx="${optIdx}"
               data-bounds="${opt.bounds || ''}"
@@ -239,7 +239,7 @@
           const formattedLabel = isSizeGroup ? formatStandardSize(opt.name_ru || opt.name) : (opt.name_ru || opt.name);
           return `
             <button type="button" 
-              class="sku-chip sku-spec-chip h-10 w-full flex items-center justify-center rounded-xl text-xs font-bold font-mono border transition-all duration-200 cursor-pointer text-center ${isDis ? 'opacity-30 pointer-events-none cursor-not-allowed line-through border-white/5 bg-white/[0.02] text-white/30' : isSel ? 'active-chip bg-gradient-to-r from-cyan-500/25 to-blue-500/25 border-cyan-400 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.35)]' : 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10'}" 
+              class="sku-chip sku-spec-chip h-10 w-full flex items-center justify-center rounded-xl text-xs font-bold font-mono border transition-all duration-200 cursor-pointer text-center ${isDis ? 'opacity-30 pointer-events-none cursor-not-allowed line-through border-white/5 bg-white/[0.02] text-white/30' : isSel ? 'active-chip bg-gradient-to-r from-cyan-500/25 to-blue-500/25 border-cyan-400 text-cyan-300 shadow-[0_0_12px_rgba(77, 163, 255,0.35)]' : 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10'}" 
               data-group-id="${grp.id}"
               data-opt-idx="${optIdx}"
               data-bounds="${opt.bounds || ''}"
@@ -296,7 +296,7 @@
         <!-- FIXED HERO HEADER (Always pinned and visible!) -->
         <div class="p-3.5 flex-shrink-0 bg-[#0c1322]/95 border-b border-white/10 backdrop-blur-md">
           <div class="flex gap-3.5 items-center">
-            <div class="relative w-24 h-24 rounded-2xl overflow-hidden border border-cyan-500/30 flex-shrink-0 bg-black/40 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+            <div class="relative w-24 h-24 rounded-2xl overflow-hidden border border-cyan-500/30 flex-shrink-0 bg-black/40 shadow-[0_0_15px_rgba(77, 163, 255,0.2)]">
               <img id="skuModalImg" src="${currentImgUrl}" alt="Product" class="w-full h-full object-cover transition-opacity duration-200">
               <div id="skuImgLoader" class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity">
                 <span class="ix animate-spin text-cyan-400 text-lg">⏳</span>
@@ -362,7 +362,7 @@
 
         <!-- Sticky Footer Action -->
         <div class="p-4 border-t border-white/10 bg-[#0a101c]/95 backdrop-blur-md flex-shrink-0 flex flex-col gap-2">
-          <button type="button" id="skuApplyBtn" class="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 font-black text-sm text-white shadow-[0_4px_25px_rgba(6,182,212,0.4)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer">
+          <button type="button" id="skuApplyBtn" class="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 font-black text-sm text-white shadow-[0_4px_25px_rgba(77, 163, 255,0.4)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer">
             <span>✨</span> Выбрать этот вариант (1 шт. • ¥${currentPriceCny})
           </button>
         </div>
@@ -449,7 +449,7 @@
         const isDis = disabledList.some(d => (raw && raw.includes(d)) || (d && d.includes(raw)) || (ru && ru.includes(d)));
         if (isDis) {
           chip.classList.add('opacity-30', 'pointer-events-none', 'cursor-not-allowed', 'line-through', 'border-white/5', 'bg-white/[0.02]', 'text-white/30');
-          chip.classList.remove('active-chip', 'bg-gradient-to-r', 'from-cyan-500/25', 'to-blue-500/25', 'border-cyan-400', 'text-cyan-300', 'shadow-[0_0_12px_rgba(6,182,212,0.35)]');
+          chip.classList.remove('active-chip', 'bg-gradient-to-r', 'from-cyan-500/25', 'to-blue-500/25', 'border-cyan-400', 'text-cyan-300', 'shadow-[0_0_12px_rgba(77, 163, 255,0.35)]');
           if (chip.classList.contains('active-chip')) {
             currentSelectedSizeDisabled = true;
           }
@@ -658,13 +658,13 @@
         // Visual toggle in this group
         const groupChips = overlay.querySelectorAll(`.sku-chip[data-group-id="${groupId}"]`);
         groupChips.forEach(b => {
-          b.classList.remove('active-chip', 'bg-gradient-to-r', 'from-cyan-500/25', 'to-blue-500/25', 'border-cyan-400', 'text-cyan-300', 'shadow-[0_0_12px_rgba(6,182,212,0.35)]');
+          b.classList.remove('active-chip', 'bg-gradient-to-r', 'from-cyan-500/25', 'to-blue-500/25', 'border-cyan-400', 'text-cyan-300', 'shadow-[0_0_12px_rgba(77, 163, 255,0.35)]');
           if (b.dataset.disabled !== 'true') {
             b.classList.add('border-white/10', 'bg-white/5', 'text-white/80');
           }
         });
         btn.classList.remove('border-white/10', 'bg-white/5', 'text-white/80');
-        btn.classList.add('active-chip', 'bg-gradient-to-r', 'from-cyan-500/25', 'to-blue-500/25', 'border-cyan-400', 'text-cyan-300', 'shadow-[0_0_12px_rgba(6,182,212,0.35)]');
+        btn.classList.add('active-chip', 'bg-gradient-to-r', 'from-cyan-500/25', 'to-blue-500/25', 'border-cyan-400', 'text-cyan-300', 'shadow-[0_0_12px_rgba(77, 163, 255,0.35)]');
 
         // Update group label
         const grpLabel = overlay.querySelector(`#skuSelectedLabel_${groupId}`);

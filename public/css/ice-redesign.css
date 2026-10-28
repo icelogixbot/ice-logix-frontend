@@ -387,3 +387,175 @@ html body .banner-slide-cny .cny-subtitle .byn-sign { color: #fff !important; }
   background: rgba(255, 194, 74, 0.13); color: var(--rd-warn); font-size: 11px; font-weight: 700;
 }
 .rd-soon svg { width: 11px; height: 11px; }
+
+/* ═══ Старые общие компоненты: приводим к новому дизайну ═══ */
+
+/* карточки */
+html body .glass-card, html body .review-card, html body .course-card, html body .rate-tracker-card {
+  background: var(--rd-s1) !important;
+  border: 1px solid var(--rd-line) !important;
+  border-radius: var(--rd-r16) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+}
+html body .glass-card { padding: 16px !important; }
+
+/* кнопки */
+html body .btn-primary, html body .buyNowBtn, html body .filter-chip.active, html body .wb-empty-btn, html body .wb-checkout-cta.active {
+  background: var(--rd-blue) !important; color: #fff !important;
+  border: 0 !important; border-radius: var(--rd-r12) !important; box-shadow: none !important;
+  font-weight: 700 !important; text-shadow: none !important;
+}
+html body .btn-primary:hover, html body .buyNowBtn:hover { transform: none !important; box-shadow: none !important; background: var(--rd-blue-hi) !important; }
+html body .btn-secondary, html body .filter-chip {
+  background: transparent !important; color: var(--rd-tx) !important;
+  border: 1px solid var(--rd-line-2) !important; border-radius: var(--rd-r12) !important; box-shadow: none !important;
+  font-weight: 600 !important;
+}
+html body .filter-chip { border-radius: 999px !important; }
+html body .filter-chip.active { border-radius: 999px !important; }
+
+/* кнопка «Назад» */
+html body .global-back-btn {
+  background: var(--rd-s2) !important; color: var(--rd-tx) !important;
+  border: 1px solid var(--rd-line) !important; border-radius: var(--rd-r12) !important;
+  box-shadow: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+}
+
+/* поля ввода */
+html body input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="hidden"]),
+html body textarea, html body select {
+  background: var(--rd-s2); color: var(--rd-tx);
+  border: 1px solid var(--rd-line-2); border-radius: var(--rd-r12);
+  font-family: inherit;
+}
+html body input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="hidden"]):focus,
+html body textarea:focus, html body select:focus {
+  outline: none; border-color: var(--rd-b400) !important; box-shadow: 0 0 0 3px var(--rd-tint);
+}
+html body ::placeholder { color: var(--rd-tx3); opacity: 1; }
+
+/* окна на весь экран и шторки */
+html body .full-screen-modal-overlay { background: var(--rd-bg) !important; }
+html body .full-screen-modal-header {
+  background: var(--rd-glass-bg) !important;
+  border-bottom: 1px solid var(--rd-glass-line) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important; -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+}
+html body .glass-modal-overlay { background: rgba(3, 6, 10, 0.66) !important; }
+html body .glass-modal {
+  background: var(--rd-s1) !important;
+  border: 1px solid var(--rd-line-2) !important;
+  border-radius: var(--rd-r22) !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+}
+
+/* карточки с белой подложкой в разметке на Tailwind */
+html body .bg-white\/5 { background-color: rgba(255, 255, 255, 0.04) !important; }
+html body .rounded-3xl { border-radius: var(--rd-r22) !important; }
+html body .rounded-2xl { border-radius: var(--rd-r16) !important; }
+
+/* цифры в ценах: тот же шрифт, ровные цифры */
+html body .font-mono { font-family: var(--rd-font) !important; font-variant-numeric: tabular-nums; }
+
+/* значок рубля внутри текста: цвет текста, а не неон */
+html body .byn-cyan, html body .byn-sign.byn-cyan { color: inherit; }
+
+/* корзина (cart.css): новый вид */
+html body .wb-cart-title { font-size: 26px !important; font-weight: 800 !important; letter-spacing: -0.02em; }
+html body .wb-cart-card {
+  background: var(--rd-s1) !important; border: 1px solid var(--rd-line) !important;
+  border-radius: var(--rd-r16) !important; box-shadow: none !important;
+}
+html body .wb-current-price { color: var(--rd-tx) !important; font-size: 17px !important; }
+html body .wb-buy-item-btn {
+  background: var(--rd-tint) !important; color: var(--rd-b300) !important;
+  border: 0 !important; border-radius: 10px !important; box-shadow: none !important; font-weight: 700 !important;
+}
+html body .wb-stepper { background: var(--rd-s2) !important; border: 1px solid var(--rd-line) !important; border-radius: 10px !important; }
+html body .wb-checkbox { accent-color: var(--rd-blue); }
+html body #wbStickyDock, html body .wb-sticky-dock {
+  background: var(--rd-glass-bg) !important; border: 1px solid var(--rd-glass-line) !important;
+  border-radius: var(--rd-r22) !important; box-shadow: var(--rd-glass-shadow) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important; -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+}
+html body .wb-checkout-cta { border-radius: var(--rd-r12) !important; }
+
+/* ─── Профиль: строки меню с иконками одного цвета ─── */
+html body #kycVerificationBtn > div:first-child, html body #financesBtn > div:first-child, html body #historyQuickBtn > div:first-child,
+html body #wishlistBtn > div:first-child, html body #referralBtn > div:first-child, html body #bonusShopBtn > div:first-child,
+html body #dropshipperProfileBtn > div:first-child, html body #aboutServiceBtn > div:first-child, html body #adminPanelBtn > div:first-child {
+  background: var(--rd-tint) !important; border: 0 !important; color: var(--rd-b400) !important; border-radius: 12px !important;
+}
+html body #referralBtn span.rounded-full, html body #wishlistBadge { background: var(--rd-tint-2) !important; color: var(--rd-b300) !important; border: 0 !important; }
+html body #profileAvatar { background: var(--rd-s2) !important; }
+html body #changeAvatarBtn { background: var(--rd-blue) !important; border-color: var(--rd-bg) !important; }
+html body #kycVerificationBtn > div:first-child svg, html body #bonusShopBtn > div:first-child svg, html body #adminPanelBtn > div:first-child svg { width: 20px; height: 20px; }
+
+/* ─── Шапки подэкранов: заголовок не ломается из-за кнопки справа ─── */
+html body .full-screen-modal-header h2, html body .full-screen-modal-header h3 { letter-spacing: -0.01em; }
+
+/* ═══ Готовые компоненты для НОВЫХ экранов (описаны в скилле ice-design-system) ═══ */
+
+/* кнопки: размеры и варианты */
+.rd-btn-sm { height: 36px; padding: 0 14px; font-size: 13px; border-radius: 10px; }
+.rd-btn-tonal { background: var(--rd-tint); color: var(--rd-b300); }
+.rd-btn-light { background: #fff; color: #0A1E3F; }
+.rd-btn:disabled, .rd-btn[disabled] { opacity: 0.45; pointer-events: none; }
+
+/* чипы-фильтры */
+.rd-chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; }
+.rd-chips::-webkit-scrollbar { display: none; }
+.rd-chip {
+  flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px;
+  background: transparent; color: var(--rd-tx2); border: 1px solid var(--rd-line-2);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.rd-chip.on { background: var(--rd-tint-2); color: var(--rd-b300); border-color: transparent; font-weight: 700; }
+
+/* поле ввода */
+.rd-field {
+  display: flex; align-items: center; gap: 10px; min-height: 50px; padding: 0 14px;
+  background: var(--rd-s2); border: 1px solid var(--rd-line-2); border-radius: 14px; color: var(--rd-tx3);
+}
+.rd-field input, .rd-field textarea { flex: 1; min-width: 0; background: transparent !important; border: 0 !important; box-shadow: none !important; color: var(--rd-tx); font-size: 15px; padding: 12px 0; }
+.rd-field svg { width: 20px; height: 20px; color: var(--rd-b400); flex-shrink: 0; }
+.rd-label { display: block; margin: 0 0 6px; font-size: 13px; font-weight: 600; color: var(--rd-tx2); }
+
+/* пустое состояние */
+.rd-empty { text-align: center; padding: 40px 24px; }
+.rd-empty-ico { width: 64px; height: 64px; margin: 0 auto 16px; border-radius: 20px; background: var(--rd-tint); color: var(--rd-b400); display: flex; align-items: center; justify-content: center; }
+.rd-empty-ico svg { width: 30px; height: 30px; }
+.rd-empty-title { font-size: 18px; font-weight: 800; color: var(--rd-tx); }
+.rd-empty-text { margin: 6px auto 18px; max-width: 280px; font-size: 14px; line-height: 1.45; color: var(--rd-tx2); }
+
+/* цена и заголовок раздела */
+.rd-price { font-size: 18px; font-weight: 800; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; color: var(--rd-tx); }
+.rd-price-big { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.rd-price .byn-sign, .rd-price-big .byn-sign { height: 0.82em; width: auto; margin-left: 0.18em; vertical-align: -0.06em; }
+.rd-section { display: flex; align-items: center; justify-content: space-between; margin: 26px 0 12px; }
+.rd-section h2 { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.01em; color: var(--rd-tx); }
+.rd-link { color: var(--rd-b400); font-weight: 600; font-size: 13px; background: none; border: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; padding: 0; }
+
+/* статус-метки */
+.rd-status { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 999px; font-size: 12px; font-weight: 700; background: var(--rd-tint); color: var(--rd-b300); }
+.rd-status.ok { background: rgba(61, 214, 140, 0.13); color: var(--rd-ok); }
+.rd-status.warn { background: rgba(255, 194, 74, 0.13); color: var(--rd-warn); }
+.rd-status.bad { background: rgba(255, 107, 122, 0.13); color: var(--rd-bad); }
+
+/* плавающая панель главного действия над нижним меню */
+.rd-cta {
+  position: fixed; left: 12px; right: 12px; bottom: 90px; z-index: 95;
+  padding: 10px; border-radius: var(--rd-r22);
+  background: var(--rd-glass-bg); border: 1px solid var(--rd-glass-line); box-shadow: var(--rd-glass-shadow);
+  -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
+  display: flex; align-items: center; gap: 12px;
+}
+
+/* кнопки-градиенты старых экранов (жёлтый/оранжевый) → обычная синяя главная кнопка */
+html body button[class*="from-amber-"], html body button[class*="from-yellow-"], html body button[class*="from-orange-"],
+html body a[class*="from-amber-"], html body a[class*="from-yellow-"], html body a[class*="from-orange-"] {
+  background-image: none !important; background-color: var(--rd-blue) !important; color: #fff !important;
+  border: 0 !important; box-shadow: none !important; border-radius: var(--rd-r12) !important;
+}

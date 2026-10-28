@@ -527,7 +527,7 @@ async function renderAdminUsersList() {
             <p class="text-cyan-400 font-bold mt-1 text-sm inline-flex items-baseline gap-1">${Number(u.ices_balance || 0).toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</p>
           </div>
           <div class="flex flex-col gap-2">
-            <button class="btn-primary px-3 py-1.5 text-xs rounded-lg shadow-[0_0_10px_rgba(6,182,212,0.3)]" onclick="window.changeUserBalance('${u.user_id}', ${u.ices_balance || 0})">
+            <button class="btn-primary px-3 py-1.5 text-xs rounded-lg shadow-[0_0_10px_rgba(77, 163, 255,0.3)]" onclick="window.changeUserBalance('${u.user_id}', ${u.ices_balance || 0})">
               💸 Изменить
             </button>
             <button class="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 text-xs rounded-lg transition" onclick="window.enterShadowMode('${u.user_id}')">
@@ -991,12 +991,12 @@ async function renderAdmin() {
           <span class="ix text-white/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
         </button>
 
-        <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="switchTab('admin_analytics')" style="background: linear-gradient(135deg, rgba(34,211,238,0.1), rgba(14,165,233,0.05)); border-color: rgba(34,211,238,0.3);">
+        <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="switchTab('admin_analytics')" style="background: linear-gradient(135deg, rgba(77, 163, 255,0.1), rgba(77, 163, 255,0.05)); border-color: rgba(77, 163, 255,0.3);">
           <span class="flex items-center gap-2"><span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span> Аналитика и Финансы</span>
           <span class="ix text-cyan-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
         </button>
 
-        <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="window.openReconciliationDashboardModal()" style="background: linear-gradient(135deg, rgba(168,85,247,0.15), rgba(99,102,241,0.08)); border-color: rgba(168,85,247,0.4);">
+        <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="window.openReconciliationDashboardModal()" style="background: linear-gradient(135deg, rgba(77, 163, 255,0.15), rgba(99,102,241,0.08)); border-color: rgba(77, 163, 255,0.4);">
           <span class="flex items-center gap-2"><span class="text-lg">📊</span> Финансовая сверка (Reconciliation & Problem Orders)</span>
           <span class="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">ТЗ v1.0</span>
         </button>
@@ -1011,7 +1011,7 @@ async function renderAdmin() {
           <span class="ix text-emerald-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
         </button>
 
-        <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="switchTab('admin_marketing')" style="background: linear-gradient(135deg, rgba(168,85,247,0.12), rgba(139,92,246,0.06)); border-color: rgba(168,85,247,0.3);">
+        <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="switchTab('admin_marketing')" style="background: linear-gradient(135deg, rgba(77, 163, 255,0.12), rgba(77, 163, 255,0.06)); border-color: rgba(77, 163, 255,0.3);">
           <span class="flex items-center gap-2"><span class="ix text-purple-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></span> Маркетинг: UGC и Дропы</span>
           <span class="ix text-purple-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
         </button>
@@ -1036,7 +1036,7 @@ async function renderAdmin() {
           <span class="ix text-amber-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
         </button>
 
-        <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="downloadTaxInvoicePDF()" style="background: linear-gradient(135deg, rgba(96,165,250,0.12), rgba(59,130,246,0.06)); border-color: rgba(96,165,250,0.3);">
+        <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="downloadTaxInvoicePDF()" style="background: linear-gradient(135deg, rgba(96,165,250,0.12), rgba(77, 163, 255,0.06)); border-color: rgba(96,165,250,0.3);">
           <span class="flex items-center gap-2"><span class="ix text-blue-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg></span> Скачать выписку за год (PDF)</span>
           <span class="ix text-blue-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
         </button>
@@ -2345,10 +2345,10 @@ function attachAdminHandlers() {
               modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
               modal.innerHTML = `
                 <div style="background:#1a1a2e;border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:20px;max-width:480px;width:100%;max-height:80vh;overflow-y:auto">
-                  <p style="color:#a78bfa;font-size:13px;font-weight:700;margin-bottom:12px">⚖️ Юридический ответ (ИИ)</p>
+                  <p style="color:#8CC6FF;font-size:13px;font-weight:700;margin-bottom:12px">⚖️ Юридический ответ (ИИ)</p>
                   <pre style="color:#e2e8f0;font-size:12px;white-space:pre-wrap;line-height:1.6">${req.response_text}</pre>
                   <div style="display:flex;gap:8px;margin-top:16px">
-                    <button id="_legalCopyBtn" style="flex:1;background:rgba(167,139,250,0.2);border:1px solid rgba(167,139,250,0.4);color:#a78bfa;border-radius:8px;padding:8px;font-size:12px;cursor:pointer">📋 Скопировать</button>
+                    <button id="_legalCopyBtn" style="flex:1;background:rgba(167,139,250,0.2);border:1px solid rgba(167,139,250,0.4);color:#8CC6FF;border-radius:8px;padding:8px;font-size:12px;cursor:pointer">📋 Скопировать</button>
                     <button id="_legalCloseBtn" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#94a3b8;border-radius:8px;padding:8px;font-size:12px;cursor:pointer">✖ Закрыть</button>
                   </div>
                 </div>`;
@@ -2884,7 +2884,7 @@ function attachAnalyticsHandlers() {
       const stCounts = {};
       os.forEach(o => { stCounts[o.status] = (stCounts[o.status] || 0) + 1; });
       const stLabels = Object.keys(stCounts);
-      const stColors = stLabels.map(s => ({ pending:'#f59e0b', paid:'#10b981', bought:'#3b82f6', on_sklad_cn:'#8b5cf6', in_transit:'#06b6d4', in_belarus:'#14b8a6', delivered:'#10b981', cancelled:'#ef4444' }[s] || '#ffffff40'));
+      const stColors = stLabels.map(s => ({ pending:'#f59e0b', paid:'#10b981', bought:'#2F86F5', on_sklad_cn:'#4DA3FF', in_transit:'#2F86F5', in_belarus:'#14b8a6', delivered:'#10b981', cancelled:'#ef4444' }[s] || '#ffffff40'));
       const statusCanvas = document.getElementById('statusChart');
       if (statusCanvas) {
         if (_statusChart) _statusChart.destroy();
@@ -3926,7 +3926,7 @@ function attachAdminSuppliersHandlers() {
 
       return `
         <button id="dropsBackBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
-        <div class="text-center py-6 mb-3 rounded-2xl" style="background: linear-gradient(135deg, rgba(168,85,247,0.2), rgba(139,92,246,0.1)); border: 1px solid rgba(168,85,247,0.3);">
+        <div class="text-center py-6 mb-3 rounded-2xl" style="background: linear-gradient(135deg, rgba(77, 163, 255,0.2), rgba(77, 163, 255,0.1)); border: 1px solid rgba(77, 163, 255,0.3);">
           <h2 class="text-2xl font-black text-white mb-2">🧊 ДРОПЫ</h2>
           ${headerTimer}
         </div>
