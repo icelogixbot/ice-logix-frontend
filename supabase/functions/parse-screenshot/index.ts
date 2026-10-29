@@ -11,7 +11,8 @@
 // Итоговый статус в parse_queue:
 //   название + цена → done; чего-то не хватает → manual_required с подсказкой, что ввести.
 //
-// Секреты: SUPABASE_URL / секретный ключ (стандартные), DOC_AI_URL (по умолчанию наш VPS).
+// Секреты: SUPABASE_URL / секретный ключ (стандартные), DOC_AI_URL (по умолчанию наш VPS),
+// DOC_AI_KEY (ключ доступа к ICE LOGIX AI, Nginx без него отвечает 401).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  
@@ -20,6 +21,7 @@ const supabaseKey = sbSecretKey()!;
 const supabase = createClient(supabaseUrl, supabaseKey);
  
 const DOC_AI_URL = (Deno.env.get("DOC_AI_URL") || "http://80.94.235.37").replace(/\/$/, "");
+const DOC_AI_KEY = Deno.env.get("DOC_AI_KEY") || "";
 const STORAGE_BUCKET = "product-screenshots";
  
 const corsHeaders = {
@@ -85,7 +87,7 @@ async function callDocAI(screenshotPath: string, log: (m: string) => void): Prom
     log(`ICE LOGIX AI: ${DOC_AI_URL}/scan-product (${Math.round(image.length / 1024)} KB)`);
     const res = await fetch(`${DOC_AI_URL}/scan-product`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Ice-Ai-Key": DOC_AI_KEY },
       body: JSON.stringify({ image }),
       signal: controller.signal,
     });
