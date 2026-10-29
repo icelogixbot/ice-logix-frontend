@@ -3173,57 +3173,33 @@ async function sendNotification(userId, message, orderId = null) {
 
 
     window.renderSizeGuides = async () => {
+  const U = window.UI;
+  const guides = [
+    { brand: 'Nike / Air Jordan', kind: 'Обувь', fit: 'В размер', tone: 'ok', text: 'Обычно идут <b>строго в размер</b>. Jordan 4 и Air Max 95 могут давить в носке: при широкой стопе берите на <b>0,5 размера больше</b>.', ex: 'US 9 = EU 42,5 = 27 см' },
+    { brand: 'Yeezy / Adidas', kind: 'Обувь', fit: 'Маломерят', tone: 'warn', text: 'Yeezy Boost 350 V2 и 700 <b>заметно маломерят</b>. Заказывайте на <b>0,5–1 размер больше</b> обычного.', ex: 'US 9,5 = EU 43⅓ = 27,5 см' },
+    { brand: 'Zara / Massimo Dutti', kind: 'Одежда', fit: 'Большемерят', tone: '', text: 'Куртки и пальто часто <b>свободного кроя</b>. Носите M — берите M, под неё влезет и толстый свитер.' },
+    { brand: "Arc'teryx / The North Face", kind: 'Одежда', fit: 'По фигуре', tone: '', text: 'Куртки шьют по анатомическим лекалам. Хотите свободнее или носить с худи — берите <b>на размер больше</b>.' }
+  ];
   return `
-    <button class="global-back-btn" onclick="switchTab('catalogs')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад в Каталог</button>
-    <div class="glass-card mb-5 page-enter">
-      <h2 class="text-xl font-bold text-white mb-4"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></span> Гайд по размерам</h2>
-      <p class="text-white/60 text-xs mb-4">Интерактивная база данных. Здесь мы собираем информацию о том, маломерят вещи или идут в размер, чтобы вы точно не ошиблись при заказе с площадок.</p>
-      
-      <div class="space-y-4">
-        <!-- Nike -->
-        <div class="bg-white/5 p-4 rounded-xl border border-white/10">
-          <div class="flex justify-between items-center mb-2">
-            <h3 class="text-white font-bold">Nike / Air Jordan</h3>
-            <span class="bg-cyan-500/20 text-cyan-400 text-[10px] px-2 py-0.5 rounded font-bold">Обувь</span>
-          </div>
-          <p class="text-white/70 text-xs mb-3">Обычно идут <strong>строго в размер</strong> (True to Size). Однако модели <em>Jordan 4</em> и <em>Air Max 95</em> могут давить в носке, поэтому берите на <strong>0.5 размера больше</strong> для широкой стопы.</p>
-          <div class="bg-black/20 p-2 rounded-lg text-[10px] text-white/50 font-mono">
-            Пример: US 9 = 42.5 EUR = 27 см
-          </div>
-        </div>
-        
-        <!-- Yeezy -->
-        <div class="bg-white/5 p-4 rounded-xl border border-white/10">
-          <div class="flex justify-between items-center mb-2">
-            <h3 class="text-white font-bold">Yeezy / Adidas</h3>
-            <span class="bg-cyan-500/20 text-cyan-400 text-[10px] px-2 py-0.5 rounded font-bold">Обувь</span>
-          </div>
-          <p class="text-white/70 text-xs mb-3">Модели <em>Yeezy Boost 350 V2</em> и <em>700</em> <strong>сильно маломерят</strong>! Всегда заказывайте на <strong>0.5 - 1 размер больше</strong> вашего стандартного размера.</p>
-          <div class="bg-black/20 p-2 rounded-lg text-[10px] text-white/50 font-mono">
-            Пример: US 9.5 = 43.3 EUR = 27.5 см
-          </div>
-        </div>
-        
-        <!-- Zara -->
-        <div class="bg-white/5 p-4 rounded-xl border border-white/10">
-          <div class="flex justify-between items-center mb-2">
-            <h3 class="text-white font-bold">Zara / Massimo Dutti</h3>
-            <span class="bg-purple-500/20 text-purple-400 text-[10px] px-2 py-0.5 rounded font-bold">Одежда</span>
-          </div>
-          <p class="text-white/70 text-xs mb-3">Верхняя одежда (особенно зимние куртки и пальто) часто <strong>большемерит</strong> (Oversize). Если вы носите M, куртку смело можно брать размера M, и под нее еще влезет толстый свитер.</p>
-        </div>
-        
-        <!-- Arc'teryx -->
-        <div class="bg-white/5 p-4 rounded-xl border border-white/10">
-          <div class="flex justify-between items-center mb-2">
-            <h3 class="text-white font-bold">Arc'teryx / The North Face</h3>
-            <span class="bg-purple-500/20 text-purple-400 text-[10px] px-2 py-0.5 rounded font-bold">Одежда</span>
-          </div>
-          <p class="text-white/70 text-xs mb-3">Куртки (Gore-Tex) шьются строго по анатомическим лекалам. Для свободного кроя или чтобы носить с худи, берите на <strong>размер больше</strong>.</p>
-        </div>
+    <div class="rd-screen page-enter sz">
+      <div class="rd-head">
+        <button type="button" class="rd-back" onclick="window.goBackGlobal ? window.goBackGlobal() : switchTab('catalogs')" aria-label="Назад">${U.icon('chevL', 22)}</button>
+        <div class="rd-head-txt"><h1 class="rd-head-title">Гайд по размерам</h1><p class="rd-head-sub">Какие бренды маломерят, а какие нет</p></div>
+      </div>
+      <div class="sz-tip">${U.icon('ruler', 20)}<span>Измерьте стопу от пятки до большого пальца: это ваш размер в сантиметрах (CM/JP) на Poizon.</span></div>
+      <div class="sz-list">
+        ${guides.map(g => `
+          <div class="sz-card">
+            <div class="sz-top">
+              <span class="sz-ico">${U.icon(g.kind === 'Обувь' ? 'ruler' : 'tag', 20)}</span>
+              <div><b>${g.brand}</b><span>${g.kind}</span></div>
+              <span class="rd-status ${g.tone}">${g.fit}</span>
+            </div>
+            <p>${g.text}</p>
+            ${g.ex ? `<div class="sz-ex">${g.ex}</div>` : ''}
+          </div>`).join('')}
       </div>
     </div>
-    ${renderFooter()}
   `;
 };
 
@@ -3371,66 +3347,25 @@ async function renderAdminOrdersList() {
 }
 
 async function renderProductsCatalog() {
+  const U = window.UI;
   return `
-    <div class="space-y-4 page-enter">
-      <button id="backFromProductsCatalogBtn" class="global-back-btn m-0">
-        <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span>
-        Назад к каталогам
-      </button>
-
-      <div class="glass-card p-6 text-center flex flex-col items-center relative overflow-hidden my-3 border border-amber-500/25">
-        <div class="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-amber-500/10 blur-3xl pointer-events-none"></div>
-        <div class="absolute -bottom-12 -left-12 w-40 h-40 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none"></div>
-
-        <div class="w-20 h-20 rounded-3xl flex items-center justify-center mb-4 relative" style="background: linear-gradient(135deg, rgba(251,191,36,0.25), rgba(245,158,11,0.12)); border: 1px solid rgba(251,191,36,0.35);">
-          <span class="text-4xl text-amber-400">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          </span>
-          <span class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-amber-500 text-black flex items-center justify-center text-xs font-black shadow-lg">
-            ⏳
-          </span>
-        </div>
-
-        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 mb-3 tracking-wider uppercase">
-          <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
-          Раздел в разработке
-        </div>
-
-        <h2 class="text-xl font-black text-white mb-2">Каталог товаров скоро откроется</h2>
-        <p class="text-sm text-white/70 max-w-sm leading-relaxed mb-6">
-          Мы формируем эксклюзивную витрину готовых оригинальных предложений от нашей команды. Скоро здесь появятся лучшие товары по суперценам с быстрой доставкой!
-        </p>
-
-        <div class="w-full space-y-2.5 max-w-sm mb-6 text-left">
-          <div class="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold text-base flex-shrink-0">🏷️</div>
-            <div class="flex-1 min-w-0">
-              <p class="text-white text-xs font-bold leading-tight">Оригинальные бренды</p>
-              <p class="text-[11px] text-white/50 mt-0.5">Кроссовки, одежда и аксессуары с лучших мировых площадок</p>
-            </div>
-          </div>
-          <div class="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-bold text-base flex-shrink-0">⚡</div>
-            <div class="flex-1 min-w-0">
-              <p class="text-white text-xs font-bold leading-tight">Заказ в 1 клик</p>
-              <p class="text-[11px] text-white/50 mt-0.5">Фиксированная финальная стоимость без необходимости расчета</p>
-            </div>
-          </div>
-          <div class="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center font-bold text-base flex-shrink-0">🛡️</div>
-            <div class="flex-1 min-w-0">
-              <p class="text-white text-xs font-bold leading-tight">Гарантия подлинности</p>
-              <p class="text-[11px] text-white/50 mt-0.5">Каждая позиция проходит строгий Legit Check перед передачей</p>
-            </div>
-          </div>
-        </div>
-
-        <button id="returnToCatalogsFromProductsBtn" class="btn-primary w-full max-w-sm py-3 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-600 text-white transition-all flex items-center justify-center gap-2">
-          <span class="ix" style="width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span>
-          Вернуться к каталогам
-        </button>
+    <div class="rd-screen page-enter soon">
+      <div class="rd-head">
+        <button id="backFromProductsCatalogBtn" type="button" class="rd-back" aria-label="Назад">${U.icon('chevL', 22)}</button>
+        <div class="rd-head-txt"><h1 class="rd-head-title">Товары</h1><p class="rd-head-sub">Готовые вещи по фиксированной цене</p></div>
       </div>
-      ${typeof renderFooter === 'function' ? renderFooter() : ''}
+      <div class="soon-hero">
+        <div class="soon-art" aria-hidden="true"><span class="b1">${U.icon('bag', 30)}</span><span class="b2">${U.icon('box', 34)}</span><span class="b3">${U.icon('tag', 24)}</span></div>
+        <span class="rd-soon">${U.icon('clock', 12)}Скоро</span>
+        <h2>Готовим витрину</h2>
+        <p>Соберём оригинальные вещи по фиксированной цене: выбрали, оплатили, получили. Без расчётов и ожидания ответа байера.</p>
+      </div>
+      <div class="rd-card rd-list">
+        <div class="rd-row"><span class="rd-ico">${U.icon('tag', 22)}</span><span class="rd-row-body"><span class="rd-row-title">Оригинальные бренды</span><span class="rd-row-text">Кроссовки, одежда и аксессуары</span></span></div>
+        <div class="rd-row"><span class="rd-ico">${U.icon('zap', 22)}</span><span class="rd-row-body"><span class="rd-row-title">Заказ в один тап</span><span class="rd-row-text">Цена сразу финальная, без калькулятора</span></span></div>
+        <div class="rd-row"><span class="rd-ico">${U.icon('shield', 22)}</span><span class="rd-row-body"><span class="rd-row-title">Проверка подлинности</span><span class="rd-row-text">Каждую вещь проверяем перед отправкой</span></span></div>
+      </div>
+      <button id="returnToCatalogsFromProductsBtn" type="button" class="rd-btn rd-btn-block rd-btn-tonal soon-back">Смотреть площадки</button>
     </div>
   `;
 }
@@ -3443,7 +3378,7 @@ function attachProductsCatalogHandlers() {
     renderCurrentScreen();
   };
   if (backBtn) backBtn.onclick = goBack;
-  if (returnBtn) returnBtn.onclick = goBack;
+  if (returnBtn) returnBtn.onclick = () => switchTab('catalogs', 'marketplaces');
 }
 
 async function loadMoreProducts() {}

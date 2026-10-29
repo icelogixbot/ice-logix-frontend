@@ -594,7 +594,7 @@ async function renderSettingsPage(initialTab = 'account') {
             <p class="text-[10px] text-white/50">Привязан к боту ICE LOGIX</p>
           </div>
         </div>
-        <span class="text-xs text-emerald-400 font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">Подключен ✓</span>
+        <span class="text-xs text-emerald-400 font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">Подключён</span>
       </div>
     `;
   } else {
@@ -625,11 +625,11 @@ async function renderSettingsPage(initialTab = 'account') {
           <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
         </div>
         <div class="text-left">
-          <p class="font-bold text-white text-xs">Google Account</p>
+          <p class="font-bold text-white text-xs">Google</p>
           <p class="text-[10px] text-white/40">Быстрый вход через Gmail</p>
         </div>
       </div>
-      <span class="text-xs ${isGoogleLinked ? 'text-emerald-400 font-bold' : 'text-white/50'}">${isGoogleLinked ? 'Подключен ✓' : 'Подключить →'}</span>
+      <span class="text-xs ${isGoogleLinked ? 'text-emerald-400 font-bold' : 'text-white/50'}">${isGoogleLinked ? 'Подключён' : 'Подключить →'}</span>
     </button>
   `;
 
@@ -642,10 +642,10 @@ async function renderSettingsPage(initialTab = 'account') {
         </div>
         <div class="text-left">
           <p class="font-bold text-white text-xs">Apple ID</p>
-          <p class="text-[10px] text-white/40">Sign in with Apple</p>
+          <p class="text-[10px] text-white/40">Вход через Apple</p>
         </div>
       </div>
-      <span class="text-xs ${isAppleLinked ? 'text-emerald-400 font-bold' : 'text-white/50'}">${isAppleLinked ? 'Подключен ✓' : 'Подключить →'}</span>
+      <span class="text-xs ${isAppleLinked ? 'text-emerald-400 font-bold' : 'text-white/50'}">${isAppleLinked ? 'Подключён' : 'Подключить →'}</span>
     </button>
   `;
 
@@ -677,7 +677,7 @@ async function renderSettingsPage(initialTab = 'account') {
             <p class="text-[10px] text-white/50 truncate">${userEmail}</p>
           </div>
         </div>
-        <span class="text-xs text-emerald-400 font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex-shrink-0">Привязан ✓</span>
+        <span class="text-xs text-emerald-400 font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex-shrink-0">Привязан</span>
       </div>
     `;
   }
@@ -695,50 +695,24 @@ async function renderSettingsPage(initialTab = 'account') {
             <p class="text-[10px] text-white/50">${userPhone}</p>
           </div>
         </div>
-        <span class="text-xs text-emerald-400 font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">Подтвержден ✓</span>
+        <span class="text-xs text-emerald-400 font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">Подтверждён</span>
       </div>
     `;
   }
 
   const activeTab = initialTab || window._settingsInitialTab || 'account';
 
+  const U = window.UI;
+  const stTabs = [['account', 'user', 'Аккаунт'], ['security', 'shield', 'Вход'], ['notifications', 'bell', 'Сигналы'], ['language', 'globe', 'Язык'], ['theme', 'sparkles', 'Тема']];
   return `
-    <div class="page-enter px-4 max-w-md mx-auto space-y-4">
-      <!-- Top Navigation Header -->
-      <div class="flex items-center gap-3 mb-4">
-        <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6"/>
-          </svg>
-        </button>
-        <div class="flex-1 min-w-0">
-          <h2 class="text-xl font-bold text-white tracking-wide">Настройки</h2>
-          <p class="text-[11px] text-white/40">Управление аккаунтом, защита и персонализация</p>
-        </div>
+    <div class="rd-screen page-enter st">
+      <div class="rd-head">
+        <button type="button" class="rd-back" onclick="window.goBackGlobal()" aria-label="Назад">${U.icon('chevL', 22)}</button>
+        <div class="rd-head-txt"><h1 class="rd-head-title">Настройки</h1><p class="rd-head-sub">Аккаунт, вход, уведомления и язык</p></div>
       </div>
 
-      <!-- Segmented Navigation (5 tabs) -->
-      <div class="grid grid-cols-5 gap-1 p-1 rounded-2xl bg-slate-900/90 border border-white/10 shadow-lg backdrop-blur-md mb-2">
-        <button class="settings-page-tab py-2 px-0.5 text-[10px] font-bold rounded-xl transition-all duration-200 flex flex-col items-center gap-1 ${activeTab==='account'?'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20':'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'}" data-tab="account">
-          <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          <span class="truncate">Аккаунт</span>
-        </button>
-        <button class="settings-page-tab py-2 px-0.5 text-[10px] font-bold rounded-xl transition-all duration-200 flex flex-col items-center gap-1 ${activeTab==='security'?'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20':'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'}" data-tab="security">
-          <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          <span class="truncate">Защита</span>
-        </button>
-        <button class="settings-page-tab py-2 px-0.5 text-[10px] font-bold rounded-xl transition-all duration-200 flex flex-col items-center gap-1 ${activeTab==='notifications'?'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20':'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'}" data-tab="notifications">
-          <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          <span class="truncate">Сигналы</span>
-        </button>
-        <button class="settings-page-tab py-2 px-0.5 text-[10px] font-bold rounded-xl transition-all duration-200 flex flex-col items-center gap-1 ${activeTab==='language'?'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20':'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'}" data-tab="language">
-          <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-          <span class="truncate">Язык</span>
-        </button>
-        <button class="settings-page-tab py-2 px-0.5 text-[10px] font-bold rounded-xl transition-all duration-200 flex flex-col items-center gap-1 ${activeTab==='theme'?'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20':'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'}" data-tab="theme">
-          <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-          <span class="truncate">Тема</span>
-        </button>
+      <div class="st-tabs">
+        ${stTabs.map(([k, ico, label]) => `<button type="button" class="settings-page-tab ${activeTab === k ? 'on' : ''}" data-tab="${k}">${U.icon(ico, 19)}<span>${label}</span></button>`).join('')}
       </div>
 
       <!-- Panels Container -->
@@ -780,7 +754,7 @@ async function renderSettingsPage(initialTab = 'account') {
               <div class="p-2.5 rounded-xl bg-white/5 border border-white/5">
                 <p class="text-[10px] text-white/40 mb-0.5">Сессия</p>
                 <span class="text-xs font-semibold text-white/90 truncate flex items-center gap-1.5">
-                  <span class="text-cyan-400 text-sm">⚡</span>
+                  ${U.icon('zap', 15)}
                   ${isTgSession ? 'Telegram App' : 'Браузер'}
                 </span>
               </div>
@@ -814,7 +788,7 @@ async function renderSettingsPage(initialTab = 'account') {
                   <p class="text-[10px] text-white/40">Завершить текущий сеанс на этом устройстве</p>
                 </div>
               </div>
-              <span class="text-xs text-white/50 px-2 py-1 rounded-lg bg-white/5">Выйти →</span>
+              <span class="text-xs text-white/50 px-2 py-1 rounded-lg bg-white/5 whitespace-nowrap">Выйти</span>
             </button>
           </div>
 
@@ -844,7 +818,7 @@ async function renderSettingsPage(initialTab = 'account') {
 
         <!-- 1. Security panel -->
         <div id="settingsPanel-security" class="space-y-3 ${activeTab!=='security'?'hidden':''}">
-          <p class="text-white/60 text-xs">Способы авторизации и безопасность личного кабинета</p>
+          <p class="st-lead">Как вы входите в аккаунт</p>
           <div class="space-y-2">
             ${identitiesHtml}
           </div>
@@ -876,7 +850,7 @@ async function renderSettingsPage(initialTab = 'account') {
 
         <!-- 2. Notifications panel -->
         <div id="settingsPanel-notifications" class="space-y-3 ${activeTab!=='notifications'?'hidden':''}">
-          <p class="text-white/60 text-xs">Настройка системных оповещений и пуш-уведомлений</p>
+          <p class="st-lead">О чём присылать уведомления в Telegram</p>
           <div class="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-4">
             <div class="flex items-center justify-between">
               <div>
@@ -904,11 +878,11 @@ async function renderSettingsPage(initialTab = 'account') {
 
         <!-- 3. Language panel -->
         <div id="settingsPanel-language" class="space-y-3 ${activeTab!=='language'?'hidden':''}">
-          <p class="text-white/60 text-xs">Выберите удобный язык интерфейса приложения</p>
+          <p class="st-lead">Язык приложения</p>
           <div class="space-y-2">
             <button class="lang-btn w-full rounded-2xl p-3.5 border-2 transition text-left flex items-center justify-between ${currentLang==='ru'?'border-cyan-400 bg-cyan-950/30 shadow-md shadow-cyan-500/10':'border-white/10 bg-white/5'}" data-lang="ru">
               <div class="flex items-center gap-3">
-                <span class="text-xl">🇷🇺</span>
+                <span class="st-flag">RU</span>
                 <div>
                   <p class="text-white text-xs font-bold">Русский</p>
                   <p class="text-[10px] text-white/40">Основной язык</p>
@@ -919,7 +893,7 @@ async function renderSettingsPage(initialTab = 'account') {
 
             <button class="lang-btn w-full rounded-2xl p-3.5 border-2 transition text-left flex items-center justify-between ${currentLang==='be'?'border-cyan-400 bg-cyan-950/30 shadow-md shadow-cyan-500/10':'border-white/10 bg-white/5'}" data-lang="be">
               <div class="flex items-center gap-3">
-                <span class="text-xl">🇧🇾</span>
+                <span class="st-flag">BY</span>
                 <div>
                   <p class="text-white text-xs font-bold">Беларуская</p>
                   <p class="text-[10px] text-white/40">Зроблена з любоўю</p>
@@ -930,7 +904,7 @@ async function renderSettingsPage(initialTab = 'account') {
 
             <button class="lang-btn w-full rounded-2xl p-3.5 border-2 transition text-left flex items-center justify-between ${currentLang==='en'?'border-cyan-400 bg-cyan-950/30 shadow-md shadow-cyan-500/10':'border-white/10 bg-white/5'}" data-lang="en">
               <div class="flex items-center gap-3">
-                <span class="text-xl">🇬🇧</span>
+                <span class="st-flag">EN</span>
                 <div>
                   <p class="text-white text-xs font-bold">English</p>
                   <p class="text-[10px] text-white/40">International</p>
@@ -943,27 +917,23 @@ async function renderSettingsPage(initialTab = 'account') {
 
         <!-- 4. Theme panel -->
         <div id="settingsPanel-theme" class="space-y-3 ${activeTab!=='theme'?'hidden':''}">
-          <p class="text-white/60 text-xs">Цветовая схема оформления интерфейса</p>
+          <p class="st-lead">Оформление приложения</p>
           <div class="grid grid-cols-2 gap-3">
             <button class="theme-btn rounded-2xl p-4 border-2 transition text-center ${currentTheme==='dark'?'border-cyan-400 bg-slate-900 shadow-md shadow-cyan-500/15':'border-white/10 bg-white/5'}" data-theme="dark">
-              <div class="w-10 h-10 mx-auto rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center mb-2 text-xl">
-                🌙
-              </div>
-              <p class="text-white text-xs font-bold">Тёмная (Arctic)</p>
+              <div class="st-theme-ico dark"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></div>
+              <p class="text-white text-xs font-bold">Тёмная</p>
               <p class="text-[10px] text-cyan-300/80 mt-0.5">По умолчанию</p>
             </button>
 
             <button class="theme-btn rounded-2xl p-4 border-2 transition text-center ${currentTheme==='light'?'border-cyan-400 bg-slate-800 shadow-md shadow-cyan-500/15':'border-white/10 bg-white/5'}" data-theme="light">
-              <div class="w-10 h-10 mx-auto rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center mb-2 text-xl">
-                ☀️
-              </div>
+              <div class="st-theme-ico light"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></div>
               <p class="text-white text-xs font-bold">Светлая</p>
               <p class="text-[10px] text-white/40 mt-0.5">Контрастная</p>
             </button>
           </div>
           <button id="resetSettingsBtn" class="mt-3 w-full text-white/40 hover:text-white/70 text-xs py-2 transition flex items-center justify-center gap-1.5">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-            Сбросить настройки к заводским
+            Сбросить настройки
           </button>
         </div>
       </div>
@@ -999,10 +969,7 @@ function attachSettingsPageHandlers(initialTab = 'account') {
   // Segmented tab switching (5 tabs)
   document.querySelectorAll('.settings-page-tab').forEach(tab => {
     tab.onclick = () => {
-      document.querySelectorAll('.settings-page-tab').forEach(t => {
-        t.className = 'settings-page-tab py-2 px-0.5 text-[10px] font-bold rounded-xl transition-all duration-200 flex flex-col items-center gap-1 text-white/60 hover:text-white hover:bg-white/5 active:scale-95';
-      });
-      tab.className = 'settings-page-tab py-2 px-0.5 text-[10px] font-bold rounded-xl transition-all duration-200 flex flex-col items-center gap-1 bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20';
+      document.querySelectorAll('.settings-page-tab').forEach(t => t.classList.toggle('on', t === tab));
       
       const target = tab.dataset.tab;
       window._settingsInitialTab = target;
@@ -1341,138 +1308,69 @@ async function renderNotificationsPage() {
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
   const activeFilter = window._notifActiveFilter || 'all';
+  const U = window.UI;
+  const tabs = [['all', 'Все'], ['orders', 'Заказы'], ['news', 'Новости'], ['promos', 'Акции']];
 
   return `
-    <div class="page-enter px-4 max-w-md mx-auto space-y-4">
-      <!-- Top Navigation Header -->
-      <div class="flex items-center justify-between mb-4">
-        <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6"/>
-          </svg>
-        </button>
-        <div class="text-center flex-1 px-2 min-w-0">
-          <h2 class="text-xl font-bold text-white tracking-wide flex items-center justify-center gap-1.5 truncate">
-            Уведомления
-            <span id="notifBadgeCounter" class="${unreadCount > 0 ? '' : 'hidden'} ml-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500 text-white shadow-sm">${unreadCount}</span>
-          </h2>
-          <p class="text-[11px] text-white/40 truncate">Статусы заказов, новости и бонусы</p>
-        </div>
-        <button id="markAllNotifsReadBtn" class="text-xs font-bold text-cyan-400 hover:text-cyan-300 py-1.5 px-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 active:scale-95 transition flex-shrink-0">
-          Все прочтены
-        </button>
+    <div class="rd-screen page-enter nt">
+      <div class="rd-head">
+        <button type="button" class="rd-back" onclick="window.goBackGlobal()" aria-label="Назад">${U.icon('chevL', 22)}</button>
+        <div class="rd-head-txt"><h1 class="rd-head-title">Уведомления <span id="notifBadgeCounter" class="nt-count ${unreadCount > 0 ? '' : 'hidden'}">${unreadCount}</span></h1><p class="rd-head-sub">Заказы, новости и бонусы</p></div>
+        <button id="markAllNotifsReadBtn" type="button" class="rd-back" aria-label="Отметить все прочитанными">${U.icon('checkCircle', 21)}</button>
       </div>
 
-      <!-- Segmented Category Filters -->
-      <div class="grid grid-cols-4 gap-1 p-1 rounded-2xl bg-slate-900/90 border border-white/10 shadow-lg backdrop-blur-md mb-2">
-        <button class="notif-filter-tab py-2 px-1 text-[11px] font-bold rounded-xl transition-all duration-200 text-center ${activeFilter==='all'?'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20':'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'}" data-filter="all">Все</button>
-        <button class="notif-filter-tab py-2 px-1 text-[11px] font-bold rounded-xl transition-all duration-200 text-center ${activeFilter==='orders'?'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20':'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'}" data-filter="orders">Заказы 📦</button>
-        <button class="notif-filter-tab py-2 px-1 text-[11px] font-bold rounded-xl transition-all duration-200 text-center ${activeFilter==='news'?'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20':'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'}" data-filter="news">Новости 📢</button>
-        <button class="notif-filter-tab py-2 px-1 text-[11px] font-bold rounded-xl transition-all duration-200 text-center ${activeFilter==='promos'?'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20':'text-white/60 hover:text-white hover:bg-white/5 active:scale-95'}" data-filter="promos">Акции 🎁</button>
+      <div class="fn-seg nt-seg">
+        ${tabs.map(([k, l]) => `<button type="button" class="notif-filter-tab ${activeFilter === k ? 'on' : ''}" data-filter="${k}">${l}</button>`).join('')}
       </div>
 
-      <!-- Notification List Container -->
-      <div id="notifsContainer" class="space-y-2.5">
+      <div id="notifsContainer" class="nt-list">
         ${renderNotifsItemsHtml(notifications, activeFilter)}
       </div>
     </div>
-    ${typeof renderFooter === 'function' ? renderFooter() : ''}
   `;
 }
 
 function renderNotifsItemsHtml(items, filter = 'all') {
+  const U = window.UI;
   if (!items || items.length === 0) {
-    return `
-      <div class="text-center py-12 px-4 rounded-3xl bg-slate-900/60 border border-white/5 space-y-3">
-        <div class="w-14 h-14 mx-auto rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 text-2xl select-none">
-          🔔
-        </div>
-        <p class="text-sm font-bold text-white">Уведомлений пока нет</p>
-        <p class="text-xs text-white/40 max-w-xs mx-auto leading-relaxed">
-          Здесь будут отображаться этапы доставки ваших заказов, персональные скидки и важные новости сервиса.
-        </p>
-      </div>
-    `;
+    return U.empty({ icon: 'bell', title: 'Пока тихо', text: 'Сюда придут новости о ваших посылках, скидках и бонусах.' });
   }
-
-  let filtered = items;
-  if (filter === 'orders') {
-    filtered = items.filter(n => {
-      const txt = ((n.title || '') + ' ' + (n.body || '')).toLowerCase();
-      return txt.includes('заказ') || txt.includes('посылк') || txt.includes('трек') || txt.includes('выкуп') || txt.includes('склад');
-    });
-  } else if (filter === 'news') {
-    filtered = items.filter(n => {
-      const txt = ((n.title || '') + ' ' + (n.body || '')).toLowerCase();
-      return txt.includes('новост') || txt.includes('обновлен') || txt.includes('режим') || txt.includes('тариф');
-    });
-  } else if (filter === 'promos') {
-    filtered = items.filter(n => {
-      const txt = ((n.title || '') + ' ' + (n.body || '')).toLowerCase();
-      return txt.includes('промо') || txt.includes('скидк') || txt.includes('бонус') || txt.includes('акци') || txt.includes('купон');
-    });
-  }
+  const has = (n, words) => { const t = ((n.title || '') + ' ' + (n.body || '')).toLowerCase(); return words.some(w => t.includes(w)); };
+  const ORD = ['заказ', 'посылк', 'трек', 'выкуп', 'склад'];
+  const NEWS = ['новост', 'обновлен', 'режим', 'тариф'];
+  const PROMO = ['промо', 'скидк', 'бонус', 'акци', 'купон'];
+  const filtered = filter === 'orders' ? items.filter(n => has(n, ORD)) : filter === 'news' ? items.filter(n => has(n, NEWS)) : filter === 'promos' ? items.filter(n => has(n, PROMO)) : items;
 
   if (filtered.length === 0) {
-    return `
-      <div class="text-center py-10 px-4 rounded-2xl bg-white/5 border border-white/5 space-y-2">
-        <p class="text-xs font-bold text-white/60">В этом разделе нет уведомлений</p>
-      </div>
-    `;
+    return U.empty({ icon: 'bell', title: 'Здесь пусто', text: 'В этом разделе уведомлений пока нет.' });
   }
 
+  const dayLabel = (d) => {
+    const dt = new Date(d); const now = new Date();
+    if (dt.toDateString() === now.toDateString()) return 'Сегодня';
+    const y = new Date(now); y.setDate(now.getDate() - 1);
+    if (dt.toDateString() === y.toDateString()) return 'Вчера';
+    return dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+  };
+  let last = '';
   return filtered.map(n => {
     const isUnread = !n.is_read;
-    const bodyText = n.body || '';
-    const titleText = n.title || 'Уведомление';
-    const lower = (titleText + ' ' + bodyText).toLowerCase();
-    
-    let icon = '🔔';
-    let iconBg = 'bg-cyan-500/15 text-cyan-400';
-    if (lower.includes('заказ') || lower.includes('посылк') || lower.includes('трек')) {
-      icon = '📦';
-      iconBg = 'bg-blue-500/15 text-blue-400';
-    } else if (lower.includes('промо') || lower.includes('скидк') || lower.includes('бонус')) {
-      icon = '🎁';
-      iconBg = 'bg-amber-500/15 text-amber-400';
-    } else if (lower.includes('оплат') || lower.includes('баланс') || lower.includes('карт')) {
-      icon = '💳';
-      iconBg = 'bg-emerald-500/15 text-emerald-400';
-    }
-
-    let dateStr = '';
-    try {
-      dateStr = new Date(n.created_at).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-    } catch (_) {}
-
-    return `
-      <div class="p-3.5 rounded-2xl transition-all duration-200 ${
-        isUnread
-          ? 'bg-gradient-to-r from-cyan-950/40 via-slate-900 to-slate-900 border border-cyan-500/30 shadow-md shadow-cyan-500/10'
-          : 'bg-white/5 border border-white/5 hover:border-white/10'
-      }">
-        <div class="flex items-start gap-3">
-          <div class="w-9 h-9 rounded-xl ${iconBg} flex items-center justify-center text-lg flex-shrink-0 mt-0.5">
-            ${icon}
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between gap-2 mb-0.5">
-              <p class="text-white text-xs font-bold truncate">${titleText}</p>
-              ${isUnread ? '<span class="w-2 h-2 rounded-full bg-cyan-400 flex-shrink-0 shadow-sm shadow-cyan-400"></span>' : ''}
-            </div>
-            ${bodyText ? `<p class="text-white/70 text-xs leading-relaxed break-words">${bodyText}</p>` : ''}
-            <div class="flex items-center justify-between mt-2 pt-1 border-t border-white/5">
-              <p class="text-white/35 text-[10px] font-mono">${dateStr}</p>
-              ${lower.includes('заказ') ? `
-                <button class="text-[10px] font-bold text-cyan-400 hover:text-cyan-300" onclick="if(typeof switchTab==='function')switchTab('profile');">
-                  Перейти к заказам →
-                </button>
-              ` : ''}
-            </div>
-          </div>
+    const kind = has(n, ['заказ', 'посылк', 'трек']) ? ['truck', 'o'] : has(n, ['промо', 'скидк', 'бонус']) ? ['gift', 'p'] : has(n, ['оплат', 'баланс', 'карт']) ? ['wallet', 'm'] : ['bell', ''];
+    let time = '';
+    try { time = new Date(n.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }); } catch (_) {}
+    const lbl = n.created_at ? dayLabel(n.created_at) : '';
+    const head = lbl && lbl !== last ? `<div class="hs-day">${lbl}</div>` : '';
+    if (lbl) last = lbl;
+    return `${head}
+      <div class="nt-item ${isUnread ? 'new' : ''}">
+        <span class="nt-ico ${kind[1]}">${U.icon(kind[0], 20)}</span>
+        <div class="nt-body">
+          <div class="nt-top"><b>${U.esc(n.title || 'Уведомление')}</b><span>${time}</span></div>
+          ${n.body ? `<p>${U.esc(n.body)}</p>` : ''}
+          ${has(n, ['заказ']) ? `<button type="button" class="rd-link" onclick="if(typeof switchTab==='function')switchTab('profile','myOrders');">К заказам${U.icon('chevR', 14)}</button>` : ''}
         </div>
-      </div>
-    `;
+        ${isUnread ? '<i class="nt-dot"></i>' : ''}
+      </div>`;
   }).join('');
 }
 
@@ -1489,10 +1387,7 @@ function attachNotificationsPageHandlers() {
     btn.onclick = () => {
       const filter = btn.dataset.filter || 'all';
       window._notifActiveFilter = filter;
-      document.querySelectorAll('.notif-filter-tab').forEach(b => {
-        b.className = 'notif-filter-tab py-2 px-1 text-[11px] font-bold rounded-xl transition-all duration-200 text-center text-white/60 hover:text-white hover:bg-white/5 active:scale-95';
-      });
-      btn.className = 'notif-filter-tab py-2 px-1 text-[11px] font-bold rounded-xl transition-all duration-200 text-center bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20';
+      document.querySelectorAll('.notif-filter-tab').forEach(b => b.classList.toggle('on', b === btn));
       if (container) {
         container.innerHTML = renderNotifsItemsHtml(currentNotifs, filter);
       }
@@ -1530,6 +1425,7 @@ function attachNotificationsPageHandlers() {
           .then(() => {});
       }
 
+      if (window.UI) window.UI.toast('Все уведомления прочитаны');
       if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
     };
   }
@@ -1551,7 +1447,7 @@ function attachNotificationsPageHandlers() {
           const badge = document.getElementById('notifBadgeCounter');
           if (badge) {
             badge.innerText = freshUnread.length;
-            badge.className = (freshUnread.length > 0 ? '' : 'hidden') + ' ml-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500 text-white shadow-sm';
+            badge.className = 'nt-count' + (freshUnread.length > 0 ? '' : ' hidden');
           }
         }
       });

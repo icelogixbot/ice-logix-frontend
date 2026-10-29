@@ -896,12 +896,12 @@ window.updateLiveCalcBreakdown = function() {
   const qtyValEl = document.getElementById('calcQtyVal');
 
   if (priceCnyEl) priceCnyEl.innerText = calc.priceCny;
-  if (totalBynEl) totalBynEl.innerHTML = `${calc.totalByn.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}`;
+  if (totalBynEl) totalBynEl.innerHTML = (window.UI ? window.UI.money(calc.totalByn, { keepCents: true, digits: 2 }) : calc.totalByn.toFixed(2));
   if (detailCnyEl) detailCnyEl.innerText = calc.priceCny;
-  if (detailProdBynEl) detailProdBynEl.innerHTML = `${calc.productByn.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}`;
-  if (detailShipBynEl) detailShipBynEl.innerHTML = `${calc.shippingByn.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}`;
-  if (detailInsBynEl) detailInsBynEl.innerHTML = `${calc.insuranceByn.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}`;
-  if (detailCommBynEl) detailCommBynEl.innerHTML = `${calc.commissionByn.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}`;
+  if (detailProdBynEl) detailProdBynEl.innerHTML = `${(window.UI ? window.UI.money(calc.productByn, { keepCents: true, digits: 2 }) : calc.productByn.toFixed(2))}`;
+  if (detailShipBynEl) detailShipBynEl.innerHTML = `${(window.UI ? window.UI.money(calc.shippingByn, { keepCents: true, digits: 2 }) : calc.shippingByn.toFixed(2))}`;
+  if (detailInsBynEl) detailInsBynEl.innerHTML = `${(window.UI ? window.UI.money(calc.insuranceByn, { keepCents: true, digits: 2 }) : calc.insuranceByn.toFixed(2))}`;
+  if (detailCommBynEl) detailCommBynEl.innerHTML = `${(window.UI ? window.UI.money(calc.commissionByn, { keepCents: true, digits: 2 }) : calc.commissionByn.toFixed(2))}`;
   if (qtyValEl) qtyValEl.innerText = qty;
 };
 
@@ -976,7 +976,7 @@ window.renderSmartCalculator = async function() {
           </button>
           <div class="flex-1 min-w-0 text-left">
             <h3 class="text-white font-bold text-sm">Расчет по ссылке</h3>
-            <p class="text-white/40 text-[10px]">Аппаратный эмулятор Poizon, Dewu, Taobao, 1688</p>
+            <p class="text-white/40 text-[10px]">Poizon, Dewu, Taobao, 1688 и другие площадки</p>
           </div>
         </div>
 
@@ -995,7 +995,7 @@ window.renderSmartCalculator = async function() {
           </div>
 
           <div id="calcLinkStatusBox" class="hidden mt-3 p-3.5 rounded-2xl text-xs text-left"></div>
-          <p class="text-white/40 text-[10px] mt-2.5 text-left">💡 Эмулятор считывает опции, размеры и цену в реальном времени.</p>
+          <p class="text-white/40 text-[10px] mt-2.5 text-left">Подтянем цену, размеры и цвета прямо со страницы товара.</p>
         </div>
       </div>
       ${renderFooter()}
@@ -1014,13 +1014,13 @@ window.renderSmartCalculator = async function() {
           </button>
           <div class="flex-1 min-w-0 text-left">
             <h3 class="text-white font-bold text-sm">Поиск и расчет по фото</h3>
-            <p class="text-white/40 text-[10px]">Нейросеть распознает модель и найдет на площадках</p>
+            <p class="text-white/40 text-[10px]">Найдём такую же вещь на площадках</p>
           </div>
         </div>
 
         <div class="glass-card p-5 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
           <div id="calcPhotoUploadZone" class="p-6 border-2 border-dashed border-white/20 hover:border-cyan-500/50 rounded-2xl text-center cursor-pointer hover:bg-white/5 transition active:scale-[0.99]">
-            <span class="text-3xl mb-1.5 block">📸</span>
+            <span class="cl-drop-ico">${window.UI.icon('camera', 26)}</span>
             <span class="text-sm font-bold text-white block">Загрузить фото товара</span>
             <span class="text-xs text-white/50 block mt-1">Скриншот из Poizon, фото с улицы или соцсетей (до 5 шт.)</span>
             <input type="file" id="calcPhotoInput" accept="image/*" multiple class="hidden">
@@ -1056,7 +1056,7 @@ window.renderSmartCalculator = async function() {
           </button>
           <div class="flex-1 min-w-0 text-left">
             <h3 class="text-white font-bold text-sm">Поиск по описанию</h3>
-            <p class="text-white/40 text-[10px]">Поиск по базам китайских маркетплейсов</p>
+            <p class="text-white/40 text-[10px]">Найдём модель на китайских площадках</p>
           </div>
         </div>
 
@@ -1291,39 +1291,39 @@ window.renderSmartCalculator = async function() {
           </div>
 
           <!-- Total All-Inclusive Breakdown -->
-          <div class="bg-cyan-500/10 border border-cyan-500/25 p-4 rounded-2xl text-left space-y-3 mt-4">
+          <div class="cl-box">
             <div class="text-center pb-2 border-b border-white/10">
-              <span class="text-white/50 text-[11px] block">Итоговая стоимость «под ключ» в Беларуси</span>
-              <span class="text-3xl font-black text-cyan-400 font-mono tracking-tight inline-flex items-center justify-center gap-1.5" id="calcTotalBynDisplay">${calc.totalByn.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</span>
-              <span class="text-[10px] text-emerald-400 font-semibold block mt-1">✓ Товар + доставка в РБ + страховка + Европочта</span>
+              <span class="cl-cap">Цена под ключ в Беларуси</span>
+              <span class="cl-total" id="calcTotalBynDisplay">${(window.UI ? window.UI.money(calc.totalByn, { keepCents: true, digits: 2 }) : calc.totalByn.toFixed(2))}</span>
+              <span class="cl-incl">${window.UI.icon('checkCircle', 14)}Вещь, доставка, страховка и Европочта</span>
             </div>
 
             <!-- Details Spoiler -->
             <details class="text-xs text-white/70 cursor-pointer" open>
               <summary class="font-bold text-cyan-300 hover:text-cyan-200 select-none flex items-center justify-between py-1">
-                <span>📋 Что входит в стоимость?</span>
-                <span class="text-[10px] text-white/40">детализация ▼</span>
+                <span>Из чего складывается цена</span>
+                <span class="cl-sum-chev">${window.UI.icon('chevD', 16)}</span>
               </summary>
               <div class="space-y-1.5 pt-2 text-[11px]">
                 <div class="flex justify-between text-white/60">
                   <span>Выкуп товара (<span id="calcDetailCnyPrice">${calc.priceCny}</span> ¥ по курсу ${calc.cnyRate}):</span>
-                  <span class="font-mono text-white font-semibold inline-flex items-center gap-0.5" id="calcDetailProductByn">${calc.productByn.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
+                  <span class="font-mono text-white font-semibold inline-flex items-center gap-0.5" id="calcDetailProductByn">${(window.UI ? window.UI.money(calc.productByn, { keepCents: true, digits: 2 }) : calc.productByn.toFixed(2))}</span>
                 </div>
                 <div class="flex justify-between text-white/60">
                   <span>Международная доставка (~${calc.weightKg} кг):</span>
-                  <span class="font-mono text-white inline-flex items-center gap-0.5" id="calcDetailShippingByn">${calc.shippingByn.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
+                  <span class="font-mono text-white inline-flex items-center gap-0.5" id="calcDetailShippingByn">${(window.UI ? window.UI.money(calc.shippingByn, { keepCents: true, digits: 2 }) : calc.shippingByn.toFixed(2))}</span>
                 </div>
                 <div class="flex justify-between text-white/60">
                   <span>Обязательная страховка (2%):</span>
-                  <span class="font-mono text-white inline-flex items-center gap-0.5" id="calcDetailInsuranceByn">${calc.insuranceByn.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
+                  <span class="font-mono text-white inline-flex items-center gap-0.5" id="calcDetailInsuranceByn">${(window.UI ? window.UI.money(calc.insuranceByn, { keepCents: true, digits: 2 }) : calc.insuranceByn.toFixed(2))}</span>
                 </div>
                 <div class="flex justify-between text-white/60">
                   <span>Доставка Европочтой по Беларуси:</span>
-                  <span class="font-mono text-white inline-flex items-center gap-0.5">5.00 ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
+                  <span class="font-mono text-white inline-flex items-center gap-0.5">${window.UI ? window.UI.money(5, { keepCents: true, digits: 2 }) : '5.00'}</span>
                 </div>
                 <div class="flex justify-between text-white/60">
                   <span>Комиссия сервиса ICE LOGIX:</span>
-                  <span class="font-mono text-white inline-flex items-center gap-0.5" id="calcDetailCommissionByn">${calc.commissionByn.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
+                  <span class="font-mono text-white inline-flex items-center gap-0.5" id="calcDetailCommissionByn">${(window.UI ? window.UI.money(calc.commissionByn, { keepCents: true, digits: 2 }) : calc.commissionByn.toFixed(2))}</span>
                 </div>
               </div>
             </details>
@@ -1332,15 +1332,15 @@ window.renderSmartCalculator = async function() {
           <!-- Action Buttons -->
           <div class="flex flex-col gap-2.5 mt-5">
             <button type="button" id="calcInstantOrderBtn" class="btn-primary w-full py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-cyan-500/25 active:scale-[0.98] transition">
-              <span>⚡ Оформить заказ сейчас</span>
+              <span class="inline-flex items-center gap-2">${window.UI.icon('zap', 18)}Оформить заказ</span>
             </button>
 
             <button type="button" id="calcAddToCartBtn" class="w-full py-3.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] transition">
-              <span>🛒 Добавить в корзину</span>
+              <span class="inline-flex items-center gap-2">${window.UI.icon('cart', 18)}В корзину</span>
             </button>
 
             <button type="button" class="w-full py-2.5 rounded-xl text-white/40 hover:text-white/70 text-xs font-semibold bg-transparent border-0 cursor-pointer transition" onclick="window.setCalcMode('hub')">
-              ← Рассчитать другой товар
+              Посчитать другую вещь
             </button>
           </div>
         </div>
@@ -1642,7 +1642,7 @@ window.renderSmartCalculator = async function() {
 
                     if (statusBox) {
                       if (checkData?.status === 'processing') {
-                        statusBox.innerHTML = '<span class="animate-spin inline-block mr-1">📲</span> Эмулятор считывает опции, размеры и студийные фото…';
+                        statusBox.innerHTML = '<span class="ug-load"><i></i>Открываем страницу товара, смотрим размеры и фото…</span>';
                       } else if (checkData?.status === 'pdd_pending' && i > 5) {
                         statusBox.innerHTML = '<span class="animate-spin inline-block mr-1">⚡</span> Эмулятор в очереди, запуск защищенного шлюза…';
                       }
@@ -1795,7 +1795,7 @@ window.renderSmartCalculator = async function() {
 
             if (resultsBox) {
               resultsBox.classList.remove('hidden');
-              resultsBox.innerHTML = '<div class="glass-card p-4 text-center text-xs text-cyan-300 bg-cyan-950/20 border border-cyan-500/30 rounded-2xl"><span class="animate-spin inline-block mr-1">⌛</span> Нейросеть распознает фото и опрашивает маркетплейсы...</div>';
+              resultsBox.innerHTML = '<div class="glass-card p-4 text-center"><span class="ug-load"><i></i>Ищем вещь по фото на площадках…</span></div>';
             }
 
             try {

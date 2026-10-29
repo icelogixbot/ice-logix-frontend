@@ -284,5 +284,8 @@
     return it.imageUrl || it.image_url || it.image || (Array.isArray(o.photo_reports) && o.photo_reports[0]) || '';
   }
 
+  // Старые модули (оформление заказа, окна профиля) зовут escHtmlC, которого нигде не было — даём им общий esc
+  if (typeof window.escHtmlC !== 'function') window.escHtmlC = esc;
+
   window.UI = { orderTitle, orderImage, orderStatus, icon, esc, money, productPriceByn, productImages, productCard, screenHead, empty, gridSkeleton, toast, sheet };
 })();

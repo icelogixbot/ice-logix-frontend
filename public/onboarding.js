@@ -1,7 +1,7 @@
 // ICE LOGIX — Онбординг-сторис (Vanilla JS, browser-ready)
 // Интеграция: подключить как <script src="./onboarding.js"></script>
 // Использование: window.iceLogixOnboarding.open()
-// Версия: 2026.05.23.01 — Glassmorphism Redesign
+// Версия: 2026.10.30 — новый дизайн: объёмные иконки, только реальные условия сервиса
 
 (function (global) {
   'use strict';
@@ -12,217 +12,53 @@
   const STYLES = `
 .ice-stories-overlay {
   position: fixed; inset: 0; z-index: 9999;
-  background: rgba(5, 11, 20, 0.96);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: #05070B;
   display: flex; align-items: center; justify-content: center;
   animation: iceFadeIn 0.3s ease-out;
-  -webkit-tap-highlight-color: transparent !important;
-  user-select: none;
-  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none;
+  font-family: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
 }
 @keyframes iceFadeIn { from { opacity: 0; } to { opacity: 1; } }
-.ice-story-frame {
-  position: relative;
-  width: 100%; max-width: 420px; height: 100%; max-height: 100vh;
-  background: #060d17 !important;
-  overflow: hidden;
-  display: flex; flex-direction: column;
-  -webkit-tap-highlight-color: transparent !important;
-  outline: none !important;
-  user-select: none !important;
-  -webkit-user-select: none !important;
-}
-@media (min-width: 768px) {
-  .ice-story-frame { 
-    max-height: 90vh; 
-    border-radius: 32px; 
-    box-shadow: 0 25px 80px rgba(0,0,0,0.6), 0 0 80px rgba(77, 163, 255,0.15);
-    border: 1px solid rgba(255,255,255,0.1);
-  }
-}
-.ice-progress-container {
-  position: absolute; top: 16px; left: 16px; right: 16px; z-index: 10;
-  display: flex; gap: 6px;
-}
-.ice-progress-bar {
-  flex: 1; height: 4px; background: rgba(255,255,255,0.2);
-  border-radius: 4px; overflow: hidden;
-}
-.ice-progress-fill {
-  height: 100%; width: 0; 
-  background: linear-gradient(90deg, #4DA3FF, #2E9ED4);
-  border-radius: 4px;
-  transition: width 0.1s linear;
-  box-shadow: 0 0 8px rgba(77, 163, 255,0.5);
-}
+.ice-story-frame { position: relative; width: 100%; max-width: 440px; height: 100%; overflow: hidden; display: flex; flex-direction: column; background: #05070B; }
+@media (min-width: 768px) { .ice-story-frame { max-height: 92vh; border-radius: 32px; border: 1px solid #1C2738; box-shadow: 0 30px 80px rgba(0,0,0,0.6); } }
+.ice-progress-container { position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); left: 16px; right: 64px; z-index: 10; display: flex; gap: 5px; }
+.ice-progress-bar { flex: 1; height: 3px; background: rgba(255,255,255,0.16); border-radius: 3px; overflow: hidden; }
+.ice-progress-fill { height: 100%; width: 0; background: #fff; border-radius: 3px; }
 .ice-progress-fill.complete { width: 100% !important; }
-.ice-close-btn {
-  position: absolute; top: 24px; right: 20px; z-index: 11;
-  width: 36px; height: 36px;
-  background: rgba(255,255,255,0.1);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.2);
-  color: white;
-  font-size: 18px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.3s ease;
-  -webkit-tap-highlight-color: transparent !important;
-}
-.ice-close-btn:hover {
-  background: rgba(255,255,255,0.2);
-  transform: scale(1.05);
-}
-.ice-tap-zone-left, .ice-tap-zone-right {
-  position: absolute; top: 0; bottom: 0; width: 35%; z-index: 5;
-  -webkit-tap-highlight-color: transparent !important;
-  outline: none !important;
-  user-select: none !important;
-  -webkit-user-select: none !important;
-}
-.ice-tap-zone-left { left: 0; }
-.ice-tap-zone-right { right: 0; }
-.ice-slide {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column; justify-content: center; align-items: center;
-  padding: 70px 28px 110px;
-  text-align: center;
-  opacity: 0; pointer-events: none;
-  transition: opacity 0.25s ease;
-  transform: none;
-  background: #060d17 !important;
-  -webkit-tap-highlight-color: transparent !important;
-  outline: none !important;
-}
-.ice-slide.active { 
-  opacity: 1; 
-  pointer-events: auto;
-  transform: none;
-}
-.ice-slide-emoji { 
-  font-size: 72px; 
-  margin-bottom: 20px; 
-  line-height: 1;
-  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
-  animation: iceFloat 3s ease-in-out infinite;
-}
-@keyframes iceFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-.ice-slide-title {
-  font-size: 26px; font-weight: 800; color: white;
-  margin-bottom: 14px; line-height: 1.2;
-  text-shadow: 0 2px 10px rgba(0,0,0,0.3);
-}
-.ice-slide-subtitle {
-  font-size: 15px; color: rgba(255,255,255,0.8);
-  line-height: 1.6; margin-bottom: 16px;
-}
-.ice-slide-list {
-  list-style: none; padding: 0; margin: 16px 0 0 0; text-align: left;
-  color: rgba(255,255,255,0.9); font-size: 14px;
-}
-.ice-slide-list li { 
-  padding: 10px 0; 
-  line-height: 1.5;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-}
-.ice-slide-list li:last-child { border-bottom: none; }
-.ice-slide-card {
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 20px;
-  padding: 16px 20px;
-  border: 1px solid rgba(255,255,255,0.15);
-  color: white; font-size: 14px; line-height: 1.6;
-  margin-top: 16px;
-  max-width: 100%;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-}
-.ice-slide-pre {
-  background: rgba(0,0,0,0.4);
-  backdrop-filter: blur(8px);
-  border-radius: 16px;
-  padding: 14px 18px;
-  font-family: 'JetBrains Mono', Menlo, monospace;
-  font-size: 12px;
-  color: rgba(255,255,255,0.9);
-  white-space: pre;
-  text-align: left;
-  max-width: 100%;
-  overflow-x: auto;
-  margin-top: 16px;
-  border: 1px solid rgba(255,255,255,0.1);
-}
-.ice-slide-table {
-  width: 100%; border-collapse: collapse; color: white; font-size: 13px;
-}
-.ice-slide-table th, .ice-slide-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-  text-align: left;
-}
-.ice-slide-table th { 
-  font-weight: 700; 
-  color: rgba(255,255,255,0.6);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.ice-slide-cta {
-  position: absolute; bottom: 32px; left: 24px; right: 24px;
-  display: flex; flex-direction: column; gap: 12px;
-}
-.ice-btn-primary {
-  width: 100%; padding: 16px 24px;
-  background: linear-gradient(135deg, #4DA3FF 0%, #2E9ED4 100%);
-  color: white;
-  border: none; border-radius: 18px;
-  font-size: 16px; font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 4px 20px rgba(77, 163, 255,0.4);
-}
-.ice-btn-primary:hover { 
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 6px 30px rgba(77, 163, 255,0.5);
-}
-.ice-btn-primary:active { transform: scale(0.98); }
-.ice-btn-secondary {
-  width: 100%; padding: 14px 20px;
-  background: rgba(255,255,255,0.1);
-  backdrop-filter: blur(8px);
-  color: white;
-  border: 1px solid rgba(255,255,255,0.25);
-  border-radius: 16px;
-  font-size: 14px; font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-.ice-btn-secondary:hover {
-  background: rgba(255,255,255,0.15);
-  border-color: rgba(255,255,255,0.35);
-}
-.ice-btn-text {
-  background: transparent; border: none;
-  color: rgba(255,255,255,0.6);
-  font-size: 14px; font-weight: 500;
-  cursor: pointer;
-  padding: 8px;
-  transition: color 0.2s ease;
-}
-.ice-btn-text:hover { color: white; }
-.ice-next-hint {
-  position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
-  color: rgba(255,255,255,0.5); font-size: 13px;
-  animation: icePulse 2s infinite;
-  display: flex; align-items: center; gap: 6px;
-}
-@keyframes icePulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+.ice-close-btn { position: absolute; top: calc(4px + env(safe-area-inset-top, 0px)); right: 12px; z-index: 11; width: 40px; height: 40px; border-radius: 13px; border: 0; background: rgba(255,255,255,0.08); color: #F3F6FB; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.ice-tap-zone-left, .ice-tap-zone-right { position: absolute; top: 60px; bottom: 120px; width: 35%; z-index: 5; }
+.ice-tap-zone-left { left: 0; } .ice-tap-zone-right { right: 0; }
+.ice-slide { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 80px 24px 130px; text-align: center; opacity: 0; pointer-events: none; transition: opacity .3s ease; }
+.ice-slide.active { opacity: 1; pointer-events: auto; }
+.ice-slide-glow { position: absolute; inset: 0; z-index: -1; background: radial-gradient(70% 45% at 50% 30%, var(--g, rgba(47,134,245,0.35)), transparent 70%); }
+.ice-slide.active .ice-slide-art { animation: icePop .55s cubic-bezier(.3,1.5,.5,1) both; }
+@keyframes icePop { from { transform: scale(.6) rotate(-10deg); opacity: 0; } to { transform: scale(1) rotate(-6deg); opacity: 1; } }
+.ice-slide-art { width: 112px; height: 112px; margin-bottom: 26px; border-radius: 34px; display: flex; align-items: center; justify-content: center; color: #fff; transform: rotate(-6deg);
+  background: var(--a, linear-gradient(150deg, #5AA8FF, #1650B8));
+  box-shadow: 0 26px 50px -16px var(--s, rgba(31,111,224,0.9)), inset 0 3px 0 rgba(255,255,255,0.35), inset 0 -8px 16px rgba(0,20,70,0.35); }
+.ice-slide-art svg { width: 52px; height: 52px; }
+.ice-slide-art img { width: 96px; height: 96px; object-fit: contain; }
+.ice-slide-title { margin: 0 0 10px; font-size: 28px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; color: #F3F6FB; }
+.ice-slide-subtitle { margin: 0; max-width: 340px; font-size: 15.5px; line-height: 1.55; color: #A3AFC2; }
+.ice-slide-list { list-style: none; padding: 6px 16px; margin: 22px 0 0; width: 100%; max-width: 380px; text-align: left; border-radius: 20px; background: #0B1018; border: 1px solid #1C2738; }
+.ice-slide-list li { display: flex; align-items: center; gap: 12px; padding: 12px 0; font-size: 15px; line-height: 1.4; color: #F3F6FB; border-bottom: 1px solid #1C2738; }
+.ice-slide-list li:last-child { border-bottom: 0; }
+.ice-slide-list li > i { width: 36px; height: 36px; flex-shrink: 0; border-radius: 11px; background: rgba(77,163,255,0.13); color: #4DA3FF; display: flex; align-items: center; justify-content: center; font-style: normal; }
+.ice-slide-list li > i svg { width: 19px; height: 19px; }
+.ice-slide-list b { color: #fff; }
+.ice-slide-bill { width: 100%; max-width: 340px; margin-top: 22px; padding: 6px 16px; border-radius: 20px; background: #0B1018; border: 1px solid #1C2738; text-align: left; }
+.ice-slide-bill div { display: flex; justify-content: space-between; padding: 10px 0; font-size: 15px; color: #A3AFC2; border-bottom: 1px solid #1C2738; }
+.ice-slide-bill div b { color: #F3F6FB; font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 3px; }
+.ice-slide-bill div:last-child { border-bottom: 0; font-size: 17px; color: #F3F6FB; font-weight: 800; }
+.ice-slide-bill div:last-child b { font-size: 20px; }
+.ice-slide-bill small { display: block; padding: 8px 0 6px; font-size: 12px; color: #7C899D; }
+.ice-slide-cta { position: absolute; bottom: calc(26px + env(safe-area-inset-bottom, 0px)); left: 20px; right: 20px; z-index: 6; display: flex; flex-direction: column; gap: 10px; }
+.ice-btn-primary { height: 54px; border: 0; border-radius: 16px; background: #1F6FE0; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 14px 28px -12px rgba(31,111,224,0.9); }
+.ice-btn-primary:active, .ice-btn-secondary:active { transform: scale(0.98); }
+.ice-btn-secondary { height: 50px; border: 1px solid #2A3A52; border-radius: 16px; background: transparent; color: #F3F6FB; font-size: 15px; font-weight: 700; cursor: pointer; }
+.ice-btn-text { height: 40px; border: 0; background: transparent; color: #7C899D; font-size: 14px; font-weight: 600; cursor: pointer; }
+.ice-next-hint { position: absolute; bottom: calc(34px + env(safe-area-inset-bottom, 0px)); left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 6px; color: #7C899D; font-size: 13.5px; font-weight: 600; animation: icePulse 2s infinite; }
+@keyframes icePulse { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
 `;
 
   function injectStyles() {
@@ -236,97 +72,54 @@
   // =====================================================================
   // 2. КОНТЕНТ СЛАЙДОВ - Ice Theme
   // =====================================================================
+  // Иконки берём из общего набора приложения (window.UI), он уже загружен к моменту показа
+  const ic = (name) => (global.UI && global.UI.icon ? global.UI.icon(name, 22) : '');
+  const rub = () => (global.bynSign ? global.bynSign({ size: '0.85em' }) : '');
+
   const SLIDES = [
     {
-      emoji: '❄️',
-      title: 'Добро пожаловать в ICE LOGIX!',
-      subtitle: 'Доставляем мечту из любой точки мира. Poizon, Taobao, Zalando, ASOS и 50+ площадок',
-      bg: 'linear-gradient(165deg, #0A1628 0%, #0F2847 50%, #1A3A5C 100%)',
+      art: 'logo',
+      title: 'Вещи из Китая с доставкой в Беларусь',
+      subtitle: 'Poizon, Taobao, 1688 и другие площадки. Выкупим, проверим и привезём.',
     },
     {
-      emoji: '🛍️',
-      title: 'Как это работает?',
-      subtitle: '',
-      bg: 'linear-gradient(165deg, #0A1628 0%, #0F2847 100%)',
+      art: 'link',
+      glow: 'rgba(47,134,245,0.32)',
+      title: 'Как это работает',
       list: [
-        '🔗 Находишь товар и скидываешь нам ссылку',
-        '💰 Мы считаем полную стоимость — без сюрпризов',
-        '📦 Покупаем, проверяем, доставляем до двери',
+        ['link', 'Присылаете ссылку, фото или название вещи'],
+        ['calc', 'Сразу видите цену под ключ'],
+        ['box', 'Выкупаем, проверяем и отправляем'],
+        ['truck', 'Через 10–15 дней забираете в Беларуси'],
       ],
     },
     {
-      emoji: '🌍',
-      title: 'Доставляем из 4+ стран',
-      subtitle: '',
-      bg: 'linear-gradient(165deg, #0A1628 0%, #0F2847 100%)',
+      art: 'receipt',
+      glow: 'rgba(61,214,140,0.25)',
+      a: 'linear-gradient(150deg, #8AF2BE, #1E9E62)', s: 'rgba(43,191,118,0.8)',
+      title: 'Цена без сюрпризов',
+      subtitle: 'В итог уже входит всё: вещь, доставка и наша работа.',
+      bill: true,
+    },
+    {
+      art: 'gift',
+      glow: 'rgba(255,194,74,0.25)',
+      a: 'linear-gradient(150deg, #FFE08A, #E4962B)', s: 'rgba(242,169,59,0.8)',
+      title: 'Бонусы и кошелёк',
       list: [
-        '🇨🇳 <b>Китай</b> — Poizon, Dewu, Taobao, 1688',
-        '🇵🇱 <b>Польша / ЕС</b> — Zalando, ASOS, H&M',
-        '🇷🇺 <b>Россия</b> — Lamoda, WB, Ozon',
-      ],
-      card: '🕒 США, Япония, Корея, ОАЭ — <b>скоро добавим</b>',
-    },
-    {
-      emoji: '💎',
-      title: 'Честные цены',
-      subtitle: 'Всё включено в итоговую стоимость',
-      bg: 'linear-gradient(165deg, #0A1628 0%, #0F2847 100%)',
-      pre: `📦 Товар:              281 BYN
-✈️ Доставка:            42 BYN
-🤝 Комиссия:           58 BYN
-═══════════════════════════
-💵 ИТОГО:             381 BYN`,
-    },
-    {
-      emoji: '❄️',
-      title: 'Что такое ICE?',
-      subtitle: 'Наша внутренняя валюта = ваша выгода',
-      bg: 'linear-gradient(165deg, #0A1628 0%, #1A7BB5 100%)',
-      list: [
-        '⚖️ <b>1 BYN = 1 ICE</b> — простой курс',
-        '🎁 Кэшбэк с каждого заказа',
-        '💰 Тратишь на следующие покупки (до 50%)',
-        '👥 Бонусы за приглашённых друзей',
+        ['wallet', 'Баланс в рублях: платите заказы в один тап'],
+        ['users', '<b>7%</b> с заказов друзей, другу <b>3%</b> кэшбэка'],
+        ['gift', 'Баллы меняются на скидки и подарки'],
       ],
     },
     {
-      emoji: '📈',
-      title: 'Программа лояльности',
-      subtitle: 'Больше заказов = больше выгоды',
-      bg: 'linear-gradient(165deg, #0A1628 0%, #0F2847 100%)',
-      table: [
-        ['Уровень', 'Заказов', 'Бонус'],
-        ['🆕 Новичок', '1-3', 'Стандарт'],
-        ['🛍️ Шопоголик', '4-10', '−10% комиссия'],
-        ['💎 VIP', '11+', '−20% + приоритет'],
-      ],
-    },
-    {
-      emoji: '⏱️',
-      title: 'Сроки доставки',
-      subtitle: '',
-      bg: 'linear-gradient(165deg, #0A1628 0%, #0F2847 100%)',
-      list: [
-        '🇨🇳 <b>Китай</b>: 10-15 дней (авиа) или 30-45 (море)',
-        '🇵🇱 <b>Польша</b>: 5-10 дней',
-        '🇷🇺 <b>Россия</b>: 3-7 дней',
-      ],
-      card: '📍 Доставка до любого города Беларуси',
-    },
-    {
-      emoji: '🚀',
-      title: 'Готовы начать?',
-      subtitle: 'Создайте первый заказ прямо сейчас',
-      bg: 'linear-gradient(165deg, #0A1628 0%, #1A7BB5 60%, #4DA3FF 100%)',
-      list: [
-        '⚡ Регистрация за 30 секунд',
-        '🎁 Приветственный бонус: <b>15 ICE</b>',
-        '🧮 Калькулятор работает без регистрации',
-      ],
+      art: 'zap',
+      title: 'Начнём?',
+      subtitle: 'Посчитайте первую вещь, это бесплатно и без регистрации.',
       cta: [
-        { type: 'primary', text: '✨ Создать заказ', action: 'newOrder' },
-        { type: 'secondary', text: '🧮 Посчитать стоимость', action: 'calculator' },
-        { type: 'text', text: 'Закрыть', action: 'close' },
+        { type: 'primary', text: 'Посчитать вещь', action: 'calculator' },
+        { type: 'secondary', text: 'Смотреть площадки', action: 'catalogs' },
+        { type: 'text', text: 'Позже', action: 'close' },
       ],
     },
   ];
@@ -334,7 +127,7 @@
   // =====================================================================
   // 3. СОСТОЯНИЕ + РЕНДЕР
   // =====================================================================
-  const SLIDE_DURATION_MS = 5000;
+  const SLIDE_DURATION_MS = 6000;
   let currentIndex = 0;
   let progressTimer = null;
   let progressStartTs = 0;
@@ -358,7 +151,7 @@
             <div class="ice-progress-bar"><div class="ice-progress-fill" data-slide="${i}"></div></div>
           `).join('')}
         </div>
-        <button class="ice-close-btn" id="iceCloseBtn" aria-label="Закрыть">✕</button>
+        <button type="button" class="ice-close-btn" id="iceCloseBtn" aria-label="Закрыть">${ic('x') || '✕'}</button>
         <div class="ice-tap-zone-left" id="iceZoneLeft"></div>
         <div class="ice-tap-zone-right" id="iceZoneRight"></div>
         ${SLIDES.map((s, i) => renderSlide(s, i)).join('')}
@@ -388,7 +181,10 @@
           if (window.switchTab) window.switchTab('neworder');
         } else if (action === 'calculator') {
           closeOverlay();
-          if (window.switchTab) window.switchTab('calc');
+          if (window.switchTab) window.switchTab('calculator');
+        } else if (action === 'catalogs') {
+          closeOverlay();
+          if (window.switchTab) window.switchTab('catalogs', 'marketplaces');
         }
       });
     });
@@ -398,32 +194,32 @@
   }
 
   function renderSlide(s, idx) {
-    const listHtml = s.list ? `<ul class="ice-slide-list">${s.list.map(item => `<li>${item}</li>`).join('')}</ul>` : '';
-    const cardHtml = s.card ? `<div class="ice-slide-card">${s.card}</div>` : '';
-    const preHtml = s.pre ? `<div class="ice-slide-pre">${s.pre}</div>` : '';
-    let tableHtml = '';
-    if (s.table) {
-      const [header, ...rows] = s.table;
-      tableHtml = `<div class="ice-slide-card" style="padding:8px 10px;"><table class="ice-slide-table"><thead><tr>${header.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
-    }
+    const art = s.art === 'logo' ? '<img src="/assets/logo.png" alt="">' : ic(s.art);
+    const artStyle = s.art === 'logo' ? 'background:linear-gradient(150deg,#123A80,#0B1B3E)' : (s.a ? `--a:${s.a};--s:${s.s}` : '');
+    const listHtml = s.list ? `<ul class="ice-slide-list">${s.list.map(([icon, text]) => `<li><i>${ic(icon)}</i><span>${text}</span></li>`).join('')}</ul>` : '';
+    const billHtml = s.bill ? `
+      <div class="ice-slide-bill">
+        <small>Пример: кроссовки за 625 ¥</small>
+        <div><span>Вещь</span><b>281${rub()}</b></div>
+        <div><span>Доставка</span><b>42${rub()}</b></div>
+        <div><span>Комиссия</span><b>58${rub()}</b></div>
+        <div><span>Итого</span><b>381${rub()}</b></div>
+      </div>` : '';
     const ctaHtml = s.cta
       ? `<div class="ice-slide-cta">${s.cta.map(c => {
           const cls = c.type === 'primary' ? 'ice-btn-primary' : c.type === 'secondary' ? 'ice-btn-secondary' : 'ice-btn-text';
-          return `<button class="${cls}" data-cta="${c.action}">${c.text}</button>`;
+          return `<button type="button" class="${cls}" data-cta="${c.action}">${c.text}</button>`;
         }).join('')}</div>`
-      : `<div class="ice-next-hint">Тап для следующего →</div>`;
-
-    const subtitleHtml = s.subtitle ? `<p class="ice-slide-subtitle">${s.subtitle}</p>` : '';
+      : `<div class="ice-next-hint">Нажмите, чтобы дальше ${ic('chevR')}</div>`;
 
     return `
-      <div class="ice-slide" data-slide="${idx}" style="background: #060d17;">
-        <div class="ice-slide-emoji">${s.emoji}</div>
+      <div class="ice-slide" data-slide="${idx}" style="${s.glow ? `--g:${s.glow}` : ''}">
+        <div class="ice-slide-glow"></div>
+        <div class="ice-slide-art" style="${artStyle}">${art}</div>
         <h2 class="ice-slide-title">${s.title}</h2>
-        ${subtitleHtml}
+        ${s.subtitle ? `<p class="ice-slide-subtitle">${s.subtitle}</p>` : ''}
         ${listHtml}
-        ${cardHtml}
-        ${preHtml}
-        ${tableHtml}
+        ${billHtml}
         ${ctaHtml}
       </div>
     `;

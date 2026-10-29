@@ -203,12 +203,9 @@ window.applySmartShareLink = applySmartShareLink;
       if (window.buyerVacation && window.buyerVacation.active) {
         const days = window.buyerVacation.days || 0;
         vacationBanner = `
-          <div class="mb-4 p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-sm flex gap-3 items-center">
-            <span class="text-2xl">🌴</span>
-            <div class="text-left">
-              <p class="font-bold">Байеры на каникулах</p>
-              <p class="text-xs text-white/70 mt-0.5">Все сроки доставки увеличены на ${days} дн. Создание заказов доступно в обычном режиме.</p>
-            </div>
+          <div class="no-vac">
+            <span>${window.UI.icon('calendar', 20)}</span>
+            <div><b>Байеры на каникулах</b><p>Сроки доставки сдвигаются на ${days} дн. Заказы оформлять можно как обычно.</p></div>
           </div>
         `;
       }
@@ -235,116 +232,55 @@ window.applySmartShareLink = applySmartShareLink;
 
           // If no items in order, guide user to Calculator or Catalog
           if (!hasExistingItems) {
+            const U = window.UI;
             return `
-              <div class="space-y-4 page-enter">
-                <div class="flex items-center gap-3 mb-2">
-                  <button type="button" class="global-back-btn !mb-0" onclick="switchTab('home')" title="Назад на главную">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="15 18 9 12 15 6"/>
-                    </svg>
-                  </button>
-                  <p class="text-xs text-white/60">Назад на главную</p>
+              <div class="rd-screen page-enter no">
+                <div class="rd-head">
+                  <button type="button" class="rd-back" onclick="window.goBackGlobal()" aria-label="Назад">${U.icon('chevL', 22)}</button>
+                  <div class="rd-head-txt"><h1 class="rd-head-title">Оформление заказа</h1><p class="rd-head-sub">Добавьте вещь, и мы её выкупим</p></div>
                 </div>
-
-                <div class="glass-card p-6 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl text-center space-y-4" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
-                  <div class="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-3xl shadow-lg shadow-cyan-500/20 mb-1">
-                    🛍️
-                  </div>
-                  <h2 class="text-xl font-extrabold text-white">Оформление заказа</h2>
-                  <p class="text-white/60 text-xs max-w-xs mx-auto">В заказе пока нет выбранных товаров. Рассчитайте стоимость в умном калькуляторе или выберите товар в каталоге.</p>
-                  
-                  ${vacationBanner}
-
-                  <div class="flex flex-col gap-2.5 pt-2">
-                    <button type="button" class="btn-primary w-full py-3.5 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-cyan-500/20" onclick="switchTab('calculator')">
-                      🧮 Рассчитать в Калькуляторе
-                    </button>
-                    <button type="button" class="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer" onclick="switchTab('catalogs')">
-                      🔍 Выбрать в Каталоге
-                    </button>
-                    <button type="button" class="w-full py-2.5 text-white/50 hover:text-cyan-400 text-xs font-semibold bg-transparent border-0 cursor-pointer transition" onclick="window.setOrderAddSubMode('import')">
-                      📥 Или выбрать из сохраненных расчетов
-                    </button>
-                  </div>
+                ${vacationBanner}
+                <div class="no-hero">
+                  <div class="no-art" aria-hidden="true"><span>${U.icon('bag', 40)}</span><i>${U.icon('plus', 18, { stroke: 2.6 })}</i></div>
+                  <h2>В заказе пока пусто</h2>
+                  <p>Посчитайте цену вещи по ссылке, фото или названию, и она сразу попадёт сюда.</p>
+                </div>
+                <div class="rd-card rd-list">
+                  <div class="rd-row" role="button" tabindex="0" onclick="switchTab('calculator')"><span class="rd-ico">${U.icon('calc', 22)}</span><span class="rd-row-body"><span class="rd-row-title">Рассчитать вещь</span><span class="rd-row-text">По ссылке, фото или названию</span></span>${U.icon('chevR', 18)}</div>
+                  <div class="rd-row" role="button" tabindex="0" onclick="window.setOrderAddSubMode('import')"><span class="rd-ico">${U.icon('history', 22)}</span><span class="rd-row-body"><span class="rd-row-title">Из моих расчётов</span><span class="rd-row-text">Взять то, что уже посчитали</span></span>${U.icon('chevR', 18)}</div>
+                  <div class="rd-row" role="button" tabindex="0" onclick="switchTab('catalogs')"><span class="rd-ico">${U.icon('grid', 22)}</span><span class="rd-row-body"><span class="rd-row-title">Выбрать в каталоге</span><span class="rd-row-text">Площадки и готовые подборки</span></span>${U.icon('chevR', 18)}</div>
                 </div>
               </div>
-              ${renderFooter()}
             `;
           }
 
+          const U = window.UI;
           return `
-          <style>
-            .order-mode-card {
-              transition: all 0.2s ease-in-out;
-            }
-            .order-mode-card:hover {
-              border-color: rgba(77, 163, 255, 0.4) !important;
-              transform: translateY(-2px) scale(1.01);
-              box-shadow: 0 4px 20px -2px rgba(77, 163, 255, 0.15);
-            }
-            .order-mode-card:active {
-              transform: scale(0.97) !important;
-              background-color: rgba(77, 163, 255, 0.08) !important;
-              border-color: rgba(77, 163, 255, 0.7) !important;
-              box-shadow: 0 0 10px rgba(77, 163, 255, 0.3);
-            }
-          </style>
-
-          <div class="space-y-4 page-enter">
-            <div class="flex items-center gap-3 mb-2">
-              <button type="button" class="global-back-btn !mb-0" onclick="window.orderAddMode = false; renderCurrentScreen();" title="Назад к заказу">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="15 18 9 12 15 6"/>
-                </svg>
-              </button>
-              <p class="text-xs text-white/60">Вернуться к заказу</p>
+          <div class="rd-screen page-enter no">
+            <div class="rd-head">
+              <button type="button" class="rd-back" onclick="window.orderAddMode = false; renderCurrentScreen();" aria-label="Назад к заказу">${U.icon('chevL', 22)}</button>
+              <div class="rd-head-txt"><h1 class="rd-head-title">Добавить вещь</h1><p class="rd-head-sub">Выберите, откуда взять товар</p></div>
             </div>
-
-            <div class="glass-card p-5 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
-              <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
-              <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #4DA3FF;"></div>
-
-              <h2 class="text-xl font-extrabold text-white text-center mb-1">Добавление товара к заказу</h2>
-              <p class="text-white/60 text-xs text-center mb-5">Выберите способ добавления товара</p>
-              
-              ${vacationBanner}
-
-              <div class="flex flex-col gap-3">
-                <!-- Import from calculator -->
-                <div class="order-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="window.setOrderAddSubMode('import')">
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-green-500/10 border border-green-500/25 flex items-center justify-center text-green-400 text-lg">
-                      📥
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <h3 class="font-bold text-white text-sm">Импорт из расчетов</h3>
-                      <p class="text-white/50 text-[11px] leading-normal mt-0.5">Выберите готовый расчет из вашей истории калькулятора.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Calculator redirect -->
-                <div class="order-mode-card border border-white/10 hover:border-cyan-500/50 p-4 rounded-2xl bg-white/5 cursor-pointer transition-all duration-300" onclick="switchTab('calculator')">
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center text-cyan-400 text-lg">
-                      🧮
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <h3 class="font-bold text-white text-sm">Рассчитать новый товар</h3>
-                      <p class="text-white/50 text-[11px] leading-normal mt-0.5">По фото, ссылке через эмулятор или описанию.</p>
-                    </div>
-                  </div>
-                </div>
+            ${vacationBanner}
+            <div class="rd-modes">
+              <div class="rd-mode order-mode-card" role="button" tabindex="0" onclick="window.setOrderAddSubMode('import')">
+                <span class="rd-mode-ico">${U.icon('history', 24)}</span>
+                <span class="rd-mode-body"><span class="rd-mode-title">Из моих расчётов</span><span class="rd-mode-text">Выберите готовый расчёт из истории</span></span>
+                ${U.icon('chevR', 20)}
+              </div>
+              <div class="rd-mode order-mode-card" role="button" tabindex="0" onclick="switchTab('calculator')">
+                <span class="rd-mode-ico">${U.icon('calc', 24)}</span>
+                <span class="rd-mode-body"><span class="rd-mode-title">Посчитать новую вещь</span><span class="rd-mode-text">По ссылке, фото или названию</span></span>
+                ${U.icon('chevR', 20)}
               </div>
             </div>
           </div>
-          ${renderFooter()}
         `;
       }
 
         // ── STEP C: Product addition Form ──
         const subMode = window.orderAddSubMode;
-        const subModeText = subMode === 'link' ? '🔗 По ссылке' : subMode === 'photo' ? '📸 По фото' : subMode === 'import' ? '📥 Из расчетов' : '📝 По описанию';
+        const subModeText = subMode === 'link' ? 'По ссылке' : subMode === 'photo' ? 'По фото' : subMode === 'import' ? 'Из расчётов' : 'По описанию';
         const showFormFields = Boolean(window.orderLinkAnalyzed);
         const pending = window._pendingImportCalc || null;
         if (pending && pending.image_url) {
@@ -370,15 +306,7 @@ window.applySmartShareLink = applySmartShareLink;
             const countryObj = ALL_COUNTRIES.find(x => x.code === window.orderCountry);
             const countryName = countryObj ? countryObj.name : (window.orderCountry === 'CN' ? 'Китай' : window.orderCountry);
             importListHtml = `
-              <div class="text-center py-8 text-white/50 text-xs bg-white/5 rounded-2xl border border-white/10 p-5 space-y-3">
-                <span class="text-3xl mb-1 block">📭</span>
-                <p class="font-bold text-white text-sm">История расчетов для этой страны пуста</p>
-                <p class="text-white/40 text-xs leading-relaxed">Сначала сделайте расчет интересующего товара в Калькуляторе для страны: <strong class="text-cyan-400">${countryName}</strong></p>
-                <button type="button" class="btn-primary px-4 py-2.5 rounded-xl text-xs font-bold transition active:scale-95 inline-flex items-center gap-1.5 shadow-lg" onclick="window.switchTab('calculator')">
-                  <span>📐</span>
-                  <span>Открыть калькулятор</span>
-                </button>
-              </div>
+              ${window.UI.empty({ icon: 'calc', title: 'Расчётов пока нет', text: `Сначала посчитайте вещь в калькуляторе (страна: ${countryName}).`, action: 'Открыть калькулятор', onclick: "window.switchTab('calculator')" })}
             `;
           } else {
             importListHtml = filteredCalcs.slice(0, 20).map((c, idx) => {
@@ -391,7 +319,7 @@ window.applySmartShareLink = applySmartShareLink;
                   ${imageHtml}
                   <div class="flex-1 min-w-0 flex flex-col justify-between">
                     <div class="flex justify-between items-center text-[9px] text-white/40 mb-1">
-                      <span>⏱️ ${dateStr}</span>
+                      <span>${dateStr}</span>
                       <span>${escHtmlC(c.marketplace || 'Poizon')}</span>
                     </div>
                     <h4 class="text-white font-bold text-xs truncate" title="${escHtmlC(c.title || 'Товар без названия')}">${escHtmlC(c.title || 'Товар без названия')}</h4>
@@ -408,30 +336,14 @@ window.applySmartShareLink = applySmartShareLink;
         }
 
         return `
-          <div class="space-y-4 page-enter">
-            <div class="flex items-center gap-3 mb-2">
-              <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад к выбору способа">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="15 18 9 12 15 6"/>
-                </svg>
-              </button>
-              <p class="text-xs text-white/60">К выбору способа</p>
+          <div class="rd-screen page-enter no no-form">
+            <div class="rd-head">
+              <button type="button" class="rd-back" onclick="window.goBackGlobal()" aria-label="Назад">${window.UI.icon('chevL', 22)}</button>
+              <div class="rd-head-txt"><h1 class="rd-head-title">Добавить вещь</h1><p class="rd-head-sub">Способ: ${subModeText}</p></div>
+              <button type="button" class="rd-btn rd-btn-sm rd-btn-ghost" onclick="window.orderAddSubMode=null; window.orderLinkAnalyzed=false; renderCurrentScreen()">Сменить</button>
             </div>
 
-            <div class="glass-card p-5 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
-              <div class="absolute -left-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: var(--ice-primary);"></div>
-              <div class="absolute -right-20 -bottom-20 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #4DA3FF;"></div>
-
-              <!-- Mode Indicator -->
-              <div class="flex justify-between items-center bg-white/5 p-3 rounded-2xl border border-white/5 mb-4">
-                <div class="text-left">
-                  <span class="text-[10px] text-white/40 block">Способ добавления</span>
-                  <span class="text-xs font-bold text-white">${subModeText}</span>
-                </div>
-                <button type="button" class="text-[10px] text-cyan-400 font-bold bg-white/10 px-2.5 py-1 rounded-lg hover:bg-white/15 transition active:scale-95 border border-white/5" onclick="window.orderAddSubMode=null; window.orderLinkAnalyzed=false; renderCurrentScreen()">
-                  Сменить способ
-                </button>
-              </div>
+            <div class="glass-card no-card">
 
             <!-- Mode-specific input views -->
             <!-- Import Pane -->
@@ -488,7 +400,7 @@ window.applySmartShareLink = applySmartShareLink;
               <div class="mb-3">
                 <div class="flex justify-between items-center mb-1">
                   <label class="text-white/70 text-sm">Ссылка на товар <span class="text-white/40 text-xs font-normal">(необязательно)</span></label>
-                  <span class="text-[10px] text-cyan-400 font-medium flex items-center gap-1">✨ Автоочистка</span>
+                  <span class="no-tag">Сама уберёт лишнее</span>
                 </div>
                 <div class="flex gap-1 bg-white/5 border border-white/30 rounded-xl overflow-hidden px-1.5 py-1">
                   <input type="text" id="orderUrlManual" class="bg-transparent flex-1 border-0 outline-none p-2 text-sm text-white" placeholder="Вставьте ссылку на Poizon, Taobao, 1688..." value="${escHtmlC(pending?.url || '')}">
@@ -558,7 +470,7 @@ window.applySmartShareLink = applySmartShareLink;
 
                 <!-- Sizing -->
                 <div class="border border-cyan-500/20 bg-cyan-500/5 p-3 rounded-xl">
-                  <p class="text-cyan-400 text-xs font-bold mb-1">Ввод замеров для ИИ-подбора размера (Рекомендуется)</p>
+                  <p class="no-sub-t">Ваши замеры, чтобы подобрать размер</p>
                   <div class="grid grid-cols-3 gap-2">
                     <div>
                       <label class="text-white/40 text-[9px] block">Рост (см)</label>

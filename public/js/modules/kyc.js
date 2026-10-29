@@ -498,6 +498,9 @@
       console.warn('Error loading KYC status:', e);
     }
 
+    // Пока грузились данные, человек мог уйти на другой экран — тогда не перерисовываем его
+    if (typeof currentTab !== 'undefined' && currentTab !== 'kyc') return;
+
     const status = userKyc.kyc_status;
     const isVerified = status === 'verified' && !window._kycForceResubmit;
     const isPending = status === 'pending' && !window._kycForceResubmit;
@@ -507,31 +510,13 @@
     content.innerHTML = `
       <div class="px-4 page-enter max-w-lg mx-auto">
         
-        <!-- Header экрана с кнопкой Назад -->
-        <div class="flex items-center justify-between mb-4 mt-2">
-          <div class="flex items-center gap-3">
-            <button type="button" class="global-back-btn !mb-0" id="kycHeaderBackBtn" title="Назад">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="15 18 9 12 15 6"/>
-              </svg>
-            </button>
-            <div>
-              <h2 class="text-xl font-bold text-white tracking-wide">Мои данные</h2>
-              <p class="text-[11px] text-white/40">
-                ${isVerified ? 'Паспортные данные, получатели и размеры' : 'Таможенная верификация и первый заказ'}
-              </p>
-            </div>
+        <div class="rd-head">
+          <button type="button" class="rd-back" id="kycHeaderBackBtn" aria-label="Назад">${window.UI.icon('chevL', 22)}</button>
+          <div class="rd-head-txt">
+            <h1 class="rd-head-title">Мои данные</h1>
+            <p class="rd-head-sub">${isVerified ? 'Паспорт, получатели и размеры' : 'Для таможни и первого заказа'}</p>
           </div>
-          <div class="flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full ${
-              isVerified ? 'bg-emerald-400 animate-pulse' :
-              isPending ? 'bg-amber-400 animate-pulse' :
-              status === 'rejected' ? 'bg-rose-500' : 'bg-cyan-400 animate-pulse'
-            }"></span>
-            <span class="text-xs font-bold uppercase tracking-wider text-white/60">
-              ${isVerified ? 'Подтверждено' : (isPending ? 'На проверке' : (status === 'rejected' ? 'Отклонено' : 'Верификация'))}
-            </span>
-          </div>
+          <span class="rd-status ${isVerified ? 'ok' : isPending ? 'warn' : status === 'rejected' ? 'bad' : ''}">${isVerified ? 'Подтверждено' : (isPending ? 'На проверке' : (status === 'rejected' ? 'Нужно исправить' : 'Не заполнено'))}</span>
         </div>
 
         ${isVerified ? `
@@ -1451,103 +1436,30 @@
   function renderKycIntroState(userKyc) {
     const isRejected = userKyc.kyc_status === 'rejected';
 
+    const U = window.UI;
     return `
-      <div class="space-y-4 page-enter">
+      <div class="page-enter ky">
         ${isRejected ? `
-          <div class="p-4 rounded-3xl bg-rose-950/40 border border-rose-500/30 text-xs text-rose-300 space-y-1 shadow-lg">
-            <div class="flex items-center gap-2 font-bold text-rose-200">
-              <span class="text-sm">⚠️</span>
-              <span>Требуется повторная верификация</span>
-            </div>
-            <p class="text-[11px] text-white/70">
-              Причина: ${userKyc.kyc_rejection_reason || 'Нечеткое фото документа или опечатка в реквизитах'}. Отсканируйте паспорт заново.
-            </p>
+          <div class="ky-alert">
+            <span>${U.icon('alert', 20)}</span>
+            <div><b>Нужно сфотографировать паспорт ещё раз</b><p>Причина: ${U.esc(userKyc.kyc_rejection_reason || 'фото было нечётким или в данных опечатка')}.</p></div>
           </div>
         ` : ''}
 
-        <!-- Главная карточка онбординга -->
-        <div class="relative overflow-hidden rounded-3xl p-6 border border-cyan-500/30 bg-gradient-to-br from-cyan-950/40 via-slate-900 to-blue-950/40 shadow-2xl backdrop-blur-xl space-y-5">
-          
-          <!-- Бейдж ИИ-сканера -->
-          <div class="flex items-center justify-between">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-400/30 text-cyan-300 text-xs font-bold tracking-wide">
-              <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-              <span>ICE LOGIX AI СКАНИРОВАНИЕ</span>
-            </div>
-            <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/50">
-              10 секунд
-            </span>
-          </div>
-
-          <!-- Заголовок и понятное объяснение -->
-          <div class="space-y-2">
-            <h3 class="text-lg font-black text-white leading-snug">
-              Таможенная верификация для первого заказа
-            </h3>
-            <p class="text-xs text-white/70 leading-relaxed">
-              Для официального декларирования международных посылок на таможне Республики Беларусь (по правилам ЕАЭС) требуются паспортные данные получателя.
-            </p>
-            <p class="text-xs text-cyan-200/90 leading-relaxed font-medium">
-              Вам <b>не нужно ничего заполнять вручную</b> — искусственный интеллект <b>ICE LOGIX AI</b> сделает всё сам за 10 секунд прямо через камеру!
-            </p>
-          </div>
-
-          <!-- 3 тезиса преимуществ -->
-          <div class="grid grid-cols-1 gap-2.5 pt-1">
-            <div class="p-3 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-lg flex-shrink-0">
-                ⚡
-              </div>
-              <div>
-                <div class="text-xs font-bold text-white">Автоматическое распознавание</div>
-                <div class="text-[10px] text-white/50">ФИО, номер паспорта, дату выдачи и прописку заполнит нейросеть</div>
-              </div>
-            </div>
-
-            <div class="p-3 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg flex-shrink-0">
-                🛡️
-              </div>
-              <div>
-                <div class="text-xs font-bold text-white">Безопасность и защита данных</div>
-                <div class="text-[10px] text-white/50">Шифрование AES-256 в соответствии с Законом РБ № 99-З</div>
-              </div>
-            </div>
-
-            <div class="p-3 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center text-lg flex-shrink-0">
-                📦
-              </div>
-              <div>
-                <div class="text-xs font-bold text-white">Быстрый проход таможни</div>
-                <div class="text-[10px] text-white/50">Беспошлинный ввоз посылок до 200 € без задержек на границе</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Большая главная кнопка -->
-          <div class="pt-2">
-            <button
-              type="button"
-              id="startAiKycBtn"
-              class="btn-primary w-full py-4 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2.5 shadow-xl shadow-cyan-500/30 active:scale-95 transition cursor-pointer"
-            >
-              <svg class="w-5 h-5 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-              <span class="tracking-wide">Пройти верификацию через ICE LOGIX AI</span>
-            </button>
-
-            <div class="text-center pt-3">
-              <button
-                type="button"
-                id="manualEntryKycBtn"
-                class="text-xs text-white/40 hover:text-cyan-300 transition py-1 px-3 rounded-lg hover:bg-white/5 cursor-pointer underline"
-              >
-                Заполнить данные вручную (без камеры) →
-              </button>
-            </div>
-          </div>
-
+        <div class="ky-hero">
+          <div class="ky-art" aria-hidden="true"><span>${U.icon('idcard', 40)}</span><i class="ky-scan"></i></div>
+          <h2>Подтвердите данные для таможни</h2>
+          <p>Таможне Беларуси нужны паспортные данные получателя. Сфотографируйте паспорт, и поля заполнятся сами.</p>
         </div>
+
+        <div class="rd-card rd-list">
+          <div class="rd-row"><span class="rd-ico">${U.icon('scan', 22)}</span><span class="rd-row-body"><span class="rd-row-title">Заполним за вас</span><span class="rd-row-text">ФИО, номер паспорта, дату выдачи и адрес</span></span></div>
+          <div class="rd-row"><span class="rd-ico">${U.icon('lock', 22)}</span><span class="rd-row-body"><span class="rd-row-title">Данные под защитой</span><span class="rd-row-text">Храним зашифрованно, по Закону РБ № 99-З</span></span></div>
+          <div class="rd-row"><span class="rd-ico">${U.icon('truck', 22)}</span><span class="rd-row-body"><span class="rd-row-title">Без задержек на таможне</span><span class="rd-row-text">Посылки до 200 € проходят без пошлины</span></span></div>
+        </div>
+
+        <button type="button" id="startAiKycBtn" class="rd-btn rd-btn-block ky-go">${U.icon('camera', 20)}Сфотографировать паспорт</button>
+        <button type="button" id="manualEntryKycBtn" class="rd-btn rd-btn-block rd-btn-ghost ky-manual">Заполнить вручную</button>
       </div>
     `;
   }
