@@ -1360,255 +1360,73 @@ window.showVipSectionModal = () => {
   };
 };
 
-const AVAILABLE_PLATFORMS_LIST = [
-  { id: "poizon", label: "Poizon / Dewu", flag: "🇨🇳" },
-  { id: "taobao", label: "Taobao", flag: "🇨🇳" },
-  { id: "tmall", label: "Tmall", flag: "🇨🇳" },
-  { id: "1688", label: "1688", flag: "🇨🇳" },
-  { id: "jd", label: "JD.com", flag: "🇨🇳" },
-  { id: "dhgate", label: "DHGate", flag: "🇨🇳" },
-  { id: "aliexpress", label: "AliExpress", flag: "🇨🇳" },
-  { id: "zalando", label: "Zalando", flag: "🇵🇱" },
-  { id: "aboutyou", label: "About You", flag: "🇩🇪" },
-  { id: "asos", label: "ASOS", flag: "🇬🇧" },
-  { id: "farfetch", label: "Farfetch", flag: "🇬🇧" },
-  { id: "endclothing", label: "END.", flag: "🇬🇧" },
-  { id: "mrporter", label: "MR PORTER", flag: "🇬🇧" },
-  { id: "mytheresa", label: "Mytheresa", flag: "🇩🇪" },
-  { id: "ssense", label: "SSENSE", flag: "🇨🇦" },
-  { id: "vinted", label: "Vinted", flag: "🇵🇱" },
-  { id: "sneakerstudio", label: "SneakerStudio", flag: "🇵🇱" },
-  { id: "goat", label: "GOAT", flag: "🇺🇸" },
-  { id: "stockx", label: "StockX", flag: "🇺🇸" },
-  { id: "mercari", label: "Mercari", flag: "🇯🇵" }
-];
-
-async function showMarketplaceWhitelistModal() {
-  if (!userId) {
-    glassToast('Ошибка', 'Пользователь не найден', 'error');
-    return;
-  }
-  
-  // Create overlay
-  const overlay = document.createElement('div');
-  overlay.className = 'full-screen-modal-overlay page-enter';
-  overlay.id = 'marketplaceWhitelistModal';
-  
-  // Loading state
-  overlay.innerHTML = `
-    <div class="full-screen-modal-header">
-      <button type="button" class="global-back-btn !mb-0" onclick="window.closeModalWithAnimation(document.getElementById('marketplaceWhitelistModal'))" title="Назад">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
-      </button>
-      <h3 class="text-white font-bold text-sm">Маркетплейсы</h3>
-      <div style="width: 48px;"></div>
-    </div>
-    <div class="full-screen-modal-body flex flex-col justify-center items-center text-center text-white/70 py-10">
-      <div class="inline-block w-8 h-8 border-4 border-[var(--ice-primary)] border-t-transparent rounded-full animate-spin mb-4"></div>
-      <p>Загрузка настроек...</p>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-
-  try {
-    const { data: whitelistData, error } = await supabaseClient
-      .from('user_marketplace_whitelist')
-      .select('platform_slug, enabled')
-      .eq('user_id', userId);
-      
-    if (error) throw new Error(error.message);
-    
-    // Default: all platforms enabled if not in DB
-    const state = {};
-    AVAILABLE_PLATFORMS_LIST.forEach(p => { state[p.id] = true; });
-    
-    if (whitelistData && whitelistData.length > 0) {
-      whitelistData.forEach(row => {
-        state[row.platform_slug] = row.enabled;
-      });
-    }
-    
-    const renderList = () => {
-      return AVAILABLE_PLATFORMS_LIST.map(p => `
-        <label class="flex items-center justify-between p-3 mb-2 rounded-xl border border-white/5 bg-white/5 cursor-pointer hover:bg-white/10 transition">
-          <div class="flex items-center gap-3">
-            <span class="text-2xl">${p.flag}</span>
-            <span class="text-white font-medium">${p.label}</span>
-          </div>
-          <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
-            <input type="checkbox" name="wl_${p.id}" id="wl_${p.id}" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 top-0 left-0 transition-transform duration-200 ${state[p.id] ? 'translate-x-6 border-[var(--ice-primary)]' : 'border-white/20'}" ${state[p.id] ? 'checked' : ''} style="border-color: ${state[p.id] ? 'var(--ice-primary)' : 'var(--text-muted)'}; margin:0;" />
-            <div class="toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-200 ${state[p.id] ? 'bg-[var(--ice-primary)]/50' : 'bg-white/10'}"></div>
-          </div>
-        </label>
-      `).join('');
-    };
-
-    overlay.innerHTML = `
-      <div class="full-screen-modal-header">
-        <button type="button" class="global-back-btn !mb-0" id="closeWlBtn" title="Назад">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6"/>
-          </svg>
-        </button>
-        <div class="text-center">
-          <h3 class="text-white font-bold text-sm truncate">Маркетплейсы</h3>
-          <p class="text-white/40 text-[10px]">Настройка поиска</p>
-        </div>
-        <div style="width: 48px;"></div>
-      </div>
-      <div class="full-screen-modal-body">
-        <p class="text-xs text-white/60 mb-4">Выберите площадки, по которым будет работать поиск:</p>
-        <div id="wlPlatformsContainer">
-          ${renderList()}
-        </div>
-      </div>
-      <div class="p-4 border-t border-white/10 bg-slate-900/90 flex-shrink-0" style="padding-bottom: calc(16px + env(safe-area-inset-bottom, 16px));">
-        <button id="saveWlBtn" class="btn-primary w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2">
-          Сохранить настройки
-        </button>
-      </div>
-    `;
-    
-    // Add handlers to toggles manually because CSS-only toggle is tricky in raw HTML
-    AVAILABLE_PLATFORMS_LIST.forEach(p => {
-      const checkbox = overlay.querySelector(`#wl_${p.id}`);
-      if (checkbox) {
-        checkbox.addEventListener('change', (e) => {
-          state[p.id] = e.target.checked;
-          const isChecked = e.target.checked;
-          e.target.className = `toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 top-0 left-0 transition-transform duration-200 ${isChecked ? 'translate-x-6 border-[var(--ice-primary)]' : 'border-white/20'}`;
-          e.target.style.borderColor = isChecked ? 'var(--ice-primary)' : 'var(--text-muted)';
-          e.target.nextElementSibling.className = `toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-200 ${isChecked ? 'bg-[var(--ice-primary)]/50' : 'bg-white/10'}`;
-        });
-      }
-    });
-
-    const close = () => {
-      overlay.remove();
-    };
-
-    overlay.querySelector('#closeWlBtn').onclick = close;
-    
-    overlay.querySelector('#saveWlBtn').onclick = async () => {
-      const btn = overlay.querySelector('#saveWlBtn');
-      const orig = btn.innerHTML;
-      btn.innerHTML = '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="animate-spin"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10"/></svg></span> Сохранение...';
-      btn.disabled = true;
-      
-      try {
-        const upsertData = AVAILABLE_PLATFORMS_LIST.map(p => ({
-          user_id: userId,
-          platform_slug: p.id,
-          enabled: state[p.id]
-        }));
-        
-        const { error: upsertErr } = await supabaseClient
-          .from('user_marketplace_whitelist')
-          .upsert(upsertData, { onConflict: 'user_id, platform_slug' });
-          
-        if (upsertErr) throw new Error(upsertErr.message);
-        glassToast('Успех', 'Настройки поиска сохранены', 'success');
-        close();
-      } catch (err) {
-        glassToast('Ошибка', err.message, 'error');
-        btn.innerHTML = orig;
-        btn.disabled = false;
-      }
-    };
-
-  } catch (err) {
-    modal.innerHTML = `
-      <div class="p-6 text-center">
-        <p class="text-[var(--status-error)] mb-4">${escHtmlC(err.message)}</p>
-        <button id="closeErrWlBtn" class="btn-secondary px-6 py-2 rounded-xl">Закрыть</button>
-      </div>
-    `;
-    modal.querySelector('#closeErrWlBtn').onclick = () => {
-      overlay.classList.add('opacity-0');
-      modal.classList.add('translate-y-full');
-      setTimeout(() => overlay.remove(), 300);
-    };
-  }
+// Ключ восстановления: в базе (users.recovery_code_hash) лежит только SHA-256, сам ключ показываем один раз.
+// Восстановление: боту /recover с нового Telegram. Нормализация совпадает с _recovery_hash в боте.
+async function recoveryKeyHash(code) {
+  const norm = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(norm));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function showRecoveryCodeModal() {
-  if (!userId) { tgUtil.alert('Авторизуйтесь'); return; }
-  let existing = null;
+function generateRecoveryKey() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const rnd = new Uint32Array(12);
+  crypto.getRandomValues(rnd);
+  const s = Array.from(rnd, (n) => chars[n % chars.length]).join('');
+  return `${s.slice(0, 4)}-${s.slice(4, 8)}-${s.slice(8, 12)}`;
+}
+
+async function showRecoveryCodeModal(opts) {
+  const o = opts || {};
+  const U = window.UI;
+  if (!userId || !supabaseClient) { U.toast('Сначала войдите в аккаунт', 'bad'); return; }
+  let hasKey = false;
   try {
-    const { data } = await supabaseClient.from('users').select('recovery_code').eq('user_id', userId).single();
-    existing = data?.recovery_code || null;
-  } catch (e) {}
+    const { data } = await supabaseClient.from('users').select('recovery_code_hash').eq('user_id', userId).maybeSingle();
+    hasKey = !!data?.recovery_code_hash;
+  } catch (_) {}
 
-  const modal = document.createElement('div');
-  modal.className = 'full-screen-modal-overlay page-enter';
-  modal.id = 'recoveryCodeModal';
-  modal.innerHTML = `
-    <div class="full-screen-modal-header">
-      <button type="button" class="global-back-btn !mb-0" id="closeRecBtn" title="Назад">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
-      </button>
-      <div class="text-center">
-        <h3 class="text-white font-bold text-sm truncate">Восстановление аккаунта</h3>
-        <p class="text-white/40 text-[10px]">Резервный код доступа</p>
+  U.sheet({
+    title: 'Ключ восстановления',
+    html: `
+      <p class="st-sheet-text">Если потеряете доступ к Telegram, например смените номер, напишите нашему боту <b>/recover</b> с нового аккаунта и пришлите этот ключ. Заказы, баланс и данные перейдут к вам.</p>
+      <div id="recKeyBox" hidden>
+        <div class="st-key"><b id="recKeyValue"></b><button type="button" class="st-copy" id="recKeyCopy">${U.icon('copy', 16)}Копировать</button></div>
+        <div class="st-note">${U.icon('alert', 20)}<span>Сохраните ключ сейчас: в заметки или на бумагу. Показать его ещё раз мы не сможем. Никому его не отправляйте.</span></div>
       </div>
-      <div style="width: 48px;"></div>
-    </div>
-    <div class="full-screen-modal-body space-y-4">
-      <p class="text-white/70 text-sm leading-relaxed">Резервный код позволяет вернуть аккаунт со всеми заказами при потере доступа к Telegram. Сгенерируйте код и сохраните его в надёжном месте.</p>
-      <div id="recCodeBox" class="${existing ? '' : 'hidden'} bg-black/40 border border-cyan-500/30 rounded-xl p-4 text-center">
-        <p class="text-[10px] text-cyan-400/80 uppercase tracking-wider font-bold mb-2">Ваш код восстановления</p>
-        <p id="recCodeValue" class="text-2xl font-black text-white tracking-widest font-mono select-all">${existing || ''}</p>
-      </div>
-      <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
-        <p class="text-amber-300 text-xs leading-relaxed">⚠️ Сохраните его — это единственный способ вернуть аккаунт при потере Telegram! Никому не передавайте этот код.</p>
-      </div>
-      <button id="genRecBtn" class="btn-primary w-full py-3.5 rounded-xl font-bold">${existing ? 'Сгенерировать новый код' : 'Сгенерировать код восстановления'}</button>
-      <button id="copyRecBtn" class="${existing ? '' : 'hidden'} btn-secondary w-full py-3.5 rounded-xl font-bold">Скопировать код</button>
-    </div>
-  `;
-  document.body.appendChild(modal);
-
-  const close = () => window.closeModalWithAnimation(modal);
-  modal.querySelector('#closeRecBtn').onclick = close;
-  modal.onclick = (e) => { if (e.target === modal) close(); };
-
-  const genSegment = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let s = '';
-    for (let i = 0; i < 4; i++) s += chars[Math.floor(Math.random() * chars.length)];
-    return s;
-  };
-
-  modal.querySelector('#genRecBtn').onclick = async () => {
-    const btn = modal.querySelector('#genRecBtn');
-    if (existing && !confirm('Старый код перестанет работать. Продолжить?')) return;
-    btn.disabled = true; btn.textContent = 'Генерация...';
-    const code = `${genSegment()}-${genSegment()}-${genSegment()}`;
-    try {
-      const { error } = await supabaseClient.from('users').update({ recovery_code: code }).eq('user_id', userId);
-      if (error) throw error;
-      existing = code;
-      modal.querySelector('#recCodeValue').textContent = code;
-      modal.querySelector('#recCodeBox').classList.remove('hidden');
-      modal.querySelector('#copyRecBtn').classList.remove('hidden');
-      btn.textContent = 'Сгенерировать новый код';
-      glassToast('Готово', 'Код восстановления сохранён', 'success');
-    } catch (e) {
-      glassToast('Ошибка', e.message || 'Сбой базы', 'error');
-      btn.textContent = 'Сгенерировать код восстановления';
-    }
-    btn.disabled = false;
-  };
-
-  modal.querySelector('#copyRecBtn').onclick = () => {
-    const val = modal.querySelector('#recCodeValue').textContent;
-    if (navigator.clipboard) navigator.clipboard.writeText(val);
-    glassToast('Скопировано', 'Код в буфере обмена', 'success');
-  };
+      <p class="st-sheet-text" id="recKeyState">${hasKey ? 'Ключ уже создан. Потеряли его? Создайте новый, старый сразу перестанет работать.' : 'Ключа пока нет. Создание займёт секунду.'}</p>
+      <button type="button" class="rd-btn rd-btn-block" id="recKeyGen">${hasKey ? 'Создать новый ключ' : 'Создать ключ'}</button>`,
+    onOpen: (wrap) => {
+      const genBtn = wrap.querySelector('#recKeyGen');
+      const copyBtn = wrap.querySelector('#recKeyCopy');
+      genBtn.onclick = async () => {
+        if (hasKey && !(await window.tgUtil.confirm('Старый ключ перестанет работать. Создать новый?'))) return;
+        genBtn.disabled = true;
+        const key = generateRecoveryKey();
+        try {
+          const hash = await recoveryKeyHash(key);
+          const { error } = await supabaseClient.from('users').update({ recovery_code_hash: hash }).eq('user_id', userId);
+          if (error) throw error;
+          hasKey = true;
+          wrap.querySelector('#recKeyValue').textContent = key;
+          wrap.querySelector('#recKeyBox').hidden = false;
+          wrap.querySelector('#recKeyState').hidden = true;
+          genBtn.hidden = true;
+          if (window.tgUtil && window.tgUtil.haptic) window.tgUtil.haptic('success');
+          if (typeof o.onChange === 'function') o.onChange();
+        } catch (e) {
+          console.warn('recovery key save failed:', e?.message || e);
+          U.toast('Не получилось сохранить ключ. Попробуйте ещё раз', 'bad');
+          genBtn.disabled = false;
+        }
+      };
+      copyBtn.onclick = async () => {
+        const val = wrap.querySelector('#recKeyValue').textContent;
+        try { await navigator.clipboard.writeText(val); U.toast('Ключ скопирован'); }
+        catch (_) { U.toast('Не получилось скопировать, перепишите ключ вручную', 'info'); }
+      };
+    },
+  });
 }
 
 async function showPersonalDataForm() {
@@ -2414,7 +2232,6 @@ if (typeof showCommissionContractModal === 'function') window.showCommissionCont
 if (typeof showFamilySettingsModal === 'function') window.showFamilySettingsModal = showFamilySettingsModal;
 if (typeof showCurrencyAlertsModal === 'function') window.showCurrencyAlertsModal = showCurrencyAlertsModal;
 if (typeof renderAdminTicketsList === 'function') window.renderAdminTicketsList = renderAdminTicketsList;
-if (typeof showMarketplaceWhitelistModal === 'function') window.showMarketplaceWhitelistModal = showMarketplaceWhitelistModal;
 if (typeof showRecoveryCodeModal === 'function') window.showRecoveryCodeModal = showRecoveryCodeModal;
 if (typeof showPersonalDataForm === 'function') window.showPersonalDataForm = showPersonalDataForm;
 if (typeof showOwnerControlsForm === 'function') window.showOwnerControlsForm = showOwnerControlsForm;

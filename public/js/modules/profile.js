@@ -208,7 +208,14 @@
         const otpData = await otpRes.json();
         if (!otpData.ok) throw new Error(otpData.error || 'Не удалось отправить код подтверждения');
 
-        const code = prompt('Код подтверждения отправлен в ваш Telegram. Введите его для удаления аккаунта:');
+        const code = await window.UI.ask({
+          title: 'Удаление аккаунта',
+          text: 'Мы отправили код в ваш Telegram. Введите его, чтобы удалить аккаунт навсегда.',
+          fields: [{ name: 'code', label: 'Код из Telegram', type: 'text', inputmode: 'numeric', autocomplete: 'one-time-code' }],
+          action: 'Удалить аккаунт',
+          danger: true,
+          validate: (v) => v.code ? '' : 'Введите код'
+        });
         if (!code) return;
 
         const deleteRes = await fetch('https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/telegram-auth', {
@@ -223,7 +230,14 @@
         if (!deleteData.ok) throw new Error(deleteData.error || 'Не удалось удалить аккаунт');
 
       } else {
-        const pwd = prompt('Для подтверждения удаления введите пароль от вашего аккаунта:');
+        const pwd = await window.UI.ask({
+          title: 'Удаление аккаунта',
+          text: 'Введите пароль от аккаунта, чтобы удалить его навсегда.',
+          fields: [{ name: 'password', label: 'Пароль', type: 'password', autocomplete: 'current-password' }],
+          action: 'Удалить аккаунт',
+          danger: true,
+          validate: (v) => v.password ? '' : 'Введите пароль'
+        });
         if (!pwd) return;
 
         const deleteRes = await fetch('https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/telegram-auth', {
@@ -282,9 +296,6 @@
 
   const recoverySecurityBtn = document.getElementById('recoverySecurityBtn');
   if (recoverySecurityBtn) recoverySecurityBtn.onclick = () => showRecoveryCodeModal();
-
-  const marketplaceWhitelistBtn = document.getElementById('marketplaceWhitelistBtn');
-  if (marketplaceWhitelistBtn) marketplaceWhitelistBtn.onclick = () => showMarketplaceWhitelistModal();
 
   // Скачать договор
   const downloadAgreementBtn = document.getElementById('downloadAgreementBtn');

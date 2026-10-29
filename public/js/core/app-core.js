@@ -1964,10 +1964,17 @@
         });
       },
 
-      // Haptic feedback disabled per user request
+      // Вибрация выключена по умолчанию, включается в Настройки → Вид (localStorage ice_haptics = '1')
       haptic(type) {
-        // Disabled: no device vibrations
-        return;
+        let on = false;
+        try { on = localStorage.getItem('ice_haptics') === '1'; } catch (_) {}
+        const h = on ? this._tg?.HapticFeedback : null;
+        if (!h) return;
+        try {
+          if (type === 'selection') h.selectionChanged();
+          else if (type === 'success' || type === 'error' || type === 'warning') h.notificationOccurred(type);
+          else h.impactOccurred(['light', 'medium', 'heavy', 'rigid', 'soft'].includes(type) ? type : 'light');
+        } catch (_) {}
       },
 
       // Rich popup with up to 3 buttons — uses our glass modal by default.
@@ -2902,6 +2909,12 @@ let adminOrdersTotalPages = 1;
         if (data.settings?.theme && data.settings.theme !== window._currentAppliedTheme) {
           applyTheme(data.settings.theme);
         }
+        // Язык и вибрация из профиля: на новом устройстве приложение сразу как у себя
+        try {
+          if (typeof data.settings?.haptics === 'boolean') localStorage.setItem('ice_haptics', data.settings.haptics ? '1' : '0');
+          const savedLang = data.settings?.lang;
+          if (savedLang && savedLang !== (localStorage.getItem('lang') || 'ru') && typeof applyLanguage === 'function') applyLanguage(savedLang);
+        } catch (_) {}
         // Update family balance in header — fire-and-forget, must not block init
         setTimeout(() => updateHeaderFamilyBalance().catch(() => {}), 0);
         setTimeout(() => {
@@ -3421,7 +3434,7 @@ let adminOrdersTotalPages = 1;
       if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
 
       // 1. Check if any active overlay / modal is open in the DOM
-      const openOverlay = document.querySelector('.full-screen-modal-overlay, #spotlightModal:not(.opacity-0), #settingsModal, #notificationsModal, #personalDataModal, #commissionContractModal, #fortuneWheelModal, #allTransactionsModal, #reviewActionModal, #familySettingsModal, #marketplaceWhitelistModal, #recoveryCodeModal');
+      const openOverlay = document.querySelector('.full-screen-modal-overlay, #spotlightModal:not(.opacity-0), #settingsModal, #notificationsModal, #personalDataModal, #commissionContractModal, #fortuneWheelModal, #allTransactionsModal, #reviewActionModal, #familySettingsModal, #recoveryCodeModal');
       if (openOverlay) {
         const closeBtn = openOverlay.querySelector('.full-screen-modal-header .global-back-btn, .full-screen-modal-header button, #spotlightCloseBtn, #closeSettingsModal, #closeNotifPanel, #closePersonalDataBtn, #closeContractModalBtn, #closeFortuneWheelBtn, #closeTransactionsModal, #closeReviewModalBtn, #closeFamilyModalBtn, #closeWhitelistModalBtn, #closeRecoveryModalBtn, [data-action="close"], button[id^="close"], button[id^="back"]');
         if (closeBtn) {

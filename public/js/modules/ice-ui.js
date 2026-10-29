@@ -56,6 +56,12 @@
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
     alert: '<path d="M12 4 3 19.5h18z"/><path d="M12 10v4.5M12 17.3h.01"/>',
     lock: '<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
+    mail: '<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="m3.8 7.2 8.2 6 8.2-6"/>',
+    key: '<circle cx="8" cy="15.5" r="4"/><path d="m10.9 12.6 8.6-8.6M16.5 7l2.5 2.5M14 9.5l2 2"/>',
+    devices: '<rect x="2.5" y="4.5" width="13" height="10" rx="2"/><path d="M6 18.5h6M9 14.5v4"/><rect x="16" y="9" width="5.5" height="10.5" rx="1.5"/>',
+    moon: '<path d="M20.5 13.5A8.5 8.5 0 1 1 10.5 3.5a6.8 6.8 0 0 0 10 10z"/>',
+    sun: '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/>',
+    vibrate: '<rect x="7.5" y="4" width="9" height="16" rx="2"/><path d="M4 9v6M20 9v6M11 17h2"/>',
     refresh: '<path d="M20 11a8 8 0 0 0-14.3-4.6L4 8.5M4 4v4.5h4.5M4 13a8 8 0 0 0 14.3 4.6L20 15.5M20 20v-4.5h-4.5"/>',
     flame: '<path d="M12 21c-3.9 0-6.5-2.6-6.5-6.1 0-3.4 2.6-5.3 3.6-8.4.4 1.9 1.4 2.9 2.4 3.4.2-2.6 1.6-4.9 3.4-6.4-.2 2.9 1.3 4.6 2.6 6.4 1 1.4 1.5 3 1.5 4.9 0 3.6-3 6.2-7 6.2z"/>',
     sparkles: '<path d="M12 3.5l1.8 5.2 5.2 1.8-5.2 1.8L12 17.5l-1.8-5.2-5.2-1.8 5.2-1.8z"/><path d="M19 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/>',
@@ -229,6 +235,47 @@
     return { el: wrap, close };
   }
 
+  // ── Шторка с полями ввода вместо prompt(): ответ в Promise, null если закрыли ──
+  // fields: [{ name, label, type, placeholder, autocomplete, inputmode }]; validate(values) → текст ошибки или ''
+  function ask(o) {
+    const opt = o || {};
+    const fields = opt.fields && opt.fields.length ? opt.fields : [{ name: 'value', type: 'text' }];
+    return new Promise((resolve) => {
+      let done = false;
+      const html = `
+        <form class="rd-ask" novalidate>
+          ${opt.text ? `<p class="rd-ask-text">${opt.text}</p>` : ''}
+          ${fields.map((f) => `
+            <label class="rd-ask-field">
+              ${f.label ? `<span class="rd-label">${esc(f.label)}</span>` : ''}
+              <span class="rd-field"><input name="${esc(f.name)}" type="${esc(f.type || 'text')}" placeholder="${esc(f.placeholder || '')}" autocomplete="${esc(f.autocomplete || 'off')}" ${f.inputmode ? `inputmode="${esc(f.inputmode)}"` : ''}></span>
+            </label>`).join('')}
+          <p class="rd-ask-err" hidden></p>
+          <button type="submit" class="rd-btn rd-btn-block${opt.danger ? ' rd-btn-danger' : ''}">${esc(opt.action || 'Готово')}</button>
+        </form>`;
+      sheet({
+        title: opt.title || '',
+        html,
+        onClose: () => { if (!done) resolve(null); },
+        onOpen: (wrap, close) => {
+          const form = wrap.querySelector('form');
+          const err = wrap.querySelector('.rd-ask-err');
+          setTimeout(() => { const first = form.querySelector('input'); if (first) first.focus(); }, 320);
+          form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const values = {};
+            fields.forEach((f) => { values[f.name] = (form.elements[f.name].value || '').trim(); });
+            const msg = typeof opt.validate === 'function' ? opt.validate(values) : '';
+            if (msg) { err.textContent = msg; err.hidden = false; return; }
+            done = true;
+            resolve(fields.length === 1 ? values[fields[0].name] : values);
+            close();
+          });
+        },
+      });
+    });
+  }
+
   // ── Точки слайдеров карточек (делегировано, работает для любых .pc-slider) ──
   document.addEventListener('scroll', (e) => {
     const s = e.target;
@@ -287,5 +334,5 @@
   // Старые модули (оформление заказа, окна профиля) зовут escHtmlC, которого нигде не было — даём им общий esc
   if (typeof window.escHtmlC !== 'function') window.escHtmlC = esc;
 
-  window.UI = { orderTitle, orderImage, orderStatus, icon, esc, money, productPriceByn, productImages, productCard, screenHead, empty, gridSkeleton, toast, sheet };
+  window.UI = { orderTitle, orderImage, orderStatus, icon, esc, money, productPriceByn, productImages, productCard, screenHead, empty, gridSkeleton, toast, sheet, ask };
 })();

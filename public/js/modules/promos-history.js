@@ -521,761 +521,395 @@ async function showAppSettings(initialTab = 'account') {
   }
 }
 
+// Версия показывается внизу настроек. Поднимать вместе с "version" в package.json
+const ICE_APP_VERSION = '2.1.0';
+
 async function renderSettingsPage(initialTab = 'account') {
-  // Parallel fetch auth user and user profile
+  const U = window.UI;
   let authUser = null;
   let data = null;
   try {
-    const [authUserDataRes, userProfileRes] = await Promise.all([
+    const [authRes, profileRes] = await Promise.all([
       supabaseClient ? supabaseClient.auth.getUser() : Promise.resolve({ data: {} }),
-      (supabaseClient && userId) ? supabaseClient.from('users').select('notification_settings, app_settings, telegram_id, phone, username, full_name, role, avatar_url, created_at').eq('user_id', userId).single() : Promise.resolve({ data: {} })
+      (supabaseClient && userId)
+        ? supabaseClient.from('users').select('notification_settings, settings, telegram_id, username, full_name, role, avatar_url, recovery_code_hash').eq('user_id', userId).maybeSingle()
+        : Promise.resolve({ data: null })
     ]);
-    authUser = authUserDataRes?.data?.user;
-    data = userProfileRes?.data;
+    authUser = authRes?.data?.user || null;
+    data = profileRes?.data || null;
+    if (profileRes?.error) console.warn('settings: profile load failed:', profileRes.error.message);
   } catch (_) {}
 
-  const localNotif = JSON.parse(localStorage.getItem('notification_settings') || '{"status_changes":true,"news":true,"promotions":true}');
-  const notif = data?.notification_settings || localNotif;
-  const appSettings = data?.app_settings || {};
-  const currentTheme = appSettings.theme || localStorage.getItem('theme') || 'dark';
-  const currentLang = appSettings.lang || localStorage.getItem('lang') || 'ru';
+  const ls = (k) => { try { return localStorage.getItem(k); } catch (_) { return null; } };
+  const settings = data?.settings || window.userSettings || {};
+  let localNotif = {};
+  try { localNotif = JSON.parse(ls('notification_settings') || '{}') || {}; } catch (_) {}
+  const notif = { news: true, promotions: true, ...localNotif, ...(data?.notification_settings || {}), status_changes: true };
+  window._stNotif = notif;
+  const theme = window._currentAppliedTheme || ls('theme') || settings.theme || 'dark';
+  const lang = ls('lang') || settings.lang || 'ru';
+  const hapticsOn = ls('ice_haptics') === '1';
 
-  const userTelegramId = authUser?.user_metadata?.telegram_id || data?.telegram_id || window.Telegram?.WebApp?.initDataUnsafe?.user?.id || null;
-  const userPhone = authUser?.phone || data?.phone || null;
-  const userEmail = authUser?.email || '';
-  const isDummyEmail = userEmail.startsWith('tg_') && userEmail.endsWith('@icelogix.by');
+  const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user || null;
+  const meta = authUser?.user_metadata || {};
+  const tgId = data?.telegram_id || meta.telegram_id || tgUser?.id || null;
+  const rawNick = data?.username || tgUser?.username || meta.user_name || meta.username || '';
+  const nick = rawNick ? (rawNick.startsWith('@') ? rawNick : '@' + rawNick) : '';
+  const name = data?.full_name || meta.full_name || [tgUser?.first_name, tgUser?.last_name].filter(Boolean).join(' ') || nick || 'Без имени';
+  const avatar = data?.avatar_url || meta.avatar_url || tgUser?.photo_url || '';
+  const email = authUser?.email || '';
+  const isTechEmail = !email || (email.startsWith('tg_') && email.endsWith('@icelogix.by'));
+  const emailConfirmed = !!authUser?.email_confirmed_at;
+  const idText = tgId ? String(tgId) : (userId ? String(userId) : '');
+  const role = data?.role;
+  const roleText = (role === 'owner' || role === 'admin') ? 'Администратор' : role === 'partner' ? 'Партнёр' : 'Клиент';
+  const hasKey = !!data?.recovery_code_hash;
 
-  const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-  const rawUsername = data?.username || tgUser?.username || authUser?.user_metadata?.user_name || authUser?.user_metadata?.username || '';
-  const cleanUsername = rawUsername ? (rawUsername.startsWith('@') ? rawUsername : '@' + rawUsername) : '';
+  const tabAlias = { language: 'view', theme: 'view' };
+  const activeTab = tabAlias[initialTab] || initialTab || 'account';
 
-  const userNameDisplay = data?.full_name || authUser?.user_metadata?.full_name || (tgUser?.first_name ? `${tgUser.first_name}${tgUser.last_name ? ' ' + tgUser.last_name : ''}` : '') || cleanUsername || 'Пользователь';
-  const userHandleDisplay = cleanUsername || (userTelegramId ? 'ID: ' + userTelegramId : (!isDummyEmail && userEmail ? userEmail : ''));
-  const userAvatar = data?.avatar_url || authUser?.user_metadata?.avatar_url || (tgUser?.photo_url ? tgUser.photo_url : null);
-  const isTgSession = !!(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || userTelegramId);
-  const idDisplay = userTelegramId ? String(userTelegramId) : (userId ? String(userId).slice(0, 8) + '...' : '—');
-  const rawIdForCopy = userTelegramId ? String(userTelegramId) : (userId ? String(userId) : '');
-  
-  const roleDisplay = data?.role === 'owner' ? 'Админ' : (data?.role === 'partner' ? 'Партнёр' : 'Клиент');
-  const roleBadgeClass = data?.role === 'owner' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : (data?.role === 'partner' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30');
-
-  const linkedIdentities = authUser?.identities || [];
-  const isGoogleLinked = linkedIdentities.some(id => id.provider === 'google');
-  const isAppleLinked = linkedIdentities.some(id => id.provider === 'apple');
-
-  const toggle = (id, checked) => `
-    <label class="relative inline-flex items-center cursor-pointer">
-      <input type="checkbox" id="${id}" class="sr-only peer" ${checked ? 'checked' : ''}>
-      <div class="relative w-11 h-6 bg-white/20 rounded-full transition-colors peer-checked:bg-cyan-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full shadow-inner"></div>
+  const chev = U.icon('chevR', 22, { cls: 'rd-chev' });
+  const status = (tone, text) => `<span class="rd-status ${tone}">${text}</span>`;
+  const body = (title, text) => `<span class="rd-row-body"><span class="rd-row-title">${title}</span>${text ? `<span class="rd-row-text">${text}</span>` : ''}</span>`;
+  const row = (id, ico, title, text, end = chev) => `
+    <div class="rd-row" role="button" tabindex="0" id="${id}">
+      <span class="rd-ico">${U.icon(ico, 22)}</span>${body(title, text)}${end}
+    </div>`;
+  const infoRow = (ico, title, text, end) => `
+    <div class="rd-row st-static">
+      <span class="rd-ico">${U.icon(ico, 22)}</span>${body(title, text)}${end || ''}
+    </div>`;
+  const switchRow = (id, ico, title, text, checked) => `
+    <label class="rd-row st-static">
+      <span class="rd-ico">${U.icon(ico, 22)}</span>${body(title, text)}
+      <span class="rd-switch"><input type="checkbox" id="${id}" ${checked ? 'checked' : ''}><span></span></span>
     </label>`;
 
-  // Build Security panel items
-  let identitiesHtml = '';
+  const tabs = [['account', 'user', 'Аккаунт'], ['security', 'shield', 'Защита'], ['notifications', 'bell', 'Уведомления'], ['view', 'sparkles', 'Вид']];
+  const langs = [['ru', 'RU', 'Русский', 'Основной язык'], ['be', 'BY', 'Беларуская', 'Пераклад у працэсе'], ['en', 'EN', 'English', 'Translation in progress']];
+  const panel = (key, html) => `<div id="settingsPanel-${key}" class="st-panel" role="tabpanel" ${activeTab === key ? '' : 'hidden'}>${html}</div>`;
 
-  // Telegram Link (FIRST - priority)
-  if (userTelegramId) {
-    identitiesHtml += `
-      <div class="w-full py-3 px-4 rounded-2xl flex items-center justify-between bg-white/5 border border-white/10">
-        <div class="flex items-center gap-3">
-          <span class="w-8 h-8 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.19 2.5a24.22 24.22 0 0 0-9 1.56 24.43 24.43 0 0 0-9-1.56c-.53 0-1 .47-1 1a24 24 0 0 0 3.25 12c1.72 2.7 4.19 4.7 7.21 6a.52.52 0 0 0 .39 0c3-.78 5.76-2.58 7.37-5.12A24.08 24.08 0 0 0 22.19 3.5c0-.53-.47-1-1-1z"/></svg>
-          </span>
-          <div>
-            <p class="font-bold text-white text-xs">Telegram аккаунт</p>
-            <p class="text-[10px] text-white/50">Привязан к боту ICE LOGIX</p>
-          </div>
-        </div>
-        <span class="text-xs text-emerald-400 font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">Подключён</span>
+  const accountHtml = `
+    <div class="rd-card">
+      <div class="st-me">
+        <div class="st-ava">${avatar ? `<img src="${U.esc(avatar)}" alt="">` : U.icon('user', 28)}</div>
+        <div class="st-who"><b>${U.esc(name)}</b>${nick ? `<span>${U.esc(nick)}</span>` : ''}</div>
+        ${status('', roleText)}
       </div>
-    `;
-  } else {
-    identitiesHtml += `
-      <div class="space-y-2">
-        <button id="linkTelegramBtn" class="w-full py-3 px-4 rounded-2xl flex items-center justify-between transition bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 active:scale-[0.99]">
-          <div class="flex items-center gap-3">
-            <span class="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.19 2.5a24.22 24.22 0 0 0-9 1.56 24.43 24.43 0 0 0-9-1.56c-.53 0-1 .47-1 1a24 24 0 0 0 3.25 12c1.72 2.7 4.19 4.7 7.21 6a.52.52 0 0 0 .39 0c3-.78 5.76-2.58 7.37-5.12A24.08 24.08 0 0 0 22.19 3.5c0-.53-.47-1-1-1z"/></svg>
-            </span>
-            <div class="text-left">
-              <p class="font-bold text-white text-xs">Привязать Telegram</p>
-              <p class="text-[10px] text-cyan-300/70">Для мгновенных пуш-уведомлений</p>
-            </div>
-          </div>
-          <span class="text-xs text-cyan-300 font-bold px-2 py-1 rounded-xl bg-cyan-400/10">Привязать →</span>
-        </button>
-        <div id="settingsTelegramWidgetContainer" class="hidden flex justify-center p-3 bg-slate-900/60 rounded-2xl border border-white/10"></div>
-      </div>
-    `;
-  }
+      ${idText ? `
+      <div class="st-id">
+        <div><span>ID аккаунта</span><br><b>${U.esc(idText)}</b></div>
+        <button type="button" class="st-copy" id="copySettingsIdBtn" data-id="${U.esc(idText)}">${U.icon('copy', 16)}Скопировать</button>
+      </div>` : ''}
+    </div>
 
-  // Google Link
-  identitiesHtml += `
-    <button id="linkGoogleBtn" class="w-full py-3 px-4 rounded-2xl flex items-center justify-between transition bg-white/5 hover:bg-white/10 border border-white/10 active:scale-[0.99]">
-      <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
-          <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-        </div>
-        <div class="text-left">
-          <p class="font-bold text-white text-xs">Google</p>
-          <p class="text-[10px] text-white/40">Быстрый вход через Gmail</p>
-        </div>
-      </div>
-      <span class="text-xs ${isGoogleLinked ? 'text-emerald-400 font-bold' : 'text-white/50'}">${isGoogleLinked ? 'Подключён' : 'Подключить →'}</span>
-    </button>
-  `;
+    <p class="st-cap">Личное</p>
+    <div class="rd-card rd-list">
+      ${row('settingsMyDataBtn', 'idcard', 'Мои данные', 'Паспорт, получатели и размеры')}
+    </div>
 
-  // Apple Link
-  identitiesHtml += `
-    <button id="linkAppleBtn" class="w-full py-3 px-4 rounded-2xl flex items-center justify-between transition bg-white/5 hover:bg-white/10 border border-white/10 active:scale-[0.99]">
-      <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-white">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16.365 21.444c-1.332 1.405-2.651 1.4-3.955.086-1.19-1.2-2.316-1.187-3.486 0-1.385 1.4-2.721 1.428-4.043.08-3.036-3.111-4.707-8.31-2.482-12.825 1.134-2.296 3.013-3.714 5.234-3.743 1.572-.016 3.031.975 4.02.975.986 0 2.833-1.182 4.793-1.01 1.637.067 3.125.77 4.148 2.106-3.415 2.115-2.88 6.772.634 8.163-.787 2.111-1.956 4.316-3.863 6.168zM15.426 5.518c-.85.98-2.126 1.611-3.266 1.516-.25-1.428.468-2.85 1.258-3.791.905-1.083 2.304-1.727 3.402-1.631.183 1.428-.48 2.838-1.394 3.906z"/></svg>
-        </div>
-        <div class="text-left">
-          <p class="font-bold text-white text-xs">Apple ID</p>
-          <p class="text-[10px] text-white/40">Вход через Apple</p>
-        </div>
-      </div>
-      <span class="text-xs ${isAppleLinked ? 'text-emerald-400 font-bold' : 'text-white/50'}">${isAppleLinked ? 'Подключён' : 'Подключить →'}</span>
-    </button>
-  `;
+    <p class="st-cap">Сеансы</p>
+    <div class="rd-card rd-list">
+      ${row('logoutOthersBtn', 'devices', 'Выйти на других устройствах', 'Если входили с чужого телефона или компьютера', '')}
+      ${row('settingsLogoutBtn', 'logout', 'Выйти из аккаунта', 'Только на этом устройстве', '')}
+    </div>
 
-  // Email Link
-  if (isDummyEmail) {
-    identitiesHtml += `
-      <button id="linkEmailBtn" class="w-full py-3 px-4 rounded-2xl flex items-center justify-between transition bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 active:scale-[0.99]">
-        <div class="flex items-center gap-3">
-          <span class="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-          </span>
-          <div class="text-left">
-            <p class="font-bold text-white text-xs">Привязать Email</p>
-            <p class="text-[10px] text-indigo-300/70">Для входа с паролем с любого устройства</p>
-          </div>
-        </div>
-        <span class="text-xs text-indigo-300 font-bold px-2 py-1 rounded-xl bg-indigo-400/10">Привязать →</span>
+    <div class="rd-card rd-list st-danger">
+      ${row('settingsDeleteAccountBtn', 'trash', 'Удалить аккаунт', 'Заказы, баланс и бонусы удалятся навсегда', '')}
+    </div>`;
+
+  const securityHtml = `
+    <p class="st-cap">Как вы входите</p>
+    <div class="rd-card rd-list">
+      ${tgId
+        ? infoRow('send', 'Telegram', nick ? U.esc(nick) : 'Аккаунт привязан', status('ok', 'Подключён'))
+        : infoRow('send', 'Telegram', 'Откройте приложение через бота ICE LOGIX, и Telegram привяжется сам', status('warn', 'Нет'))}
+      ${isTechEmail
+        ? row('linkEmailBtn', 'mail', 'Почта и пароль', 'Чтобы входить с компьютера или из браузера')
+        : infoRow('mail', 'Почта', U.esc(email), emailConfirmed ? status('ok', 'Подтверждена') : status('warn', 'Ждёт подтверждения'))}
+      ${isTechEmail ? '' : row('changePasswordBtn', 'lock', 'Сменить пароль', 'Для входа по почте')}
+    </div>
+
+    <p class="st-cap">Если потеряете Telegram</p>
+    <div class="rd-card rd-list">
+      ${row('securityRecoveryBtn', 'key', 'Ключ восстановления',
+        hasKey ? 'С ним вы вернёте заказы и баланс на новый Telegram' : 'Создайте заранее, чтобы не потерять заказы и баланс',
+        `<span class="st-end">${hasKey ? status('ok', 'Есть') : status('warn', 'Нет')}${chev}</span>`)}
+    </div>`;
+
+  const notificationsHtml = `
+    <p class="st-cap">Сообщения от бота в Telegram</p>
+    <div class="rd-card rd-list">
+      ${infoRow('truck', 'Статусы заказов', 'Выкуп, склад в Китае, доставка', '<span class="st-end">Всегда</span>')}
+      ${switchRow('notifyNews', 'bell', 'Новости сервиса', 'Новые возможности, тарифы, график работы', notif.news)}
+      ${switchRow('notifyPromotions', 'gift', 'Акции и промокоды', 'Скидки на доставку и розыгрыши', notif.promotions)}
+    </div>
+    ${tgId ? '' : '<p class="st-hint">Сообщения приходят в Telegram. Откройте приложение через нашего бота, чтобы их получать.</p>'}`;
+
+  const viewHtml = `
+    <p class="st-cap">Язык</p>
+    <div class="rd-card rd-list" role="radiogroup" aria-label="Язык">
+      ${langs.map(([code, flag, title, sub]) => `
+        <div class="rd-row lang-btn ${lang === code ? 'on' : ''}" role="radio" tabindex="0" aria-checked="${lang === code}" data-lang="${code}">
+          <span class="st-flag">${flag}</span>${body(title, sub)}
+          <span class="st-check">${U.icon('check', 24)}</span>
+        </div>`).join('')}
+    </div>
+
+    <p class="st-cap">Тема</p>
+    <div class="st-themes">
+      <button type="button" class="st-theme theme-btn ${theme !== 'light' ? 'on' : ''}" data-theme="dark" aria-pressed="${theme !== 'light'}">
+        <span class="st-theme-ico">${U.icon('moon', 24)}</span>Тёмная<small>Основная</small>
       </button>
-    `;
-  } else {
-    identitiesHtml += `
-      <div class="w-full py-3 px-4 rounded-2xl flex items-center justify-between bg-white/5 border border-white/10">
-        <div class="flex items-center gap-3 min-w-0">
-          <span class="w-8 h-8 rounded-xl bg-white/10 text-white/60 flex items-center justify-center flex-shrink-0">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-          </span>
-          <div class="min-w-0">
-            <p class="font-bold text-white text-xs">Email</p>
-            <p class="text-[10px] text-white/50 truncate">${userEmail}</p>
-          </div>
-        </div>
-        <span class="text-xs text-emerald-400 font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex-shrink-0">Привязан</span>
-      </div>
-    `;
-  }
+      <button type="button" class="st-theme theme-btn ${theme === 'light' ? 'on' : ''}" data-theme="light" aria-pressed="${theme === 'light'}">
+        <span class="st-theme-ico light">${U.icon('sun', 24)}</span>Светлая<small>Для яркого солнца</small>
+      </button>
+    </div>
 
-  // Phone Link
-  if (userPhone) {
-    identitiesHtml += `
-      <div class="w-full py-3 px-4 rounded-2xl flex items-center justify-between bg-white/5 border border-white/10">
-        <div class="flex items-center gap-3">
-          <span class="w-8 h-8 rounded-xl bg-white/10 text-white/60 flex items-center justify-center">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-          </span>
-          <div>
-            <p class="font-bold text-white text-xs">Телефон</p>
-            <p class="text-[10px] text-white/50">${userPhone}</p>
-          </div>
-        </div>
-        <span class="text-xs text-emerald-400 font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">Подтверждён</span>
-      </div>
-    `;
-  }
+    <p class="st-cap">Отклик</p>
+    <div class="rd-card rd-list">
+      ${switchRow('settingsHaptics', 'vibrate', 'Вибрация', 'Лёгкий отклик телефона при нажатиях', hapticsOn)}
+    </div>`;
 
-  const activeTab = initialTab || window._settingsInitialTab || 'account';
-
-  const U = window.UI;
-  const stTabs = [['account', 'user', 'Аккаунт'], ['security', 'shield', 'Вход'], ['notifications', 'bell', 'Сигналы'], ['language', 'globe', 'Язык'], ['theme', 'sparkles', 'Тема']];
   return `
     <div class="rd-screen page-enter st">
-      <div class="rd-head">
-        <button type="button" class="rd-back" onclick="window.goBackGlobal()" aria-label="Назад">${U.icon('chevL', 22)}</button>
-        <div class="rd-head-txt"><h1 class="rd-head-title">Настройки</h1><p class="rd-head-sub">Аккаунт, вход, уведомления и язык</p></div>
+      ${U.screenHead({ title: 'Настройки', sub: 'Аккаунт, защита, уведомления и вид' })}
+
+      <div class="st-tabs" role="tablist">
+        ${tabs.map(([k, ico, label]) => `<button type="button" role="tab" class="settings-page-tab ${activeTab === k ? 'on' : ''}" aria-selected="${activeTab === k}" data-tab="${k}">${U.icon(ico, 20)}<span>${label}</span></button>`).join('')}
       </div>
 
-      <div class="st-tabs">
-        ${stTabs.map(([k, ico, label]) => `<button type="button" class="settings-page-tab ${activeTab === k ? 'on' : ''}" data-tab="${k}">${U.icon(ico, 19)}<span>${label}</span></button>`).join('')}
-      </div>
-
-      <!-- Panels Container -->
       <div id="settingsPageCard">
-        <!-- 0. Account panel -->
-        <div id="settingsPanel-account" class="space-y-4 ${activeTab!=='account'?'hidden':''}">
-          <!-- Profile summary card -->
-          <div class="p-4 rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.03] border border-white/10 shadow-lg backdrop-blur-md space-y-3.5">
-            <div class="flex items-center gap-3">
-              <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500/30 to-blue-600/30 border border-white/15 flex items-center justify-center text-cyan-300 font-bold text-lg overflow-hidden flex-shrink-0 shadow-inner">
-                ${userAvatar ? `<img src="${userAvatar}" alt="Avatar" class="w-full h-full object-cover">` : `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`}
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2">
-                  <p class="font-bold text-white text-sm truncate">${userNameDisplay}</p>
-                  <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 flex-shrink-0">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    Активен
-                  </span>
-                </div>
-                <p class="text-xs text-white/50 truncate">${userHandleDisplay}</p>
-              </div>
-              <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${roleBadgeClass}">
-                ${roleDisplay}
-              </span>
-            </div>
-
-            <!-- Details Grid -->
-            <div class="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
-              <div class="p-2.5 rounded-xl bg-white/5 border border-white/5">
-                <p class="text-[10px] text-white/40 mb-0.5">ID аккаунта</p>
-                <div class="flex items-center justify-between gap-1">
-                  <span class="font-mono text-xs font-semibold text-cyan-300 truncate">${idDisplay}</span>
-                  <button id="copySettingsIdBtn" data-id="${rawIdForCopy}" class="text-white/40 hover:text-white p-1 rounded transition hover:bg-white/5" title="Скопировать ID">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                  </button>
-                </div>
-              </div>
-              <div class="p-2.5 rounded-xl bg-white/5 border border-white/5">
-                <p class="text-[10px] text-white/40 mb-0.5">Сессия</p>
-                <span class="text-xs font-semibold text-white/90 truncate flex items-center gap-1.5">
-                  ${U.icon('zap', 15)}
-                  ${isTgSession ? 'Telegram App' : 'Браузер'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Account Maintenance / Actions -->
-          <div class="space-y-2">
-            <p class="text-[11px] font-bold text-white/50 uppercase tracking-wider px-1">Управление сеансом</p>
-            
-            <button id="clearAppCacheBtn" class="w-full py-3 px-3.5 rounded-2xl flex items-center justify-between transition bg-white/5 hover:bg-white/10 border border-white/10 active:scale-[0.99]">
-              <div class="flex items-center gap-3">
-                <span class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center flex-shrink-0">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                </span>
-                <div class="text-left">
-                  <p class="font-bold text-white text-xs">Очистить кэш приложения</p>
-                  <p class="text-[10px] text-white/40">Освободить память без сброса авторизации</p>
-                </div>
-              </div>
-              <span class="text-xs text-amber-300 font-semibold px-2 py-1 rounded-lg bg-amber-400/10">Очистить</span>
-            </button>
-
-            <button id="settingsLogoutBtn" class="w-full py-3 px-3.5 rounded-2xl flex items-center justify-between transition bg-white/5 hover:bg-white/10 border border-white/10 active:scale-[0.99]">
-              <div class="flex items-center gap-3">
-                <span class="w-8 h-8 rounded-xl bg-white/10 text-white/80 flex items-center justify-center flex-shrink-0">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                </span>
-                <div class="text-left">
-                  <p class="font-bold text-white text-xs">Выйти из аккаунта</p>
-                  <p class="text-[10px] text-white/40">Завершить текущий сеанс на этом устройстве</p>
-                </div>
-              </div>
-              <span class="text-xs text-white/50 px-2 py-1 rounded-lg bg-white/5 whitespace-nowrap">Выйти</span>
-            </button>
-          </div>
-
-          <!-- Danger Zone -->
-          <div class="rounded-2xl p-4 bg-rose-500/[0.06] border border-rose-500/25 space-y-3">
-            <div class="flex items-start gap-2.5">
-              <span class="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              </span>
-              <div>
-                <p class="font-bold text-rose-300 text-xs">Опасная зона</p>
-                <p class="text-[10px] text-rose-200/60 leading-relaxed mt-0.5">
-                  Удаление профиля необратимо. Будут полностью аннулированы данные пользователя, история заказов, накопленные бонусы ICE и реферальная сеть.
-                </p>
-              </div>
-            </div>
-
-            <button id="settingsDeleteAccountBtn" class="w-full py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/35 text-rose-300 active:scale-[0.99]">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-              </svg>
-              Удалить аккаунт навсегда
-            </button>
-          </div>
-        </div>
-
-        <!-- 1. Security panel -->
-        <div id="settingsPanel-security" class="space-y-3 ${activeTab!=='security'?'hidden':''}">
-          <p class="st-lead">Как вы входите в аккаунт</p>
-          <div class="space-y-2">
-            ${identitiesHtml}
-          </div>
-
-          ${!isDummyEmail ? `
-            <button id="changePasswordBtn" class="w-full py-3.5 px-4 rounded-2xl flex items-center gap-3 text-left transition bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 active:scale-[0.99]">
-              <span class="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center flex-shrink-0">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              </span>
-              <div class="flex-1 min-w-0">
-                <p class="font-bold text-white text-xs">Изменить пароль</p>
-                <p class="text-[10px] text-white/50">Обновить постоянный пароль</p>
-              </div>
-              <span class="text-white/40 text-xs">→</span>
-            </button>
-          ` : ''}
-
-          <button id="securityRecoveryBtn" class="w-full py-3.5 px-4 rounded-2xl flex items-center gap-3 text-left transition bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 active:scale-[0.99]">
-            <span class="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center flex-shrink-0">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            </span>
-            <div class="flex-1 min-w-0">
-              <p class="font-bold text-white text-xs">Код восстановления аккаунта</p>
-              <p class="text-[10px] text-white/50">Запасной ключ доступа</p>
-            </div>
-            <span class="text-rose-400 text-xs">→</span>
-          </button>
-        </div>
-
-        <!-- 2. Notifications panel -->
-        <div id="settingsPanel-notifications" class="space-y-3 ${activeTab!=='notifications'?'hidden':''}">
-          <p class="st-lead">О чём присылать уведомления в Telegram</p>
-          <div class="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-white text-xs font-bold">Статусы заказов</p>
-                <p class="text-[10px] text-white/40">Выкуп, склад в Китае, доставка в РБ</p>
-              </div>
-              ${toggle('notifyStatusChanges', notif.status_changes)}
-            </div>
-            <div class="border-t border-white/5 pt-3 flex items-center justify-between">
-              <div>
-                <p class="text-white text-xs font-bold">Новости и обновления</p>
-                <p class="text-[10px] text-white/40">Новые функции, тарифы и расписание</p>
-              </div>
-              ${toggle('notifyNews', notif.news)}
-            </div>
-            <div class="border-t border-white/5 pt-3 flex items-center justify-between">
-              <div>
-                <p class="text-white text-xs font-bold">Акции и промокоды</p>
-                <p class="text-[10px] text-white/40">Персональные скидки на доставку</p>
-              </div>
-              ${toggle('notifyPromotions', notif.promotions)}
-            </div>
-          </div>
-        </div>
-
-        <!-- 3. Language panel -->
-        <div id="settingsPanel-language" class="space-y-3 ${activeTab!=='language'?'hidden':''}">
-          <p class="st-lead">Язык приложения</p>
-          <div class="space-y-2">
-            <button class="lang-btn w-full rounded-2xl p-3.5 border-2 transition text-left flex items-center justify-between ${currentLang==='ru'?'border-cyan-400 bg-cyan-950/30 shadow-md shadow-cyan-500/10':'border-white/10 bg-white/5'}" data-lang="ru">
-              <div class="flex items-center gap-3">
-                <span class="st-flag">RU</span>
-                <div>
-                  <p class="text-white text-xs font-bold">Русский</p>
-                  <p class="text-[10px] text-white/40">Основной язык</p>
-                </div>
-              </div>
-              <span class="text-xs ${currentLang==='ru'?'text-cyan-400 font-bold':'text-white/30'}">${currentLang==='ru'?'✓ Выбран':''}</span>
-            </button>
-
-            <button class="lang-btn w-full rounded-2xl p-3.5 border-2 transition text-left flex items-center justify-between ${currentLang==='be'?'border-cyan-400 bg-cyan-950/30 shadow-md shadow-cyan-500/10':'border-white/10 bg-white/5'}" data-lang="be">
-              <div class="flex items-center gap-3">
-                <span class="st-flag">BY</span>
-                <div>
-                  <p class="text-white text-xs font-bold">Беларуская</p>
-                  <p class="text-[10px] text-white/40">Зроблена з любоўю</p>
-                </div>
-              </div>
-              <span class="text-xs ${currentLang==='be'?'text-cyan-400 font-bold':'text-white/30'}">${currentLang==='be'?'✓ Выбран':''}</span>
-            </button>
-
-            <button class="lang-btn w-full rounded-2xl p-3.5 border-2 transition text-left flex items-center justify-between ${currentLang==='en'?'border-cyan-400 bg-cyan-950/30 shadow-md shadow-cyan-500/10':'border-white/10 bg-white/5'}" data-lang="en">
-              <div class="flex items-center gap-3">
-                <span class="st-flag">EN</span>
-                <div>
-                  <p class="text-white text-xs font-bold">English</p>
-                  <p class="text-[10px] text-white/40">International</p>
-                </div>
-              </div>
-              <span class="text-xs ${currentLang==='en'?'text-cyan-400 font-bold':'text-white/30'}">${currentLang==='en'?'✓ Выбран':''}</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- 4. Theme panel -->
-        <div id="settingsPanel-theme" class="space-y-3 ${activeTab!=='theme'?'hidden':''}">
-          <p class="st-lead">Оформление приложения</p>
-          <div class="grid grid-cols-2 gap-3">
-            <button class="theme-btn rounded-2xl p-4 border-2 transition text-center ${currentTheme==='dark'?'border-cyan-400 bg-slate-900 shadow-md shadow-cyan-500/15':'border-white/10 bg-white/5'}" data-theme="dark">
-              <div class="st-theme-ico dark"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></div>
-              <p class="text-white text-xs font-bold">Тёмная</p>
-              <p class="text-[10px] text-cyan-300/80 mt-0.5">По умолчанию</p>
-            </button>
-
-            <button class="theme-btn rounded-2xl p-4 border-2 transition text-center ${currentTheme==='light'?'border-cyan-400 bg-slate-800 shadow-md shadow-cyan-500/15':'border-white/10 bg-white/5'}" data-theme="light">
-              <div class="st-theme-ico light"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></div>
-              <p class="text-white text-xs font-bold">Светлая</p>
-              <p class="text-[10px] text-white/40 mt-0.5">Контрастная</p>
-            </button>
-          </div>
-          <button id="resetSettingsBtn" class="mt-3 w-full text-white/40 hover:text-white/70 text-xs py-2 transition flex items-center justify-center gap-1.5">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-            Сбросить настройки
-          </button>
-        </div>
+        ${panel('account', accountHtml)}
+        ${panel('security', securityHtml)}
+        ${panel('notifications', notificationsHtml)}
+        ${panel('view', viewHtml)}
       </div>
+
+      <p class="st-ver">ICE LOGIX · версия ${ICE_APP_VERSION}</p>
     </div>
     ${typeof renderFooter === 'function' ? renderFooter() : ''}
   `;
 }
 
+// Человеческий текст для ошибок входа/почты из Supabase Auth
+function settingsAuthErrorText(e) {
+  const m = String(e?.message || e || '').toLowerCase();
+  if (m.includes('already') && (m.includes('registered') || m.includes('exists') || m.includes('use'))) return 'Эта почта уже занята другим аккаунтом';
+  if (m.includes('password') && (m.includes('weak') || m.includes('should') || m.includes('least'))) return 'Пароль слишком простой. Добавьте цифры и буквы';
+  if (m.includes('same') && m.includes('password')) return 'Новый пароль совпадает со старым';
+  if (m.includes('rate') || m.includes('too many') || m.includes('security purposes')) return 'Слишком много попыток. Подождите пару минут';
+  if (m.includes('reauth')) return 'Для смены пароля войдите заново по почте';
+  if (m.includes('invalid') && m.includes('email')) return 'Проверьте адрес почты';
+  return 'Не получилось. Попробуйте ещё раз';
+}
+
 function attachSettingsPageHandlers(initialTab = 'account') {
-  // Helper for saving app_settings to DB in background
-  async function persistAppSettings(partial) {
-    if (!supabaseClient || !userId) return;
+  const U = window.UI;
+  const haptic = (t) => { if (window.tgUtil && window.tgUtil.haptic) window.tgUtil.haptic(t); };
+  const setLs = (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} };
+  const tap = (id, fn) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.onclick = fn;
+    el.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } };
+  };
+  const rerender = (tab) => {
+    window._settingsInitialTab = tab;
+    if (typeof renderCurrentScreen === 'function') renderCurrentScreen();
+    else if (typeof switchTab === 'function') switchTab('settings');
+  };
+
+  // Настройки вида храним в users.settings рядом с остальными (theme уже читается при запуске в app-core)
+  async function saveSettings(partial) {
+    window.userSettings = { ...(window.userSettings || {}), ...partial };
+    if (!supabaseClient || !userId) return true;
     try {
-      const { data } = await supabaseClient.from('users').select('app_settings').eq('user_id', userId).maybeSingle();
-      const current = data?.app_settings || {};
-      const updated = { ...current, ...partial };
-      await supabaseClient.from('users').update({ app_settings: updated }).eq('user_id', userId);
+      const { data, error } = await supabaseClient.from('users').select('settings').eq('user_id', userId).maybeSingle();
+      if (error) throw error;
+      const merged = { ...(data?.settings || {}), ...partial };
+      const { error: upErr } = await supabaseClient.from('users').update({ settings: merged }).eq('user_id', userId);
+      if (upErr) throw upErr;
+      window.userSettings = merged;
+      return true;
     } catch (e) {
-      console.warn('Auto-save app_settings failed:', e);
+      console.warn('settings save failed:', e?.message || e);
+      U.toast('Не получилось сохранить, попробуйте ещё раз', 'bad');
+      return false;
     }
   }
 
-  // Helper for saving notification_settings to DB in background
-  async function persistNotifSettings(newNotif) {
-    if (!supabaseClient || !userId) return;
-    try {
-      await supabaseClient.from('users').update({ notification_settings: newNotif }).eq('user_id', userId);
-    } catch (e) {
-      console.warn('Auto-save notification_settings failed:', e);
-    }
-  }
-
-  // Segmented tab switching (5 tabs)
-  document.querySelectorAll('.settings-page-tab').forEach(tab => {
+  // Вкладки
+  const panels = ['account', 'security', 'notifications', 'view'];
+  document.querySelectorAll('.settings-page-tab').forEach((tab) => {
     tab.onclick = () => {
-      document.querySelectorAll('.settings-page-tab').forEach(t => t.classList.toggle('on', t === tab));
-      
       const target = tab.dataset.tab;
       window._settingsInitialTab = target;
-      ['account', 'security', 'notifications', 'language', 'theme'].forEach(name => {
-        const p = document.getElementById(`settingsPanel-${name}`);
-        if (p) p.classList.toggle('hidden', name !== target);
+      document.querySelectorAll('.settings-page-tab').forEach((t) => {
+        t.classList.toggle('on', t === tab);
+        t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
       });
-      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
+      panels.forEach((name) => {
+        const p = document.getElementById(`settingsPanel-${name}`);
+        if (p) p.hidden = name !== target;
+      });
+      haptic('selection');
     };
   });
 
-  // Account: Copy ID
+  // Аккаунт
   const copyIdBtn = document.getElementById('copySettingsIdBtn');
   if (copyIdBtn) {
-    copyIdBtn.onclick = () => {
-      const idToCopy = copyIdBtn.dataset.id || '';
-      if (idToCopy) {
-        navigator.clipboard.writeText(idToCopy).then(() => {
-          if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
-          if (typeof tgUtil !== 'undefined' && tgUtil.alert) {
-            tgUtil.alert('ID скопирован в буфер: ' + idToCopy);
-          }
-        }).catch(() => {
-          prompt('Ваш ID:', idToCopy);
-        });
-      }
-    };
-  }
-
-  // Account: Clear Cache with confirmation
-  const clearCacheBtn = document.getElementById('clearAppCacheBtn');
-  if (clearCacheBtn) {
-    clearCacheBtn.onclick = async () => {
-      const confirmed = (typeof tgUtil !== 'undefined' && tgUtil.confirm)
-        ? await tgUtil.confirm('Вы действительно хотите очистить кэш приложения? Данные авторизации сохранятся.')
-        : confirm('Вы действительно хотите очистить кэш приложения? Данные авторизации сохранятся.');
-      if (!confirmed) return;
-
+    copyIdBtn.onclick = async () => {
+      const id = copyIdBtn.dataset.id || '';
+      if (!id) return;
       try {
-        const preserveKeys = {};
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && (key.startsWith('sb-') || key.includes('auth') || key === 'tg_user_id' || key === 'theme' || key === 'lang')) {
-            preserveKeys[key] = localStorage.getItem(key);
-          }
-        }
-        localStorage.clear();
-        sessionStorage.clear();
-        for (const [k, v] of Object.entries(preserveKeys)) {
-          localStorage.setItem(k, v);
-        }
-        if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
-        if (typeof tgUtil !== 'undefined' && tgUtil.alert) {
-          tgUtil.alert('✅ Кэш приложения успешно очищен!');
-        }
-      } catch (e) {
-        if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Не удалось очистить кэш: ' + e.message);
+        await navigator.clipboard.writeText(id);
+        U.toast('ID скопирован');
+        haptic('success');
+      } catch (_) {
+        U.toast('Не получилось скопировать. Ваш ID: ' + id, 'info');
       }
     };
   }
 
-  // Account: Logout
-  const settingsLogoutBtn = document.getElementById('settingsLogoutBtn');
-  if (settingsLogoutBtn) {
-    settingsLogoutBtn.onclick = () => {
-      if (typeof window.logoutUser === 'function') {
-        window.logoutUser();
-      }
-    };
-  }
+  tap('settingsMyDataBtn', () => { if (typeof switchTab === 'function') switchTab('kyc'); });
 
-  // Account: Delete Account
-  const settingsDeleteBtn = document.getElementById('settingsDeleteAccountBtn');
-  if (settingsDeleteBtn) {
-    settingsDeleteBtn.onclick = () => {
-      if (typeof window.deleteUserAccount === 'function') {
-        window.deleteUserAccount();
-      }
-    };
-  }
-
-  // Theme selection: Instant Auto-Save
-  document.querySelectorAll('.theme-btn').forEach(btn => {
-    btn.onclick = () => {
-      const targetTheme = btn.dataset.theme;
-      document.querySelectorAll('.theme-btn').forEach(b => {
-        b.classList.remove('border-cyan-400', 'shadow-md', 'shadow-cyan-500/15');
-        b.classList.add('border-white/10');
-      });
-      btn.classList.remove('border-white/10');
-      btn.classList.add('border-cyan-400', 'shadow-md', 'shadow-cyan-500/15');
-      
-      localStorage.setItem('theme', targetTheme);
-      if (typeof applyTheme === 'function') applyTheme(targetTheme);
-      persistAppSettings({ theme: targetTheme });
-      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
-    };
-  });
-
-  // Language selection: Instant Auto-Save
-  document.querySelectorAll('.lang-btn').forEach(btn => {
-    btn.onclick = () => {
-      const targetLang = btn.dataset.lang;
-      document.querySelectorAll('.lang-btn').forEach(b => {
-        b.classList.remove('border-cyan-400', 'bg-cyan-950/30', 'shadow-md', 'shadow-cyan-500/10');
-        b.classList.add('border-white/10', 'bg-white/5');
-        const badge = b.querySelector('span:last-child');
-        if (badge) { badge.textContent = ''; badge.className = 'text-xs text-white/30'; }
-      });
-      btn.classList.remove('border-white/10', 'bg-white/5');
-      btn.classList.add('border-cyan-400', 'bg-cyan-950/30', 'shadow-md', 'shadow-cyan-500/10');
-      const curBadge = btn.querySelector('span:last-child');
-      if (curBadge) { curBadge.textContent = '✓ Выбран'; curBadge.className = 'text-xs text-cyan-400 font-bold'; }
-      
-      localStorage.setItem('lang', targetLang);
-      persistAppSettings({ lang: targetLang });
-      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('selection');
-      
-      window._settingsInitialTab = 'language';
-      if (typeof applyLanguage === 'function') applyLanguage(targetLang);
-    };
-  });
-
-  // Signals (Notification toggles): Instant Auto-Save
-  ['notifyStatusChanges', 'notifyNews', 'notifyPromotions'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.onchange = () => {
-        const sc = document.getElementById('notifyStatusChanges')?.checked ?? true;
-        const sn = document.getElementById('notifyNews')?.checked ?? true;
-        const sp = document.getElementById('notifyPromotions')?.checked ?? true;
-        const newNotif = { status_changes: sc, news: sn, promotions: sp };
-        
-        localStorage.setItem('notification_settings', JSON.stringify(newNotif));
-        persistNotifSettings(newNotif);
-        if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
-      };
+  tap('logoutOthersBtn', async () => {
+    const ok = await window.tgUtil.confirm('Выйти на всех других устройствах? Здесь вы останетесь в аккаунте.');
+    if (!ok || !supabaseClient) return;
+    try {
+      const { error } = await supabaseClient.auth.signOut({ scope: 'others' });
+      if (error) throw error;
+      U.toast('Готово: на других устройствах вы вышли');
+      haptic('success');
+    } catch (e) {
+      console.warn('signOut others failed:', e?.message || e);
+      U.toast('Не получилось. Попробуйте позже', 'bad');
     }
   });
 
-  // Reset defaults
-  const resetBtn = document.getElementById('resetSettingsBtn');
-  if (resetBtn) {
-    resetBtn.onclick = async () => {
-      const confirmed = (typeof tgUtil !== 'undefined' && tgUtil.confirm)
-        ? await tgUtil.confirm('Сбросить все настройки приложения к исходным?')
-        : confirm('Сбросить все настройки приложения к исходным?');
-      if (!confirmed) return;
+  tap('settingsLogoutBtn', () => { if (typeof window.logoutUser === 'function') window.logoutUser(); });
+  tap('settingsDeleteAccountBtn', () => { if (typeof window.deleteUserAccount === 'function') window.deleteUserAccount(); });
 
-      const defaultTheme = 'dark';
-      const defaultLang = 'ru';
-      const defaultNotif = { status_changes: true, news: true, promotions: true };
+  // Защита
+  tap('linkEmailBtn', async () => {
+    const v = await U.ask({
+      title: 'Почта и пароль',
+      text: 'Чтобы входить в ICE LOGIX с компьютера или из браузера. На почту придёт письмо со ссылкой для подтверждения.',
+      fields: [
+        { name: 'email', label: 'Почта', type: 'email', placeholder: 'name@mail.ru', autocomplete: 'email', inputmode: 'email' },
+        { name: 'password', label: 'Пароль', type: 'password', placeholder: 'Не короче 8 символов', autocomplete: 'new-password' }
+      ],
+      action: 'Привязать почту',
+      validate: (x) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x.email) ? 'Проверьте адрес почты' : (x.password.length < 8 ? 'Пароль должен быть не короче 8 символов' : '')
+    });
+    if (!v || !supabaseClient) return;
+    try {
+      const { error } = await supabaseClient.auth.updateUser({ email: v.email, password: v.password });
+      if (error) throw error;
+      U.toast('Письмо отправлено. Подтвердите почту по ссылке');
+      haptic('success');
+      rerender('security');
+    } catch (e) {
+      U.toast(settingsAuthErrorText(e), 'bad');
+    }
+  });
 
-      localStorage.setItem('theme', defaultTheme);
-      localStorage.setItem('lang', defaultLang);
-      localStorage.setItem('notification_settings', JSON.stringify(defaultNotif));
+  tap('changePasswordBtn', async () => {
+    const v = await U.ask({
+      title: 'Новый пароль',
+      fields: [
+        { name: 'password', label: 'Новый пароль', type: 'password', placeholder: 'Не короче 8 символов', autocomplete: 'new-password' },
+        { name: 'repeat', label: 'Ещё раз', type: 'password', placeholder: 'Повторите пароль', autocomplete: 'new-password' }
+      ],
+      action: 'Сменить пароль',
+      validate: (x) => x.password.length < 8 ? 'Пароль должен быть не короче 8 символов' : (x.password !== x.repeat ? 'Пароли не совпадают' : '')
+    });
+    if (!v || !supabaseClient) return;
+    try {
+      const { error } = await supabaseClient.auth.updateUser({ password: v.password });
+      if (error) throw error;
+      U.toast('Пароль изменён');
+      haptic('success');
+    } catch (e) {
+      U.toast(settingsAuthErrorText(e), 'bad');
+    }
+  });
 
-      persistAppSettings({ theme: defaultTheme, lang: defaultLang });
-      persistNotifSettings(defaultNotif);
+  tap('securityRecoveryBtn', () => {
+    if (typeof showRecoveryCodeModal === 'function') showRecoveryCodeModal({ onChange: () => rerender('security') });
+  });
 
-      document.querySelectorAll('.theme-btn').forEach(b => {
-        b.classList.toggle('border-cyan-400', b.dataset.theme === 'dark');
-        b.classList.toggle('border-white/10', b.dataset.theme !== 'dark');
+  // Уведомления: статусы заказов всегда включены, остальное по выбору
+  ['notifyNews', 'notifyPromotions'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.onchange = async () => {
+      const next = {
+        ...(window._stNotif || {}),
+        status_changes: true,
+        news: !!document.getElementById('notifyNews')?.checked,
+        promotions: !!document.getElementById('notifyPromotions')?.checked
+      };
+      haptic('light');
+      if (supabaseClient && userId) {
+        const { error } = await supabaseClient.from('users').update({ notification_settings: next }).eq('user_id', userId);
+        if (error) {
+          el.checked = !el.checked;
+          U.toast('Не получилось сохранить, попробуйте ещё раз', 'bad');
+          return;
+        }
+      }
+      window._stNotif = next;
+      setLs('notification_settings', JSON.stringify(next));
+    };
+  });
+
+  // Вид: язык
+  document.querySelectorAll('.lang-btn').forEach((btn) => {
+    const pick = () => {
+      const next = btn.dataset.lang;
+      let cur = 'ru';
+      try { cur = localStorage.getItem('lang') || 'ru'; } catch (_) {}
+      if (!next || next === cur) return;
+      document.querySelectorAll('.lang-btn').forEach((b) => {
+        b.classList.toggle('on', b === btn);
+        b.setAttribute('aria-checked', b === btn ? 'true' : 'false');
       });
-      const sc = document.getElementById('notifyStatusChanges');
-      const sn = document.getElementById('notifyNews');
-      const sp = document.getElementById('notifyPromotions');
-      if (sc) sc.checked = true;
-      if (sn) sn.checked = true;
-      if (sp) sp.checked = true;
-
-      if (typeof applyTheme === 'function') applyTheme(defaultTheme);
-      window._settingsInitialTab = 'theme';
-      if (typeof applyLanguage === 'function') applyLanguage(defaultLang);
-      if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('medium');
-      if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Настройки сброшены к значениям по умолчанию.');
+      haptic('selection');
+      setLs('lang', next);
+      saveSettings({ lang: next });
+      window._settingsInitialTab = 'view';
+      if (typeof applyLanguage === 'function') applyLanguage(next);
     };
-  }
+    btn.onclick = pick;
+    btn.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } };
+  });
 
-  // Link Google
-  const linkGoogle = document.getElementById('linkGoogleBtn');
-  if (linkGoogle) {
-    linkGoogle.onclick = async () => {
-      try {
-        if (!supabaseClient) return;
-        const { error } = await supabaseClient.auth.linkIdentity({ provider: 'google' });
-        if (error) throw error;
-      } catch (e) {
-        if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Ошибка привязки Google: ' + e.message);
-      }
+  // Вид: тема
+  document.querySelectorAll('.theme-btn').forEach((btn) => {
+    btn.onclick = () => {
+      const next = btn.dataset.theme;
+      document.querySelectorAll('.theme-btn').forEach((b) => {
+        b.classList.toggle('on', b === btn);
+        b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
+      });
+      setLs('theme', next);
+      if (typeof applyTheme === 'function') applyTheme(next);
+      saveSettings({ theme: next });
+      haptic('selection');
     };
-  }
+  });
 
-  // Link Apple
-  const linkApple = document.getElementById('linkAppleBtn');
-  if (linkApple) {
-    linkApple.onclick = () => {
-      if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Привязка Apple ID будет доступна в следующем обновлении.');
-    };
-  }
-
-  // Link Email
-  const linkEmail = document.getElementById('linkEmailBtn');
-  if (linkEmail) {
-    linkEmail.onclick = async () => {
-      const email = prompt('Введите ваш Email для привязки:');
-      if (!email) return;
-      const password = prompt('Придумайте пароль для входа (минимум 6 символов):');
-      if (!password || password.length < 6) {
-        if (password && typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Пароль слишком короткий.');
-        return;
-      }
-      try {
-        if (!supabaseClient) return;
-        const { error } = await supabaseClient.auth.updateUser({ email, password });
-        if (error) throw error;
-        if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Email для подтверждения отправлен. Пожалуйста, подтвердите его.');
-        location.reload();
-      } catch (e) {
-        if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Ошибка привязки Email: ' + e.message);
-      }
-    };
-  }
-
-  // Link Telegram
-  const linkTelegram = document.getElementById('linkTelegramBtn');
-  if (linkTelegram) {
-    linkTelegram.onclick = () => {
-      const widgetContainer = document.getElementById('settingsTelegramWidgetContainer');
-      if (!widgetContainer) return;
-      
-      if (widgetContainer.classList.contains('hidden')) {
-        widgetContainer.classList.remove('hidden');
-        widgetContainer.innerHTML = '<p class="text-white/40 text-xs py-2">Загрузка виджета Telegram...</p>';
-        
-        window.onTelegramSettingsAuth = async function(user) {
-          try {
-            if (!supabaseClient) return;
-            const { data: existing } = await supabaseClient.from('users')
-              .select('user_id')
-              .eq('telegram_id', user.id)
-              .maybeSingle();
-              
-            if (existing) {
-              if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Этот Telegram-аккаунт уже привязан к другому профилю.');
-              return;
-            }
-            
-            const { error } = await supabaseClient.from('users').update({
-              telegram_id: user.id,
-              username: user.username || null,
-              full_name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || null
-            }).eq('user_id', userId);
-            
-            if (error) throw error;
-            if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Telegram успешно привязан!');
-            if (typeof switchTab === 'function') switchTab('settings');
-          } catch(e) {
-            if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Ошибка привязки Telegram: ' + e.message);
-          }
-        };
-        
-        const script = document.createElement('script');
-        script.async = true;
-        script.src = 'https://telegram.org/js/telegram-widget.js?22';
-        script.setAttribute('data-telegram-login', 'icelogix_bot');
-        script.setAttribute('data-size', 'medium');
-        script.setAttribute('data-onauth', 'onTelegramSettingsAuth(user)');
-        script.setAttribute('data-request-access', 'write');
-        script.onload = () => {
-          const loadingText = widgetContainer.querySelector('p');
-          if (loadingText) loadingText.remove();
-        };
-        widgetContainer.appendChild(script);
-      } else {
-        widgetContainer.classList.add('hidden');
-        widgetContainer.innerHTML = '';
-      }
-    };
-  }
-
-  // Change Password
-  const changePasswordBtn = document.getElementById('changePasswordBtn');
-  if (changePasswordBtn) {
-    changePasswordBtn.onclick = async () => {
-      const newPassword = prompt('Введите новый пароль (минимум 6 символов):');
-      if (!newPassword) return;
-      if (newPassword.length < 6) {
-        if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Пароль слишком короткий. Минимум 6 символов.');
-        return;
-      }
-      const confirmPassword = prompt('Повторите новый пароль:');
-      if (!confirmPassword) return;
-      if (newPassword !== confirmPassword) {
-        if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Пароли не совпадают.');
-        return;
-      }
-      try {
-        if (!supabaseClient) return;
-        const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
-        if (error) throw error;
-        if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
-        if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('✅ Пароль успешно изменён!');
-      } catch(e) {
-        if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('error');
-        if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Ошибка смены пароля: ' + e.message);
-      }
-    };
-  }
-
-  // Account Recovery
-  const recoveryBtn = document.getElementById('securityRecoveryBtn');
-  if (recoveryBtn) {
-    recoveryBtn.onclick = () => {
-      if (typeof showRecoveryCodeModal === 'function') showRecoveryCodeModal();
+  // Вид: вибрация (по умолчанию выключена)
+  const hapticsEl = document.getElementById('settingsHaptics');
+  if (hapticsEl) {
+    hapticsEl.onchange = () => {
+      const on = hapticsEl.checked;
+      setLs('ice_haptics', on ? '1' : '0');
+      saveSettings({ haptics: on });
+      if (on) haptic('success');
     };
   }
 }
