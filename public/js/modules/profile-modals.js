@@ -707,229 +707,142 @@ async function showFamilySettingsModal() {
   await updateModalHTML();
 }
 
-async function showCurrencyAlertsModal() {
-  tgUtil.haptic('medium');
-  const modal = document.createElement('div');
-  modal.className = 'full-screen-modal-overlay page-enter';
-  modal.id = 'currencyAlertsModal';
+// Сигнал по курсу юаня: users.settings.currency_alerts = [{ id, currency: 'CNY', target, active, created_at, fired_at, fired_rate }].
+// Курс НБРБ раз в 30 минут проверяет бот (client_notifications.check_currency_alerts): когда 1 юань <= target,
+// сигнал гаснет (active: false) и клиенту уходит одно сообщение.
+const CURRENCY_ALERTS_MAX = 5;
 
-  const _esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]));
+async function showCurrencyAlertsModal(opts) {
+  const o = opts || {};
+  const U = window.UI;
+  if (!userId || !supabaseClient) { U.toast('Сначала войдите в аккаунт', 'bad'); return; }
+  tgUtil.haptic('light');
 
-  // Получаем живые курсы динамически
-  let rates = { CNY_to_BYN: 0.45, EUR_to_BYN: 3.59 };
+  let rate = null;
   try {
-    if (window.iceLogixPricing && window.iceLogixPricing.getExchangeRates) {
-      rates = await window.iceLogixPricing.getExchangeRates();
-    }
-  } catch (e) {
-    console.error('Error fetching rates for tracker:', e);
-  }
+    const r = window.iceLogixPricing && window.iceLogixPricing.getExchangeRates ? await window.iceLogixPricing.getExchangeRates() : null;
+    if (r && r._source !== 'fallback' && r.CNY_to_BYN > 0) rate = r.CNY_to_BYN;
+  } catch (_) {}
 
-  const cnyRate = rates.CNY_to_BYN || 0.45;
-  const eurRate = rates.EUR_to_BYN || 3.59;
+  let alerts = [];
+  try {
+    const { data } = await supabaseClient.from('users').select('settings').eq('user_id', userId).maybeSingle();
+    const list = data?.settings?.currency_alerts;
+    alerts = Array.isArray(list) ? list.filter((a) => a && a.id && (a.currency || 'CNY') === 'CNY') : [];
+  } catch (_) {}
 
-  // Генерируем 7 дней детерминированных колебаний, которые точно заканчиваются текущим курсом
-  const generateHistory = (currentRate, seed) => {
-    const history = [];
-    let temp = currentRate;
-    history.unshift(temp);
-    for (let i = 0; i < 6; i++) {
-      const change = (Math.sin(seed + i) * 0.012) * currentRate;
-      temp = temp + change;
-      history.unshift(temp);
-    }
-    return history.map(v => Math.round(v * 1000) / 1000);
+  let changed = false;
+  const sign = () => (window.bynSign ? window.bynSign() : '');
+  const fmt = (n) => Number(n).toFixed(4).replace('.', ',');
+  const day = (d) => { try { return new Date(d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }); } catch (_) { return ''; } };
+  const newId = () => (window.crypto && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
+  const activeCount = () => alerts.filter((a) => a.active !== false).length;
+
+  // Пишем поверх свежих настроек, чтобы не затереть тему, язык и остальное
+  const save = async (next) => {
+    const { data, error } = await supabaseClient.from('users').select('settings').eq('user_id', userId).maybeSingle();
+    if (error) throw error;
+    const merged = { ...(data?.settings || {}), currency_alerts: next };
+    const { error: upErr } = await supabaseClient.from('users').update({ settings: merged }).eq('user_id', userId);
+    if (upErr) throw upErr;
+    window.userSettings = { ...(window.userSettings || {}), currency_alerts: next };
+    alerts = next;
+    changed = true;
   };
 
-  const cnyPts = generateHistory(cnyRate, 4.2);
-  const eurPts = generateHistory(eurRate, 8.7);
+  const listHtml = () => alerts.length ? `
+    <div class="rd-card rd-list st-alerts">
+      ${alerts.map((a) => {
+        const fired = a.active === false;
+        return `
+        <div class="rd-row st-static">
+          <span class="rd-ico">${U.icon(fired ? 'checkCircle' : 'bell', 22)}</span>
+          <span class="rd-row-body">
+            <span class="rd-row-title"><span>1 юань до ${fmt(a.target)}&nbsp;${sign()}</span></span>
+            <span class="rd-row-text">${fired ? `Сработал ${day(a.fired_at)}${a.fired_rate ? `, курс был ${fmt(a.fired_rate)}` : ''}` : 'Ждём, напишем в Telegram'}</span>
+          </span>
+          <button type="button" class="st-icon-btn" data-del="${U.esc(a.id)}" aria-label="Удалить сигнал">${U.icon('trash', 20)}</button>
+        </div>`;
+      }).join('')}
+    </div>` : '';
 
-  const renderModalContent = () => {
-    const alerts = window.userSettings?.currency_alerts || [];
-    const alertsListHtml = alerts.map((a, idx) => `
-      <div class="flex justify-between items-center bg-white/5 p-2.5 rounded-xl border border-white/5">
-        <div>
-          <span class="font-bold text-white">${a.currency === 'CNY' ? '🇨🇳 CNY' : '🇵🇱 EUR'}</span>
-          <span class="text-xs text-white/50 ml-1">при курсе ≤</span>
-          <span class="font-mono font-bold text-cyan-400 ml-1 inline-flex items-baseline gap-1">${a.target.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</span>
-        </div>
-        <button class="text-red-400 hover:text-red-300 text-xs font-bold" onclick="window.deleteCurrencyAlert(${idx})">Удалить</button>
+  const formHtml = () => activeCount() >= CURRENCY_ALERTS_MAX
+    ? `<p class="st-hint">Можно держать до ${CURRENCY_ALERTS_MAX} сигналов сразу. Удалите ненужный, чтобы поставить новый.</p>`
+    : `
+    <form class="rd-ask" id="caForm" novalidate>
+      <label class="rd-ask-field">
+        <span class="rd-label">Написать, когда 1 юань будет стоить не больше</span>
+        <span class="rd-field"><input name="target" type="text" inputmode="decimal" autocomplete="off" placeholder="${rate ? 'Например, ' + fmt(rate * 0.98) : 'Например, 0,4300'}"></span>
+      </label>
+      <p class="rd-ask-err" hidden></p>
+      <button type="submit" class="rd-btn rd-btn-block">Поставить сигнал</button>
+    </form>`;
+
+  U.sheet({
+    title: 'Сигнал по курсу юаня',
+    html: `
+      <p class="st-sheet-text">Напишем в Telegram, когда официальный курс НБРБ опустится до вашей цели. Банк меняет курс раз в день, мы проверяем его каждые полчаса.</p>
+      <div class="st-rate">
+        <span>Курс НБРБ сейчас</span>
+        <b>${rate ? `1 юань = ${fmt(rate)}&nbsp;${sign()}` : 'Не загрузился, попробуйте позже'}</b>
       </div>
-    `).join('') || '<p class="text-xs text-white/40 text-center py-2">У вас пока нет активных алертов</p>';
+      <div id="caList">${listHtml()}</div>
+      <div id="caFormBox">${formHtml()}</div>`,
+    onClose: () => { if (changed && typeof o.onChange === 'function') o.onChange(); },
+    onOpen: (wrap) => {
+      const paint = () => {
+        wrap.querySelector('#caList').innerHTML = listHtml();
+        wrap.querySelector('#caFormBox').innerHTML = formHtml();
+        bindForm();
+      };
 
-    const buildSVGPath = (pts) => {
-      const min = Math.min(...pts);
-      const max = Math.max(...pts);
-      const range = max - min || 0.001;
-      const height = 80;
-      const width = 330;
-      const stepX = width / (pts.length - 1);
-      
-      const coords = pts.map((p, idx) => {
-        const x = idx * stepX;
-        const y = height - ((p - min) / range) * (height - 20) - 10;
-        return { x, y };
+      wrap.querySelector('#caList').addEventListener('click', async (e) => {
+        const btn = e.target.closest('[data-del]');
+        if (!btn) return;
+        btn.disabled = true;
+        try {
+          await save(alerts.filter((a) => a.id !== btn.dataset.del));
+          tgUtil.haptic('light');
+          paint();
+        } catch (err) {
+          console.warn('currency alert delete failed:', err?.message || err);
+          U.toast('Не получилось удалить, попробуйте ещё раз', 'bad');
+          btn.disabled = false;
+        }
       });
 
-      const linePath = 'M ' + coords.map(c => `${c.x.toFixed(1)} ${c.y.toFixed(1)}`).join(' L ');
-      const fillPath = linePath + ` L ${width} ${height} L 0 ${height} Z`;
-      return { linePath, fillPath, coords };
-    };
-
-    const cnyChart = buildSVGPath(cnyPts);
-    const eurChart = buildSVGPath(eurPts);
-
-    return `
-      <div class="space-y-4">
-        <div class="bg-white/5 p-3 rounded-xl border border-white/10">
-          <p class="text-xs font-bold text-white mb-2 flex items-center justify-between">
-            <span>🇨🇳 Динамика CNY (7 дней)</span>
-            <span class="text-cyan-400 font-mono text-xs">текущий ~${cnyRate.toFixed(4)}</span>
-          </p>
-          <div class="relative h-20 w-full overflow-hidden mt-1 bg-slate-950/40 rounded-lg">
-            <svg class="w-full h-full" viewBox="0 0 330 80" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="cnyGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="rgba(77, 163, 255,0.25)"/>
-                  <stop offset="100%" stop-color="rgba(77, 163, 255,0)"/>
-                </linearGradient>
-              </defs>
-              <path d="${cnyChart.fillPath}" fill="url(#cnyGrad)"/>
-              <path d="${cnyChart.linePath}" fill="none" stroke="#4DA3FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-              ${cnyChart.coords.map((c, i) => `<circle cx="${c.x}" cy="${c.y}" r="3" fill="#4DA3FF"/>`).join('')}
-            </svg>
-          </div>
-        </div>
-
-        <div class="bg-white/5 p-3 rounded-xl border border-white/10">
-          <p class="text-xs font-bold text-white mb-2 flex items-center justify-between">
-            <span>🇵🇱🇪🇺 Динамика EUR (7 дней)</span>
-            <span class="text-violet-400 font-mono text-xs">текущий ~${eurRate.toFixed(4)}</span>
-          </p>
-          <div class="relative h-20 w-full overflow-hidden mt-1 bg-slate-950/40 rounded-lg">
-            <svg class="w-full h-full" viewBox="0 0 330 80" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="eurGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="rgba(167,139,250,0.25)"/>
-                  <stop offset="100%" stop-color="rgba(167,139,250,0)"/>
-                </linearGradient>
-              </defs>
-              <path d="${eurChart.fillPath}" fill="url(#eurGrad)"/>
-              <path d="${eurChart.linePath}" fill="none" stroke="#8CC6FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-              ${eurChart.coords.map((c, i) => `<circle cx="${c.x}" cy="${c.y}" r="3" fill="#8CC6FF"/>`).join('')}
-            </svg>
-          </div>
-        </div>
-
-        <div class="bg-white/5 p-4 rounded-xl border border-white/10 space-y-3">
-          <h4 class="text-xs font-bold text-white/70 uppercase tracking-wider">🔔 Установить новое уведомление:</h4>
-          
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="text-[10px] text-white/50 block mb-1">Валюта</label>
-              <select id="alertCurrency" class="w-full p-2.5 rounded-xl border border-white/20 text-xs bg-slate-900 text-white">
-                <option value="CNY">🇨🇳 Юань (CNY)</option>
-                <option value="EUR">🇵🇱 Евро (EUR)</option>
-              </select>
-            </div>
-            <div>
-              <label class="text-[10px] text-white/50 block mb-1">Целевой курс</label>
-              <input type="number" step="0.01" id="alertTarget" placeholder="напр. 0.44" class="w-full p-2.5 rounded-xl border border-white/20 text-xs bg-slate-900 text-white">
-            </div>
-          </div>
-          
-          <button id="addAlertBtn" class="w-full btn-primary py-2.5 rounded-xl text-xs font-bold" style="background: linear-gradient(135deg, var(--ice-primary), var(--ice-deep)); border: none;">
-            🔔 Уведомить меня при падении
-          </button>
-        </div>
-
-        <div class="space-y-2">
-          <h4 class="text-xs font-bold text-white/60 uppercase tracking-wider">Ваши активные алерты:</h4>
-          <div class="space-y-2 max-h-[25vh] overflow-y-auto">
-            ${alertsListHtml}
-          </div>
-        </div>
-      </div>
-    `;
-  };
-
-  const updateModalHTML = () => {
-    modal.innerHTML = `
-      <div class="full-screen-modal-header">
-        <button type="button" class="global-back-btn !mb-0" id="closeAlertsModalBtn" title="Назад">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6"/>
-          </svg>
-        </button>
-        <div class="text-center">
-          <h3 class="text-white font-bold text-sm truncate">Трекер курсов</h3>
-          <p class="text-white/40 text-[10px]">Курсы валют и алерты</p>
-        </div>
-        <div style="width: 48px;"></div>
-      </div>
-      
-      <div class="full-screen-modal-body" id="alertsModalBody">
-        ${renderModalContent()}
-      </div>
-    `;
-    document.body.appendChild(modal);
-
-    const closeBtn = document.getElementById('closeAlertsModalBtn');
-    if (closeBtn) closeBtn.onclick = () => modal.remove();
-
-    const addBtn = document.getElementById('addAlertBtn');
-    if (addBtn) {
-      addBtn.onclick = () => {
-        const ccy = document.getElementById('alertCurrency').value;
-        const target = parseFloat(document.getElementById('alertTarget').value);
-        if (isNaN(target) || target <= 0) {
-          glassToast('Пожалуйста, введите корректный курс!', { kind: 'error' });
-          return;
-        }
-        window.addCurrencyAlert(ccy, target);
-      };
-    }
-  };
-
-  window.addCurrencyAlert = async (ccy, target) => {
-    tgUtil.haptic('success');
-    const alerts = window.userSettings?.currency_alerts || [];
-    alerts.push({ currency: ccy, target: target, active: true });
-    
-    const updatedSettings = {
-      ...window.userSettings,
-      currency_alerts: alerts
-    };
-
-    const { error } = await supabaseClient.from('users').update({ settings: updatedSettings }).eq('user_id', userId);
-    if (!error) {
-      window.userSettings = updatedSettings;
-      glassToast('Алерт успешно установлен!', { kind: 'success' });
-      document.getElementById('alertsModalBody').innerHTML = renderModalContent();
-    } else {
-      glassToast('Ошибка сохранения алерта', { kind: 'error' });
-    }
-  };
-
-  window.deleteCurrencyAlert = async (index) => {
-    tgUtil.haptic('medium');
-    const alerts = window.userSettings?.currency_alerts || [];
-    alerts.splice(index, 1);
-
-    const updatedSettings = {
-      ...window.userSettings,
-      currency_alerts: alerts
-    };
-
-    const { error } = await supabaseClient.from('users').update({ settings: updatedSettings }).eq('user_id', userId);
-    if (!error) {
-      window.userSettings = updatedSettings;
-      glassToast('Алерт удален!', { kind: 'success' });
-      document.getElementById('alertsModalBody').innerHTML = renderModalContent();
-    }
-  };
-
-  updateModalHTML();
+      function bindForm() {
+        const form = wrap.querySelector('#caForm');
+        if (!form) return;
+        const errEl = form.querySelector('.rd-ask-err');
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const raw = (form.elements.target.value || '').trim().replace(',', '.');
+          const v = Number(raw);
+          let msg = '';
+          if (!raw || !Number.isFinite(v) || v <= 0) msg = 'Введите курс числом, например 0,43';
+          else if (v >= 1) msg = 'Курс указывается за 1 юань, например 0,43';
+          else if (rate && v >= rate) msg = `Юань уже стоит ${fmt(rate)}. Укажите курс ниже текущего`;
+          else if (alerts.some((a) => a.active !== false && Math.abs(Number(a.target) - v) < 0.00005)) msg = 'Такой сигнал уже стоит';
+          if (msg) { errEl.textContent = msg; errEl.hidden = false; return; }
+          const submit = form.querySelector('button[type="submit"]');
+          submit.disabled = true;
+          try {
+            await save([...alerts, { id: newId(), currency: 'CNY', target: Math.round(v * 10000) / 10000, active: true, created_at: new Date().toISOString() }]);
+            tgUtil.haptic('success');
+            U.toast('Сигнал поставлен');
+            paint();
+          } catch (err) {
+            console.warn('currency alert save failed:', err?.message || err);
+            errEl.textContent = 'Не получилось сохранить. Попробуйте ещё раз';
+            errEl.hidden = false;
+            submit.disabled = false;
+          }
+        });
+      }
+      bindForm();
+    },
+  });
 }
 
 async function renderAdminTicketsList() {

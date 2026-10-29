@@ -1027,11 +1027,6 @@ async function renderAdmin() {
           <span class="ix text-green-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
         </button>
 
-        <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="showCurrencyAlertsModal()" style="background: linear-gradient(135deg, rgba(245,158,11,0.12), rgba(217,119,6,0.06)); border-color: rgba(245,158,11,0.3);">
-          <span class="flex items-center gap-2"><span class="ix text-amber-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span> Трекер курсов & Алерты</span>
-          <span class="ix text-amber-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
-        </button>
-
         <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="downloadTaxInvoicePDF()" style="background: linear-gradient(135deg, rgba(96,165,250,0.12), rgba(77, 163, 255,0.06)); border-color: rgba(96,165,250,0.3);">
           <span class="flex items-center gap-2"><span class="ix text-blue-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg></span> Скачать выписку за год (PDF)</span>
           <span class="ix text-blue-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>

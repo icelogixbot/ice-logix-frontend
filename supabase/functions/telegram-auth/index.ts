@@ -174,7 +174,6 @@ serve(async (req) => {
       if (profile) {
         const publicUserId = profile.user_id;
         const tables = [
-          'user_marketplace_whitelist',
           'wishlist',
           'cart',
           'user_views',

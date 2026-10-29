@@ -963,6 +963,17 @@ label.st-static { cursor: pointer; }
 .st-sheet-text { margin: 0 0 12px; font-size: 14px; line-height: 1.5; color: var(--rd-tx2); }
 .st-sheet-text b { color: var(--rd-tx); }
 
+/* уведомления: разрешение боту, сигнал по курсу юаня */
+.st-write { border-color: var(--rd-b400); }
+.st-rate { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 14px; padding: 14px 16px; border-radius: 14px; background: var(--rd-s2); border: 1px solid var(--rd-line-2); font-size: 13px; color: var(--rd-tx3); }
+.st-rate b { display: inline-flex; align-items: baseline; gap: 2px; font-size: 16px; font-weight: 800; color: var(--rd-tx); font-variant-numeric: tabular-nums; text-align: right; }
+.st-alerts { margin: 0 0 14px; }
+.st-alerts .rd-row { min-height: 64px; padding: 10px 8px 10px 14px; }
+.st-icon-btn { width: 44px; height: 44px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 12px; background: transparent; color: var(--rd-tx3); cursor: pointer; }
+.st-icon-btn:active { background: var(--rd-tint); color: var(--rd-bad); }
+.st-icon-btn:disabled { opacity: .4; }
+.rd-field input[type="time"] { color-scheme: dark; font-variant-numeric: tabular-nums; }
+
 .st-ver { margin: 28px 0 4px; text-align: center; font-size: 12px; color: var(--rd-tx3); }
 
 /* ═══ Оформление заказа ═══ */

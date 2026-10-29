@@ -542,6 +542,7 @@ async function renderSettingsPage(initialTab = 'account') {
 
   const ls = (k) => { try { return localStorage.getItem(k); } catch (_) { return null; } };
   const settings = data?.settings || window.userSettings || {};
+  if (data?.settings) window.userSettings = { ...(window.userSettings || {}), ...data.settings };
   let localNotif = {};
   try { localNotif = JSON.parse(ls('notification_settings') || '{}') || {}; } catch (_) {}
   const notif = { news: true, promotions: true, ...localNotif, ...(data?.notification_settings || {}), status_changes: true };
@@ -564,6 +565,15 @@ async function renderSettingsPage(initialTab = 'account') {
   const role = data?.role;
   const roleText = (role === 'owner' || role === 'admin') ? 'Администратор' : role === 'partner' ? 'Партнёр' : 'Клиент';
   const hasKey = !!data?.recovery_code_hash;
+  // Тихие часы и сигнал курса читает бот (ICE LOGIX BOT/client_notifications.py)
+  const quiet = settings.quiet_hours || {};
+  const quietOn = !!quiet.enabled;
+  const quietText = `С ${quiet.from || '23:00'} до ${quiet.to || '09:00'} по времени Минска`;
+  const activeAlerts = Array.isArray(settings.currency_alerts) ? settings.currency_alerts.filter((a) => a && a.id && a.active !== false).length : 0;
+  const alertsText = activeAlerts === 1 ? 'Включён' : activeAlerts > 1 && activeAlerts < 5 ? `${activeAlerts} сигнала` : `${activeAlerts} сигналов`;
+  // Telegram пускает сообщения бота только с разрешения пользователя (Bot API 6.9+)
+  const tgApp = window.Telegram?.WebApp;
+  const needWriteAccess = !!(tgUser && tgApp?.requestWriteAccess && tgApp.isVersionAtLeast?.('6.9') && !tgUser.allows_write_to_pm && !window._botWriteAllowed);
 
   const tabAlias = { language: 'view', theme: 'view' };
   const activeTab = tabAlias[initialTab] || initialTab || 'account';
@@ -638,11 +648,30 @@ async function renderSettingsPage(initialTab = 'account') {
     </div>`;
 
   const notificationsHtml = `
+    ${needWriteAccess ? `
+    <div class="rd-card rd-list st-write" id="botWriteCard">
+      ${row('allowBotWriteBtn', 'send', 'Разрешите боту писать вам', 'Без этого сообщения в Telegram могут не дойти')}
+    </div>` : ''}
+
     <p class="st-cap">Сообщения от бота в Telegram</p>
     <div class="rd-card rd-list">
       ${infoRow('truck', 'Статусы заказов', 'Выкуп, склад в Китае, доставка', '<span class="st-end">Всегда</span>')}
       ${switchRow('notifyNews', 'bell', 'Новости сервиса', 'Новые возможности, тарифы, график работы', notif.news)}
       ${switchRow('notifyPromotions', 'gift', 'Акции и промокоды', 'Скидки на доставку и розыгрыши', notif.promotions)}
+    </div>
+
+    <p class="st-cap">Не беспокоить</p>
+    <div class="rd-card rd-list">
+      ${switchRow('quietHoursSwitch', 'moon', 'Тихие часы', 'Новости, акции и курс придут утром. Статусы заказов — сразу', quietOn)}
+      <div class="rd-row" role="button" tabindex="0" id="quietHoursTimeBtn" ${quietOn ? '' : 'hidden'}>
+        <span class="rd-ico">${U.icon('clock', 22)}</span>${body('Время', `<span id="quietHoursTimeText">${quietText}</span>`)}${chev}
+      </div>
+    </div>
+
+    <p class="st-cap">Курс</p>
+    <div class="rd-card rd-list">
+      ${row('currencyAlertsBtn', 'coins', 'Сигнал по курсу юаня', 'Напишем, когда юань подешевеет до нужного курса',
+        `<span class="st-end">${activeAlerts ? status('ok', alertsText) : ''}${chev}</span>`)}
     </div>
     ${tgId ? '' : '<p class="st-hint">Сообщения приходят в Telegram. Откройте приложение через нашего бота, чтобы их получать.</p>'}`;
 
@@ -864,6 +893,61 @@ function attachSettingsPageHandlers(initialTab = 'account') {
       window._stNotif = next;
       setLs('notification_settings', JSON.stringify(next));
     };
+  });
+
+  tap('allowBotWriteBtn', () => {
+    const tg = window.Telegram?.WebApp;
+    if (!tg?.requestWriteAccess) return;
+    tg.requestWriteAccess((allowed) => {
+      if (allowed) {
+        window._botWriteAllowed = true;
+        const card = document.getElementById('botWriteCard');
+        if (card) card.remove();
+        U.toast('Готово, бот сможет писать вам');
+        haptic('success');
+      } else {
+        U.toast('Без разрешения сообщения от бота не придут', 'info');
+      }
+    });
+  });
+
+  // Тихие часы: в users.settings.quiet_hours = { enabled, from: 'ЧЧ:ММ', to: 'ЧЧ:ММ' }
+  const currentQuiet = () => ({ from: '23:00', to: '09:00', ...((window.userSettings || {}).quiet_hours || {}) });
+  const quietSwitch = document.getElementById('quietHoursSwitch');
+  if (quietSwitch) {
+    quietSwitch.onchange = async () => {
+      const on = quietSwitch.checked;
+      haptic('light');
+      const ok = await saveSettings({ quiet_hours: { ...currentQuiet(), enabled: on } });
+      if (!ok) { quietSwitch.checked = !on; return; }
+      const timeRow = document.getElementById('quietHoursTimeBtn');
+      if (timeRow) timeRow.hidden = !on;
+    };
+  }
+
+  tap('quietHoursTimeBtn', async () => {
+    const q = currentQuiet();
+    const hm = /^([01]\d|2[0-3]):[0-5]\d$/;
+    const v = await U.ask({
+      title: 'Тихие часы',
+      text: 'В это время бот не пришлёт новости, акции и сигнал курса — они придут, когда тихие часы закончатся. Статусы заказов приходят всегда.',
+      fields: [
+        { name: 'from', label: 'С', type: 'time', value: q.from, placeholder: '23:00' },
+        { name: 'to', label: 'До', type: 'time', value: q.to, placeholder: '09:00' }
+      ],
+      action: 'Сохранить',
+      validate: (x) => !hm.test(x.from) || !hm.test(x.to) ? 'Укажите время в формате 23:00' : (x.from === x.to ? 'Начало и конец не должны совпадать' : '')
+    });
+    if (!v) return;
+    if (await saveSettings({ quiet_hours: { ...q, enabled: true, from: v.from, to: v.to } })) {
+      const t = document.getElementById('quietHoursTimeText');
+      if (t) t.textContent = `С ${v.from} до ${v.to} по времени Минска`;
+      haptic('success');
+    }
+  });
+
+  tap('currencyAlertsBtn', () => {
+    if (typeof showCurrencyAlertsModal === 'function') showCurrencyAlertsModal({ onChange: () => rerender('notifications') });
   });
 
   // Вид: язык

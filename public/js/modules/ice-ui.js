@@ -236,7 +236,7 @@
   }
 
   // ── Шторка с полями ввода вместо prompt(): ответ в Promise, null если закрыли ──
-  // fields: [{ name, label, type, placeholder, autocomplete, inputmode }]; validate(values) → текст ошибки или ''
+  // fields: [{ name, label, type, value, placeholder, autocomplete, inputmode }]; validate(values) → текст ошибки или ''
   function ask(o) {
     const opt = o || {};
     const fields = opt.fields && opt.fields.length ? opt.fields : [{ name: 'value', type: 'text' }];
@@ -248,7 +248,7 @@
           ${fields.map((f) => `
             <label class="rd-ask-field">
               ${f.label ? `<span class="rd-label">${esc(f.label)}</span>` : ''}
-              <span class="rd-field"><input name="${esc(f.name)}" type="${esc(f.type || 'text')}" placeholder="${esc(f.placeholder || '')}" autocomplete="${esc(f.autocomplete || 'off')}" ${f.inputmode ? `inputmode="${esc(f.inputmode)}"` : ''}></span>
+              <span class="rd-field"><input name="${esc(f.name)}" type="${esc(f.type || 'text')}" value="${esc(f.value == null ? '' : f.value)}" placeholder="${esc(f.placeholder || '')}" autocomplete="${esc(f.autocomplete || 'off')}" ${f.inputmode ? `inputmode="${esc(f.inputmode)}"` : ''}></span>
             </label>`).join('')}
           <p class="rd-ask-err" hidden></p>
           <button type="submit" class="rd-btn rd-btn-block${opt.danger ? ' rd-btn-danger' : ''}">${esc(opt.action || 'Готово')}</button>
