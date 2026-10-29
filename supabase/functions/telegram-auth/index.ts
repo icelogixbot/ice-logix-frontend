@@ -214,14 +214,27 @@ serve(async (req) => {
     
     if (!user || !user.id) throw new Error("Invalid Telegram signature");
     
-    // Deterministic dummy credentials for Telegram Users
+    // Технические учётные данные пользователя Telegram. Пароль — HMAC от отдельного секрета TG_AUTH_SECRET,
+    // а не от токена бота: смена токена не ломает вход, и подобрать пароль нельзя.
     const email = `tg_${user.id}@icelogix.by`;
-    const passwordRaw = `tg_${user.id}_${botToken.substring(0, 15)}`;
-    
+    const passwordRaw = await tgAuthPassword(user.id);
+
     const authClient = createClient(supabaseUrl, sbPublishableKey() || supabaseServiceKey);
-    
+
     let sessionRes = await authClient.auth.signInWithPassword({ email, password: passwordRaw });
-    
+
+    if (sessionRes.error) {
+      // Учётка в Auth уже есть, но с прежним паролем (старая схема от токена бота). Подпись Telegram
+      // проверена выше, поэтому просто выставляем пароль по новой схеме и входим.
+      const existingId = await findAuthUserId(adminSupabase, user.id, email);
+      if (existingId) {
+        const { error: updErr } = await adminSupabase.auth.admin.updateUserById(existingId, { password: passwordRaw });
+        if (updErr) throw updErr;
+        sessionRes = await authClient.auth.signInWithPassword({ email, password: passwordRaw });
+        if (sessionRes.error) throw sessionRes.error;
+      }
+    }
+
     if (sessionRes.error) {
       // User doesn't exist in Auth, create via Admin API
       const signUpRes = await adminSupabase.auth.admin.createUser({
@@ -293,6 +306,37 @@ serve(async (req) => {
     });
   }
 });
+
+// Пароль технической учётки: hex(HMAC-SHA256(TG_AUTH_SECRET, "tg:<id>"))
+async function tgAuthPassword(tgId: number): Promise<string> {
+  const secret = Deno.env.get("TG_AUTH_SECRET");
+  if (!secret) throw new Error("TG_AUTH_SECRET is not configured on the server");
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`tg:${tgId}`));
+  return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+// id учётки в Auth по Telegram id: сначала через профиль, иначе перебором списка (пользователей немного)
+async function findAuthUserId(admin: any, tgId: number, email: string): Promise<string | null> {
+  const { data: profile } = await admin.from("users")
+    .select("auth_id")
+    .or(`user_id.eq.${tgId},telegram_id.eq.${tgId}`)
+    .not("auth_id", "is", null)
+    .limit(1)
+    .maybeSingle();
+  if (profile?.auth_id) {
+    const { data } = await admin.auth.admin.getUserById(profile.auth_id);
+    if (data?.user?.email === email) return data.user.id;
+  }
+  for (let page = 1; page <= 50; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error || !data?.users?.length) break;
+    const hit = data.users.find((u: any) => u.email === email);
+    if (hit) return hit.id;
+    if (data.users.length < 200) break;
+  }
+  return null;
+}
 
 // Ключи Supabase: новый формат (sb_secret_ / sb_publishable_), а если его нет, прежний (service_role / anon)
 function sbSecretKey(): string | undefined {
