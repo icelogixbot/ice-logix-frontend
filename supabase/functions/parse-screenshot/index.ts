@@ -20,7 +20,7 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = sbSecretKey()!;
 const supabase = createClient(supabaseUrl, supabaseKey);
  
-const DOC_AI_URL = (Deno.env.get("DOC_AI_URL") || "http://80.94.235.37").replace(/\/$/, "");
+const DOC_AI_URL = (Deno.env.get("DOC_AI_URL") || "https://80.94.235.37").replace(/\/$/, "");
 const DOC_AI_KEY = Deno.env.get("DOC_AI_KEY") || "";
 const STORAGE_BUCKET = "product-screenshots";
  

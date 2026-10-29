@@ -825,7 +825,7 @@ serve(async (req) => {
       try {
         const vpsController = new AbortController();
         const vpsTimer = setTimeout(() => vpsController.abort(), 40000); // 40 секунд гарантируют завершение при любом качестве мобильного интернета
-        const vpsResp = await fetch("http://80.94.235.37/scan-passport", {
+        const vpsResp = await fetch("https://80.94.235.37/scan-passport", {
           method: "POST",
           // Без ключа Nginx на VPS отвечает 401 (секрет DOC_AI_KEY)
           headers: { "Content-Type": "application/json", "X-Ice-Ai-Key": Deno.env.get("DOC_AI_KEY") || "" },
