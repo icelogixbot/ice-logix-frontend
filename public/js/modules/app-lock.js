@@ -27,7 +27,7 @@
     bio_unknown: 'Вход по биометрии на этом телефоне выключен. Введите код',
     bio_failed: 'Не получилось войти по биометрии. Введите код',
     device: 'Не удалось определить телефон',
-    auth: 'Войдите в аккаунт заново',
+    auth: 'Не получилось подтвердить вход. Закройте приложение полностью и откройте снова',
     server: 'Не получилось проверить. Проверьте интернет и попробуйте ещё раз',
   };
   const errText = (r) => (r && ERR[r.error]) || ERR.server;
@@ -49,8 +49,21 @@
     return false;
   }
 
-  async function api(action, body) {
-    if (!(await waitReady())) return { ok: false, error: 'auth' };
+  // Сессии входа нет (истекла или вход не прошёл при запуске) — входим заново по подписанным данным Telegram
+  async function reauth() {
+    const app = tg();
+    if (!app || !app.initData) return false;
+    try {
+      const { data } = await window.supabaseClient.functions.invoke('telegram-auth', { body: { initData: app.initData } });
+      if (data && data.ok && data.session) {
+        await window.supabaseClient.auth.setSession({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  async function call(action, body) {
     try {
       const { data, error } = await window.supabaseClient.functions.invoke('app-lock', { body: { action, ...(body || {}) } });
       if (error) {
@@ -60,6 +73,13 @@
     } catch (_) {
       return { ok: false, error: 'server' };
     }
+  }
+
+  async function api(action, body) {
+    if (!(await waitReady())) return { ok: false, error: 'auth' };
+    const r = await call(action, body);
+    if (r && r.error === 'auth' && (await reauth())) return call(action, body);
+    return r;
   }
 
   // ── Биометрия Telegram (BiometricManager, Bot API 7.2+) ──
