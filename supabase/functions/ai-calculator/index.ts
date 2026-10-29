@@ -3,13 +3,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_KEY = sbSecretKey()!;
-const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY") || "";
-const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY") || "";
-const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || "";
-const OCR_SPACE_API_KEY = Deno.env.get("OCR_SPACE_API_KEY") || "helloworld";
-const VISION_MODEL = Deno.env.get("OPENROUTER_VISION_MODEL") || "google/gemini-2.0-flash-001";
-const TEXT_MODEL = "google/gemini-2.0-flash-001";
-const STORAGE_BUCKET = "product-screenshots";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -52,165 +45,6 @@ async function getExchangeRates(): Promise<Record<string, number>> {
     }
   });
   return rates;
-}
-
-function parseAssistantJson(raw: string): Record<string, any> {
-  const s = (raw || "").trim();
-  if (!s) return {};
-
-  // 1. Try finding all code blocks with json (start from the last one)
-  const codeBlocks = s.match(/```(?:json)?\s*([\s\S]*?)\s*```/gi);
-  if (codeBlocks && codeBlocks.length > 0) {
-    for (let i = codeBlocks.length - 1; i >= 0; i--) {
-      const clean = codeBlocks[i].replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
-      try {
-        const obj = JSON.parse(clean);
-        if (obj && typeof obj === "object") return obj;
-      } catch (_) {}
-    }
-  }
-
-  // 2. Find balanced JSON object from the end of string
-  const lastBrace = s.lastIndexOf("}");
-  if (lastBrace !== -1) {
-    for (let i = s.lastIndexOf("{"); i >= 0; i = s.lastIndexOf("{", i - 1)) {
-      try {
-        const candidate = s.slice(i, lastBrace + 1).replace(/,\s*([}\]])/g, "$1");
-        const obj = JSON.parse(candidate);
-        if (obj && typeof obj === "object" && (obj.id_number || obj.last_name || obj.ok !== undefined || obj.weight !== undefined)) {
-          return obj;
-        }
-      } catch (_) {}
-    }
-  }
-
-  // 2.1. Auto-repair unclosed/truncated JSON (if output was cut off mid-stream)
-  const firstBrace = s.indexOf("{");
-  if (firstBrace !== -1) {
-    let truncated = s.slice(firstBrace);
-    // Remove broken trailing key/value if cut off mid-token
-    truncated = truncated.replace(/,\s*"[^"]*"?\s*:?\s*"?[^"]*$/s, "");
-    truncated = truncated.replace(/,\s*$/s, "");
-    if (!truncated.endsWith("}")) {
-      truncated += "\n}";
-    }
-    try {
-      const obj = JSON.parse(truncated);
-      if (obj && typeof obj === "object" && (obj.id_number || obj.last_name || obj.raw_mrz || obj.address_house || obj.address_city)) {
-        return obj;
-      }
-    } catch (_) {}
-  }
-
-  // 3. Fallback regex-based key-value extraction ("key": "value" or "key": true/false/number)
-  const fallbackRes: Record<string, any> = {};
-  const extract = (key: string) => {
-    const match = s.match(new RegExp(`"${key}"\\s*:\\s*(?:"([^"]+)"|([0-9]+|true|false))`, "i"));
-    return match ? (match[1] !== undefined ? match[1].trim() : match[2].trim()) : "";
-  };
-  const keys = [
-    "raw_mrz", "last_name", "first_name", "patronymic", "series_number", "birth_date", "gender", "id_number", "issue_date", "issued_by",
-    "address_region", "address_city", "address_street", "address_house", "address_building", "address_apartment", "address_postcode",
-    "is_crossed_seven", "region", "city", "street", "house", "building", "apartment", "postcode"
-  ];
-  for (const k of keys) {
-    const val = extract(k);
-    if (val) fallbackRes[k] = val;
-  }
-  // Нормализация синонимов адреса
-  if (fallbackRes.city && !fallbackRes.address_city) fallbackRes.address_city = fallbackRes.city;
-  if (fallbackRes.region && !fallbackRes.address_region) fallbackRes.address_region = fallbackRes.region;
-  if (fallbackRes.street && !fallbackRes.address_street) fallbackRes.address_street = fallbackRes.street;
-  if (fallbackRes.house && !fallbackRes.address_house) fallbackRes.address_house = fallbackRes.house;
-  if (fallbackRes.building && !fallbackRes.address_building) fallbackRes.address_building = fallbackRes.building;
-  if (fallbackRes.apartment && !fallbackRes.address_apartment) fallbackRes.address_apartment = fallbackRes.apartment;
-  if (fallbackRes.postcode && !fallbackRes.address_postcode) fallbackRes.address_postcode = fallbackRes.postcode;
-
-  if (Object.keys(fallbackRes).length > 0) {
-    return fallbackRes;
-  }
-
-  // 4. Free-form text extraction from reasoning / thinking process
-  const freeRes: Record<string, any> = {};
-
-  const mLastName = s.match(/(?:Фамилия|Last name)[^:\n]*:\s*([А-Яа-яЁёA-Za-z]+)/i);
-  if (mLastName) freeRes.last_name = mLastName[1].trim().toUpperCase();
-
-  const mFirstName = s.match(/(?:Имя|First name|Given names)[^:\n]*:\s*([А-Яа-яЁёA-Za-z]+)/i);
-  if (mFirstName) freeRes.first_name = mFirstName[1].trim().toUpperCase();
-
-  const mPatronymic = s.match(/(?:Отчество|Patronymic)[^:\n]*:\s*([А-Яа-яЁёA-Za-z]+)/i);
-  if (mPatronymic) freeRes.patronymic = mPatronymic[1].trim().toUpperCase();
-
-  const mIdNum = s.match(/(?:Идентификационный|Personal No|личный номер)[^:\n]*:\s*`?([0-9][0-9A-Za-z]{13})`?/i);
-  if (mIdNum) freeRes.id_number = mIdNum[1].trim().toUpperCase();
-
-  const mSeries = s.match(/(?:Номер паспорта|Passport No|Серия)[^:\n]*:\s*`?([A-Za-z]{2}\d{7}|\d{9})`?/i);
-  if (mSeries) freeRes.series_number = mSeries[1].trim().toUpperCase();
-
-  const mBirth = s.match(/(?:Дата рождения|Date of birth)[^:\n]*:\s*`?([0-9]{2,4}[.\/-][0-9]{2}[.\/-][0-9]{2,4})`?/i);
-  if (mBirth) {
-    const rawB = mBirth[1].trim().replace(/\//g, '.').replace(/-/g, '.');
-    const parts = rawB.split('.');
-    if (parts.length === 3) {
-      if (parts[0].length === 4) freeRes.birth_date = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
-      else freeRes.birth_date = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-    }
-  }
-
-  const mSex = s.match(/(?:Пол|Sex)[^:\n]*:\s*`?(M|МУЖ|Male|F|ЖЕН|Female)`?/i);
-  if (mSex) {
-    const v = mSex[1].toUpperCase();
-    freeRes.gender = (v.startsWith('M') || v.startsWith('МУЖ')) ? 'Мужской' : 'Женский';
-  }
-
-  const mIssueDate = s.match(/(?:Дата выдачи|Date of issue)[^:\n]*:\s*`?([0-9]{2,4}[.\/-][0-9]{2}[.\/-][0-9]{2,4})`?/i);
-  if (mIssueDate) {
-    const rawI = mIssueDate[1].trim().replace(/\//g, '.').replace(/-/g, '.');
-    const parts = rawI.split('.');
-    if (parts.length === 3) {
-      if (parts[0].length === 4) freeRes.issue_date = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
-      else freeRes.issue_date = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-    }
-  }
-
-  const mIssuedBy = s.match(/(?:Орган, выдавший паспорт|Орган выдачи|Issued by)[^:\n]*:\s*(?:"|'|`)?([А-Яа-яЁё\s.A-Za-z]+?)(?:"|'|`|\n|$)/i);
-  if (mIssuedBy) freeRes.issued_by = mIssuedBy[1].trim().replace(/^[":']+|[":']+$/g, '');
-
-  const mrz1 = s.match(/P<BLR[A-Z0-9<]{10,40}/i);
-  const mrz2 = s.match(/([A-Z]{2}\d{7}\d?BLR[A-Z0-9<]{10,35})/i);
-  if (mrz1 && mrz2) {
-    freeRes.raw_mrz = `${mrz1[0]}\n${mrz2[0]}`;
-  }
-
-  // Извлечение полей адреса регистрации из текста/рассуждений
-  const mCity = s.match(/(?:address_city|Город|Населенный пункт|Населены пункт)[^:\n]*:\s*(?:"|'|`)?([А-Яа-яЁё.\s-]+?)(?:"|'|`|\n|,|$)/i);
-  if (mCity) freeRes.address_city = mCity[1].trim();
-
-  const mRegion = s.match(/(?:address_region|Область|Вобласць)[^:\n]*:\s*(?:"|'|`)?([А-Яа-яЁё.\s-]+?)(?:"|'|`|\n|,|$)/i);
-  if (mRegion) freeRes.address_region = mRegion[1].trim();
-
-  const mStreet = s.match(/(?:address_street|Улица|Вуліца|ул\.|вул\.)[^:\n]*:\s*(?:"|'|`)?([А-Яа-яЁё0-9.\s-]+?)(?:"|'|`|\n|,|$)/i);
-  if (mStreet) {
-    let st = mStreet[1].trim();
-    if (st.startsWith('вул.')) st = 'ул.' + st.slice(4);
-    if (st.startsWith('Вуліца')) st = 'Улица ' + st.slice(6);
-    freeRes.address_street = st;
-  }
-
-  const mHouse = s.match(/(?:address_house|Номер дома|Дом|д\.)[^:\n]*:\s*(?:"|'|`)?([0-9]+[А-Яа-яA-Za-z]?(?:[\/-][0-9А-Яа-яA-Za-z]+)?)(?:"|'|`|\n|,|\s|$)/i);
-  if (mHouse) freeRes.address_house = mHouse[1].trim();
-
-  const mBuilding = s.match(/(?:address_building|Корпус|корп\.)[^:\n]*:\s*(?:"|'|`)?([0-9]+[А-Яа-яA-Za-z]?)(?:"|'|`|\n|,|\s|$)/i);
-  if (mBuilding) freeRes.address_building = mBuilding[1].trim();
-
-  const mApartment = s.match(/(?:address_apartment|Квартира|Кватэра|кв\.|пакой)[^:\n]*:\s*(?:"|'|`)?([0-9]+[А-Яа-яA-Za-z\/-]?)(?:"|'|`|\n|,|\s|$)/i);
-  if (mApartment) freeRes.address_apartment = mApartment[1].trim();
-
-  const mPostcode = s.match(/(?:address_postcode|Индекс|Почтовый индекс)[^:\n]*:\s*(?:"|'|`)?([0-9]{6})(?:"|'|`|\n|,|\s|$)/i);
-  if (mPostcode) freeRes.address_postcode = mPostcode[1].trim();
-
-  return freeRes;
 }
 
 // Словарь райцентров и городов Беларуси для автоопределения области
@@ -774,439 +608,41 @@ async function enrichBelarusAddress(addr: Record<string, any>): Promise<Record<s
 }
 
 // ==========================================
-// 🚀 БЕСПЛАТНЫЙ ОПТИЧЕСКИЙ OCR-ДВИЖОК
-// 0 кредитов, 0 рублей, мгновенное считывание паспорта РБ и штампа
+// ВЕС ПО ТИПУ ВЕЩИ (таблица эталонных весов, без сторонних сервисов)
 // ==========================================
+// Порядок важен: более точные типы раньше общих (пуховик раньше куртки, чехол раньше телефона).
+const WEIGHT_RULES: Array<{ name: string; kg: number; re: RegExp }> = [
+  { name: "Носки", kg: 0.15, re: /носк|socks|袜/i },
+  { name: "Чехол для телефона", kg: 0.1, re: /чехол|phone case|手机壳/i },
+  { name: "Пуховик", kg: 2.0, re: /пуховик|парк[аи]|пальто|down jacket|puffer|parka|coat|羽绒服|大衣|棉服/i },
+  { name: "Ботинки", kg: 1.8, re: /ботин|сапог|угг|boots?\b|靴/i },
+  { name: "Кроссовки", kg: 1.2, re: /кроссов|кеды|туфл|обув|сникер|sneaker|shoe|trainer|鞋/i },
+  { name: "Спортивный костюм", kg: 1.2, re: /костюм|tracksuit|套装/i },
+  { name: "Куртка", kg: 1.0, re: /куртк|ветровк|бомбер|анорак|windbreaker|bomber|jacket|夹克|冲锋衣|外套/i },
+  { name: "Худи", kg: 0.8, re: /худи|свитшот|толстовк|свитер|джемпер|кофт|hoodie|sweatshirt|sweater|卫衣|毛衣/i },
+  { name: "Джинсы / брюки", kg: 0.8, re: /джинс|брюк|штан|карго|pants|jeans|trousers|裤/i },
+  { name: "Шорты", kg: 0.4, re: /шорт|shorts|短裤/i },
+  { name: "Рубашка", kg: 0.4, re: /рубашк|лонгслив|shirt|longsleeve|衬衫|长袖/i },
+  { name: "Футболка", kg: 0.3, re: /футболк|майк|поло|t-?shirt|tee|polo|t恤|短袖/i },
+  { name: "Головной убор", kg: 0.25, re: /кепк|шапк|панам|бейсболк|cap\b|hat\b|beanie|帽/i },
+  { name: "Рюкзак", kg: 1.0, re: /рюкзак|backpack|背包|双肩包/i },
+  { name: "Сумка", kg: 0.6, re: /сумк|шоппер|bag\b|tote|包/i },
+  { name: "Кошелёк / ремень", kg: 0.3, re: /кошел|бумажник|ремень|wallet|belt|钱包|皮带/i },
+  { name: "Часы", kg: 0.4, re: /часы|watch|手表/i },
+  { name: "Наушники", kg: 0.4, re: /наушник|airpods|earbuds|headphones|耳机/i },
+  { name: "Телефон", kg: 0.6, re: /телефон|смартфон|iphone|phone|手机/i },
+  { name: "Очки", kg: 0.2, re: /очки|glasses|sunglasses|眼镜/i },
+  { name: "Парфюм", kg: 0.5, re: /дух[иа]|парфюм|perfume|香水/i },
+];
 
-async function runOCRSpaceImage(base64Image: string, lang = "rus"): Promise<string> {
-  let img = (base64Image || "").trim();
-  if (!img) return "";
-  if (!img.startsWith("data:")) {
-    img = `data:image/jpeg;base64,${img}`;
+function estimateWeightByRules(text: string): { weight: number; product_name: string; matched: boolean } {
+  const t = (text || "").toLowerCase();
+  for (const r of WEIGHT_RULES) {
+    if (r.re.test(t)) return { weight: r.kg, product_name: r.name, matched: true };
   }
-
-  const form = new URLSearchParams();
-  form.append("base64Image", img);
-  form.append("language", lang);
-  form.append("isOverlayRequired", "false");
-  form.append("OCREngine", "2");
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 12000);
-
-  try {
-    const res = await fetch("https://api.ocr.space/parse/image", {
-      method: "POST",
-      headers: { "apikey": OCR_SPACE_API_KEY },
-      body: form,
-      signal: controller.signal,
-    });
-    clearTimeout(timer);
-    if (!res.ok) return "";
-    const data = await res.json();
-    return data?.ParsedResults?.[0]?.ParsedText || "";
-  } catch (err) {
-    clearTimeout(timer);
-    console.warn("OCR.space network error:", err);
-    return "";
-  }
+  return { weight: 1.0, product_name: "", matched: false };
 }
 
-function parsePage31FromText(text: string): Record<string, any> {
-  const result: Record<string, any> = {};
-  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
-
-  for (let i = 0; i < lines.length; i++) {
-    const l = lines[i];
-    if (/фамилия|прозвішча|sumame|surname/i.test(l) && lines[i + 1]) {
-      result.last_name = lines[i + 1].replace(/[^А-Яа-яЁёA-Za-z-]/g, "").toUpperCase();
-    }
-    if (/^імя|^имя|given names/i.test(l) && !/бацьку|отчество/i.test(l) && lines[i + 1]) {
-      result.first_name = lines[i + 1].replace(/[^А-Яа-яЁёA-Za-z-]/g, "").toUpperCase();
-    }
-    if (/отчество|бацьку/i.test(l) && lines[i + 1]) {
-      result.patronymic = lines[i + 1].replace(/[^А-Яа-яЁёA-Za-z-]/g, "").toUpperCase();
-    }
-    if (/орган/i.test(l)) {
-      const nextParts: string[] = [];
-      for (let j = i + 1; j < Math.min(i + 4, lines.length); j++) {
-        if (/дата|date|паспорт|passport/i.test(lines[j])) break;
-        nextParts.push(lines[j]);
-      }
-      if (nextParts.length > 0) {
-        result.issued_by = nextParts.join(" ").replace(/^[":']+|[":']+$/g, "").trim();
-      }
-    }
-    const mDate = l.match(/\b(\d{2})[./-](\d{2})[./-](\d{4})\b/);
-    if (mDate && !result.issue_date) {
-      result.issue_date = `${mDate[3]}-${mDate[2]}-${mDate[1]}`;
-    }
-  }
-
-  return result;
-}
-
-function parsePage33FromText(text: string): Record<string, any> {
-  const result: Record<string, any> = {};
-  const clean = text.replace(/\r/g, "");
-
-  const m1 = clean.match(/P<BLR([A-Z<]+)/i);
-  if (m1) {
-    const names = m1[1].split("<<");
-    if (names[0]) result.last_name_lat = names[0].replace(/</g, "").trim();
-    if (names[1]) result.first_name_lat = names[1].replace(/</g, "").trim();
-  }
-
-  const m2 = clean.match(/([A-Z]{2}\d{7})\d?BLR(\d{6})\d?([MF])(\d{6})\d?([A-Z0-9]{14})/i);
-  if (m2) {
-    result.series_number = m2[1].toUpperCase();
-    const yy = parseInt(m2[2].slice(0, 2), 10);
-    const mm = m2[2].slice(2, 4);
-    const dd = m2[2].slice(4, 6);
-    const century = yy > 30 ? "19" : "20";
-    result.birth_date = `${century}${yy.toString().padStart(2, "0")}-${mm}-${dd}`;
-    result.gender = m2[3].toUpperCase() === "M" ? "Мужской" : "Женский";
-    result.id_number = m2[5].toUpperCase();
-    result.raw_mrz = `P<BLR${m1 ? m1[1] : ""}\n${m2[0]}`;
-  } else {
-    const mPass = clean.match(/\b([A-Z]{2}\d{7})\b/i);
-    if (mPass) result.series_number = mPass[1].toUpperCase();
-
-    const mId = clean.match(/\b([0-9][0-9]{6}[A-Z][0-9]{3}[A-Z]{2}[0-9])\b/i);
-    if (mId) result.id_number = mId[1].toUpperCase();
-
-    const mBirth = clean.match(/\b(\d{2})\.(\d{2})\.(\d{4})\b/);
-    if (mBirth) result.birth_date = `${mBirth[3]}-${mBirth[2]}-${mBirth[1]}`;
-  }
-
-  return result;
-}
-
-function parseRegistrationStampFromText(text: string): Record<string, any> {
-  const result: Record<string, any> = {};
-  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
-
-  // 1. Населенный пункт
-  for (let i = 0; i < lines.length; i++) {
-    const l = lines[i];
-    if (/населены пункт|нас\.\s*пункт/i.test(l)) {
-      const inline = l.replace(/^.*(?:населены пункт|нас\.\s*пункт)[^:]*[:\s]*/i, "").trim();
-      if (inline && !/вуліца|улица|дом|корп|кв|дата/i.test(inline)) {
-        result.address_city = inline;
-        break;
-      }
-      if (lines[i + 1] && !/вуліца|улица|дом|корп|кв|дата/i.test(lines[i + 1])) {
-        result.address_city = lines[i + 1].trim();
-        break;
-      }
-    } else if (!/населены|па месцы|зарэгістр|жыхарства/i.test(l) && /(?:^|\s)(?:г\.|аг\.|д\.|пос\.|пгт)\s*([А-Яа-яЁё-]+(?:\s+[А-Яа-яЁё-]+)?)/i.test(l)) {
-      const m = l.match(/(?:^|\s)(?:г\.|аг\.|д\.|пос\.|пгт)\s*([А-Яа-яЁё-]+(?:\s+[А-Яа-яЁё-]+)?)/i);
-      result.address_city = m![0].trim();
-      break;
-    }
-  }
-  if (!result.address_city) {
-    for (const l of lines) {
-      if (/минск|брест|витебск|гомель|гродно|могилев|колодищ|тарасов|боровлян|фанипол|заславл|бобруйск/i.test(l) && !/рувд|паспорт|зарегистр|жыхарств/i.test(l)) {
-        result.address_city = l.trim();
-        break;
-      }
-    }
-  }
-
-  // Очистка города от случайных пробелов внутри названия (напр. 'Колодищ и' -> 'Колодищи')
-  if (result.address_city) {
-    result.address_city = result.address_city
-      .replace(/([А-Яа-яЁё]{2,})\s+([А-Яа-яЁё]{1,2})$/, "$1$2")
-      .replace(/колодиц[ие]/gi, "Колодищи");
-  }
-
-  // 2. Улица / проспект
-  for (let i = 0; i < lines.length; i++) {
-    const l = lines[i];
-    if (/вуліца|улица.*пр-т/i.test(l)) {
-      const inline = l.replace(/^.*(?:вуліца|улица)[^:]*[:\s]*/i, "").trim();
-      if (inline && !/дом|корп|кв|дата/i.test(inline)) {
-        result.address_street = inline;
-        break;
-      }
-      if (lines[i + 1] && !/дом|корп|кв|дата/i.test(lines[i + 1])) {
-        result.address_street = lines[i + 1].trim();
-        break;
-      }
-    } else if (!/вуліца|улица|место|нас\.|пункт|па месцы/i.test(l) && /(?:пр-т|просп|ул\.|вул\.|тракт|пер\.|бул\.)\s*([А-Яа-яЁё0-9.\s-]+)/i.test(l)) {
-      result.address_street = l.trim();
-      break;
-    }
-  }
-  if (!result.address_street) {
-    for (const l of lines) {
-      if (/независимост|победител|притыцк|советск|центральн|тюленин|минск/i.test(l) && !/г\.|город|орган|жыхарств/i.test(l)) {
-        result.address_street = l.trim();
-        break;
-      }
-    }
-  }
-
-  for (let i = 0; i < lines.length; i++) {
-    const l = lines[i];
-    const m = l.match(/(?:Дом|д\.)[:\s]*([0-9]+[А-Яа-яA-Za-z]?(?:[\/-][0-9А-Яа-яA-Za-z]+)?)/i);
-    if (m && m[1]) {
-      // Проверяем: если это не дата штампа "26 08 2023"
-      if (m[1] === "26" && (l.includes("08") || l.includes("202") || (lines[i + 1] && lines[i + 1].includes("08")))) {
-        continue;
-      }
-      result.address_house = m[1].trim();
-      break;
-    } else if (/^дом[:\s]*$/i.test(l) && lines[i + 1] && /^\d+/.test(lines[i + 1])) {
-      const nextL = lines[i + 1].trim();
-      // Если это дата ("26" с последующим "08" или "202..."), не берем
-      if (nextL === "26" && lines[i + 2] && (lines[i + 2].includes("08") || lines[i + 2].includes("202"))) {
-        continue;
-      }
-      result.address_house = nextL;
-      break;
-    }
-  }
-
-  result.address_building = "-";
-  for (let i = 0; i < lines.length; i++) {
-    const l = lines[i];
-    const m = l.match(/(?:Корп\.?|Корпус)[:\s]*([0-9]+[А-Яа-яA-Za-z]?)/i);
-    if (m && m[1]) {
-      result.address_building = m[1].trim();
-      break;
-    } else if (/^корп\.?[:\s]*$/i.test(l) && lines[i + 1] && /^[0-9]+$/.test(lines[i + 1])) {
-      result.address_building = lines[i + 1].trim();
-      break;
-    }
-  }
-
-  for (let i = 0; i < lines.length; i++) {
-    const l = lines[i];
-    const m = l.match(/(?:Кв\.?|Кватэра|пакой)[:\s]*([0-9]+)/i);
-    if (m && m[1]) {
-      result.address_apartment = m[1].trim();
-      break;
-    } else if (/^(?:кв\.?|кватэра)[:\s]*$/i.test(l) && lines[i + 1] && /^\d+$/.test(lines[i + 1])) {
-      result.address_apartment = lines[i + 1].trim();
-      break;
-    }
-  }
-
-  return result;
-}
-
-async function parsePassportWithFreeOCR(frame1?: string, frame2?: string, frame3?: string): Promise<Record<string, any> | null> {
-  try {
-    const [t33, t31, tStamp] = await Promise.all([
-      frame2 ? runOCRSpaceImage(frame2, "eng").catch(() => "") : Promise.resolve(""),
-      frame1 ? runOCRSpaceImage(frame1, "rus").catch(() => "") : Promise.resolve(""),
-      frame3 ? runOCRSpaceImage(frame3, "rus").catch(() => "") : Promise.resolve("")
-    ]);
-
-    const data33 = frame2 ? parsePage33FromText(t33) : {};
-    const data31 = frame1 ? parsePage31FromText(t31) : {};
-    const dataStamp = frame3 ? parseRegistrationStampFromText(tStamp) : {};
-
-    const combined: Record<string, any> = {
-      ok: true,
-      ...data33,
-      ...data31,
-      ...dataStamp
-    };
-
-    if (combined.id_number || combined.series_number || combined.last_name) {
-      return combined;
-    }
-    return null;
-  } catch (err) {
-    console.warn("Free OCR Engine error:", err);
-    return null;
-  }
-}
-
-async function callVisionChatWithFallback(messages: any[], maxTokens = 3500, title = "ICE LOGIX Vision"): Promise<any> {
-  const models = [
-    VISION_MODEL,
-    "openrouter/free",
-    "minimax/minimax-m3.1-flash:free",
-    "nvidia/nemotron-3.5-super-vl:free",
-    "google/gemma-4-31b-it:free",
-    "google/gemma-4-26b-a4b-it:free",
-    "dots-studio/dots-3-note-preview:free",
-    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-  ];
-
-  // Remove duplicates and blanks
-  const uniqueModels = [...new Set(models.filter(Boolean))];
-
-  // Ensure system instruction is first if not already present
-  const preparedMessages = [...messages];
-  if (!preparedMessages.some(m => m.role === "system")) {
-    preparedMessages.unshift({
-      role: "system",
-      content: "You are an automated document recognition OCR engine. Output strictly valid JSON format. Do not write thinking process, explanations, markdown quotes or conversational text. Start immediately with '{'."
-    });
-  }
-
-  // 1. ПРИОРИТЕТ 1: Google Gemini 2.0 Flash напрямую (лучшее в мире распознавание рукописного текста и штампов на русском/белорусском)
-  if (GEMINI_API_KEY) {
-    try {
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
-      const geminiParts: any[] = [];
-      for (const m of preparedMessages) {
-        if (typeof m.content === "string") {
-          geminiParts.push({ text: m.content });
-        } else if (Array.isArray(m.content)) {
-          for (const item of m.content) {
-            if (item.type === "text") {
-              geminiParts.push({ text: item.text });
-            } else if (item.type === "image_url" && item.image_url?.url) {
-              const url = item.image_url.url;
-              const match = url.match(/^data:([^;]+);base64,(.+)$/);
-              if (match) {
-                geminiParts.push({
-                  inline_data: {
-                    mime_type: match[1],
-                    data: match[2]
-                  }
-                });
-              }
-            }
-          }
-        }
-      }
-
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 20000);
-      const gRes = await fetch(geminiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: geminiParts }],
-          generationConfig: {
-            temperature: 0.01,
-            maxOutputTokens: maxTokens,
-            responseMimeType: "application/json"
-          }
-        }),
-        signal: controller.signal
-      });
-      clearTimeout(timer);
-
-      if (gRes.ok) {
-        const gJson = await gRes.json();
-        const text = gJson?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) {
-          console.log("Success with direct Gemini 2.0 Flash API!");
-          return {
-            choices: [{
-              message: { content: text }
-            }]
-          };
-        }
-      } else {
-        console.warn("Direct Gemini API error:", await gRes.text().catch(() => ""));
-      }
-    } catch (geminiErr) {
-      console.warn("Direct Gemini exception:", geminiErr);
-    }
-  }
-
-  // 2. ПРИОРИТЕТ 2: Groq Cloud API
-  if (GROQ_API_KEY) {
-    const groqModels = ["llama-3.2-90b-vision-preview", "llama-3.2-11b-vision-preview"];
-    for (const gModel of groqModels) {
-      try {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 15000);
-        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${GROQ_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: gModel,
-            messages: preparedMessages,
-            temperature: 0.01,
-            max_tokens: maxTokens,
-          }),
-          signal: controller.signal,
-        });
-        clearTimeout(timer);
-        if (res.ok) {
-          const json = await res.json();
-          const content = json?.choices?.[0]?.message?.content;
-          if (content) {
-            console.log(`Success with Groq model: ${gModel}`);
-            return json;
-          }
-        } else {
-          console.warn(`Groq ${gModel} status ${res.status}:`, await res.text().catch(() => ""));
-        }
-      } catch (gErr) {
-        console.warn(`Groq error (${gModel}):`, gErr);
-      }
-    }
-  }
-
-  const errorLog: string[] = [];
-  for (const model of uniqueModels) {
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 25000);
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-          "HTTP-Referer": "https://icelogix.app",
-          "X-Title": title,
-        },
-        body: JSON.stringify({
-          model,
-          messages: preparedMessages,
-          temperature: 0.01,
-          max_tokens: maxTokens,
-          reasoning: { effort: "none" },
-        }),
-        signal: controller.signal,
-      });
-      clearTimeout(timer);
-
-      if (res.ok) {
-        const json = await res.json();
-        if (json?.error) {
-          const errStr = `${model} body-err: ${json.error?.message || JSON.stringify(json.error)}`;
-          console.warn(errStr);
-          errorLog.push(errStr);
-          continue;
-        }
-        const msgContent = json?.choices?.[0]?.message?.content || json?.choices?.[0]?.message?.reasoning;
-        if (msgContent) {
-          return json;
-        }
-        const errStr = `${model} empty-choices`;
-        console.warn(errStr);
-        errorLog.push(errStr);
-        continue;
-      }
-
-      const errTxt = await res.text().catch(() => "");
-      const errStr = `${model} HTTP ${res.status}: ${errTxt.slice(0, 150)}`;
-      errorLog.push(errStr);
-      console.warn(`Vision model failed: ${errStr}. Trying next fallback...`);
-    } catch (e) {
-      const errStr = `${model} exception: ${e.message}`;
-      errorLog.push(errStr);
-      console.warn(errStr);
-    }
-  }
-
-  throw new Error(`All vision models failed. Attempts: ${errorLog.join(" | ")}`);
-}
 
 
 serve(async (req) => {
@@ -1235,97 +671,21 @@ serve(async (req) => {
 
 
     if (action === "estimate_weight") {
-      const { description, screenshotPath, image } = payload;
-
-      let imageUrl = "";
-      if (typeof image === "string" && image.trim().length > 0) {
-        let img = image.trim();
-        if (!img.startsWith("data:") && !img.startsWith("http")) {
-          img = `data:image/jpeg;base64,${img}`;
-        }
-        imageUrl = img;
-      } else if (screenshotPath) {
-        const { data: urlData, error: urlErr } = await supabase.storage
-          .from(STORAGE_BUCKET)
-          .createSignedUrl(screenshotPath, 600);
-        if (!urlErr && urlData?.signedUrl) {
-          imageUrl = urlData.signedUrl;
-        }
-      }
-
-      if (!description && !imageUrl) {
+      const { description } = payload;
+      if (!description || !String(description).trim()) {
         return new Response(
-          JSON.stringify({ ok: false, error: "Provide description or photo" }),
+          JSON.stringify({ ok: false, error: "Укажите, что за вещь, чтобы оценить вес" }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-
-      // Build weight estimation prompt
-      const prompt = `You are a weight estimator assistant for ICE LOGIX delivery.
-Analyze the product description or image provided by the user and estimate the typical shipping weight of this item in kilograms.
-Here are typical weights:
-- T-shirt / Polo / Socks / Hat: 0.2 - 0.3 kg
-- Jeans / Pants / Shorts / Hoodie / Sweatshirt: 0.7 - 0.8 kg
-- Light jacket / Windbreaker: 0.8 - 1.0 kg
-- Winter down jacket / Heavy coat / Boots: 1.5 - 2.5 kg
-- Sneakers / Casual shoes: 1.2 kg (standard)
-- Small bag / Wallet / Accessories: 0.3 - 0.5 kg
-- Backpack / Large bag: 0.8 - 1.2 kg
-
-Return ONLY a JSON object:
-{
-  "weight": number (estimated weight in kg, e.g. 1.2 or 0.7),
-  "product_name": "string (short Russian name of the identified product, e.g. 'Кроссовки Nike' or 'Худи Calvin Klein')"
-}`;
-
-      const messages: any[] = [];
-      if (imageUrl) {
-        messages.push({
-          role: "user",
-          content: [
-            { type: "text", text: prompt + (description ? `\nUser hint: "${description}"` : "") },
-            { type: "image_url", image_url: { url: imageUrl } },
-          ],
-        });
-      } else {
-        messages.push({
-          role: "user",
-          content: prompt + `\nUser product query: "${description}"`,
-        });
-      }
-
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-          "HTTP-Referer": "https://icelogix.app",
-          "X-Title": "ICE LOGIX ai-weight-estimator",
-        },
-        body: JSON.stringify({
-          model: imageUrl ? VISION_MODEL : TEXT_MODEL,
-          messages,
-          temperature: 0.1,
-          max_tokens: 150,
-        }),
-      });
-
-      if (!res.ok) {
-        const errTxt = await res.text().catch(() => "");
-        throw new Error(`OpenRouter HTTP ${res.status}: ${errTxt}`);
-      }
-
-      const data = await res.json();
-      const rawOutput = data?.choices?.[0]?.message?.content || "";
-      const parsed = parseAssistantJson(rawOutput);
-      const estWeight = typeof parsed.weight === "number" && !isNaN(parsed.weight) ? parsed.weight : 1.0;
-
+      const est = estimateWeightByRules(String(description));
       return new Response(
-        JSON.stringify({ 
-          ok: true, 
-          weight: estWeight, 
-          estimated_weight: estWeight, 
-          product_name: parsed.product_name || "" 
+        JSON.stringify({
+          ok: true,
+          weight: est.weight,
+          estimated_weight: est.weight,
+          product_name: est.product_name,
+          by_table: est.matched,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -1357,39 +717,9 @@ Return ONLY a JSON object:
 
       if (finalWeight <= 0) {
         aiEstimated = true;
-        // Ask LLM to quickly estimate weight based on title
-        const prompt = `You are a weight estimator assistant for ICE LOGIX.
-Analyze the product title: "${title}". Estimate its shipping weight in kg.
-Return ONLY a JSON object:
-{
-  "weight": number,
-  "explanation": "string (1-sentence Russian note why this weight was chosen)"
-}`;
-        try {
-          const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-            },
-            body: JSON.stringify({
-              model: TEXT_MODEL,
-              messages: [{ role: "user", content: prompt }],
-              temperature: 0.1,
-              max_tokens: 150,
-            }),
-          });
-          if (res.ok) {
-            const data = await res.json();
-            const parsed = parseAssistantJson(data?.choices?.[0]?.message?.content || "");
-            finalWeight = parseFloat(parsed.weight) || 1.0;
-            notes = parsed.explanation || "";
-          } else {
-            finalWeight = 1.0;
-          }
-        } catch (_) {
-          finalWeight = 1.0;
-        }
+        const est = estimateWeightByRules(String(title));
+        finalWeight = est.weight;
+        notes = est.matched ? `Вес по таблице для типа «${est.product_name}»` : "Тип вещи не распознан, взят средний вес 1 кг";
       }
 
       // Check additional packaging weight reduction
@@ -1478,76 +808,8 @@ Return ONLY a JSON object:
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     } else if (action === "parse_passport") {
-      const { image } = payload;
-      if (!image) {
-        return new Response(
-          JSON.stringify({ ok: false, error: "Фотография паспорта не предоставлена" }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      let imageUrl = typeof image === "string" ? image.trim() : "";
-      if (!imageUrl.startsWith("data:") && !imageUrl.startsWith("http")) {
-        imageUrl = `data:image/jpeg;base64,${imageUrl}`;
-      }
-
-      const prompt = `Ты — эксперт по оптическому распознаванию паспортов и ID-карт Республики Беларусь (РБ).
-Твоя задача — внимательно изучить предоставленное изображение разворота паспорта РБ (страницы 31-33) или двусторонней ID-карты гражданина Беларуси и извлечь паспортные данные на русском языке.
-
-Белорусский паспорт содержит следующие ключевые поля:
-1. Фамилия (русскими буквами, например "ИВАНОВ")
-2. Имя (русскими буквами, например "ИВАН")
-3. Отчество (русскими буквами, если указано, например "ИВАНОВИЧ")
-4. Пол (строго "Мужской" или "Женский")
-5. Дата рождения (в формате YYYY-MM-DD, например "2000-05-15")
-6. Идентификационный (личный) номер РБ: ровно 14 символов (цифры и заглавные латинские буквы, например "7010204A001PB5", "3051089A012PB4"). Будь предельно точен: латинские A, B, C, E, H, K, M, O, P, T, X и цифры 0, 1, 8.
-7. Серия и номер паспорта: 2 заглавные латинские буквы + 7 цифр (например "MP1234567", "AB2345678", "BM3456789", "HB4567890", "KH5678901", "MC6789012", "KB7890123", "PP8901234") либо 9 цифр для биометрической ID-карты.
-8. Дата выдачи (в формате YYYY-MM-DD, например "2021-08-10")
-9. Кем выдан: орган МВД РБ на русском языке (например "ФРУНЗЕНСКИМ РУВД Г. МИНСКА", "МОСКОВСКИМ РУВД Г. МИНСКА", "БОРИСОВСКИМ РУВД", "ГОМЕЛЬСКИМ РОВД", "МВД").
-
-ВЕРНИ ТОЛЬКО ЧИСТЫЙ JSON-ОБЪЕКТ СЛЕДУЮЩЕГО ФОРМАТА (без markdown-блоков, без кавычек \`\`\`json):
-{
-  "last_name": "Иванов",
-  "first_name": "Иван",
-  "patronymic": "Иванович",
-  "gender": "Мужской",
-  "birth_date": "2000-05-15",
-  "id_number": "7010204A001PB5",
-  "series_number": "MP1234567",
-  "issue_date": "2021-08-10",
-  "issued_by": "ФРУНЗЕНСКИМ РУВД Г. МИНСКА"
-}`;
-
-      const data = await callVisionChatWithFallback(
-        [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              { type: "image_url", image_url: { url: imageUrl } },
-            ],
-          },
-        ],
-        3500,
-        "ICE LOGIX Passport OCR"
-      );
-
-      const choice = data?.choices?.[0]?.message;
-      const contentStr = (choice?.content || "").trim();
-      const reasoningStr = (choice?.reasoning || "").trim();
-      const combined = (contentStr ? contentStr + "\n" : "") + reasoningStr;
-
-      let parsed = parseAssistantJson(contentStr);
-      if (!parsed || (!parsed.id_number && !parsed.series_number && !parsed.last_name)) {
-        parsed = parseAssistantJson(combined);
-      }
-
       return new Response(
-        JSON.stringify({
-          ok: true,
-          passport_data: parsed,
-          raw_output: combined,
-        }),
+        JSON.stringify({ ok: false, error: "Используйте сканер документа в разделе «Мои данные» или заполните поля вручную." }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     } else if (action === "parse_passport_alipay") {
@@ -1647,9 +909,6 @@ Return ONLY a JSON object:
     const rawMsg = err.message || "";
     console.error("ai-calculator fatal error:", rawMsg);
     let userMsg = "Не удалось распознать документ на фотографии. Пожалуйста, попробуйте еще раз или заполните поля вручную.";
-    if (rawMsg.includes("All vision models failed") || rawMsg.includes("OpenRouter") || rawMsg.includes("credits") || rawMsg.includes("Rate limit")) {
-      userMsg = "Сервер распознавания временно исчерпал лимит запросов OpenRouter. Пожалуйста, повторите попытку позже или введите данные вручную.";
-    }
 
     return new Response(
       JSON.stringify({
