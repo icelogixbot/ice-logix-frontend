@@ -2408,46 +2408,6 @@ let adminOrdersTotalPages = 1;
         overlay.querySelector('#ipConfirm').onclick = () => finish(true);
         overlay.addEventListener('click', (e) => { if (e.target === overlay) finish(false); });
 
-        // Фоновый поиск: image confirmation + price comparison
-        if (title && supabaseClient && window.iceLogixPricing) {
-          const q = [brand, title].filter(Boolean).join(' ').trim();
-          supabaseClient.functions.invoke('search-products', { body: { query: q, topN: 3, user_id: userId } })
-            .then(({ data, error }) => {
-              if (error || !data?.ok || !Array.isArray(data.results) || data.results.length === 0) return;
-              const first = data.results.find(r => r.image_url || r.title) || data.results[0];
-              if (!first) return;
-              const panel = overlay.querySelector('#ipMatchPanel');
-              const img = overlay.querySelector('#ipMatchImg');
-              const tEl = overlay.querySelector('#ipMatchTitle');
-              const pEl = overlay.querySelector('#ipMatchPrice');
-              const lEl = overlay.querySelector('#ipMatchLink');
-              if (panel) panel.classList.remove('hidden');
-              if (img && first.image_url) { img.src = getProductImages(first.image_url)[0] || ''; img.classList.remove('hidden'); }
-              if (tEl) tEl.textContent = first.title || '';
-              if (pEl && first.price && first.currency) {
-                pEl.textContent = `${_ipMoneyFmt(first.price)} ${first.currency}`;
-              }
-              if (lEl && first.url) { lEl.href = first.url; }
-
-              // Price comparison: avg по результатам в той же валюте
-              if (price && currency) {
-                const sameCcy = data.results.filter(r => r.price && r.currency === currency);
-                if (sameCcy.length >= 2) {
-                  const avg = sameCcy.reduce((s, r) => s + r.price, 0) / sameCcy.length;
-                  const dev = Math.abs(price - avg) / avg;
-                  if (dev > 0.2) {
-                    const warn = overlay.querySelector('#ipPriceWarn');
-                    if (warn) {
-                      warn.classList.remove('hidden');
-                      const direction = price > avg ? 'выше' : 'ниже';
-                      warn.innerHTML = `<span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></span> Ваша цена <b>${_ipMoneyFmt(price)} ${_esc(currency)}</b> на ${(dev * 100).toFixed(0)}% ${direction} средней по рынку (~${_ipMoneyFmt(avg)} ${_esc(currency)} на ${sameCcy.length} площадках). Перепроверьте.`;
-                    }
-                  }
-                }
-              }
-            })
-            .catch(() => { /* silent — модалка работает без preview */ });
-        }
       });
     }
 
