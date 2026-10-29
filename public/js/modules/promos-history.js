@@ -528,6 +528,10 @@ async function renderSettingsPage(initialTab = 'account') {
   const U = window.UI;
   let authUser = null;
   let data = null;
+  // Состояние код-пароля с сервера; если сервер долго молчит, экран не ждёт дольше 5 секунд
+  const lockPromise = window.AppLock
+    ? Promise.race([window.AppLock.status().catch(() => null), new Promise((r) => setTimeout(() => r(null), 5000))])
+    : Promise.resolve(null);
   try {
     const [authRes, profileRes] = await Promise.all([
       supabaseClient ? supabaseClient.auth.getUser() : Promise.resolve({ data: {} }),
@@ -565,6 +569,7 @@ async function renderSettingsPage(initialTab = 'account') {
   const role = data?.role;
   const roleText = (role === 'owner' || role === 'admin') ? 'Администратор' : role === 'partner' ? 'Партнёр' : 'Клиент';
   const hasKey = !!data?.recovery_code_hash;
+  const lock = await lockPromise;
   // Тихие часы и сигнал курса читает бот (ICE LOGIX BOT/client_notifications.py)
   const quiet = settings.quiet_hours || {};
   const quietOn = !!quiet.enabled;
@@ -639,6 +644,20 @@ async function renderSettingsPage(initialTab = 'account') {
         : infoRow('mail', 'Почта', U.esc(email), emailConfirmed ? status('ok', 'Подтверждена') : status('warn', 'Ждёт подтверждения'))}
       ${isTechEmail ? '' : row('changePasswordBtn', 'lock', 'Сменить пароль', 'Для входа по почте')}
     </div>
+
+    <p class="st-cap">Вход в приложение</p>
+    <div class="rd-card rd-list">
+      ${!lock
+        ? infoRow('lock', 'Код-пароль', 'Не получилось проверить. Откройте этот экран ещё раз чуть позже')
+        : switchRow('appLockSwitch', 'lock', 'Код-пароль',
+            lock.blocked ? 'Заблокирован после 5 ошибок. Сбросьте через Telegram' : lock.enabled ? 'Спрашиваем при входе и после 2 минут в фоне' : '4 цифры при входе в приложение',
+            lock.enabled)}
+      ${lock && lock.enabled ? row('appLockChangeBtn', 'key', 'Сменить код-пароль', 'Нужен текущий код') : ''}
+      ${lock && lock.enabled && lock.bioAvailable
+        ? switchRow('appLockBioSwitch', lock.bioName === 'Face ID' ? 'faceid' : 'fingerprint', `Вход по ${lock.bioName}`, 'Вместо ввода кода на этом телефоне', lock.bioDevice)
+        : ''}
+    </div>
+    ${lock && !lock.enabled && !lock.inTelegram ? '<p class="st-hint">Включить код-пароль можно в приложении внутри Telegram: код для сброса придёт от нашего бота.</p>' : ''}
 
     <p class="st-cap">Если потеряете Telegram</p>
     <div class="rd-card rd-list">
@@ -865,6 +884,21 @@ function attachSettingsPageHandlers(initialTab = 'account') {
       U.toast(settingsAuthErrorText(e), 'bad');
     }
   });
+
+  // Код-пароль и биометрия: переключатель меняется только после подтверждения на сервере
+  const bindLockSwitch = (id, onFlow, offFlow) => {
+    const el = document.getElementById(id);
+    if (!el || !window.AppLock) return;
+    el.onchange = async () => {
+      const want = el.checked;
+      el.checked = !want;
+      const ok = await (want ? onFlow() : offFlow());
+      if (ok) rerender('security');
+    };
+  };
+  bindLockSwitch('appLockSwitch', () => window.AppLock.enableFlow(), () => window.AppLock.disableFlow());
+  bindLockSwitch('appLockBioSwitch', () => window.AppLock.bioEnableFlow(), () => window.AppLock.bioDisableFlow());
+  tap('appLockChangeBtn', () => { if (window.AppLock) window.AppLock.changeFlow(); });
 
   tap('securityRecoveryBtn', () => {
     if (typeof showRecoveryCodeModal === 'function') showRecoveryCodeModal({ onChange: () => rerender('security') });

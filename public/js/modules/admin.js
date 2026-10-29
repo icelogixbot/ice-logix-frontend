@@ -774,181 +774,58 @@ async function renderAdminLegitChecksList() {
   }
 }
 
+// Вход в админ-панель: подтверждение личным код-паролем (проверка на сервере, функция app-lock, ADR-013).
+// Старый PIN из users.pin_code (открытым текстом, по умолчанию 0000) больше не используется.
 async function renderAdmin2FA() {
+  const U = window.UI;
   return `
-    <button id="cancelAdmin2FA" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
-    <div class="glass-card page-enter text-center mt-4 max-w-sm mx-auto" style="touch-action: none; overscroll-behavior: contain;">
-      <h2 class="text-white font-bold text-xl mb-4">Вход в Админ-панель</h2>
-      <p class="text-white/70 text-sm mb-6">Для доступа к расширенным функциям введите 4-значный ПИН-код</p>
-      
-      <div class="flex justify-center gap-3 mb-6" id="pinDots">
-        <div class="w-4 h-4 rounded-full bg-white/20 border border-white/10 transition-colors duration-200"></div>
-        <div class="w-4 h-4 rounded-full bg-white/20 border border-white/10 transition-colors duration-200"></div>
-        <div class="w-4 h-4 rounded-full bg-white/20 border border-white/10 transition-colors duration-200"></div>
-        <div class="w-4 h-4 rounded-full bg-white/20 border border-white/10 transition-colors duration-200"></div>
+    <div class="rd-screen page-enter">
+      <div class="rd-head">
+        <button type="button" class="rd-back" id="cancelAdmin2FA" aria-label="Назад">${U.icon('chevL', 22)}</button>
+        <div class="rd-head-txt"><h1 class="rd-head-title">Админ-панель</h1><p class="rd-head-sub">Вход подтверждается код-паролем</p></div>
       </div>
-      
-      <div class="grid grid-cols-3 gap-3 mb-4 transition-opacity duration-200" id="pinKeyboard" style="touch-action: none; user-select: none; -webkit-user-select: none;">
-        <div role="button" tabindex="-1" class="bg-white/5 hover:bg-white/10 active:bg-white/15 text-white font-bold text-xl py-4 rounded-xl border border-white/10 cursor-pointer select-none flex items-center justify-center transition-all active:scale-[0.95]" style="touch-action: none;" data-digit="1">1</div>
-        <div role="button" tabindex="-1" class="bg-white/5 hover:bg-white/10 active:bg-white/15 text-white font-bold text-xl py-4 rounded-xl border border-white/10 cursor-pointer select-none flex items-center justify-center transition-all active:scale-[0.95]" style="touch-action: none;" data-digit="2">2</div>
-        <div role="button" tabindex="-1" class="bg-white/5 hover:bg-white/10 active:bg-white/15 text-white font-bold text-xl py-4 rounded-xl border border-white/10 cursor-pointer select-none flex items-center justify-center transition-all active:scale-[0.95]" style="touch-action: none;" data-digit="3">3</div>
-        <div role="button" tabindex="-1" class="bg-white/5 hover:bg-white/10 active:bg-white/15 text-white font-bold text-xl py-4 rounded-xl border border-white/10 cursor-pointer select-none flex items-center justify-center transition-all active:scale-[0.95]" style="touch-action: none;" data-digit="4">4</div>
-        <div role="button" tabindex="-1" class="bg-white/5 hover:bg-white/10 active:bg-white/15 text-white font-bold text-xl py-4 rounded-xl border border-white/10 cursor-pointer select-none flex items-center justify-center transition-all active:scale-[0.95]" style="touch-action: none;" data-digit="5">5</div>
-        <div role="button" tabindex="-1" class="bg-white/5 hover:bg-white/10 active:bg-white/15 text-white font-bold text-xl py-4 rounded-xl border border-white/10 cursor-pointer select-none flex items-center justify-center transition-all active:scale-[0.95]" style="touch-action: none;" data-digit="6">6</div>
-        <div role="button" tabindex="-1" class="bg-white/5 hover:bg-white/10 active:bg-white/15 text-white font-bold text-xl py-4 rounded-xl border border-white/10 cursor-pointer select-none flex items-center justify-center transition-all active:scale-[0.95]" style="touch-action: none;" data-digit="7">7</div>
-        <div role="button" tabindex="-1" class="bg-white/5 hover:bg-white/10 active:bg-white/15 text-white font-bold text-xl py-4 rounded-xl border border-white/10 cursor-pointer select-none flex items-center justify-center transition-all active:scale-[0.95]" style="touch-action: none;" data-digit="8">8</div>
-        <div role="button" tabindex="-1" class="bg-white/5 hover:bg-white/10 active:bg-white/15 text-white font-bold text-xl py-4 rounded-xl border border-white/10 cursor-pointer select-none flex items-center justify-center transition-all active:scale-[0.95]" style="touch-action: none;" data-digit="9">9</div>
-        <div></div>
-        <div role="button" tabindex="-1" class="bg-white/5 hover:bg-white/10 active:bg-white/15 text-white font-bold text-xl py-4 rounded-xl border border-white/10 cursor-pointer select-none flex items-center justify-center transition-all active:scale-[0.95]" style="touch-action: none;" data-digit="0">0</div>
-        <div role="button" tabindex="-1" class="bg-white/5 hover:bg-white/10 active:bg-white/15 text-red-400 font-bold text-xl py-4 rounded-xl border border-white/10 cursor-pointer select-none flex items-center justify-center transition-all active:scale-[0.95]" style="touch-action: none;" id="pinDeleteBtn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg></span></div>
+      <div class="rd-empty" id="admin2faBox">
+        <div class="rd-empty-ico">${U.icon('shield', 30)}</div>
+        <div class="rd-empty-title">Подтвердите вход</div>
+        <p class="rd-empty-text">Введите свой код-пароль. После 5 ошибок он блокируется, сбросить можно только через бота в Telegram.</p>
+        <button type="button" class="rd-btn" id="admin2faBtn">Ввести код-пароль</button>
       </div>
     </div>
-    
     ${renderFooter()}
   `;
 }
 
-
-
-let currentPin = '';
-let isCheckingPin = false;
-
 function attachAdmin2FAHandlers() {
-  currentPin = '';
-  isCheckingPin = false;
-  
+  const U = window.UI;
   const cancelBtn = document.getElementById('cancelAdmin2FA');
   if (cancelBtn) cancelBtn.onclick = () => switchTab('home');
-  const dots = document.querySelectorAll('#pinDots div');
-  const keyboard = document.getElementById('pinKeyboard');
-  
-  // Prevent scroll on the PIN keyboard — block touchmove on the whole keyboard area
-  if (keyboard) {
-    keyboard.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
-    keyboard.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
-  }
-  
-  // Lock page scroll while on the PIN screen (Telegram WebView scrolls on lower row taps)
-  const _origBodyOverscroll = document.body.style.overscrollBehavior;
-  const _origBodyOverflow = document.body.style.overflow;
-  document.body.style.overscrollBehavior = 'none';
-  document.body.style.overflow = 'hidden';
-  
-  // Restore body scroll when leaving this screen
-  function _restoreBodyScroll() {
-    document.body.style.overscrollBehavior = _origBodyOverscroll;
-    document.body.style.overflow = _origBodyOverflow;
-  }
-  if (cancelBtn) {
-    const _origCancelClick = cancelBtn.onclick;
-    cancelBtn.onclick = () => { _restoreBodyScroll(); switchTab('home'); };
-  }
-  // Also restore on successful auth (renderAdminScreen will re-render the page)
-  const _origCheckPinSuccessHook = () => _restoreBodyScroll();
-  window._pin2FARestoreScroll = _origCheckPinSuccessHook;
-  
-  async function checkPin() {
-    if (isCheckingPin) return;
-    isCheckingPin = true;
-    if (keyboard) {
-      keyboard.style.opacity = '0.5';
-      keyboard.style.pointerEvents = 'none';
-    }
-    
-    try {
-      const { data } = await supabaseClient.from('users').select('pin_code').eq('user_id', userId).single();
-      if (!data || !data.pin_code) {
-        if (currentPin === '0000') {
-          adminAuthenticated = true;
-          _restoreBodyScroll();
-          window.invalidateAdminCache();
-          renderAdminScreen(true);
-        } else {
-          tgUtil.alert('ПИН-код не установлен. Установлен временный код 0000.');
-          currentPin = ''; updateDots();
-        }
-        return;
-      }
-      if (data.pin_code === currentPin) {
-        adminAuthenticated = true;
-        _restoreBodyScroll();
-        window.invalidateAdminCache();
-        renderAdminScreen(true);
-      } else {
-        tgUtil.haptic('error');
-        tgUtil.alert('❌ Неверный ПИН-код');
-        currentPin = ''; updateDots();
-      }
-    } catch(e) { 
-      tgUtil.alert('Ошибка проверки PIN: ' + e.message); 
-      currentPin = ''; updateDots(); 
-    } finally {
-      isCheckingPin = false;
-      if (keyboard) {
-        keyboard.style.opacity = '1';
-        keyboard.style.pointerEvents = 'auto';
-      }
-    }
-  }
 
-  function updateDots() {
-    dots.forEach((dot, i) => {
-      if (i < currentPin.length) {
-        dot.classList.remove('bg-white/20');
-        dot.classList.add('bg-cyan-400');
-      } else {
-        dot.classList.add('bg-white/20');
-        dot.classList.remove('bg-cyan-400');
-      }
-    });
-    if (currentPin.length === 4) {
-      checkPin();
-    }
-  }
+  const showNotEnabled = () => {
+    const box = document.getElementById('admin2faBox');
+    if (!box) return;
+    box.innerHTML = `
+      <div class="rd-empty-ico">${U.icon('lock', 30)}</div>
+      <div class="rd-empty-title">Включите код-пароль</div>
+      <p class="rd-empty-text">Админ-панель открывается только после ввода личного код-пароля. Включите его в настройках, во вкладке «Защита».</p>
+      <button type="button" class="rd-btn" id="admin2faSettingsBtn">Открыть настройки</button>`;
+    const b = document.getElementById('admin2faSettingsBtn');
+    if (b) b.onclick = () => showAppSettings('security');
+  };
 
-  document.querySelectorAll('#pinKeyboard div[data-digit]').forEach(btn => {
-    btn.addEventListener('touchend', e => {
-      e.preventDefault(); // prevent scroll jitter on tap
-      if (isCheckingPin) return;
-      if (currentPin.length < 4) {
-        tgUtil.haptic('light');
-        currentPin += btn.dataset.digit;
-        updateDots();
-      }
-    }, { passive: false });
-    btn.onclick = () => {
-      if (isCheckingPin) return;
-      if (currentPin.length < 4) {
-        tgUtil.haptic('light');
-        currentPin += btn.dataset.digit;
-        updateDots();
-      }
-    };
-  });
-  
-  const delBtn = document.getElementById('pinDeleteBtn');
-  if (delBtn) {
-    delBtn.addEventListener('touchend', e => {
-      e.preventDefault();
-      if (isCheckingPin) return;
-      if (currentPin.length > 0) {
-        tgUtil.haptic('light');
-        currentPin = currentPin.slice(0, -1);
-        updateDots();
-      }
-    }, { passive: false });
-    delBtn.onclick = () => {
-      if (isCheckingPin) return;
-      if (currentPin.length > 0) {
-        tgUtil.haptic('light');
-        currentPin = currentPin.slice(0, -1);
-        updateDots();
-      }
-    };
-  }
+  const run = async () => {
+    if (!window.AppLock) { U.toast('Не загрузился модуль защиты. Обновите приложение', 'bad'); return; }
+    const res = await window.AppLock.verifyFlow('Вход в админ-панель');
+    if (res === 'not_enabled') return showNotEnabled();
+    if (res === true) {
+      adminAuthenticated = true;
+      window.invalidateAdminCache();
+      renderAdminScreen(true);
+    }
+  };
+  const btn = document.getElementById('admin2faBtn');
+  if (btn) btn.onclick = run;
+  run();
 }
-
-
 
 
 async function renderAdmin() {

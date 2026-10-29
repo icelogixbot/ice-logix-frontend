@@ -2866,6 +2866,8 @@ let adminOrdersTotalPages = 1;
         // Save user's sizes in a global variable for auto-population
         window.userSizing = data.settings?.sizing || null;
         window.userSettings = data.settings || {};
+        // Код-пароль: сервер скажет, включён ли он, и при необходимости покажется экран блокировки
+        if (window.AppLock) window.AppLock.boot();
         
         userName = data.full_name || data.username || userName || 'Гость';
         if (data.avatar_url) {

@@ -974,6 +974,37 @@ label.st-static { cursor: pointer; }
 .st-icon-btn:disabled { opacity: .4; }
 .rd-field input[type="time"] { color-scheme: dark; font-variant-numeric: tabular-nums; }
 
+/* ═══ Код-пароль: экран блокировки и ввод кода (app-lock.js) ═══ */
+/* ниже шторок (9500) и тостов (9999): «Забыли код?» открывает шторку поверх */
+.lk { position: fixed; inset: 0; z-index: 9000; display: flex; flex-direction: column; align-items: center; background: var(--rd-bg); color: var(--rd-tx); padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(16px + env(safe-area-inset-bottom, 0px)); opacity: 0; transition: opacity .2s ease; outline: none; overscroll-behavior: contain; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.lk.show { opacity: 1; }
+body.lk-open { overflow: hidden; }
+.lk-top { width: 100%; max-width: 360px; height: 48px; display: flex; align-items: center; }
+.lk-body { flex: 1; width: 100%; max-width: 360px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; min-height: 0; }
+.lk-ico { width: 64px; height: 64px; border-radius: 20px; display: flex; align-items: center; justify-content: center; background: var(--rd-tint); color: var(--rd-b400); margin-bottom: 18px; }
+.lk-title { margin: 0; font-size: 22px; font-weight: 800; }
+.lk-text { margin: 8px 0 0; min-height: 40px; font-size: 14px; line-height: 1.45; color: var(--rd-tx2); }
+.lk-text.bad { color: var(--rd-bad); }
+.lk-dots { display: flex; gap: 18px; margin: 18px 0 8px; }
+.lk-dots i { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--rd-line-2); background: transparent; transition: background-color .12s ease, border-color .12s ease, transform .12s ease; }
+.lk-dots i.on { background: var(--rd-b400); border-color: var(--rd-b400); transform: scale(1.08); }
+.lk-busy .lk-dots i.on { opacity: .55; }
+.lk-blocked { margin-top: 16px; width: 100%; }
+.lk-blocked p { margin: 0 0 14px; font-size: 14px; line-height: 1.5; color: var(--rd-tx2); }
+.lk-is-blocked .lk-dots, .lk-is-blocked .lk-pad, .lk-is-blocked .lk-link { display: none; }
+.lk-pad { display: grid; grid-template-columns: repeat(3, 76px); gap: 14px 28px; justify-content: center; margin: 12px 0 8px; }
+.lk-pad > span { width: 76px; height: 76px; }
+.lk-key { width: 76px; height: 76px; border-radius: 50%; border: 1px solid var(--rd-line); background: var(--rd-s1); color: var(--rd-tx); font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background-color .12s ease, transform .08s ease; -webkit-tap-highlight-color: transparent; }
+.lk-key:active { background: var(--rd-tint-2); transform: scale(.94); }
+.lk-fn { background: transparent; border-color: transparent; color: var(--rd-b300); }
+.lk-busy .lk-key { pointer-events: none; opacity: .6; }
+.lk-link { min-height: 44px; padding: 0 16px; border: 0; background: transparent; color: var(--rd-b300); font-size: 15px; font-weight: 700; cursor: pointer; }
+.lk-link-gap { height: 44px; }
+.lk-shake .lk-dots { animation: lk-shake .38s ease; }
+@keyframes lk-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-10px); } 40% { transform: translateX(9px); } 60% { transform: translateX(-6px); } 80% { transform: translateX(4px); } }
+@media (max-height: 640px) { .lk-pad { grid-template-columns: repeat(3, 66px); gap: 10px 24px; } .lk-key, .lk-pad > span { width: 66px; height: 66px; font-size: 24px; } .lk-ico { width: 52px; height: 52px; margin-bottom: 10px; } }
+@media (prefers-reduced-motion: reduce) { .lk-shake .lk-dots { animation: none; } .lk, .lk-key, .lk-dots i { transition: none; } }
+
 .st-ver { margin: 28px 0 4px; text-align: center; font-size: 12px; color: var(--rd-tx3); }
 
 /* ═══ Оформление заказа ═══ */
