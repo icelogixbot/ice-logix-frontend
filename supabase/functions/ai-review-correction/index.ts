@@ -1,20 +1,13 @@
 // supabase/functions/ai-review-correction/index.ts
-// ICE LOGIX — ai-review-correction v1.0
+// ICE LOGIX — review-correction v2.0 (правила, без сторонних ИИ)
 //
-// Edge Function for validating and correcting user reviews to bypass spam/moderation filters
-// on mapping platforms (Yandex.Maps, Google Maps, 2GIS) before submitting.
+// Перед публикацией отзыва на картах (Яндекс, Google, 2GIS) заменяет слова, из-за которых
+// площадки блокируют отзывы: дропшиппинг, рефералка, выплаты, заработок на отзывах.
+// Остальной текст не трогаем: города, бренды, сроки и личная история сохраняются как есть.
 //
-// Usage:
-//   POST /functions/v1/ai-review-correction
-//   Authorization: Bearer <SUPABASE_ANON_KEY>
-//   Content-Type: application/json
-//   Body: { "text": "Текст отзыва..." }
-//
-
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-
-const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY") || "";
-const TEXT_MODEL = Deno.env.get("OPENROUTER_TEXT_MODEL") || "google/gemini-2.0-flash-001";
+// POST /functions/v1/ai-review-correction
+// Body: { "text": "Текст отзыва..." }
+// Ответ: { ok, corrected, text }
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,120 +15,77 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-function parseAssistantJson(raw: string): Record<string, unknown> {
-  let s = (raw || "").trim();
-  if (s.startsWith("```")) {
-    s = s.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/s, "").trim();
-  }
-  return JSON.parse(s) as Record<string, unknown>;
+// Фразы целиком (заменяются как есть).
+const PHRASES: Array<[RegExp, string]> = [
+  [/заработа\p{L}* на (отзыв|реклам)\p{L}*/giu, "сотрудничество по рекламе"],
+  [/выплат\p{L}* (по|за) (реклам|отзыв)\p{L}*/giu, "рекламная интеграция"],
+  [/выплат\p{L}* (по|за) партн[её]рк\p{L}*/giu, "партнёрские начисления"],
+  [/реферальн\p{L}* (ссылк|программ)\p{L}*/giu, "приглашение друзей"],
+];
+
+// Слова с падежами: основа → { окончание: замена }. "" — слово без окончания.
+// Слово «дроп» не трогаем: в ICE LOGIX так называют подборку новинок.
+const WORDS: Array<[string, Record<string, string>]> = [
+  ["дропшипп?инг|дропшип|dropshipping|dropship", {
+    "": "партнёрский формат", "а": "партнёрского формата", "у": "партнёрскому формату",
+    "ом": "партнёрским форматом", "е": "партнёрском формате",
+  }],
+  ["рефералк|referral", {
+    "": "рекомендация", "а": "рекомендация", "и": "рекомендации", "е": "рекомендации",
+    "у": "рекомендацию", "ой": "рекомендацией", "ою": "рекомендацией",
+  }],
+  ["реферал", {
+    "": "приглашённый друг", "а": "приглашённого друга", "у": "приглашённому другу",
+    "ом": "приглашённым другом", "е": "приглашённом друге", "ы": "приглашённые друзья",
+    "ов": "приглашённых друзей", "ам": "приглашённым друзьям", "ами": "приглашёнными друзьями",
+    "ах": "приглашённых друзьях",
+  }],
+  ["партн[её]рк", {
+    "а": "партнёрская программа", "и": "партнёрской программы", "е": "партнёрской программе",
+    "у": "партнёрскую программу", "ой": "партнёрской программой",
+  }],
+  ["выплат", {
+    "а": "бонус", "ы": "бонусы", "е": "бонусу", "у": "бонус", "ой": "бонусом", "": "бонусов",
+    "ам": "бонусам", "ами": "бонусами", "ах": "бонусах",
+  }],
+  ["кэшб[эе]к|cashback", {
+    "": "бонус", "а": "бонуса", "у": "бонусу", "ом": "бонусом", "е": "бонусе",
+  }],
+];
+
+function matchCase(match: string, repl: string, src: string, offset: number): string {
+  const before = src.slice(0, offset).trimEnd();
+  const sentenceStart = before === "" || /[.!?\n]$/.test(before);
+  const first = match[0];
+  const capital = first !== first.toLowerCase() && first === first.toUpperCase();
+  return sentenceStart || capital ? repl[0].toUpperCase() + repl.slice(1) : repl;
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+function correctReview(text: string): string {
+  let out = text;
+  for (const [re, repl] of PHRASES) {
+    out = out.replace(re, (m: string, ...a: unknown[]) => matchCase(m, repl, a[a.length - 1] as string, a[a.length - 2] as number));
   }
-
-  try {
-    if (req.method !== "POST") {
-      return new Response(
-        JSON.stringify({ error: "Method not allowed" }),
-        { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const payload = await req.json().catch(() => null);
-    if (!payload || typeof payload !== "object" || !payload.text) {
-      return new Response(
-        JSON.stringify({ error: "Missing text in request body" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const text = String(payload.text).trim();
-
-    if (!OPENROUTER_API_KEY) {
-      console.warn("OPENROUTER_API_KEY is not set. Returning review text unmodified.");
-      return new Response(
-        JSON.stringify({ corrected: false, text: text }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const prompt = `You are a text moderation assistant for a logistics/buyer service in Belarus and Russia (ICE LOGIX).
-The user is writing a review for our service. Some platforms (like Yandex Maps, Google Maps, 2GIS) block reviews containing words related to B2B, drop-shipping, referrals, or earning money on reviews.
-
-Your job is to analyze the review text and clean up these filter-trigger words by converting them into customer-friendly, natural retail equivalents:
-- "дропшиппинг" / "dropshipping" / "дроп" -> "программа сотрудничества" or "работа с партнерами"
-- "рефералка" / "referral" -> "партнерская программа" or "рекомендация друзьям"
-- "заработал на рекламе" / "выплаты по рекламе" -> "сотрудничество по рекламе" or "рекламная интеграция"
-- "выплаты по партнерке" / "выплаты" -> "получение бонусов" or "партнерские начисления"
-
-CRITICAL RULES:
-1. LONG READS: If the text is long (more than 200 characters) and tells a personal story, even with minor complaints that were resolved, do NOT change it unless it contains direct stop words (referral, dropshipping, etc.). Stories are highly valued.
-2. PRESERVE DETAILS: You MUST keep specific details like city names (e.g. Minsk), brand names (Nike, Adidas, etc.), and exact delivery times (e.g. "12 days").
-3. STYLE: Keep the language simple, casual, and natural. Do NOT make it sound poetic, overly formal, or marketing-heavy. It must look like it was written by a real, average customer.
-4. If the text does not contain any stop words and does not need correction, return the original text unchanged, and set "corrected" to false. Otherwise, correct it and set "corrected" to true.
-
-Output ONLY a valid JSON object with the following fields:
-- "corrected": boolean (true if you modified the text, false otherwise)
-- "text": string (the final cleaned review text)
-
-Review to process:
-"${text}"
-
-Return JSON only:`;
-
-    const body = {
-      model: TEXT_MODEL,
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0,
-      max_tokens: 1000,
-    };
-
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-        "HTTP-Referer": "https://icelogix.app",
-        "X-Title": "ICE LOGIX ai-review-correction",
-      },
-      body: JSON.stringify(body),
+  for (const [stem, forms] of WORDS) {
+    const re = new RegExp(`(?<!\\p{L})(${stem})(\\p{L}*)`, "giu");
+    out = out.replace(re, (m: string, _s: string, ending: string, offset: number, src: string) => {
+      const repl = forms[ending.toLowerCase()];
+      return repl === undefined ? m : matchCase(m, repl, src, offset);
     });
-
-    if (!res.ok) {
-      const errTxt = await res.text().catch(() => "");
-      throw new Error(`OpenRouter HTTP ${res.status}: ${errTxt.slice(0, 300)}`);
-    }
-
-    const data = await res.json();
-    const rawContent = data?.choices?.[0]?.message?.content || "";
-    if (!rawContent) throw new Error("OpenRouter returned empty message content");
-
-    const parsed = parseAssistantJson(rawContent);
-    const corrected = !!parsed.corrected;
-    const correctedText = String(parsed.text || text).trim();
-
-    return new Response(
-      JSON.stringify({
-        ok: true,
-        corrected: corrected && (correctedText !== text),
-        text: correctedText,
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  } catch (error) {
-    console.error("Error in ai-review-correction:", error);
-    const msg = error instanceof Error ? error.message : String(error);
-    // Return original text if AI fails to keep the app working
-    return new Response(
-      JSON.stringify({ ok: false, error: msg, corrected: false, text: "" }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
   }
+  return out.replace(/[ \t]{2,}/g, " ").trim();
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  const payload = await req.json().catch(() => null);
+  if (!payload || typeof payload !== "object" || !payload.text) return json({ error: "Missing text in request body" }, 400);
+
+  const text = String(payload.text).trim();
+  const corrected = correctReview(text);
+  return json({ ok: true, corrected: corrected !== text, text: corrected });
 });
