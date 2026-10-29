@@ -2842,11 +2842,16 @@ let adminOrdersTotalPages = 1;
         }
 
         // Deep-link: ?startapp=review_<order_id> → авто-открытие формы отзыва
+        // ?startapp=orders / calc → разделы из команд бота /orders и /calc
         try {
           const sp = tg?.initDataUnsafe?.start_param || new URLSearchParams(location.search).get('tgWebAppStartParam') || '';
           if (sp && sp.indexOf('review_') === 0) {
             const orderId = sp.slice('review_'.length);
             setTimeout(() => { try { openReviewForm(orderId); } catch (e) { console.error('openReviewForm failed:', e); } }, 600);
+          } else if (sp === 'orders') {
+            switchTab('profile', 'myOrders');
+          } else if (sp === 'calc') {
+            switchTab('calculator');
           }
         } catch (dlErr) { console.error('deep-link handling failed:', dlErr); }
       }

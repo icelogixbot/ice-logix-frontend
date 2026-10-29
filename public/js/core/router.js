@@ -670,18 +670,6 @@ window.togglePackageConsolidation = (country) => {
           const { error } = await supabaseClient.from('orders').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', orderId);
           if (error) throw error;
           logAdminAction('order_status', { orderId, newStatus, previousStatus });
-          const statusMessages = {
-            'paid': '✅ Ваш заказ оплачен! Мы приступаем к выкупу.',
-            'bought': '🛍️ Товар выкуплен! Ожидайте отправки на склад.',
-            'on_sklad_cn': '📦 Товар на складе в Китае. Идёт подготовка к отправке.',
-            'in_transit': '🚚 Ваш заказ в пути! Трек-номер появится позже.',
-            'in_belarus': '🇧🇾 Товар в Беларуси! Скоро будет доставлен.',
-            'delivered': '🎉 Заказ доставлен! Спасибо, что выбрали ICE LOGIX!'
-          };
-          const message = statusMessages[newStatus];
-          if (message) {
-            await sendNotification(userId, message, orderId);
-          }
           renderCurrentScreen();
         } catch (err) {
           alert('Ошибка: ' + err.message);

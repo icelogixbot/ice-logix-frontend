@@ -475,19 +475,10 @@ async function showAccountRecovery() {
     // Проверяем, есть ли номер в базе
     const { data: userRow } = await supabaseClient.from('users').select('user_id').eq('phone', phone).maybeSingle();
     if (!userRow) { errEl.textContent = 'Пользователь с таким номером не найден'; errEl.classList.remove('hidden'); return; }
-    // Генерируем код
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-    await supabaseClient.from('verification_codes').insert({ user_id: userRow.user_id, code, type: 'recovery', expires_at: expiresAt, used: false });
-    // Отправляем через Edge Function
-    try {
-      await supabaseClient.functions.invoke('send-notification', { body: { user_id: userRow.user_id, message: `<span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg></span> Ваш код восстановления доступа ICE LOGIX: ${code}\nДействует 10 минут.` } });
-    } catch {
-      tgUtil.alert(`Код восстановления (тест): ${code}`); // fallback если бот недоступен
-    }
-    modal.querySelector('#recoveryPhasePhone').classList.add('hidden');
-    modal.querySelector('#recoveryPhaseCode').classList.remove('hidden');
-    startResendTimer();
+    // Бот больше не отправляет сообщения сам, поэтому код в Telegram не приходит.
+    // Восстановление — в чате с ботом: /recover или кнопка «Поделиться номером».
+    errEl.textContent = 'Код в Telegram больше не приходит. Откройте чат с ботом ICE LOGIX и отправьте /recover — или напишите в поддержку.';
+    errEl.classList.remove('hidden');
   };
 
   modal.querySelector('#recoverySendCodeBtn').onclick = sendCode;

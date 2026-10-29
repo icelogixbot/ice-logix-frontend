@@ -321,10 +321,6 @@ window.changeUserBalance = async (userId, currentBalance) => {
     });
     if (txErr) console.warn('Ошибка записи транзакции', txErr);
     
-    if (amount > 0) {
-      supabaseClient.functions.invoke('send-notification', { body: { user_id: userId, message: `💎 *Пополнение баланса!*\n\nАдминистратор начислил вам **${amount}** на баланс.` } }).catch(console.error);
-    }
-    
     glassToast('Баланс успешно обновлен!', { kind: 'success' });
     renderCurrentScreen();
   } catch (err) {
@@ -2260,15 +2256,6 @@ function attachAdminHandlers() {
         if (!confirm(`🚨 ВНИМАНИЕ: Расхождение веса > 50г!\nОжидаемый: ${weightEstimated} кг\nФактический: ${weightActual} кг\nВозможна кража или утеря части товара. Сохранить?`)) {
           return;
         }
-        try {
-          const { data: admins } = await supabaseClient.from('users').select('user_id').in('role', ['admin', 'owner']);
-          if (admins) {
-            const message = `🚨 <b>Анти-кража (Отклонение веса)</b>\nЗаказ: #${orderId.slice(0,8)}\nОжидаемый вес: ${weightEstimated} кг\nФактический вес: ${weightActual} кг\nРазница: ${diff.toFixed(3)} кг. Проверьте заказ!`;
-            for (const admin of admins) {
-              await sendNotification(admin.user_id, message, orderId);
-            }
-          }
-        } catch(err) { console.error('Failed to notify admins', err); }
       }
       
       try {
@@ -2453,22 +2440,6 @@ function attachAdminHandlers() {
             const o = window.adminCache.orders.find(o => o.id === orderId);
             if (o) { o.status = newStatus; o.updated_at = new Date().toISOString(); }
           }
-          // Rich custom message via sendNotification below. We intentionally do
-          // not also invoke `notify-status` here because that would produce a
-          // second, duplicate Telegram message for the same status change.
-          // `notify-status` remains in use for external ShopByShop webhook pings.
-          const statusMessages = {
-            'paid': '<span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Ваш заказ оплачен! Мы приступаем к выкупу.',
-            'bought': '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span> Товар выкуплен! Ожидайте отправки на склад.',
-            'on_sklad_cn': '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Товар на складе в Китае. Идёт подготовка к отправке.',
-            'in_transit': '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span> Ваш заказ в пути! Трек-номер появится позже.',
-            'in_belarus': '🇧🇾 Товар в Беларуси! Скоро будет доставлен.',
-            'delivered': '<span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5.8 11.3 2.9 7.1L21 8M9 16l-3 3-3-3M9 8l3-3 3 3"/><circle cx="12" cy="12" r="1"/><circle cx="6" cy="6" r="1"/><circle cx="18" cy="6" r="1"/></svg></span> Заказ доставлен! Спасибо, что выбрали ICE LOGIX!'
-          };
-          const message = statusMessages[newStatus];
-          if (message) {
-            await sendNotification(userId, message, orderId);
-          }
           renderAdminScreen(false);
         } catch (err) {
           tgUtil.alert('Ошибка: ' + err.message);
@@ -2644,9 +2615,6 @@ if (downloadBackupBtn) {
         // 4. Update claim status to approved
         const { error: claimErr } = await supabaseClient.from('insurance_claims').update({ status: 'approved' }).eq('id', claimId);
         if (claimErr) throw claimErr;
-        
-        // 5. Send notification to user
-        await sendNotification(claimUserId, `🛡️ Ваша страховая претензия по заказу #${orderId.slice(0, 8)} одобрена! Выплата ${amount.toFixed(2)} зачислена на ваш баланс.`, orderId);
         
         glassToast('Страховая претензия успешно одобрена!', { kind: 'success' });
         if (window.adminCache) window.adminCache.claims = (window.adminCache.claims || []).filter(c => c.id !== claimId);
@@ -3066,42 +3034,14 @@ document.addEventListener('click', async (e) => {
   }
 });
 
-    // Функция для обновления статуса заказа с отправкой уведомления
+    // Функция для обновления статуса заказа
     async function updateOrderStatus(orderId, newStatus, userId) {
   try {
     const { error } = await supabaseClient.from('orders').update({ status: newStatus }).eq('id', orderId);
     if (error) throw error;
-    // Rich custom message via sendNotification below. We intentionally do not
-    // also invoke `notify-status` — see the admin status handler above for the
-    // rationale (duplicate Telegram delivery would result otherwise).
-
-    const statusMessages = {
-      'paid': '<span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Ваш заказ оплачен! Мы приступаем к выкупу.',
-      'bought': '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span> Товар выкуплен! Ожидайте отправки на склад.',
-      'on_sklad_cn': '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Товар на складе в Китае. Идёт подготовка к отправке.',
-      'in_transit': '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span> Ваш заказ в пути! Трек-номер появится позже.',
-      'in_belarus': '🇧🇾 Товар в Беларуси! Скоро будет доставлен.',
-      'delivered': '<span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5.8 11.3 2.9 7.1L21 8M9 16l-3 3-3-3M9 8l3-3 3 3"/><circle cx="12" cy="12" r="1"/><circle cx="6" cy="6" r="1"/><circle cx="18" cy="6" r="1"/></svg></span> Заказ доставлен! Спасибо, что выбрали ICE LOGIX!'
-    };
-    const message = statusMessages[newStatus];
-    if (message) {
-      await sendNotification(userId, message, orderId);
-    }
   } catch (err) {
     console.error('Ошибка обновления статуса:', err);
     throw err;
-  }
-}
-
-async function sendNotification(userId, message, orderId = null) {
-  try {
-    await fetch('https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/send-notification', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId, message, order_id: orderId })
-    });
-  } catch (err) {
-    console.error('Ошибка отправки уведомления:', err);
   }
 }
 
@@ -4200,7 +4140,6 @@ if (typeof openMarketplaceForm === 'function') window.openMarketplaceForm = open
 if (typeof attachAnalyticsHandlers === 'function') window.attachAnalyticsHandlers = attachAnalyticsHandlers;
 if (typeof openPromotionForm === 'function') window.openPromotionForm = openPromotionForm;
 if (typeof updateOrderStatus === 'function') window.updateOrderStatus = updateOrderStatus;
-if (typeof sendNotification === 'function') window.sendNotification = sendNotification;
 if (typeof getStatusText === 'function') window.getStatusText = getStatusText;
 if (typeof getStatusClass === 'function') window.getStatusClass = getStatusClass;
 if (typeof ensureBackButton === 'function') window.ensureBackButton = ensureBackButton;
