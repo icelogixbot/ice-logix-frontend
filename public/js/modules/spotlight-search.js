@@ -18,16 +18,14 @@
   const MAX_HISTORY_ITEMS = 6;
 
   const ROTATING_PLACEHOLDERS = [
-    'Спроси ИИ: "Пуховик 850¥ вес 2 кг" 🤖',
-    'Ищи: "Где моя посылка?" 📦',
-    'Ищи: "Мой баланс и карты" 💳',
-    'Вставь ссылку на Poizon 🔗',
-    'Спроси ИИ: "Когда приедет в Минск?" ⏱️',
-    'Ищи: "Nike Dunk Low" 👟',
-    'Спроси ИИ: "Карта Беларусбанка" 🇧🇾',
-    'Ищи: "Таможенный лимит 200€" ⚖️',
-    'Ищи: "Страховка посылки" 🛡️',
-    'Ищи: "Trapstar / Corteiz" 👕'
+    'Например, где моя посылка',
+    'Пуховик 850¥ весом 2 кг',
+    'Вставьте ссылку на Poizon',
+    'Когда приедет в Минск?',
+    'Nike Dunk Low',
+    'Таможенный лимит 200€',
+    'Страховка посылки',
+    'Trapstar или Corteiz'
   ];
 
   // ============================================================
@@ -385,46 +383,46 @@
   const PROMPT_CATEGORIES = [
     {
       id: 'orders',
-      icon: '📦',
+      icon: 'box',
       label: 'Заказы и профиль',
       prompts: [
-        { title: 'Где моя посылка?', desc: 'Статус, трек-номер и местонахождение', q: 'где моя посылка' },
-        { title: 'Мой баланс и карты', desc: 'Привязанные способы оплаты и ICE баллы', q: 'мой баланс и карты' },
-        { title: 'Мой адрес доставки', desc: 'Куда направляются ваши посылки', q: 'мой адрес доставки' },
-        { title: 'История покупок', desc: 'Список всех оформленных заказов', q: 'мои заказы' }
+        { ico: 'truck', title: 'Где моя посылка?', desc: 'Статус, трек-номер и местонахождение', q: 'где моя посылка' },
+        { ico: 'wallet', title: 'Мой баланс и карты', desc: 'Кошелёк, карты и бонусы', q: 'мой баланс и карты' },
+        { ico: 'pin', title: 'Мой адрес доставки', desc: 'Куда направляются ваши посылки', q: 'мой адрес доставки' },
+        { ico: 'history', title: 'История покупок', desc: 'Список всех оформленных заказов', q: 'мои заказы' }
       ]
     },
     {
       id: 'clothes',
-      icon: '👟',
+      icon: 'ruler',
       label: 'Одежда и размеры',
       prompts: [
-        { title: 'Таблица размеров обуви', desc: 'Сравнение EU, US, UK и сантиметров (CM)', q: 'размерная сетка кроссовок' },
-        { title: 'Как сидит Trapstar и Corteiz?', desc: 'Особенности кроя: оверсайз или в размер', q: 'как сидит Trapstar и Corteiz' },
-        { title: 'Зимние куртки и пуховики', desc: 'Arc\'teryx, The North Face, Trapstar', q: 'зимние куртки и пуховики' },
-        { title: 'Как выбрать размер на Пойзоне?', desc: 'Замеры стельки и бирка в сантиметрах', q: 'как выбрать размер на Poizon' }
+        { ico: 'ruler', title: 'Таблица размеров обуви', desc: 'Сравнение EU, US, UK и сантиметров (CM)', q: 'размерная сетка кроссовок' },
+        { ico: 'sliders', title: 'Как сидит Trapstar и Corteiz?', desc: 'Особенности кроя: оверсайз или в размер', q: 'как сидит Trapstar и Corteiz' },
+        { ico: 'snow', title: 'Зимние куртки и пуховики', desc: 'Arc\'teryx, The North Face, Trapstar', q: 'зимние куртки и пуховики' },
+        { ico: 'help', title: 'Как выбрать размер на Poizon?', desc: 'Замеры стельки и бирка в сантиметрах', q: 'как выбрать размер на Poizon' }
       ]
     },
     {
       id: 'delivery',
-      icon: '⏱️',
+      icon: 'truck',
       label: 'Доставка и цены',
       prompts: [
-        { title: 'Пуховик 850¥ вес 2 кг в Минск', desc: 'Мгновенный расчет доставки с пошлиной', q: 'пуховик 850¥ вес 2 кг в Минск' },
-        { title: 'Сроки авиа и авто доставки', desc: 'Сколько дней идет из Китая в Беларусь/РФ', q: 'сроки доставки из Китая' },
-        { title: 'Таможенный лимит 200€', desc: 'Как рассчитывается пошлина при превышении', q: 'таможенный лимит 200 евро' },
-        { title: 'Страховка груза и гарантия', desc: 'Защита от утери и повреждения при пути', q: 'страховка груза' }
+        { ico: 'calc', title: 'Пуховик 850¥ весом 2 кг в Минск', desc: 'Мгновенный расчет доставки с пошлиной', q: 'пуховик 850¥ вес 2 кг в Минск' },
+        { ico: 'clock', title: 'Сроки авиа и авто доставки', desc: 'Сколько дней идет из Китая в Беларусь/РФ', q: 'сроки доставки из Китая' },
+        { ico: 'receipt', title: 'Таможенный лимит 200€', desc: 'Как рассчитывается пошлина при превышении', q: 'таможенный лимит 200 евро' },
+        { ico: 'shield', title: 'Страховка груза и гарантия', desc: 'Защита от утери и повреждения при пути', q: 'страховка груза' }
       ]
     },
     {
       id: 'poizon',
-      icon: '🛍️',
+      icon: 'bag',
       label: 'Poizon и выкуп',
       prompts: [
-        { title: 'Синяя или черная кнопка?', desc: 'В чем разница между тарифами Poizon', q: 'синяя или черная кнопка Poizon' },
-        { title: 'Как заказать по ссылке?', desc: 'Вставка ссылки на товар в ICE LOGIX', q: 'как заказать по ссылке Poizon' },
-        { title: 'Проверка оригинальности', desc: 'Легит-чек, сертификаты и синие пломбы', q: 'проверка оригинальности Poizon' },
-        { title: 'Комиссия ICE LOGIX 20%', desc: 'Что входит в официальную комиссию', q: 'комиссия 20% ICE LOGIX' }
+        { ico: 'help', title: 'Синяя или чёрная кнопка?', desc: 'В чем разница между тарифами Poizon', q: 'синяя или черная кнопка Poizon' },
+        { ico: 'link', title: 'Как заказать по ссылке?', desc: 'Вставка ссылки на товар в ICE LOGIX', q: 'как заказать по ссылке Poizon' },
+        { ico: 'checkCircle', title: 'Проверка оригинальности', desc: 'Легит-чек, сертификаты и синие пломбы', q: 'проверка оригинальности Poizon' },
+        { ico: 'percent', title: 'Комиссия ICE LOGIX 20%', desc: 'Что входит в официальную комиссию', q: 'комиссия 20% ICE LOGIX' }
       ]
     }
   ];
@@ -434,54 +432,27 @@
   // ============================================================
 
   async function renderSpotlightPage() {
+    const U = window.UI;
     return `
-      <div class="page-enter px-4 max-w-md mx-auto space-y-4">
-        <!-- Top Navigation Header -->
-        <div class="flex items-center gap-3 mb-4">
-          <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="15 18 9 12 15 6"/>
-            </svg>
-          </button>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2">
-              <h2 class="text-xl font-bold text-white tracking-wide">Глобальный поиск</h2>
-              <span class="text-[9px] px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-300 font-bold border border-cyan-400/30">AI Active</span>
-            </div>
-            <p class="text-[11px] text-white/40 truncate">Заказы, бренды, товары, расчет цен и помощь ИИ</p>
-          </div>
+      <div class="rd-screen page-enter sp">
+        <div class="rd-head">
+          <button type="button" class="rd-back" onclick="window.goBackGlobal()" aria-label="Назад">${U.icon('chevL', 22)}</button>
+          <div class="rd-head-txt"><h1 class="rd-head-title">Поиск</h1><p class="rd-head-sub">Заказы, бренды, цены и ответы на вопросы</p></div>
         </div>
 
-        <!-- Search Input Field Container -->
-        <div class="relative flex items-center group">
-          <span class="absolute left-4 text-cyan-400 pointer-events-none flex items-center justify-center transition-colors group-focus-within:text-cyan-300">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"/>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-          </span>
+        <div class="sp-field">
+          ${U.icon('search', 20)}
           <input type="text" id="spotlightSearchInput"
-            class="w-full bg-slate-900/80 backdrop-blur-md border border-white/15 focus:border-cyan-400 focus:bg-slate-900/95 focus:ring-2 focus:ring-cyan-500/20 rounded-2xl py-3.5 pl-11 pr-11 text-white placeholder-white/35 text-sm font-semibold outline-none transition-all shadow-lg"
-            placeholder="Спроси ИИ или введи запрос... 🤖"
+            placeholder="Например, где моя посылка"
             enterkeyhint="search"
             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-          <button id="spotlightClearBtn" class="absolute right-3.5 text-white/40 hover:text-white p-1 rounded-lg hover:bg-white/10 transition hidden" title="Очистить">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
+          <button id="spotlightClearBtn" type="button" class="sp-clear hidden" aria-label="Очистить">${U.icon('x', 16, { stroke: 2.4 })}</button>
         </div>
 
-        <!-- Google AI Autocomplete & Suggestion Pills Bar (Step 4) -->
-        <div id="spotlightSuggestionsBar" class="hidden overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1 transition-all duration-200">
-          <!-- Dynamic Horizontal Scrollable Suggestion Pills -->
-        </div>
+        <div id="spotlightSuggestionsBar" class="hidden sp-suggest"></div>
 
-        <!-- Dynamic Content Body (Home or Search Results) -->
-        <div id="spotlightContent" class="space-y-4"></div>
+        <div id="spotlightContent" class="sp-content"></div>
       </div>
-      ${typeof renderFooter === 'function' ? renderFooter() : ''}
     `;
   }
 
@@ -665,16 +636,8 @@
 
     suggestionsBarEl.classList.remove('hidden');
     suggestionsBarEl.innerHTML = `
-      <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
-        <span class="text-[10px] text-cyan-400 font-bold uppercase tracking-wider flex-shrink-0 flex items-center gap-1 pl-1 pr-0.5">
-          <span>✨</span>
-        </span>
-        ${suggestions.map(s => `
-          <button type="button" class="google-suggestion-pill flex-shrink-0 px-3 py-1.5 rounded-full bg-slate-900/90 border border-cyan-500/25 hover:border-cyan-400 text-white/90 hover:text-cyan-200 text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap active:scale-95 transition-all shadow-sm shadow-cyan-950/40 backdrop-blur-md" data-suggestion-trigger="${s.q}">
-            <span class="text-xs">${s.icon}</span>
-            <span>${s.text}</span>
-          </button>
-        `).join('')}
+      <div class="rd-chips">
+        ${suggestions.map(s => `<button type="button" class="google-suggestion-pill rd-chip sp-pill" data-suggestion-trigger="${s.q}"><span class="sp-pill-e">${s.icon}</span><span>${s.text}</span></button>`).join('')}
       </div>
     `;
 
@@ -793,7 +756,7 @@
     if (!cleanQ || cleanQ.length < 2) return text;
     try {
       const regex = new RegExp(`(${cleanQ})`, 'gi');
-      return String(text).replace(regex, '<span class="text-cyan-400 font-extrabold bg-cyan-400/10 rounded px-0.5">$1</span>');
+      return String(text).replace(regex, '<mark class="sp-mark">$1</mark>');
     } catch (e) {
       return text;
     }
@@ -811,99 +774,35 @@
     const history = getSearchHistory();
     const activeCategory = PROMPT_CATEGORIES.find(c => c.id === activePromptCategoryId) || PROMPT_CATEGORIES[0];
 
+    const U = window.UI;
     contentEl.innerHTML = `
-      <div class="space-y-4 animate-fadeIn">
-        
-        <!-- Recent Searches Row (Compact & Clean) -->
+      <div class="sp-home">
         ${history.length > 0 ? `
-          <div class="space-y-1.5">
-            <div class="flex items-center justify-between px-0.5">
-              <span class="text-[11px] font-bold text-white/50 uppercase tracking-wider flex items-center gap-1.5">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-white/40">
-                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                </svg>
-                Недавние запросы
-              </span>
-              <button id="spotlightClearHistoryBtn" class="text-[11px] text-cyan-400/80 hover:text-cyan-300 transition font-medium">
-                Очистить
-              </button>
-            </div>
-            <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1">
-              ${history.map(item => `
-                <button class="spotlight-chip flex-shrink-0 px-3 py-1.5 rounded-full bg-slate-900/80 border border-white/10 hover:border-cyan-400/40 text-white/80 hover:text-white text-xs font-medium transition active:scale-95 flex items-center gap-1.5 backdrop-blur-sm shadow-sm" data-search-trigger="${item}">
-                  <span class="text-[10px] text-cyan-400/70">🕒</span>
-                  <span class="truncate max-w-[180px]">${item}</span>
-                </button>
-              `).join('')}
+          <div class="sp-sec">
+            <div class="sp-sec-h"><span>Вы искали</span><button id="spotlightClearHistoryBtn" type="button" class="rd-link">Очистить</button></div>
+            <div class="rd-chips">
+              ${history.map(item => `<button type="button" class="spotlight-chip rd-chip sp-hchip" data-search-trigger="${U.esc(item)}">${U.icon('history', 14)}<span>${U.esc(item)}</span></button>`).join('')}
             </div>
           </div>
         ` : ''}
 
-        <!-- Google AI Style Prompt Inspiration Section -->
-        <div class="space-y-3">
-          <div class="flex items-center justify-between px-0.5">
-            <span class="text-[11px] font-bold text-white/50 uppercase tracking-wider flex items-center gap-1.5">
-              <span class="text-cyan-400">✨</span> ИИ-поиск и подсказки
-            </span>
-            <span class="text-[10px] text-cyan-300 font-semibold px-2 py-0.5 rounded-full bg-cyan-400/10 border border-cyan-400/20 flex items-center gap-1">
-              <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-              Google AI Mode
-            </span>
+        <div class="sp-sec">
+          <div class="sp-sec-h"><span>Частые вопросы</span></div>
+          <div class="rd-chips sp-cats">
+            ${PROMPT_CATEGORIES.map(cat => `<button type="button" class="prompt-category-btn rd-chip ${cat.id === activeCategory.id ? 'on' : ''}" data-category-id="${cat.id}">${U.icon(cat.icon, 15)}${cat.label}</button>`).join('')}
           </div>
-
-          <!-- Category Selector Tabs -->
-          <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 -mx-1 px-1">
-            ${PROMPT_CATEGORIES.map(cat => {
-              const isActive = cat.id === activeCategory.id;
-              return `
-                <button type="button" class="prompt-category-btn flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                  isActive
-                    ? 'bg-gradient-to-r from-cyan-500/25 to-blue-500/25 border border-cyan-400/50 text-cyan-200 shadow-sm shadow-cyan-500/15'
-                    : 'bg-slate-900/60 hover:bg-slate-900/90 border border-white/10 text-white/60 hover:text-white'
-                }" data-category-id="${cat.id}">
-                  <span>${cat.icon}</span>
-                  <span>${cat.label}</span>
-                </button>
-              `;
-            }).join('')}
-          </div>
-
-          <!-- Prompt Cards for Selected Category -->
-          <div class="space-y-2">
+          <div class="rd-card rd-list sp-prompts">
             ${activeCategory.prompts.map(p => `
-              <div class="spotlight-prompt-item p-3 rounded-2xl bg-slate-900/70 hover:bg-slate-900/95 border border-white/10 hover:border-cyan-400/40 cursor-pointer transition-all duration-200 active:scale-[0.99] flex items-center justify-between group backdrop-blur-md shadow-sm" data-search-trigger="${p.q}">
-                <div class="flex items-center gap-3 min-w-0 pr-2">
-                  <div class="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-400/20 flex items-center justify-center text-cyan-400 group-hover:scale-105 group-hover:bg-cyan-500/20 group-hover:border-cyan-400/40 transition-all flex-shrink-0 text-sm">
-                    ${activeCategory.icon}
-                  </div>
-                  <div class="min-w-0">
-                    <p class="text-white text-xs font-bold leading-tight group-hover:text-cyan-200 transition-colors truncate">
-                      ${p.title}
-                    </p>
-                    <p class="text-[11px] text-white/45 mt-0.5 leading-snug line-clamp-1">
-                      ${p.desc}
-                    </p>
-                  </div>
-                </div>
-                <div class="flex items-center gap-1 flex-shrink-0 text-white/30 group-hover:text-cyan-300 transition-colors">
-                  <span class="text-[10px] font-semibold hidden group-hover:inline transition-opacity">Искать</span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="group-hover:translate-x-0.5 transition-transform">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
-                </div>
+              <div class="rd-row spotlight-prompt-item" role="button" tabindex="0" data-search-trigger="${U.esc(p.q)}">
+                <span class="rd-ico">${U.icon(p.ico || activeCategory.icon, 21)}</span>
+                <span class="rd-row-body"><span class="rd-row-title">${p.title}</span><span class="rd-row-text">${p.desc}</span></span>
+                ${U.icon('arrowR', 18)}
               </div>
             `).join('')}
           </div>
         </div>
 
-        <!-- Subtle AI Footnote -->
-        <div class="pt-3 pb-1 flex items-center justify-center gap-2 text-[11px] text-white/35 text-center">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-cyan-400/70">
-            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-          </svg>
-          <span>Спрашивайте на человеческом языке — ИИ найдет точный ответ</span>
-        </div>
-
+        <p class="sp-foot">${U.icon('sparkles', 14)}Пишите как другу, поиск поймёт</p>
       </div>
     `;
 
@@ -1940,29 +1839,14 @@
           <span>🎧</span> Спросить у оператора
         </button>`
       ];
-      sources = [`🤖 Персональный ИИ`, `💡 База знаний ICE LOGIX`];
+      sources = [`База знаний ICE LOGIX`];
     }
 
     return `
-      <div class="google-ai-overview-card p-4 rounded-2xl bg-gradient-to-b from-cyan-950/40 via-slate-900/90 to-slate-900/95 border-t-2 border-t-cyan-400 border-x border-b border-white/10 shadow-2xl backdrop-blur-xl space-y-3 animate-fadeIn">
-        
-        <!-- Header: Sparkle + AI Overview Badge -->
-        <div class="flex items-center justify-between pb-2.5 border-b border-white/10">
-          <div class="flex items-center gap-2">
-            <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-xs shadow-md shadow-cyan-500/20">
-              ✨
-            </div>
-            <span class="text-xs font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-200 to-indigo-200">
-              AI Overview
-            </span>
-            <span class="text-[9px] px-2 py-0.5 rounded-full bg-cyan-400/15 text-cyan-300 font-bold border border-cyan-400/25">
-              Персональный ИИ
-            </span>
-          </div>
-          <span class="text-[10px] text-white/40 flex items-center gap-1 font-medium">
-            <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            Синтезировано
-          </span>
+      <div class="google-ai-overview-card sp-answer">
+        <div class="sp-answer-h">
+          <span class="sp-answer-ico">${window.UI.icon('sparkles', 16)}</span>
+          <b>Коротко</b>
         </div>
 
         <!-- Synthesized Natural Answer -->
@@ -1986,8 +1870,8 @@
 
         <!-- Sources / Citations (Google Style) -->
         ${sources.length > 0 ? `
-          <div class="pt-2 border-t border-white/5 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-            <span class="text-[10px] text-white/40 font-semibold uppercase tracking-wider flex-shrink-0">Источники:</span>
+          <div class="sp-src">
+            <span>Откуда:</span>
             ${sources.map(s => `
               <span class="flex-shrink-0 text-[10px] px-2 py-0.5 rounded-md bg-white/5 text-cyan-300/80 border border-white/5 font-medium">
                 ${s}

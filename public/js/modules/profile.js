@@ -21,165 +21,81 @@
         } catch(_) {}
       }
 
+      const U = window.UI;
+      const _bal = (typeof balance !== 'undefined' && balance != null) ? Number(String(balance).replace(',', '.')) || 0 : 0;
+      const _wishCount = (typeof wishlist !== 'undefined' && wishlist && wishlist.size != null) ? wishlist.size : 0;
+      let _cartCount = 0;
+      try { _cartCount = parseInt(localStorage.getItem('ice_cart_count') || '0', 10) || 0; } catch (_) {}
+      const _name = U.esc(userName || 'Гость');
+      const _kyc = kycStatus === 'verified'
+        ? { cls: 'ok', icon: 'shield', text: 'Данные подтверждены' }
+        : kycStatus === 'pending'
+          ? { cls: 'warn', icon: 'clock', text: 'Данные на проверке' }
+          : kycStatus === 'rejected'
+            ? { cls: 'bad', icon: 'alert', text: 'Данные нужно исправить' }
+            : { cls: 'warn', icon: 'idcard', text: 'Подтвердите данные для таможни' };
+      const row = (id, icon, title, text, onclick, extra) => `
+        <div class="rd-row" id="${id}" role="button" tabindex="0" onclick="${onclick}">
+          <span class="rd-ico">${U.icon(icon, 22)}</span>
+          <span class="rd-row-body"><span class="rd-row-title">${title}${extra || ''}</span>${text ? `<span class="rd-row-text">${text}</span>` : ''}</span>
+          <svg class="rd-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg>
+        </div>`;
+
       return `
-  <!-- Profile Clean Header (No heavy blue container) -->
-  <div class="text-center mb-6 pt-2">
-    <div class="relative mx-auto w-24 h-24 mb-3">
-      <div class="w-24 h-24 rounded-full overflow-hidden p-0.5" style="background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05)); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
-        <div class="w-full h-full rounded-full overflow-hidden flex items-center justify-center text-3xl font-bold bg-slate-900 text-white" id="profileAvatar">
-          ${userAvatarUrl ? '<img src="' + userAvatarUrl + '" class="w-full h-full object-cover">' : (userName || 'Гость').charAt(0).toUpperCase()}
-        </div>
+  <div class="pf page-enter">
+    <section class="pf-hero">
+      <div class="pf-ava-wrap">
+        <div class="pf-ava" id="profileAvatar">${userAvatarUrl ? '<img src="' + userAvatarUrl + '" alt="">' : _name.charAt(0).toUpperCase()}</div>
+        <button type="button" id="changeAvatarBtn" class="pf-ava-btn" aria-label="Изменить фото">${U.icon('camera', 16)}</button>
       </div>
-      <button id="changeAvatarBtn" class="absolute bottom-0 right-0 w-8 h-8 rounded-full flex items-center justify-center text-white border-2 border-slate-950 shadow-md active:scale-90 transition" style="background: linear-gradient(135deg, var(--ice-primary), var(--ice-deep));" title="Изменить фото">
-        <span class="ix"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>
+      <div class="pf-name-row">
+        <h1 class="pf-name" id="profileNameDisplay">${_name}</h1>
+        <button type="button" id="editNameBtn" class="pf-edit" aria-label="Изменить имя">${U.icon('pencil', 15)}</button>
+      </div>
+      <button type="button" class="pf-kyc rd-status ${_kyc.cls}" onclick="switchTab('kyc')">${U.icon(_kyc.icon, 14)}${_kyc.text}${kycStatus === 'verified' ? '' : U.icon('chevR', 14)}</button>
+    </section>
+
+    <section class="pf-stats">
+      <button type="button" class="pf-stat" onclick="window.openBalanceTopup()">
+        <span class="pf-stat-k">${U.icon('wallet', 16)}Баланс</span>
+        <span class="pf-stat-v">${U.money(_bal)}</span>
+        <span class="pf-stat-a">Пополнить</span>
       </button>
+      <button type="button" class="pf-stat" onclick="switchTab('wishlist')">
+        <span class="pf-stat-k">${U.icon('heart', 16)}Избранное</span>
+        <span class="pf-stat-v">${_wishCount}</span>
+        <span class="pf-stat-a">Открыть</span>
+      </button>
+      <button type="button" class="pf-stat" onclick="switchTab('cart')">
+        <span class="pf-stat-k">${U.icon('cart', 16)}Корзина</span>
+        <span class="pf-stat-v">${_cartCount}</span>
+        <span class="pf-stat-a">Открыть</span>
+      </button>
+    </section>
+
+    <div class="pf-group-t">Покупки</div>
+    <div class="rd-card rd-list">
+      ${row('myOrdersRowBtn', 'box', 'Мои заказы', 'Статусы, трек-номера и фото со склада', "currentSubScreen = 'myOrders'; renderCurrentScreen();")}
+      ${row('historyQuickBtn', 'history', 'История и архив', 'Завершённые заказы, транзакции и расчёты', "switchTab('history')")}
+      ${row('wishlistBtn', 'heart', 'Избранное', 'Сохранённые вещи', "switchTab('wishlist')", '<span id="wishlistBadge" class="hidden rd-badge">0</span>')}
+      ${row('financesBtn', 'card', 'Финансы', 'Карты, ICE LOGIX PAY, купоны и возвраты', "window._financesSubTab = 'payment'; switchTab('finances')")}
     </div>
-    <div class="flex items-center justify-center gap-2">
-      <h2 class="text-xl font-bold text-white tracking-wide" id="profileNameDisplay">${userName}</h2>
-      <button id="editNameBtn" class="w-7 h-7 rounded-lg flex items-center justify-center text-white/70 hover:text-white bg-white/5 border border-white/10 active:scale-90 transition" title="Изменить имя">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-        </svg>
-      </button>
+
+    <div class="pf-group-t">Бонусы и заработок</div>
+    <div class="rd-card rd-list">
+      ${row('referralBtn', 'users', 'Приглашайте друзей', '7% вам и 3% другу с каждого заказа', "switchTab('referral')", '<span class="rd-badge">7% + 3%</span>')}
+      ${row('bonusShopBtn', 'gift', 'Магазин бонусов', 'Меняйте баллы ICE на скидки и подарки', "switchTab('bonus_shop')")}
+      ${row('dropshipperProfileBtn', 'store', isDropshipper ? t('dropshipper_cabinet', 'Кабинет дропшиппера') : t('earn_with_us', 'Зарабатывайте с нами'), isDropshipper ? t('dropshipper_cabinet_sub', 'Управление магазином') : t('earn_with_us_sub', 'Станьте партнёром ICE LOGIX'), "switchTab('dropshipper')")}
     </div>
-  </div>
 
-  <!-- Unified Profile Menu List -->
-  <div class="mb-5">
-    <div class="glass-card p-2 rounded-2xl space-y-1">
-      <!-- 1. Мои данные -->
-      <button id="kycVerificationBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 active:scale-[0.99] transition" onclick="switchTab('kyc')">
-        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg bg-white/5 border border-white/10 shrink-0">
-          ${kycStatus === 'verified' ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2 5 5.9v5.5c0 4.4 2.9 7.7 7 9.4 4.1-1.7 7-5 7-9.4V5.9z"/><path d="m8.8 12 2.3 2.3 4.2-4.4"/></svg>' : (kycStatus === 'pending' ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>' : (kycStatus === 'rejected' ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4 3 19.5h18z"/><path d="M12 10v4.5M12 17.3h.01"/></svg>' : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="11" r="2"/><path d="M5.8 16c.5-1.6 1.7-2.4 3.2-2.4s2.7.8 3.2 2.4M14.5 10h4M14.5 13.5h3"/></svg>'))}
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2">
-            <p class="font-semibold text-white text-sm">Мои данные</p>
-            ${kycStatus === 'verified' ? '' :
-              kycStatus === 'pending' ? '<span class="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">НА ПРОВЕРКЕ</span>' :
-              kycStatus === 'rejected' ? '<span class="text-[9px] font-black px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30">ОТКЛОНЕНО</span>' :
-              '<span class="text-[9px] font-bold px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse">Пройти верификацию!</span>'}
-          </div>
-          <p class="text-xs truncate" style="color: var(--text-muted);">
-            ${kycStatus === 'verified' ? 'Паспортные данные, получатели и размеры' :
-              kycStatus === 'pending' ? 'Сверка данных администратором' :
-              kycStatus === 'rejected' ? 'Нажмите, чтобы исправить данные' :
-              'Паспортные данные получателя посылок'}
-          </p>
-        </div>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-
-      <!-- 2. Финансы -->
-      <button id="financesBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 active:scale-[0.99] transition border-t border-white/5" onclick="window._financesSubTab = 'payment'; switchTab('finances')">
-        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg bg-cyan-500/10 border border-cyan-500/20 shrink-0 text-cyan-400">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="font-semibold text-white text-sm">Финансы</p>
-          <p class="text-xs truncate" style="color: var(--text-muted);">Карты, ICE LOGIX PAY, купоны и возвраты</p>
-        </div>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-
-      <!-- 3. История заказов -->
-      <button id="historyQuickBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 active:scale-[0.99] transition border-t border-white/5" onclick="switchTab('history')">
-        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg bg-purple-500/10 border border-purple-500/20 shrink-0 text-purple-400">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="font-semibold text-white text-sm">История заказов</p>
-          <p class="text-xs truncate" style="color: var(--text-muted);">Все заказы, посылки и статусы доставки</p>
-        </div>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-
-      <!-- 4. Избранное -->
-      <button id="wishlistBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 active:scale-[0.99] transition border-t border-white/5" onclick="switchTab('wishlist')">
-        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg bg-rose-500/10 border border-rose-500/20 shrink-0 text-rose-400">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2">
-            <p class="font-semibold text-white text-sm">Избранное</p>
-            <span id="wishlistBadge" class="hidden px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">0</span>
-          </div>
-          <p class="text-xs truncate" style="color: var(--text-muted);">Сохранённые товары и вишлист</p>
-        </div>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-
-      <!-- 5. Рефералка -->
-      <button id="referralBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 active:scale-[0.99] transition border-t border-white/5" onclick="switchTab('referral')">
-        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg bg-emerald-500/10 border border-emerald-500/20 shrink-0 text-emerald-400">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2">
-            <p class="font-semibold text-white text-sm">Рефералка</p>
-            <span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">7% + 3%</span>
-          </div>
-          <p class="text-xs truncate" style="color: var(--text-muted);">Приглашай друзей и получай бонусы с каждого заказа</p>
-        </div>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-
-      <!-- 6. Магазин бонусов ICE -->
-      <button id="bonusShopBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 active:scale-[0.99] transition border-t border-white/5" onclick="switchTab('bonus_shop')">
-        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg bg-amber-500/10 border border-amber-500/20 shrink-0">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="9" width="17" height="11" rx="2"/><path d="M12 9v11M3.5 13.5h17M12 9S10.6 4.2 8.3 5.3 9 9 12 9zm0 0s1.4-4.8 3.7-3.7S15 9 12 9z"/></svg>
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="font-semibold text-white text-sm">Магазин бонусов</p>
-          <p class="text-xs truncate" style="color: var(--text-muted);">Обмен накопленных баллов на скидки и призы</p>
-        </div>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-
-      <!-- 7. Кабинет дропшиппера / Зарабатывай с нами -->
-      <button id="dropshipperProfileBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 active:scale-[0.99] transition border-t border-white/5" onclick="switchTab('dropshipper')">
-        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg bg-blue-500/10 border border-blue-500/20 shrink-0 text-cyan-400">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="font-semibold text-white text-sm">${isDropshipper ? t('dropshipper_cabinet', 'Кабинет дропшиппера') : t('earn_with_us', 'Зарабатывай с нами')}</p>
-          <p class="text-xs truncate" style="color: var(--text-muted);">${isDropshipper ? t('dropshipper_cabinet_sub', 'Управление магазином') : t('earn_with_us_sub', 'Стань партнёром ICE LOGIX')}</p>
-        </div>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-
-      <!-- 8. О сервисе и помощь -->
-      <button id="aboutServiceBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 active:scale-[0.99] transition border-t border-white/5" onclick="currentSubScreen = 'about'; renderCurrentScreen();">
-        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg bg-teal-500/10 border border-teal-500/20 shrink-0 text-teal-400">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="font-semibold text-white text-sm">О сервисе и помощь</p>
-          <p class="text-xs truncate" style="color: var(--text-muted);">Условия, поддержка, соцсети, оферта и реквизиты</p>
-        </div>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-
-      <!-- 9. Админ-панель (если владелец) -->
-      ${isOwner ? `
-      <button id="adminPanelBtn" class="w-full p-3 rounded-xl flex items-center gap-3 text-left hover:bg-white/5 active:scale-[0.99] transition border-t border-white/5" onclick="switchTab('admin')">
-        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg bg-amber-500/10 border border-amber-500/20 shrink-0 text-amber-400">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.5 8 4.5 4 4-6.5 4 6.5 4.5-4-1.5 10.5h-14z"/></svg>
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="font-semibold text-white text-sm">Админ-панель</p>
-          <p class="text-xs truncate" style="color: var(--text-muted);">Управление системой</p>
-        </div>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-      ` : ''}
+    <div class="pf-group-t">Аккаунт</div>
+    <div class="rd-card rd-list">
+      ${row('kycVerificationBtn', 'idcard', 'Мои данные', kycStatus === 'verified' ? 'Паспорт, получатели и размеры' : 'Паспортные данные для получения посылок', "switchTab('kyc')")}
+      ${row('aboutServiceBtn', 'help', 'О сервисе и помощь', 'Условия, поддержка, оферта и реквизиты', "currentSubScreen = 'about'; renderCurrentScreen();")}
+      ${isOwner ? row('adminPanelBtn', 'crown', 'Админ-панель', 'Управление системой', "switchTab('admin')") : ''}
     </div>
-  </div>
-  
-  <div class="text-center py-5 pb-2 text-[11px] text-white/30 space-y-1">
-    <p>ICE LOGIX © 2026 • Доставка мечты</p>
-    <p class="text-[10px] text-white/20">ИП Иванов И.И. • УНП 123456789</p>
+
+    <p class="pf-foot">ICE LOGIX · доставка из Китая в Беларусь</p>
   </div>
 `;
     }
@@ -534,99 +450,48 @@ async function renderReferralPage() {
   }
 
   const shareLink = userReferralCode ? `https://t.me/icelogix_bot?start=ref_${userReferralCode}` : '';
+  const U = window.UI;
 
   return `
-    <div class="page-enter px-4 max-w-md mx-auto">
-      <!-- Шапка с кнопкой Назад -->
-      <div class="flex items-center gap-3 mb-4 mt-2">
-        <button id="referralBackBtn" type="button" class="global-back-btn !mb-0" title="Назад в профиль" onclick="window.switchTab('profile')">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6"/>
-          </svg>
-        </button>
-        <div>
-          <h2 class="text-xl font-bold text-white tracking-wide">Реферальная программа</h2>
-          <p class="text-[11px] text-white/40">Приглашайте друзей и получайте бонусы</p>
+    <div class="rd-screen page-enter rf">
+      <div class="rd-head">
+        <button id="referralBackBtn" type="button" class="rd-back" aria-label="Назад" onclick="window.goBackGlobal()">${U.icon('chevL', 22)}</button>
+        <div class="rd-head-txt"><h1 class="rd-head-title">Приглашайте друзей</h1><p class="rd-head-sub">Бонусы вам и скидка другу</p></div>
+      </div>
+
+      <div class="rf-hero">
+        <div class="rf-art" aria-hidden="true">
+          <span class="rf-coin c1">7%</span><span class="rf-coin c2">3%</span>
+          <span class="rf-ppl">${U.icon('users', 34)}</span>
+        </div>
+        <h2>7% вам, 3% другу</h2>
+        <p>Вы получаете 7% от нашей комиссии с каждого заказа друга, а друг — 3% кэшбэка на первый заказ.</p>
+      </div>
+
+      <div class="rf-stats">
+        <div><b>${stats.count}</b><span>друзей пришло</span></div>
+        <div><b>${U.money(Number(stats.bonus) || 0)}</b><span>заработано</span></div>
+      </div>
+
+      <div class="rd-card rf-link">
+        <span class="rd-label">Ваша ссылка</span>
+        <div class="rf-url" onclick="document.getElementById('copyRefLinkBtn')?.click()">${U.icon('link', 18)}<span>${shareLink ? U.esc(shareLink.replace('https://', '')) : 'Готовим вашу ссылку…'}</span></div>
+        <div class="rf-btns">
+          <button id="copyRefLinkBtn" type="button" class="rd-btn rd-btn-tonal">${U.icon('copy', 18)}Копировать</button>
+          <button id="shareTelegramRefBtn" type="button" class="rd-btn">${U.icon('send', 18)}Отправить</button>
         </div>
       </div>
 
-      <!-- Баннер с условиями -->
-      <div class="glass-card p-4 rounded-3xl border border-white/10 mb-4 bg-gradient-to-br from-emerald-950/40 via-slate-900 to-slate-950 shadow-xl">
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center gap-2">
-            <span class="text-xl">🤝</span>
-            <span class="font-bold text-white text-base">Приведи друга</span>
-          </div>
-          <span class="text-[10px] font-black px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-wide">
-            7% ВАМ + 3% ДРУГУ
-          </span>
-        </div>
-        <p class="text-xs text-white/70 leading-relaxed mb-4">
-          Делитесь персональной ссылкой с друзьями: вы получаете <span class="text-emerald-400 font-bold">7% от комиссии</span> за каждый выполненный ими заказ, а ваш друг — <span class="text-cyan-400 font-bold">3% приветственный кэшбэк</span> на баланс!
-        </p>
-
-        <!-- Счетчики статистики -->
-        <div class="grid grid-cols-2 gap-3 mb-4">
-          <div class="p-3.5 rounded-2xl bg-white/5 border border-white/5 text-center">
-            <p class="text-2xl font-black text-cyan-400">${stats.count}</p>
-            <p class="text-[10px] uppercase font-bold tracking-wider text-white/40 mt-0.5">Приглашено друзей</p>
-          </div>
-          <div class="p-3.5 rounded-2xl bg-white/5 border border-white/5 text-center">
-            <p class="text-2xl font-black text-emerald-400 flex items-center justify-center gap-1.5">
-              <span>${stats.bonus}</span>
-              <span class="inline-flex items-center text-xs font-mono text-emerald-300">${window.bynSign ? window.bynSign({ color: 'emerald' }) : ''}</span>
-            </p>
-            <p class="text-[10px] uppercase font-bold tracking-wider text-white/40 mt-0.5">Заработано бонусов</p>
-          </div>
-        </div>
-
-        <!-- Ссылка и кнопки копирования/шеринга -->
-        <div class="space-y-2">
-          <div class="bg-black/40 rounded-xl p-2.5 border border-white/10 flex items-center justify-between gap-2">
-            <span class="text-xs font-mono text-cyan-300 truncate select-all">${shareLink || 'Генерация персональной ссылки...'}</span>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <button id="copyRefLinkBtn" type="button" class="py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15 text-white border border-white/10 active:scale-95 transition">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-              <span>Копировать</span>
-            </button>
-            <button id="shareTelegramRefBtn" type="button" class="btn-primary py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 active:scale-95 transition shadow-lg shadow-cyan-500/20">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
-              <span>В Telegram</span>
-            </button>
-          </div>
-        </div>
+      <div class="rd-section"><h2>Как это работает</h2></div>
+      <div class="rf-steps">
+        <div><span>1</span><div><b>Отправьте ссылку</b><p>В любой чат Telegram или скопируйте её.</p></div></div>
+        <div><span>2</span><div><b>Друг делает заказ</b><p>И сразу получает 3% кэшбэка на баланс.</p></div></div>
+        <div><span>3</span><div><b>Вам приходят бонусы</b><p>7% с каждого его заказа. Тратьте в магазине бонусов или на доставку.</p></div></div>
       </div>
 
-      <!-- Как это работает (3 понятных шага) -->
-      <div class="glass-card p-4 rounded-3xl border border-white/10 mb-5">
-        <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
-          <span>⚡</span> Как это работает
-        </h3>
-        <div class="space-y-3">
-          <div class="flex items-start gap-3">
-            <div class="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 font-bold text-xs flex items-center justify-center shrink-0 border border-cyan-500/30">1</div>
-            <div>
-              <p class="text-xs font-semibold text-white">Отправьте ссылку другу</p>
-              <p class="text-[11px] text-white/50">Скопируйте ссылку или перешлите её напрямую в любой чат Telegram.</p>
-            </div>
-          </div>
-          <div class="flex items-start gap-3">
-            <div class="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 font-bold text-xs flex items-center justify-center shrink-0 border border-cyan-500/30">2</div>
-            <div>
-              <p class="text-xs font-semibold text-white">Друг оформляет заказ</p>
-              <p class="text-[11px] text-white/50">При первом заказе он получает приветственный кэшбэк 3% на баланс.</p>
-            </div>
-          </div>
-          <div class="flex items-start gap-3">
-            <div class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 font-bold text-xs flex items-center justify-center shrink-0 border border-emerald-500/30">3</div>
-            <div>
-              <p class="text-xs font-semibold text-white">Вы получаете 7% бонусов</p>
-              <p class="text-[11px] text-white/50">Баллы сразу начисляются на ваш счёт и готовы к тратам в магазине бонусов или оплате доставки.</p>
-            </div>
-          </div>
-        </div>
+      <div class="rd-card rd-list rf-more">
+        <div class="rd-row" role="button" tabindex="0" onclick="switchTab('reftree')"><span class="rd-ico">${U.icon('users', 22)}</span><span class="rd-row-body"><span class="rd-row-title">Моя сеть</span><span class="rd-row-text">Кого вы пригласили, по уровням</span></span>${U.icon('chevR', 18)}</div>
+        <div class="rd-row" role="button" tabindex="0" onclick="switchTab('bonus_shop')"><span class="rd-ico">${U.icon('gift', 22)}</span><span class="rd-row-body"><span class="rd-row-title">Магазин бонусов</span><span class="rd-row-text">На что потратить баллы</span></span>${U.icon('chevR', 18)}</div>
       </div>
     </div>
   `;
@@ -640,7 +505,7 @@ function attachReferralPageHandlers() {
       if (link) {
         navigator.clipboard.writeText(link).then(() => {
           if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
-          if (typeof glassToast === 'function') glassToast('Ссылка скопирована в буфер!', { kind: 'success' });
+          if (window.UI) window.UI.toast('Ссылка скопирована'); else if (typeof glassToast === 'function') glassToast('Ссылка скопирована', { kind: 'success' });
           else if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Ссылка скопирована!');
         }).catch(() => {
           if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Скопируйте ссылку вручную: ' + link);
@@ -653,7 +518,7 @@ function attachReferralPageHandlers() {
   if (shareTgBtn) {
     shareTgBtn.onclick = () => {
       const link = userReferralCode ? `https://t.me/icelogix_bot?start=ref_${userReferralCode}` : '';
-      const text = encodeURIComponent('Заказывай оригинальные брендовые товары из Китая, США и Европы с доставкой в Беларусь через ICE LOGIX! Держи скидку 3% на первый заказ:');
+      const text = encodeURIComponent('Заказываю вещи из Китая через ICE LOGIX: оригиналы, доставка в Беларусь. По моей ссылке тебе 3% кэшбэка на первый заказ:');
       const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${text}`;
       if (window.Telegram?.WebApp?.openTelegramLink) {
         window.Telegram.WebApp.openTelegramLink(shareUrl);

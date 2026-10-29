@@ -13,53 +13,45 @@ async function renderPromoPage() {
     const { data } = await supabaseClient.from('promotions').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(10);
     promos = data || [];
   }
+  const U = window.UI;
   const promosHtml = promos && promos.length
-    ? promos.map(p => `
-        <div class="glass-card mb-3 overflow-hidden cursor-pointer hover:scale-[1.01] active:scale-[0.99] transition-transform" data-promotion-id="${p.id}">
-          ${p.banner_url ? `<div style="height:120px; background: url('${p.banner_url}') center/cover no-repeat; border-radius: 16px 16px 0 0;"></div>` : ''}
-          <div class="p-4">
-            <h3 class="text-white font-bold text-sm">${p.title || 'Акция'}</h3>
-            ${p.description ? `<p class="text-white/60 text-xs mt-1">${p.description}</p>` : ''}
+    ? promos.map(p => {
+        const disc = p.discount_value ? (p.discount_type === 'percent' ? `−${p.discount_value}%` : `−${p.discount_value}`) : '';
+        const until = p.expires_at ? 'до ' + new Date(p.expires_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) : '';
+        return `
+        <article class="pr-card" data-promotion-id="${p.id}" role="button" tabindex="0">
+          <div class="pr-banner">
+            <span class="pr-banner-fb">${U.icon('gift', 40)}</span>
+            ${p.banner_url ? `<img src="${U.esc(p.banner_url)}" alt="" loading="lazy" onerror="this.remove()">` : ''}
+            ${disc ? `<span class="pr-disc">${disc}</span>` : ''}
           </div>
-        </div>
-      `).join('')
-    : '<p class="text-white/50 text-center py-6">Акций пока нет. Следите за обновлениями!</p>';
+          <div class="pr-body">
+            <h3>${U.esc(p.title || 'Акция')}</h3>
+            ${p.description ? `<p>${U.esc(p.description)}</p>` : ''}
+            <div class="pr-foot">${until ? `<span>${U.icon('clock', 14)}${until}</span>` : '<span>Без срока</span>'}<span class="rd-link">Подробнее${U.icon('chevR', 14)}</span></div>
+          </div>
+        </article>`;
+      }).join('')
+    : U.empty({ icon: 'gift', title: 'Сейчас акций нет', text: 'Новые скидки и розыгрыши появятся здесь и в нашем канале.' });
 
   return `
-    <div class="page-enter px-4 pb-8 max-w-md mx-auto space-y-4">
-      <div class="flex items-center gap-3 mb-2 mt-2">
-        <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6"/>
-          </svg>
-        </button>
-        <div class="flex-1 min-w-0">
-          <h2 class="text-xl font-bold text-white tracking-wide">Акции и бонусы</h2>
-          <p class="text-[11px] text-white/40">Скидки, розыгрыши и Колесо Фортуны</p>
-        </div>
-      </div>
-      <div>
-
-        <!-- Колесо Фортуны -->
-        <div class="glass-card mb-5 overflow-hidden relative cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-transform" id="promoFortuneBtn" style="background: linear-gradient(135deg, rgba(77, 163, 255,0.15), rgba(77, 163, 255,0.15)); border: 1px solid rgba(77, 163, 255,0.25);">
-          <div class="absolute -right-10 -top-10 w-32 h-32 rounded-full blur-2xl" style="background: rgba(77, 163, 255,0.3);"></div>
-          <div class="flex items-center justify-between p-4 relative z-10">
-            <div class="space-y-0.5 text-left">
-              <h3 class="text-white font-bold text-sm flex items-center gap-1.5"><span>🔮 Колесо Фортуны</span></h3>
-              <p class="text-white/60 text-[10px]">Крутите барабан каждый день бесплатно! До 10 ICE!</p>
-            </div>
-            <button class="btn-primary py-2 px-4 rounded-xl text-xs font-bold shadow-lg flex items-center gap-1" style="background: linear-gradient(135deg, var(--ice-primary), #4DA3FF); border: none;">Крутить!</button>
-          </div>
-        </div>
-
-        <!-- Список акций -->
-        <h3 class="text-white font-bold mb-4 flex items-center gap-2">
-          <span>🏷️</span> Текущие акции
-        </h3>
-        ${promosHtml}
+    <div class="rd-screen page-enter pr">
+      <div class="rd-head">
+        <button type="button" class="rd-back" onclick="window.goBackGlobal()" aria-label="Назад">${U.icon('chevL', 22)}</button>
+        <div class="rd-head-txt"><h1 class="rd-head-title">Акции</h1><p class="rd-head-sub">Скидки, розыгрыши и колесо удачи</p></div>
       </div>
 
-      ${renderFooter()}
+      <div class="pr-wheel" id="promoFortuneBtn" role="button" tabindex="0">
+        <div class="pr-wheel-art" aria-hidden="true"><div class="pr-wheel-disc"></div><span class="pr-wheel-hub">${U.icon('star', 18)}</span><span class="pr-wheel-pin"></span></div>
+        <div class="pr-wheel-txt">
+          <b>Колесо удачи</b>
+          <span>Крутите раз в день бесплатно и выигрывайте до 10 бонусов</span>
+          <button type="button" class="rd-btn rd-btn-sm">Крутить${U.icon('arrowR', 16)}</button>
+        </div>
+      </div>
+
+      <div class="rd-section"><h2>Сейчас действуют</h2>${promos && promos.length ? `<span class="rd-pill">${promos.length}</span>` : ''}</div>
+      <div class="pr-list">${promosHtml}</div>
     </div>
   `;
 }
@@ -72,191 +64,148 @@ function attachPromoPageHandlers() {
   document.querySelectorAll('[data-promotion-id]').forEach(el => {
     el.addEventListener('click', () => {
       if (!window.userId) { window.requireAuth('Авторизуйтесь, чтобы участвовать в акциях!'); return; }
-      tgUtil.alert('Подробнее об акции будет позже');
+      window.UI.toast('Условия акции скоро появятся здесь');
     });
   });
 }
 
 // ==================== ИСТОРИЯ ====================
 async function renderHistory() {
+  const U = window.UI;
   const subScreen = window._historySubScreen || 'orders';
+  const fmtDate = (d) => new Date(d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+  const fmtTime = (d) => new Date(d).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  // Подпись дня для группировки: «Сегодня», «Вчера» или дата
+  const dayLabel = (d) => {
+    const dt = new Date(d); const now = new Date();
+    const key = (x) => x.toDateString();
+    if (key(dt) === key(now)) return 'Сегодня';
+    const y = new Date(now); y.setDate(now.getDate() - 1);
+    if (key(dt) === key(y)) return 'Вчера';
+    return dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: dt.getFullYear() === now.getFullYear() ? undefined : 'numeric' });
+  };
+  const groupByDay = (rows, renderRow) => {
+    let html = ''; let last = '';
+    rows.forEach((r) => {
+      const lbl = dayLabel(r.created_at);
+      if (lbl !== last) { html += `<div class="hs-day">${lbl}</div>`; last = lbl; }
+      html += renderRow(r);
+    });
+    return html;
+  };
+  const txIcon = (type, amount) => ({ deposit: 'wallet', withdrawal: 'upload', payment: 'bag', refund: 'refresh', bonus: 'gift', referral: 'users' })[type] || (amount >= 0 ? 'plus' : 'minus');
+  const txRow = (tx, who) => {
+    const amt = Number(tx.amount || 0);
+    return `
+      <div class="hs-tx">
+        <span class="hs-tx-ico ${amt >= 0 ? 'in' : ''}">${U.icon(txIcon(tx.type, amt), 20)}</span>
+        <div class="hs-tx-body">
+          <div class="hs-tx-title">${U.esc(tx.description || getTransactionTypeText(tx.type))}</div>
+          <div class="hs-tx-sub">${tx.description ? U.esc(getTransactionTypeText(tx.type)) + ' · ' : ''}${fmtTime(tx.created_at)}${who ? ' · ' + who : ''}</div>
+        </div>
+        <span class="hs-tx-amt ${amt >= 0 ? 'in' : ''}">${amt >= 0 ? '+' : '−'}${U.money(Math.abs(amt), { keepCents: true, digits: 2 })}</span>
+      </div>`;
+  };
+  const stars = (n) => Array.from({ length: 5 }, (_, i) => `<span class="hs-star ${i < n ? 'on' : ''}">${U.icon('star', 14)}</span>`).join('');
+  const thumbs = (urls) => urls.length ? `<div class="hs-thumbs" data-urls="${encodeURIComponent(JSON.stringify(urls))}">${urls.map((u, i) => `<img src="${U.esc(u)}" alt="" loading="lazy" onclick="window.showImagePreview(JSON.parse(decodeURIComponent(this.parentElement.dataset.urls)), ${i})">`).join('')}</div>` : '';
+
   let content = '';
 
   if (subScreen === 'transactions') {
     const { data, error } = await supabaseClient.from('transaction_history').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(100);
-    if (error || !data || !data.length) {
-      content = '<p class="text-white/50 text-center py-8">Транзакций пока нет</p>';
-    } else {
-      content = data.map(tx => `
-        <div class="flex justify-between py-3 border-b border-white/5">
-          <div>
-            <p class="text-white text-sm font-semibold">${getTransactionTypeText(tx.type)}</p>
-            <p class="text-white/40 text-xs">${new Date(tx.created_at).toLocaleString('ru-RU')}</p>
-            ${tx.description ? `<p class="text-white/60 text-xs mt-0.5">${tx.description}</p>` : ''}
-          </div>
-          <p class="${tx.amount >= 0 ? 'text-green-400' : 'text-red-400'} font-bold text-sm">${tx.amount >= 0 ? '+' : ''}${tx.amount} ICE</p>
-        </div>
-      `).join('');
-    }
+    content = (error || !data || !data.length)
+      ? U.empty({ icon: 'wallet', title: 'Операций пока нет', text: 'Здесь появятся пополнения, оплаты заказов, возвраты и бонусы.' })
+      : `<div class="rd-card hs-txlist">${groupByDay(data, (tx) => txRow(tx))}</div>`;
   } else if (subScreen === 'family') {
     const fam = window.userSettings?.family || {};
     const headId = fam.head_id || (fam.role === 'head' ? userId : null);
     if (!headId) {
-      content = '<p class="text-white/50 text-center py-8">Семейный бюджет не настроен</p>';
+      content = U.empty({ icon: 'users', title: 'Семейный бюджет не настроен', text: 'Объедините баланс с близкими в настройках, и все общие траты будут здесь.' });
     } else {
       const { data: members } = await supabaseClient.from('users').select('user_id, settings').eq('settings->>family->>head_id', headId).limit(20);
       const memberIds = members ? members.map(m => m.user_id) : [];
       if (!memberIds.includes(headId)) memberIds.unshift(headId);
       const { data, error } = await supabaseClient.from('family_transactions').select('*').in('user_id', memberIds).order('created_at', { ascending: false }).limit(100);
-      if (error || !data || !data.length) {
-        content = '<p class="text-white/50 text-center py-8">Транзакций семьи пока нет</p>';
-      } else {
-        content = data.map(tx => `
-          <div class="flex justify-between py-3 border-b border-white/5">
-            <div>
-              <p class="text-white text-sm font-semibold">${tx.description || getTransactionTypeText(tx.type)}</p>
-              <p class="text-white/40 text-xs">${new Date(tx.created_at).toLocaleString('ru-RU')}</p>
-              <p class="text-white/50 text-xs">ID: ${tx.user_id}</p>
-            </div>
-            <p class="${tx.amount >= 0 ? 'text-green-400' : 'text-red-400'} font-bold text-sm">${tx.amount >= 0 ? '+' : ''}${tx.amount} ICE</p>
-          </div>
-        `).join('');
-      }
+      content = (error || !data || !data.length)
+        ? U.empty({ icon: 'users', title: 'Общих операций пока нет', text: 'Траты и пополнения участников семьи появятся здесь.' })
+        : `<div class="rd-card hs-txlist">${groupByDay(data, (tx) => txRow(tx, String(tx.user_id) === String(userId) ? 'вы' : 'ID ' + tx.user_id))}</div>`;
     }
   } else if (subScreen === 'orders') {
+    // В архив попадают только завершённые заказы, через 7 дней после последнего изменения
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { data, error } = await supabaseClient.from('orders').select('*').eq('user_id', userId).lt('updated_at', sevenDaysAgo).order('created_at', { ascending: false }).limit(100);
+    const { data, error } = await supabaseClient.from('orders').select('*').eq('user_id', userId).in('status', ['delivered', 'cancelled', 'refunded']).lt('updated_at', sevenDaysAgo).order('created_at', { ascending: false }).limit(100);
     if (error || !data || !data.length) {
-      content = '<p class="text-white/50 text-center py-8">Архив заказов пуст. Заказы появятся здесь через 7 дней после завершения.</p>';
+      content = U.empty({ icon: 'box', title: 'Архив пока пуст', text: 'Полученные и отменённые заказы переезжают сюда через 7 дней. Текущие заказы смотрите в «Моих заказах».', action: 'Мои заказы', onclick: "switchTab('profile', 'myOrders')" });
     } else {
-      const _orderStatusRu = {
-        pending: 'Принят в обработку', paid: 'Оплачен', bought: 'Выкуплен', on_sklad_cn: 'На складе в Китае',
-        in_transit: 'Летит в Беларусь', customs: 'На таможне', awaiting_payment: 'Ждёт доплаты', paid_second: 'Доплачен',
-        in_belarus: 'В Беларуси', dispatched: 'Отправлен вам', delivered: 'Получен', awaiting_decision: 'Ждёт вашего решения',
-        problem_order: 'Есть проблема', refunded: 'Возврат на баланс', cancelled: 'Отменён'
-      };
-      content = data.map(o => `
-        <div class="glass-card p-4 mb-3">
-          <div class="flex justify-between items-start mb-1">
-            <p class="text-white font-semibold text-sm flex-1 mr-2">${o.title || o.url || 'Заказ'}</p>
-            <span class="text-xs px-2 py-0.5 rounded-full" style="background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.6);">${_orderStatusRu[o.status] || o.status || '—'}</span>
-          </div>
-          <p class="text-white/40 text-xs">${new Date(o.created_at).toLocaleDateString('ru-RU')}</p>
-          ${o.total_price ? `<p class="text-cyan-400 text-sm font-bold mt-1 inline-flex items-baseline gap-1">${o.total_price} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</p>` : ''}
-        </div>
-      `).join('');
+      content = `<div class="hs-list">${data.map((o) => {
+        const st = U.orderStatus(o.status);
+        const img = U.orderImage(o);
+        const title = U.orderTitle(o);
+        const total = Number(o.total_byn || o.total_price || 0);
+        return `
+          <div class="hs-card">
+            <span class="hs-thumb">${img ? `<img src="${U.esc(img)}" alt="" loading="lazy" onerror="this.remove()">` : ''}${U.icon('box', 22)}</span>
+            <div class="hs-body">
+              <div class="hs-title">${U.esc(title)}</div>
+              <div class="hs-sub">№ ${o.id.slice(0, 8).toUpperCase()} · ${fmtDate(o.created_at)}</div>
+              <div class="hs-foot"><span class="rd-status ${st.tone}">${st.text}</span>${total ? `<span class="hs-sum">${U.money(total, { keepCents: true, digits: 2 })}</span>` : ''}</div>
+            </div>
+          </div>`;
+      }).join('')}</div>`;
     }
   } else if (subScreen === 'reviews') {
     const { data, error } = await supabaseClient.from('reviews').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(50);
     if (error || !data || !data.length) {
-      content = '<p class="text-white/50 text-center py-8">Вы еще не оставляли отзывы</p>';
+      content = U.empty({ icon: 'message', title: 'Отзывов пока нет', text: 'Расскажите о заказе, и другие покупатели узнают, как всё прошло.', action: 'Оставить отзыв', onclick: "switchTab('reviews')" });
     } else {
-      content = '<div class="space-y-3">';
-      content += data.map(r => {
-        const stars = '⭐'.repeat(r.rating || 5);
-        const dateStr = new Date(r.created_at).toLocaleDateString('ru-RU');
-        const isPublished = r.is_published;
-        const photoUrls = r.photo_urls || [];
-        
-        return `
-          <div class="glass-card p-4 font-sans">
-            <div class="flex justify-between items-start mb-2">
-              <div>
-                <span class="text-amber-400 text-xs font-bold mr-2">${stars}</span>
-                <span class="text-[10px] text-white/40 font-mono">${dateStr}</span>
-              </div>
-              <span class="text-[10px] px-2.5 py-0.5 rounded-full ${isPublished ? 'bg-green-500/20 text-green-400 border border-green-500/35' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/35'} font-semibold">
-                ${isPublished ? 'Опубликован' : 'На модерации'}
-              </span>
-            </div>
-            <p class="text-white/90 text-sm mb-2 font-sans">${r.text || ''}</p>
-            ${photoUrls.length > 0 ? `
-              <div class="flex gap-2 overflow-x-auto py-1">
-                ${photoUrls.map(url => `<img src="${url}" class="w-12 h-12 rounded-xl object-cover border border-white/10" />`).join('')}
-              </div>
-            ` : ''}
-          </div>
-        `;
-      }).join('');
-      content += '</div>';
+      content = `<div class="hs-list">${data.map((r) => `
+        <div class="hs-card hs-col">
+          <div class="hs-row-top"><span class="hs-stars">${stars(r.rating || 5)}</span><span class="rd-status ${r.is_published ? 'ok' : 'warn'}">${r.is_published ? 'Опубликован' : 'На модерации'}</span></div>
+          <p class="hs-text">${U.esc(r.text || '')}</p>
+          ${thumbs(r.photo_urls || [])}
+          <div class="hs-sub">${fmtDate(r.created_at)}</div>
+        </div>`).join('')}</div>`;
     }
   } else if (subScreen === 'legitchecks') {
     const { data, error } = await supabaseClient.from('legit_check_requests').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(50);
     if (error || !data || !data.length) {
-      content = '<p class="text-white/50 text-center py-8">Вы еще не отправляли запросы на легит-чек</p>';
+      content = U.empty({ icon: 'shield', title: 'Проверок пока не было', text: 'Отправьте фото вещи, и эксперты скажут, оригинал это или нет.', action: 'Проверить вещь', onclick: "switchTab('legitcheck')" });
     } else {
-      content = '<div class="space-y-3">';
-      content += data.map(c => {
-        const dateStr = new Date(c.created_at).toLocaleDateString('ru-RU');
-        const statusText = c.status === 'pending' ? '⏳ На модерации' : c.status === 'original' ? '✅ Оригинал' : '❌ Не оригинал';
-        const statusClass = c.status === 'pending' ? 'text-yellow-400 bg-yellow-500/10 border border-yellow-500/20' : c.status === 'original' ? 'text-green-400 bg-green-500/10 border border-green-500/20' : 'text-red-400 bg-red-500/10 border border-red-500/20';
-        const photoUrls = (c.photos || []).map(p => {
-          if (p.startsWith('http')) return p;
-          return supabaseClient.storage.from('ugc').getPublicUrl(p).data.publicUrl;
-        });
-
+      content = `<div class="hs-list">${data.map((c) => {
+        const st = c.status === 'pending' ? ['warn', 'На проверке'] : c.status === 'original' ? ['ok', 'Оригинал'] : ['bad', 'Не оригинал'];
+        const urls = (c.photos || []).map((ph) => ph.startsWith('http') ? ph : supabaseClient.storage.from('ugc').getPublicUrl(ph).data.publicUrl);
         return `
-          <div class="glass-card p-4 font-sans">
-            <div class="flex justify-between items-center text-[10px] text-white/40 mb-2">
-              <span>${dateStr}</span>
-              <span class="font-mono">#${c.id.slice(0, 8)}</span>
-            </div>
-            <div class="flex justify-between items-center mb-2">
-              <span class="text-white font-bold text-sm">Легит-чек товара</span>
-              <span class="text-[10px] px-2.5 py-0.5 rounded-full ${statusClass} font-semibold">${statusText}</span>
-            </div>
-            ${photoUrls.length > 0 ? `
-              <div class="flex gap-2 overflow-x-auto py-1">
-                ${photoUrls.map(url => `<img src="${url}" class="w-12 h-12 rounded-xl object-cover border border-white/10" />`).join('')}
-              </div>
-            ` : ''}
-          </div>
-        `;
-      }).join('');
-      content += '</div>';
+          <div class="hs-card hs-col">
+            <div class="hs-row-top"><span class="hs-title">Проверка подлинности</span><span class="rd-status ${st[0]}">${st[1]}</span></div>
+            ${thumbs(urls)}
+            <div class="hs-sub">№ ${c.id.slice(0, 8).toUpperCase()} · ${fmtDate(c.created_at)}</div>
+          </div>`;
+      }).join('')}</div>`;
     }
   } else if (subScreen === 'promotions') {
     const { data, error } = await supabaseClient.from('promotions').select('*').order('created_at', { ascending: false }).limit(50);
     if (error || !data || !data.length) {
-      content = '<p class="text-white/50 text-center py-8">Акций и розыгрышей пока нет</p>';
+      content = U.empty({ icon: 'gift', title: 'Акций пока не было', text: 'Скидки и розыгрыши появятся здесь, следите за новостями.' });
     } else {
-      content = '<div class="space-y-3">';
-      content += data.map(p => {
-        const isActive = p.is_active;
-        const discountText = p.discount_type === 'percent' ? `${p.discount_value}%` : `${p.discount_value} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}`;
-        const expiresStr = p.expires_at ? new Date(p.expires_at).toLocaleDateString('ru-RU') : 'Бессрочно';
-        const startsStr = p.starts_at ? new Date(p.starts_at).toLocaleDateString('ru-RU') : '';
-        
+      content = `<div class="hs-list">${data.map((pr) => {
+        const disc = pr.discount_type === 'percent' ? `−${pr.discount_value}%` : `−${U.money(pr.discount_value)}`;
+        const until = pr.expires_at ? 'до ' + new Date(pr.expires_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) : 'бессрочно';
         return `
-          <div class="glass-card overflow-hidden font-sans">
-            ${p.banner_url ? `
-              <div style="background-image: url('${p.banner_url}'); background-size: cover; background-position: center; height: 100px; width: 100%;"></div>
-            ` : ''}
-            <div class="p-4">
-              <div class="flex justify-between items-start mb-2">
-                <h3 class="text-white font-bold text-sm">${p.title || 'Акция'}</h3>
-                <span class="text-[10px] px-2.5 py-0.5 rounded-full ${isActive ? 'bg-green-500/20 text-green-400 border border-green-500/35' : 'bg-white/10 text-white/50 border border-white/15'} font-semibold">
-                  ${isActive ? 'Активна' : 'Завершена'}
-                </span>
-              </div>
-              ${p.description ? `<p class="text-white/70 text-xs mb-3 font-sans leading-relaxed">${p.description}</p>` : ''}
-              <div class="flex justify-between items-center text-[10px] text-white/40 border-t border-white/5 pt-2 font-mono">
-                <span>Скидка: <strong class="text-cyan-400 font-bold">${discountText}</strong></span>
-                <span>Сроки: ${startsStr ? startsStr + ' - ' : ''}${expiresStr}</span>
-              </div>
-            </div>
-          </div>
-        `;
-      }).join('');
-      content += '</div>';
+          <div class="hs-card hs-col hs-promo">
+            ${pr.banner_url ? `<div class="hs-banner" style="background-image:url('${U.esc(pr.banner_url)}')"></div>` : ''}
+            <div class="hs-row-top"><span class="hs-title">${U.esc(pr.title || 'Акция')}</span><span class="rd-status ${pr.is_active ? 'ok' : ''}">${pr.is_active ? 'Идёт' : 'Завершена'}</span></div>
+            ${pr.description ? `<p class="hs-text">${U.esc(pr.description)}</p>` : ''}
+            <div class="hs-foot"><span class="hs-disc">${disc}</span><span class="hs-sub">${until}</span></div>
+          </div>`;
+      }).join('')}</div>`;
     }
   } else if (subScreen === 'calculations') {
     let calculations = [];
     try {
       calculations = JSON.parse(localStorage.getItem('ice_calc_history') || '[]');
     } catch (e) {}
-    
-    // Prune calculations older than 14 days
+
+    // Расчёты старше 14 дней удаляем
     const fourteenDaysAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
     const activeCalculations = calculations.filter(c => c.timestamp && c.timestamp > fourteenDaysAgo);
     if (activeCalculations.length !== calculations.length) {
@@ -264,85 +213,53 @@ async function renderHistory() {
         localStorage.setItem('ice_calc_history', JSON.stringify(activeCalculations));
       } catch (e) {}
     }
-    
+
     if (activeCalculations.length === 0) {
-      content = '<p class="text-white/50 text-center py-8">История расчетов пуста.</p>';
+      content = U.empty({ icon: 'calc', title: 'Расчётов пока нет', text: 'Посчитайте цену любой вещи, и расчёт сохранится здесь на 14 дней.', action: 'Рассчитать заказ', onclick: "switchTab('calculator')" });
     } else {
-      content = '<div class="space-y-3">';
-      content += activeCalculations.map((c, idx) => {
+      content = `<div class="hs-list">${activeCalculations.map((c, idx) => {
         const dateStr = new Date(c.timestamp).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-        const flag = c.country === 'CN' ? '🇨🇳' : c.country === 'PL' ? '🇵🇱' : '🇷🇺';
-        const imageHtml = c.image_url 
-          ? `<img src="${escHtmlC(c.image_url)}" class="w-12 h-12 object-cover rounded-xl border border-white/10 flex-shrink-0" onerror="this.style.display='none'">` 
-          : '';
+        const meta = [c.size ? 'Размер ' + c.size : '', c.color || '', (c.weight || 1) + ' кг'].filter(Boolean).map(U.esc).join(' · ');
         return `
-          <div class="glass-card p-4 flex gap-3 border border-white/5">
-            ${imageHtml}
-            <div class="flex-1 min-w-0 flex flex-col gap-1.5">
-              <div class="flex justify-between items-center text-[10px] text-white/40">
-                <span>⏱️ ${dateStr}</span>
-                <span>${flag} ${escHtmlC(c.marketplace || 'Poizon')}</span>
-              </div>
-              <div>
-                <h4 class="text-white font-bold text-sm truncate" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escHtmlC(c.title || 'Товар без названия')}">${escHtmlC(c.title || 'Товар без названия')}</h4>
-                <p class="text-white/60 text-xs mt-0.5">Размер: ${escHtmlC(c.size || '—')} · Цвет: ${escHtmlC(c.color || '—')} · Вес: ${c.weight || 1.0} кг</p>
-              </div>
-              <div class="flex justify-between items-baseline mt-1 border-t border-white/5 pt-2">
-                <span class="text-cyan-400 font-extrabold text-base font-mono inline-flex items-baseline gap-1">${c.total_byn.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</span>
-                <div class="flex gap-2">
-                  <button class="px-3 py-1.5 rounded-lg text-xs font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 transition active:scale-95 flex items-center gap-1" onclick="window.restoreCalculation(${idx})">
-                    🔄 Восстановить
-                  </button>
-                  <button class="px-2 py-1.5 rounded-lg text-xs font-bold text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition active:scale-95" onclick="window.deleteCalculation(${idx})">
-                    🗑️
-                  </button>
-                </div>
+          <div class="hs-card">
+            <span class="hs-thumb">${c.image_url ? `<img src="${U.esc(c.image_url)}" alt="" loading="lazy" onerror="this.remove()">` : ''}${U.icon('calc', 22)}</span>
+            <div class="hs-body">
+              <div class="hs-title">${U.esc(c.title || 'Товар без названия')}</div>
+              <div class="hs-sub">${U.esc(c.marketplace || 'Poizon')} · ${dateStr}</div>
+              <div class="hs-sub">${meta}</div>
+              <div class="hs-foot">
+                <span class="hs-sum">${U.money(Number(c.total_byn || 0), { keepCents: true, digits: 2 })}</span>
+                <span class="hs-acts">
+                  <button type="button" class="rd-btn rd-btn-sm rd-btn-tonal" onclick="window.restoreCalculation(${idx})">${U.icon('refresh', 16)}Открыть</button>
+                  <button type="button" class="hs-del" aria-label="Удалить расчёт" onclick="window.deleteCalculation(${idx})">${U.icon('trash', 18)}</button>
+                </span>
               </div>
             </div>
-          </div>
-        `;
-      }).join('');
-      content += '</div>';
+          </div>`;
+      }).join('')}</div>`;
     }
   }
 
+  const tabs = [
+    ['historyTabOrders', 'orders', 'box', 'Архив'],
+    ['historyTabTx', 'transactions', 'wallet', 'Операции'],
+    ['historyTabCalculations', 'calculations', 'calc', 'Расчёты'],
+    ['historyTabReviews', 'reviews', 'message', 'Отзывы'],
+    ['historyTabLegit', 'legitchecks', 'shield', 'Легит-чеки'],
+    ['historyTabPromo', 'promotions', 'gift', 'Акции'],
+    ['historyTabFamily', 'family', 'users', 'Семья'],
+  ];
+
   return `
-    <div class="page-enter px-4">
-      <div class="flex items-center gap-3 mb-4 mt-2">
-        <button id="backFromHistoryBtn" type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6"/>
-          </svg>
-        </button>
-        <div class="flex-1 min-w-0">
-          <h2 class="text-xl font-bold text-white tracking-wide">История</h2>
-          <p class="text-[11px] text-white/40">Архив заказов и транзакций</p>
-        </div>
+    <div class="rd-screen page-enter hs">
+      <div class="rd-head">
+        <button id="backFromHistoryBtn" type="button" class="rd-back" aria-label="Назад">${U.icon('chevL', 22)}</button>
+        <div class="rd-head-txt"><h1 class="rd-head-title">История</h1><p class="rd-head-sub">Архив заказов, операции и расчёты</p></div>
       </div>
-      <div class="flex gap-2 mb-5 flex-wrap">
-        <button id="historyTabOrders" class="flex-grow py-2 rounded-xl text-xs font-bold transition-all ${subScreen === 'orders' ? 'btn-primary' : 'glass-card'}" style="${subScreen === 'orders' ? '' : 'border: 1px solid var(--glass-border);'}">
-          📦 Архив
-        </button>
-        <button id="historyTabTx" class="flex-grow py-2 rounded-xl text-xs font-bold transition-all ${subScreen === 'transactions' ? 'btn-primary' : 'glass-card'}" style="${subScreen === 'transactions' ? '' : 'border: 1px solid var(--glass-border);'}">
-          💳 Транзакции
-        </button>
-        <button id="historyTabFamily" class="flex-grow py-2 rounded-xl text-xs font-bold transition-all ${subScreen === 'family' ? 'btn-primary' : 'glass-card'}" style="${subScreen === 'family' ? '' : 'border: 1px solid var(--glass-border);'}">
-          👨‍👩‍👧 Семья
-        </button>
-        <button id="historyTabReviews" class="flex-grow py-2 rounded-xl text-xs font-bold transition-all ${subScreen === 'reviews' ? 'btn-primary' : 'glass-card'}" style="${subScreen === 'reviews' ? '' : 'border: 1px solid var(--glass-border);'}">
-          💬 Отзывы
-        </button>
-        <button id="historyTabLegit" class="flex-grow py-2 rounded-xl text-xs font-bold transition-all ${subScreen === 'legitchecks' ? 'btn-primary' : 'glass-card'}" style="${subScreen === 'legitchecks' ? '' : 'border: 1px solid var(--glass-border);'}">
-          🔍 Легит-чеки
-        </button>
-        <button id="historyTabPromo" class="flex-grow py-2 rounded-xl text-xs font-bold transition-all ${subScreen === 'promotions' ? 'btn-primary' : 'glass-card'}" style="${subScreen === 'promotions' ? '' : 'border: 1px solid var(--glass-border);'}">
-          🎁 Акции
-        </button>
-        <button id="historyTabCalculations" class="flex-grow py-2 rounded-xl text-xs font-bold transition-all ${subScreen === 'calculations' ? 'btn-primary' : 'glass-card'}" style="${subScreen === 'calculations' ? '' : 'border: 1px solid var(--glass-border);'}">
-          📐 Расчеты
-        </button>
+      <div class="rd-chips hs-tabs">
+        ${tabs.map(([id, key, ico, label]) => `<button type="button" id="${id}" class="rd-chip hs-chip ${subScreen === key ? 'on' : ''}">${U.icon(ico, 16)}${label}</button>`).join('')}
       </div>
-      <div id="historyContent">
+      <div id="historyContent" class="hs-content">
         ${content}
       </div>
     </div>
@@ -352,8 +269,10 @@ async function renderHistory() {
 function attachHistoryHandlers() {
   document.getElementById('backFromHistoryBtn')?.addEventListener('click', () => {
     window._historySubScreen = null;
-    switchTab('profile');
+    window.goBackGlobal();
   });
+  // Активная вкладка-чип всегда видна
+  document.querySelector('.hs-chip.on')?.scrollIntoView({ inline: 'center', block: 'nearest' });
   document.getElementById('historyTabTx')?.addEventListener('click', () => {
     window._historySubScreen = 'transactions';
     renderCurrentScreen();
@@ -1648,11 +1567,11 @@ function attachNotificationsPageHandlers() {
 
 window.requireAuth = function(message) {
   tgUtil.popup({
-    title: 'Требуется авторизация',
+    title: 'Войдите в ICE LOGIX',
     message: message || 'Для доступа к этому разделу необходимо войти в систему или зарегистрироваться.',
     buttons: [
-      { id: 'login', type: 'default', text: 'Войти / Зарегистрироваться' },
-      { id: 'cancel', type: 'cancel', text: 'Позже' }
+      { id: 'login', type: 'default', text: 'Войти' },
+      { id: 'cancel', type: 'cancel', text: 'Не сейчас' }
     ]
   }).then((btnId) => {
     if (btnId === 'login') {
@@ -1696,11 +1615,9 @@ function showAuthPage() {
       </button>
       
       <div class="text-center mb-6 mt-2">
-        <div class="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style="background: linear-gradient(135deg, rgba(77, 163, 255,0.2), rgba(77, 163, 255,0.2)); border: 1px solid rgba(77, 163, 255,0.3);">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#4DA3FF;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        </div>
+        <img src="/assets/logo.png" class="auth-logo" alt="ICE LOGIX">
         <h2 class="text-white text-2xl font-bold mb-1">ICE LOGIX</h2>
-        <p class="text-white/50 text-sm" id="authSubtitle">Вход в систему</p>
+        <p class="text-white/50 text-sm" id="authSubtitle">Войдите, чтобы заказывать и следить за посылками</p>
       </div>
 
       <!-- Главные табы: Вход / Регистрация -->

@@ -63,6 +63,8 @@ for path, lines in sorted(added.items()):
         t = text.strip()
         if t.startswith(("//", "*", "/*", "<!--")):
             continue
+        if "design-ok" in text:  # строка помечена вручную: это данные, а не текст интерфейса
+            continue
         if not is_css and ACCENT.search(text):
             errors.append((path, n, "акцентный цвет Tailwind (cyan/purple/pink...): используй rd-* классы или --rd-* переменные", t))
         if not is_css and BYN.search(text) and "price_byn" not in text:

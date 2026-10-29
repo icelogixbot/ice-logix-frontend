@@ -29,24 +29,14 @@ async function renderAcademy() {
 
     if (!courses || courses.length === 0) {
       return `
-        <div class="page-enter px-4 pb-8 max-w-md mx-auto space-y-4">
-          <div class="flex items-center gap-3 mb-2 mt-2">
-            <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="15 18 9 12 15 6"/>
-              </svg>
-            </button>
-            <div class="flex-1 min-w-0">
-              <h2 class="text-xl font-bold text-white tracking-wide">Гайд и обучение</h2>
-              <p class="text-[11px] text-white/40">Академия ICE LOGIX</p>
-            </div>
+        <div class="rd-screen page-enter ac">
+          <div class="rd-head">
+            <button type="button" class="rd-back" onclick="window.goBackGlobal()" aria-label="Назад">${window.UI.icon('chevL', 22)}</button>
+            <div class="rd-head-txt"><h1 class="rd-head-title">Академия</h1><p class="rd-head-sub">Как выгодно покупать в Китае</p></div>
+            ${isOwner ? `<button id="addCourseBtn" type="button" class="rd-back ac-add" aria-label="Добавить курс">${window.UI.icon('plus', 22)}</button>` : ''}
           </div>
-          <div class="text-center py-10">
-            <p class="text-white/70">Курсы пока не добавлены</p>
-            ${isOwner ? '<button id="addCourseBtn" class="btn-primary mt-4 py-2 px-4 rounded-xl text-xs font-bold inline-flex items-center gap-1.5"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить курс</button>' : ''}
-          </div>
+          ${window.UI.empty({ icon: 'cap', title: 'Курсы скоро появятся', text: 'Готовим уроки о том, как выбирать вещи, размеры и площадки.' })}
         </div>
-        ${renderFooter()}
       `;
     }
 
@@ -93,7 +83,7 @@ async function renderAcademy() {
           return `<span class="text-orange-400 text-xs"><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Через ${h}ч</span>`;
         }
       }
-      return '<span class="text-cyan-400 text-xs">▶ Начать</span>';
+      return '<span class="ac-start">Начать</span>';
     };
 
     const lessonAccessible = (lesson, course) => {
@@ -106,71 +96,55 @@ async function renderAcademy() {
       return true;
     };
 
+    const U = window.UI;
     return `
-      <div class="page-enter px-4 pb-8 max-w-md mx-auto space-y-4">
-        <!-- Top Navigation Header -->
-        <div class="flex items-center gap-3 mb-2 mt-2">
-          <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="15 18 9 12 15 6"/>
-            </svg>
-          </button>
-          <div class="flex-1 min-w-0">
-            <h2 class="text-xl font-bold text-white tracking-wide">Гайд и обучение</h2>
-            <p class="text-[11px] text-white/40">Академия ICE LOGIX и курсы по выкупу</p>
+      <div class="rd-screen page-enter ac">
+        <div class="rd-head">
+            <button type="button" class="rd-back" onclick="window.goBackGlobal()" aria-label="Назад">${window.UI.icon('chevL', 22)}</button>
+            <div class="rd-head-txt"><h1 class="rd-head-title">Академия</h1><p class="rd-head-sub">Как выгодно покупать в Китае</p></div>
+            ${isOwner ? `<button id="addCourseBtn" type="button" class="rd-back ac-add" aria-label="Добавить курс">${window.UI.icon('plus', 22)}</button>` : ''}
           </div>
-          ${isOwner ? '<button id="addCourseBtn" class="btn-primary py-1.5 px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 flex-shrink-0"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить курс</button>' : ''}
-        </div>
-        <div class="space-y-4">
-        ${coursesWithLessons.map(course => `
-          <div class="course-card glass-card" data-course-id="${course.id}" data-is-purchased="${course.isPurchased}" data-price-ice="${course.price_ice}">
-            <div class="flex justify-between items-start">
-              <div class="flex-1">
-                <h3 class="text-white font-bold text-lg">${course.title}</h3>
-                <p class="text-white/60 text-sm mt-0.5">${course.description || ''}</p>
-                <div class="mt-2 flex items-center gap-2">
-                  <div class="btn-secondary flex-1 h-1.5 overflow-hidden">
-                    <div class="h-full bg-cyan-400 rounded-full" style="width:${course.progress}%"></div>
-                  </div>
-                  <span class="text-white/50 text-xs flex-shrink-0">${course.progress}% · ${course.lessons.filter(l => userProgress[l.id]).length}/${course.lessons.length}</span>
-                </div>
+        <div class="ac-list">
+        ${coursesWithLessons.map(course => {
+          const done = course.lessons.filter(l => userProgress[l.id]).length;
+          return `
+          <div class="course-card ac-card" data-course-id="${course.id}" data-is-purchased="${course.isPurchased}" data-price-ice="${course.price_ice}">
+            <div class="ac-top">
+              <span class="ac-ico">${U.icon(course.allCompleted ? 'crown' : 'cap', 24)}</span>
+              <div class="ac-info">
+                <h3>${U.esc(course.title)}</h3>
+                ${course.description ? `<p>${U.esc(course.description)}</p>` : ''}
               </div>
-              <div class="ml-3 text-right flex-shrink-0">
-                <span class="text-cyan-400 font-bold text-sm inline-flex items-baseline gap-1">${course.price_ice > 0 ? `${course.price_ice} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}` : 'Бесплатно'}</span>
-                ${course.isPurchased && course.price_ice > 0 ? '<p class="text-green-400 text-xs mt-1"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Куплено</p>' : ''}
-              </div>
+              <span class="ac-price ${course.price_ice > 0 ? '' : 'free'}">${course.price_ice > 0 ? (course.isPurchased ? 'Куплен' : U.money(course.price_ice)) : 'Бесплатно'}</span>
             </div>
-            ${!course.isPurchased && course.price_ice > 0 ? `<button class="buyCourseBtn mt-3 w-full bg-gradient-to-r from-cyan-500 to-blue-500 py-2.5 rounded-xl font-bold text-sm inline-flex items-center justify-center gap-1.5" data-course-id="${course.id}" data-price="${course.price_ice}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span> Купить за ${course.price_ice} ${window.bynSign ? window.bynSign({ color: 'white', size: '0.85em' }) : ''}</button>` : ''}
-            ${course.allCompleted && course.lessons.length > 0 ? `<button class="getCertBtn mt-2 w-full bg-gradient-to-r from-yellow-400 to-orange-500 py-2.5 rounded-xl font-bold text-sm text-slate-900" data-course-id="${course.id}" data-title="${course.title.replace(/"/g,'&quot;')}"><span class="ix ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16M10 14.66V17c0 .55-.47 1-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47 1 .97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></span> Получить сертификат</button>` : ''}
-            <div class="lessons-container hidden mt-3 space-y-1.5" data-course="${course.id}" data-loaded="true">
+            <div class="ac-prog">
+              <div class="ac-track"><div class="h-full ac-fill" style="width:${course.progress}%"></div></div>
+              <span class="ac-pct">${course.progress}% · ${done}/${course.lessons.length}</span>
+            </div>
+            <div class="ac-more">${U.icon('book', 15)}${course.lessons.length} ${course.lessons.length % 10 === 1 && course.lessons.length % 100 !== 11 ? 'урок' : (course.lessons.length % 10 >= 2 && course.lessons.length % 10 <= 4 && (course.lessons.length % 100 < 10 || course.lessons.length % 100 >= 20)) ? 'урока' : 'уроков'}<span>Открыть уроки${U.icon('chevD', 15)}</span></div>
+            ${!course.isPurchased && course.price_ice > 0 ? `<button type="button" class="buyCourseBtn rd-btn rd-btn-block" data-course-id="${course.id}" data-price="${course.price_ice}">${U.icon('bag', 18)}Купить за ${U.money(course.price_ice)}</button>` : ''}
+            ${course.allCompleted && course.lessons.length > 0 ? `<button type="button" class="getCertBtn rd-btn rd-btn-block ac-cert" data-course-id="${course.id}" data-title="${course.title.replace(/"/g, '&quot;')}">${U.icon('crown', 18)}Получить сертификат</button>` : ''}
+            <div class="lessons-container hidden ac-lessons" data-course="${course.id}" data-loaded="true">
               ${course.lessons.length === 0
-                ? '<p class="text-white/40 text-sm text-center py-3">В этом курсе пока нет уроков</p>'
+                ? '<p class="ac-none">В этом курсе пока нет уроков</p>'
                 : course.lessons.map(lesson => {
                     const accessible = lessonAccessible(lesson, course);
                     const typeLabel = { video: 'Видео', quiz: 'Тест', file: 'Файл', text: 'Текст' }[lesson.content_type] || 'Текст';
-                    return `<div class="lesson-item bg-white/5 rounded-xl p-3 transition ${accessible ? 'cursor-pointer hover:bg-white/10' : 'opacity-50'}" data-lesson-id="${lesson.id}" data-course-id="${course.id}" data-accessible="${accessible}">
-                      <div class="flex justify-between items-center gap-2">
-                        <div class="flex items-center gap-2 flex-1 min-w-0">
-                          <span class="text-lg flex-shrink-0">${ctIcon(lesson.content_type || 'text')}</span>
-                          <div class="min-w-0">
-                            <p class="text-white text-sm font-medium truncate">${lesson.title || 'Без названия'}</p>
-                            <p class="text-white/40 text-xs">${typeLabel}</p>
-                          </div>
-                        </div>
-                        ${lessonStatus(lesson, course)}
-                      </div>
+                    return `<div class="lesson-item ac-lesson ${accessible ? '' : 'locked'}" data-lesson-id="${lesson.id}" data-course-id="${course.id}" data-accessible="${accessible}">
+                      <span class="ac-l-ico">${ctIcon(lesson.content_type || 'text')}</span>
+                      <div class="ac-l-body"><p>${U.esc(lesson.title || 'Без названия')}</p><span>${typeLabel}</span></div>
+                      ${lessonStatus(lesson, course)}
                     </div>`;
                   }).join('')}
             </div>
-          </div>
-        `).join('')}
+          </div>`;
+        }).join('')}
+        </div>
       </div>
-      </div>
-      ${renderFooter()}
     `;
   } catch (err) {
     console.error('renderAcademy:', err);
-    return '<p class="text-center mt-10 text-red-400">Ошибка загрузки курсов</p>';
+    return `<div class="rd-screen page-enter">${window.UI.empty({ icon: 'alert', title: 'Не удалось загрузить курсы', text: 'Проверьте интернет и попробуйте ещё раз.', action: 'Повторить', onclick: 'renderCurrentScreen()' })}</div>`;
   }
 }
 
@@ -198,14 +172,14 @@ async function renderAcademy() {
           const pct = total > 0 ? Math.round(done / total * 100) : 0;
           const card = document.querySelector(`[data-course-id="${courseId}"]`);
           if (card) {
-            const bar = card.querySelector('.h-full.bg-cyan-400');
+            const bar = card.querySelector('.ac-fill');
             if (bar) bar.style.width = pct + '%';
-            const pctTxt = card.querySelector('.text-white\\/50.text-xs.flex-shrink-0');
+            const pctTxt = card.querySelector('.ac-pct');
             if (pctTxt) pctTxt.textContent = `${pct}% · ${done}/${total}`;
             if (done === total && total > 0 && !card.querySelector('.getCertBtn')) {
               const title = card.querySelector('h3')?.textContent || '';
               const certBtn = document.createElement('button');
-              certBtn.className = 'getCertBtn mt-2 w-full bg-gradient-to-r from-yellow-400 to-orange-500 py-2.5 rounded-xl font-bold text-sm text-slate-900';
+              certBtn.className = 'getCertBtn rd-btn rd-btn-block ac-cert';
               certBtn.dataset.courseId = courseId;
               certBtn.dataset.title = title;
               certBtn.innerHTML = '<span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Получить статус "Проверенный партнер"';
@@ -761,73 +735,29 @@ async function renderAcademy() {
     }
 
     async function renderWishlist() {
-  if (!userId) return `<p class="text-center mt-10 text-white/70">Авторизуйтесь</p>${typeof renderFooter === 'function' ? renderFooter() : ''}`;
+  const U = window.UI;
+  const head = (count) => U.screenHead({ title: 'Избранное', sub: count ? `Сохранено товаров: ${count}` : 'Сохранённые товары' });
+  if (!userId) {
+    return `<div class="rd-screen page-enter">${head(0)}${U.empty({ icon: 'heart', title: 'Войдите, чтобы сохранять', text: 'Отмечайте понравившиеся вещи сердечком, и они будут ждать вас здесь.', action: 'Войти', onclick: "window.requireAuth()" })}</div>`;
+  }
   try {
     const { data: wishlistItems, error } = await supabaseClient.from('wishlist').select('product_id, products(*)').eq('user_id', userId);
     if (error) throw error;
-    if (!wishlistItems || wishlistItems.length === 0) {
-      return `
-        <div class="page-enter px-4 pb-8 max-w-md mx-auto space-y-4">
-          <div class="flex items-center gap-3 mb-2 mt-2">
-            <button id="backFromWishlistBtn" type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="15 18 9 12 15 6"/>
-              </svg>
-            </button>
-            <div class="flex-1 min-w-0">
-              <h2 class="text-xl font-bold text-white tracking-wide">Избранное</h2>
-              <p class="text-[11px] text-white/40">Сохранённые товары</p>
-            </div>
-          </div>
-          <div class="text-center py-10"><p class="text-white/70">У вас пока нет избранных товаров</p></div>
-        </div>
-        ${renderFooter()}
-      `;
+    const items = (wishlistItems || []).map((it) => it.products).filter(Boolean);
+    if (!items.length) {
+      return `<div class="rd-screen page-enter">${head(0)}${U.empty({ icon: 'heart', title: 'В избранном пока пусто', text: 'Нажмите на сердечко на карточке товара, чтобы сохранить его сюда.', action: 'Смотреть подборки', onclick: "window.switchTab('home')" })}</div>`;
     }
+    const list = preprocessProducts(items);
     return `
-      <div class="page-enter px-4 pb-8 max-w-md mx-auto space-y-4">
-        <div class="flex items-center gap-3 mb-2 mt-2">
-          <button id="backFromWishlistBtn" type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="15 18 9 12 15 6"/>
-            </svg>
-          </button>
-          <div class="flex-1 min-w-0">
-            <h2 class="text-xl font-bold text-white tracking-wide">Избранное</h2>
-            <p class="text-[11px] text-white/40">Сохранённые товары (${wishlistItems.length})</p>
-          </div>
+      <div class="rd-screen page-enter">
+        ${head(list.length)}
+        <div class="hm-grid" id="wishlistProductsGrid">
+          ${list.map((p) => U.productCard(p, true)).join('')}
         </div>
-        <div class="grid grid-cols-2 gap-2" id="wishlistProductsGrid" style="margin-left: -6px; margin-right: -6px;">
-        ${wishlistItems.map(item => {
-          let p = item.products;
-          if (!p) return '';
-          p = preprocessProducts([p])[0];
-          return `
-            <div class="product-card" data-product-id="${p.id}">
-              <div class="relative">
-                ${renderCardMedia(p.image_urls || p.image_url, p.title)}
-                <span class="absolute top-2 right-2 wishlist-heart text-lg text-red-500 z-20" data-product-id="${p.id}">${getHeartIcon(true)}</span>
-                ${p.brand ? `<span class="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-white/90 text-[10px] font-bold px-2 py-0.5 rounded-md border border-white/10 uppercase tracking-wider">${_esc(p.brand)}</span>` : ''}
-              </div>
-              <div style="padding: 10px 8px 10px 8px; display: flex; flex-direction: column; flex: 1;">
-                <p class="text-white font-bold text-sm truncate" style="font-size: 13px; font-weight: 700; line-height: 1.2;">${_esc(p.title)}</p>
-                <div class="flex items-center justify-between mt-1.5">
-                  <p class="text-cyan-400 font-bold text-sm font-mono leading-none inline-flex items-center gap-1">${p.price} ${window.bynSign ? window.bynSign() : ''}</p>
-                  ${p.category ? `<span class="text-[10px] text-white/40 truncate max-w-[80px]">${_esc(p.category)}</span>` : ''}
-                </div>
-                <div class="flex gap-1.5 mt-2.5">
-                  <button class="btn-primary addToCartBtn flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg" data-product-id="${p.id}">Корзина</button>
-                  <button class="buyNowBtn flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg" data-url="${p.url || ''}" data-price="${p.price}">Заказать</button>
-                </div>
-              </div>
-            </div>
-          `;
-        }).join('')}
-      </div>
-      </div>
-      ${renderFooter()}
-    `;
-  } catch (err) { return `<p class="text-center mt-10 text-red-400">Ошибка загрузки избранного</p>${typeof renderFooter === 'function' ? renderFooter() : ''}`; }
+      </div>`;
+  } catch (err) {
+    return `<div class="rd-screen page-enter">${head(0)}${U.empty({ icon: 'alert', title: 'Не удалось загрузить', text: 'Проверьте интернет и попробуйте ещё раз.', action: 'Повторить', onclick: 'renderCurrentScreen()' })}</div>`;
+  }
 }
 
 function attachWishlistHandlers() {
@@ -863,10 +793,12 @@ function attachWishlistHandlers() {
 
   // Внутри loadHomeProducts, после grid.innerHTML = ...
 document.querySelectorAll('.addToCartBtn').forEach(btn => {
-  btn.onclick = (e) => {
+  btn.onclick = async (e) => {
     e.stopPropagation();
     const productId = btn.dataset.productId;
-    if (productId) addToCart(productId);
+    if (!productId) return;
+    await addToCart(productId, 1, true);
+    if (window.UI) window.UI.toast('Добавлено в корзину');
   };
 });
 

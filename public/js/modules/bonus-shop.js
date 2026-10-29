@@ -10,33 +10,25 @@
 
   function formatRewardText(text) {
     if (!text) return '';
-    const signHtml = window.bynSign ? window.bynSign({ color: 'cyan', size: '0.82em' }) : '';
+    const signHtml = window.bynSign ? window.bynSign({ size: '0.82em' }) : '';
     // Single-pass replacement prevents re-scanning and corrupting the inserted SVG markup
     return String(text).replace(/(\d+(?:\.\d+)?)\s*(?:BYN|ICE)\b|\bBYN\b|\bICE\b(?!\s*LOGIX\b)/gi, (match, num) => {
       if (num) {
-        return `${num}&nbsp;${signHtml}`;
+        return `<span style="white-space:nowrap">${num}&nbsp;${signHtml}</span>`;
       }
       return signHtml;
     });
   }
 
-  function getCategoryIconEmoji(cat) {
-    switch (cat) {
-      case 'coupons': return '🎟️';
-      case 'mobile': return '📱';
-      case 'merch': return '👕';
-      case 'gadgets': return '🎧';
-      default: return '🎁';
-    }
-  }
+  const CAT_ICON = { coupons: 'tag', mobile: 'phone', merch: 'bag', gadgets: 'zap' };
 
   function renderRewardIcon(item) {
     const hasCustomImg = item.image_url && !item.image_url.includes('icl_currency_icon') && !item.image_url.includes('coupon_10byn') && (item.image_url.startsWith('http') || item.image_url.startsWith('/'));
-    const emoji = getCategoryIconEmoji(item.category);
+    const ico = window.UI.icon(CAT_ICON[item.category] || 'gift', 30);
     if (hasCustomImg) {
-      return `<img src="${item.image_url}" alt="${item.title}" class="w-full h-full object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="w-full h-full rounded-xl flex items-center justify-center text-2xl select-none" style="display:none;">${emoji}</div>`;
+      return `<img src="${item.image_url}" alt="" onerror="this.remove()"><span class="bs-ico">${ico}</span>`;
     }
-    return `<div class="w-full h-full rounded-xl flex items-center justify-center text-2xl select-none">${emoji}</div>`;
+    return `<span class="bs-ico">${ico}</span>`;
   }
 
   // Fallback стартовые товары (если база ещё наполняется)
@@ -216,12 +208,13 @@
     const items = await loadBonusItems();
     const userBalance = Number(window.balance || window.icesBalance || 0);
 
+    const U = window.UI;
     const categories = [
-      { id: 'all', label: 'Все награды', icon: '✨' },
-      { id: 'coupons', label: 'Купоны и скидки', icon: '🎟️' },
-      { id: 'mobile', label: 'Баланс связи', icon: '📱' },
-      { id: 'merch', label: 'Мерч ICE LOGIX', icon: '👕' },
-      { id: 'gadgets', label: 'Гаджеты и уход', icon: '🎧' }
+      { id: 'all', label: 'Все', icon: 'sparkles' },
+      { id: 'coupons', label: 'Купоны', icon: 'tag' },
+      { id: 'mobile', label: 'Связь', icon: 'phone' },
+      { id: 'merch', label: 'Мерч', icon: 'bag' },
+      { id: 'gadgets', label: 'Уход и гаджеты', icon: 'zap' }
     ];
 
     const filteredItems = currentCategory === 'all'
@@ -229,49 +222,24 @@
       : items.filter(it => it.category === currentCategory);
 
     const itemsHtml = filteredItems.length === 0
-      ? `<div class="p-8 text-center glass-card"><p class="text-white/60 text-sm">В этой категории пока нет наград</p></div>`
+      ? `<div class="bs-empty">${U.empty({ icon: 'gift', title: 'Здесь пока пусто', text: 'В этой категории наград пока нет.' })}</div>`
       : filteredItems.map(item => {
           const canAfford = userBalance >= item.price_ice;
           const isOutOfStock = item.stock === 0;
           return `
-            <div class="glass-card flex flex-col justify-between p-3.5 relative overflow-hidden transition-all duration-300 hover:border-cyan-500/40" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
-              ${item.badge ? `
-                <div class="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full text-[10px] font-black tracking-wide" style="background: linear-gradient(135deg, rgba(77, 163, 255,0.3), rgba(77, 163, 255,0.3)); border: 1px solid rgba(77, 163, 255,0.5); color: #8CC6FF;">
-                  ${item.badge}
-                </div>
-              ` : ''}
-              
-              <div class="flex items-start gap-3 mb-3">
-                <div class="w-14 h-14 rounded-xl flex items-center justify-center shrink-0 p-2" style="background: linear-gradient(135deg, rgba(77, 163, 255,0.15), rgba(77, 163, 255,0.05)); border: 1px solid rgba(77, 163, 255,0.2);">
-                  ${renderRewardIcon(item)}
-                </div>
-                <div class="flex-1 min-w-0 pr-12">
-                  <h4 class="text-white font-bold text-sm leading-snug line-clamp-2">${formatRewardText(item.title)}</h4>
-                  <p class="text-white/50 text-[11px] mt-1 line-clamp-2 leading-relaxed">${formatRewardText(item.description)}</p>
-                </div>
+            <div class="bs-item">
+              <div class="bs-media c-${item.category || 'all'}">
+                ${renderRewardIcon(item)}
+                ${item.badge ? `<span class="bs-badge">${U.esc(item.badge)}</span>` : ''}
               </div>
-
-              <div class="pt-2 border-t border-white/5 flex items-center justify-between gap-2">
-                <div>
-                  <div class="flex items-center gap-1">
-                    <span class="text-cyan-400 font-black text-base">${item.price_ice}</span>
-                    ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}
-                  </div>
-                  ${item.stock > 0 ? `<p class="text-[10px] text-white/40">Осталось: ${item.stock} шт.</p>` : ''}
-                </div>
-
-                <button 
-                  class="btn-redeem-item px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${
-                    isOutOfStock 
-                      ? 'bg-white/10 text-white/30 cursor-not-allowed'
-                      : canAfford 
-                        ? 'btn-primary shadow-[0_0_12px_rgba(77, 163, 255,0.4)]' 
-                        : 'bg-white/10 text-white/50 hover:bg-white/15'
-                  }"
-                  data-item-id="${item.id}"
-                  ${isOutOfStock ? 'disabled' : ''}
-                >
-                  ${isOutOfStock ? 'Закончился' : canAfford ? 'Забрать' : `Нужно ещё ${(item.price_ice - userBalance).toFixed(0)}`}
+              <div class="bs-body">
+                <h4>${formatRewardText(item.title)}</h4>
+                <p>${formatRewardText(item.description)}</p>
+              </div>
+              <div class="bs-foot">
+                <div class="bs-price">${U.money(item.price_ice)}${item.stock > 0 ? `<small>осталось ${item.stock}</small>` : ''}</div>
+                <button type="button" class="btn-redeem-item bs-get ${isOutOfStock ? 'off' : canAfford ? 'can' : 'need'}" data-item-id="${item.id}" ${isOutOfStock ? 'disabled' : ''}>
+                  ${isOutOfStock ? 'Нет в наличии' : canAfford ? 'Забрать' : `Ещё ${(item.price_ice - userBalance).toFixed(0)}`}
                 </button>
               </div>
             </div>
@@ -279,68 +247,29 @@
         }).join('');
 
     return `
-      <!-- Стандартная кнопка возврата -->
-      <div class="flex items-center gap-3 mb-4 mt-2">
-        <button id="bonusShopBackBtn" type="button" class="global-back-btn !mb-0" title="Назад">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6"/>
-          </svg>
-        </button>
-        <div>
-          <h2 class="text-xl font-bold text-white tracking-wide">Магазин бонусов</h2>
-          <p class="text-[11px] text-white/40">Обменивайте баллы на реальные награды</p>
-        </div>
+      <div class="rd-screen page-enter bs">
+      <div class="rd-head">
+        <button id="bonusShopBackBtn" type="button" class="rd-back" aria-label="Назад">${U.icon('chevL', 22)}</button>
+        <div class="rd-head-txt"><h1 class="rd-head-title">Магазин бонусов</h1><p class="rd-head-sub">Меняйте баллы на скидки и подарки</p></div>
+        <button id="bonusHistoryBtn" type="button" class="rd-back" aria-label="Мои награды">${U.icon('history', 21)}</button>
       </div>
 
-      <!-- Главный баннер магазина бонусов -->
-      <div class="relative overflow-hidden p-4 mb-4 rounded-2xl" style="background: linear-gradient(135deg, rgba(77, 163, 255,0.18), rgba(77, 163, 255,0.12)); border: 1px solid rgba(77, 163, 255,0.35);">
-        <div class="flex items-center justify-between mb-3">
-          <div>
-            <div class="flex items-center gap-1.5">
-              <span class="text-xl">🎁</span>
-              <h2 class="text-lg font-black text-white">Магазин бонусов</h2>
-            </div>
-            <p class="text-white/60 text-xs mt-0.5">Обменивайте баллы за заказы и рефералов на реальные награды</p>
-          </div>
-          <button id="bonusHistoryBtn" class="px-3 py-1.5 rounded-xl text-[11px] font-bold text-white/80 border border-white/10 hover:bg-white/10 transition-all flex items-center gap-1.5">
-            <span>📦</span> Мои награды
-          </button>
+      <div class="bs-hero">
+        <div class="bs-hero-l">
+          <span>Ваши баллы</span>
+          <b><span id="bonusShopUserBal">${userBalance.toFixed(2)}</span>${window.bynSign ? window.bynSign({ size: '0.8em' }) : ''}</b>
+          <button type="button" class="bs-more" onclick="switchTab('referral')">Как накопить больше${U.icon('chevR', 15)}</button>
         </div>
-
-        <!-- Виджет баланса и кнопка перехода в рефералку -->
-        <div class="p-3 rounded-xl flex items-center justify-between" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06);">
-          <div>
-            <p class="text-[10px] uppercase font-bold tracking-wider text-white/50">Ваш баланс</p>
-            <div class="flex items-center gap-1.5 mt-0.5">
-              <span class="text-2xl font-black text-cyan-400" id="bonusShopUserBal">${userBalance.toFixed(2)}</span>
-              ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}
-            </div>
-          </div>
-          <button onclick="switchTab('reftree')" class="px-3 py-2 rounded-xl text-xs font-bold text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/10 transition-all flex items-center gap-1.5">
-            <span>🌳</span> Как накопить больше?
-          </button>
-        </div>
+        <div class="bs-hero-art" aria-hidden="true"><span class="g1">${U.icon('gift', 38)}</span><span class="g2">${U.icon('star', 18)}</span><span class="g3">${U.icon('sparkles', 16)}</span></div>
       </div>
 
-      <!-- Фильтры категорий -->
-      <div class="flex gap-2 overflow-x-auto pb-2 mb-3 scrollbar-none">
-        ${categories.map(c => `
-          <button 
-            class="bonus-category-chip px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 flex items-center gap-1.5 ${
-              currentCategory === c.id 
-                ? 'bg-cyan-500 text-black shadow-[0_0_12px_rgba(77, 163, 255,0.4)]' 
-                : 'bg-white/5 text-white/70 hover:bg-white/10 border border-white/5'
-            }"
-            data-category="${c.id}"
-          >
-            <span>${c.icon}</span> ${c.label}
-          </button>
-        `).join('')}
+      <div class="rd-chips bs-chips">
+        ${categories.map(c => `<button type="button" class="bonus-category-chip rd-chip ${currentCategory === c.id ? 'on' : ''}" data-category="${c.id}">${U.icon(c.icon, 15)}${c.label}</button>`).join('')}
       </div>
 
-      <!-- Список товаров -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6" id="bonusItemsGrid">
+      <div class="bs-grid" id="bonusItemsGrid">
         ${itemsHtml}
+      </div>
       </div>
 
       <!-- Модальное окно оформления обмена (скрыто по умолчанию) -->
@@ -349,7 +278,7 @@
           <button id="closeBonusRedeemModal" class="absolute top-4 right-4 text-white/60 hover:text-white text-lg font-bold">&times;</button>
           
           <div class="text-center mb-4">
-            <span class="text-3xl">🎉</span>
+            <span class="bs-modal-ico">${U.icon('gift', 28)}</span>
             <h3 class="text-white font-bold text-base mt-1" id="modalItemTitle">Обмен наград</h3>
             <p class="text-cyan-400 font-black text-sm mt-0.5 inline-flex items-center justify-center gap-1" id="modalItemPrice">0</p>
           </div>
@@ -382,7 +311,7 @@
               </div>
               <label class="text-white/70 text-xs font-bold block">Способ получения:</label>
               <select id="physicalDeliverySelect" class="btn-secondary w-full p-2.5 rounded-xl text-xs text-white">
-                <option value="SELF_PICKUP">Самовывоз (Несвиж Hub, 0 руб.)</option>
+                <option value="SELF_PICKUP">Самовывоз в Несвиже, бесплатно</option>
                 <option value="EVROPOCHTA">Европочта до ПВЗ</option>
                 <option value="CDEK">СДЭК по Беларуси</option>
               </select>
@@ -412,7 +341,7 @@
       <div id="bonusHistoryModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
         <div class="glass-card w-full max-w-md p-5 rounded-2xl border border-white/10 relative max-h-[80vh] flex flex-col" style="background: #111827;">
           <div class="flex items-center justify-between pb-3 border-b border-white/10">
-            <h3 class="text-white font-bold text-sm flex items-center gap-2"><span>📦</span> Мои полученные награды</h3>
+            <h3 class="text-white font-bold text-base flex items-center gap-2">${U.icon('history', 18)} Мои награды</h3>
             <button id="closeBonusHistoryModal" class="text-white/60 hover:text-white text-lg font-bold">&times;</button>
           </div>
           <div class="overflow-y-auto flex-1 py-3 space-y-2" id="bonusHistoryList">
@@ -421,7 +350,6 @@
         </div>
       </div>
 
-      ${typeof renderFooter === 'function' ? renderFooter() : ''}
     `;
   }
 
@@ -429,7 +357,7 @@
     const backBtn = document.getElementById('bonusShopBackBtn');
     if (backBtn) {
       backBtn.onclick = () => {
-        if (typeof window.switchTab === 'function') window.switchTab('profile');
+        if (typeof window.goBackGlobal === 'function') window.goBackGlobal(); else if (typeof window.switchTab === 'function') window.switchTab('profile');
       };
     }
 
@@ -451,7 +379,7 @@
         const userBalance = Number(window.balance || window.icesBalance || 0);
         if (userBalance < item.price_ice) {
           if (typeof tgUtil !== 'undefined' && tgUtil.popup) {
-            tgUtil.popup(`Для получения этой награды необходимо ${item.price_ice}. На вашем балансе сейчас ${userBalance.toFixed(2)}. Приглашайте друзей, чтобы накопить средства!`, 'Недостаточно средств');
+            tgUtil.popup(`Награда стоит ${item.price_ice}, а у вас ${userBalance.toFixed(2)}. Приглашайте друзей, чтобы накопить быстрее.`, 'Пока не хватает баллов');
           } else {
             alert(`Недостаточно средств на балансе (${userBalance.toFixed(2)} из ${item.price_ice})`);
           }
@@ -472,7 +400,7 @@
         const listEl = document.getElementById('bonusHistoryList');
         const orders = await loadUserBonusOrders();
         if (!orders || orders.length === 0) {
-          listEl.innerHTML = '<p class="text-white/50 text-xs text-center py-6">Вы ещё не обменивали баллы на награды</p>';
+          listEl.innerHTML = window.UI.empty({ icon: 'gift', title: 'Наград пока нет', text: 'Выберите подарок в магазине, и он появится здесь.' });
           return;
         }
         const statusMap = {

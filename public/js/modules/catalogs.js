@@ -133,6 +133,40 @@ const DEFAULT_CHINESE_MARKETPLACES = [
 ];
 
 // ==================== РЕНДЕР ПОДКАТАЛОГА ПЛОЩАДОК ====================
+// Карточка площадки (новый дизайн): одна для первого показа и для фильтров
+function _mpCard(mp) {
+  const U = window.UI;
+  const name = (mp.name || '').toLowerCase();
+  const tags = [];
+  if (mp.requires_vpn || name.includes('poizon') || name.includes('dewu')) tags.push('<span class="rd-status ok">Оригиналы</span>');
+  if (name.includes('taobao')) tags.push('<span class="rd-status">Гипермаркет</span>');
+  if (name.includes('pinduoduo') || name.includes('пиндуодуо')) tags.push('<span class="rd-status">Совместные покупки</span>');
+  if (name.includes('goofish') || name === '95' || name.includes('95fen')) tags.push('<span class="rd-status">Ресейл</span>');
+  if (name.includes('tmall') || name.includes('jd')) tags.push('<span class="rd-status">Официальные бренды</span>');
+  (mp.categories || []).slice(0, 2).forEach((c) => tags.push(`<span class="rd-status mp-cat">${U.esc(c)}</span>`));
+  const url = (mp.website_url || mp.url || '').replace(/'/g, '%27');
+  return `
+    <div class="mp-card page-enter">
+      <div class="mp-top">
+        <span class="mp-logo">${mp.logo_url ? `<img src="${mp.logo_url}?v=20261014_55" alt="" loading="lazy" onerror="this.style.display='none'">` : U.icon('store', 26)}</span>
+        <div class="mp-info">
+          <div class="mp-name">${U.esc(mp.name === '95' ? '95fen' : mp.name)}${mp.requires_vpn ? '<span class="rd-status warn">VPN</span>' : ''}</div>
+          <p class="mp-desc">${U.esc(mp.description || '')}</p>
+        </div>
+      </div>
+      ${tags.length ? `<div class="mp-tags">${tags.join('')}</div>` : ''}
+      <div class="mp-actions">
+        <button type="button" class="rd-btn rd-btn-sm" onclick="event.stopPropagation(); tgUtil.openLink('${url}')">Открыть площадку${U.icon('external', 16)}</button>
+        <button type="button" class="rd-btn rd-btn-sm rd-btn-ghost instruction-btn"
+          data-name="${(mp.name || '').replace(/"/g, '&quot;')}"
+          data-instruction="${(mp.instruction || '').replace(/"/g, '&quot;')}"
+          data-instruction-images='${JSON.stringify(mp.instruction_images || [])}'
+          data-requires-vpn="${mp.requires_vpn}">${U.icon('book', 16)}Как заказать</button>
+      </div>
+    </div>`;
+}
+window._mpCard = _mpCard;
+
 async function renderMarketplaces() {
   try {
     const allowedSlugs = ['dewu', 'poizon', 'taobao', 'pinduoduo', 'пиндуодуо', 'goofish', 'xianyu', 'сяньюй', '95', '95fen', 'jd', 'tmall'];
@@ -172,55 +206,16 @@ async function renderMarketplaces() {
     const allCategories = allowedCategories.filter(cat => data.some(mp => mp.categories && mp.categories.includes(cat)));
     
     return `
-      <div class="flex items-center justify-between mb-4 mt-2">
-        <div class="flex items-center gap-3">
-          <button id="backFromMarketplacesBtn" type="button" class="global-back-btn !mb-0" title="Назад">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="15 18 9 12 15 6"/>
-            </svg>
-          </button>
-          <div class="min-w-0">
-            <h2 class="text-xl font-bold text-white tracking-wide">Маркетплейсы</h2>
-            <p class="text-[11px] text-white/40">Площадки Китая</p>
-          </div>
+      <div class="rd-screen page-enter">
+        <div class="rd-head">
+          <button type="button" id="backFromMarketplacesBtn" class="rd-back" aria-label="Назад">${window.UI.icon('chevL', 22)}</button>
+          <div class="rd-head-txt"><h1 class="rd-head-title">Площадки</h1><p class="rd-head-sub">Где покупать в Китае и как заказать</p></div>
+          <button type="button" id="openMarketplaceFiltersBtn" class="rd-btn rd-btn-sm rd-btn-ghost mp-filter-btn">${window.UI.icon('filter', 16)}Фильтр<span id="activeFiltersBadge" class="hidden rd-badge">0</span></button>
         </div>
-        <button id="openMarketplaceFiltersBtn" class="btn-secondary py-1.5 px-4 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-white/20">
-          <span class="ix" style="width: 14px; height: 14px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></span> Фильтр
-          <span id="activeFiltersBadge" class="hidden bg-cyan-500 text-white text-[9.5px] w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold ml-1">0</span>
-        </button>
+        <div class="mp-list" id="marketplacesGrid">
+          ${data.map(_mpCard).join('')}
+        </div>
       </div>
-      
-      <div class="flex flex-col gap-3" id="marketplacesGrid">
-        ${data.map(mp => {
-          let tagsHtml = '';
-          const name = (mp.name || '').toLowerCase();
-          if (mp.requires_vpn || name.includes('poizon') || name.includes('dewu')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">100% Оригинал</span>';
-          if (name.includes('taobao')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">Гипермаркет</span>';
-          if (name.includes('pinduoduo') || name.includes('пиндуодуо')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">Совместный выкуп</span>';
-          if (name.includes('goofish') || name === '95' || name.includes('95fen')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">Ресейл</span>';
-          if (name.includes('tmall') || name.includes('jd')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Официальные магазины</span>';
-          return `
-          <div class="glass-card flex gap-3 p-3 items-center page-enter">
-            <div class="relative flex items-center justify-center flex-shrink-0" style="width: 58px; height: 58px;">
-              ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261014_55" class="w-full h-full object-contain cursor-pointer transition-transform duration-200 active:scale-95" style="border-radius: 13px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.4));" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" onclick="event.stopPropagation(); tgUtil.openLink('${mp.website_url || mp.url}')">` : ''}
-              <span style="${mp.logo_url ? 'display:none;' : ''}" class="text-3xl flex items-center justify-center"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span></span>
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 flex-wrap">
-                <h3 class="font-bold text-white text-sm truncate">${mp.name}</h3>
-                <span class="text-[9px] text-white/50 bg-white/5 px-1.5 py-0.2 rounded-full border border-white/5">${mp.country || 'Китай'}</span>
-              </div>
-              <p class="text-white/60 text-[11px] mt-1 line-clamp-1 leading-tight">${mp.description || ''}</p>
-              <div class="flex flex-wrap gap-1 mt-1.5 items-center">
-                ${tagsHtml}
-                ${mp.categories?.slice(0, 2).map(cat => `<span class="text-white/40 text-[9px] bg-white/5 px-1.5 py-0.5 rounded border border-white/5">${cat}</span>`).join('') || ''}
-              </div>
-            </div>
-          </div>`;
-        }).join('')}
-      </div>
-      
-      ${renderFooter()}
     `;
   } catch (err) {
     console.error(err);
@@ -399,53 +394,11 @@ function attachMarketplacesHandlers() {
     if (!grid) return;
     
     if (filtered.length === 0) {
-      grid.innerHTML = '<p class="text-white/70 text-center py-10">Нет площадок, соответствующих фильтрам</p>';
+      grid.innerHTML = window.UI.empty({ icon: 'filter', title: 'Ничего не нашлось', text: 'Попробуйте снять часть фильтров.' });
       return;
     }
     
-    grid.innerHTML = filtered.map(mp => {
-      let tagsHtml = '';
-      const name = (mp.name || '').toLowerCase();
-      if (mp.requires_vpn || name.includes('poizon') || name.includes('dewu')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">100% Оригинал</span>';
-      if (name.includes('taobao')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">Гипермаркет</span>';
-      if (name.includes('pinduoduo') || name.includes('пиндуодуо')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">Совместный выкуп</span>';
-      if (name.includes('goofish') || name === '95' || name.includes('95fen')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">Ресейл</span>';
-      if (name.includes('tmall') || name.includes('jd')) tagsHtml += '<span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Официальные магазины</span>';
-      
-      return `
-      <div class="glass-card flex gap-3 p-3 items-center page-enter">
-        <div class="relative flex items-center justify-center flex-shrink-0" style="width: 58px; height: 58px;">
-          ${mp.logo_url ? `<img src="${mp.logo_url}?v=20261014_55" class="w-full h-full object-contain cursor-pointer transition-transform duration-200 active:scale-95" style="border-radius: 13px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.4));" alt="${mp.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" onclick="event.stopPropagation(); tgUtil.openLink('${mp.website_url || mp.url}')">` : ''}
-          <span style="${mp.logo_url ? 'display:none;' : ''}" class="text-3xl flex items-center justify-center"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span></span>
-        </div>
-        
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 flex-wrap">
-            <h3 class="font-bold text-white text-sm truncate">${mp.name}</h3>
-            <span class="text-[9px] text-white/50 bg-white/5 px-1.5 py-0.2 rounded-full border border-white/5">${mp.country}</span>
-          </div>
-          <p class="text-white/60 text-[11px] mt-1 line-clamp-1 leading-tight">${mp.description || ''}</p>
-          <div class="flex flex-wrap gap-1 mt-1.5 items-center">
-            ${tagsHtml}
-            ${mp.categories?.slice(0, 2).map(cat => `<span class="text-white/40 text-[9px] bg-white/5 px-1.5 py-0.5 rounded border border-white/5">${cat}</span>`).join('') || ''}
-          </div>
-        </div>
-
-        <div class="flex flex-col gap-1.5 items-end justify-center flex-shrink-0">
-          <button onclick="event.stopPropagation(); tgUtil.openLink('${mp.website_url || mp.url}')" class="btn-primary py-1 px-3 rounded-lg text-[10px] font-bold text-center w-24 bg-cyan-500 text-white hover:bg-cyan-600 transition flex items-center justify-center gap-1">
-            Перейти
-          </button>
-          <button class="instruction-btn bg-white/5 hover:bg-white/10 text-white/80 py-1 px-2 rounded-lg text-[10px] font-bold transition flex items-center justify-center gap-1 w-24 text-center justify-center" 
-            data-name="${mp.name.replace(/"/g, '&quot;')}" 
-            data-instruction="${(mp.instruction || '').replace(/"/g, '&quot;')}"
-            data-instruction-images='${JSON.stringify(mp.instruction_images || [])}'
-            data-requires-vpn="${mp.requires_vpn}">
-            <span class="ix" style="width:10px;height:10px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span> Инструкция
-          </button>
-        </div>
-      </div>
-      `;
-    }).join('');
+    grid.innerHTML = filtered.map(_mpCard).join('');
     
     document.querySelectorAll('.instruction-btn').forEach(btn => {
       btn.onclick = (e) => {

@@ -3154,7 +3154,7 @@ async function sendNotification(userId, message, orderId = null) {
       const oldBtn = document.getElementById('globalBackBtn');
       if (oldBtn) oldBtn.remove();
       if (window.Telegram?.WebApp?.BackButton) return;
-      if (currentTab !== 'home' && currentTab !== 'catalogs' && currentTab !== 'reports' && currentTab !== 'reviews' && currentTab !== 'academy' && currentTab !== 'dropshipper' && currentTab !== 'products' && currentTab !== 'wishlist' && currentTab !== 'search' && currentTab !== 'notifications' && currentTab !== 'settings') {
+      if (currentTab !== 'home' && currentTab !== 'catalogs' && currentTab !== 'reports' && currentTab !== 'reviews' && currentTab !== 'academy' && currentTab !== 'dropshipper' && currentTab !== 'products' && currentTab !== 'wishlist' && currentTab !== 'search' && currentTab !== 'notifications' && currentTab !== 'settings' && !document.querySelector('#content .rd-head')) {
         const contentDiv = document.getElementById('content');
         const btn = document.createElement('button');
         btn.id = 'globalBackBtn';
@@ -3974,41 +3974,55 @@ function attachAdminSuppliersHandlers() {
         }
       } catch (e) {}
 
-      const statusLabel = (s) => s === 'approved' ? '<span class="text-green-400">Одобрено ✅</span>' : s === 'rejected' ? '<span class="text-red-400">Отклонено ❌</span>' : '<span class="text-yellow-400">На модерации ⏳</span>';
+      const U = window.UI;
+      const st = (v) => v === 'approved' ? ['ok', 'Одобрено'] : v === 'rejected' ? ['bad', 'Отклонено'] : ['warn', 'На проверке'];
       const list = mine.length === 0
-        ? '<p class="text-white/50 text-sm text-center py-3">Вы ещё не отправляли распаковок</p>'
+        ? `<p class="ug-none">Вы ещё не отправляли распаковок</p>`
         : mine.map(v => `
-          <div class="p-3 bg-white/5 rounded-xl mb-2">
-            <div class="flex justify-between items-center">
-              <span class="text-white/80 text-sm">${new Date(v.created_at).toLocaleDateString('ru-RU')}</span>
-              ${statusLabel(v.status)}
+          <div class="ug-item">
+            <span class="ug-item-ico">${U.icon('camera', 20)}</span>
+            <div class="ug-item-body">
+              <div class="ug-item-top"><b>${new Date(v.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}</b><span class="rd-status ${st(v.status)[0]}">${st(v.status)[1]}</span></div>
+              ${v.caption ? `<p>${U.esc(v.caption)}</p>` : ''}
+              ${v.status === 'approved' && v.reward_ices ? `<p class="ok">Начислено ${v.reward_ices} бонусов</p>` : ''}
+              ${v.status === 'rejected' && v.reject_reason ? `<p class="bad">Причина: ${U.esc(v.reject_reason)}</p>` : ''}
             </div>
-            ${v.caption ? `<p class="text-white/60 text-xs mt-1">${v.caption}</p>` : ''}
-            ${v.status === 'approved' && v.reward_ices ? `<p class="text-green-400 text-xs mt-1">Начислено: ${v.reward_ices} бонусов</p>` : ''}
-            ${v.status === 'rejected' && v.reject_reason ? `<p class="text-red-400 text-xs mt-1">Причина: ${v.reject_reason}</p>` : ''}
           </div>`).join('');
 
       return `
-        <button id="ugcBackBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
-        <div class="glass-card mb-3">
-          <h3 class="text-white font-bold text-lg mb-2">🎬 Распаковка за бонусы</h3>
-          <p class="text-white/60 text-sm mb-3">Снимите видео-распаковку вашего заказа и получите бонусы на баланс после проверки модератором!</p>
-          <input type="file" id="ugcFileInput" accept="video/*" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-2 text-sm">
-          <textarea id="ugcCaption" class="btn-secondary w-full p-3 rounded-xl border border-white/30 mb-2" placeholder="Комментарий (необязательно)" rows="2"></textarea>
-          <button id="ugcUploadBtn" class="btn-primary w-full">Отправить на модерацию</button>
-          <div id="ugcUploadStatus" class="text-center text-sm mt-2"></div>
+        <div class="rd-screen page-enter ug">
+          <div class="rd-head">
+            <button id="ugcBackBtn" type="button" class="rd-back" aria-label="Назад">${U.icon('chevL', 22)}</button>
+            <div class="rd-head-txt"><h1 class="rd-head-title">Распаковка за бонусы</h1><p class="rd-head-sub">Снимите, как открываете посылку</p></div>
+          </div>
+
+          <div class="ug-hero">
+            <div class="ug-hero-art"><span>${U.icon('camera', 34)}</span><i class="ug-spark a">${U.icon('sparkles', 16)}</i><i class="ug-spark b">${U.icon('gift', 16)}</i></div>
+            <div class="ug-steps">
+              <div><b>1</b><span>Снимите видео распаковки заказа</span></div>
+              <div><b>2</b><span>Загрузите его сюда, до 50 МБ</span></div>
+              <div><b>3</b><span>После проверки начислим бонусы</span></div>
+            </div>
+          </div>
+
+          <label class="ug-drop" for="ugcFileInput">
+            <input type="file" id="ugcFileInput" accept="video/*" onchange="const f=this.files&&this.files[0]; document.getElementById('ugcFileName').textContent = f ? f.name : 'Выбрать видео'; this.closest('.ug-drop').classList.toggle('has', !!f);">
+            <span class="ug-drop-ico">${U.icon('upload', 24)}</span>
+            <span class="ug-drop-txt"><b id="ugcFileName">Выбрать видео</b><span>MP4 или MOV, до 50 МБ</span></span>
+          </label>
+          <div class="rd-field ug-cap"><textarea id="ugcCaption" rows="2" placeholder="Пара слов о заказе (необязательно)"></textarea></div>
+          <button id="ugcUploadBtn" type="button" class="rd-btn rd-btn-block">${U.icon('send', 18)}Отправить на проверку</button>
+          <div id="ugcUploadStatus" class="ug-status"></div>
+
+          <div class="rd-section"><h2>Мои распаковки</h2>${mine.length ? `<span class="rd-pill">${mine.length}</span>` : ''}</div>
+          <div class="rd-card ug-list">${list}</div>
         </div>
-        <div class="glass-card">
-          <h3 class="text-white font-bold mb-3">Мои распаковки</h3>
-          ${list}
-        </div>
-        ${typeof renderFooter === 'function' ? renderFooter() : ''}
       `;
     }
 
     function attachUGCHandlers() {
       const back = document.getElementById('ugcBackBtn');
-      if (back) back.onclick = () => { currentSubScreen = null; switchTab('profile'); };
+      if (back) back.onclick = () => { currentSubScreen = null; window.goBackGlobal(); };
       const btn = document.getElementById('ugcUploadBtn');
       if (!btn) return;
       btn.onclick = async () => {
@@ -4020,7 +4034,7 @@ function attachAdminSuppliersHandlers() {
         if (file.size > 50 * 1024 * 1024) { tgUtil.alert('Видео слишком большое (макс. 50 МБ)'); return; }
         const caption = (document.getElementById('ugcCaption').value || '').trim();
         btn.disabled = true;
-        statusEl.innerHTML = '<span class="text-cyan-400">Загрузка...</span>';
+        statusEl.innerHTML = '<span class="ug-load"><i></i>Загружаем видео…</span>';
         try {
           const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
           const path = `${userId}/${Date.now()}_${safeName}`;
@@ -4033,10 +4047,10 @@ function attachAdminSuppliersHandlers() {
           });
           if (insErr) throw insErr;
           tgUtil.haptic && tgUtil.haptic('success');
-          statusEl.innerHTML = '<span class="text-green-400">Отправлено! Ожидайте проверки.</span>';
+          statusEl.innerHTML = '<span class="ok">Готово! Видео ушло на проверку.</span>';
           setTimeout(() => renderCurrentScreen(), 1200);
         } catch (e) {
-          statusEl.innerHTML = `<span class="text-red-400">Ошибка: ${e.message || e}</span>`;
+          statusEl.innerHTML = `<span class="bad">Не получилось загрузить: ${e.message || e}</span>`;
           btn.disabled = false;
         }
       };
@@ -4055,63 +4069,47 @@ function attachAdminSuppliersHandlers() {
 
       const byLevel = { 1: [], 2: [], 3: [] };
       tree.forEach(n => { if (byLevel[n.level]) byLevel[n.level].push(n); });
-
+      const U = window.UI;
       const nodeName = (n) => (n.username ? '@' + n.username : (n.full_name || ('ID ' + n.user_id)));
-      const levelMeta = [
-        { lvl: 1, color: 'emerald', label: 'Уровень 1 (прямые)' },
-        { lvl: 2, color: 'cyan', label: 'Уровень 2' },
-        { lvl: 3, color: 'purple', label: 'Уровень 3' }
+      const earned = stats || { level1_count: 0, level2_count: 0, level3_count: 0, earned_l1: 0, earned_l2: 0, earned_l3: 0, total_earned: 0 };
+      const total = (+earned.level1_count || 0) + (+earned.level2_count || 0) + (+earned.level3_count || 0) || tree.length;
+      const levels = [
+        { lvl: 1, label: 'Ваши друзья', hint: 'пригласили вы', got: earned.earned_l1 },
+        { lvl: 2, label: 'Друзья друзей', hint: '2-я линия', got: earned.earned_l2 },
+        { lvl: 3, label: 'Третья линия', hint: '3-я линия', got: earned.earned_l3 }
       ];
-
-      const treeHtml = levelMeta.map(meta => {
-        const nodes = byLevel[meta.lvl];
-        const inner = nodes.length === 0
-          ? '<p class="text-white/40 text-xs">Пока никого</p>'
-          : nodes.map(n => `
-            <div class="flex items-center justify-between p-2 rounded-lg bg-white/5 mb-1" style="margin-left: ${(meta.lvl - 1) * 16}px;">
-              <span class="text-white/80 text-sm flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-${meta.color}-400"></span>
-                ${nodeName(n)}
-              </span>
-              <span class="text-white/40 text-xs">пригласил: ${n.direct_count || 0}</span>
-            </div>`).join('');
+      const levelsHtml = levels.map(m => {
+        const nodes = byLevel[m.lvl];
         return `
-          <div class="glass-card mb-3">
-            <div class="flex items-center justify-between mb-2">
-              <h4 class="text-white font-bold text-sm">${meta.label}</h4>
-              <span class="text-${meta.color}-400 font-bold">${nodes.length}</span>
-            </div>
-            ${inner}
+          <div class="rt-level">
+            <div class="rt-level-h"><span class="rt-lvl l${m.lvl}">${m.lvl}</span><div><b>${m.label}</b><span>${nodes.length} чел. · заработано ${(+m.got || 0).toFixed(0)}</span></div></div>
+            ${nodes.length === 0 ? '<p class="rt-none">Пока никого</p>' : `<div class="rt-nodes">${nodes.map(n => `
+              <div class="rt-node"><span class="rt-ava l${m.lvl}">${U.esc(nodeName(n).replace('@', '').charAt(0).toUpperCase())}</span><span class="rt-name">${U.esc(nodeName(n))}</span><span class="rt-sub">пригласил ${n.direct_count || 0}</span></div>`).join('')}</div>`}
           </div>`;
       }).join('');
 
-      const earned = stats || { level1_count: 0, level2_count: 0, level3_count: 0, earned_l1: 0, earned_l2: 0, earned_l3: 0, total_earned: 0 };
-      const statsHtml = `
-        <div class="glass-card mb-3">
-          <h4 class="text-white font-bold text-sm mb-3">💰 Заработано по уровням</h4>
-          <div class="grid grid-cols-3 gap-2 mb-3">
-            <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-2 text-center"><p class="text-emerald-400 text-lg font-black">${(+earned.earned_l1).toFixed(0)}</p><p class="text-white/50 text-[10px]">Ур. 1</p></div>
-            <div class="bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-2 text-center"><p class="text-cyan-400 text-lg font-black">${(+earned.earned_l2).toFixed(0)}</p><p class="text-white/50 text-[10px]">Ур. 2</p></div>
-            <div class="bg-purple-500/10 border border-purple-500/20 rounded-xl p-2 text-center"><p class="text-purple-400 text-lg font-black">${(+earned.earned_l3).toFixed(0)}</p><p class="text-white/50 text-[10px]">Ур. 3</p></div>
-          </div>
-          <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/60 text-xs uppercase tracking-wider">Всего заработано</p><p class="text-green-400 text-2xl font-black">${(+earned.total_earned).toFixed(0)} бонусов</p></div>
-        </div>`;
-
       return `
-        <button id="refTreeBackBtn" class="global-back-btn"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span> Назад</button>
-        <div class="text-center py-4 mb-3 rounded-2xl" style="background: linear-gradient(135deg, rgba(52,211,153,0.15), rgba(16,185,129,0.08)); border: 1px solid rgba(52,211,153,0.25);">
-          <h2 class="text-xl font-black text-white">🌳 Моя реферальная сеть</h2>
-          <p class="text-white/60 text-sm mt-1">${(+earned.level1_count) + (+earned.level2_count) + (+earned.level3_count)} человек в 3 уровнях</p>
+        <div class="rd-screen page-enter rt">
+          <div class="rd-head">
+            <button id="refTreeBackBtn" type="button" class="rd-back" aria-label="Назад">${U.icon('chevL', 22)}</button>
+            <div class="rd-head-txt"><h1 class="rd-head-title">Моя сеть</h1><p class="rd-head-sub">Кого вы пригласили и сколько это принесло</p></div>
+          </div>
+          <div class="rt-sum">
+            <div class="rt-sum-main"><span>Всего заработано</span><b>${(+earned.total_earned || 0).toFixed(0)}<em>бонусов</em></b></div>
+            <div class="rt-sum-people">${U.icon('users', 18)}<b>${total}</b><span>чел. в сети</span></div>
+            <div class="rt-bars">
+              ${levels.map(m => `<div><span class="rt-lvl l${m.lvl}">${m.lvl}</span><b>${(+m.got || 0).toFixed(0)}</b><small>${byLevel[m.lvl].length} чел.</small></div>`).join('')}
+            </div>
+          </div>
+          ${levelsHtml}
+          <button type="button" class="rd-btn rd-btn-block rd-btn-tonal rt-invite" onclick="switchTab('referral')">${U.icon('send', 18)}Пригласить друзей</button>
         </div>
-        ${statsHtml}
-        ${treeHtml}
-        ${typeof renderFooter === 'function' ? renderFooter() : ''}
       `;
     }
 
     function attachReferralTreeHandlers() {
       const back = document.getElementById('refTreeBackBtn');
-      if (back) back.onclick = () => { currentSubScreen = null; switchTab('profile'); };
+      if (back) back.onclick = () => { currentSubScreen = null; window.goBackGlobal(); };
     }
 
     async function renderAdminMarketing() {

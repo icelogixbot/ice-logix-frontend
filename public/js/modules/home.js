@@ -30,57 +30,7 @@ let _memHomeProductsList = null;
 
 // Вспомогательная функция рендеринга карточки товара в стиле Wildberries
 function renderWbProductCard(p, inWish) {
-  const brand = p.brand ? p.brand.trim() : 'ICE LOGIX';
-  const priceVal = Number(p.price || 0);
-  const bynSignHtml = window.bynSign ? window.bynSign({ color: 'cyan', size: '0.82em' }) : '';
-
-  return `
-    <div class="product-card cursor-pointer" data-product-id="${p.id}" data-url="${p.url || ''}" data-price="${p.price}">
-      <div class="relative w-full overflow-hidden" style="border-radius: 14px 14px 0 0;">
-        ${renderCardMedia(p.image_urls || p.image_url, p.title)}
-        
-        <!-- Top-Right: Wishlist Heart -->
-        <span class="wishlist-heart absolute top-2 right-2 w-7 h-7 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-sm ${inWish ? 'text-red-500' : 'text-white/70'} z-20 hover:scale-110 active:scale-95 transition" data-product-id="${p.id}" aria-label="В избранное">
-          ${getHeartIcon(inWish)}
-        </span>
-
-        <!-- Bottom-Left: Badges (WB Style) -->
-        <div class="absolute bottom-2 left-2 flex flex-col gap-1 z-10 pointer-events-none">
-          <span class="bg-black/60 backdrop-blur-md text-white/90 text-[9px] font-bold px-1.5 py-0.5 rounded border border-white/10 uppercase tracking-wider">${_esc(brand)}</span>
-          <span class="bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-[8.5px] font-black px-1.5 py-0.5 rounded shadow-sm">100% ОРИГИНАЛ</span>
-        </div>
-
-        <!-- Bottom-Right: Floating Circular Cart Button (WB Style) -->
-        <button type="button" class="wb-card-cart-btn addToCartBtn" data-product-id="${p.id}" aria-label="В корзину" title="В корзину">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-          </svg>
-        </button>
-      </div>
-
-      <!-- Compact WB Info Section (NO heavy bottom buttons!) -->
-      <div style="padding: 8px 8px 10px 8px; display: flex; flex-direction: column;">
-        <!-- Row 1: Price and Strikethrough -->
-        <div class="flex items-baseline gap-1.5">
-          <span class="text-cyan-400 font-extrabold text-[15px] font-mono leading-none inline-flex items-baseline gap-0.5">
-            ${priceVal.toFixed(2)} ${bynSignHtml}
-          </span>
-        </div>
-
-        <!-- Row 2: Brand -->
-        <div class="text-[11px] font-bold text-white/90 mt-1 uppercase tracking-wide truncate">
-          ${_esc(brand)}
-        </div>
-
-        <!-- Row 3: Product Name -->
-        <div class="text-[11px] font-medium text-white/60 truncate mt-0.5" title="${_esc(p.title)}">
-          ${_esc(p.title)}
-        </div>
-
-      </div>
-    </div>
-  `;
+  return window.UI.productCard(p, inWish);
 }
 
 // ==================== РЕНДЕР ГЛАВНОЙ СТРАНИЦЫ ====================
@@ -154,148 +104,86 @@ async function renderHome() {
       }
     }
 
-    // Сохраняем сквозной глобальный индекс рулетки, чтобы при переходе между вкладками карусель продолжала непрерывный ход
-    let currentMpIndex = 14;
-    if (typeof window !== 'undefined') {
-      if (window.__mpEngine && window.__mpEngine.index != null) {
-        currentMpIndex = window.__mpEngine.index;
-      } else if (window.__mpGlobalIndex != null) {
-        currentMpIndex = window.__mpGlobalIndex;
-      }
-    }
-    while (currentMpIndex > 20) currentMpIndex -= 7;
-    while (currentMpIndex < 14) currentMpIndex += 7;
-    if (typeof window !== 'undefined') {
-      if (window.__mpEngine) window.__mpEngine.index = currentMpIndex;
-      window.__mpGlobalIndex = currentMpIndex;
-    }
+    const _U = window.UI;
+    const _hour = new Date().getHours();
+    const _greet = _hour < 5 ? 'Доброй ночи' : _hour < 12 ? 'Доброе утро' : _hour < 18 ? 'Добрый день' : 'Добрый вечер';
+    const _name = (typeof userName !== 'undefined' && userName && userName !== 'Гость') ? String(userName).split(' ')[0] : '';
+    const _wl = (typeof wishlist !== 'undefined' && wishlist) ? wishlist : (window.wishlist || null);
+    const _quick = [
+      { story: 'onboarding', icon: 'book', label: 'Как заказать' },
+      { story: 'legitcheck', icon: 'shield', label: 'Легит-чек' },
+      { story: 'my_orders', icon: 'box', label: 'Мои заказы' },
+      { story: 'reports', icon: 'camera', label: 'Фотоотчёты' },
+      { story: 'reviews', icon: 'star', label: 'Отзывы' },
+      { story: 'promo', icon: 'gift', label: 'Акции' },
+    ];
 
     return `
-    <!-- Popular Marketplaces Capsule (Monolithic Tabbed Dock from User Sketch) -->
-    <div class="marketplaces-capsule-section mb-4">
-      <div class="marketplaces-capsule">
-        <svg class="marketplaces-capsule-svg" viewBox="0 0 351 124" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="capsuleFillGrad" x1="0" y1="0" x2="0" y2="100%">
-              <stop offset="0%" stop-color="#14283c"/>
-              <stop offset="30%" stop-color="#0f1f2e"/>
-              <stop offset="100%" stop-color="#081018"/>
-            </linearGradient>
-            <linearGradient id="capsuleStrokeGrad" x1="0" y1="0" x2="100%" y2="0">
-              <stop offset="0%" stop-color="rgba(130, 199, 241, 0.22)"/>
-              <stop offset="50%" stop-color="rgba(130, 199, 241, 0.5)"/>
-              <stop offset="100%" stop-color="rgba(130, 199, 241, 0.22)"/>
-            </linearGradient>
-          </defs>
-          <path d="
-            M 20,24
-            L 108,24
-            C 120,24 124,3 136,3
-            L 215,3
-            C 227,3 231,24 243,24
-            L 331,24
-            A 18,18 0 0 1 349,42
-            L 349,104
-            A 18,18 0 0 1 331,122
-            L 20,122
-            A 18,18 0 0 1 2,104
-            L 2,42
-            A 18,18 0 0 1 20,24
-            Z
-          " fill="url(#capsuleFillGrad)" stroke="url(#capsuleStrokeGrad)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
-        </svg>
-        <span class="marketplaces-ear-title">Площадки</span>
+    <div class="hm page-enter">
+      <section class="hm-hello">
+        <div class="hm-hello-k">${_greet}${_name ? ', ' + _U.esc(_name) : ''}</div>
+        <h1 class="hm-hello-t">Что привезём из Китая?</h1>
+      </section>
 
-        <!-- CS:GO Reticle Target Frame -->
-        <div class="marketplaces-reticle"></div>
+      <div class="banner-carousel-wrapper" id="bannerCarouselWrapper">
+        <div class="banner-carousel" id="promoBannersContainer">
+          ${await renderPromoBanners()}
+        </div>
+        <div class="banner-dots" id="bannerDots"></div>
+      </div>
 
-        <!-- Strictly clipped inside the module -->
-        <div class="marketplaces-inner-clipper">
-          <div class="marketplaces-track" id="marketplaceRouletteTrack">
-            <div class="marketplaces-ribbon" id="marketplaceRibbon" style="left: 50%; transform: translate3d(${-(currentMpIndex * 80 + 32)}px, 0, 0);">
-              ${fullMarketplaces.map((mp, idx) => {
-                const logoSrc = getMarketplaceLogo(mp.name, mp.logo_url);
-                const isActive = (idx === currentMpIndex);
-                return `
-                <div class="story-card marketplace-story ${isActive ? 'is-active-target' : ''}" data-url="${mp.website_url || mp.url}" data-name="${mp.name}" data-idx="${idx}">
-                  <div class="story-icon">
-                    ${logoSrc ? `<img src="${logoSrc}" loading="eager" fetchpriority="high" decoding="sync" class="w-full h-full object-contain" alt="${mp.name}">` : ''}
-                    <span style="${logoSrc ? 'display:none;' : ''} font-size: 20px;">${mp.icon || '<span class="mp-dot" style="background:#374151"></span>'}</span>
-                  </div>
-                  <span class="story-label">${mp.name}</span>
-                </div>
-              `;}).join('')}
+      <section class="hm-quick">
+        ${_quick.map(q => `
+          <button type="button" class="story-card hm-q" data-story="${q.story}">
+            <span class="hm-q-ico">${_U.icon(q.icon, 24)}</span>
+            <span class="hm-q-label">${q.label}</span>
+          </button>`).join('')}
+      </section>
+
+      <section class="hm-sec">
+        <div class="rd-section"><h2>Площадки</h2><button type="button" class="rd-link" id="moreMarketplacesBtn">Все ${_U.icon('chevR', 16)}</button></div>
+        <div class="hm-mp-row">
+          ${marketplaces.map(mp => {
+            const logoSrc = getMarketplaceLogo(mp.name, mp.logo_url);
+            return `
+            <button type="button" class="story-card marketplace-story hm-mp" data-url="${mp.website_url || mp.url}" data-name="${mp.name}">
+              <span class="hm-mp-logo">${logoSrc ? `<img src="${logoSrc}" alt="" loading="eager" decoding="async">` : _U.icon('store', 26)}</span>
+              <span class="hm-mp-name">${mp.name === '95' ? '95fen' : mp.name}</span>
+            </button>`;
+          }).join('')}
+        </div>
+      </section>
+
+      <section class="hm-sec">
+        <div class="hm-how">
+          <div class="hm-how-head">
+            <div>
+              <div class="hm-how-k">Как это работает</div>
+              <div class="hm-how-t">Заказ из Китая за 3 шага</div>
             </div>
+            <span class="hm-how-badge">${_U.icon('zap', 18)}</span>
           </div>
+          <ol class="hm-how-steps">
+            <li><span>1</span><div><b>Найдите вещь</b><small>На Poizon, Taobao или любой другой площадке</small></div></li>
+            <li><span>2</span><div><b>Вставьте ссылку</b><small>Посчитаем цену под ключ за минуту</small></div></li>
+            <li><span>3</span><div><b>Получите в Беларуси</b><small>Выкупим, проверим и привезём</small></div></li>
+          </ol>
+          <button type="button" class="rd-btn rd-btn-block" onclick="window.switchTab('calculator')">${_U.icon('calc', 20)}Рассчитать заказ</button>
         </div>
-      </div>
-    </div>
+      </section>
 
-    <!-- Promo Banners (WB Style Full Width with Slow Auto-scroll) -->
-    <div class="banner-carousel-wrapper mb-4" id="bannerCarouselWrapper">
-      <div class="banner-carousel" id="promoBannersContainer">
-        ${await renderPromoBanners()}
-      </div>
-      <div class="banner-dots" id="bannerDots"></div>
+      <section class="hm-sec">
+        <div class="rd-section">
+          <h2>Подборки дня</h2>
+          ${homeProductsList.length ? `<span class="rd-pill"><i></i>${homeProductsList.length} ${homeProductsList.length === 1 ? 'дроп' : (homeProductsList.length < 5 ? 'дропа' : 'дропов')}</span>` : ''}
+        </div>
+        <div class="hm-grid" id="homeProductsGrid">
+          ${homeProductsList.length
+            ? homeProductsList.map(p => _U.productCard(p, _wl && _wl.has ? _wl.has(p.id) : false)).join('')
+            : _U.gridSkeleton(4)}
+        </div>
+      </section>
     </div>
-
-    <!-- Quick Actions - Story Cards (WB Squircle Style Line 1) -->
-    <div class="mb-4">
-    <div class="scroll-x" style="padding: 2px 0 6px;">
-      <div class="story-card" data-story="onboarding">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(99,202,253,0.25), rgba(77, 163, 255,0.12));">
-          <span style="font-size: 24px;"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span></span>
-        </div>
-        <span class="story-label">Гайд</span>
-      </div>
-      <div class="story-card" data-story="legitcheck">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(16,185,129,0.25), rgba(5,150,105,0.12));">
-          <span style="font-size: 24px;"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span></span>
-        </div>
-        <span class="story-label">Легит-чек</span>
-      </div>
-      <div class="story-card" data-story="my_orders">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(77, 163, 255,0.25), rgba(77, 163, 255,0.12));">
-          <span style="font-size: 24px;"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span></span>
-        </div>
-        <span class="story-label">Заказы</span>
-      </div>
-      <div class="story-card" data-story="reports">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(251,191,36,0.25), rgba(245,158,11,0.12));">
-          <span style="font-size: 24px;"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span></span>
-        </div>
-        <span class="story-label">Отчёты</span>
-      </div>
-      <div class="story-card" data-story="reviews">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(251,191,36,0.3), rgba(234,179,8,0.18));">
-          <span style="font-size: 24px;"><span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span></span>
-        </div>
-        <span class="story-label">Отзывы</span>
-      </div>
-      <div class="story-card" data-story="promo">
-        <div class="story-icon" style="background: linear-gradient(145deg, rgba(248,113,113,0.25), rgba(239,68,68,0.12));">
-          <span style="font-size: 24px;"><span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></span></span>
-        </div>
-        <span class="story-label">Акции</span>
-      </div>
-    </div>
-    </div>
-    
-    <!-- Сегодняшние подборки товаров (автопарсинг из @icelogix_selection) -->
-    <div class="mb-6">
-      <div class="rd-sec-h">
-        <h3>Подборки дня</h3>
-        <span class="rd-pill"><i></i>9 дропов</span>
-      </div>
-      <div class="grid grid-cols-2 gap-2" id="homeProductsGrid" style="margin-left: -6px; margin-right: -6px;">
-        ${homeProductsList.map(p => {
-          const _inWish = ((typeof wishlist !== 'undefined' && wishlist?.has) ? wishlist.has(p.id) : (window.wishlist?.has ? window.wishlist.has(p.id) : false));
-          return renderWbProductCard(p, _inWish);
-        }).join('')}
-      </div>
-    </div>
-    
-    ${renderFooter()}
   `;
   } catch (err) {
     console.error('Error rendering home screen:', err);
@@ -352,18 +240,7 @@ function attachHomeHandlers() {
           } else if (action === 'calculator') {
             switchTab('calculator');
           } else if (action === 'referral') {
-            if (window.tgUtil && window.tgUtil.haptic) {
-              window.tgUtil.haptic('light');
-            }
-            switchTab('profile');
-            setTimeout(() => {
-              const refEl = document.getElementById('referralSection');
-              if (refEl) {
-                refEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                refEl.style.boxShadow = '0 0 25px rgba(52, 211, 153, 0.4)';
-                setTimeout(() => { refEl.style.boxShadow = ''; }, 2000);
-              }
-            }, 300);
+            switchTab('referral');
           }
         });
       });
@@ -378,7 +255,8 @@ function attachHomeHandlers() {
           const productId = btn.dataset.productId;
           if (productId) {
             if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('medium');
-            addToCart(productId);
+            addToCart(productId, 1, true);
+            if (window.UI) window.UI.toast('Добавлено в корзину');
             btn.classList.add('added-anim');
             setTimeout(() => btn.classList.remove('added-anim'), 400);
           }
@@ -420,7 +298,7 @@ function attachHomeHandlers() {
 
         if (existingCards.length === 0 || existingIds !== newIds) {
           if (data.length === 0) {
-            grid.innerHTML = '<p class="text-white/50 text-xs col-span-2 text-center py-6">Сегодняшние подборки скоро появятся в канале...</p>';
+            grid.innerHTML = '<div class="hm-grid-empty">' + window.UI.empty({ icon: 'sparkles', title: 'Подборки готовятся', text: 'Новые дропы появляются каждый день. Загляните чуть позже или посчитайте свой заказ.', action: 'Рассчитать заказ', onclick: "window.switchTab('calculator')" }) + '</div>';
           } else {
             grid.innerHTML = data.map(p => {
               const _inWish = ((typeof wishlist !== 'undefined' && wishlist?.has) ? wishlist.has(p.id) : (window.wishlist?.has ? window.wishlist.has(p.id) : false));
@@ -442,30 +320,16 @@ function attachHomeHandlers() {
         const productId = btn.dataset.productId;
         if (productId) {
           if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('medium');
-          addToCart(productId);
+          addToCart(productId, 1, true);
+          if (window.UI) window.UI.toast('Добавлено в корзину');
           btn.classList.add('added-anim');
           setTimeout(() => btn.classList.remove('added-anim'), 400);
         }
       };
     });
 
-    grid.querySelectorAll('.product-card').forEach(card => {
-      card.onclick = (e) => {
-        if (e.target.closest('.wishlist-heart') || e.target.closest('.addToCartBtn') || e.target.closest('.card-slider') || e.target.closest('.card-dots')) return;
-        const productId = card.dataset.productId;
-        const url = card.dataset.url;
-        const price = parseFloat(card.dataset.price);
-        if (userId && productId) {
-          supabaseClient.from('user_views').upsert({ user_id: userId, product_id: productId }, { onConflict: 'user_id,product_id' }).then(() => {});
-        }
-        if (url && !isNaN(price)) {
-          if (!window.userId) { window.requireAuth('Для оформления заказа необходимо войти или зарегистрироваться.'); return; }
-          window.tempOrder = { url, price, weight: 1, total: window.iceLogixPricing.quickEstimate(price, 1), discountAmount: 0, appliedPromo: null };
-          switchTab('neworder');
-        }
-      };
-    });
-    
+    // Нажатие на карточку открывает страницу товара (см. ice-ui.js, делегированный обработчик)
+
     // Инициализируем обработчики прокрутки фото для карточек товаров
     initCardSliders();
   } catch(e) {

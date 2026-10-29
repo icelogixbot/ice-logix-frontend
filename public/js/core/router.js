@@ -106,6 +106,9 @@
       } else if (currentTab === 'legitcheck') {
         contentDiv.innerHTML = shadowBannerHtml + await renderLegitCheck();
         attachLegitCheckHandlers();
+      } else if (currentTab === 'product') {
+        contentDiv.innerHTML = shadowBannerHtml + await renderProductDetail();
+        attachProductDetailHandlers();
       } else if (currentTab === 'wishlist') {
         contentDiv.innerHTML = shadowBannerHtml + await renderWishlist();
         attachWishlistHandlers();
@@ -258,7 +261,7 @@
         window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       }
 
-      if (currentTab !== 'home' && currentTab !== 'catalogs' && currentTab !== 'reports' && currentTab !== 'reviews' && currentTab !== 'academy' && currentTab !== 'dropshipper' && currentTab !== 'products' && currentTab !== 'wishlist' && currentTab !== 'search' && currentTab !== 'notifications' && currentTab !== 'settings' && currentTab !== 'topup' && !currentSubScreen) {
+      if (currentTab !== 'home' && currentTab !== 'catalogs' && currentTab !== 'reports' && currentTab !== 'reviews' && currentTab !== 'academy' && currentTab !== 'dropshipper' && currentTab !== 'products' && currentTab !== 'wishlist' && currentTab !== 'product' && currentTab !== 'search' && currentTab !== 'notifications' && currentTab !== 'settings' && currentTab !== 'topup' && !currentSubScreen) {
         ensureBackButton();
       }
       initCardSliders();
@@ -714,4 +717,4 @@ window.togglePackageConsolidation = (country) => {
             });
             _watchdog.observe(_contentDiv, { childList: true, subtree: false });
           }
-        }, 3000);
+        }, 3000);

@@ -495,7 +495,7 @@ async function renderFAQ() {
     if (error) throw error;
     
     if (!data || data.length === 0) {
-      faqsHtml = '<p class="text-white/50 text-center py-4">База знаний пока пуста. (Заполните таблицу faq_items)</p>';
+      faqsHtml = window.UI.empty({ icon: 'help', title: 'Вопросов пока нет', text: 'Скоро здесь появятся ответы на частые вопросы.' });
     } else {
       const grouped = data.reduce((acc, item) => {
         acc[item.category] = acc[item.category] || [];
@@ -505,18 +505,16 @@ async function renderFAQ() {
       
       for (const [cat, items] of Object.entries(grouped)) {
         faqsHtml += `
-          <div class="faq-cat-group mb-6">
-            <h3 class="text-white font-bold text-lg mb-3 flex items-center gap-2">
-              <span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> ${cat}
-            </h3>
-            <div class="space-y-2">
+          <div class="faq-cat-group fq-group">
+            <h3 class="fq-cat">${_escHtml(cat)}</h3>
+            <div class="fq-items">
               ${items.map(item => `
-                <div class="faq-item bg-white/5 border border-white/10 rounded-xl overflow-hidden transition-all" data-search="${_escHtml((item.question + ' ' + item.answer).toLowerCase())}">
-                  <button class="faq-btn w-full p-4 flex justify-between items-center text-left hover:bg-white/5 transition" data-id="${item.id}">
-                    <span class="text-white font-medium text-sm pr-4">${item.question}</span>
-                    <span class="faq-icon ix transition-transform text-white/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                <div class="faq-item fq-item" data-search="${_escHtml((item.question + ' ' + item.answer).toLowerCase())}">
+                  <button type="button" class="faq-btn fq-q" data-id="${item.id}">
+                    <span>${item.question}</span>
+                    <span class="faq-icon fq-chev">${window.UI.icon('chevD', 18)}</span>
                   </button>
-                  <div class="faq-content hidden px-4 pb-4 text-white/70 text-xs leading-relaxed border-t border-white/5 pt-3">
+                  <div class="faq-content hidden fq-a">
                     ${item.answer.replace(/\n/g, '<br>')}
                   </div>
                 </div>
@@ -527,30 +525,23 @@ async function renderFAQ() {
       }
     }
 
+    const U = window.UI;
     return `
-      <div class="flex items-center gap-3 mb-4 mt-2">
-        <button id="backFromFaqBtn" type="button" class="global-back-btn !mb-0" title="Назад">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6"/>
-          </svg>
-        </button>
-        <div>
-          <h2 class="text-xl font-bold text-white tracking-wide">Частые вопросы (FAQ)</h2>
-          <p class="text-[11px] text-white/40">Ответы по заказам, доставке и финансам</p>
+      <div class="rd-screen page-enter fq">
+        <div class="rd-head">
+          <button id="backFromFaqBtn" type="button" class="rd-back" aria-label="Назад">${U.icon('chevL', 22)}</button>
+          <div class="rd-head-txt"><h1 class="rd-head-title">Частые вопросы</h1><p class="rd-head-sub">Заказы, доставка, оплата и возвраты</p></div>
         </div>
-      </div>
-      <div class="glass-card page-enter">
-        <div class="relative mb-6">
-          <span class="ix absolute left-3 top-1/2 -translate-y-1/2 text-white/40"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-          <input type="text" id="faqSearchInput" class="w-full bg-white/5 border border-white/15 rounded-xl py-2.5 pl-9 pr-3 text-white text-sm focus:border-cyan-400/50 focus:outline-none transition" placeholder="Поиск по вопросам и ответам...">
+        <div class="sp-field fq-search">
+          ${U.icon('search', 20)}
+          <input type="text" id="faqSearchInput" placeholder="Найти ответ" autocomplete="off">
         </div>
-        <p id="faqNoResults" class="hidden text-white/50 text-center py-4">Ничего не найдено.</p>
+        <div id="faqNoResults" class="hidden">${U.empty({ icon: 'search', title: 'Ничего не нашлось', text: 'Попробуйте другие слова или напишите нам в поддержку.' })}</div>
         <div id="faqList">${faqsHtml}</div>
       </div>
-      ${renderFooter()}
     `;
   } catch (err) {
-    return `<p class="text-red-400">Ошибка загрузки FAQ: ${err.message}</p>`;
+    return `<div class="rd-screen page-enter">${window.UI.empty({ icon: 'alert', title: 'Не удалось загрузить вопросы', text: 'Проверьте интернет и попробуйте ещё раз.', action: 'Повторить', onclick: 'renderCurrentScreen()' })}</div>`;
   }
 }
 
@@ -579,13 +570,10 @@ function attachFAQHandlers() {
     btn.onclick = () => {
       const content = btn.nextElementSibling;
       const icon = btn.querySelector('.faq-icon');
-      if (content.classList.contains('hidden')) {
-        content.classList.remove('hidden');
-        icon.style.transform = 'rotate(180deg)';
-      } else {
-        content.classList.add('hidden');
-        icon.style.transform = 'rotate(0deg)';
-      }
+      const open = content.classList.contains('hidden');
+      content.classList.toggle('hidden', !open);
+      btn.closest('.faq-item')?.classList.toggle('open', open);
+      if (icon) icon.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
     };
   });
 }

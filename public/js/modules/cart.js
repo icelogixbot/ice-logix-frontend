@@ -120,11 +120,11 @@
     if (count > 0) {
       checkoutBtn.className = 'wb-checkout-cta active';
       checkoutBtn.innerHTML = `
-        <span>Заказать</span>
-        <span class="text-black/30">·</span>
+        <span>Оформить заказ</span>
+        <span class="wb-cta-dot">·</span>
         <span id="wbCheckoutCount">${count} шт.</span>
-        <span class="text-black/30">·</span>
-        <span id="wbCheckoutTotal" class="inline-flex items-baseline gap-1">${Number(total || 0).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
+        <span class="wb-cta-dot">·</span>
+        <span id="wbCheckoutTotal" class="inline-flex items-baseline">${Number(total || 0).toFixed(2).replace('.', ',')}${window.bynSign ? window.bynSign({ size: '0.82em' }) : ''}</span>
       `;
     } else {
       checkoutBtn.className = 'wb-checkout-cta disabled';
@@ -135,29 +135,23 @@
 
   // --- Render Clean Cart Screen ---
   async function renderCart() {
+    const U = window.UI;
+    const fmt = (n) => Number(n || 0).toFixed(2).replace('.', ',');
+    const sign = () => (window.bynSign ? window.bynSign({ size: '0.82em' }) : '');
     const currentUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
     if (!currentUserId) {
       hideWbCheckoutDock();
       return `
-        <div class="page-enter wb-cart-screen px-4 py-12 text-center max-w-md mx-auto">
-          <div class="wb-empty-icon-wrap mx-auto mb-4">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-            </svg>
-          </div>
-          <h2 class="text-xl font-bold text-white mb-2">Корзина</h2>
-          <p class="text-white/60 text-sm mb-6">Войдите в аккаунт, чтобы просматривать корзину и оформлять заказы</p>
-          <button onclick="window.requireAuth()" class="wb-empty-btn">Войти через Telegram</button>
-        </div>
-      `;
+        <div class="rd-screen wb-cart-screen page-enter">
+          <h1 class="rd-h1">Корзина</h1>
+          ${U.empty({ icon: 'cart', title: 'Войдите, чтобы собрать заказ', text: 'Корзина сохранится в аккаунте, и вы сможете оформить всё одним заказом.', action: 'Войти через Telegram', onclick: 'window.requireAuth()' })}
+        </div>`;
     }
 
-    // Immediate 0ms dock visibility from cached count while Supabase loads
+    // Мгновенно показываем кнопку заказа по сохранённому количеству, пока грузится корзина
     try {
       const cachedCount = parseInt(localStorage.getItem('ice_cart_count') || '0', 10);
-      if (cachedCount > 0) {
-        showWbCheckoutDock(cachedCount, 0);
-      }
+      if (cachedCount > 0) showWbCheckoutDock(cachedCount, 0);
     } catch (_) {}
 
     let items = [];
@@ -165,146 +159,83 @@
       items = await loadAllCartItems();
     } catch (e) {
       hideWbCheckoutDock();
-      return `
-        <div class="wb-cart-screen px-4 py-8 text-center max-w-md mx-auto">
-          <p class="text-red-400 font-bold mb-2">Ошибка загрузки корзины</p>
-          <p class="text-white/60 text-xs mb-4">${e.message}</p>
-          <button onclick="renderCurrentScreen()" class="btn-primary">Повторить</button>
-        </div>
-      `;
+      return `<div class="rd-screen wb-cart-screen page-enter"><h1 class="rd-h1">Корзина</h1>${U.empty({ icon: 'alert', title: 'Не удалось загрузить корзину', text: 'Проверьте интернет и попробуйте ещё раз.', action: 'Повторить', onclick: 'renderCurrentScreen()' })}</div>`;
     }
 
-    // 0 items: Empty State
     if (items.length === 0) {
       hideWbCheckoutDock();
       return `
-        <div class="wb-cart-screen screen-fade-in">
-          <div class="wb-cart-header">
-            <div class="wb-cart-title-row">
-              <h2 class="wb-cart-title">Корзина</h2>
-            </div>
-          </div>
-          <div class="wb-empty-cart">
-            <div class="wb-empty-icon-wrap">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-              </svg>
-            </div>
-            <div class="wb-empty-title">В корзине пока пусто</div>
-            <div class="wb-empty-desc">Находите оригинальные брендовые вещи в каталоге или рассчитывайте доставку через калькулятор</div>
-            <button class="wb-empty-btn" id="wbGoToCatalogBtn">Перейти в каталог</button>
-          </div>
-        </div>
-      `;
+        <div class="rd-screen wb-cart-screen page-enter">
+          <h1 class="rd-h1">Корзина</h1>
+          ${U.empty({ icon: 'cart', title: 'В корзине пока пусто', text: 'Добавляйте вещи из подборок или посчитайте свой товар по ссылке.', action: 'Открыть каталог', actionId: 'wbGoToCatalogBtn' })}
+        </div>`;
     }
 
-    // Initial totals calculation
     let initialTotal = 0;
-    items.forEach(it => {
-      initialTotal += it.priceByn * it.quantity;
-    });
+    let initialCount = 0;
+    items.forEach((it) => { initialTotal += it.priceByn * it.quantity; initialCount += it.quantity; });
+    showWbCheckoutDock(initialCount, initialTotal);
 
-    // Make sure the fixed dock is visible with current state
-    showWbCheckoutDock(items.length, initialTotal);
-
-    // Items Cards HTML
-    const cardsHtml = items.map(it => {
-      const itemSubtotal = (it.priceByn * it.quantity).toFixed(2);
-      const variantText = [it.color, it.size ? `Размер: ${it.size}` : ''].filter(Boolean).join(' • ');
-
+    const cardsHtml = items.map((it) => {
+      const variant = [it.color, it.size ? `Размер ${it.size}` : ''].filter(Boolean).join(' · ');
+      const title = U.esc(it.title);
       return `
-        <div class="wb-cart-card" data-cart-id="${it.id}" data-is-custom="${it.isCustom}" data-product-id="${it.productId}" data-price="${it.priceByn}">
-          <div class="wb-card-main-row">
-            <div class="wb-card-left">
-              <input type="checkbox" class="wb-checkbox wb-item-cb" data-cart-id="${it.id}" checked>
-              <div class="wb-product-thumb-wrap">
-                <img src="${it.imageUrl}" alt="${it.title.replace(/"/g, '&quot;')}" class="wb-product-thumb" loading="lazy" onerror="this.src='https://via.placeholder.com/150'">
+        <div class="wb-cart-card ct-card" data-cart-id="${it.id}" data-is-custom="${it.isCustom}" data-product-id="${it.productId}" data-price="${it.priceByn}">
+          <label class="ct-check" aria-label="Выбрать товар">
+            <input type="checkbox" class="wb-checkbox wb-item-cb" data-cart-id="${it.id}" checked>
+            <span class="ct-box">${U.icon('check', 16, { stroke: 2.6 })}</span>
+          </label>
+          <div class="ct-thumb"><img src="${U.esc(it.imageUrl)}" alt="${title}" class="wb-product-thumb" loading="lazy" onerror="this.style.opacity=0"></div>
+          <div class="ct-info">
+            <div class="ct-title wb-product-title">${title}</div>
+            ${variant ? `<div class="ct-variant wb-product-variant">${U.esc(variant)}</div>` : ''}
+            <div class="ct-ship">${U.icon('truck', 14)}<span>Доставим за 8–12 дней</span></div>
+            <div class="ct-bottom">
+              <span class="ct-price wb-current-price"><span class="wb-row-price" data-unit-price="${it.priceByn}">${fmt(it.priceByn * it.quantity)}</span>${sign()}</span>
+              <div class="wb-stepper ct-stepper">
+                <button type="button" class="wb-stepper-btn wb-step-dec" data-id="${it.id}" aria-label="Меньше">${U.icon('minus', 16)}</button>
+                <span class="wb-stepper-value wb-qty-val">${it.quantity}</span>
+                <button type="button" class="wb-stepper-btn wb-step-inc" data-id="${it.id}" aria-label="Больше">${U.icon('plus', 16)}</button>
               </div>
             </div>
-            
-            <div class="wb-card-right">
-              <!-- Row 1: Price and Three-dots Menu (WB Style) -->
-              <div class="wb-card-top-row">
-                <div class="wb-price-block">
-                  <span class="wb-current-price inline-flex items-baseline gap-1 font-mono font-extrabold text-[15px] text-cyan-400">
-                    <span class="wb-row-price" data-unit-price="${it.priceByn}">${itemSubtotal}</span>
-                    ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.82em' }) : ''}
-                  </span>
-                </div>
-                <div class="wb-card-actions-top">
-                  <button class="wb-menu-btn" data-cart-id="${it.id}" aria-label="Действия" title="Действия">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
-                      <circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Row 2: Title and Variant -->
-              <div class="wb-product-title" title="${it.title.replace(/"/g, '&quot;')}">${it.title}</div>
-              ${variantText ? `<div class="wb-product-variant">${variantText}</div>` : ''}
-
-              <!-- Row 3: Delivery Info (WB Style) -->
-              <div class="wb-delivery-info">
-                <span class="wb-delivery-date">Доставим через 8–12 дней</span>
-                <span class="wb-delivery-badge">Бесплатный отказ при получении</span>
-              </div>
-
-              <!-- Row 4: Stepper and Buy Button (WB Style) -->
-              <div class="wb-card-bottom-row">
-                <div class="wb-stepper">
-                  <button class="wb-stepper-btn wb-step-dec" data-id="${it.id}" aria-label="Уменьшить">−</button>
-                  <span class="wb-stepper-value wb-qty-val">${it.quantity}</span>
-                  <button class="wb-stepper-btn wb-step-inc" data-id="${it.id}" aria-label="Увеличить">+</button>
-                </div>
-                <button type="button" class="wb-buy-item-btn" data-cart-id="${it.id}">Купить</button>
-              </div>
-            </div>
+            <button type="button" class="ct-buy wb-buy-item-btn" data-cart-id="${it.id}">Купить только это</button>
           </div>
-        </div>
-      `;
+          <button type="button" class="ct-more wb-menu-btn" data-cart-id="${it.id}" aria-label="Действия">${U.icon('sliders', 18)}</button>
+        </div>`;
     }).join('');
 
     return `
-      <div class="wb-cart-screen screen-fade-in">
-        <!-- 1. Header -->
-        <div class="wb-cart-header">
-          <div class="wb-cart-title-row">
-            <h2 class="wb-cart-title">Корзина</h2>
-            <span class="wb-cart-count-badge" id="wbCartTotalBadge">${items.length} поз.</span>
-          </div>
+      <div class="rd-screen wb-cart-screen page-enter">
+        <div class="ct-head">
+          <h1 class="rd-h1">Корзина</h1>
+          <span class="rd-pill" id="wbCartTotalBadge">${items.length} поз.</span>
         </div>
 
-        <!-- 2. Bulk Action Bar (Select All, Wishlist, Share, Delete) -->
-        <div class="wb-bulk-bar">
-          <label class="wb-select-all-label">
+        <div class="ct-bar wb-bulk-bar">
+          <label class="ct-check ct-all">
             <input type="checkbox" class="wb-checkbox" id="wbSelectAllCb" checked>
+            <span class="ct-box">${U.icon('check', 16, { stroke: 2.6 })}</span>
             <span>Выбрать все</span>
           </label>
-
-          <div class="wb-bulk-actions">
-            <button class="wb-action-icon-btn" id="wbWishlistAllBtn" title="В избранное" aria-label="В избранное">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
-              </svg>
-            </button>
-            <button class="wb-action-icon-btn" id="wbShareCartBtn" title="Поделиться" aria-label="Поделиться">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
-              </svg>
-            </button>
-            <button class="wb-action-icon-btn wb-trash-btn" id="wbDeleteSelectedBtn" title="Удалить выбранные" aria-label="Удалить выбранные">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-              </svg>
-            </button>
+          <div class="ct-bar-actions">
+            <button type="button" class="ct-icon-btn" id="wbWishlistAllBtn" aria-label="В избранное">${U.icon('heart', 19)}</button>
+            <button type="button" class="ct-icon-btn" id="wbShareCartBtn" aria-label="Поделиться">${U.icon('share', 19)}</button>
+            <button type="button" class="ct-icon-btn danger" id="wbDeleteSelectedBtn" aria-label="Удалить выбранные">${U.icon('trash', 19)}</button>
           </div>
         </div>
 
-        <!-- 3. Cart Items List -->
-        <div class="wb-cart-list" id="wbCartList">
+        <div class="ct-list wb-cart-list" id="wbCartList">
           ${cardsHtml}
         </div>
+
+        <div class="rd-card ct-sum">
+          <div class="ct-sum-row"><span>Товары, <b id="rdCartSumCount">${initialCount}</b> шт.</span><span id="rdCartSumTotal">${fmt(initialTotal)}${sign()}</span></div>
+          <div class="ct-sum-row"><span>Доставка до Минска</span><span class="ct-muted">при оформлении</span></div>
+          <div class="ct-sum-line"></div>
+          <div class="ct-sum-row ct-sum-total"><span>Итого за товары</span><span id="rdCartSumGrand">${fmt(initialTotal)}${sign()}</span></div>
+        </div>
+
+        <div class="ct-hint">${U.icon('info', 18)}<span>Оплата в два этапа: основная часть сейчас, остаток за доставку после взвешивания на складе.</span></div>
       </div>
     `;
   }
@@ -349,6 +280,13 @@
       // Update badge in header
       const totalBadge = document.getElementById('wbCartTotalBadge');
       if (totalBadge) totalBadge.innerText = `${visibleCards.length} поз.`;
+
+      // Блок «Итого»
+      const _f = (n) => Number(n || 0).toFixed(2).replace('.', ',');
+      const _sg = window.bynSign ? window.bynSign({ size: '0.82em' }) : '';
+      const _c = document.getElementById('rdCartSumCount'); if (_c) _c.innerText = totalCount;
+      const _t = document.getElementById('rdCartSumTotal'); if (_t) _t.innerHTML = _f(totalAmount) + _sg;
+      const _g = document.getElementById('rdCartSumGrand'); if (_g) _g.innerHTML = _f(totalAmount) + _sg;
 
       // Update Sticky Checkout Button
       updateWbCheckoutDock(totalCount, totalAmount);
@@ -416,7 +354,7 @@
         // Optimistic UI update
         if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
         qtySpan.innerText = currentQty;
-        if (priceSpan) priceSpan.innerText = (unitPrice * currentQty).toFixed(2);
+        if (priceSpan) priceSpan.innerText = (unitPrice * currentQty).toFixed(2).replace('.', ',');
         updateWbTotals();
 
         // Update local memory

@@ -2675,248 +2675,140 @@ function getDeliveryCountdownText(order) {
 }
 
 async function renderMyOrders() {
-  if (!userId) return `<p class="text-center mt-10 text-white/70">Авторизуйтесь</p>${typeof renderFooter === 'function' ? renderFooter() : ''}`;
+  const U = window.UI;
+  const head = (count) => `
+    <div class="rd-head">
+      <button id="backToProfileBtn" type="button" class="rd-back" onclick="window.goBackGlobal()" aria-label="Назад">${U.icon('chevL', 22)}</button>
+      <div class="rd-head-txt"><h1 class="rd-head-title">Мои заказы</h1><p class="rd-head-sub">Путь каждой посылки в одном месте</p></div>
+      ${count ? `<span class="rd-pill">${count}</span>` : ''}
+    </div>`;
+  if (!userId) {
+    return `<div class="rd-screen page-enter">${head(0)}${U.empty({ icon: 'box', title: 'Войдите, чтобы видеть заказы', text: 'Здесь будет статус каждой посылки, фото со склада и трек-номера.', action: 'Войти', onclick: 'window.requireAuth()' })}</div>`;
+  }
   try {
     const [ordersRes, claimsRes] = await Promise.all([
       supabaseClient.from('orders').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
       supabaseClient.from('insurance_claims').select('*').eq('user_id', userId)
     ]);
-      
     if (ordersRes.error) throw ordersRes.error;
     const data = ordersRes.data || [];
-    if (!data || data.length === 0) {
-      return `
-        <div class="flex items-center gap-3 mb-4 mt-2">
-          <button id="backToProfileBtn" type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="15 18 9 12 15 6"/>
-            </svg>
-          </button>
-          <div>
-            <h2 class="text-xl font-bold text-white tracking-wide">Мои заказы</h2>
-            <p class="text-[11px] text-white/40">Отслеживайте путь каждой посылки</p>
-          </div>
-        </div>
-        <p class="text-center mt-10 text-white/70">У вас пока нет заказов</p>
-        ${typeof renderFooter === 'function' ? renderFooter() : ''}
-      `;
+    if (!data.length) {
+      return `<div class="rd-screen page-enter">${head(0)}${U.empty({ icon: 'box', title: 'Заказов пока нет', text: 'Вставьте ссылку на вещь с Poizon или Taobao, и мы посчитаем цену под ключ.', action: 'Рассчитать заказ', onclick: "window.switchTab('calculator')" })}</div>`;
     }
-
-    const claims = claimsRes.data || [];
     const claimsMap = {};
-    claims.forEach(c => {
-      claimsMap[c.order_id] = c;
-    });
-    
-    return `
-      <div class="space-y-3 orders-list">
-        <div class="orders-toolbar items-center">
-          <div class="flex items-center gap-3">
-            <button id="backToProfileBtn" type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="15 18 9 12 15 6"/>
-              </svg>
-            </button>
-            <div>
-              <p class="orders-eyebrow">ЛИЧНЫЙ КАБИНЕТ</p>
-              <h2 class="orders-title">Мои заказы</h2>
-              <p class="orders-subtitle">Отслеживайте путь каждой посылки в одном месте</p>
-            </div>
-          </div>
-          <span class="orders-count">${data.length}</span>
+    (claimsRes.data || []).forEach((c) => { claimsMap[c.order_id] = c; });
+
+    const fmt = (n) => U.money(Number(n || 0), { keepCents: true, digits: 2 });
+    const NODES = ['Заказ', 'Выкуп', 'Склад', 'В пути', 'В РБ', 'Готово'];
+    const nodeIndex = (st) => ({ pending: 0, paid: 0, bought: 1, on_sklad_cn: 2, in_transit: 3, customs: 3, awaiting_payment: 3, paid_second: 3, in_belarus: 4, dispatched: 4, ready_for_pickup: 4, delivered: 5 })[st];
+    const plain = (html) => String(html || '').replace(/<[^>]+>/g, '').replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF\u2300-\u23FF\uFE0F]/gu, '').trim();
+    const firstImage = U.orderImage;
+    const orderTitle = U.orderTitle;
+
+    const cards = data.map((order) => {
+      const st = U.orderStatus(order.status);
+      const idx = nodeIndex(order.status);
+      const img = firstImage(order);
+      const created = new Date(order.created_at);
+      const dateStr = created.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+      const total = Number(order.total_byn || 0);
+      const pre = Number(order.prepayment_amount || 0);
+      const rest = Math.max(0, total - pre);
+      const arrived = ['in_belarus', 'ready_for_pickup', 'delivered'].includes(order.status);
+      const secondPaid = order.second_payment_paid || order.status === 'delivered';
+      const claim = claimsMap[order.id];
+      const est = parseFloat(order.weight_estimated) || 0;
+      const act = parseFloat(order.weight_actual);
+      const weightDiff = !isNaN(act) && Math.abs(act - est) >= 0.001;
+
+      const progress = idx == null ? '' : `
+        <div class="oc-track" style="--p:${idx / (NODES.length - 1)}">
+          <div class="oc-track-line"><i></i></div>
+          <div class="oc-nodes">${NODES.map((n, i) => `<span class="${i < idx ? 'done' : i === idx ? 'now' : ''}"><b></b>${n}</span>`).join('')}</div>
         </div>
-        ${data.map(order => `
-          <div class="glass-card order-card">
-            <div class="flex justify-between items-start">
-              <div>
-                <p class="text-white font-bold">Заказ #${order.id.slice(0,8)}</p>
-                <p class="text-white/70 text-xs">${new Date(new Date(order.created_at).getTime() + 3*60*60*1000).toLocaleString('ru-RU')}</p>
-                ${(() => {
-                  const est = parseFloat(order.weight_estimated) || 0;
-                  const act = parseFloat(order.weight_actual);
-                  if (!isNaN(act) && Math.abs(act - est) >= 0.001) { // 1 gram
-                    const isHeavier = act > est;
-                    const colorClass = isHeavier ? 'amber' : 'green';
-                    const icon = isHeavier 
-                      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
-                      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
-                    const title = isHeavier ? 'Внимание: перевес' : 'Вес меньше ожидаемого!';
-                    const suffix = isHeavier ? 'Ожидается доплата за разницу веса.' : 'Итоговая стоимость доставки будет пересчитана в меньшую сторону.';
-                    const diffStr = (act - est > 0 ? '+' : '') + (act - est).toFixed(3);
-                    return `
-                      <div class="mt-2 p-2 rounded-xl border border-${colorClass}-500/30 bg-${colorClass}-500/10 text-xs mb-2">
-                        <p class="text-${colorClass}-400 font-bold mb-1 flex items-center gap-1">
-                          <span class="ix">${icon}</span> ${title}
-                        </p>
-                        <p class="text-${colorClass}-100/70">Ожидалось: ${est.toFixed(3)} кг<br>На складе: ${act.toFixed(3)} кг</p>
-                        <p class="text-${colorClass}-300 font-bold mt-1">Разница: ${diffStr} кг. ${suffix}</p>
-                      </div>
-                    `;
-                  }
-                  return `<p class="text-white/70 text-xs mt-1">Вес: ${est} кг</p>`;
-                })()}
-                ${order.extra_services?.is_gift ? `
-                  <div class="mt-2 bg-pink-500/10 p-3 rounded-lg border border-pink-500/20 text-center cursor-pointer hover:bg-pink-500/20 transition-colors" onclick="this.innerHTML='<div class=\\'text-left text-xs space-y-1\\'><div class=\\'flex justify-between text-white/70\\'><span>Сумма заказа:</span><span>${Number(order.total_byn || 0).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span></div><div class=\\'flex justify-between text-cyan-400 font-bold\\'><span>Внесено (70%):</span><span>${Number(order.prepayment_amount || 0).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span></div><div class=\\'flex justify-between text-amber-400 font-bold border-t border-white/10 pt-1 mt-1\\'><span>Остаток:</span><span>${(Number(order.total_byn || 0) - Number(order.prepayment_amount || 0)).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span></div></div>'">
-                    <p class="text-pink-400 font-bold text-xs">🎁 Сюрприз (Нажмите, чтобы показать цену)</p>
-                  </div>
-                ` : `
-                  <div class="mt-2 bg-white/5 p-2.5 rounded-xl text-xs space-y-1.5 border border-white/10">
-                    <div class="flex justify-between text-white/70">
-                      <span>Полная стоимость заказа:</span>
-                      <span class="font-mono font-semibold inline-flex items-baseline gap-1">${Number(order.total_byn || 0).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
-                    </div>
-                    <div class="flex justify-between items-center text-cyan-400">
-                      <span class="flex items-center gap-1 font-semibold"><span>💳 1-й этап:</span> <span class="text-[9px] text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded border border-green-500/30">Оплачен</span></span>
-                      <span class="font-mono font-bold inline-flex items-baseline gap-1">${Number(order.prepayment_amount || 0).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
-                    </div>
-                    ${(() => {
-                      const secondPayRemaining = Math.max(0, Number(order.total_byn || 0) - Number(order.prepayment_amount || 0));
-                      const isArrived = ['in_belarus', 'ready_for_pickup', 'delivered'].includes(order.status);
-                      const isSecondPaid = order.second_payment_paid || order.status === 'delivered';
-                      if (isSecondPaid) {
-                        return `
-                          <div class="flex justify-between items-center text-green-400 border-t border-white/10 pt-1.5">
-                            <span class="flex items-center gap-1 font-semibold"><span>📦 2-й этап:</span> <span class="text-[9px] text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded border border-green-500/30">Оплачен</span></span>
-                            <span class="font-mono font-bold inline-flex items-baseline gap-1">${secondPayRemaining.toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
-                          </div>
-                        `;
-                      }
-                      if (isArrived && secondPayRemaining > 0) {
-                        return `
-                          <div class="border-t border-amber-500/30 pt-1.5 space-y-1.5">
-                            <div class="flex justify-between items-center text-amber-300 font-bold">
-                              <span>📦 2-й этап (К оплате):</span>
-                              <span class="font-mono text-sm inline-flex items-baseline gap-1">${secondPayRemaining.toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
-                            </div>
-                            <button type="button" class="w-full btn-primary bg-amber-500 hover:bg-amber-400 text-black font-bold py-2 rounded-lg text-xs flex items-center justify-center gap-1 shadow-md" onclick="window.openSecondPaymentModal('${order.id}', ${secondPayRemaining})">
-                              💳 Оплатить 2-й этап (${secondPayRemaining.toFixed(2)} ${window.bynSign ? window.bynSign() : ''})
-                            </button>
-                          </div>
-                        `;
-                      }
-                      return `
-                        <div class="flex justify-between items-center text-amber-300 border-t border-white/10 pt-1.5">
-                          <span class="text-white/60">📦 2-й этап (Остаток на складе):</span>
-                          <span class="font-mono font-semibold inline-flex items-baseline gap-1">~${secondPayRemaining.toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
-                        </div>
-                      `;
-                    })()}
-                  </div>
-                `}
-                ${order.tracking_number_cn ? `<p class="text-white/70 text-xs mt-2"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Внутренний трек: ${order.tracking_number_cn}</p>` : ''}
-                ${order.sbs_tracking_id ? `<p class="text-cyan-400 text-xs mt-1 font-bold"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span> SBS Трек: ${order.sbs_tracking_id}</p>` : ''}
-              </div>
-              <span class="status-badge ${getStatusClass(order.status)}">${getStatusText(order.status)}</span>
-            </div>
-            ${order.status === 'awaiting_decision' ? `
-              <div class="mt-3 p-3 rounded-xl border border-red-500/40 bg-red-500/10 text-xs space-y-2">
-                <div class="flex items-center gap-1.5 text-red-300 font-bold">
-                  <span>⚠️</span> Изменение стоимости товара при выкупе (> 3%)
-                </div>
-                <p class="text-white/80">Поставщик увеличил стоимость товара. Вы можете согласовать изменение и продолжить заказ либо отменить его с моментальным зачислением всех средств на ваш баланс.</p>
-                <div class="flex gap-2 pt-1">
-                  <button type="button" class="flex-1 bg-green-500/20 hover:bg-green-500/40 border border-green-500/40 text-green-300 py-1.5 px-2 rounded-lg font-semibold text-center transition" onclick="window.confirmOrderPriceIncrease('${order.id}')">
-                    ✅ Согласовать
-                  </button>
-                  <button type="button" class="flex-1 bg-red-500/20 hover:bg-red-500/40 border border-red-500/40 text-red-300 py-1.5 px-2 rounded-lg font-semibold text-center transition" onclick="window.cancelOrderDueToPrice('${order.id}')">
-                    ❌ Отменить заказ
-                  </button>
-                </div>
-              </div>
-            ` : ''}
-            ${order.photo_reports && order.photo_reports.length > 0 ? `
-              <div class="mt-3">
-                <p class="text-white/70 text-xs mb-1"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span> Фото со склада:</p>
-                <div class="flex gap-2 overflow-x-auto pb-2">
-                  ${order.photo_reports.map(url => `
-                    <img src="${url}" class="w-16 h-16 object-cover rounded-lg cursor-pointer flex-shrink-0" onclick="window.open('${url}', '_blank')">
-                  `).join('')}
-                </div>
-              </div>
-            ` : ''}
-            ${order.requires_video_check ? `
-              <div class="mt-3 bg-cyan-500/10 border border-cyan-500/20 p-3 rounded-xl">
-                <p class="text-cyan-400 text-xs font-bold mb-1 flex items-center gap-1"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span> Оплачена Видео-проверка (10 ${window.bynSign ? window.bynSign({ color: 'cyan' }) : ''})</p>
-                ${order.video_url ? `
-                  <a href="${order.video_url}" target="_blank" class="mt-2 btn-primary w-full py-2 text-xs flex justify-center items-center gap-2">
-                    Посмотреть видео
-                  </a>
-                ` : `
-                  <p class="text-white/60 text-[10px] mt-1">Видео будет доступно, когда товар поступит на склад в Китае.</p>
-                `}
-              </div>
-            ` : ''}
-            
-            <!-- Modern Premium Timeline Widget (Vertical) -->
-            <div class="mt-4 bg-white/5 p-4 rounded-xl border border-white/10">
-              <p class="text-white/60 text-xs font-semibold mb-3">Статус доставки:</p>
-              <div class="relative pl-3 space-y-4">
-                <div class="absolute left-[15px] top-2 bottom-2 w-[2px] bg-white/10"></div>
-                ${getStatusSteps(order.status).map((step, sIdx) => {
-                  const isPassed = step.active.includes(order.status);
-                  const isCurrent = isPassed && (sIdx === getStatusSteps(order.status).length - 1 || !getStatusSteps(order.status)[sIdx+1].active.includes(order.status));
-                  return `
-                    <div class="relative flex items-center gap-3">
-                      <div class="w-3 h-3 rounded-full z-10 transition-all duration-500 ${isCurrent ? 'bg-cyan-400 shadow-[0_0_10px_rgba(77, 163, 255,0.8)] scale-125' : isPassed ? 'bg-cyan-500/50' : 'bg-white/20'}" style="margin-left: -4px;"></div>
-                      <span class="text-xs ${isCurrent ? 'text-cyan-400 font-bold' : isPassed ? 'text-white/80' : 'text-white/30'}">${step.label}</span>
-                    </div>
-                  `;
-                }).join('')}
-              </div>
-              
-              <div class="text-xs text-white/70 border-t border-white/5 pt-2 mt-2 flex justify-between items-center">
-                <span>Оценка доставки:</span>
-                <span class="font-semibold">${getDeliveryCountdownText(order)}</span>
-              </div>
-              ${order.tracking_number_by ? `
-                <div class="text-[10px] text-white/60 mt-1.5 flex justify-between items-center border-t border-white/5 pt-1.5">
-                  <span>Доставка по РБ:</span>
-                  <span class="font-semibold text-white/80">${order.tracking_number_by}</span>
-                </div>
-              ` : ''}
-              ${(() => {
-                const claim = claimsMap[order.id];
-                if (!claim) return '';
-                const statusText = claim.status === 'pending' ? '🔍 Претензия на рассмотрении' : claim.status === 'approved' ? '🟢 Выплата одобрена' : '🔴 Претензия отклонена';
-                return `
-                  <div class="mt-2.5 p-2 rounded-xl border ${claim.status === 'pending' ? 'border-amber-500/25 bg-amber-500/5 text-amber-300' : claim.status === 'approved' ? 'border-green-500/25 bg-green-500/5 text-green-400' : 'border-red-500/25 bg-red-500/5 text-red-400'} text-[10px] text-center font-bold">
-                    ${statusText}
-                    ${claim.rejection_reason ? '<p class="text-white/50 font-normal mt-0.5 font-sans">Причина: ' + claim.rejection_reason + '</p>' : ''}
-                  </div>
-                `;
-              })()}
-            </div>
+        <div class="oc-eta">${U.icon('clock', 15)}<span>${U.esc(plain(getDeliveryCountdownText(order)))}</span></div>`;
 
-            <button class="btn-secondary w-full text-white text-xs mt-2 py-2.5 rounded-xl flex items-center justify-center gap-2 border border-white/5 bg-white/5 hover:bg-white/10 transition-colors" onclick="window.showLogisticsHistory('${order.id}')">
-              <span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
-              Подробная история трекинга
-            </button>
-
-            <div class="flex gap-2 mt-3">
-              <button class="btn-secondary flex-1 text-white text-xs border border-cyan-500/30" onclick="window.openInvoiceModal('${order.id}', ${Number(order.total_byn).toFixed(2)})"><span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span> Инвойс</button>
-              <button class="btn-secondary flex-1 text-white text-xs" onclick="window.openSupportChat('${order.id}')"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> 💬 Чат</button>
-              <button class="btn-secondary flex-1 text-white text-xs border border-blue-500/30" onclick="window.Telegram.WebApp.openTelegramLink('https://t.me/icelogix_bot?start=order_${order.id}')"><span class="ix text-blue-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></span> В боте</button>
-              ${Number(order.insurance_byn || 0) > 0 && !['pending', 'cancelled'].includes(order.status) && !claimsMap[order.id] ? `
-                <button class="btn-secondary flex-1 text-amber-400 border border-amber-500/20 text-xs" onclick="window.openInsuranceClaimModal('${order.id}', ${order.total_byn})">
-                  🛡️ Страховка
-                </button>
-              ` : ''}
-            </div>
-            ${order.status === 'delivered' ? `
-            <div class="mt-2">
-              <button class="btn-primary w-full text-white text-xs bg-pink-500/20 hover:bg-pink-500/30 border border-pink-500/30 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors" onclick="publishToResale('${order.id}', '${(order.description || '').replace(/'/g, "\\'")}')">
-                <span class="ix text-pink-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg></span> Выставить в Наличие
-              </button>
-            </div>
-            ` : ''}
+      const decision = order.status === 'awaiting_decision' ? `
+        <div class="oc-alert warn">
+          <div class="oc-alert-t">${U.icon('alert', 18)}Продавец поднял цену больше чем на 3%</div>
+          <p>Согласуйте новую цену и мы продолжим, или отмените заказ: все деньги сразу вернутся на баланс.</p>
+          <div class="oc-alert-btns">
+            <button type="button" class="rd-btn rd-btn-sm" onclick="window.confirmOrderPriceIncrease('${order.id}')">Согласовать</button>
+            <button type="button" class="rd-btn rd-btn-sm rd-btn-ghost" onclick="window.cancelOrderDueToPrice('${order.id}')">Отменить заказ</button>
           </div>
-        `).join('')}
-      </div>
-      ${renderFooter()}
-    `;
+        </div>` : '';
+
+      const weight = weightDiff ? `
+        <div class="oc-alert ${act > est ? 'warn' : 'ok'}">
+          <div class="oc-alert-t">${U.icon(act > est ? 'alert' : 'checkCircle', 18)}${act > est ? 'Посылка тяжелее, чем ожидали' : 'Посылка легче, чем ожидали'}</div>
+          <p>Ожидали ${est.toFixed(2)} кг, на складе ${act.toFixed(2)} кг. ${act > est ? 'Будет доплата за разницу в весе.' : 'Доставку пересчитаем в меньшую сторону.'}</p>
+        </div>` : '';
+
+      const money = order.extra_services && order.extra_services.is_gift
+        ? `<details class="oc-gift"><summary>${U.icon('gift', 16)}Подарок: нажмите, чтобы увидеть сумму</summary>
+             <div class="oc-money"><div><span>Сумма заказа</span>${fmt(total)}</div><div><span>Внесено</span>${fmt(pre)}</div><div><span>Остаток</span>${fmt(rest)}</div></div>
+           </details>`
+        : `<div class="oc-money">
+             <div><span>Сумма заказа</span>${fmt(total)}</div>
+             <div><span>1-й этап <em class="ok">оплачен</em></span>${fmt(pre)}</div>
+             <div><span>2-й этап ${secondPaid ? '<em class="ok">оплачен</em>' : arrived && rest > 0 ? '<em class="warn">к оплате</em>' : '<em>после взвешивания</em>'}</span>${secondPaid || arrived ? '' : '≈\u2009'}${fmt(rest)}</div>
+           </div>
+           ${arrived && !secondPaid && rest > 0 ? `<button type="button" class="rd-btn rd-btn-block oc-pay" onclick="window.openSecondPaymentModal('${order.id}', ${rest})">${U.icon('card', 18)}Оплатить доставку · ${fmt(rest)}</button>` : ''}`;
+
+      const tracks = [
+        order.tracking_number_cn ? ['Трек в Китае', order.tracking_number_cn] : null,
+        order.sbs_tracking_id ? ['Трек SBS', order.sbs_tracking_id] : null,
+        order.tracking_number_by ? ['Трек по Беларуси', order.tracking_number_by] : null,
+      ].filter(Boolean);
+
+      const photos = Array.isArray(order.photo_reports) && order.photo_reports.length ? `
+        <div class="oc-photos-t">${U.icon('camera', 16)}Фото со склада</div>
+        <div class="oc-photos" data-urls="${encodeURIComponent(JSON.stringify(order.photo_reports))}">
+          ${order.photo_reports.map((u, i) => `<img src="${U.esc(u)}" alt="Фото посылки" data-idx="${i}" loading="lazy" onclick="window.showImagePreview(JSON.parse(decodeURIComponent(this.parentElement.dataset.urls)), ${i})">`).join('')}
+        </div>` : '';
+
+      const video = order.requires_video_check ? `
+        <div class="oc-alert">
+          <div class="oc-alert-t">${U.icon('camera', 18)}Видеопроверка оплачена</div>
+          ${order.video_url ? `<a class="rd-btn rd-btn-sm rd-btn-tonal" href="${U.esc(order.video_url)}" target="_blank" rel="noopener">Смотреть видео</a>` : '<p>Видео появится, когда товар приедет на склад в Китае.</p>'}
+        </div>` : '';
+
+      const claimHtml = claim ? `
+        <div class="oc-alert ${claim.status === 'approved' ? 'ok' : claim.status === 'pending' ? 'warn' : 'bad'}">
+          <div class="oc-alert-t">${U.icon('shield', 18)}${claim.status === 'pending' ? 'Страховой случай на рассмотрении' : claim.status === 'approved' ? 'Выплата по страховке одобрена' : 'В выплате отказано'}</div>
+          ${claim.rejection_reason ? `<p>Причина: ${U.esc(claim.rejection_reason)}</p>` : ''}
+        </div>` : '';
+
+      const canInsure = Number(order.insurance_byn || 0) > 0 && !['pending', 'cancelled'].includes(order.status) && !claim;
+
+      return `
+        <article class="oc glass-card order-card">
+          <header class="oc-head">
+            <span class="oc-thumb">${img ? `<img src="${U.esc(img)}" alt="" loading="lazy" onerror="this.remove()">` : ''}${U.icon('box', 22)}</span>
+            <div class="oc-hinfo">
+              <div class="oc-title">${U.esc(orderTitle(order))}</div>
+              <div class="oc-sub"><span class="rd-status ${st.tone} oc-st">${st.text}</span><span>№ ${order.id.slice(0, 8).toUpperCase()} · ${dateStr}</span></div>
+            </div>
+          </header>
+          ${progress}
+          ${decision}${weight}
+          ${money}
+          ${tracks.length ? `<div class="oc-tracks">${tracks.map(([k, v]) => `<button type="button" class="oc-trackno" onclick="navigator.clipboard && navigator.clipboard.writeText('${U.esc(v)}').then(() => window.UI.toast('Трек-номер скопирован'))"><span>${k}</span><b>${U.esc(v)}</b>${U.icon('copy', 16)}</button>`).join('')}</div>` : ''}
+          ${photos}${video}${claimHtml}
+          <div class="oc-actions">
+            <button type="button" class="oc-act" onclick="window.showLogisticsHistory('${order.id}')">${U.icon('history', 18)}<span>Трекинг</span></button>
+            <button type="button" class="oc-act" onclick="window.openSupportChat('${order.id}')">${U.icon('message', 18)}<span>Чат</span></button>
+            <button type="button" class="oc-act" onclick="window.openInvoiceModal('${order.id}', ${total.toFixed(2)})">${U.icon('receipt', 18)}<span>Инвойс</span></button>
+            ${canInsure ? `<button type="button" class="oc-act" onclick="window.openInsuranceClaimModal('${order.id}', ${total})">${U.icon('shield', 18)}<span>Страховка</span></button>` : `<button type="button" class="oc-act" onclick="window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink('https://t.me/icelogix_bot?start=order_${order.id}')">${U.icon('send', 18)}<span>В боте</span></button>`}
+          </div>
+          ${order.status === 'delivered' ? `<button type="button" class="rd-btn rd-btn-ghost rd-btn-block oc-resale" onclick="publishToResale('${order.id}', '${(order.description || '').replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">${U.icon('tag', 18)}Продать в «Наличии»</button>` : ''}
+        </article>`;
+    }).join('');
+
+    return `<div class="rd-screen page-enter orders-list">${head(data.length)}<div class="oc-list">${cards}</div></div>`;
   } catch (err) {
     console.error('Ошибка в renderMyOrders:', err);
-    return `<p class="text-center mt-10 text-red-400">Ошибка загрузки заказов</p>${typeof renderFooter === 'function' ? renderFooter() : ''}`;
+    return `<div class="rd-screen page-enter">${head(0)}${U.empty({ icon: 'alert', title: 'Не удалось загрузить заказы', text: 'Проверьте интернет и попробуйте ещё раз.', action: 'Повторить', onclick: 'renderCurrentScreen()' })}</div>`;
   }
 }
 

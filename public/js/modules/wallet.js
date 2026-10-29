@@ -57,7 +57,7 @@
     if (hb) hb.innerText = nextBal;
 
     const cardBal = document.getElementById('walletCardLiveBalance');
-    if (cardBal) cardBal.innerHTML = `${nextBal.toFixed(2)} ${window.bynSign ? window.bynSign() : ''}`;
+    if (cardBal) cardBal.innerHTML = window.UI ? window.UI.money(nextBal, { keepCents: true, digits: 2 }) : nextBal.toFixed(2);
 
     try {
       const cached = localStorage.getItem('ice_cached_user');
@@ -130,273 +130,95 @@
   }
 
   // ============================================================
-  // Генератор HTML: Премиальная цифровая карта «ICE Wallet»
+  // Карта кошелька: объёмная карточка с бликом (наклон от пальца — в attachWalletHandlers)
   // ============================================================
   function renderWalletVirtualCard(bal, user) {
+    const U = window.UI;
     const isVerified = user?.kyc_status === 'verified';
-    const curUserId = user?.user_id || window.userId || '739210';
+    const curUserId = user?.user_id || window.userId || '';
     const walletAccountNum = `ICE-${String(curUserId).padStart(7, '0')}`;
-    const limitText = isVerified ? `Лимит 5 000 ${window.bynSign ? window.bynSign({ size: '0.9em' }) : ''} • Верифицирован` : `Базовый лимит 500 ${window.bynSign ? window.bynSign({ size: '0.9em' }) : ''}`;
-
     return `
-      <div class="relative w-full max-w-[340px] mx-auto select-none">
-        <!-- Нео-карта кошелька (ISO ID-1 пропорции, глубокий космический градиент) -->
-        <div class="relative aspect-[1.586/1] w-full rounded-3xl p-5 flex flex-col justify-between overflow-hidden shadow-2xl shadow-cyan-950/70 border border-cyan-400/30 bg-gradient-to-br from-slate-950 via-[#081528] to-[#042436] transition-transform duration-300">
-          
-          <!-- Световые переливы и декоративная неоновая сетка -->
-          <div class="absolute inset-0 bg-gradient-to-tr from-cyan-500/10 via-transparent to-white/[0.08] pointer-events-none"></div>
-          <div class="absolute -right-10 -bottom-10 w-44 h-44 rounded-full bg-cyan-500/15 blur-3xl pointer-events-none"></div>
-          <div class="absolute -left-10 -top-10 w-40 h-40 rounded-full bg-blue-600/15 blur-2xl pointer-events-none"></div>
-
-          <!-- 1. Верхний ряд: Логотип ICE WALLET + Статус верификации -->
-          <div class="relative z-10 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400 animate-pulse"></span>
-              <span class="text-sm font-black tracking-widest text-white uppercase flex items-center gap-1.5 font-sans">
-                ICE LOGIX <span class="text-cyan-400">PAY</span>
-              </span>
-            </div>
-
-            <!-- Бейдж статуса верификации -->
-            <div class="flex items-center">
-              ${isVerified ? `
-                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 shadow-sm shadow-emerald-500/20">
-                  <svg class="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                  <span>Идентифицирован</span>
-                </span>
-              ` : `
-                <button type="button" onclick="window.switchTab && window.switchTab('profile')" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/30 active:scale-95 transition">
-                  <span>Базовый</span>
-                  <span class="text-white/60">·</span>
-                  <span class="underline">Паспорт ›</span>
-                </button>
-              `}
-            </div>
+      <div class="wl-card-wrap" id="walletCard3d">
+        <div class="wl-card">
+          <span class="wl-glow"></span><span class="wl-flake">${U.icon('snow', 150)}</span><span class="wl-sheen"></span>
+          <div class="wl-card-top">
+            <span class="wl-brand"><span class="wl-brand-mark">${U.icon('snow', 16)}</span>ICE LOGIX <b>PAY</b></span>
+            ${isVerified
+              ? `<span class="wl-kyc ok">${U.icon('checkCircle', 13)}Данные подтверждены</span>`
+              : `<button type="button" class="wl-kyc" onclick="window.switchTab && window.switchTab('kyc')">${U.icon('idcard', 13)}Лимит 500 · поднять</button>`}
           </div>
-
-          <!-- 2. Средний блок: Баланс кошелька крупным шрифтом -->
-          <div class="relative z-10 my-auto py-1">
-            <div class="flex items-baseline justify-between">
-              <div>
-                <p class="text-[10px] font-bold uppercase tracking-wider text-white/50 mb-0.5">Доступный баланс</p>
-                <div class="flex items-baseline gap-2">
-                  <span class="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight inline-flex items-baseline gap-1" id="walletCardLiveBalance">${bal.toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
-                </div>
-              </div>
-
-              <!-- Контактный золотой чип EMV + бесконтактный значок -->
-              <div class="flex items-center gap-2">
-                <div class="w-9 h-6 rounded-md bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 border border-amber-300/60 shadow-inner relative overflow-hidden p-0.5 flex-shrink-0">
-                  <div class="w-full h-full border border-amber-900/20 rounded-sm grid grid-cols-2 gap-0.5 opacity-80">
-                    <div class="border-r border-b border-amber-900/30"></div>
-                    <div class="border-b border-amber-900/30"></div>
-                    <div class="border-r border-amber-900/30"></div>
-                    <div></div>
-                  </div>
-                </div>
-                <svg class="w-4 h-4 text-white/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/></svg>
-              </div>
-            </div>
+          <div class="wl-card-mid">
+            <span class="wl-cap">Баланс</span>
+            <span class="wl-bal" id="walletCardLiveBalance">${U.money(bal, { keepCents: true, digits: 2 })}</span>
           </div>
-
-          <!-- 3. Нижний ряд: Персональный счет и лимит -->
-          <div class="relative z-10 flex items-end justify-between text-left pt-1 border-t border-white/10">
-            <div>
-              <p class="text-[7px] uppercase tracking-wider text-white/40 font-bold leading-none mb-0.5">НОМЕР СЧЕТА В СИСТЕМЕ</p>
-              <p class="font-mono text-xs font-bold text-white/90 tracking-widest">${walletAccountNum}</p>
-            </div>
-            <div class="text-right">
-              <p class="text-[10px] text-white/50 font-medium">${limitText}</p>
-            </div>
+          <div class="wl-card-bot">
+            <span class="wl-acc">${walletAccountNum}</span>
+            <span class="wl-chip"><i></i><i></i><i></i><i></i></span>
           </div>
         </div>
-
-        <!-- Плашка фичи WB: скидка 3% при оплате кошельком -->
-        <div class="mt-2.5 p-3 rounded-2xl bg-gradient-to-r from-cyan-950/70 via-slate-900 to-cyan-950/70 border border-cyan-400/30 shadow-lg flex items-center justify-between gap-2">
-          <div class="flex items-center gap-2.5 min-w-0">
-            <span class="w-7 h-7 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 flex items-center justify-center text-sm font-black flex-shrink-0">%</span>
-            <div class="min-w-0">
-              <p class="text-xs font-extrabold text-white truncate">Скидка 3% на все заказы</p>
-              <p class="text-[10px] text-white/50 leading-tight">При оплате со счёта кошелька (как на Wildberries)</p>
-            </div>
-          </div>
-          <span class="px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider bg-cyan-400/20 text-cyan-300 border border-cyan-400/30 flex-shrink-0">
-            АКТИВНА
-          </span>
-        </div>
+      </div>
+      <div class="wl-perk">
+        <span class="wl-perk-ico">${U.icon('percent', 18)}</span>
+        <div class="wl-perk-txt"><b>−3% на заказы</b><span>когда платите с кошелька</span></div>
+        <span class="rd-status ok">Активна</span>
       </div>
     `;
   }
 
   // ============================================================
-  // Генератор HTML: Таб 1 — Пополнение кошелька
+  // Пополнение: сумма, способ, кнопка
   // ============================================================
   function renderTopupTabHtml(bal) {
+    const U = window.UI;
     const primaryCard = (window.userCards || []).find(c => c.is_default) || (window.userCards || [])[0] || null;
-
+    const method = (id, icon, title, text, tag) => `
+      <label class="topup-method-card wl-method ${_selectedTopupMethod === id ? 'on' : ''}" data-method="${id}">
+        <input type="radio" name="topupMethodRadio" value="${id}" ${_selectedTopupMethod === id ? 'checked' : ''} class="wl-radio-input">
+        <span class="wl-method-ico">${icon}</span>
+        <span class="wl-method-body"><span class="wl-method-title">${title}${tag ? `<em>${tag}</em>` : ''}</span><span class="wl-method-text">${text}</span></span>
+        <span class="wl-radio"></span>
+      </label>`;
     return `
-      <div class="space-y-4">
-        <!-- Калькулятор суммы пополнения -->
-        <div class="glass-card p-4 rounded-3xl border border-white/10 space-y-3">
-          <label class="block text-white font-bold text-xs uppercase tracking-wider flex items-center justify-between">
-            <span class="inline-flex items-center gap-1">Сумма пополнения (${window.bynSign ? window.bynSign({ color: 'cyan', size: '1em' }) : ''})</span>
-            <span class="text-[10px] font-mono text-cyan-300 normal-case">Зачисление: <b id="topupConvertedIceText">без комиссии 0%</b></span>
-          </label>
-
-          <!-- Быстрые чипсы выбора сумм -->
-          <div class="grid grid-cols-5 gap-1.5" id="topupChipsGrid">
-            ${[20, 50, 100, 250, 500].map(amt => `
-              <button
-                type="button"
-                data-amount="${amt}"
-                class="topup-amount-chip py-2 px-1 rounded-xl text-xs font-mono font-bold transition active:scale-95 text-center ${
-                  amt === _selectedTopupAmount
-                    ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20'
-                    : 'bg-white/5 hover:bg-white/10 text-white/70 border border-white/5'
-                }"
-              >
-                +${amt}
-              </button>
-            `).join('')}
-          </div>
-
-          <!-- Поле ручного ввода суммы -->
-          <div class="relative">
-            <input
-              type="number"
-              id="topupCustomAmountInput"
-              min="1"
-              max="50000"
-              step="1"
-              value="${_selectedTopupAmount}"
-              placeholder="Введите сумму"
-              class="w-full bg-slate-900/90 border border-white/15 focus:border-cyan-400 rounded-2xl py-3 px-4 pr-16 text-white font-mono font-bold text-base focus:outline-none transition shadow-inner"
-            >
-            <span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-white/50 font-mono pointer-events-none flex items-center">
-              ${window.bynSign ? window.bynSign({ size: '1.1em' }) : ''}
-            </span>
-          </div>
+      <section class="wl-block">
+        <div class="wl-block-h"><h2>Пополнить</h2><span>без комиссии</span></div>
+        <div class="wl-amount">
+          <input type="number" id="topupCustomAmountInput" inputmode="decimal" min="1" max="50000" step="1" value="${_selectedTopupAmount}" placeholder="0" aria-label="Сумма пополнения">
+          <span class="wl-amount-sign">${window.bynSign ? window.bynSign({ size: '1em' }) : ''}</span>
         </div>
-
-        <!-- Способы пополнения (ЕРИП, Оплати, Карта bePaid) -->
-        <div class="glass-card p-4 rounded-3xl border border-white/10 space-y-3">
-          <h4 class="text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2">
-            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
-            Выберите способ пополнения
-          </h4>
-
-          <div class="space-y-2" id="topupMethodsGroup">
-            <!-- 1. ЕРИП -->
-            <label class="topup-method-card flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer ${
-              _selectedTopupMethod === 'erip'
-                ? 'bg-cyan-500/10 border-cyan-500/50 shadow-md shadow-cyan-950/40'
-                : 'bg-white/[0.03] border-white/10 hover:border-white/20'
-            }" data-method="erip">
-              <div class="flex items-center gap-3">
-                <input type="radio" name="topupMethodRadio" value="erip" ${_selectedTopupMethod === 'erip' ? 'checked' : ''} class="accent-cyan-400 w-4 h-4">
-                <div>
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs font-bold text-white">Система «Расчет» (ЕРИП)</span>
-                    <span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-cyan-400/20 text-cyan-300 border border-cyan-400/30">0% • БЕЗ КАРТЫ</span>
-                  </div>
-                  <p class="text-[10px] text-white/50 leading-tight mt-0.5">Оплата с любого банка Беларуси по номеру счёта через bePaid</p>
-                </div>
-              </div>
-              <span class="text-lg">🏛️</span>
-            </label>
-
-            <!-- 2. Оплати -->
-            <label class="topup-method-card flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer ${
-              _selectedTopupMethod === 'oplati'
-                ? 'bg-emerald-500/15 border-emerald-500/60 shadow-md shadow-emerald-950/40'
-                : 'bg-white/[0.03] border-white/10 hover:border-white/20'
-            }" data-method="oplati">
-              <div class="flex items-center gap-3">
-                <input type="radio" name="topupMethodRadio" value="oplati" ${_selectedTopupMethod === 'oplati' ? 'checked' : ''} class="accent-emerald-400 w-4 h-4">
-                <div>
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs font-bold text-white">Кошелек «Оплати»</span>
-                    <span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">QR • КЭШБЭК</span>
-                  </div>
-                  <p class="text-[10px] text-white/50 leading-tight mt-0.5">Оплата по QR-коду со смартфона (Белинвестбанк) в 1 клик</p>
-                </div>
-              </div>
-              <span class="w-6 h-6 rounded-lg bg-emerald-500/20 border border-emerald-400/30 text-emerald-400 flex items-center justify-center font-black text-xs font-sans">О!</span>
-            </label>
-
-            <!-- 3. Банковская карта онлайн -->
-            <label class="topup-method-card flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer ${
-              _selectedTopupMethod === 'card'
-                ? 'bg-cyan-500/10 border-cyan-500/50 shadow-md shadow-cyan-950/40'
-                : 'bg-white/[0.03] border-white/10 hover:border-white/20'
-            }" data-method="card">
-              <div class="flex items-center gap-3">
-                <input type="radio" name="topupMethodRadio" value="card" ${_selectedTopupMethod === 'card' ? 'checked' : ''} class="accent-cyan-400 w-4 h-4">
-                <div>
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs font-bold text-white">Банковская карта онлайн</span>
-                    ${primaryCard ? `<span class="text-[9px] font-bold text-cyan-300 font-mono">•••• ${primaryCard.last4 || ''}</span>` : ''}
-                  </div>
-                  <p class="text-[10px] text-white/50 leading-tight mt-0.5">Белкарт, Mastercard, Visa, МИР банков РБ (bePaid 3D-Secure)</p>
-                </div>
-              </div>
-              <span class="text-lg">💳</span>
-            </label>
-          </div>
+        <div class="wl-chips" id="topupChipsGrid">
+          ${[20, 50, 100, 250, 500].map(amt => `<button type="button" data-amount="${amt}" class="topup-amount-chip wl-amt ${amt === _selectedTopupAmount ? 'on' : ''}">+${amt}</button>`).join('')}
         </div>
+        <span id="topupConvertedIceText" hidden>без комиссии 0%</span>
+      </section>
 
-        <!-- Кнопка пополнения -->
-        <button
-          type="button"
-          id="walletTopupSubmitBtn"
-          class="btn-primary w-full py-4 rounded-2xl font-black text-sm shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2 active:scale-95 transition"
-        >
-          <span>Пополнить на ${_selectedTopupAmount} ${window.bynSign ? window.bynSign({ color: 'white' }) : ''}</span>
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
-
-        <!-- 4 Преимущества ICE LOGIX PAY (Инфо-сетка) -->
-        <div class="grid grid-cols-2 gap-2 pt-1 text-[11px]">
-          <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
-            <div class="flex items-center gap-1.5 text-cyan-300 font-bold">
-              <svg class="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-              <span>Мгновенный выкуп</span>
-            </div>
-            <p class="text-[10px] text-white/50 leading-tight">Байеры выкупают товары без задержек банковских межбанков</p>
-          </div>
-
-          <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
-            <div class="flex items-center gap-1.5 text-emerald-400 font-bold">
-              <svg class="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              <span>Мгновенный возврат</span>
-            </div>
-            <p class="text-[10px] text-white/50 leading-tight">Если товара нет в наличии, средства зачисляются за 1 секунду</p>
-          </div>
-
-          <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
-            <div class="flex items-center gap-1.5 text-purple-400 font-bold">
-              <span class="text-xs">🎁</span>
-              <span>Бонусы 7% за друзей</span>
-            </div>
-            <p class="text-[10px] text-white/50 leading-tight">Зачисление реферальных выплат прямо на лицевой счёт</p>
-          </div>
-
-          <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
-            <div class="flex items-center gap-1.5 text-amber-400 font-bold">
-              <span class="text-xs">💳</span>
-              <span>0% комиссий</span>
-            </div>
-            <p class="text-[10px] text-white/50 leading-tight">Никаких скрытых платежей при пополнении и покупках</p>
-          </div>
+      <section class="wl-block">
+        <div class="wl-block-h"><h2>Способ оплаты</h2></div>
+        <div class="wl-methods" id="topupMethodsGroup">
+          ${method('erip', U.icon('receipt', 22), 'ЕРИП', 'Из интернет-банка любого банка Беларуси', 'без карты')}
+          ${method('oplati', '<b class="wl-oplati">О!</b>', 'Оплати', 'QR-код в приложении банка, в один тап', 'QR')}
+          ${method('card', U.icon('card', 22), 'Банковская карта', primaryCard ? `Карта •••• ${U.esc(primaryCard.last4 || '')}` : 'Белкарт, Visa, Mastercard, МИР', '')}
         </div>
+      </section>
+
+      <button type="button" id="walletTopupSubmitBtn" class="rd-btn rd-btn-block wl-submit">
+        <span>Пополнить на ${_selectedTopupAmount} ${window.bynSign ? window.bynSign({ color: 'white' }) : ''}</span>
+        ${U.icon('arrowR', 18)}
+      </button>
+
+      <div class="wl-feats">
+        <div class="wl-feat"><span>${U.icon('zap', 18)}</span><b>Быстрый выкуп</b><p>Байер покупает вещь сразу, без ожидания перевода</p></div>
+        <div class="wl-feat"><span>${U.icon('refresh', 18)}</span><b>Возврат за минуту</b><p>Если вещи нет, деньги сразу вернутся на счёт</p></div>
+        <div class="wl-feat"><span>${U.icon('users', 18)}</span><b>7% за друзей</b><p>Бонусы за приглашённых падают прямо сюда</p></div>
+        <div class="wl-feat"><span>${U.icon('shield', 18)}</span><b>0% комиссии</b><p>Ни при пополнении, ни при оплате заказов</p></div>
       </div>
     `;
   }
 
   // ============================================================
-  // Генератор HTML: Таб 3 — История операций (Ledger)
+  // История операций по счёту
   // ============================================================
   function renderHistoryTabHtml(entries) {
+    const U = window.UI;
     let filtered = entries || [];
     if (_activeHistoryFilter === 'credit') {
       filtered = filtered.filter(e => e.direction === 'CREDIT');
@@ -405,83 +227,30 @@
     } else if (_activeHistoryFilter === 'refund') {
       filtered = filtered.filter(e => e.reason && e.reason.toLowerCase().includes('refund'));
     }
+    const chips = [
+      { id: 'all', label: 'Все' },
+      { id: 'credit', label: 'Пополнения' },
+      { id: 'debit', label: 'Оплаты' },
+      { id: 'refund', label: 'Возвраты' }
+    ].map(f => `<button type="button" onclick="window.setWalletHistoryFilter('${f.id}')" class="rd-chip ${_activeHistoryFilter === f.id ? 'on' : ''}">${f.label}</button>`).join('');
 
-    return `
-      <div class="space-y-3">
-        <!-- Фильтры истории -->
-        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-          ${[
-            { id: 'all', label: 'Все' },
-            { id: 'credit', label: 'Пополнения' },
-            { id: 'debit', label: 'Оплаты' },
-            { id: 'refund', label: 'Возвраты' }
-          ].map(f => `
-            <button
-              type="button"
-              onclick="window.setWalletHistoryFilter('${f.id}')"
-              class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap active:scale-95 ${
-                _activeHistoryFilter === f.id
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shadow-sm'
-                  : 'bg-white/5 text-white/60 border border-white/5 hover:text-white'
-              }"
-            >
-              ${f.label}
-            </button>
-          `).join('')}
-        </div>
+    const list = filtered.length === 0
+      ? U.empty({ icon: 'receipt', title: 'Операций пока нет', text: 'Пополнения, оплаты и возвраты будут появляться здесь.' })
+      : `<div class="rd-card hs-txlist">${filtered.map(item => {
+          const isCredit = item.direction === 'CREDIT';
+          const isRefund = item.reason && item.reason.toLowerCase().includes('refund');
+          return `
+            <div class="hs-tx">
+              <span class="hs-tx-ico ${isCredit ? 'in' : ''}">${U.icon(isRefund ? 'refresh' : (isCredit ? 'plus' : 'bag'), 20)}</span>
+              <div class="hs-tx-body">
+                <div class="hs-tx-title">${getReasonTitle(item.direction, item.reason)}</div>
+                <div class="hs-tx-sub">${formatTxDate(item.created_at)}</div>
+              </div>
+              <span class="hs-tx-amt ${isCredit ? 'in' : ''}">${isCredit ? '+' : '−'}${U.money(Number(item.amount || 0), { keepCents: true, digits: 2 })}</span>
+            </div>`;
+        }).join('')}</div>`;
 
-        <!-- Список записей -->
-        ${filtered.length === 0 ? `
-          <div class="text-center py-10 px-4 rounded-3xl bg-slate-900/60 border border-white/5 space-y-2">
-            <div class="w-12 h-12 mx-auto rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 select-none">
-              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-            </div>
-            <p class="font-bold text-white text-sm">Операций не найдено</p>
-            <p class="text-xs text-white/40 max-w-xs mx-auto">
-              Пополните кошелек или оформите заказ — все действия автоматически сохраняются здесь.
-            </p>
-          </div>
-        ` : `
-          <div class="space-y-2">
-            ${filtered.map(item => {
-              const isCredit = item.direction === 'CREDIT';
-              const isRefund = item.reason && item.reason.toLowerCase().includes('refund');
-              const amountSign = isCredit ? '+' : '-';
-              const amountClass = isRefund
-                ? 'text-purple-400'
-                : (isCredit ? 'text-emerald-400' : 'text-cyan-300');
-              const title = getReasonTitle(item.direction, item.reason);
-              const dateStr = formatTxDate(item.created_at);
-
-              return `
-                <div class="p-3.5 rounded-2xl bg-slate-900/70 border border-white/10 flex items-center justify-between gap-3 transition">
-                  <div class="flex items-center gap-3 min-w-0">
-                    <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                      isRefund
-                        ? 'bg-purple-500/20 text-purple-300 border border-purple-400/30'
-                        : (isCredit
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30'
-                            : 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/30')
-                    }">
-                      ${isRefund ? '↺' : (isCredit ? '↓' : '↑')}
-                    </div>
-                    <div class="min-w-0">
-                      <p class="text-xs font-bold text-white truncate">${title}</p>
-                      <p class="text-[10px] text-white/40 mt-0.5">${dateStr} · ${item.source_transaction_id || 'ID: ' + (item.id || '').slice(0, 8)}</p>
-                    </div>
-                  </div>
-
-                  <div class="text-right flex-shrink-0">
-                    <p class="text-sm font-black font-mono inline-flex items-baseline gap-1 ${amountClass}">${amountSign}${Number(item.amount || 0).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</p>
-                    <span class="text-[9px] font-bold text-white/50">Успешно</span>
-                  </div>
-                </div>
-              `;
-            }).join('')}
-          </div>
-        `}
-      </div>
-    `;
+    return `<div class="rd-chips wl-hchips">${chips}</div>${list}`;
   }
 
   // Загрузка истории транзакций из Supabase
@@ -526,7 +295,7 @@
           if (typeof data.ices_balance === 'number') {
             window.balance = data.ices_balance;
             const bEl = document.getElementById('walletCardLiveBalance');
-            if (bEl) bEl.innerHTML = `${data.ices_balance.toFixed(2)} ${window.bynSign ? window.bynSign() : ''}`;
+            if (bEl) bEl.innerHTML = window.UI.money(data.ices_balance, { keepCents: true, digits: 2 });
           }
         }
       }).catch(() => {});
@@ -534,54 +303,19 @@
 
     const entries = await loadLedgerHistory();
 
+    const U = window.UI;
     return `
-      <div class="page-enter px-4 max-w-md mx-auto pb-24">
-        
-        <!-- Верхняя шапка раздела -->
-        <div class="flex items-center justify-between mb-4 pt-1">
-          <div class="flex items-center gap-3">
-            <button id="backFromWalletBtn" onclick="window.backFromWallet()" class="global-back-btn !mb-0" title="Назад">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="15 18 9 12 15 6"/>
-              </svg>
-            </button>
-            <div>
-              <h2 class="text-xl font-black text-white tracking-wide">ICE LOGIX <span class="text-cyan-400">PAY</span></h2>
-              <p class="text-[11px] text-white/40">Лицевой счёт и моментальная оплата</p>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-1.5">
-            <span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-cyan-500/15 text-cyan-300 border border-cyan-400/30">
-              0% КОМИССИИ
-            </span>
-          </div>
+      <div class="rd-screen page-enter wl">
+        <div class="rd-head">
+          <button id="backFromWalletBtn" type="button" onclick="window.backFromWallet()" class="rd-back" aria-label="Назад">${U.icon('chevL', 22)}</button>
+          <div class="rd-head-txt"><h1 class="rd-head-title">Кошелёк</h1><p class="rd-head-sub">Счёт ICE LOGIX PAY для оплаты заказов</p></div>
         </div>
-
-        <!-- 1. Цифровая карта ICE LOGIX PAY -->
-        <div class="mb-5">
-          ${renderWalletVirtualCard(curBal, curUser)}
+        ${renderWalletVirtualCard(curBal, curUser)}
+        ${renderTopupTabHtml(curBal)}
+        <div class="rd-section"><h2>Операции</h2><span class="wl-note">последние 30</span></div>
+        <div id="walletHistoryContainer">
+          ${renderHistoryTabHtml(entries)}
         </div>
-
-        <!-- 2. Блок пополнения счёта (чипсы, поле ввода, методы: ЕРИП, Оплати, Карта, кнопка) -->
-        <div class="mb-5">
-          ${renderTopupTabHtml(curBal)}
-        </div>
-
-        <!-- 3. История операций лицевого счёта (balance_entries) -->
-        <div class="space-y-3 pt-2">
-          <div class="flex items-center justify-between px-1">
-            <h3 class="text-white font-bold text-sm flex items-center gap-2">
-              <span>📜</span>
-              <span>История операций</span>
-            </h3>
-            <span class="text-[10px] text-white/40 font-mono">Последние 30 транзакций</span>
-          </div>
-          <div id="walletHistoryContainer">
-            ${renderHistoryTabHtml(entries)}
-          </div>
-        </div>
-
       </div>
     `;
   };
@@ -613,12 +347,7 @@
       }
 
       document.querySelectorAll('#topupChipsGrid button').forEach(chip => {
-        const v = parseFloat(chip.dataset.amount);
-        if (v === _selectedTopupAmount) {
-          chip.className = 'topup-amount-chip py-2 px-1 rounded-xl text-xs font-mono font-bold transition active:scale-95 text-center bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20';
-        } else {
-          chip.className = 'topup-amount-chip py-2 px-1 rounded-xl text-xs font-mono font-bold transition active:scale-95 text-center bg-white/5 hover:bg-white/10 text-white/70 border border-white/5';
-        }
+        chip.classList.toggle('on', parseFloat(chip.dataset.amount) === _selectedTopupAmount);
       });
     }
 
@@ -644,16 +373,7 @@
           _selectedTopupMethod = radio.value;
           if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
 
-          document.querySelectorAll('.topup-method-card').forEach(c => {
-            const isOplati = c.dataset.method === 'oplati';
-            if (c === card) {
-              c.className = isOplati
-                ? 'topup-method-card flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer bg-emerald-500/15 border-emerald-500/60 shadow-md shadow-emerald-950/40'
-                : 'topup-method-card flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer bg-cyan-500/10 border-cyan-500/50 shadow-md shadow-cyan-950/40';
-            } else {
-              c.className = 'topup-method-card flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer bg-white/[0.03] border-white/10 hover:border-white/20';
-            }
-          });
+          document.querySelectorAll('.topup-method-card').forEach(c => c.classList.toggle('on', c === card));
         }
       };
     });
@@ -712,6 +432,23 @@
   // Привязка обработчиков при открытии страницы ICE LOGIX PAY
   window.attachWalletHandlers = function () {
     attachTopupHandlers();
+    const wrap = document.getElementById('walletCard3d');
+    if (wrap && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const card = wrap.firstElementChild;
+      const move = (x, y) => {
+        const r = wrap.getBoundingClientRect();
+        const px = Math.min(1, Math.max(0, (x - r.left) / r.width)) - 0.5;
+        const py = Math.min(1, Math.max(0, (y - r.top) / r.height)) - 0.5;
+        card.style.transform = `rotateY(${px * 14}deg) rotateX(${-py * 12}deg)`;
+        card.style.setProperty('--mx', `${(px + 0.5) * 100}%`);
+        card.style.setProperty('--my', `${(py + 0.5) * 100}%`);
+      };
+      const reset = () => { card.style.transform = ''; };
+      wrap.addEventListener('pointermove', (e) => move(e.clientX, e.clientY));
+      wrap.addEventListener('pointerleave', reset);
+      wrap.addEventListener('pointerup', reset);
+      wrap.addEventListener('pointercancel', reset);
+    }
   };
 
   // Навигация «Назад»
