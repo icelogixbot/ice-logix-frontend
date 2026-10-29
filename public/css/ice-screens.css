@@ -1033,3 +1033,48 @@ html body .no-form div[class*="border-white/30"] > input { min-height: 40px !imp
 .ab-soc-ico svg { width: 20px; height: 20px; }
 .ab-soc-ico.s-tg { color: #2AABEE; } .ab-soc-ico.s-vk { color: #4C8DFF; } .ab-soc-ico.s-youtube { color: #FF4E4E; } .ab-soc-ico.s-ig { color: #F06292; } .ab-soc-ico.s-pinterest { color: #E8475A; }
 .ab-foot { margin: 20px 0 0; text-align: center; font-size: 12.5px; color: var(--rd-tx3); }
+
+/* ═══ Поиск по фото и описанию (pdd-search.js), префикс ps- ═══ */
+.ps-form { padding: 16px; display: flex; flex-direction: column; gap: 6px; }
+.ps-form .rd-label { margin-top: 12px; }
+.ps-form .rd-label:first-child { margin-top: 0; }
+.ps-form > .rd-btn { margin-top: 18px; }
+.ps-drop { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 22px 16px; border: 1.5px dashed var(--rd-line-2); border-radius: 16px; background: var(--rd-s2); text-align: center; cursor: pointer; }
+.ps-drop:active { transform: scale(0.99); }
+.ps-drop-ico { width: 52px; height: 52px; border-radius: 16px; background: var(--rd-tint); color: var(--rd-b400); display: flex; align-items: center; justify-content: center; }
+.ps-drop-title { font-size: 15px; font-weight: 700; color: var(--rd-tx); }
+.ps-drop-text { font-size: 12.5px; color: var(--rd-tx3); }
+.ps-thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ps-thumbs:empty { display: none; }
+.ps-thumbs { margin-top: 8px; }
+.ps-thumb { position: relative; aspect-ratio: 1; border-radius: 12px; overflow: hidden; border: 1px solid var(--rd-line); background: var(--rd-s2); }
+.ps-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.ps-thumb button { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; border-radius: 999px; border: 0; background: var(--rd-glass-bg); color: var(--rd-tx); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.ps-note { margin: 4px 0 0; font-size: 12.5px; line-height: 1.4; color: var(--rd-tx3); }
+.ps-platforms { flex-wrap: wrap; overflow: visible; }
+.ps-platforms .rd-chip:disabled { opacity: .45; cursor: default; }
+.ps-seg { margin-bottom: 0; }
+.ps-cur { display: inline-flex; color: var(--rd-tx3); }
+.ps-cur svg { width: 14px; height: 16px; color: var(--rd-tx3); }
+.ps-prio { margin-top: 14px; }
+.ps-prio-head { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; color: var(--rd-tx2); margin-bottom: 8px; }
+.ps-prio input[type=range] { width: 100%; accent-color: var(--rd-blue); height: 28px; }
+#psOut { margin-top: 16px; }
+.ps-progress { padding: 16px; }
+.ps-progress-label { font-size: 14px; font-weight: 700; color: var(--rd-tx); margin-bottom: 10px; }
+.ps-bar { height: 6px; border-radius: 999px; background: var(--rd-s3); overflow: hidden; }
+.ps-bar i { display: block; height: 100%; border-radius: inherit; background: var(--rd-blue); transition: width .6s ease; }
+.ps-query { margin: -6px 0 12px; }
+.ps-list { display: flex; flex-direction: column; gap: 10px; }
+.ps-item { display: flex; gap: 12px; padding: 12px; cursor: pointer; }
+.ps-item:active { transform: scale(0.99); }
+.ps-item-img { width: 92px; height: 92px; flex-shrink: 0; border-radius: 12px; overflow: hidden; background: var(--rd-s2); color: var(--rd-tx3); display: flex; align-items: center; justify-content: center; }
+.ps-item-img img { width: 100%; height: 100%; object-fit: cover; }
+.ps-item-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.ps-item-title { font-size: 14px; font-weight: 700; line-height: 1.3; color: var(--rd-tx); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ps-item-facts { font-size: 12px; color: var(--rd-tx3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ps-item-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.ps-item-tags .rd-status { height: 22px; font-size: 11px; padding: 0 8px; }
+.ps-item-reason { font-size: 12px; line-height: 1.35; color: var(--rd-tx2); }
+.ps-item-price { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin-top: 2px; }
+.ps-item-sub { font-size: 12px; color: var(--rd-tx3); }

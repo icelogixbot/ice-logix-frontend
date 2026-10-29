@@ -1133,13 +1133,13 @@ async function renderAdmin() {
           ${payoutRequests.length === 0 ? '<p class="text-white/70">Нет заявок</p>' : payoutRequests.map(req => `<div class="flex justify-between items-center p-2 bg-white/5 rounded-lg mb-2"><div><span class="text-white">${req.user_id}</span><span class="text-cyan-400 ml-2 inline-flex items-baseline gap-1">${req.amount} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</span></div><div><button class="approvePayoutBtn bg-green-600 px-3 py-1 rounded text-sm mr-2" data-id="${req.id}">Одобрить</button><button class="rejectPayoutBtn bg-red-600 px-3 py-1 rounded text-sm" data-id="${req.id}">Отклонить</button></div></div>`).join('')}
         </div>
         
-        <!-- AI Аналитика -->
+        <!-- Сводка продаж -->
         <div class="glass-card mt-4" id="aiPredictionCard">
           <div class="flex justify-between items-center mb-3">
-            <h3 class="text-white font-bold">🤖 AI Аналитика</h3>
+            <h3 class="text-white font-bold">Сводка продаж</h3>
             <button onclick="window._refreshAiPrediction && window._refreshAiPrediction()" class="text-xs text-purple-400 bg-purple-500/10 border border-purple-500/30 px-2 py-1 rounded-lg hover:bg-purple-500/20 transition">↻ Обновить</button>
           </div>
-          <div id="aiPredictionContent" class="text-white/70 text-xs leading-relaxed whitespace-pre-wrap">Загрузка прогноза...</div>
+          <div id="aiPredictionContent" class="text-white/70 text-xs leading-relaxed whitespace-pre-wrap">Загрузка сводки...</div>
         </div>
 
         <!-- Управление пользователями -->
@@ -2274,7 +2274,7 @@ function attachAdminHandlers() {
     document.addEventListener('click', window._globalWeightHandler);
   }
 
-  // ================== ЮР. ОТВЕТ (ИИ) ==================
+  // ================== ЮР. ОТВЕТ (ШАБЛОН) ==================
   if (!window._legalAiHandler) {
     window._legalAiHandler = async (e) => {
       const btn = e.target.closest('.legalAiBtn');
@@ -2302,7 +2302,7 @@ function attachAdminHandlers() {
         if (insertErr || !inserted) throw new Error(insertErr?.message || 'Ошибка создания запроса');
 
         const requestId = inserted.id;
-        glassToast('Генерируем ответ (до 30 сек)...', { kind: 'info' });
+        glassToast('Составляем ответ...', { kind: 'info' });
 
         // Поллинг каждые 3 сек
         let attempts = 0;
@@ -2311,7 +2311,7 @@ function attachAdminHandlers() {
           if (attempts > 20) {
             clearInterval(poll);
             btn.disabled = false;
-            btn.textContent = '⚖️ Юр. ответ (ИИ)';
+            btn.textContent = 'Юр. ответ';
             glassToast('Превышено время ожидания. Попробуйте позже.', { kind: 'error' });
             return;
           }
@@ -2325,14 +2325,14 @@ function attachAdminHandlers() {
             if (req && req.status === 'completed') {
               clearInterval(poll);
               btn.disabled = false;
-              btn.textContent = '⚖️ Юр. ответ (ИИ)';
+              btn.textContent = 'Юр. ответ';
 
               // Показываем результат в модалке
               const modal = document.createElement('div');
               modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
               modal.innerHTML = `
                 <div style="background:#1a1a2e;border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:20px;max-width:480px;width:100%;max-height:80vh;overflow-y:auto">
-                  <p style="color:#8CC6FF;font-size:13px;font-weight:700;margin-bottom:12px">⚖️ Юридический ответ (ИИ)</p>
+                  <p style="color:var(--rd-b300);font-size:13px;font-weight:700;margin-bottom:12px">Юридический ответ (шаблон, проверьте перед отправкой)</p>
                   <pre style="color:#e2e8f0;font-size:12px;white-space:pre-wrap;line-height:1.6">${req.response_text}</pre>
                   <div style="display:flex;gap:8px;margin-top:16px">
                     <button id="_legalCopyBtn" style="flex:1;background:rgba(167,139,250,0.2);border:1px solid rgba(167,139,250,0.4);color:#8CC6FF;border-radius:8px;padding:8px;font-size:12px;cursor:pointer">📋 Скопировать</button>
@@ -2349,8 +2349,8 @@ function attachAdminHandlers() {
             } else if (req && req.status === 'error') {
               clearInterval(poll);
               btn.disabled = false;
-              btn.textContent = '⚖️ Юр. ответ (ИИ)';
-              glassToast('Ошибка генерации ИИ. Попробуйте позже.', { kind: 'error' });
+              btn.textContent = 'Юр. ответ';
+              glassToast('Не удалось составить ответ. Попробуйте позже.', { kind: 'error' });
             }
           } catch (pollErr) {
             console.error('Ошибка поллинга ai_requests:', pollErr);
@@ -2359,7 +2359,7 @@ function attachAdminHandlers() {
 
       } catch (err) {
         btn.disabled = false;
-        btn.textContent = '⚖️ Юр. ответ (ИИ)';
+        btn.textContent = 'Юр. ответ';
         glassToast('Ошибка: ' + err.message, { kind: 'error' });
       }
     };
@@ -2378,9 +2378,9 @@ function attachAdminHandlers() {
         .eq('id', 1)
         .single();
       if (error) throw error;
-      el.textContent = data?.latest_ai_prediction || 'Прогноз ещё не сгенерирован. Он появится через 3 дня после запуска бота.';
+      el.textContent = data?.latest_ai_prediction || 'Сводка ещё не готова: бот обновляет её раз в 3 дня. Сразу посмотреть можно командой /report в боте.';
     } catch (e) {
-      el.textContent = '❌ Не удалось загрузить прогноз.';
+      el.textContent = 'Не удалось загрузить сводку.';
     }
   };
   // Загружаем сразу при рендере
@@ -3191,7 +3191,7 @@ function generateAdminOrderCard(order, userMap, isActive) {
     : '';
 
   const legalAiBtn = isActive
-    ? `<button class="legalAiBtn mt-2 w-full text-xs bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/50 text-emerald-300 py-1.5 rounded-lg transition-colors" data-order-id="${order.id}" data-user-id="${order.user_id}">⚖️ Юр. ответ (ИИ)</button>`
+    ? `<button class="legalAiBtn mt-2 w-full text-xs bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/50 text-emerald-300 py-1.5 rounded-lg transition-colors" data-order-id="${order.id}" data-user-id="${order.user_id}">Юр. ответ</button>`
     : '';
 
   return `

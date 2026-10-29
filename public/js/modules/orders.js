@@ -2205,52 +2205,18 @@ window.applySmartShareLink = applySmartShareLink;
           renderOrderPhotoPreviews();
         }
 
+        // Поиск по фото живёт в калькуляторе (pdd-search.js): передаём туда фото и уточнение
         if (photoSearchBtn) {
-          photoSearchBtn.addEventListener('click', async () => {
+          photoSearchBtn.addEventListener('click', () => {
             if (photoFiles.length === 0) return;
-            if (!supabaseClient) { tgUtil.alert('База данных недоступна'); return; }
-            const original = photoSearchBtn.innerText;
-            photoSearchBtn.innerHTML = '<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l-4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Загружаю фото…';
-            photoSearchBtn.disabled = true;
-            if (orderResultsBox) {
-              orderResultsBox.classList.remove('hidden');
-              orderResultsBox.innerHTML = '<div class="text-white/60 text-sm py-2"><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l-4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Распознаём товар на фото и ищем на площадках…</div>';
-            }
-            try {
-              let sessionId = localStorage.getItem('icelogix_session_id');
-              if (!sessionId) {
-                sessionId = crypto.randomUUID();
-                localStorage.setItem('icelogix_session_id', sessionId);
-              }
-              const paths = await Promise.all(photoFiles.map(async (f) => {
-                const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 50);
-                const path = `${sessionId}/${Date.now()}_search_${safeName}`;
-                const { error: upErr } = await supabaseClient.storage
-                  .from('product-screenshots')
-                  .upload(path, f, { contentType: f.type, upsert: false });
-                if (upErr) throw new Error('Загрузка: ' + upErr.message);
-                return path;
-              }));
-              photoSearchBtn.innerHTML = '<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Ищем на площадках…';
-              const { data, error } = await supabaseClient.functions.invoke('search-by-image', {
-                body: {
-                  screenshotPath: paths[0],
-                  screenshotPaths: paths,
-                  descriptionHint: (photoHint?.value || '').trim() || null,
-                },
-              });
-              if (error) throw new Error(error.message);
-              if (!data?.ok) throw new Error(data?.error || 'Не удалось найти');
-              renderOrderSearchResults(data);
-            } catch (e) {
-              if (orderResultsBox) {
-                orderResultsBox.classList.remove('hidden');
-                orderResultsBox.innerHTML = `<div class="bg-red-500/20 border border-red-400/30 rounded-xl p-3 text-sm text-white/80"><span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span> ${e.message}</div>`;
-              }
-            } finally {
-              photoSearchBtn.innerText = original;
-              photoSearchBtn.disabled = false;
-            }
+            const st = window._pddSearchState = window._pddSearchState || {};
+            st.files = photoFiles.slice(0, 3);
+            st.previews = st.files.map((f) => URL.createObjectURL(f));
+            st.hint = (photoHint?.value || '').trim();
+            st.query = st.query || '';
+            st.results = null; st.error = null; st.job = null;
+            window._calcMode = 'photo';
+            if (typeof window.switchTab === 'function') window.switchTab('calculator');
           });
         }
 
@@ -2287,53 +2253,20 @@ window.applySmartShareLink = applySmartShareLink;
         }
 
         if (textSearchBtn && textInput) {
-          const runTextSearch = async () => {
+          // Поиск по описанию живёт в калькуляторе (pdd-search.js): передаём туда запрос
+          const runTextSearch = () => {
             const q = (textInput.value || '').trim();
-            if (q.length < 3) { tgUtil.alert('Минимум 3 символа в описании'); return; }
-            if (!supabaseClient) { tgUtil.alert('База данных недоступна'); return; }
-            const original = textSearchBtn.innerText;
-            textSearchBtn.innerHTML = '<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l-4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Ищем на площадках…';
-            textSearchBtn.disabled = true;
-            if (orderResultsBox) {
-              orderResultsBox.classList.remove('hidden');
-              orderResultsBox.innerHTML = '<div class="text-white/60 text-sm py-2"><span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l-4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> ИИ улучшает запрос и параллельно опрашивает площадки…</div>';
+            if (q.length < 3) { tgUtil.alert('Опишите вещь хотя бы парой слов'); return; }
+            const st = window._pddSearchState = window._pddSearchState || {};
+            st.query = q;
+            st.results = null; st.error = null; st.job = null;
+            if (textPhotoFile) {
+              st.files = [textPhotoFile];
+              st.previews = [URL.createObjectURL(textPhotoFile)];
+              st.hint = q;
             }
-            try {
-              if (textPhotoFile) {
-                let sessionId = localStorage.getItem('icelogix_session_id');
-                if (!sessionId) {
-                  sessionId = crypto.randomUUID();
-                  localStorage.setItem('icelogix_session_id', sessionId);
-                }
-                const safeName = textPhotoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 50);
-                const path = `${sessionId}/${Date.now()}_search_${safeName}`;
-                const { error: upErr } = await supabaseClient.storage
-                  .from('product-screenshots')
-                  .upload(path, textPhotoFile, { contentType: textPhotoFile.type, upsert: false });
-                if (upErr) throw new Error('Загрузка фото: ' + upErr.message);
-                const { data, error } = await supabaseClient.functions.invoke('search-by-image', {
-                  body: { screenshotPath: path, descriptionHint: q },
-                });
-                if (error) throw new Error(error.message);
-                if (!data?.ok) throw new Error(data?.error || 'Не удалось найти');
-                renderOrderSearchResults(data);
-              } else {
-                const { data, error } = await supabaseClient.functions.invoke('search-products', {
-                  body: { query: q, user_id: userId },
-                });
-                if (error) throw new Error(error.message);
-                if (!data?.ok) throw new Error(data?.error || 'Не удалось найти');
-                renderOrderSearchResults(data);
-              }
-            } catch (e) {
-              if (orderResultsBox) {
-                orderResultsBox.classList.remove('hidden');
-                orderResultsBox.innerHTML = `<div class="bg-red-500/20 border border-red-400/30 rounded-xl p-3 text-sm text-white/80"><span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span> ${e.message}</div>`;
-              }
-            } finally {
-              textSearchBtn.innerText = original;
-              textSearchBtn.disabled = false;
-            }
+            window._calcMode = textPhotoFile ? 'photo' : 'text';
+            if (typeof window.switchTab === 'function') window.switchTab('calculator');
           };
           textSearchBtn.addEventListener('click', runTextSearch);
           textInput.addEventListener('keydown', (ev) => {

@@ -1,54 +1,25 @@
 // supabase/functions/parse-screenshot/index.ts
-// ICE LOGIX — parse-screenshot v1.1
+// ICE LOGIX — parse-screenshot v2.0 (наша ICE LOGIX AI, без сторонних сервисов)
 //
-// Edge Function для извлечения title/price/brand/category из скриншота товара
-// через OpenRouter Vision API. По умолчанию модель google/gemini-2.0-flash-001
-// (~$0.0008 за вызов) — отличный перевод на русский, корректно выдаёт brand/category
-// из частичных скриншотов.
+// Извлекает название, цену, валюту и бренд со скриншота товара.
+// Распознавание делает наш сервер ICE LOGIX AI (ice-logix-doc-ai, метод /scan-product):
+// RapidOCR (китайский + латиница) и правила. Внешние ИИ не используются.
 //
-// Использование:
-//   POST /functions/v1/parse-screenshot
-//   Authorization: Bearer <SUPABASE_ANON_KEY>
-//   Content-Type: application/json
-//   Body: { "jobId": "<uuid>", "screenshotPath": "user_id/timestamp_filename.jpg" }
+// POST /functions/v1/parse-screenshot
+// Body: { "jobId": "<id parse_queue>", "screenshotPath": "<путь в bucket product-screenshots>" }
 //
-// Поток:
-//   1. Принимает jobId + screenshotPath
-//   2. Создаёт signed URL для файла в bucket product-screenshots
-//   3. Шлёт изображение в OpenRouter (Gemini Flash) с промптом-инструкцией
-//   4. Парсит JSON ответ → нормализует
-//   5. Решает финальный статус по умному dispatch'у:
-//        - title + price → done
-//        - только price → manual_required с подсказкой про название
-//        - только title → manual_required с подсказкой про цену
-//        - ничего → общий manual_required
+// Итоговый статус в parse_queue:
+//   название + цена → done; чего-то не хватает → manual_required с подсказкой, что ввести.
 //
-// Требуемые secrets:
-//   - SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY (стандартные)
-//   - OPENROUTER_API_KEY (sk-or-v1-...) — токен OpenRouter
-//   - OPENROUTER_VISION_MODEL (опционально, default: google/gemini-2.0-flash-001)
-//
-// Changelog v1.1:
-//   - Сменили модель с qwen/qwen-vl-plus → google/gemini-2.0-flash-001
-//     (Qwen игнорировал инструкцию переводить description на русский)
-//   - Усилили промпт: теперь принудительный перевод на русский, инференс title
-//     из частично видимых элементов (alt-подписи, badges, baby-text)
-//   - Раздельные сообщения об ошибках в зависимости от того что извлеклось
- 
+// Секреты: SUPABASE_URL / секретный ключ (стандартные), DOC_AI_URL (по умолчанию наш VPS).
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = sbSecretKey()!;
 const supabase = createClient(supabaseUrl, supabaseKey);
  
-const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY") || "";
- 
-// Gemini 2.0 Flash от Google — отличный перевод на русский, корректное определение
-// brand/category из частичных скриншотов. ~$0.0008 за вызов.
-// Альтернативы при сбое: openai/gpt-4o-mini ($0.0015), qwen/qwen-vl-plus ($0.0003 но плохо
-// выполняет инструкцию переводить на русский), anthropic/claude-3.5-sonnet ($0.003 идеален
-// но дорого).
-const VISION_MODEL = Deno.env.get("OPENROUTER_VISION_MODEL") || "google/gemini-2.0-flash-001";
+const DOC_AI_URL = (Deno.env.get("DOC_AI_URL") || "http://80.94.235.37").replace(/\/$/, "");
 const STORAGE_BUCKET = "product-screenshots";
  
 const corsHeaders = {
@@ -57,15 +28,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
- 
-// ─── JSON helper (strips ```json fences) ─────────────────────────────────────
-function parseAssistantJson(raw: string): Record<string, unknown> {
-  let s = (raw || "").trim();
-  if (s.startsWith("```")) {
-    s = s.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/s, "").trim();
-  }
-  return JSON.parse(s) as Record<string, unknown>;
-}
  
 // ─── Currency normalizer ─────────────────────────────────────────────────────
 function normalizeCurrency(raw: string | null | undefined): string | null {
@@ -94,110 +56,59 @@ interface VisionResult {
   confidence: "high" | "medium" | "low" | null;
 }
  
-async function callVisionAPI(imageUrl: string, log: (m: string) => void): Promise<VisionResult> {
-  if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY not configured");
- 
-  const prompt = `You are analyzing a screenshot of a product page from an e-commerce website (likely Chinese: Pinduoduo, Poizon/Dewu, 95fen, Xianyu, Xiaohongshu, Taobao, JD, or similar).
- 
-Extract the following fields and return ONLY a valid JSON object (no markdown, no explanation):
- 
-- title: Full product name. Keep original language for brand names (Nike, Adidas, etc.) but TRANSLATE Chinese product titles to Russian. Look at ALL visible text: header, alt text, product badges, breadcrumbs, image labels, price-tag captions. If you see ANY text that names the product (even partial), provide your best inference of the full title. Return null ONLY if there's truly no product-naming text visible anywhere on the screen.
-- price: The current selling price as a number (without currency symbols, commas, spaces). Use '.' as decimal separator. If multiple prices visible (original/discount/sale/etc.), pick the MAIN current selling price (usually the largest/highlighted one). Return null if no price visible.
-- currency: ISO 4217 code (CNY, USD, EUR, RUB, GBP, BYN). Infer from symbol: ¥/元/￥→CNY, $→USD, €→EUR, ₽→RUB, £→GBP, Br→BYN. Return null if cannot determine.
-- brand: Brand name if shown (Nike, Adidas, ANTA, Li-Ning, etc.). Return null if not shown or no-name product.
-- category: MUST be one of "Обувь", "Одежда", "Аксессуары" (in Russian only). Determine from product photo:
-    * Shoes/sneakers/sandals/boots → "Обувь"
-    * T-shirts/jackets/pants/dresses/hoodies → "Одежда"
-    * Bags/wallets/watches/jewelry/sunglasses/hats/belts → "Аксессуары"
-    Return null only if you cannot see the product photo at all.
-- description: 1-2 sentence summary in **Russian** of key product features (material, design notes, intended use). MUST be Russian even if all source text is Chinese — translate accurately. Do NOT include the title or price here. Return null if no useful feature info visible.
-- color: Main color(s) in Russian, e.g. "Чёрный", "Белый", "Синий/Красный", "Бежевый". Determine from the product photo. Return null if photo not visible.
-- confidence: One of "high" (clear product page with title and price both visible), "medium" (most data clear but title or some other field inferred from partial info), "low" (significant gaps — likely cropped or wrong screenshot). Always provide this field.
- 
-CRITICAL RULES:
-- TRANSLATE description and color to Russian. Do NOT leave them in Chinese/English.
-- For title: if you see partial product name, INFER the full title from context (don't be overly cautious about returning null).
-- Return null (not empty string) only when truly no info is available.
-- Output JSON only, no markdown fences, no explanation, no extra text.
- 
-Return JSON only:`;
- 
-  const body = {
-    model: VISION_MODEL,
-    messages: [
-      {
-        role: "user",
-        content: [
-          { type: "text", text: prompt },
-          { type: "image_url", image_url: { url: imageUrl } },
-        ],
-      },
-    ],
-    temperature: 0,
-    max_tokens: 1200,
-  };
- 
-  log(`Vision: calling model=${VISION_MODEL}`);
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-      "HTTP-Referer": "https://icelogix.app",
-      "X-Title": "ICE LOGIX parse-screenshot",
-    },
-    body: JSON.stringify(body),
-  });
- 
-  if (!res.ok) {
-    const errTxt = await res.text().catch(() => "");
-    throw new Error(`OpenRouter HTTP ${res.status}: ${errTxt.slice(0, 300)}`);
+function toBase64(bytes: Uint8Array): string {
+  let bin = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
   }
- 
-  const data = await res.json();
-  const usage = data?.usage;
-  if (usage) {
-    log(`Vision usage: prompt_tokens=${usage.prompt_tokens} completion_tokens=${usage.completion_tokens} total=${usage.total_tokens}`);
-  }
- 
-  const raw = data?.choices?.[0]?.message?.content || "";
-  if (!raw) throw new Error("Vision API returned empty content");
- 
-  const parsed = parseAssistantJson(raw);
- 
-  // Normalize price
-  let price: number | null = null;
-  const priceRaw = parsed.price;
-  if (typeof priceRaw === "number" && !isNaN(priceRaw) && priceRaw > 0) {
-    price = priceRaw;
-  } else if (typeof priceRaw === "string" && priceRaw.trim()) {
-    const n = parseFloat(priceRaw.replace(/[^\d.,]/g, "").replace(",", "."));
-    if (!isNaN(n) && n > 0) price = n;
-  }
- 
-  const strOrNull = (v: unknown): string | null => {
-    if (typeof v === "string" && v.trim()) return v.trim();
-    return null;
-  };
- 
-  const confidenceRaw = strOrNull(parsed.confidence);
-  const confidence =
-    confidenceRaw === "high" || confidenceRaw === "medium" || confidenceRaw === "low"
-      ? confidenceRaw
-      : null;
- 
-  return {
-    title: strOrNull(parsed.title),
-    price,
-    currency: normalizeCurrency(strOrNull(parsed.currency)),
-    brand: strOrNull(parsed.brand),
-    category: strOrNull(parsed.category),
-    description: strOrNull(parsed.description),
-    color: strOrNull(parsed.color),
-    confidence,
-  };
+  return btoa(bin);
 }
- 
+
+// Категория по названию (как в приложении: Обувь / Одежда / Аксессуары)
+function guessCategory(title: string | null): string | null {
+  const t = (title || "").toLowerCase();
+  if (/鞋|靴|кроссов|кеды|ботин|обув|sneaker|shoe|boot/.test(t)) return "Обувь";
+  if (/包|表|帽|眼镜|皮带|钱包|сумк|рюкзак|часы|кепк|очки|ремень|bag|watch|cap|wallet|belt/.test(t)) return "Аксессуары";
+  if (/衣|裤|裙|t恤|夹克|外套|худи|футбол|куртк|брюк|джинс|платье|hoodie|shirt|jacket|pants|jeans/.test(t)) return "Одежда";
+  return null;
+}
+
+async function callDocAI(screenshotPath: string, log: (m: string) => void): Promise<VisionResult> {
+  const { data: file, error } = await supabase.storage.from(STORAGE_BUCKET).download(screenshotPath);
+  if (error || !file) throw new Error(`Storage download failed: ${error?.message || "unknown"}`);
+  const image = toBase64(new Uint8Array(await file.arrayBuffer()));
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 40000);
+  try {
+    log(`ICE LOGIX AI: ${DOC_AI_URL}/scan-product (${Math.round(image.length / 1024)} KB)`);
+    const res = await fetch(`${DOC_AI_URL}/scan-product`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image }),
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(`ICE LOGIX AI HTTP ${res.status}`);
+    const r = await res.json();
+    if (r?.error) throw new Error(`ICE LOGIX AI: ${r.error}`);
+    const title = typeof r.title_ru === "string" && r.title_ru ? r.title_ru : (r.title || null);
+    const price = typeof r.price === "number" && r.price > 0 ? r.price : null;
+    return {
+      title,
+      price,
+      currency: normalizeCurrency(r.currency),
+      brand: r.brand || null,
+      category: guessCategory(r.title || title),
+      description: null,
+      color: null,
+      confidence: title && price ? "high" : (title || price ? "medium" : "low"),
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // ─── Main handler ────────────────────────────────────────────────────────────
  
 interface RequestBody {
@@ -244,20 +155,10 @@ Deno.serve(async (req) => {
       })
       .eq("id", jobId);
  
-    // 2. Создаём signed URL для скриншота (Vision API его скачает)
-    const { data: signed, error: signErr } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .createSignedUrl(screenshotPath, 600);
- 
-    if (signErr || !signed?.signedUrl) {
-      throw new Error(`Storage signed URL failed: ${signErr?.message || "unknown"}`);
-    }
-    log(`Storage: signed URL created (expires in 600s)`);
- 
-    // 3. Вызов Vision API
-    const result = await callVisionAPI(signed.signedUrl, log);
+    // 2. Распознавание нашей ICE LOGIX AI
+    const result = await callDocAI(screenshotPath, log);
     log(
-      `Vision result: title="${result.title}", price=${result.price} ${result.currency}, confidence=${result.confidence}`,
+      `ICE LOGIX AI result: title="${result.title}", price=${result.price} ${result.currency}, confidence=${result.confidence}`,
     );
  
     // 4. Решаем итоговый статус по умному dispatch'у
@@ -300,7 +201,7 @@ Deno.serve(async (req) => {
         category: result.category,
         description: result.description,
         color: result.color,
-        parse_method: "screenshot_vision",
+        parse_method: "screenshot_ice_ai",
         error_message: errorMessage,
       })
       .eq("id", jobId);
