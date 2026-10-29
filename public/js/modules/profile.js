@@ -78,7 +78,7 @@
       ${row('myOrdersRowBtn', 'box', 'Мои заказы', 'Статусы, трек-номера и фото со склада', "currentSubScreen = 'myOrders'; renderCurrentScreen();")}
       ${row('historyQuickBtn', 'history', 'История и архив', 'Завершённые заказы, транзакции и расчёты', "switchTab('history')")}
       ${row('wishlistBtn', 'heart', 'Избранное', 'Сохранённые вещи', "switchTab('wishlist')", '<span id="wishlistBadge" class="hidden rd-badge">0</span>')}
-      ${row('financesBtn', 'card', 'Финансы', 'Карты, ICE LOGIX PAY, купоны и возвраты', "window._financesSubTab = 'payment'; switchTab('finances')")}
+      ${row('financesBtn', 'card', 'Финансы', 'Кошелёк, карты, промокоды и возвраты', "window._financesSubTab = 'payment'; switchTab('finances')")}
     </div>
 
     <div class="pf-group-t">Бонусы и заработок</div>
