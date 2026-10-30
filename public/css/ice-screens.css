@@ -1185,6 +1185,10 @@ html body .no-form div[class*="border-white/30"] > input { min-height: 40px !imp
 .sk-opt-name { min-width: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.3; }
 .sk-opt.on { border-color: var(--rd-b400); background: var(--rd-tint); color: var(--rd-b300); }
 .sk-opt.off { opacity: 0.4; text-decoration: line-through; }
+.sk-opt-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sk-opt-price { font-size: 12px; font-weight: 700; color: var(--rd-tx2); font-variant-numeric: tabular-nums; }
+.sk-opt-price:empty { display: none; }
+.sk-opt.on .sk-opt-price { color: var(--rd-b300); }
 .sk-more { padding: 0; overflow: hidden; }
 .sk-more summary { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; list-style: none; cursor: pointer; font-size: 14px; font-weight: 700; color: var(--rd-tx); }
 .sk-more summary::-webkit-details-marker { display: none; }
