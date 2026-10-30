@@ -541,11 +541,6 @@ html body .tab-item:not(.center-calc-tab):active .tab-icon { transform: scale(0.
 .wl-acc { font-size: 13px; font-weight: 700; letter-spacing: .14em; color: rgba(255, 255, 255, 0.75); font-variant-numeric: tabular-nums; }
 .wl-chip { width: 38px; height: 28px; border-radius: 7px; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 4px; background: linear-gradient(135deg, #F6DFA0, #C99A3E); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5); }
 .wl-chip i { border-radius: 2px; border: 1px solid rgba(110, 70, 10, 0.35); }
-.wl-perk { display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 22px; border-radius: 16px; background: var(--rd-s1); border: 1px solid var(--rd-line); }
-.wl-perk-ico { width: 38px; height: 38px; border-radius: 12px; flex-shrink: 0; background: rgba(61, 214, 140, 0.12); color: var(--rd-ok); display: flex; align-items: center; justify-content: center; }
-.wl-perk-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.wl-perk-txt b { font-size: 15px; color: var(--rd-tx); }
-.wl-perk-txt span { font-size: 12.5px; color: var(--rd-tx3); }
 .wl-block { margin-bottom: 18px; }
 .wl-block-h { display: flex; align-items: baseline; justify-content: space-between; margin: 0 0 10px; }
 .wl-block-h h2 { margin: 0; font-size: 19px; font-weight: 800; color: var(--rd-tx); letter-spacing: -0.01em; }

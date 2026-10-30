@@ -126,9 +126,45 @@
       console.error('Failed to load local custom cart items:', e);
     }
 
+    await applyExactPrices(unified);
     _cartItemsById.clear();
     unified.forEach((it) => _cartItemsById.set(String(it.id), it));
     return unified;
+  }
+
+  // Упаковка одна на заказ, поэтому в цену вещи не входит и прибавляется к итогу один раз
+  function cartPackagingByn() {
+    return Number(window.iceLogixPricing?.CONFIG?.firm_packaging_byn) || 0;
+  }
+
+  // Цена вещи — как на экране оформления (тот же движок и те же параметры), чтобы суммы не расходились
+  async function applyExactPrices(items) {
+    if (typeof window.iceLogixPricing?.calculatePrice !== 'function') return;
+    await Promise.all(items.map(async (it) => {
+      try {
+        const res = await window.iceLogixPricing.calculatePrice({
+          product_price: it.priceCny,
+          product_currency: it.currency || 'CNY',
+          source_country: 'CN',
+          weight_kg: cartItemWeight(it),
+          category: it.category,
+          insurance: true,
+          extra_photo: false,
+          extra_measure: false,
+          legit_check: false,
+          client_level: window.userLevel || 'newbie',
+          is_first_order: false,
+          referral_used: false,
+          extra_discount_byn: 0
+        });
+        if (res && res.available !== false && res.total_byn > 0) {
+          const pack = Number(res.breakdown?.packaging_cost_byn) || 0;
+          it.priceByn = Math.round((res.total_byn - pack) * 100) / 100;
+        }
+      } catch (e) {
+        console.warn('Точная цена не посчиталась, оставляем оценку:', e);
+      }
+    }));
   }
 
   // --- Global Helpers for Fixed Checkout Dock (Locked Above Tab Bar) ---
@@ -209,6 +245,7 @@
     let initialTotal = 0;
     let initialCount = 0;
     items.forEach((it) => { initialTotal += it.priceByn * it.quantity; initialCount += it.quantity; });
+    initialTotal += cartPackagingByn();
     showWbCheckoutDock(initialCount, initialTotal);
 
     const cardsHtml = items.map((it) => {
@@ -264,10 +301,10 @@
         </div>
 
         <div class="rd-card ct-sum">
-          <div class="ct-sum-row"><span>Товары, <b id="rdCartSumCount">${initialCount}</b> шт.</span><span id="rdCartSumTotal">${fmt(initialTotal)}${sign()}</span></div>
-          <div class="ct-sum-row"><span>Доставка до Минска</span><span class="ct-muted">при оформлении</span></div>
+          <div class="ct-sum-row"><span>Товары с доставкой, <b id="rdCartSumCount">${initialCount}</b> шт.</span><span id="rdCartSumTotal">${fmt(initialTotal - cartPackagingByn())}${sign()}</span></div>
+          <div class="ct-sum-row"><span>Упаковка на заказ</span><span id="rdCartSumPack">${fmt(cartPackagingByn())}${sign()}</span></div>
           <div class="ct-sum-line"></div>
-          <div class="ct-sum-row ct-sum-total"><span>Итого за товары</span><span id="rdCartSumGrand">${fmt(initialTotal)}${sign()}</span></div>
+          <div class="ct-sum-row ct-sum-total"><span>Итого</span><span id="rdCartSumGrand">${fmt(initialTotal)}${sign()}</span></div>
         </div>
 
         <div class="ct-hint">${U.icon('info', 18)}<span>Оплата в два этапа: основная часть сейчас, остаток за доставку после взвешивания на складе.</span></div>
@@ -320,11 +357,13 @@
       const _f = (n) => Number(n || 0).toFixed(2).replace('.', ',');
       const _sg = window.bynSign ? window.bynSign({ size: '0.82em' }) : '';
       const _c = document.getElementById('rdCartSumCount'); if (_c) _c.innerText = totalCount;
+      const _pack = totalCount > 0 ? cartPackagingByn() : 0;
       const _t = document.getElementById('rdCartSumTotal'); if (_t) _t.innerHTML = _f(totalAmount) + _sg;
-      const _g = document.getElementById('rdCartSumGrand'); if (_g) _g.innerHTML = _f(totalAmount) + _sg;
+      const _p = document.getElementById('rdCartSumPack'); if (_p) _p.innerHTML = _f(_pack) + _sg;
+      const _g = document.getElementById('rdCartSumGrand'); if (_g) _g.innerHTML = _f(totalAmount + _pack) + _sg;
 
       // Update Sticky Checkout Button
-      updateWbCheckoutDock(totalCount, totalAmount);
+      updateWbCheckoutDock(totalCount, totalAmount + _pack);
     }
 
     // 3. "Выбрать все" Checkbox Handler

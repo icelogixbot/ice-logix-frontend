@@ -1785,6 +1785,7 @@ if (typeof attachCalculatorHandlers === 'function') {
         aggregatedBreakdown.packaging_cost_byn +
         aggregatedBreakdown.delivery_reserve_byn +
         aggregatedBreakdown.video_check_byn +
+        aggregatedBreakdown.customs_duty_byn +
         (extraServicesTotal - consolidationDiscountTotal) -
         discount
       ) * 100) / 100;
