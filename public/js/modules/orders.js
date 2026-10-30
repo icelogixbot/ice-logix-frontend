@@ -1409,12 +1409,12 @@ window.applySmartShareLink = applySmartShareLink;
               // которую подтвердит платёжная система или админ. Заказ участника семьи оплачивает глава.
               let payRes = null;
               if (!isFamilyMember) {
+                // IcePay: баланс + карта (выбранная привязанная или новая на странице bePaid) / ЕРИП / заявка админу
                 const payMethod = window._checkoutPaymentMethod === 'erip' ? 'erip'
-                  : window._checkoutPaymentMethod === 'oplati' ? 'oplati' : 'manual';
-                const { data: pr, error: payErr } = await supabaseClient.rpc('order_pay', {
-                  p_order_id: createdOrderId, p_stage: 'FIRST', p_use_balance: balanceUsed, p_method: payMethod
-                });
-                if (payErr) throw payErr;
+                  : window._checkoutPaymentMethod === 'oplati' ? 'oplati' : 'card';
+                const pr = await window.IcePay.payOrder(createdOrderId, 'FIRST', balanceUsed, payMethod,
+                  { card_id: isDbUuid(selectedCardId) ? selectedCardId : null });
+                if (!pr || !pr.ok) throw new Error((pr && pr.error) || 'Не получилось провести оплату');
                 payRes = pr;
                 if (pr && pr.balance !== undefined && pr.balance !== null && typeof balance !== 'undefined') balance = Number(pr.balance);
                 if (typeof updateUserCard === 'function') updateUserCard();
@@ -1431,10 +1431,9 @@ window.applySmartShareLink = applySmartShareLink;
               }
 
               tgUtil.haptic('success');
-              if (window._checkoutPaymentMethod === 'erip' && typeof window.openEripPaymentModal === 'function') {
-                window.openEripPaymentModal(firstPaymentToPay, { order_id: 'ICE-' + createdOrderId.slice(0, 8).toUpperCase() });
-              } else if (window._checkoutPaymentMethod === 'oplati' && typeof window.openOplatiPaymentModal === 'function') {
-                window.openOplatiPaymentModal(firstPaymentToPay, { order_id: 'OPL-' + createdOrderId.slice(0, 8).toUpperCase() });
+              // Страницу банка или счёт ЕРИП уже показал IcePay; здесь — итог для клиента
+              if (payRes && (payRes.redirect_url || payRes.erip || payRes.sandbox)) {
+                // ничего: клиент оплачивает на странице банка / в ЕРИП, заказ станет оплаченным сам
               } else {
                 const money = (v) => (typeof window.formatBYN === 'function' ? window.formatBYN(v) : Number(v).toFixed(2));
                 const num = createdOrderId.slice(0, 8);
@@ -3863,12 +3862,7 @@ window.openCardsManagementModal = async function() {
     });
     if (curUserId) {
       try { localStorage.setItem('ice_payment_methods_' + curUserId, JSON.stringify(window.userCards)); } catch (_) {}
-      if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-        Promise.all([
-          supabaseClient.from('payment_methods').update({ is_default: false }).eq('user_id', curUserId),
-          supabaseClient.from('payment_methods').update({ is_default: true }).eq('id', cardId)
-        ]).catch(err => console.warn('Supabase setDefaultCard err:', err));
-      }
+      if (window.IcePay) await window.IcePay.setDefaultCard(cardId);
     }
     if (typeof window._renderFinancesCardsOnly === 'function') window._renderFinancesCardsOnly();
     if (typeof window.renderManageCardsModalList === 'function') window.renderManageCardsModalList();
@@ -3898,11 +3892,7 @@ window.openCardsManagementModal = async function() {
     if (curUserId) {
       try { localStorage.setItem('ice_payment_methods_' + curUserId, JSON.stringify(window.userCards)); } catch (_) {}
       if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-        supabaseClient.from('payment_methods')
-          .update({ status: 'DELETED', deleted_at: new Date().toISOString() })
-          .eq('id', cardId)
-          .then(() => {})
-          .catch(err => console.warn('Supabase deleteCard err:', err));
+        if (window.IcePay) await window.IcePay.deleteCard(cardId);
       }
     }
     if (typeof window._renderFinancesCardsOnly === 'function') window._renderFinancesCardsOnly();
@@ -4007,10 +3997,9 @@ window.openSecondPaymentModal = function(orderId, amount) {
     const cardDue = Math.max(0, totalDue - balUsed);
     try {
       // Оплата 2-го этапа — на сервере (order_pay): с баланса сколько выбрано, остаток — заявкой на оплату
-      const { data: pr, error: payErr } = await supabaseClient.rpc('order_pay', {
-        p_order_id: orderId, p_stage: 'SECOND', p_use_balance: balUsed, p_method: 'manual'
-      });
-      if (payErr) throw payErr;
+      // IcePay: с баланса сколько выбрано, остаток — основной привязанной картой / страница bePaid / заявка админу
+      const pr = await window.IcePay.payOrder(orderId, 'SECOND', balUsed, 'card');
+      if (!pr || !pr.ok) throw new Error((pr && pr.error) || 'Не получилось провести оплату');
       if (pr && pr.balance !== undefined && pr.balance !== null && typeof balance !== 'undefined') balance = Number(pr.balance);
       if (typeof updateUserCard === 'function') updateUserCard();
 
@@ -4018,6 +4007,8 @@ window.openSecondPaymentModal = function(orderId, amount) {
       const money = (v) => (typeof window.formatBYN === 'function' ? window.formatBYN(v) : Number(v).toFixed(2));
       if (pr && pr.status === 'paid') {
         tgUtil.alert(`Второй платёж по заказу #${orderId.slice(0, 8)} оплачен. Готовим отправку.`);
+      } else if (pr && (pr.redirect_url || pr.erip || pr.sandbox)) {
+        // страницу банка уже открыл IcePay
       } else {
         tgUtil.alert(`Осталось оплатить ${money(pr?.remaining ?? cardDue)}. Отправим заказ, как только подтвердим оплату.`);
       }

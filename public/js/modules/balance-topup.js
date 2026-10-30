@@ -42,18 +42,8 @@
   async function applyTopupCredit(addedAmount, successMsg, method = 'manual') {
     const amount = Math.round((parseFloat(addedAmount) || 0) * 100) / 100;
     if (amount <= 0) return false;
-    const money = (v) => (typeof window.formatBYN === 'function' ? window.formatBYN(v) : v.toFixed(2));
-    const { error } = await supabaseClient.rpc('request_topup', { p_amount: amount, p_method: method });
-    if (typeof tgUtil !== 'undefined') {
-      if (error) {
-        if (tgUtil.haptic) tgUtil.haptic('error');
-        tgUtil.alert(error.message || 'Не получилось создать заявку на пополнение');
-        return false;
-      }
-      if (tgUtil.haptic) tgUtil.haptic('success');
-      tgUtil.alert(`Заявка на пополнение на ${money(amount)} принята. Деньги появятся на балансе, как только мы увидим оплату.`);
-    }
-    return !error;
+    const res = await window.IcePay.topup(amount, method);
+    return Boolean(res && res.ok);
   }
 
   // Генератор реалистичного SVG QR-кода для сервиса «Оплати»
@@ -118,7 +108,11 @@
   // ============================================================
   // Интерактивное всплывающее окно подтверждения ЕРИП (Рабочая заглушка)
   // ============================================================
-  window.openEripPaymentModal = function(amount, orderContext = null, onComplete = null) {
+  window.openEripPaymentModal = async function(amount, orderContext = null, onComplete = null) {
+    // Платёжка подключена — настоящий счёт ЕРИП от bePaid вместо примерного окна
+    if (!orderContext && window.IcePay && await window.IcePay.gatewayOn()) {
+      return window.IcePay.topup(amount, 'erip');
+    }
     if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
 
     const amountVal = parseFloat(amount) || 50;
@@ -783,27 +777,9 @@
           window.openOplatiPaymentModal(amountVal);
 
         } else if (_selectedTopupMethod === 'card') {
-          // Оплата картой через bePaid
-          const cards = Array.isArray(window.userCards) ? window.userCards : [];
-          if (cards.length === 0) {
-            if (typeof window.openAddCardModal === 'function') {
-              window.openAddCardModal(() => {
-                if (typeof tgUtil !== 'undefined') tgUtil.alert('Карта привязана! Повторите пополнение.');
-              });
-            } else {
-              if (typeof tgUtil !== 'undefined') tgUtil.alert('Пожалуйста, добавьте карту в разделе Финансы.');
-            }
-            return;
-          }
-
+          // Карта: привязанная (основная) или новая на странице bePaid; без платёжки — заявка админу
           submitBtn.disabled = true;
-          submitBtn.innerHTML = `
-            <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            <span>Авторизация bePaid...</span>
-          `;
           if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('medium');
-
-          await new Promise(r => setTimeout(r, 1400));
           await applyTopupCredit(amountVal, null, 'card');
 
           submitBtn.disabled = false;

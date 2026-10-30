@@ -52,19 +52,9 @@
       return false;
     }
     const method = reason === 'TOPUP_CARD' ? 'card' : reason === 'TOPUP_ERIP' ? 'erip' : reason === 'TOPUP_OPLATI' ? 'oplati' : 'manual';
-    const money = (v) => (typeof window.formatBYN === 'function' ? window.formatBYN(v) : v.toFixed(2));
-    const { error } = await supabaseClient.rpc('request_topup', { p_amount: addedVal, p_method: method });
-    if (typeof tgUtil !== 'undefined') {
-      if (error) {
-        if (tgUtil.haptic) tgUtil.haptic('error');
-        tgUtil.alert(error.message || 'Не получилось создать заявку на пополнение');
-        return false;
-      }
-      if (tgUtil.haptic) tgUtil.haptic('success');
-      tgUtil.alert(`Заявка на пополнение на ${money(addedVal)} принята. Деньги появятся на балансе, как только мы увидим оплату.`);
-    }
+    const res = await window.IcePay.topup(addedVal, method);
     _cachedLedgerEntries = null;
-    return !error;
+    return Boolean(res && res.ok);
   }
 
   // Форматирование даты транзакций

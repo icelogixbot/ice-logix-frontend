@@ -632,37 +632,11 @@ function _attachPayTabHandlers() {
           tgUtil.alert(`QR-код «Оплати» на сумму ${amt} сформирован!`);
         }
       } else if (_selectedPayMethod === 'card') {
-        const cards = Array.isArray(window.userCards) ? window.userCards : [];
-        if (cards.length === 0) {
-          if (typeof window.openFinancesAddCard === 'function') {
-            window.openFinancesAddCard();
-          } else if (typeof window.openAddCardModal === 'function') {
-            window.openAddCardModal(() => {
-              if (typeof tgUtil !== 'undefined') tgUtil.alert('Карта привязана! Повторите пополнение.');
-            });
-          } else {
-            tgUtil.alert('Привяжите банковскую карту во вкладке «Карты».');
-          }
-          return;
-        }
-
+        // Карта: привязанная (основная) или новая на странице bePaid; без платёжки — заявка админу.
+        // Начисляет только сервер, «пополнить из воздуха» отсюда больше нельзя.
         submitBtn.disabled = true;
-        submitBtn.innerHTML = `
-          <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-          <span>Авторизация bePaid...</span>
-        `;
         if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('medium');
-
-        await new Promise(r => setTimeout(r, 1200));
-        if (typeof window.applyWalletCredit === 'function') {
-          await window.applyWalletCredit(amt, 'TOPUP_CARD', `Счёт успешно пополнен на +${amt} с банковской карты!`);
-        } else {
-          window.balance = (window.balance || 0) + amt;
-          const liveB = document.getElementById('payLiveBalance');
-          if (liveB) liveB.innerHTML = `${window.balance.toFixed(2)} ${window.bynSign ? window.bynSign() : ''}`;
-          if (typeof tgUtil !== 'undefined') tgUtil.alert(`Счёт успешно пополнен на +${amt}!`);
-        }
-
+        await window.IcePay.topup(amt, 'card');
         submitBtn.disabled = false;
         updateAmount(_selectedPayAmount);
       }
