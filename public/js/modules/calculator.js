@@ -1569,22 +1569,23 @@ if (typeof attachCalculatorHandlers === 'function') {
           extra_discount_byn: 0,
         });
 
+        const bk = res.breakdown || {};
         item.total_byn = res.total_byn;
+        // Цена вещи без упаковки и пошлины: они считаются один раз на всю посылку
+        item.unit_byn = Math.round((res.total_byn - (bk.packaging_cost_byn || 0) - (bk.customs_duty_byn || 0)) * 100) / 100;
         aggregatedTotal += res.total_byn * item.quantity;
         aggregatedWeight += weight * item.quantity;
         aggregatedOriginalPrice += item.price * item.quantity;
 
-        const bk = res.breakdown || {};
         aggregatedBreakdown.product_cost_byn += (bk.product_cost_byn || 0) * item.quantity;
         aggregatedBreakdown.delivery_cost_byn += (bk.delivery_cost_byn || 0) * item.quantity;
         aggregatedBreakdown.commission_byn += (bk.commission_byn || 0) * item.quantity;
         aggregatedBreakdown.insurance_byn += (bk.insurance_byn || 0) * item.quantity;
-        aggregatedBreakdown.customs_duty_byn += (bk.customs_duty_byn || 0) * item.quantity;
         aggregatedBreakdown.currency_buffer_byn += (bk.currency_buffer_byn || 0) * item.quantity;
 
         if (res.warnings && res.warnings.length) {
           res.warnings.forEach(w => {
-            if (!aggregatedWarnings.includes(w)) aggregatedWarnings.push(w);
+            if (!/лимит/i.test(w) && !aggregatedWarnings.includes(w)) aggregatedWarnings.push(w);
           });
         }
         if (res.delivery_days) {
@@ -1631,55 +1632,45 @@ if (typeof attachCalculatorHandlers === 'function') {
 
       let extraServicesTotal = 0;
       let consolidationDiscountTotal = 0;
-      const serviceBreakdownHtmlRows = [];
+      const extrasLines = [];
+      const multiPackage = ['CN', 'PL', 'RU'].filter((c) => packages[c].length > 0).length > 1;
 
       for (const country of ['CN', 'PL', 'RU']) {
         const pkgItems = packages[country];
         if (pkgItems.length === 0) continue;
 
-        const countryLabel = country === 'CN' ? 'Китай' : country === 'PL' ? 'Европа' : 'Россия';
-
-        // Check consolidation
-        if (pkgItems.length >= 2 && window.tempOrder.consolidation[country]) {
-          consolidationDiscountTotal += 3;
-          serviceBreakdownHtmlRows.push(`
-            <div class="flex justify-between text-xs py-1 text-green-400">
-              <span>📦 Консолидация (${countryLabel})</span>
-              <span class="font-mono inline-flex items-center gap-0.5">-3.00 ${window.bynSign ? window.bynSign({ color: 'emerald', size: '0.85em' }) : ''}</span>
-            </div>
-          `);
-        }
-
-        // Check package extras
+        const suffix = multiPackage ? ` (${country === 'CN' ? 'Китай' : country === 'PL' ? 'Европа' : 'Россия'})` : '';
         const extras = window.tempOrder.packageExtras[country] || {};
+
+        if (window.tempOrder.consolidation[country] && pkgItems.length >= 2) {
+          consolidationDiscountTotal += 3;
+          extrasLines.push({ label: 'Объединение в одну коробку' + suffix, amount: -3 });
+        }
         if (extras.bubble) {
           extraServicesTotal += 3;
-          serviceBreakdownHtmlRows.push(`
-            <div class="flex justify-between text-xs py-1 text-white/80">
-              <span>🫧 Плёнка для посылки (${countryLabel})</span>
-              <span class="font-mono inline-flex items-center gap-0.5">+3.00 ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
-            </div>
-          `);
+          extrasLines.push({ label: 'Пузырчатая плёнка' + suffix, amount: 3 });
         }
         if (extras.wood) {
           extraServicesTotal += 10;
-          serviceBreakdownHtmlRows.push(`
-            <div class="flex justify-between text-xs py-1 text-white/80">
-              <span>🪵 Обрешётка посылки (${countryLabel})</span>
-              <span class="font-mono inline-flex items-center gap-0.5">+10.00 ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
-            </div>
-          `);
+          extrasLines.push({ label: 'Деревянная обрешётка' + suffix, amount: 10 });
         }
         if (extras.check) {
           extraServicesTotal += 5;
-          serviceBreakdownHtmlRows.push(`
-            <div class="flex justify-between text-xs py-1 text-white/80">
-              <span>🔍 Проверка на брак (${countryLabel})</span>
-              <span class="font-mono inline-flex items-center gap-0.5">+5.00 ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
-            </div>
-          `);
+          extrasLines.push({ label: 'Проверка на брак' + suffix, amount: 5 });
         }
       }
+
+      // Цены услуг написаны на экране, а движок их не считает: прибавляем здесь
+      if (extraPhoto) {
+        extraServicesTotal += 3;
+        extrasLines.push({ label: 'Детальные фото', amount: 3 });
+      }
+      if (extraMeasure) {
+        extraServicesTotal += 3;
+        extrasLines.push({ label: 'Замеры', amount: 3 });
+      }
+      window.tempOrder.extras_lines = extrasLines;
+      window.tempOrder.extras_total = extraServicesTotal - consolidationDiscountTotal;
 
       if (requiresVideoCheck) {
         aggregatedBreakdown.video_check_byn = 10;
@@ -1702,71 +1693,57 @@ if (typeof attachCalculatorHandlers === 'function') {
         window.tempOrder.requiresVideoCheck = requiresVideoCheck;
       }
 
-      // Customs Splitter dynamic container update
+      // Пошлина считается на посылку одному получателю (лимит 200 евро и 31 кг), а не на каждую вещь.
+      // На двух получателей посылка делится пополам, и лимит проверяется для каждого.
+      const pricingRates = await window.iceLogixPricing.getExchangeRates();
+      const parcelDuty = (value, kg) => window.iceLogixPricing.calculateCustomsDuty(value, kg, pricingRates).duty;
+      const parcelValue = aggregatedBreakdown.product_cost_byn;
+      const dutyOne = Math.round(parcelDuty(parcelValue, aggregatedWeight) * 100) / 100;
+      const dutySplit = Math.round(parcelDuty(parcelValue / 2, aggregatedWeight / 2) * 2 * 100) / 100;
+      const hasRecipients = Boolean(window.userRecipients && window.userRecipients.length > 0);
+      if (dutyOne <= 0 || !hasRecipients) window.tempOrder.useCustomsSplit = false;
+      const useCustomsSplit = window.tempOrder?.useCustomsSplit || false;
+      aggregatedBreakdown.customs_duty_byn = useCustomsSplit ? dutySplit : dutyOne;
+
       const splitPlaceholder = document.getElementById('customsSplitPlaceholder');
       if (splitPlaceholder) {
-        if (aggregatedBreakdown.customs_duty_byn > 0) {
-          if (window.userRecipients && window.userRecipients.length > 0) {
-            const isChecked = window.tempOrder?.useCustomsSplit || false;
-            const currentRecId = window.tempOrder?.customsSplitRecipientId || '';
-            const recOptions = window.userRecipients.map(r => `<option value="${r.id}" ${currentRecId === r.id ? 'selected' : ''}>${r.full_name} (***${r.passport.slice(-4)})</option>`).join('');
-
-            splitPlaceholder.innerHTML = `
-              <div class="p-3 rounded-xl border border-cyan-500/30 bg-cyan-500/10 mb-4 page-enter">
-                <div class="flex items-start gap-2 text-left mb-2">
-                  <input type="checkbox" id="orderUseCustomsSplit" class="mt-0.5 w-5 h-5 accent-cyan-500 cursor-pointer" ${isChecked ? 'checked' : ''}>
-                  <div>
-                    <label for="orderUseCustomsSplit" class="text-white text-xs font-semibold leading-normal cursor-pointer">
-                      🛡️ Разделить посылку на двух получателей (обнулить пошлину)
-                    </label>
-                    <p class="text-white/40 text-[9px] mt-0.5">Выберите получателя для второй части посылки.</p>
-                  </div>
-                </div>
-                <div id="customsSplitRecipientSelect" class="${isChecked ? '' : 'hidden'}">
-                  <select id="splitRecipientDropdown" class="w-full p-2 text-sm rounded-lg border border-white/20 bg-slate-900 text-white mt-1">
-                    <option value="">-- Выберите получателя --</option>
-                    ${recOptions}
-                  </select>
-                </div>
+        const money = (v) => window.moneyText(v);
+        if (dutyOne <= 0) {
+          splitPlaceholder.innerHTML = '';
+        } else if (hasRecipients) {
+          const currentRecId = window.tempOrder?.customsSplitRecipientId || '';
+          const recOptions = window.userRecipients.map((r) => `<option value="${r.id}" ${currentRecId === r.id ? 'selected' : ''}>${window.UI.esc(r.full_name || 'Получатель')}</option>`).join('');
+          splitPlaceholder.innerHTML = `
+            <div class="rd-card rd-list co-duty">
+              <label class="rd-row co-opt" for="orderUseCustomsSplit">
+                <span class="rd-row-body">
+                  <span class="rd-row-title">Разделить на двух получателей</span>
+                  <span class="rd-row-text">Пошлина ${money(dutyOne)} на одного. На двоих ${dutySplit > 0 ? money(dutySplit) : 'её не будет'}: лимит 200 евро и 31 кг у каждого свой</span>
+                </span>
+                <span class="rd-switch"><input type="checkbox" id="orderUseCustomsSplit" ${useCustomsSplit ? 'checked' : ''}><span></span></span>
+              </label>
+              <div class="rd-row ${useCustomsSplit ? '' : 'hidden'}" id="customsSplitRecipientSelect">
+                <div class="rd-field co-grow"><select id="splitRecipientDropdown" class="co-select" data-gx-skip><option value="">Выберите второго получателя</option>${recOptions}</select>${window.UI.icon('chevD', 18)}</div>
               </div>
-            `;
-            
-            // Attach change event listener
-            const chk = document.getElementById('orderUseCustomsSplit');
-            const drop = document.getElementById('splitRecipientDropdown');
-            if (chk) {
-              chk.onchange = () => {
-                window.tempOrder.useCustomsSplit = chk.checked;
-                document.getElementById('customsSplitRecipientSelect').classList.toggle('hidden', !chk.checked);
-                recalculateOrderTotals();
-              };
-            }
-            if (drop) {
-              drop.onchange = () => {
-                window.tempOrder.customsSplitRecipientId = drop.value;
-                const rec = window.userRecipients.find(r => r.id === drop.value);
-                if (rec) window.tempOrder.customsSplitRecipientName = rec.full_name;
-              };
-            }
-          } else {
-            splitPlaceholder.innerHTML = `
-              <div class="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 mb-4 text-xs text-amber-300 page-enter">
-                💡 <strong>Превышен лимит пошлины €200!</strong> Вы можете добавить родственника в <span class="underline cursor-pointer font-bold hover:text-white" onclick="switchTab('profile')">Профиле (Мои получатели)</span>, чтобы разделить посылку и сэкономить <strong class="inline-flex items-baseline gap-0.5">${aggregatedBreakdown.customs_duty_byn.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'gold', size: '0.85em' }) : ''}</strong> на пошлине.
-              </div>
-            `;
+            </div>`;
+          const chk = document.getElementById('orderUseCustomsSplit');
+          const drop = document.getElementById('splitRecipientDropdown');
+          if (chk) {
+            chk.onchange = () => {
+              window.tempOrder.useCustomsSplit = chk.checked;
+              recalculateOrderTotals();
+            };
+          }
+          if (drop) {
+            drop.onchange = () => {
+              window.tempOrder.customsSplitRecipientId = drop.value;
+              const rec = window.userRecipients.find((r) => r.id === drop.value);
+              if (rec) window.tempOrder.customsSplitRecipientName = rec.full_name;
+            };
           }
         } else {
-          splitPlaceholder.innerHTML = '';
+          splitPlaceholder.innerHTML = `<div class="ct-hint co-duty">${window.UI.icon('info', 18)}<span>Посылка дороже лимита, пошлина ${money(dutyOne)}. У каждого получателя свой лимит 200 евро и 31 кг: добавьте второго получателя в профиле, и посылку можно будет разделить.</span></div>`;
         }
-      }
-
-      // Check if customs split is active and subtract duty
-      const useCustomsSplit = window.tempOrder?.useCustomsSplit || false;
-      if (useCustomsSplit && aggregatedBreakdown.customs_duty_byn > 0) {
-        aggregatedTotal -= aggregatedBreakdown.customs_duty_byn;
-        aggregatedBreakdown.customs_duty_byn = 0;
-      } else if (!useCustomsSplit && window.tempOrder) {
-        window.tempOrder.useCustomsSplit = false;
       }
 
       // Фирменная упаковка (Раздел 8 ТЗ: 18 BYN)
@@ -1815,7 +1792,12 @@ if (typeof attachCalculatorHandlers === 'function') {
       const finalTotal = Math.max(0, Math.round((firstPaymentSubtotal + secondPaymentEst) * 100) / 100);
       aggregatedBreakdown.total_byn = finalTotal;
 
-      window.tempOrder.total = aggregatedTotal;
+      // База для процентного промокода: полная сумма заказа до скидки
+      window.tempOrder.total = finalTotal + discount;
+      aggregatedBreakdown.delivery_days = [
+        minDeliveryDays === 999 ? 0 : minDeliveryDays,
+        maxDeliveryDays === 0 ? 0 : maxDeliveryDays
+      ];
       window.tempOrder.weight = aggregatedWeight;
       window.tempOrder.price = aggregatedOriginalPrice;
       window.tempOrder.breakdown = aggregatedBreakdown;
@@ -1833,7 +1815,6 @@ if (typeof attachCalculatorHandlers === 'function') {
       const btnPaySpan = document.getElementById('btnPayAmount');
       const balRow = document.getElementById('checkoutBalanceAmountRow');
       const balText = document.getElementById('checkoutBalanceUsedText');
-      const breakdownEl = document.getElementById('orderBreakdown');
 
       if (totalSpan) totalSpan.innerText = finalTotal.toFixed(2);
       if (prepaymentSpan) prepaymentSpan.innerText = firstPaymentFinal.toFixed(2);
@@ -1843,31 +1824,7 @@ if (typeof attachCalculatorHandlers === 'function') {
       if (balText) balText.innerHTML = '-' + balanceUsed.toFixed(2) + ' ' + (window.bynSign ? window.bynSign({ color: 'emerald', size: '0.85em' }) : '');
       if (balRow) balRow.classList.toggle('hidden', !applyBalance || balanceUsed <= 0);
 
-      if (breakdownEl) {
-        aggregatedBreakdown.total_byn = finalTotal;
-        let baseHtml = window.iceLogixPricing.formatBreakdownHTML({
-          available: true,
-          total_byn: finalTotal,
-          total_ice: finalTotal,
-          breakdown: aggregatedBreakdown,
-          warnings: aggregatedWarnings,
-          delivery_days: [
-            minDeliveryDays === 999 ? 0 : minDeliveryDays,
-            maxDeliveryDays === 0 ? 0 : maxDeliveryDays
-          ]
-        });
-
-        if (serviceBreakdownHtmlRows.length > 0) {
-          const splitMarker = '<div class="border-t border-white/20 mt-2 pt-2';
-          const idx = baseHtml.indexOf(splitMarker);
-          if (idx !== -1) {
-            baseHtml = baseHtml.substring(0, idx) + serviceBreakdownHtmlRows.join('') + baseHtml.substring(idx);
-          }
-        }
-
-        breakdownEl.innerHTML = baseHtml;
-        breakdownEl.classList.remove('hidden');
-      }
+      if (window.CheckoutUI) window.CheckoutUI.refresh();
     };
 
 

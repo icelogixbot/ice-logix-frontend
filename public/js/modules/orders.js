@@ -530,385 +530,13 @@ window.applySmartShareLink = applySmartShareLink;
         `;
       }
 
-      // Step 2: Checkout / Added Items List
-      if (!window.tempOrder) {
-        window.tempOrder = { items: [], total: 0, discountAmount: 0, appliedPromo: null, country: window.orderCountry };
-      }
-      window.tempOrder.items = window.tempOrder.items || [];
-      
-      let itemsHtml = '';
-      let totalSum = 0;
-      
-      // Sum up total from all items
-      window.tempOrder.items.forEach(item => {
-        totalSum += (Number(item.total_byn) || 0) * (Number(item.quantity) || 1);
-      });
-
-      if (window.tempOrder.items.length === 0) {
-        itemsHtml = `
-          <div class="text-center py-8 text-white/40 text-sm bg-white/5 rounded-2xl border border-dashed border-white/10">
-            <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7V4h16v3M4 7l8 4 8-4M4 7v13h16V7"/></svg></span> У вас пока нет добавленных товаров.<br>Нажмите «<span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить товар» ниже
-          </div>
-        `;
-      } else {
-        // Group items by country package
-        const packages = {
-          'CN': [],
-          'PL': [],
-          'RU': []
-        };
-        
-        window.tempOrder.items.forEach((item, idx) => {
-          item._originalIndex = idx;
-          const country = getPlatformCountry(item.platform);
-          packages[country].push(item);
-        });
-
-        // Auto-select tab if current active is empty
-        window.activePackageTab = window.activePackageTab || 'CN';
-        const activeTabsWithItems = Object.keys(packages).filter(c => packages[c].length > 0);
-        if (activeTabsWithItems.length > 0 && !activeTabsWithItems.includes(window.activePackageTab)) {
-          window.activePackageTab = activeTabsWithItems[0];
-        }
-
-        // Build package tabs layout
-        const tabButtons = Object.keys(packages).map(country => {
-          const count = packages[country].length;
-          if (count === 0) return '';
-          const flag = country === 'CN' ? '🇨🇳' : country === 'PL' ? '🇵🇱' : '🇷🇺';
-          const label = country === 'CN' ? 'Китай' : country === 'PL' ? 'Европа' : 'Россия';
-          const active = window.activePackageTab === country;
-          return `
-            <button type="button" class="flex-1 py-2 text-center text-[10px] font-bold rounded-xl border transition ${active ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'border-white/10 hover:bg-white/5 text-white/70'}" onclick="window.switchPackageTab('${country}')">
-              ${flag} ${label} (${count})
-            </button>
-          `;
-        }).join('');
-
-        const activePackageItems = packages[window.activePackageTab] || [];
-        const itemsListHtml = activePackageItems.map((item) => {
-          return `
-            <div class="bg-white/5 p-3 rounded-xl border border-white/10 flex justify-between items-center gap-2 mb-2">
-              <div class="flex-1 min-w-0">
-                <div class="text-sm font-bold text-white truncate">${item.title}</div>
-                <div class="text-xs text-white/60 mt-0.5">Размер: ${item.size || 'не указан'} · Категория: ${item.category}</div>
-                <div class="text-xs font-bold mt-1 inline-flex items-baseline gap-1" style="color:var(--rd-b400)">${item.price} ${item.currency || ''} (${(Number(item.total_byn) || 0).toFixed(2)} ${window.bynSign ? window.bynSign() : ''})</div>
-              </div>
-              <button type="button" class="bg-red-500/20 hover:bg-red-500/40 text-red-400 rounded-full w-8 h-8 flex items-center justify-center transition flex-shrink-0" onclick="deleteOrderItem(${item._originalIndex})">${ix('trash-2')}</button>
-            </div>
-          `;
-        }).join('');
-
-        // Consolidation checkbox
-        window.tempOrder.consolidation = window.tempOrder.consolidation || {};
-        const isConsolidated = window.tempOrder.consolidation[window.activePackageTab] || false;
-        const consolidationWidget = activePackageItems.length >= 2 ? `
-          <div class="flex items-center justify-between p-3.5 rounded-xl border border-cyan-500/30 bg-cyan-500/5 mt-3 mb-2 page-enter">
-            <div class="flex items-center gap-2 text-left">
-              <input type="checkbox" id="pkgConsolidationCheck" class="w-5 h-5 accent-cyan-500 cursor-pointer" ${isConsolidated ? 'checked' : ''} onchange="window.togglePackageConsolidation('${window.activePackageTab}')">
-              <label for="pkgConsolidationCheck" class="text-white text-xs font-semibold leading-snug cursor-pointer">
-                📦 Объединить товары в одну коробку (скидка 3 ${window.bynSign ? window.bynSign() : ''})
-              </label>
-            </div>
-          </div>
-        ` : '';
-
-        // Package extras checkboxes
-        window.tempOrder.packageExtras = window.tempOrder.packageExtras || {};
-        const extras = window.tempOrder.packageExtras[window.activePackageTab] || {};
-        const activeCountryLabel = window.activePackageTab === 'CN' ? 'Китае' : window.activePackageTab === 'PL' ? 'Польше' : 'России';
-        const extrasWidget = `
-          <div class="bg-white/5 p-3.5 rounded-xl border border-white/10 mt-2 mb-2 text-xs space-y-2.5 page-enter">
-            <p class="text-white/60 font-bold uppercase tracking-wider text-[10px]">Доп. услуги склада в ${activeCountryLabel}:</p>
-            <div class="flex items-center gap-2">
-              <input type="checkbox" id="extraBubble" class="w-4 h-4 accent-cyan-500 cursor-pointer" ${extras.bubble ? 'checked' : ''} onchange="window.togglePackageExtra('${window.activePackageTab}', 'bubble')">
-              <label for="extraBubble" class="text-white/70 cursor-pointer">Bubble-плёнка (+3 ${window.bynSign ? window.bynSign() : ''})</label>
-            </div>
-            <div class="flex items-center gap-2">
-              <input type="checkbox" id="extraWood" class="w-4 h-4 accent-cyan-500 cursor-pointer" ${extras.wood ? 'checked' : ''} onchange="window.togglePackageExtra('${window.activePackageTab}', 'wood')">
-              <label for="extraWood" class="text-white/70 cursor-pointer">Деревянная обрешётка (+10 ${window.bynSign ? window.bynSign() : ''})</label>
-            </div>
-            <div class="flex items-center gap-2">
-              <input type="checkbox" id="extraCheck" class="w-4 h-4 accent-cyan-500 cursor-pointer" ${extras.check ? 'checked' : ''} onchange="window.togglePackageExtra('${window.activePackageTab}', 'check')">
-              <label for="extraCheck" class="text-white/70 cursor-pointer">Детальная проверка на брак/замеры (+5 ${window.bynSign ? window.bynSign() : ''})</label>
-            </div>
-          </div>
-        `;
-
-        itemsHtml = `
-          <div class="space-y-3">
-            <!-- Package Tabs Navigation -->
-            <div class="flex gap-2 bg-white/5 p-1 rounded-2xl border border-white/5">
-              ${tabButtons}
-            </div>
-            
-            <!-- Active Package Items -->
-            <div class="mt-2">
-              ${itemsListHtml}
-            </div>
-
-            <!-- Package Specific Services & Discounts -->
-            ${consolidationWidget}
-            ${extrasWidget}
-          </div>
-        `;
-      }
-
-      const discountLine = window.tempOrder.discountAmount > 0
-        ? `<p class="text-green-400 text-sm mt-1 inline-flex items-baseline gap-1">Скидка: -${window.tempOrder.discountAmount.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'emerald' }) : ''}</p>`
-        : '';
-
-      const finalTotal = Math.max(0, totalSum - (window.tempOrder.discountAmount || 0));
-
-      const checkoutOptionsAndTotals = totalSum > 0 ? `
-        <!-- Global Options -->
-        <div class="bg-white/5 p-4 rounded-xl mb-4 space-y-3">
-          <p class="text-white/60 text-xs font-bold uppercase tracking-wider mb-1">Опции заказа:</p>
-          <div class="flex items-center gap-2">
-            <input type="checkbox" id="orderKeepBox" ${window.tempOrder.keepBox ? 'checked' : ''}>
-            <label for="orderKeepBox" class="text-white/70 text-sm">Сохранить оригинальную коробку</label>
-          </div>
-          <div class="flex items-center gap-2">
-            <input type="checkbox" id="orderInsurance" checked disabled>
-            <label for="orderInsurance" class="text-white/70 text-sm"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span> Обязательная страховка ShopByShop (+2%)</label>
-          </div>
-          <div class="flex items-center gap-2 mt-2">
-            <input type="checkbox" id="orderExtraPhoto" ${window.tempOrder.extraPhoto ? 'checked' : ''} class="w-4 h-4 accent-cyan-500 cursor-pointer">
-            <label for="orderExtraPhoto" class="text-white/70 text-sm cursor-pointer"><span class="text-cyan-400">📸 Детальные photo со склада</span> (+3 ${window.bynSign ? window.bynSign() : ''})</label>
-          </div>
-          <div class="flex items-center gap-2 mt-2">
-            <input type="checkbox" id="orderExtraMeasure" ${window.tempOrder.extraMeasure ? 'checked' : ''} class="w-4 h-4 accent-cyan-500 cursor-pointer">
-            <label for="orderExtraMeasure" class="text-white/70 text-sm cursor-pointer"><span class="text-cyan-400">📏 Замер стельки/длины</span> (+3 ${window.bynSign ? window.bynSign() : ''})</label>
-          </div>
-          <div class="flex items-center gap-2">
-            <input type="checkbox" id="orderIsGift" ${window.tempOrder.isGift ? 'checked' : ''} class="w-4 h-4 accent-pink-500 cursor-pointer">
-            <label for="orderIsGift" class="text-white/70 text-sm cursor-pointer"><span class="text-pink-400">🎁 Подарок</span> (Скрыть цену и чек)</label>
-          </div>
-          <div class="flex items-center gap-2">
-            <input type="checkbox" id="orderRequiresVideoCheck" ${window.tempOrder.requiresVideoCheck ? 'checked' : ''} class="w-4 h-4 accent-cyan-500 cursor-pointer">
-            <label for="orderRequiresVideoCheck" class="text-white/70 text-sm cursor-pointer"><span class="text-cyan-400">📹 Видео-проверка</span> со склада в Китае (+10 ${window.bynSign ? window.bynSign() : ''})</label>
-          </div>
-        </div>
-
-        <!-- Pick-up Point (PVS) Selector -->
-        <div class="bg-white/5 p-4 rounded-xl mb-4 space-y-3">
-          <p class="text-white/60 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5">
-            <span>🚚 Доставка по Беларуси:</span>
-          </p>
-          <div>
-            <label class="text-white/50 text-[10px] block mb-1">Способ получения в Беларуси</label>
-            <select id="pvsMethodSelect" class="w-full p-3 rounded-xl border border-white/20 text-sm bg-slate-900 text-white">
-              <option value="none" ${(!window.tempOrder.pvs || window.tempOrder.pvs.method === 'none') ? 'selected' : ''}>🏢 Самовывоз в Несвиже (0 ${window.bynSign ? window.bynSign() : ''})</option>
-              <option value="europoshta" ${(window.tempOrder.pvs?.method === 'europoshta') ? 'selected' : ''}>📦 Европочта (оплата тарифа при получении)</option>
-              <option value="belpochta" ${(window.tempOrder.pvs?.method === 'belpochta') ? 'selected' : ''}>📬 Белпочта (оплата тарифа при получении)</option>
-              <option value="sdek" ${(window.tempOrder.pvs?.method === 'sdek') ? 'selected' : ''}>🚚 СДЭК (оплата тарифа при получении)</option>
-            </select>
-          </div>
-          
-          <div id="pvsDetailContainer" class="${(!window.tempOrder.pvs || window.tempOrder.pvs.method === 'none') ? 'hidden' : ''} space-y-3">
-            <button type="button" class="w-full bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 py-3 rounded-xl text-xs font-bold transition-colors flex justify-center items-center gap-2" onclick="window.openYandexMapStub()">
-              <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></span> Выбрать на карте (Яндекс)
-            </button>
-            <div>
-              <label class="text-white/50 text-[10px] block mb-1">Город</label>
-              <select id="pvsCitySelect" class="w-full p-3 rounded-xl border border-white/20 text-sm bg-slate-900 text-white">
-                ${['Минск', 'Гомель', 'Брест', 'Гродно', 'Витебск', 'Могилев', 'Барановичи', 'Бобру��ск', 'Борисов', 'Лида', 'Мозырь', 'Новополоцк', 'Орша', 'Пинск', 'Солигорск'].map(c => `
-                  <option value="${c}" ${(window.tempOrder.pvs?.city === c) ? 'selected' : ''}>${c}</option>
-                `).join('')}
-              </select>
-            </div>
-            <div>
-              <label class="text-white/50 text-[10px] block mb-1">Пункт выдачи / Отделение</label>
-              <select id="pvsPointSelect" class="w-full p-3 rounded-xl border border-white/20 text-sm bg-slate-900 text-white">
-                <!-- Will be populated dynamically -->
-              </select>
-            </div>
-          </div>
-          
-          ${(window.userSettings?.free_delivery_tokens > 0) ? `
-            <div class="flex items-center justify-between p-3 rounded-xl border border-green-500/30 bg-green-500/10 mt-3">
-              <div class="flex items-center gap-2 text-left">
-                <input type="checkbox" id="orderUseFreeDelivery" class="w-5 h-5 accent-green-500" ${window.tempOrder.useFreeDelivery ? 'checked' : ''}>
-                <label for="orderUseFreeDelivery" class="text-white text-xs font-semibold leading-snug">Использовать купон на бесплатную доставку (осталось: ${window.userSettings.free_delivery_tokens})</label>
-              </div>
-            </div>
-          ` : ''}
-        </div>
-
-        <!-- Promo Code -->
-        <div class="bg-white/5 p-4 rounded-xl mb-4">
-          <label class="text-white/70 text-sm block mb-1">Промокод</label>
-          <div class="flex gap-2">
-            <input type="text" id="promoCode" class="btn-secondary flex-1 p-3 rounded-xl border border-white/30 text-sm" placeholder="Введите промокод" value="${window.tempOrder.appliedPromo?.code || ''}">
-            <button id="applyPromoBtn" class="btn-primary whitespace-nowrap px-4 rounded-xl text-sm font-bold">Применить</button>
-          </div>
-          <p id="promoMessage" class="text-xs mt-1 hidden"></p>
-        </div>
-
-        <!-- Customs Split Container Placeholders -->
-        <div id="customsSplitPlaceholder"></div>
-
-        <!-- Internal Balance Widget (Разделы 17, 23 ТЗ) -->
-        <div class="bg-white/5 p-4 rounded-xl mb-4 border border-cyan-500/20">
-          <div class="flex justify-between items-center">
-            <div class="flex items-center gap-2.5">
-              <span class="text-xl">🧊</span>
-              <div>
-                <p class="text-white text-xs font-bold">Персональный баланс</p>
-                <p class="text-cyan-400 text-xs font-semibold inline-flex items-baseline gap-1">Доступно: <span id="checkoutUserBalance">${Number(typeof balance !== 'undefined' ? (balance || 0) : 0).toFixed(2)}</span> ${window.bynSign ? window.bynSign({ color: 'cyan' }) : ''}</p>
-              </div>
-            </div>
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" id="orderApplyBalance" class="sr-only peer" ${Number(typeof balance !== 'undefined' ? (balance || 0) : 0) > 0 ? '' : 'disabled'}>
-              <div class="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
-            </label>
-          </div>
-          <div id="checkoutBalanceAmountRow" class="hidden pt-2 border-t border-white/10 flex items-center justify-between text-xs mt-2">
-            <span class="text-white/70">Списание с баланса:</span>
-            <span class="text-green-400 font-bold font-mono inline-flex items-baseline gap-1" id="checkoutBalanceUsedText">-0.00 ${window.bynSign ? window.bynSign({ color: 'emerald' }) : ''}</span>
-          </div>
-        </div>
-
-        <!-- Payment Card (bePaid Mock, Раздел 23 ТЗ) -->
-        <div class="bg-white/5 p-4 rounded-xl mb-4 space-y-3 border border-white/10">
-          <div class="flex justify-between items-center">
-            <span class="text-white/70 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
-              <span>💳 Способ оплаты (1-й этап):</span>
-            </span>
-            <button id="checkoutAddCardBtn" type="button" class="text-xs text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1" onclick="window.openAddCardModal(() => { if (typeof recalculateOrderTotals === 'function') recalculateOrderTotals(); })">
-              <span>+ Привязать карту</span>
-            </button>
-          </div>
-
-          <!-- Переключатель способов оплаты: Карта / ЕРИП / Оплати -->
-          <div class="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-slate-900 border border-white/10" id="checkoutPaymentMethodTabs">
-            <button
-              type="button"
-              id="checkoutMethodTabCard"
-              onclick="window.setCheckoutPaymentMethod('card')"
-              class="py-2 px-1 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-1 ring-white/20"
-            >
-              <span>💳 Карта</span>
-            </button>
-            <button
-              type="button"
-              id="checkoutMethodTabErip"
-              onclick="window.setCheckoutPaymentMethod('erip')"
-              class="py-2 px-1 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 text-white/60 hover:text-white"
-            >
-              <span>🏛️ ЕРИП</span>
-            </button>
-            <button
-              type="button"
-              id="checkoutMethodTabOplati"
-              onclick="window.setCheckoutPaymentMethod('oplati')"
-              class="py-2 px-1 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 text-white/60 hover:text-white"
-            >
-              <span>🟢 Оплати</span>
-            </button>
-          </div>
-
-          <div id="checkoutCardsList" class="space-y-2">
-            <!-- Populated via window.renderCheckoutCards() -->
-          </div>
-          <div class="flex items-center justify-between pt-1 border-t border-white/5 flex-wrap gap-2" id="checkoutCardLogosRow">
-            <p class="text-[10px] text-white/50">🔒 Авторизация bePaid (1.00 ${window.bynSign ? window.bynSign() : ''} с возвратом)</p>
-            <div class="flex items-center gap-2.5 opacity-90 select-none">
-              <img src="/assets/payment-methods/visa.webp" alt="VISA" class="h-3 w-auto object-contain" loading="lazy">
-              <img src="/assets/payment-methods/mastercard.webp" alt="MC" class="h-3.5 w-auto object-contain" loading="lazy">
-              <img src="/assets/payment-methods/maestro.webp" alt="Maestro" class="h-3.5 w-auto object-contain" loading="lazy">
-              <img src="/assets/payment-methods/belkart.webp" alt="БК" class="h-3.5 w-auto object-contain" loading="lazy">
-              <img src="/assets/payment-methods/mir.webp" alt="МИР" class="h-3 w-auto object-contain" loading="lazy">
-              <img src="/assets/payment-methods/unionpay.webp" alt="UPI" class="h-3.5 w-auto object-contain" loading="lazy">
-            </div>
-          </div>
-        </div>
-
-        <!-- Breakdown & Totals (Разделы 4, 7, 8, 13, 14, 15 ТЗ) -->
-        <div class="bg-cyan-500/10 border border-cyan-500/30 p-4 rounded-xl">
-          <div id="orderBreakdown" class="mb-3 space-y-1 text-sm border-b border-white/10 pb-3"></div>
-          
-          <div class="space-y-1.5 mb-3 bg-white/5 p-3 rounded-xl border border-white/10">
-            <div class="flex justify-between items-baseline text-xs text-white/70">
-              <span>Полная оценка заказа:</span>
-              <span class="text-white font-mono font-bold inline-flex items-baseline gap-1"><span id="orderTotal">${finalTotal.toFixed(2)}</span> ${window.bynSign ? window.bynSign() : ''}</span>
-            </div>
-            <div class="flex justify-between items-baseline text-xs text-amber-300">
-              <span>2-й этап (оплата на складе):</span>
-              <span class="font-mono font-bold inline-flex items-baseline gap-1">~<span id="secondPaymentEstimate">0.00</span> ${window.bynSign ? window.bynSign() : ''}</span>
-            </div>
-            <div class="flex justify-between items-baseline pt-2 border-t border-cyan-500/30">
-              <span class="text-cyan-300 font-bold text-sm">К ОПЛАТЕ СЕЙЧАС (1-й этап):</span>
-              <span class="text-cyan-400 font-bold text-xl inline-flex items-baseline gap-1"><span id="firstPaymentAmount">0.00</span> ${window.bynSign ? window.bynSign({ color: 'cyan' }) : ''}</span>
-            </div>
-          </div>
-          ${discountLine}
-          <p class="text-white/60 text-[11px] mb-3">1-й этап: выкуп товара + комиссия + упаковка (18 ${window.bynSign ? window.bynSign() : ''}) + 70% резерв доставки.<br>*Обязательная предоплата: <span id="prepaymentAmount" class="font-bold text-cyan-300 inline-flex items-baseline gap-1">0.00 ${window.bynSign ? window.bynSign({ color: 'cyan' }) : ''}</span></p>
-          
-          <!-- Agree Offer -->
-          <div class="mt-4 flex items-start gap-2 border-t border-white/10 pt-3 mb-2">
-            <input type="checkbox" id="agreeOffer" class="mt-1">
-            <label for="agreeOffer" class="text-white/70 text-xs leading-normal">
-              Я принимаю условия <a href="https://example.com/offer.pdf" target="_blank" class="text-cyan-400 underline font-bold">публичной оферты</a> и даю согласие на обработку персональных данных
-            </label>
-          </div>
-
-          <!-- Agree Delivery Rules -->
-          <div class="flex items-start gap-2 mb-4">
-            <input type="checkbox" id="agreeDeliveryRules" class="mt-1">
-            <label for="agreeDeliveryRules" class="text-white/70 text-xs leading-normal">
-              Я прочитал и согласен с <button type="button" class="text-cyan-400 underline font-bold text-left" onclick="tgUtil.alert('Правила доставки:\\n\\n1. Сроки доставки являются ориентировочиными.\\n2. Итоговый вес может отличаться от расчетного.\\n3. Отмена выкупленного заказа невозможна.')">правилами доставки</button>.
-            </label>
-          </div>
-
-          <!-- Agree Commission Contract -->
-          <div class="flex items-start gap-2 mb-4">
-            <input type="checkbox" id="agreeCommissionContract" class="mt-1">
-            <label for="agreeCommissionContract" class="text-white/70 text-xs leading-normal">
-              Я подписываю <button type="button" class="text-cyan-400 underline font-bold text-left" onclick="showCommissionContractModal()">📄 Договор комиссии байера (20% на услуги)</button> и подтверждаю точность предоставленных данных.
-            </label>
-          </div>
-
-          <!-- ERIP Instructions -->
-          <button type="button" class="w-full bg-slate-800 hover:bg-slate-700 text-white py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 mb-3 border border-white/10 transition" onclick="tgUtil.alert('Инструкция оплаты ЕРИП:\\n1. Платежи и переводы\\n2. Система «Расчет» (ЕРИП)\\n3. Интернет-магазины/сервисы\\n4. I -> ICE LOGIX\\n5. Введите номер заказа и сумму предоплаты.')">
-            <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span> Инструкция оплаты через ЕРИП
-          </button>
-
-          <button id="createOrderFinal" class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg transition">
-            <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span>
-            <span>Оплатить 1-й этап (<span id="btnPayAmount">0.00</span> ${window.bynSign ? window.bynSign({ color: 'white' }) : ''})</span>
-          </button>
-        </div>
-      ` : '';
-
-      return `
-        <div class="glass-card page-enter">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-bold"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></span> Оформление заказа</h2>
-          </div>
-          
-          ${vacationBanner}
-          
-          <div class="mb-4">
-            <h3 class="text-sm font-semibold text-white/70 mb-2">Список выбранных товаров:</h3>
-            <div id="orderItemsList" class="flex flex-col gap-3">
-              ${itemsHtml}
-            </div>
-          </div>
-          
-          <div class="flex flex-col gap-3 mt-4">
-            <button type="button" class="btn-secondary w-full py-3 rounded-xl flex items-center justify-center gap-2 border border-dashed border-cyan-500/30 text-cyan-400 font-bold hover:bg-cyan-500/10 transition" onclick="startOrderAddMode()">
-              <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить товар
-            </button>
-            
-            ${checkoutOptionsAndTotals}
-          </div>
-        </div>
-        ${renderFooter()}
-      `;
+      // Step 2: экран оформления (checkout-ui.js)
+      window.activePackageTab = window.activePackageTab || 'CN';
+      return window.CheckoutUI.render(vacationBanner);
     }
 
     function attachNewOrderHandlers() {
+      if (window.CheckoutUI) window.CheckoutUI.mount();
       if (typeof syncTelegramBackButton === 'function') {
         syncTelegramBackButton();
       }
@@ -1214,24 +842,6 @@ window.applySmartShareLink = applySmartShareLink;
             if (!window.tempOrder || !userId) { tgUtil.alert('Ошибка: авторизуйтесь или заполните поля'); return; }
             if (!window.tempOrder.items || window.tempOrder.items.length === 0) { tgUtil.alert('Добавьте хотя бы один товар в заказ'); return; }
 
-            const agreeOffer = document.getElementById('agreeOffer');
-            if (agreeOffer && !agreeOffer.checked) {
-              tgUtil.alert('Вы должны принять условия публичной оферты');
-              return;
-            }
-
-            const agreeCommissionContract = document.getElementById('agreeCommissionContract');
-            if (agreeCommissionContract && !agreeCommissionContract.checked) {
-              tgUtil.alert('Вы должны подписать Договор комиссии байера');
-              return;
-            }
-
-            const agreeDeliveryRules = document.getElementById('agreeDeliveryRules');
-            if (agreeDeliveryRules && !agreeDeliveryRules.checked) {
-              tgUtil.alert('Вы должны согласиться с правилами доставки');
-              return;
-            }
-
             if (window.tempOrder?.useCustomsSplit && !window.tempOrder?.customsSplitRecipientId) {
               tgUtil.alert('Выберите второго получателя для разделения посылки.');
               return;
@@ -1241,7 +851,7 @@ window.applySmartShareLink = applySmartShareLink;
             if (typeof window.checkUserKycStatus === 'function') {
               const kycInfo = await window.checkUserKycStatus(userId);
               if (!kycInfo.isVerified && kycInfo.status !== 'pending') {
-                const shouldVerify = confirm('📦 Для прохождения таможни РБ требуются паспортные данные получателя.\n\nХотите пройти быструю верификацию сейчас?');
+                const shouldVerify = await tgUtil.confirm('📦 Для прохождения таможни РБ требуются паспортные данные получателя.\n\nХотите пройти быструю верификацию сейчас?');
                 if (shouldVerify) {
                   switchTab('kyc');
                   return;
@@ -1266,21 +876,6 @@ window.applySmartShareLink = applySmartShareLink;
               tgUtil.alert('Проверьте заказ:\n• ' + validationErrors.join('\n• '));
               return;
             }
-
-            const aggregatedOrderForPreview = {
-              ...window.tempOrder,
-              title: window.tempOrder.items.length === 1 ? window.tempOrder.items[0].title : `${window.tempOrder.items.length} товаров`,
-              brand: window.tempOrder.items.length === 1 ? window.tempOrder.items[0].brand : '',
-              marketplaceName: window.tempOrder.items.length === 1 ? window.tempOrder.items[0].marketplace_name : '',
-              size: window.tempOrder.items.length === 1 ? window.tempOrder.items[0].size : '',
-              price: window.tempOrder.price,
-              currency: consolidatedOrder.currency,
-              weight: window.tempOrder.weight,
-              total_byn: window.tempOrder.total_byn
-            };
-
-            const confirmed = await showOrderPreviewModal(aggregatedOrderForPreview);
-            if (!confirmed) return;
 
             try {
               const bk = window.tempOrder.breakdown || {};
@@ -1311,7 +906,7 @@ window.applySmartShareLink = applySmartShareLink;
               const isDbUuid = (id) => id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
               createBtn.disabled = true;
-              createBtn.innerHTML = '<span class="ix animate-spin">⏳</span> Обработка оплаты 1-г�� этапа...';
+              createBtn.textContent = 'Оформляем заказ…';
 
               const orderInsertPayload = {
                 user_id: userId,
@@ -1347,7 +942,9 @@ window.applySmartShareLink = applySmartShareLink;
                 extra_services: {
                   extra_photo: window.tempOrder.extraPhoto || false,
                   extra_measure: window.tempOrder.extraMeasure || false,
-                  is_gift: window.tempOrder.isGift || false
+                  is_gift: window.tempOrder.isGift || false,
+                  // Условия приняты нажатием «Оплатить»: что и когда, на случай спора
+                  terms_accepted: { at: new Date().toISOString(), version: 'draft-2026-10-30', docs: ['offer', 'delivery-rules', 'privacy'] }
                 },
                 total_byn: window.tempOrder.total_byn,
                 requires_video_check: window.tempOrder.requiresVideoCheck || false,
@@ -1417,7 +1014,7 @@ window.applySmartShareLink = applySmartShareLink;
                 const payMethod = window._checkoutPaymentMethod === 'erip' ? 'erip'
                   : window._checkoutPaymentMethod === 'oplati' ? 'oplati' : 'card';
                 const pr = await window.IcePay.payOrder(createdOrderId, 'FIRST', balanceUsed, payMethod,
-                  { card_id: isDbUuid(selectedCardId) ? selectedCardId : null });
+                  { card_id: isDbUuid(selectedCardId) ? selectedCardId : null, new_card: selectedCardId === 'new' });
                 if (!pr || !pr.ok) throw new Error((pr && pr.error) || 'Не получилось провести оплату');
                 payRes = pr;
                 if (pr && pr.balance !== undefined && pr.balance !== null && typeof balance !== 'undefined') balance = Number(pr.balance);
@@ -1484,7 +1081,10 @@ window.applySmartShareLink = applySmartShareLink;
               switchTab('home');
             } catch (err) {
               tgUtil.haptic('error');
-              tgUtil.alert('Ошибка создания заказа: ' + err.message);
+              tgUtil.alert('Не получилось оформить заказ: ' + err.message);
+              createBtn.disabled = false;
+              createBtn.textContent = 'Оплатить';
+              if (typeof renderCurrentScreen === 'function') renderCurrentScreen();
             }
           };
         }

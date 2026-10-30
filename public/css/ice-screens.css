@@ -1227,3 +1227,55 @@ html body .no-form div[class*="border-white/30"] > input { min-height: 40px !imp
 .sk-foot .rd-btn:disabled { opacity: 0.5; }
 .ps-item.wait { cursor: default; }
 .ps-item-wait { font-size: 12px; color: var(--rd-tx3); }
+
+/* ═══ Оформление заказа (checkout-ui.js) ═══ */
+.co { padding-bottom: 176px; }
+.co-sub { margin-top: 20px; margin-bottom: 8px; }
+.co-sub h2 { font-size: 16px; }
+.co-gap { margin-top: 14px; }
+.co-grow { flex: 1; min-width: 0; }
+.co-items { padding: 4px 14px; }
+.co-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--rd-line); }
+.co-thumb { width: 60px; height: 60px; flex-shrink: 0; border-radius: var(--rd-r12); overflow: hidden; background: var(--rd-s2); display: flex; align-items: center; justify-content: center; color: var(--rd-tx3); }
+.co-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.co-item-body { flex: 1; min-width: 0; }
+.co-item-title { font-size: 15px; font-weight: 700; color: var(--rd-tx); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.co-item-meta { font-size: 13px; color: var(--rd-tx3); margin-top: 2px; }
+.co-item-price { display: flex; align-items: baseline; gap: 2px; margin-top: 4px; font-size: 15px; font-weight: 700; color: var(--rd-tx); font-variant-numeric: tabular-nums; }
+.co-item-price .byn-sign { height: .82em; width: auto; margin-left: .14em; }
+.co-item-qty { margin-left: 8px; font-size: 13px; font-weight: 500; color: var(--rd-tx3); }
+.co-item-del { width: 44px; height: 44px; flex-shrink: 0; margin-right: -10px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; color: var(--rd-tx3); cursor: pointer; }
+.co-add { width: 100%; height: 48px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; background: transparent; color: var(--rd-b400); font-size: 15px; font-weight: 700; cursor: pointer; }
+.co-opt { cursor: pointer; }
+.co-opt-price { margin-left: 8px; font-weight: 600; color: var(--rd-b400); white-space: nowrap; }
+.co-opt-price .byn-sign { height: .82em; width: auto; margin-left: .12em; }
+.co-radio { cursor: pointer; }
+.co-dot { width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; border: 2px solid var(--rd-line-2); transition: border-color .15s, border-width .15s; }
+.co-radio.on .co-dot { border: 7px solid var(--rd-blue); }
+.co-pvs { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.co-select { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; color: var(--rd-tx); font-size: 15px; appearance: none; }
+.rd-field .co-select { padding: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; } /* перебивает старый слой select */
+.co-select option { background: var(--rd-s2); color: var(--rd-tx); }
+.co-note-line { margin: 10px 2px 0; font-size: 13px; line-height: 1.45; color: var(--rd-tx3); }
+.co-duty { margin-top: 16px; }
+.co-total { padding: 16px; }
+.co-total-now { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.co-total-now > span { font-size: 15px; font-weight: 700; color: var(--rd-tx); }
+.co-total-now b { display: inline-flex; align-items: baseline; font-size: 26px; font-weight: 800; color: var(--rd-tx); font-variant-numeric: tabular-nums; }
+.co-total-now .byn-sign { height: .8em; width: auto; margin-left: .14em; }
+.co-total-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 4px 0; font-size: 14px; color: var(--rd-tx2); }
+.co-total-row > span:last-child { display: inline-flex; align-items: baseline; flex-shrink: 0; color: var(--rd-tx); font-variant-numeric: tabular-nums; }
+.co-total-row .byn-sign { height: .82em; width: auto; margin-left: .14em; }
+.co-more { width: 100%; min-height: 44px; margin-top: 8px; display: flex; align-items: center; justify-content: space-between; border: 0; border-top: 1px solid var(--rd-line); background: transparent; color: var(--rd-b400); font-size: 14px; font-weight: 700; cursor: pointer; }
+.co-more svg { transition: transform .2s; }
+.co-more.open svg { transform: rotate(180deg); }
+.co-breakdown { padding-top: 2px; }
+.co-legal { margin: 14px 4px 0; font-size: 12.5px; line-height: 1.5; color: var(--rd-tx3); }
+.co-legal button { padding: 0; border: 0; background: transparent; color: var(--rd-b400); font: inherit; cursor: pointer; }
+.co-cta .rd-btn { flex: 1; }
+.co-cta .byn-sign { height: .82em; width: auto; margin-left: .14em; }
+.co-cta .rd-btn > span { display: inline-flex; align-items: baseline; }
+.co-doc { font-size: 14px; line-height: 1.55; color: var(--rd-tx2); }
+.co-doc h2 { margin: 16px 0 6px; font-size: 15px; font-weight: 700; color: var(--rd-tx); }
+.co-doc p { margin: 0 0 8px; }
+.co-doc .co-doc-draft { padding: 10px 12px; border-radius: var(--rd-r12); background: rgba(255, 194, 74, 0.13); color: var(--rd-warn); }

@@ -21,6 +21,7 @@
     currency_buffer_pct: 3,       // буфер на колебания курса
     customs_limit_eur: 200,       // беспошлинный лимит РБ (200€)
     customs_limit_kg: 31,
+    customs_min_eur_per_kg: 2,    // минимум за кг сверх лимита веса (Решение ЕЭК № 107)
     customs_duty_pct: 15,         // пошлина РБ (15% от превышения)
     first_order_discount_byn: 15, // скидка на первый заказ
     level_multipliers: {          // множитель комиссии по уровню
@@ -185,19 +186,19 @@
     const exceedsWeight = weightKg > CONFIG.customs_limit_kg;
     if (!exceedsValue && !exceedsWeight) return { duty: 0, warning: null };
 
-    let dutyBYN = 0;
+    // Решение Совета ЕЭК № 107, приложение 2: 15% от стоимости сверх нормы, но не менее 2 евро
+    // за каждый кг сверх нормы. С 2027 года ожидается другая формула (5% со всей суммы, минимум 1 евро/кг).
+    const eur = rates.EUR_to_BYN || FALLBACK_RATES.EUR_to_BYN;
+    const byValue = exceedsValue ? (productCostBYN - limitBYN) * (CONFIG.customs_duty_pct / 100) : 0;
+    const byWeight = exceedsWeight ? (weightKg - CONFIG.customs_limit_kg) * CONFIG.customs_min_eur_per_kg * eur : 0;
+    let dutyBYN = Math.max(byValue, byWeight);
     let warning = null;
     if (exceedsValue) {
-      const overage = productCostBYN - limitBYN;
-      // В РБ пошлина = 15% от превышения лимита + 10 BYN таможенный сбор
-      dutyBYN += (overage * (CONFIG.customs_duty_pct / 100)) + 10;
-      warning = `⚠️ Превышен лимит беспошлинного ввоза в РБ €${CONFIG.customs_limit_eur} (пошлина 15% от превышения + 10 сбор)`;
+      dutyBYN += 10; // таможенный сбор РБ
+      warning = `Превышен лимит беспошлинного ввоза в РБ €${CONFIG.customs_limit_eur} (пошлина ${CONFIG.customs_duty_pct}% с превышения + сбор)`;
     }
     if (exceedsWeight) {
-      // По весу — отдельная логика, упрощённо: фикс 5 BYN/кг сверх лимита
-      const overKg = weightKg - CONFIG.customs_limit_kg;
-      dutyBYN += overKg * 5;
-      warning = (warning ? warning + ' ' : '') + `Превышен лимит веса ${CONFIG.customs_limit_kg} кг (+5/кг)`;
+      warning = (warning ? warning + ' ' : '') + `Превышен лимит веса ${CONFIG.customs_limit_kg} кг`;
     }
     return { duty: dutyBYN, warning };
   }
@@ -645,6 +646,7 @@
     calculateFirstPayment,
     calculateSecondPayment,
     getExchangeRates,
+    calculateCustomsDuty,
     convertToBYN,
     formatBreakdownHTML,
     formatPlain,

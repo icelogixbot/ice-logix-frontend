@@ -132,6 +132,13 @@
     return unified;
   }
 
+  // Пошлина считается на посылку одному получателю, как на экране оформления
+  let _cartRates = null;
+  function cartParcelDuty(value, kg) {
+    if (!_cartRates || typeof window.iceLogixPricing?.calculateCustomsDuty !== 'function') return 0;
+    return Math.round(window.iceLogixPricing.calculateCustomsDuty(value, kg, _cartRates).duty * 100) / 100;
+  }
+
   // Упаковка одна на заказ, поэтому в цену вещи не входит и прибавляется к итогу один раз
   function cartPackagingByn() {
     return Number(window.iceLogixPricing?.CONFIG?.firm_packaging_byn) || 0;
@@ -140,6 +147,7 @@
   // Цена вещи — как на экране оформления (тот же движок и те же параметры), чтобы суммы не расходились
   async function applyExactPrices(items) {
     if (typeof window.iceLogixPricing?.calculatePrice !== 'function') return;
+    try { _cartRates = await window.iceLogixPricing.getExchangeRates(); } catch (_) {}
     await Promise.all(items.map(async (it) => {
       try {
         const res = await window.iceLogixPricing.calculatePrice({
@@ -159,7 +167,10 @@
         });
         if (res && res.available !== false && res.total_byn > 0) {
           const pack = Number(res.breakdown?.packaging_cost_byn) || 0;
-          it.priceByn = Math.round((res.total_byn - pack) * 100) / 100;
+          const duty = Number(res.breakdown?.customs_duty_byn) || 0;
+          it.priceByn = Math.round((res.total_byn - pack - duty) * 100) / 100;
+          it.productByn = Number(res.breakdown?.product_cost_byn) || 0;
+          it.weightKg = cartItemWeight(it);
         }
       } catch (e) {
         console.warn('Точная цена не посчиталась, оставляем оценку:', e);
@@ -245,14 +256,19 @@
     let initialTotal = 0;
     let initialCount = 0;
     items.forEach((it) => { initialTotal += it.priceByn * it.quantity; initialCount += it.quantity; });
-    initialTotal += cartPackagingByn();
+    const initialDuty = cartParcelDuty(
+      items.reduce((s, it) => s + (it.productByn || 0) * it.quantity, 0),
+      items.reduce((s, it) => s + (it.weightKg || 0) * it.quantity, 0)
+    );
+    const initialGoods = initialTotal;
+    initialTotal += cartPackagingByn() + initialDuty;
     showWbCheckoutDock(initialCount, initialTotal);
 
     const cardsHtml = items.map((it) => {
       const variant = [it.color, it.size ? `Размер ${it.size}` : ''].filter(Boolean).join(' · ');
       const title = U.esc(it.title);
       return `
-        <div class="wb-cart-card ct-card" data-cart-id="${it.id}" data-is-custom="${it.isCustom}" data-product-id="${it.productId}" data-price="${it.priceByn}">
+        <div class="wb-cart-card ct-card" data-cart-id="${it.id}" data-is-custom="${it.isCustom}" data-product-id="${it.productId}" data-price="${it.priceByn}" data-product-byn="${it.productByn || 0}" data-weight="${it.weightKg || 0}">
           <label class="ct-check" aria-label="Выбрать товар">
             <input type="checkbox" class="wb-checkbox wb-item-cb" data-cart-id="${it.id}" checked>
             <span class="ct-box">${U.icon('check', 16, { stroke: 2.6 })}</span>
@@ -301,8 +317,9 @@
         </div>
 
         <div class="rd-card ct-sum">
-          <div class="ct-sum-row"><span>Товары с доставкой, <b id="rdCartSumCount">${initialCount}</b> шт.</span><span id="rdCartSumTotal">${fmt(initialTotal - cartPackagingByn())}${sign()}</span></div>
+          <div class="ct-sum-row"><span>Товары с доставкой, <b id="rdCartSumCount">${initialCount}</b> шт.</span><span id="rdCartSumTotal">${fmt(initialGoods)}${sign()}</span></div>
           <div class="ct-sum-row"><span>Упаковка на заказ</span><span id="rdCartSumPack">${fmt(cartPackagingByn())}${sign()}</span></div>
+          <div class="ct-sum-row ${initialDuty > 0 ? '' : 'hidden'}" id="rdCartDutyRow"><span>Таможенная пошлина</span><span id="rdCartSumDuty">${fmt(initialDuty)}${sign()}</span></div>
           <div class="ct-sum-line"></div>
           <div class="ct-sum-row ct-sum-total"><span>Итого</span><span id="rdCartSumGrand">${fmt(initialTotal)}${sign()}</span></div>
         </div>
@@ -327,6 +344,8 @@
     function updateWbTotals() {
       let totalAmount = 0;
       let totalCount = 0;
+      let parcelValue = 0;
+      let parcelWeight = 0;
 
       const visibleCards = document.querySelectorAll('.wb-cart-card');
       let allChecked = visibleCards.length > 0;
@@ -338,6 +357,8 @@
           const price = parseFloat(card.dataset.price || '0');
           totalAmount += price * qtyVal;
           totalCount += qtyVal;
+          parcelValue += parseFloat(card.dataset.productByn || '0') * qtyVal;
+          parcelWeight += parseFloat(card.dataset.weight || '0') * qtyVal;
         } else {
           allChecked = false;
         }
@@ -360,10 +381,13 @@
       const _pack = totalCount > 0 ? cartPackagingByn() : 0;
       const _t = document.getElementById('rdCartSumTotal'); if (_t) _t.innerHTML = _f(totalAmount) + _sg;
       const _p = document.getElementById('rdCartSumPack'); if (_p) _p.innerHTML = _f(_pack) + _sg;
-      const _g = document.getElementById('rdCartSumGrand'); if (_g) _g.innerHTML = _f(totalAmount + _pack) + _sg;
+      const _duty = cartParcelDuty(parcelValue, parcelWeight);
+      const _d = document.getElementById('rdCartSumDuty'); if (_d) _d.innerHTML = _f(_duty) + _sg;
+      document.getElementById('rdCartDutyRow')?.classList.toggle('hidden', _duty <= 0);
+      const _g = document.getElementById('rdCartSumGrand'); if (_g) _g.innerHTML = _f(totalAmount + _pack + _duty) + _sg;
 
       // Update Sticky Checkout Button
-      updateWbCheckoutDock(totalCount, totalAmount + _pack);
+      updateWbCheckoutDock(totalCount, totalAmount + _pack + _duty);
     }
 
     // 3. "Выбрать все" Checkbox Handler

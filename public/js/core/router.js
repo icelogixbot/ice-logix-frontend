@@ -54,6 +54,7 @@
 
     async function _renderCurrentScreenInner() {
       const thisNavId = ++window._navEpoch;
+      document.querySelectorAll('body > #coOverlay').forEach((n) => n.remove());
       const contentDiv = document.getElementById('content');
       syncTelegramBackButton();
 
