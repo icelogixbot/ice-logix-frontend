@@ -1666,27 +1666,16 @@ window.applySmartShareLink = applySmartShareLink;
             const originalText = analyzeOrderBtn.innerText;
             analyzeOrderBtn.disabled = true;
 
-            // ── FAST-PATH: ANDROID HARDWARE BRIDGE (Pinduoduo Live Engine) ──
+            // ── Pinduoduo: новая очередь pdd_jobs (ADR-009), живой прогресс прямо на кнопке ──
+            let pddFailed = null;
             try {
-              analyzeOrderBtn.innerHTML = '<span class="ix animate-spin">⚡</span> Аппаратный выкуп…';
-              const bridgeCheck = await fetch('http://127.0.0.1:3007/api/status', {
-                signal: AbortSignal.timeout(1200)
-              }).catch(() => null);
-
-              if (bridgeCheck && bridgeCheck.ok) {
-                const statusData = await bridgeCheck.json().catch(() => null);
-                if (statusData && statusData.status === 'online') {
-                  analyzeOrderBtn.innerHTML = '<span class="ix animate-spin">⚡</span> Чтение опций товара…';
-                  const bridgeResp = await fetch('http://127.0.0.1:3007/api/parse-product', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url }),
-                    signal: AbortSignal.timeout(30000)
-                  });
-
-                  if (bridgeResp.ok) {
-                    const bData = await bridgeResp.json();
-                    if (bData && bData.success) {
+              const isPddLink = /yangkeduo|pinduoduo|goods_id=/i.test(url);
+              let bData = null;
+              if (isPddLink && window.PddProduct) {
+                analyzeOrderBtn.textContent = 'Ставим товар в очередь…';
+                bData = await window.PddProduct.fetch(url, (label) => { analyzeOrderBtn.textContent = label; });
+              }
+              if (bData) {
                       const applyBridgeData = (selected) => {
                         const orderPriceEl = document.getElementById('orderPrice');
                         if (orderPriceEl && selected.price != null && Number(selected.price) > 0) {
@@ -1790,12 +1779,16 @@ window.applySmartShareLink = applySmartShareLink;
                     analyzeOrderBtn.innerText = originalText;
                     analyzeOrderBtn.disabled = false;
                     return;
-                  }
-                }
-                }
               }
-            } catch (bridgeErr) {
-              console.log('Bridge fast-path fallback:', bridgeErr);
+            } catch (pddErr) {
+              pddFailed = pddErr;
+            }
+            if (pddFailed) {
+              // Понятная ошибка движка (распродан, ноут не на связи): старая очередь тут не поможет
+              analyzeOrderBtn.innerText = originalText;
+              analyzeOrderBtn.disabled = false;
+              tgUtil.alert(String(pddFailed.message || 'Не получилось прочитать товар. Введите данные вручную.'));
+              return;
             }
 
             analyzeOrderBtn.innerHTML = isHardDomain(url) ? '<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l-4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Обходим защиту…' : '<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l-4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></span> Анализ...';

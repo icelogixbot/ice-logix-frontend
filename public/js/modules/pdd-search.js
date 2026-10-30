@@ -170,7 +170,7 @@
     const full = it._full;
     const facts = [it.sales_text, it.shop_name].filter(Boolean).map(esc).join(' · ');
     return `
-      <div class="rd-card ps-item" role="button" tabindex="0" data-pick="${i}">
+      <div class="rd-card ps-item${it.url ? '' : ' wait'}" role="button" tabindex="0" data-pick="${i}" ${it.url ? '' : 'aria-disabled="true"'}>
         <div class="ps-item-img">${it.image_url ? `<img src="${esc(it.image_url)}" alt="" loading="lazy">` : icon('image', 26)}</div>
         <div class="ps-item-body">
           <div class="ps-item-title">${esc(title)}</div>
@@ -184,6 +184,7 @@
             ${full != null ? `<span class="rd-price">${money(full)}</span><span class="ps-item-sub">под ключ</span>` : ''}
             ${it.price_cny ? `<span class="ps-item-sub">¥${esc(it.price_cny)} на площадке</span>` : ''}
           </div>
+          ${it.url ? '' : '<div class="ps-item-wait"><span class="ug-load"><i></i>Получаем ссылку на товар…</span></div>'}
         </div>
       </div>`;
   }
@@ -313,7 +314,7 @@
       const { data: online } = await sb.rpc('pdd_worker_online');
       if (!online) {
         throw Object.assign(new Error('offline'), {
-          ui: { title: 'Поиск сейчас недоступен', text: 'Наш поисковый сервер не на связи. Попробуйте чуть позже или вставьте ссылку на товар, мы посчитаем её как обычно.' },
+          ui: { title: 'Поиск сейчас недоступен', text: 'Наш сервер поиска не на связи. Попробуйте чуть позже или нажмите «Ввести цену вручную».' },
         });
       }
       const budget = parseFloat(S.budget) || null;
@@ -375,7 +376,7 @@
           S.error = { title: 'Поиск не удался', text: data.error || 'Попробуйте ещё раз чуть позже.' };
           S.job = null;
         } else if (!data.worker_online && data.status === 'queued') {
-          S.error = { title: 'Поиск сейчас недоступен', text: 'Наш поисковый сервер не на связи. Попробуйте чуть позже или вставьте ссылку на товар.' };
+          S.error = { title: 'Поиск сейчас недоступен', text: 'Наш сервер поиска не на связи. Попробуйте чуть позже или посчитайте вручную по цене товара.' };
           S.job = null;
         } else if (Date.now() - (S.job.startedAt || Date.now()) > MAX_WAIT_MS) {
           S.error = { title: 'Поиск занял слишком долго', text: 'Попробуйте ещё раз или вставьте ссылку на товар.' };

@@ -1062,36 +1062,6 @@ window.renderSmartCalculator = async function() {
             try {
               let handled = false;
 
-              // ── FAST-PATH: ANDROID HARDWARE BRIDGE (LDPlayer / Pinduoduo / Poizon live engine) ──
-              try {
-                const bridgeCheck = await fetch('http://127.0.0.1:3007/api/status', {
-                  signal: AbortSignal.timeout(1500)
-                }).catch(() => null);
-
-                if (bridgeCheck && bridgeCheck.ok) {
-                  const statusData = await bridgeCheck.json().catch(() => null);
-                  if (statusData && statusData.status === 'online') {
-                    if (statusBox) statusBox.innerHTML = '<span class="animate-spin inline-block mr-1">⚡</span> Чтение опций и размеров товара через эмулятор…';
-                    const bridgeResp = await fetch('http://127.0.0.1:3007/api/parse-product', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ url }),
-                      signal: AbortSignal.timeout(35000)
-                    });
-                    if (bridgeResp.ok) {
-                      const bData = await bridgeResp.json();
-                      if (bData && bData.success) {
-                        handleParsedBundle(bData);
-                        handled = true;
-                        return;
-                      }
-                    }
-                  }
-                }
-              } catch (bridgeErr) {
-                console.log('Bridge fast-path fallback in calc:', bridgeErr);
-              }
-
               // ── FALLBACK PATH: SUPABASE PARSE_QUEUE ──
               if (!handled && typeof supabaseClient !== 'undefined' && supabaseClient) {
                 if (statusBox) {
@@ -1158,7 +1128,24 @@ window.renderSmartCalculator = async function() {
                   console.log('Cache check error:', cacheErr);
                 }
 
-                // 2. Queue live parse task
+                // 2. Новая очередь pdd_jobs: живой прогресс, промежуточный результат (ADR-009)
+                if (isPdd && window.PddProduct) {
+                  const showStep = (label, pct, partial) => {
+                    if (!statusBox) return;
+                    const name = partial && (partial.title_ru || partial.title);
+                    const safe = (t) => (window.UI && window.UI.esc ? window.UI.esc(t) : t);
+                    statusBox.innerHTML = `<span class="ug-load"><i></i>${safe(label)}${pct ? ` · ${Math.min(99, pct)}%` : ''}</span>`
+                      + (name ? `<div class="mt-1 opacity-70">${safe(name)}</div>` : '');
+                  };
+                  const bundle = await window.PddProduct.fetch(url, showStep);
+                  if (bundle) {
+                    handleParsedBundle(bundle);
+                    handled = true;
+                    return;
+                  }
+                }
+
+                // 3. Старая очередь parse_queue (если новой очереди в базе нет)
                 if (statusBox) {
                   statusBox.innerHTML = '<span class="animate-spin inline-block mr-1">⚡</span> Подключение к аппаратному мосту Pinduoduo...';
                 }
