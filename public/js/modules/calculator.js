@@ -1756,7 +1756,7 @@ if (typeof attachCalculatorHandlers === 'function') {
       aggregatedBreakdown.delivery_remainder_est_byn = Math.round((aggregatedBreakdown.delivery_cost_byn - aggregatedBreakdown.delivery_reserve_byn) * 100) / 100;
 
       // 1-й платеж (Товар + Буфер + Комиссия + Фирменная упаковка 18 BYN + Резерв 70% + Допуслуги - Скидка)
-      const firstPaymentSubtotal = Math.round((
+      const firstPaymentRaw = Math.round((
         aggregatedBreakdown.product_cost_byn +
         aggregatedBreakdown.currency_buffer_byn +
         aggregatedBreakdown.commission_byn +
@@ -1767,6 +1767,21 @@ if (typeof attachCalculatorHandlers === 'function') {
         (extraServicesTotal - consolidationDiscountTotal) -
         discount
       ) * 100) / 100;
+
+      // Ориентировочный 2-й платеж (Остаток доставки ~30% + страховка 2% + доставка по РБ)
+      const secondPaymentRaw = Math.round((
+        aggregatedBreakdown.delivery_remainder_est_byn +
+        aggregatedBreakdown.insurance_byn +
+        (pvsCost - deliveryDiscount)
+      ) * 100) / 100;
+
+      // Скидка перекрыла первый платёж: при нулевом первом этапе сервер (order_stage_due) просит весь остаток заказа сразу.
+      // Поэтому и показываем, и записываем весь остаток как первый платёж, чтобы экран и сервер называли одну сумму.
+      const discountCoversFirst = firstPaymentRaw <= 0;
+      const firstPaymentSubtotal = discountCoversFirst
+        ? Math.max(0, Math.round((firstPaymentRaw + secondPaymentRaw) * 100) / 100)
+        : firstPaymentRaw;
+      const secondPaymentEst = discountCoversFirst ? 0 : secondPaymentRaw;
 
       // Списание с внутреннего баланса
       const applyBalance = document.getElementById('orderApplyBalance')?.checked || false;
@@ -1783,13 +1798,6 @@ if (typeof attachCalculatorHandlers === 'function') {
       }
       aggregatedBreakdown.balance_used_first_byn = balanceUsed;
       const firstPaymentFinal = Math.max(0, Math.round((stageDue - balanceUsed) * 100) / 100);
-
-      // Ориентировочный 2-й платеж (Остаток доставки ~30% + страховка 2% + доставка по РБ)
-      const secondPaymentEst = Math.round((
-        aggregatedBreakdown.delivery_remainder_est_byn +
-        aggregatedBreakdown.insurance_byn +
-        (pvsCost - deliveryDiscount)
-      ) * 100) / 100;
 
       aggregatedBreakdown.first_payment_subtotal_byn = firstPaymentSubtotal;
       aggregatedBreakdown.first_payment_byn = firstPaymentFinal;
@@ -1811,6 +1819,7 @@ if (typeof attachCalculatorHandlers === 'function') {
       window.tempOrder.first_payment_byn = firstPaymentFinal;
       window.tempOrder.first_payment_subtotal_byn = firstPaymentSubtotal;
       window.tempOrder.second_payment_est_byn = secondPaymentEst;
+      window.tempOrder.discount_covers_first = discountCoversFirst && finalTotal > 0;
       window.tempOrder.balance_used = balanceUsed;
       window.tempOrder.prepayment_amount = firstPaymentFinal;
 

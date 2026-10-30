@@ -1057,7 +1057,12 @@ window.applySmartShareLink = applySmartShareLink;
                 if (isFamilyMember) {
                   tgUtil.alert(`Заказ #${num} оформлен и отправлен главе семейного бюджета на одобрение.`);
                 } else if (payRes && payRes.status === 'paid') {
-                  tgUtil.alert(`Заказ #${num} оформлен и оплачен с баланса.`);
+                  // Статус «оплачен» бывает и без баланса: привязанной картой или когда платить нечего
+                  if (Number(window.tempOrder.first_payment_subtotal_byn) <= 0) {
+                    tgUtil.alert(`Заказ #${num} оформлен. Скидка покрыла всю сумму, платить ничего не нужно.`);
+                  } else {
+                    tgUtil.alert(`Заказ #${num} оформлен и оплачен${balanceUsed > 0 && firstPaymentToPay <= 0 ? ' с баланса' : ''}.`);
+                  }
                 } else {
                   tgUtil.alert(`Заказ #${num} оформлен. К оплате ${window.moneyText(payRes?.remaining ?? firstPaymentToPay)}. Возьмём его в работу, как только подтвердим оплату.`);
                 }

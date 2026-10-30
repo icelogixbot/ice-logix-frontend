@@ -217,7 +217,7 @@
           <div class="co-total-row co-total-all"><span>Всего за заказ</span><span><span id="orderTotal">—</span>${sign()}</span></div>
           <div class="co-total-now"><span>Сейчас</span><b><span id="firstPaymentAmount">—</span>${sign()}</b></div>
           <div id="coPayRows"></div>
-          <div class="co-total-row"><span>После взвешивания на складе</span><span>≈&nbsp;<span id="secondPaymentEstimate">—</span>${sign()}</span></div>
+          <div class="co-total-row" id="coSecondRow"><span>После взвешивания на складе</span><span>≈&nbsp;<span id="secondPaymentEstimate">—</span>${sign()}</span></div>
           <button type="button" class="co-more" id="coBreakdownToggle" aria-expanded="false"><span>Что входит в цену вещей</span>${uI.icon('chevD', 18)}</button>
           <div id="coBreakdown" class="co-breakdown" hidden></div>
         </div>
@@ -406,9 +406,17 @@
 
   function payRows(t) {
     const { rest, fromBalance } = payAmounts(t);
-    if (fromBalance <= 0) return '';
+    const note = t.discount_covers_first ? '<p class="co-note-line">Скидка больше первого платежа, поэтому весь остаток по оценке оплачивается сейчас.</p>' : '';
+    if (fromBalance <= 0) return note;
     return moneyRow('С баланса', -fromBalance)
-      + (rest > 0 ? moneyRow(PAY_LABELS[window._checkoutPaymentMethod] || PAY_LABELS.card, rest) : '');
+      + (rest > 0 ? moneyRow(PAY_LABELS[window._checkoutPaymentMethod] || PAY_LABELS.card, rest) : '')
+      + note;
+  }
+
+  function secondRow(t) {
+    return Number(t.second_payment_est_byn) > 0
+      ? `<div class="co-total-row"><span>После взвешивания на складе</span><span>≈&nbsp;${num(t.second_payment_est_byn)}${sign()}</span></div>`
+      : '';
   }
 
   function breakdownHtml(t) {
@@ -420,6 +428,7 @@
       ['Доставка в Беларусь (оценка)', b.delivery_cost_byn],
       ['Страховка', b.insurance_byn]
     ].filter((r) => Number(r[1]) > 0).map((r) => moneyRow(r[0], r[1])).join('');
+    if (!(Number(t.second_payment_est_byn) > 0)) return rows;
     const tail = Number(b.local_delivery_byn) > 0 ? ', страховка и доставка по Беларуси' : ' и страховка';
     return `${rows}<p class="co-note-line">После взвешивания доплачиваются остаток доставки${tail}.</p>`;
   }
@@ -448,7 +457,7 @@
     const sums = family
       ? `${moneyRow('Всего за заказ', t.total_byn)}<p class="co-note-line">Заказ уйдёт на одобрение главе семейного бюджета.</p>`
       : `<div class="co-total-now"><span>Сейчас</span><b>${num(stage)}${sign()}</b></div>${payRows(t)}
-         <div class="co-total-row"><span>После взвешивания на складе</span><span>≈&nbsp;${num(t.second_payment_est_byn)}${sign()}</span></div>
+         ${secondRow(t)}
          ${moneyRow('Всего за заказ', t.total_byn)}`;
     body.innerHTML = `
       ${sums}
@@ -521,6 +530,8 @@
     if (t.first_payment_byn != null) {
       setText('firstPaymentAmount', num(payAmounts(t).stage));
       setText('secondPaymentEstimate', num(t.second_payment_est_byn));
+      const secondEl = $('coSecondRow');
+      if (secondEl) secondEl.style.display = Number(t.second_payment_est_byn) > 0 ? '' : 'none';
       setText('orderTotal', num(t.total_byn));
       setHtml('coSumRows', summaryRows(t));
       setHtml('coPayRows', isFamilyMember() ? '' : payRows(t));
