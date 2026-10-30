@@ -325,9 +325,7 @@ function attachLegitCheckHandlers() {
         });
         if (payErr) throw payErr;
         const newBalance = Number(paid?.balance ?? (balance - cost));
-        window.balance = newBalance;
-        const balEl = document.getElementById('headerBalance');
-        if (balEl) balEl.innerText = newBalance;
+        window.setUserBalance(newBalance);
 
 
 

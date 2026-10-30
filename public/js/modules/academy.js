@@ -350,8 +350,7 @@ async function renderAcademy() {
             // Цену берёт и списывает сервер
             const { data: bought, error: e1 } = await supabaseClient.rpc('buy_course', { p_course_id: courseId });
             if (e1) throw e1;
-            balance = Number(bought?.balance ?? balance);
-            document.getElementById('headerBalance').innerText = balance;
+            window.setUserBalance(bought?.balance ?? balance);
             tgUtil.alert('✅ Курс куплен! Приятного обучения!');
             renderCurrentScreen();
           } catch (err) { tgUtil.alert('Ошибка: ' + err.message); }

@@ -557,7 +557,7 @@ async function showFamilySettingsModal() {
     tgUtil.haptic('success');
     // Сервер проверит, что заказ от участника вашей семьи, и спишет первый платёж с вашего баланса
     const { data: res, error } = await supabaseClient.rpc('family_approve_order', { p_order_id: orderId });
-    if (!error && res && res.balance !== undefined && typeof balance !== 'undefined') balance = Number(res.balance);
+    if (!error && res && res.balance !== undefined) window.setUserBalance(res.balance);
     await reloadFamily('Покупка одобрена и оплачена', error);
   };
 

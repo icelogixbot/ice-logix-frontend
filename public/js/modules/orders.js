@@ -795,7 +795,7 @@ window.applySmartShareLink = applySmartShareLink;
               window.tempOrder.appliedPromo = data;
               recalculateOrderTotals();
               
-              promoMessage.innerHTML = `Промокод применён! Скидка: ${discountAmount.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'emerald' }) : ''}`;
+              promoMessage.innerHTML = `Промокод применён! Скидка: ${window.formatBYN(discountAmount)}`;
               promoMessage.classList.remove('hidden');
               promoMessage.style.color = '#4ade80';
             } catch (err) {
@@ -838,7 +838,7 @@ window.applySmartShareLink = applySmartShareLink;
         // Submit final order to Supabase
         const createBtn = document.getElementById('createOrderFinal');
         if (createBtn) {
-          createBtn.onclick = async () => {
+          const submitOrder = async () => {
             if (!window.tempOrder || !userId) { tgUtil.alert('Ошибка: авторизуйтесь или заполните поля'); return; }
             if (!window.tempOrder.items || window.tempOrder.items.length === 0) { tgUtil.alert('Добавьте хотя бы один товар в заказ'); return; }
 
@@ -868,14 +868,26 @@ window.applySmartShareLink = applySmartShareLink;
               url: window.tempOrder.items?.[0]?.url || '',
             };
 
-            // Вопрос про незнакомую площадку — только для ссылок клиента, не для вещей из нашего каталога
-            const firstItem = window.tempOrder.items?.[0];
-            const validationErrors = validateOrderBeforeSubmit(firstItem?.fromCatalog ? { ...consolidatedOrder, url: '' } : consolidatedOrder);
+            // Площадку, валюту и диапазон цены проверяем только у вещей, которые клиент ввёл сам: каталог мы знаем.
+            // У вещей в разных валютах общая цена ни о чём не говорит, поэтому диапазон тогда не проверяем.
+            const orderItems = window.tempOrder.items;
+            const firstItem = orderItems[0];
+            const checkPriceRange = orderItems.every((it) => !it.fromCatalog && it.currency === firstItem.currency);
+            const validationErrors = validateOrderBeforeSubmit(firstItem.fromCatalog ? { ...consolidatedOrder, url: '' } : consolidatedOrder, { checkPriceRange });
             if (validationErrors.length) {
               tgUtil.haptic('warning');
               tgUtil.alert('Проверьте заказ:\n• ' + validationErrors.join('\n• '));
               return;
             }
+            if (!firstItem.fromCatalog) {
+              for (const question of orderSoftQuestions(consolidatedOrder)) {
+                if (!(await tgUtil.confirm(question))) return;
+              }
+            }
+
+            // Тот же заказ, у которого сорвалась оплата: клиент не может изменить или удалить его, второй создавать нельзя
+            const orderSig = window.CheckoutUI.orderSig(orderItems, window.tempOrder.first_payment_subtotal_byn);
+            const unpaidOrder = window._coUnpaid && window._coUnpaid.sig === orderSig ? window._coUnpaid : null;
 
             try {
               const bk = window.tempOrder.breakdown || {};
@@ -905,106 +917,110 @@ window.applySmartShareLink = applySmartShareLink;
               const selectedCardId = selectedRadio ? selectedRadio.value : (window.userCards?.[0]?.id || null);
               const isDbUuid = (id) => id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-              createBtn.disabled = true;
-              createBtn.textContent = 'Оформляем заказ…';
+              if (!(await window.CheckoutUI.confirmTerms({ family: Boolean(isFamilyMember) }))) return;
+              window.CheckoutUI.setBusy(true);
 
-              const orderInsertPayload = {
-                user_id: userId,
-                source_url: consolidatedOrder.url,
-                items: window.tempOrder.items,
-                cart_items: window.tempOrder.items,
-                weight_estimated: window.tempOrder.weight || 1,
-                price_original: window.tempOrder.price || 0,
-                price_cny: consolidatedOrder.currency === 'CNY' ? (consolidatedOrder.price || 0) : (window.tempOrder.price || 0),
-                price_byn: bk.product_cost_byn ?? (window.tempOrder.price * 0.45),
-                currency: 'BYN',
-                calculated_exchange_rate: bk.rates?.CNY_to_BYN || 0.45,
-                estimated_delivery_amount: bk.delivery_cost_byn ?? (window.tempOrder.weight * 12),
-                delivery_reserve_rate: 0.70,
-                delivery_reserve_amount: bk.delivery_reserve_byn || Math.round((bk.delivery_cost_byn || 0) * 0.70 * 100) / 100,
-                // Полная сумма 1-го этапа; списание с баланса и остаток оформляет сервер (order_pay)
-                first_payment_amount: Math.round((firstPaymentToPay + balanceUsed) * 100) / 100,
-                second_payment_amount: bk.second_payment_est_byn || 0,
-                total_paid: 0,
-                total_refunded: 0,
-                balance_used: 0,
-                amount_due: 0,
-                selected_receiving_method: (window.tempOrder?.pvs?.method && window.tempOrder.pvs.method !== 'none') ? 'FORWARD_SHIPPING' : 'SELF_PICKUP',
-                first_payment_snapshot: bk,
-                calculation_version: 'v1.0',
-                delivery_cost_estimated: bk.delivery_cost_byn ?? (window.tempOrder.weight * 12),
-                commission_byn: bk.commission_byn || 0,
-                insurance_byn: bk.insurance_byn || 0,
-                insurance_enabled: Boolean(window.tempOrder.insurance),
-                legit_check_requested: Boolean(window.tempOrder.legitCheck),
-                customs_duty_byn: bk.customs_duty_byn || 0,
-                currency_buffer_byn: bk.currency_buffer_byn || 0,
-                extra_services: {
-                  extra_photo: window.tempOrder.extraPhoto || false,
-                  extra_measure: window.tempOrder.extraMeasure || false,
-                  is_gift: window.tempOrder.isGift || false,
-                  // Условия приняты нажатием «Оплатить»: что и когда, на случай спора
-                  terms_accepted: { at: new Date().toISOString(), version: 'draft-2026-10-30', docs: ['offer', 'delivery-rules', 'privacy'] }
-                },
-                total_byn: window.tempOrder.total_byn,
-                requires_video_check: window.tempOrder.requiresVideoCheck || false,
-                delivery_days_min: bk.delivery_days?.[0] || null,
-                delivery_days_max: bk.delivery_days?.[1] || null,
-                source_country: window.orderCountry,
-                product_currency: consolidatedOrder.currency,
-                prepayment_amount: Math.round((firstPaymentToPay + balanceUsed) * 100) / 100,
-                first_payment_paid: false,
-                status: 'pending',
-                auto_cancel_reason: isFamilyMember ? 'family_approval_pending' : null,
-                discount_applied: window.tempOrder.discountAmount || 0,
-                promo_code: window.tempOrder.appliedPromo?.code || null,
-                tracking_number_by: pvsAddress || null
-              };
+              let createdOrderId = unpaidOrder ? unpaidOrder.id : null;
+              if (!createdOrderId) {
+                const orderInsertPayload = {
+                  user_id: userId,
+                  source_url: consolidatedOrder.url,
+                  items: window.tempOrder.items,
+                  cart_items: window.tempOrder.items,
+                  weight_estimated: window.tempOrder.weight || 1,
+                  price_original: window.tempOrder.price || 0,
+                  price_cny: consolidatedOrder.currency === 'CNY' ? (consolidatedOrder.price || 0) : (window.tempOrder.price || 0),
+                  price_byn: bk.product_cost_byn ?? (window.tempOrder.price * 0.45),
+                  currency: 'BYN', // design-ok: значение для базы
+                  calculated_exchange_rate: bk.rates?.CNY_to_BYN || 0.45,
+                  estimated_delivery_amount: bk.delivery_cost_byn ?? (window.tempOrder.weight * 12),
+                  delivery_reserve_rate: 0.70,
+                  delivery_reserve_amount: bk.delivery_reserve_byn || Math.round((bk.delivery_cost_byn || 0) * 0.70 * 100) / 100,
+                  // Полная сумма 1-го этапа; списание с баланса и остаток оформляет сервер (order_pay)
+                  first_payment_amount: Math.round((firstPaymentToPay + balanceUsed) * 100) / 100,
+                  second_payment_amount: bk.second_payment_est_byn || 0,
+                  total_paid: 0,
+                  total_refunded: 0,
+                  balance_used: 0,
+                  amount_due: 0,
+                  selected_receiving_method: (window.tempOrder?.pvs?.method && window.tempOrder.pvs.method !== 'none') ? 'FORWARD_SHIPPING' : 'SELF_PICKUP',
+                  first_payment_snapshot: bk,
+                  calculation_version: 'v1.0',
+                  delivery_cost_estimated: bk.delivery_cost_byn ?? (window.tempOrder.weight * 12),
+                  commission_byn: bk.commission_byn || 0,
+                  insurance_byn: bk.insurance_byn || 0,
+                  insurance_enabled: Boolean(window.tempOrder.insurance),
+                  legit_check_requested: Boolean(window.tempOrder.legitCheck),
+                  customs_duty_byn: bk.customs_duty_byn || 0,
+                  currency_buffer_byn: bk.currency_buffer_byn || 0,
+                  extra_services: {
+                    extra_photo: window.tempOrder.extraPhoto || false,
+                    extra_measure: window.tempOrder.extraMeasure || false,
+                    is_gift: window.tempOrder.isGift || false,
+                    // Условия приняты кнопкой в шторке подтверждения: что и когда, на случай спора
+                    terms_accepted: { at: new Date().toISOString(), version: 'draft-2026-10-30', docs: ['offer', 'delivery-rules', 'privacy'] }
+                  },
+                  total_byn: window.tempOrder.total_byn,
+                  requires_video_check: window.tempOrder.requiresVideoCheck || false,
+                  delivery_days_min: bk.delivery_days?.[0] || null,
+                  delivery_days_max: bk.delivery_days?.[1] || null,
+                  source_country: window.orderCountry,
+                  product_currency: consolidatedOrder.currency,
+                  prepayment_amount: Math.round((firstPaymentToPay + balanceUsed) * 100) / 100,
+                  first_payment_paid: false,
+                  status: 'pending',
+                  auto_cancel_reason: isFamilyMember ? 'family_approval_pending' : null,
+                  discount_applied: window.tempOrder.discountAmount || 0,
+                  promo_code: window.tempOrder.appliedPromo?.code || null,
+                  tracking_number_by: pvsAddress || null
+                };
 
-              const { data, error } = await supabaseClient.from('orders').insert(orderInsertPayload).select();
+                const { data, error } = await supabaseClient.from('orders').insert(orderInsertPayload).select();
 
-              if (error) throw error;
+                if (error) throw error;
 
-              const createdOrderId = data[0].id;
+                createdOrderId = data[0].id;
+                window._coUnpaid = { id: createdOrderId, sig: orderSig, paid: 0 };
 
-              // Сохранение отдельных позиций заказа (Раздел 56 ТЗ: order_items)
-              if (Array.isArray(window.tempOrder.items) && window.tempOrder.items.length > 0) {
-                const itemRows = window.tempOrder.items.map(it => ({
+                // Сохранение отдельных позиций заказа (Раздел 56 ТЗ: order_items)
+                if (Array.isArray(window.tempOrder.items) && window.tempOrder.items.length > 0) {
+                  const itemRows = window.tempOrder.items.map(it => ({
+                    order_id: createdOrderId,
+                    product_url: it.url || consolidatedOrder.url || '',
+                    platform: (window.orderCountry === 'CN' ? 'PINDUODUO' : (it.marketplace_name || 'PINDUODUO')).toUpperCase(),
+                    pinduoduo_product_id: it.product_id || '',
+                    title: it.title || it.name || 'Товар',
+                    variant: it.size || it.variant || '',
+                    quantity: it.quantity || 1,
+                    price: it.price || 0,
+                    currency: it.currency || 'CNY',
+                    source_price_cny: it.price || 0,
+                    calculated_price_byn: Math.round((it.price || 0) * (bk.rates?.CNY_to_BYN || 0.45) * 100) / 100,
+                    item_status: 'PENDING'
+                  }));
+                  await supabaseClient.from('order_items').insert(itemRows).catch(() => {});
+                }
+
+                // AI-оценка доставки (Раздел 46 ТЗ: shipping_estimates)
+                await supabaseClient.from('shipping_estimates').insert({
                   order_id: createdOrderId,
-                  product_url: it.url || consolidatedOrder.url || '',
-                  platform: (window.orderCountry === 'CN' ? 'PINDUODUO' : (it.marketplace_name || 'PINDUODUO')).toUpperCase(),
-                  pinduoduo_product_id: it.product_id || '',
-                  title: it.title || it.name || 'Товар',
-                  variant: it.size || it.variant || '',
-                  quantity: it.quantity || 1,
-                  price: it.price || 0,
-                  currency: it.currency || 'CNY',
-                  source_price_cny: it.price || 0,
-                  calculated_price_byn: Math.round((it.price || 0) * (bk.rates?.CNY_to_BYN || 0.45) * 100) / 100,
-                  item_status: 'PENDING'
-                }));
-                await supabaseClient.from('order_items').insert(itemRows).catch(() => {});
+                  estimated_weight: consolidatedOrder.weight || 1.0,
+                  estimated_delivery_amount: bk.delivery_cost_byn || 0,
+                  range_min: Math.round((bk.delivery_cost_byn || 0) * 0.9 * 100) / 100,
+                  range_max: Math.round((bk.delivery_cost_byn || 0) * 1.1 * 100) / 100,
+                  calculation_version: 'v1.0',
+                  model_version_ai: 'shipping-estimator-v1'
+                }).catch(() => {});
+
+                // Фирменная упаковка (Раздел 8, 47 ТЗ: packaging_estimates)
+                await supabaseClient.from('packaging_estimates').insert({
+                  order_id: createdOrderId,
+                  items_materials: ['box', 'tape', 'protective_wrap'],
+                  estimated_amount: bk.packaging_cost_byn || 18.00,
+                  tolerance: 2.00,
+                  ai_model_version: 'packaging-v1'
+                }).catch(() => {});
               }
-
-              // AI-оценка доставки (Раздел 46 ТЗ: shipping_estimates)
-              await supabaseClient.from('shipping_estimates').insert({
-                order_id: createdOrderId,
-                estimated_weight: consolidatedOrder.weight || 1.0,
-                estimated_delivery_amount: bk.delivery_cost_byn || 0,
-                range_min: Math.round((bk.delivery_cost_byn || 0) * 0.9 * 100) / 100,
-                range_max: Math.round((bk.delivery_cost_byn || 0) * 1.1 * 100) / 100,
-                calculation_version: 'v1.0',
-                model_version_ai: 'shipping-estimator-v1'
-              }).catch(() => {});
-
-              // Фирменная упаковка (Раздел 8, 47 ТЗ: packaging_estimates)
-              await supabaseClient.from('packaging_estimates').insert({
-                order_id: createdOrderId,
-                items_materials: ['box', 'tape', 'protective_wrap'],
-                estimated_amount: bk.packaging_cost_byn || 18.00,
-                tolerance: 2.00,
-                ai_model_version: 'packaging-v1'
-              }).catch(() => {});
 
               // Оплата 1-го этапа — на сервере (order_pay): сначала с баланса, остаток — заявкой на оплату,
               // которую подтвердит платёжная система или админ. Заказ участника семьи оплачивает глава.
@@ -1017,8 +1033,9 @@ window.applySmartShareLink = applySmartShareLink;
                   { card_id: isDbUuid(selectedCardId) ? selectedCardId : null, new_card: selectedCardId === 'new' });
                 if (!pr || !pr.ok) throw new Error((pr && pr.error) || 'Не получилось провести оплату');
                 payRes = pr;
-                if (pr && pr.balance !== undefined && pr.balance !== null && typeof balance !== 'undefined') balance = Number(pr.balance);
-                if (typeof updateUserCard === 'function') updateUserCard();
+                // При частичной оплате сервер баланс не присылает: читаем его из базы
+                if (pr.balance !== undefined && pr.balance !== null) window.setUserBalance(pr.balance);
+                else await window.refreshUserBalance();
               }
 
               // Consume free delivery token if checked
@@ -1072,6 +1089,7 @@ window.applySmartShareLink = applySmartShareLink;
               }
               await updateCartBadge();
 
+              window._coUnpaid = null;
               window.tempOrder = null;
               window.orderCountry = 'CN';
               delete _tabCache['cart:'];
@@ -1081,10 +1099,29 @@ window.applySmartShareLink = applySmartShareLink;
               switchTab('home');
             } catch (err) {
               tgUtil.haptic('error');
-              tgUtil.alert('Не получилось оформить заказ: ' + err.message);
-              createBtn.disabled = false;
-              createBtn.textContent = 'Оплатить';
-              if (typeof renderCurrentScreen === 'function') renderCurrentScreen();
+              if (window._coUnpaid) {
+                // Экран не перерисовываем: услуги и переключатели должны остаться, иначе изменится сумма заказа
+                try {
+                  const { data: row } = await supabaseClient.from('orders').select('total_paid').eq('id', window._coUnpaid.id).maybeSingle();
+                  if (row) window._coUnpaid.paid = Number(row.total_paid) || 0;
+                  await window.refreshUserBalance();
+                  await recalculateOrderTotals();
+                } catch (_) {}
+                tgUtil.alert(`Заказ создан, но оплата не прошла. ${err.message}\n\nНажмите кнопку ещё раз: второго заказа не будет.`);
+              } else {
+                tgUtil.alert('Не получилось оформить заказ: ' + err.message);
+              }
+              window.CheckoutUI.setBusy(false);
+            }
+          };
+          let submitting = false;
+          createBtn.onclick = async () => {
+            if (submitting) return;
+            submitting = true;
+            try {
+              await submitOrder();
+            } finally {
+              submitting = false;
             }
           };
         }
@@ -3603,8 +3640,8 @@ window.openSecondPaymentModal = function(orderId, amount) {
       // IcePay: с баланса сколько выбрано, остаток — основной привязанной картой / страница bePaid / заявка админу
       const pr = await window.IcePay.payOrder(orderId, 'SECOND', balUsed, 'card');
       if (!pr || !pr.ok) throw new Error((pr && pr.error) || 'Не получилось провести оплату');
-      if (pr && pr.balance !== undefined && pr.balance !== null && typeof balance !== 'undefined') balance = Number(pr.balance);
-      if (typeof updateUserCard === 'function') updateUserCard();
+      if (pr.balance !== undefined && pr.balance !== null) window.setUserBalance(pr.balance);
+      else await window.refreshUserBalance();
 
       tgUtil.haptic('success');
       if (pr && pr.status === 'paid') {
@@ -3619,6 +3656,7 @@ window.openSecondPaymentModal = function(orderId, amount) {
     } catch (err) {
       tgUtil.haptic('error');
       tgUtil.alert('Ошибка оплаты: ' + err.message);
+      await window.refreshUserBalance();
       submitBtn.disabled = false;
       submitBtn.innerHTML = '💳 Оплатить 2-й этап';
     }

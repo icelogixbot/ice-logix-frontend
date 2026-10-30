@@ -249,7 +249,7 @@
       supabaseClient.from('users').select('ices_balance, kyc_status').eq('user_id', window.userId).maybeSingle().then(({ data }) => {
         if (data) {
           if (typeof data.ices_balance === 'number') {
-            window.balance = data.ices_balance;
+            window.setUserBalance(data.ices_balance);
             const bEl = document.getElementById('walletCardLiveBalance');
             if (bEl) bEl.innerHTML = window.UI.money(data.ices_balance, { keepCents: true, digits: 2 });
           }

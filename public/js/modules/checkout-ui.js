@@ -24,6 +24,13 @@
   const num = (v) => window.moneyText(v);
   const $ = (id) => document.getElementById(id);
   const haptic = (k) => { try { window.tgUtil?.haptic?.(k); } catch (_) {} };
+  const isFamilyMember = () => {
+    const fam = window.userSettings?.family || {};
+    return Boolean(fam.role === 'member' && fam.head_id);
+  };
+  const PAY_LABELS = { card: 'Картой', erip: 'Через ЕРИП', oplati: 'Через «Оплати»' };
+  let busy = false;
+  let termsResolve = null;
 
   function plural(n, one, few, many) {
     const a = Math.abs(n) % 100;
@@ -127,7 +134,7 @@
     const tab = window.activePackageTab || 'CN';
     const extras = (t.packageExtras && t.packageExtras[tab]) || {};
     const consolidated = (t.consolidation && t.consolidation[tab]) || false;
-    const plus = (n) => `+${n}${sign()}`;
+    const plus = (n) => `+${num(n)}${sign()}`;
     return sheetHtml('coSheetExtras', 'Дополнительные услуги', `
       <p class="co-note-line">Страховка посылки уже включена. Остальное по желанию.</p>
       <div class="rd-section co-sub"><h2>Проверка на складе</h2></div>
@@ -142,7 +149,7 @@
         ${toggleRow('extraBubble', 'Пузырчатая плёнка', 'Для хрупких вещей', plus(3), extras.bubble, `onchange="window.togglePackageExtra('${tab}', 'bubble')"`)}
         ${toggleRow('extraWood', 'Деревянная обрешётка', 'Самая надёжная защита', plus(10), extras.wood, `onchange="window.togglePackageExtra('${tab}', 'wood')"`)}
         ${toggleRow('orderKeepBox', 'Сохранить оригинальную коробку', 'Посылка станет тяжелее на 300 г', '', t.keepBox)}
-        ${t.items.length >= 2 ? toggleRow('pkgConsolidationCheck', 'Объединить в одну коробку', 'Все вещи заказа приедут вместе', `−3${sign()}`, consolidated, `onchange="window.togglePackageConsolidation('${tab}')"`) : ''}
+        ${t.items.length >= 2 ? toggleRow('pkgConsolidationCheck', 'Объединить в одну коробку', 'Все вещи заказа приедут вместе', `−${num(3)}${sign()}`, consolidated, `onchange="window.togglePackageConsolidation('${tab}')"`) : ''}
         ${toggleRow('orderIsGift', 'Это подарок', 'Скроем цену и чек', '', t.isGift)}
       </div>
       <button type="button" class="rd-btn rd-btn-block co-gap" data-co-close="1">Готово</button>`);
@@ -206,14 +213,14 @@
 
         <div class="rd-section co-sub"><h2>Итог</h2></div>
         <div class="rd-card co-total">
+          <div id="coSumRows"></div>
+          <div class="co-total-row co-total-all"><span>Всего за заказ</span><span><span id="orderTotal">—</span>${sign()}</span></div>
           <div class="co-total-now"><span>Сейчас</span><b><span id="firstPaymentAmount">—</span>${sign()}</b></div>
-          <div class="co-total-row"><span>После взвешивания на складе</span><span>≈ <span id="secondPaymentEstimate">—</span>${sign()}</span></div>
-          <div class="co-total-row"><span>Всего за заказ</span><span><span id="orderTotal">—</span>${sign()}</span></div>
-          <button type="button" class="co-more" id="coBreakdownToggle" aria-expanded="false"><span>Из чего складывается</span>${uI.icon('chevD', 18)}</button>
+          <div id="coPayRows"></div>
+          <div class="co-total-row"><span>После взвешивания на складе</span><span>≈&nbsp;<span id="secondPaymentEstimate">—</span>${sign()}</span></div>
+          <button type="button" class="co-more" id="coBreakdownToggle" aria-expanded="false"><span>Что входит в цену вещей</span>${uI.icon('chevD', 18)}</button>
           <div id="coBreakdown" class="co-breakdown" hidden></div>
         </div>
-
-        <p class="co-legal">Нажимая «Оплатить», вы принимаете <button type="button" data-co-doc="offer">оферту</button> и <button type="button" data-co-doc="delivery">правила доставки</button>. Как мы храним данные: <button type="button" data-co-doc="privacy">политика</button>.</p>
       </div>
 
       <div id="${OVERLAY_ID}">
@@ -224,6 +231,7 @@
         ${paySheet()}
         ${promoSheet(t)}
         ${extrasSheet(t)}
+        ${sheetHtml('coSheetConfirm', 'Подтверждение заказа', '<div id="coConfirmBody"></div>')}
       </div>`;
   }
 
@@ -237,7 +245,8 @@
   }
   function closeSheet(el) {
     el.classList.remove('show');
-    setTimeout(() => { el.hidden = true; }, 260);
+    setTimeout(() => { if (!el.classList.contains('show')) el.hidden = true; }, 260);
+    if (el.id === 'coSheetConfirm') settleTerms(false);
     refresh();
   }
 
@@ -247,8 +256,14 @@
     const overlay = document.querySelector(`#content #${OVERLAY_ID}`);
     if (!overlay) return;
     document.body.appendChild(overlay);
+    busy = false;
+    termsResolve = null;
 
     overlay.addEventListener('click', (e) => {
+      const doc = e.target.closest('[data-co-doc]');
+      if (doc) { showDoc(doc.dataset.coDoc); return; }
+      const accept = e.target.closest('[data-co-accept]');
+      if (accept) { settleTerms(true); closeSheet(accept.closest('.co-sheet')); return; }
       const closer = e.target.closest('[data-co-close]');
       if (closer) { closeSheet(closer.closest('.co-sheet')); return; }
       const pvs = e.target.closest('[data-co-pvs]');
@@ -273,9 +288,7 @@
     if (!screen) return;
     screen.addEventListener('click', (e) => {
       const opener = e.target.closest('[data-co-open]');
-      if (opener) { openSheet(opener.dataset.coOpen); return; }
-      const doc = e.target.closest('[data-co-doc]');
-      if (doc) showDoc(doc.dataset.coDoc);
+      if (opener) openSheet(opener.dataset.coOpen);
     });
     const toggle = $('coBreakdownToggle');
     if (toggle) {
@@ -361,29 +374,113 @@
   }
 
   // --- Подписи и суммы. Вызывается после каждого пересчёта заказа --------------------------------
+  function moneyRow(label, value) {
+    const v = Number(value) || 0;
+    return `<div class="co-total-row"><span>${U().esc(label)}</span><span>${v < 0 ? '−' : ''}${num(Math.abs(v))}${sign()}</span></div>`;
+  }
+
+  // Вещи считаем остатком от итога, чтобы строки всегда сходились с «Всего за заказ»
+  function summaryRows(t) {
+    const b = t.breakdown || {};
+    const packaging = Number(b.packaging_cost_byn) || 0;
+    const duty = Number(b.customs_duty_byn) || 0;
+    const services = (Number(t.extras_total) || 0) + (Number(b.video_check_byn) || 0);
+    const local = Number(b.local_delivery_byn) || 0;
+    const discount = Number(t.discountAmount) || 0;
+    const goods = Math.round(((Number(t.total_byn) || 0) - packaging - duty - services - local + discount) * 100) / 100;
+    return moneyRow('Вещи', goods) + [
+      ['Упаковка', packaging],
+      ['Пошлина', duty],
+      ['Услуги', services],
+      ['Доставка по Беларуси', local],
+      ['Скидка', -discount]
+    ].filter((r) => r[1] !== 0).map((r) => moneyRow(r[0], r[1])).join('');
+  }
+
+  // Сумма этапа без вычетов, остаток к оплате и сколько покрыто балансом (в том числе уже списанным при сорвавшейся оплате)
+  function payAmounts(t) {
+    const stage = Math.max(0, Number(t.first_payment_subtotal_byn) || 0);
+    const rest = Math.max(0, Number(t.first_payment_byn) || 0);
+    return { stage, rest, fromBalance: Math.round((stage - rest) * 100) / 100 };
+  }
+
+  function payRows(t) {
+    const { rest, fromBalance } = payAmounts(t);
+    if (fromBalance <= 0) return '';
+    return moneyRow('С баланса', -fromBalance)
+      + (rest > 0 ? moneyRow(PAY_LABELS[window._checkoutPaymentMethod] || PAY_LABELS.card, rest) : '');
+  }
+
   function breakdownHtml(t) {
     const b = t.breakdown || {};
     const rows = [
-      ['Товары', b.product_cost_byn],
-      ['Запас на курс юаня', b.currency_buffer_byn],
+      ['Товар', b.product_cost_byn],
+      ['Запас на курс', b.currency_buffer_byn],
       ['Комиссия ICE LOGIX', b.commission_byn],
-      ['Упаковка', b.packaging_cost_byn],
-      ['Доставка из Китая (оценка)', b.delivery_cost_byn],
-      ['Страховка', b.insurance_byn],
-      ['Таможенная пошлина', b.customs_duty_byn],
-      ['Доставка по Беларуси', b.local_delivery_byn],
-      ['Видео со склада', b.video_check_byn],
-      ...(t.extras_lines || []).map((l) => [l.label, l.amount])
-    ].filter((r) => Number(r[1]) !== 0 && r[1] != null);
-    if (Number(t.discountAmount) > 0) rows.push(['Скидка по промокоду', -Number(t.discountAmount)]);
-    if (Number(t.balance_used) > 0) rows.push(['Спишем с баланса', -Number(t.balance_used)]);
-    return rows.map((r) => `<div class="co-total-row"><span>${U().esc(r[0])}</span><span>${Number(r[1]) < 0 ? '−' : ''}${num(Math.abs(r[1]))}${sign()}</span></div>`).join('')
-      + '<p class="co-note-line">Сейчас: товар, комиссия, упаковка и 70% доставки. Остальное — когда посылку взвесят на складе.</p>';
+      ['Доставка в Беларусь (оценка)', b.delivery_cost_byn],
+      ['Страховка', b.insurance_byn]
+    ].filter((r) => Number(r[1]) > 0).map((r) => moneyRow(r[0], r[1])).join('');
+    const tail = Number(b.local_delivery_byn) > 0 ? ', страховка и доставка по Беларуси' : ' и страховка';
+    return `${rows}<p class="co-note-line">После взвешивания доплачиваются остаток доставки${tail}.</p>`;
+  }
+
+  function payButtonHtml(t) {
+    if (busy) return '<span>Оформляем заказ…</span>';
+    const { stage, rest, fromBalance } = payAmounts(t);
+    if (isFamilyMember() || stage <= 0) return '<span>Оформить заказ</span>';
+    return `<span>${rest > 0 ? 'Оплатить' : 'Оплатить с баланса'}&nbsp;<span id="btnPayAmount">${num(rest > 0 ? rest : fromBalance)}</span>${sign()}</span>`;
+  }
+
+  // --- Подтверждение условий: шторка возвращает true, только если клиент нажал кнопку принятия ----
+  function settleTerms(accepted) {
+    if (!termsResolve) return;
+    const resolve = termsResolve;
+    termsResolve = null;
+    resolve(accepted);
+  }
+
+  function confirmTerms({ family = false } = {}) {
+    const t = window.tempOrder;
+    const body = $('coConfirmBody');
+    if (!t || !body || termsResolve) return Promise.resolve(false);
+    const { stage } = payAmounts(t);
+    const label = family || stage <= 0 ? 'Принять и оформить' : 'Принять и оплатить';
+    const sums = family
+      ? `${moneyRow('Всего за заказ', t.total_byn)}<p class="co-note-line">Заказ уйдёт на одобрение главе семейного бюджета.</p>`
+      : `<div class="co-total-now"><span>Сейчас</span><b>${num(stage)}${sign()}</b></div>${payRows(t)}
+         <div class="co-total-row"><span>После взвешивания на складе</span><span>≈&nbsp;${num(t.second_payment_est_byn)}${sign()}</span></div>
+         ${moneyRow('Всего за заказ', t.total_byn)}`;
+    body.innerHTML = `
+      ${sums}
+      <p class="co-terms">Нажимая «${label}», вы принимаете <button type="button" data-co-doc="offer">публичную оферту</button> и <button type="button" data-co-doc="delivery">правила доставки</button>. Как мы обрабатываем данные — в <button type="button" data-co-doc="privacy">политике</button>.</p>
+      <button type="button" class="rd-btn rd-btn-block co-gap" data-co-accept="1">${label}</button>`;
+    openSheet('coSheetConfirm');
+    return new Promise((resolve) => { termsResolve = resolve; });
+  }
+
+  function setBusy(on) {
+    busy = Boolean(on);
+    const btn = $('createOrderFinal');
+    if (!btn) return;
+    btn.disabled = busy;
+    btn.classList.toggle('is-busy', busy);
+    if (window.tempOrder?.first_payment_byn != null) btn.innerHTML = payButtonHtml(window.tempOrder);
+  }
+
+  // Подпись заказа: тот же состав и та же сумма этапа означают тот же заказ
+  function orderSig(items, stageSum) {
+    const parts = (items || []).map((it) => `${it.cartId ?? it.url ?? it.title}:${Number(it.quantity) || 1}`);
+    return `${parts.join(',')}|${(Number(stageSum) || 0).toFixed(2)}`;
   }
 
   function setText(id, text) {
     const el = $(id);
     if (el) el.textContent = text;
+  }
+
+  function setHtml(id, html) {
+    const el = $(id);
+    if (el) el.innerHTML = html;
   }
 
   function refresh() {
@@ -406,18 +503,28 @@
       setText('coRowPayText', method === 'erip' && window._coGateway ? 'Покажем номер счёта' : 'Подтвердит оператор');
     }
 
-    setText('coRowPromoText', t.appliedPromo?.code ? `${t.appliedPromo.code} · скидка ${num(t.discountAmount)}` : 'Если есть');
+    setHtml('coRowPromoText', t.appliedPromo?.code ? `${U().esc(t.appliedPromo.code)} · скидка ${num(t.discountAmount)}${sign()}` : 'Если есть');
 
     const extraIds = ['orderExtraPhoto', 'orderExtraMeasure', 'extraCheck', 'orderRequiresVideoCheck', 'extraBubble', 'extraWood', 'orderKeepBox', 'pkgConsolidationCheck', 'orderIsGift'];
     const on = extraIds.filter((id) => $(id)?.checked).length;
     const sum = (Number(t.extras_total) || 0) + (Number(t.breakdown?.video_check_byn) || 0);
-    setText('coRowExtrasText', on ? `${on} ${plural(on, 'услуга', 'услуги', 'услуг')}${sum ? ` · ${sum > 0 ? '+' : '−'}${num(Math.abs(sum))}` : ''}` : 'Фото, проверка, упаковка');
+    setHtml('coRowExtrasText', on ? `${on} ${plural(on, 'услуга', 'услуги', 'услуг')}${sum ? ` · ${sum > 0 ? '+' : '−'}${num(Math.abs(sum))}${sign()}` : ''}` : 'Фото, проверка, упаковка');
+
+    const bal = Number(typeof balance !== 'undefined' ? (balance || 0) : 0);
+    setText('checkoutUserBalance', num(bal));
+    const balSwitch = $('orderApplyBalance');
+    if (balSwitch) {
+      balSwitch.disabled = bal <= 0;
+      if (bal <= 0) balSwitch.checked = false;
+    }
 
     if (t.first_payment_byn != null) {
-      setText('firstPaymentAmount', num(t.first_payment_byn));
-      setText('btnPayAmount', num(t.first_payment_byn));
+      setText('firstPaymentAmount', num(payAmounts(t).stage));
       setText('secondPaymentEstimate', num(t.second_payment_est_byn));
       setText('orderTotal', num(t.total_byn));
+      setHtml('coSumRows', summaryRows(t));
+      setHtml('coPayRows', isFamilyMember() ? '' : payRows(t));
+      setHtml('createOrderFinal', payButtonHtml(t));
     }
     t.items.forEach((it, idx) => {
       const el = document.querySelector(`[data-co-line="${idx}"]`);
@@ -453,5 +560,5 @@
 
   window.setCheckoutPaymentMethod = setCheckoutPaymentMethod;
   window.renderCheckoutCards = renderCheckoutCards;
-  window.CheckoutUI = { render, mount, refresh, showDoc };
+  window.CheckoutUI = { render, mount, refresh, showDoc, confirmTerms, setBusy, orderSig };
 })();

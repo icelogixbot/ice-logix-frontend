@@ -546,12 +546,10 @@
       const newBal = round2(Number(bought?.balance ?? userBalance));
 
       // Обновляем локальное состояние
-      window.balance = newBal;
+      window.setUserBalance(newBal);
       window.icesBalance = newBal;
       const el = document.getElementById('bonusShopUserBal');
       if (el) el.textContent = newBal.toFixed(2);
-      const hb = document.getElementById('headerBalance');
-      if (hb) hb.textContent = newBal.toFixed(2);
 
       // Закрываем модалку
       document.getElementById('bonusRedeemModal').classList.add('hidden');

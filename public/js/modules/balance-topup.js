@@ -664,24 +664,13 @@
     if (curUserId && typeof supabaseClient !== 'undefined' && supabaseClient) {
       supabaseClient.from('users').select('ices_balance').eq('user_id', curUserId).maybeSingle().then(({ data, error }) => {
         if (!error && data && typeof data.ices_balance === 'number') {
-          window.balance = data.ices_balance;
-          const hb = document.getElementById('headerBalance');
-          if (hb) hb.innerText = data.ices_balance;
+          window.setUserBalance(data.ices_balance);
 
           const tb = document.getElementById('topupCurrentBalText');
           if (tb) tb.innerHTML = `${data.ices_balance} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}`;
 
           const tbByn = document.getElementById('topupCurrentBalByn');
           if (tbByn) tbByn.innerHTML = '';
-
-          try {
-            const cached = localStorage.getItem('ice_cached_user');
-            if (cached) {
-              const u = JSON.parse(cached);
-              u.balance = data.ices_balance;
-              localStorage.setItem('ice_cached_user', JSON.stringify(u));
-            }
-          } catch (_) {}
         }
       }).catch(() => {});
     }

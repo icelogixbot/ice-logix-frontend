@@ -1772,12 +1772,17 @@ if (typeof attachCalculatorHandlers === 'function') {
       const applyBalance = document.getElementById('orderApplyBalance')?.checked || false;
       let balanceUsed = 0;
       const curBal = Number(typeof balance !== 'undefined' ? (balance || 0) : 0);
+      // Заказ уже создан, но оплата сорвалась: сервер считает только остаток этапа, часть могла уйти с баланса
+      const unpaid = window._coUnpaid;
+      const paidEarlier = unpaid && window.CheckoutUI && unpaid.sig === window.CheckoutUI.orderSig(window.tempOrder.items, firstPaymentSubtotal)
+        ? (Number(unpaid.paid) || 0) : 0;
+      const stageDue = Math.round((firstPaymentSubtotal - paidEarlier) * 100) / 100;
       if (applyBalance && curBal > 0) {
-        balanceUsed = Math.min(Math.max(0, firstPaymentSubtotal), curBal);
+        balanceUsed = Math.min(Math.max(0, stageDue), curBal);
         balanceUsed = Math.round(balanceUsed * 100) / 100;
       }
       aggregatedBreakdown.balance_used_first_byn = balanceUsed;
-      const firstPaymentFinal = Math.max(0, Math.round((firstPaymentSubtotal - balanceUsed) * 100) / 100);
+      const firstPaymentFinal = Math.max(0, Math.round((stageDue - balanceUsed) * 100) / 100);
 
       // Ориентировочный 2-й платеж (Остаток доставки ~30% + страховка 2% + доставка по РБ)
       const secondPaymentEst = Math.round((
@@ -1822,7 +1827,7 @@ if (typeof attachCalculatorHandlers === 'function') {
       if (firstPaySpan) firstPaySpan.innerText = firstPaymentFinal.toFixed(2);
       if (secondPaySpan) secondPaySpan.innerText = secondPaymentEst.toFixed(2);
       if (btnPaySpan) btnPaySpan.innerText = firstPaymentFinal.toFixed(2);
-      if (balText) balText.innerHTML = '-' + balanceUsed.toFixed(2) + ' ' + (window.bynSign ? window.bynSign({ color: 'emerald', size: '0.85em' }) : '');
+      if (balText) balText.innerHTML = window.moneyText(balanceUsed) + (window.bynSign ? window.bynSign() : '');
       if (balRow) balRow.classList.toggle('hidden', !applyBalance || balanceUsed <= 0);
 
       if (window.CheckoutUI) window.CheckoutUI.refresh();

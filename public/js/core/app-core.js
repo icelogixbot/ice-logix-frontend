@@ -951,7 +951,7 @@
       const num = Number(amount) || 0;
       const dec = opts.decimals ?? 2;
       const prefix = opts.signPrefix && num > 0 ? '+' : '';
-      const formattedNum = prefix + (dec > 0 ? num.toFixed(dec) : Math.round(num).toString());
+      const formattedNum = prefix + num.toLocaleString('ru-RU', { minimumFractionDigits: dec, maximumFractionDigits: dec });
       const wrapCls = ['byn-price', opts.wrapCls || ''].filter(Boolean).join(' ');
       return `<span class="${wrapCls}"><span class="byn-val">${formattedNum}</span>${bynSign(opts)}</span>`;
     }
@@ -961,6 +961,29 @@
     window.formatBYN = formatBYN;
     // Сумма для обычного текста (окна сообщений показывают текст как есть, значок рубля там — не вёрстка)
     window.moneyText = (v) => Number(v || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    // Единая запись баланса: переменная, шапка и кэш меняются вместе, иначе экраны показывают разное до перезахода
+    window.setUserBalance = (v) => {
+      const n = Number(v);
+      if (!isFinite(n)) return;
+      balance = n;
+      window.balance = n;
+      const hb = document.getElementById('headerBalance');
+      if (hb) hb.textContent = window.moneyText(n);
+      try {
+        const u = JSON.parse(localStorage.getItem('ice_cached_user') || 'null');
+        if (u) {
+          u.balance = n;
+          localStorage.setItem('ice_cached_user', JSON.stringify(u));
+        }
+      } catch (_) {}
+    };
+    window.refreshUserBalance = async () => {
+      if (!window.userId || !window.supabaseClient) return;
+      try {
+        const { data } = await window.supabaseClient.from('users').select('ices_balance').eq('user_id', window.userId).maybeSingle();
+        if (data) window.setUserBalance(data.ices_balance || 0);
+      } catch (_) {}
+    };
 
     // Legacy content still contains emoji in a number of dynamically-rendered
     // modules. Normalize it at the DOM boundary so every screen uses one icon
@@ -1476,7 +1499,8 @@
       RUB: [100, 500000], BYN: [3, 15000], PLN: [10, 20000],
       JPY: [300, 500000], KRW: [3000, 5000000],
     };
-    function validateOrderBeforeSubmit(order) {
+    // Проверка заказа: только возвращает ошибки, ни о чём не спрашивает. Вопросы задаёт orderSoftQuestions.
+    function validateOrderBeforeSubmit(order, opts = {}) {
       const errors = [];
       if (!order) { errors.push('Нет данных заказа'); return errors; }
 
@@ -1485,9 +1509,9 @@
       if (!isFinite(price) || price <= 0) {
         errors.push('Укажите цену товара (число > 0)');
       } else {
-        const range = PRICE_RANGES[order.currency];
+        const range = opts.checkPriceRange ? PRICE_RANGES[order.currency] : null;
         if (range && (price < range[0] || price > range[1])) {
-          errors.push(`Цена ${price} ${order.currency} вне разумного диапазона (${range[0]}–${range[1]}). Уверены что цена в ${order.currency}?`);
+          errors.push(`Цена ${price} ${currencyWords(order.currency)} выглядит странно: обычно от ${range[0]} до ${range[1]}. Проверьте цену и валюту`);
         }
       }
 
@@ -1517,28 +1541,34 @@
           const u = new URL(url);
           if (u.protocol !== 'http:' && u.protocol !== 'https:') {
             errors.push('Ссылка должна начинаться с http:// или https://');
-          } else {
-            // Проверка домена (warning, не ошибка — мы не хотим блокировать неизвестные площадки)
-            const host = u.hostname.toLowerCase().replace(/^www\./, '');
-            const isKnown = ALLOWED_MARKETPLACE_HOSTS.some(h => host === h || host.endsWith('.' + h));
-            if (!isKnown && !window.confirm(`Площадка ${host} не из нашего списка. Продолжить?`)) {
-              errors.push('Подтверждение площадки отменено');
-            }
           }
         } catch {
           errors.push('Ссылка не похожа на валидный URL');
         }
       }
 
-      // 7. Кросс-проверка валюта ⇄ страна (мягкая — warning, не блокируем)
-      const COUNTRY_DEFAULT_CURRENCY = { CN: 'CNY', PL: 'PLN', DE: 'EUR', UK: 'GBP', US: 'USD', RU: 'RUB', BY: 'BYN', JP: 'JPY', KR: 'KRW', EU: 'EUR' };
-      if (order.country && order.currency && COUNTRY_DEFAULT_CURRENCY[order.country] && COUNTRY_DEFAULT_CURRENCY[order.country] !== order.currency) {
-        const expected = COUNTRY_DEFAULT_CURRENCY[order.country];
-        const ok = window.confirm(`Странно: страна ${order.country} обычно использует ${expected}, а вы выбрали ${order.currency}. Продолжить?`);
-        if (!ok) errors.push('Несоответствие валюты и страны');
-      }
-
       return errors;
+    }
+
+    const CURRENCY_WORDS = { CNY: 'в юанях', USD: 'в долларах', EUR: 'в евро', GBP: 'в фунтах', RUB: 'в российских рублях', BYN: 'в белорусских рублях', PLN: 'в злотых', JPY: 'в иенах', KRW: 'в вонах' }; // design-ok: коды валют
+    const currencyWords = (code) => CURRENCY_WORDS[code] || 'в другой валюте';
+    const COUNTRY_DEFAULT_CURRENCY = { CN: 'CNY', PL: 'PLN', DE: 'EUR', UK: 'GBP', US: 'USD', RU: 'RUB', BY: 'BYN', JP: 'JPY', KR: 'KRW', EU: 'EUR' }; // design-ok: коды валют
+    const COUNTRY_WORDS = { CN: 'Китая', PL: 'Польши', DE: 'Германии', UK: 'Великобритании', US: 'США', RU: 'России', BY: 'Беларуси', JP: 'Японии', KR: 'Кореи', EU: 'Европы' };
+
+    // Вопросы по вещи, которую клиент ввёл сам: незнакомая площадка и необычная валюта. Заказ они не блокируют.
+    function orderSoftQuestions(order) {
+      const questions = [];
+      try {
+        const host = new URL((order.url || '').trim()).hostname.toLowerCase().replace(/^www\./, '');
+        if (!ALLOWED_MARKETPLACE_HOSTS.some(h => host === h || host.endsWith('.' + h))) {
+          questions.push(`Площадки ${host} нет в нашем списке. Продолжить?`);
+        }
+      } catch (_) {}
+      const expected = COUNTRY_DEFAULT_CURRENCY[order.country];
+      if (expected && order.currency && expected !== order.currency) {
+        questions.push(`На площадках из ${COUNTRY_WORDS[order.country]} цены обычно ${currencyWords(expected)}, а у вещи цена ${currencyWords(order.currency)}. Продолжить?`);
+      }
+      return questions;
     }
     function getCategoryDefaultWeight(specific) {
       const it = CATEGORY_MAP.find(c => c.value === specific);
@@ -1797,9 +1827,7 @@
                 let resultText = '';
 
                 if (spin.type === 'ice') {
-                  balance = Number(spin.balance);
-                  const hb = document.getElementById('headerBalance');
-                  if (hb) hb.innerText = balance;
+                  window.setUserBalance(spin.balance);
                   resultText = `Выигрыш ${money(spin.value)} уже на балансе`;
                 } else if (spin.type === 'promo') {
                   resultText = `Промокод на ${spin.value}%: ${spin.promo_code}`;
@@ -2415,10 +2443,7 @@ let adminOrdersTotalPages = 1;
             const _cu = JSON.parse(_cached);
             if (_cu) {
               if (_cu.balance !== undefined) {
-                balance = _cu.balance;
-                window.balance = balance;
-                const _hb = document.getElementById('headerBalance');
-                if (_hb) _hb.innerText = balance;
+                window.setUserBalance(_cu.balance);
               }
               if (_cu.userName) {
                 userName = _cu.userName;
@@ -2885,11 +2910,7 @@ let adminOrdersTotalPages = 1;
           userNameHeader.innerText = userName;
         }
 
-        const _hb = document.getElementById('headerBalance');
-        if (_hb && _hb.innerText != balance) {
-          _hb.innerText = balance;
-        }
-        window.balance = balance;
+        window.setUserBalance(balance);
         if (data.settings?.theme && data.settings.theme !== window._currentAppliedTheme) {
           applyTheme(data.settings.theme);
         }
