@@ -231,7 +231,7 @@
         <button type="button" class="sk-opt${grp.type === 'visual' ? ' sk-opt-vis' : ''}${isSel ? ' on' : ''}${avail ? '' : ' off'}"
           data-group-id="${esc(grp.id)}" data-opt-idx="${optIdx}" ${avail ? '' : 'aria-disabled="true"'}>
           ${grp.type === 'visual' ? (thumb ? `<img src="${esc(thumb)}" alt="" loading="lazy">` : `<span class="sk-opt-noimg">${icon('image', 18)}</span>`) : ''}
-          <span class="sk-opt-name">${esc(label)}</span>
+          <span class="sk-opt-body"><span class="sk-opt-name">${esc(label)}</span><span class="sk-opt-price"></span></span>
         </button>`;
     };
 
@@ -382,6 +382,37 @@
         if (avail) b.removeAttribute('aria-disabled'); else b.setAttribute('aria-disabled', 'true');
       });
     }
+
+    // Цена на чипе: при двух группах — вместе с выбранным вариантом другой группы
+    const cellPrice = (cell) => (cell && cell.in_stock !== false && Number(cell.price_cny) > 0 ? Number(cell.price_cny) : 0);
+    function optPrice(g, o) {
+      if (!hasMatrix) return { price: 0, estimated: false };
+      let cell;
+      if (visualGroup && sizeGroup && g === visualGroup) {
+        cell = cellFor(o, selectedState[sizeGroup.id]);
+        if (!cellPrice(cell)) { // выбранного размера в этом цвете нет: самая низкая цена цвета
+          const row = sizeGroup.options.map((s) => cellFor(o, s)).filter(cellPrice);
+          cell = row.sort((x, y) => cellPrice(x) - cellPrice(y))[0];
+        }
+      } else if (visualGroup && sizeGroup) {
+        cell = g === sizeGroup ? cellFor(selectedState[visualGroup.id], o) : null;
+      } else {
+        cell = matrix[rawOf(o)];
+      }
+      return { price: cellPrice(cell), estimated: !!(cell && cell.estimated) };
+    }
+
+    function refreshOptPrices() {
+      groups.forEach((g) => {
+        const vals = (g.options || []).map((o) => optPrice(g, o));
+        const differ = new Set(vals.map((x) => x.price).filter(Boolean)).size > 1; // одинаковые цены не показываем
+        root.querySelectorAll(`.sk-opt[data-group-id="${CSS.escape(g.id)}"] .sk-opt-price`).forEach((el) => {
+          const val = vals[parseInt(el.closest('.sk-opt').dataset.optIdx, 10)];
+          el.textContent = differ && val && val.price ? `${val.estimated ? '≈ ' : ''}${cnyText(val.price)}` : '';
+        });
+      });
+    }
+    refreshOptPrices();
 
     const qtyValEl = $('#skuQtyVal');
     $('#skuQtyMinus').onclick = () => {
@@ -556,6 +587,7 @@
             if (gal) gal.scrollTo({ left: 0, behavior: 'smooth' });
           }
         }
+        refreshOptPrices();
         recomputePrice();
         updatePriceDisplay();
         updateSummaryDisplay();

@@ -1093,7 +1093,8 @@ window.renderSmartCalculator = async function() {
                     cacheQuery = cacheQuery.eq('url', url);
                   }
 
-                  const { data: cachedRows } = await cacheQuery;
+                  // Pinduoduo не берём отсюда: старые записи без срока, со снимками экрана и плохим названием
+                  const { data: cachedRows } = (isPdd && window.PddProduct) ? { data: null } : await cacheQuery;
 
                   if (cachedRows && cachedRows.length > 0) {
                     const cachedItem = cachedRows[0];
