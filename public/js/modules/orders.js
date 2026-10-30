@@ -1139,12 +1139,9 @@ window.applySmartShareLink = applySmartShareLink;
             }
 
             try {
-              const { data, error } = await supabaseClient
-                .from('promocodes')
-                .select('*')
-                .eq('code', code)
-                .eq('is_active', true)
-                .maybeSingle();
+              // Проверка одного кода на сервере: список всех промокодов приложению недоступен
+              const { data: chk, error } = await supabaseClient.rpc('check_promocode', { p_code: code });
+              const data = chk && chk.valid ? chk : null;
 
               if (error) {
                 promoMessage.innerText = 'Ошибка проверки кода';
@@ -1328,11 +1325,12 @@ window.applySmartShareLink = applySmartShareLink;
                 estimated_delivery_amount: bk.delivery_cost_byn ?? (window.tempOrder.weight * 12),
                 delivery_reserve_rate: 0.70,
                 delivery_reserve_amount: bk.delivery_reserve_byn || Math.round((bk.delivery_cost_byn || 0) * 0.70 * 100) / 100,
-                first_payment_amount: firstPaymentToPay,
+                // Полная сумма 1-го этапа; списание с баланса и остаток оформляет сервер (order_pay)
+                first_payment_amount: Math.round((firstPaymentToPay + balanceUsed) * 100) / 100,
                 second_payment_amount: bk.second_payment_est_byn || 0,
-                total_paid: firstPaymentToPay + balanceUsed,
+                total_paid: 0,
                 total_refunded: 0,
-                balance_used: balanceUsed,
+                balance_used: 0,
                 amount_due: 0,
                 selected_receiving_method: (window.tempOrder?.pvs?.method && window.tempOrder.pvs.method !== 'none') ? 'FORWARD_SHIPPING' : 'SELF_PICKUP',
                 first_payment_snapshot: bk,
@@ -1355,9 +1353,9 @@ window.applySmartShareLink = applySmartShareLink;
                 delivery_days_max: bk.delivery_days?.[1] || null,
                 source_country: window.orderCountry,
                 product_currency: consolidatedOrder.currency,
-                prepayment_amount: firstPaymentToPay,
-                first_payment_paid: true,
-                status: 'PAID_FIRST',
+                prepayment_amount: Math.round((firstPaymentToPay + balanceUsed) * 100) / 100,
+                first_payment_paid: false,
+                status: 'pending',
                 auto_cancel_reason: isFamilyMember ? 'family_approval_pending' : null,
                 discount_applied: window.tempOrder.discountAmount || 0,
                 promo_code: window.tempOrder.appliedPromo?.code || null,
@@ -1407,59 +1405,20 @@ window.applySmartShareLink = applySmartShareLink;
                 ai_model_version: 'packaging-v1'
               }).catch(() => {});
 
-              // Если был списан баланс, фиксируем в бухгалтерском ledger (Раздел 17.1 ТЗ: balance_entries)
-              if (balanceUsed > 0) {
-                const curBal = Number(typeof balance !== 'undefined' ? (balance || 0) : 0);
-                const nextBal = Math.max(0, curBal - balanceUsed);
-                await supabaseClient.from('balance_entries').insert({
-                  user_id: userId,
-                  order_id: createdOrderId,
-                  type: 'ADJUSTMENT',
-                  amount: balanceUsed,
-                  currency: 'BYN',
-                  direction: 'DEBIT',
-                  reason: 'USED_FOR_ORDER',
-                  source_transaction_id: idempotencyKey,
-                  created_at: new Date().toISOString()
-                }).catch(() => {});
-
-                await supabaseClient.from('users').update({ ices_balance: nextBal }).eq('user_id', userId).catch(() => {});
-                if (typeof balance !== 'undefined') balance = nextBal;
+              // Оплата 1-го этапа — на сервере (order_pay): сначала с баланса, остаток — заявкой на оплату,
+              // которую подтвердит платёжная система или админ. Заказ участника семьи оплачивает глава.
+              let payRes = null;
+              if (!isFamilyMember) {
+                const payMethod = window._checkoutPaymentMethod === 'erip' ? 'erip'
+                  : window._checkoutPaymentMethod === 'oplati' ? 'oplati' : 'manual';
+                const { data: pr, error: payErr } = await supabaseClient.rpc('order_pay', {
+                  p_order_id: createdOrderId, p_stage: 'FIRST', p_use_balance: balanceUsed, p_method: payMethod
+                });
+                if (payErr) throw payErr;
+                payRes = pr;
+                if (pr && pr.balance !== undefined && pr.balance !== null && typeof balance !== 'undefined') balance = Number(pr.balance);
                 if (typeof updateUserCard === 'function') updateUserCard();
               }
-
-              // Запись платежа 1-го этапа (Разделы 12, 20, 22, 32 ТЗ: payments)
-              await supabaseClient.from('payments').insert({
-                order_id: createdOrderId,
-                user_id: userId,
-                type: 'FIRST_PAYMENT',
-                amount: firstPaymentToPay,
-                currency: 'BYN',
-                status: 'PAID',
-                provider: 'bepaid_mock',
-                payment_intent_id: idempotencyKey,
-                payment_method_id: isDbUuid(selectedCardId) ? selectedCardId : null,
-                metadata: {
-                  balance_used: balanceUsed,
-                  selected_receiving_method: orderInsertPayload.selected_receiving_method
-                },
-                paid_at: new Date().toISOString()
-              }).catch(() => {});
-
-              // Запись в полный аудит заказа (Раздел 21, 31 ТЗ: order_events)
-              await supabaseClient.from('order_events').insert({
-                order_id: createdOrderId,
-                event_type: 'ORDER_CREATED',
-                actor_type: 'CLIENT',
-                actor_id: userId,
-                new_value: {
-                  status: 'PAID_FIRST',
-                  first_payment_amount: firstPaymentToPay,
-                  balance_used: balanceUsed,
-                  receiving_method: orderInsertPayload.selected_receiving_method
-                },
-                reason: 'Создание заказа и успешная оплата 1-го этапа'
-              }).catch(() => {});
 
               // Consume free delivery token if checked
               if (window.tempOrder.useFreeDelivery && window.userSettings?.free_delivery_tokens > 0) {
@@ -1477,7 +1436,15 @@ window.applySmartShareLink = applySmartShareLink;
               } else if (window._checkoutPaymentMethod === 'oplati' && typeof window.openOplatiPaymentModal === 'function') {
                 window.openOplatiPaymentModal(firstPaymentToPay, { order_id: 'OPL-' + createdOrderId.slice(0, 8).toUpperCase() });
               } else {
-                tgUtil.alert(`✅ Заказ #${createdOrderId.slice(0, 8)} успешно оформлен!\n1-й этап (${firstPaymentToPay.toFixed(2)}) оплачен.`);
+                const money = (v) => (typeof window.formatBYN === 'function' ? window.formatBYN(v) : Number(v).toFixed(2));
+                const num = createdOrderId.slice(0, 8);
+                if (isFamilyMember) {
+                  tgUtil.alert(`Заказ #${num} оформлен и отправлен главе семейного бюджета на одобрение.`);
+                } else if (payRes && payRes.status === 'paid') {
+                  tgUtil.alert(`Заказ #${num} оформлен и оплачен с баланса.`);
+                } else {
+                  tgUtil.alert(`Заказ #${num} оформлен. К оплате ${money(payRes?.remaining ?? firstPaymentToPay)}. Возьмём его в работу, как только подтвердим оплату.`);
+                }
               }
 
               const dbCartIds = [];
@@ -1505,11 +1472,6 @@ window.applySmartShareLink = applySmartShareLink;
                 } catch(_) {}
               }
               await updateCartBadge();
-
-              if (!userLimits.isTrusted) {
-                await supabaseClient.from('users').update({ is_trusted: true }).eq('user_id', userId);
-                userLimits.isTrusted = true;
-              }
 
               window.tempOrder = null;
               window.orderCountry = 'CN';
@@ -4050,73 +4012,22 @@ window.openSecondPaymentModal = function(orderId, amount) {
       balUsed = Math.min(curBal, totalDue);
     }
     const cardDue = Math.max(0, totalDue - balUsed);
-    const idempotencyKey = 'pay2_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
-
     try {
-      if (balUsed > 0) {
-        await supabaseClient.from('balance_entries').insert({
-          user_id: userId,
-          order_id: orderId,
-          type: 'ADJUSTMENT',
-          amount: balUsed,
-          currency: 'BYN',
-          direction: 'DEBIT',
-          reason: 'USED_FOR_ORDER',
-          source_transaction_id: idempotencyKey,
-          created_at: new Date().toISOString()
-        }).catch(() => {});
-
-        await supabaseClient.from('users').update({
-          ices_balance: curBal - balUsed
-        }).eq('user_id', userId);
-
-        if (typeof balance !== 'undefined') balance -= balUsed;
-        if (typeof updateUserCard === 'function') updateUserCard();
-      }
-
-      const isDbUuid = (id) => id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-      const defCard = (window.userCards && window.userCards.find(c => c.is_default)) || window.userCards?.[0];
-
-      await supabaseClient.from('payments').insert({
-        order_id: orderId,
-        user_id: userId,
-        type: 'SECOND_PAYMENT',
-        amount: totalDue,
-        currency: 'BYN',
-        status: 'PAID',
-        provider: 'bepaid_mock',
-        payment_intent_id: idempotencyKey,
-        payment_method_id: (cardDue > 0 && defCard && isDbUuid(defCard.id)) ? defCard.id : null,
-        metadata: {
-          balance_used: balUsed,
-          card_paid: cardDue
-        },
-        paid_at: new Date().toISOString()
-      }).catch(() => {});
-
-      await supabaseClient.from('orders').update({
-        second_payment_paid: true,
-        second_payment_amount: totalDue,
-        amount_due: 0,
-        status: 'SECOND_PAYMENT_PAID',
-        updated_at: new Date().toISOString()
-      }).eq('id', orderId);
-
-      await supabaseClient.from('order_events').insert({
-        order_id: orderId,
-        event_type: 'SECOND_PAYMENT_PAID',
-        actor_type: 'CLIENT',
-        actor_id: userId,
-        new_value: {
-          status: 'SECOND_PAYMENT_PAID',
-          second_payment_amount: totalDue,
-          balance_used: balUsed
-        },
-        reason: 'Клиент подтвердил и оплатил 2-й этап'
-      }).catch(() => {});
+      // Оплата 2-го этапа — на сервере (order_pay): с баланса сколько выбрано, остаток — заявкой на оплату
+      const { data: pr, error: payErr } = await supabaseClient.rpc('order_pay', {
+        p_order_id: orderId, p_stage: 'SECOND', p_use_balance: balUsed, p_method: 'manual'
+      });
+      if (payErr) throw payErr;
+      if (pr && pr.balance !== undefined && pr.balance !== null && typeof balance !== 'undefined') balance = Number(pr.balance);
+      if (typeof updateUserCard === 'function') updateUserCard();
 
       tgUtil.haptic('success');
-      tgUtil.alert(`✅ 2-й этап заказа #${orderId.slice(0,8)} успешно оплачен!\\nЗаказ разрешён к отправке в Несвиж.`);
+      const money = (v) => (typeof window.formatBYN === 'function' ? window.formatBYN(v) : Number(v).toFixed(2));
+      if (pr && pr.status === 'paid') {
+        tgUtil.alert(`Второй платёж по заказу #${orderId.slice(0, 8)} оплачен. Готовим отправку.`);
+      } else {
+        tgUtil.alert(`Осталось оплатить ${money(pr?.remaining ?? cardDue)}. Отправим заказ, как только подтвердим оплату.`);
+      }
       close();
       if (typeof renderCurrentScreen === 'function') renderCurrentScreen();
     } catch (err) {

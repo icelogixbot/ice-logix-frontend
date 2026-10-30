@@ -42,57 +42,29 @@
     return 0;
   }
 
-  // Обновление баланса во всем приложении (DOM + Cache + Supabase)
+  // Пополнение: приложение только создаёт заявку (request_topup). Деньги зачисляет сервер,
+  // когда оплату подтвердит платёжная система или админ. reason/successMsg оставлены для старых вызовов.
   async function applyWalletCredit(addedAmount, reason = 'TOPUP_MANUAL', successMsg = null) {
-    const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
-    const addedVal = parseFloat(addedAmount) || 0;
-    if (addedVal <= 0) return;
-
-    const prevBal = getLiveUserBalance();
-    const nextBal = Math.round((prevBal + addedVal) * 100) / 100;
-    window.balance = nextBal;
-
-    // 1. Оптимистичное обновление UI в шапке и карточке
-    const hb = document.getElementById('headerBalance');
-    if (hb) hb.innerText = nextBal;
-
-    const cardBal = document.getElementById('walletCardLiveBalance');
-    if (cardBal) cardBal.innerHTML = window.UI ? window.UI.money(nextBal, { keepCents: true, digits: 2 }) : nextBal.toFixed(2);
-
-    try {
-      const cached = localStorage.getItem('ice_cached_user');
-      if (cached) {
-        const u = JSON.parse(cached);
-        u.balance = nextBal;
-        localStorage.setItem('ice_cached_user', JSON.stringify(u));
-      }
-    } catch (_) {}
-
-    // 2. Персистентность в Supabase (users.ices_balance + balance_entries)
-    if (curUserId && typeof supabaseClient !== 'undefined' && supabaseClient) {
-      try {
-        await supabaseClient.from('users').update({ ices_balance: nextBal }).eq('user_id', curUserId);
-        
-        // Бухгалтерская проводка в balance_entries
-        await supabaseClient.from('balance_entries').insert({
-          user_id: curUserId,
-          type: 'TOPUP',
-          amount: addedVal,
-          direction: 'CREDIT',
-          reason: reason,
-          source_transaction_id: 'TX-' + Date.now() + '-' + Math.floor(Math.random() * 1000)
-        });
-
-        _cachedLedgerEntries = null; // сброс кэша истории
-      } catch (e) {
-        console.warn('Failed to update balance or write entry to Supabase:', e);
-      }
+    const addedVal = Math.round((parseFloat(addedAmount) || 0) * 100) / 100;
+    if (addedVal <= 0) return false;
+    if (!String(reason).startsWith('TOPUP')) {
+      console.warn('applyWalletCredit: начислять деньги из приложения нельзя, причина', reason);
+      return false;
     }
-
+    const method = reason === 'TOPUP_CARD' ? 'card' : reason === 'TOPUP_ERIP' ? 'erip' : reason === 'TOPUP_OPLATI' ? 'oplati' : 'manual';
+    const money = (v) => (typeof window.formatBYN === 'function' ? window.formatBYN(v) : v.toFixed(2));
+    const { error } = await supabaseClient.rpc('request_topup', { p_amount: addedVal, p_method: method });
     if (typeof tgUtil !== 'undefined') {
+      if (error) {
+        if (tgUtil.haptic) tgUtil.haptic('error');
+        tgUtil.alert(error.message || 'Не получилось создать заявку на пополнение');
+        return false;
+      }
       if (tgUtil.haptic) tgUtil.haptic('success');
-      tgUtil.alert(successMsg || `Счёт успешно пополнен на +${addedVal.toFixed(2)}!`);
+      tgUtil.alert(`Заявка на пополнение на ${money(addedVal)} принята. Деньги появятся на балансе, как только мы увидим оплату.`);
     }
+    _cachedLedgerEntries = null;
+    return !error;
   }
 
   // Форматирование даты транзакций
@@ -481,29 +453,10 @@
 
   window.applyWalletCredit = applyWalletCredit;
 
-  // Экспорт функции моментального возврата на счёт (Instant Refund)
-  window.refundToWallet = async function (orderId, amount, reason = 'REFUND_TO_BALANCE') {
-    const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
-    const refundAmt = parseFloat(amount) || 0;
-    if (refundAmt <= 0) return false;
-
-    await applyWalletCredit(refundAmt, reason, `Мгновенный возврат: +${refundAmt.toFixed(2)} зачислено на счёт ICE LOGIX PAY!`);
-    
-    if (curUserId && typeof supabaseClient !== 'undefined' && supabaseClient) {
-      try {
-        await supabaseClient.from('refunds').insert({
-          order_id: orderId,
-          user_id: curUserId,
-          amount: refundAmt,
-          destination: 'BALANCE',
-          status: 'COMPLETED',
-          reason: reason
-        });
-      } catch (e) {
-        console.warn('Failed to insert into refunds:', e);
-      }
-    }
-    return true;
+  // Возврат на баланс делает только сервер (order_price_decision, админ). Оставлено для старых вызовов.
+  window.refundToWallet = async function () {
+    console.warn('refundToWallet: возврат из приложения отключён, его делает сервер');
+    return false;
   };
 
 })();

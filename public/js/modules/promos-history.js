@@ -122,13 +122,17 @@ async function renderHistory() {
     if (!headId) {
       content = U.empty({ icon: 'users', title: 'Семейный бюджет не настроен', text: 'Объедините баланс с близкими в настройках, и все общие траты будут здесь.' });
     } else {
-      const { data: members } = await supabaseClient.from('users').select('user_id, settings').eq('settings->>family->>head_id', headId).limit(20);
-      const memberIds = members ? members.map(m => m.user_id) : [];
-      if (!memberIds.includes(headId)) memberIds.unshift(headId);
-      const { data, error } = await supabaseClient.from('family_transactions').select('*').in('user_id', memberIds).order('created_at', { ascending: false }).limit(100);
-      content = (error || !data || !data.length)
-        ? U.empty({ icon: 'users', title: 'Общих операций пока нет', text: 'Траты и пополнения участников семьи появятся здесь.' })
-        : `<div class="rd-card hs-txlist">${groupByDay(data, (tx) => txRow(tx, String(tx.user_id) === String(userId) ? 'вы' : 'ID ' + tx.user_id))}</div>`;
+      // Общие траты — оплаты главой заказов участников (журнал баланса, видно только своё)
+      const { data: rows, error } = await supabaseClient.from('balance_entries').select('amount, direction, reason, created_at, order_id')
+        .eq('user_id', userId).eq('reason', 'FAMILY_ORDER_PAYMENT').order('created_at', { ascending: false }).limit(100);
+      const data = (rows || []).map((r) => ({
+        type: 'family_order', created_at: r.created_at,
+        amount: r.direction === 'DEBIT' ? -Number(r.amount) : Number(r.amount),
+        description: 'Оплата заказа участника семьи' + (r.order_id ? ' #' + String(r.order_id).slice(0, 8) : '')
+      }));
+      content = (error || !data.length)
+        ? U.empty({ icon: 'users', title: 'Общих операций пока нет', text: 'Когда глава семьи оплатит заказ участника, он появится здесь.' })
+        : `<div class="rd-card hs-txlist">${groupByDay(data, (tx) => txRow(tx))}</div>`;
     }
   } else if (subScreen === 'orders') {
     // В архив попадают только завершённые заказы, через 7 дней после последнего изменения
@@ -472,9 +476,7 @@ async function showAccountRecovery() {
     const errEl = modal.querySelector('#recoveryPhoneError');
     if (!phone) { errEl.textContent = 'Введите номер телефона'; errEl.classList.remove('hidden'); return; }
     errEl.classList.add('hidden');
-    // Проверяем, есть ли номер в базе
-    const { data: userRow } = await supabaseClient.from('users').select('user_id').eq('phone', phone).maybeSingle();
-    if (!userRow) { errEl.textContent = 'Пользователь с таким номером не найден'; errEl.classList.remove('hidden'); return; }
+    // Номер в базе из приложения не ищем: так можно было бы перебирать чужие номера.
     // Бот больше не отправляет сообщения сам, поэтому код в Telegram не приходит.
     // Восстановление — в чате с ботом: /recover или кнопка «Поделиться номером».
     errEl.textContent = 'Код в Telegram больше не приходит. Откройте чат с ботом ICE LOGIX и отправьте /recover — или напишите в поддержку.';
@@ -489,13 +491,10 @@ async function showAccountRecovery() {
     const code = modal.querySelector('#recoveryCodeInput').value.trim();
     const errEl = modal.querySelector('#recoveryCodeError');
     if (!code) { errEl.textContent = 'Введите код'; errEl.classList.remove('hidden'); return; }
-    const { data: userRow } = await supabaseClient.from('users').select('user_id').eq('phone', phone).maybeSingle();
-    if (!userRow) { errEl.textContent = 'Ошибка — номер не найден'; errEl.classList.remove('hidden'); return; }
-    const { data: codeRow } = await supabaseClient.from('verification_codes')
-      .select('id').eq('user_id', userRow.user_id).eq('code', code).eq('type', 'recovery').eq('used', false)
-      .gte('expires_at', new Date().toISOString()).maybeSingle();
-    if (!codeRow) { errEl.textContent = 'Неверный или просроченный код'; errEl.classList.remove('hidden'); return; }
-    await supabaseClient.from('verification_codes').update({ used: true }).eq('id', codeRow.id);
+    // Коды восстановления проверяет бот (/recover). В приложении их больше не сверяем: таблица кодов закрыта.
+    errEl.textContent = 'Восстановление теперь в чате с ботом ICE LOGIX: отправьте /recover.';
+    errEl.classList.remove('hidden');
+    return;
     clearInterval(resendInterval);
     modal.querySelector('#recoveryPhaseCode').classList.add('hidden');
     modal.querySelector('#recoveryPhaseSuccess').classList.remove('hidden');

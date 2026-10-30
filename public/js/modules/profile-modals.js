@@ -333,26 +333,17 @@ async function showFamilySettingsModal() {
       let pendingOrders = [];
       let groupMembers = [];
       try {
-        const { data } = await supabaseClient.from('orders')
-          .select('*')
-          .eq('status', 'pending')
-          .eq('auto_cancel_reason', 'family_approval_pending')
-          .order('created_at', { ascending: false });
-        if (data) pendingOrders = data;
-        
-        if (freshFam.members && freshFam.members.length > 0) {
-          const { data: memberUsers } = await supabaseClient.from('users')
-            .select('user_id, full_name, phone')
-            .in('user_id', freshFam.members);
-          if (memberUsers) groupMembers = memberUsers;
-        }
+        // Участники и заказы на одобрение — одним вызовом (чужие строки users закрыты)
+        const { data: ov } = await supabaseClient.rpc('family_overview');
+        pendingOrders = ov?.pending_orders || [];
+        groupMembers = ov?.members || [];
       } catch (e) { console.error(e); }
 
       const membersList = groupMembers.map(m => `
         <div class="flex justify-between items-center bg-white/5 p-2.5 rounded-xl border border-white/5">
           <div>
             <p class="text-xs font-bold text-white">${_esc(m.full_name || 'Без имени')}</p>
-            <p class="text-[10px] text-white/50">${_esc(m.phone || '')}</p>
+            <p class="text-[10px] text-white/50">${m.username ? '@' + _esc(m.username) : ''}</p>
           </div>
           <button class="bg-red-500/10 hover:bg-red-500/30 text-red-400 text-[10px] font-bold px-2 py-1 rounded transition" onclick="window.removeFamilyMember('${m.user_id}')">Удалить</button>
         </div>
@@ -404,11 +395,8 @@ async function showFamilySettingsModal() {
     } else {
       let headName = 'Глава аккаунта';
       try {
-        const { data: headUser } = await supabaseClient.from('users')
-          .select('full_name')
-          .eq('user_id', freshFam.head_id)
-          .single();
-        if (headUser) headName = headUser.full_name || 'Глава аккаунта';
+        const { data: ov } = await supabaseClient.rpc('family_overview');
+        if (ov?.head?.full_name) headName = ov.head.full_name;
       } catch(e) {}
 
       let myPendingOrders = [];
@@ -517,191 +505,66 @@ async function showFamilySettingsModal() {
     }
   };
 
+  // Все изменения семьи — на сервере (family_*): чужие строки users из приложения не меняются
+  const reloadFamily = async (okText, err) => {
+    if (err) {
+      glassToast(err.message || 'Не получилось', { kind: 'error' });
+      return;
+    }
+    const { data: me } = await supabaseClient.from('users').select('settings').eq('user_id', userId).single();
+    window.userSettings = me?.settings || {};
+    if (okText) glassToast(okText, { kind: 'success' });
+    const bodyEl = document.getElementById('familyModalBody');
+    if (bodyEl) bodyEl.innerHTML = await renderModalContent();
+    renderCurrentScreen();
+  };
+
   window.createFamilyGroup = async () => {
     tgUtil.haptic('success');
-    const token = 'FAM-IL-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-    const updatedSettings = {
-      ...window.userSettings,
-      family: { role: 'head', token: token, members: [] }
-    };
-    
-    const { error } = await supabaseClient.from('users').update({ settings: updatedSettings }).eq('user_id', userId);
-    if (!error) {
-      window.userSettings = updatedSettings;
-      glassToast('Семейная группа успешно создана!', { kind: 'success' });
-      const bodyEl = document.getElementById('familyModalBody');
-      if (bodyEl) bodyEl.innerHTML = await renderModalContent();
-      renderCurrentScreen();
-    } else {
-      glassToast('Ошибка создания группы', { kind: 'error' });
-    }
+    const { error } = await supabaseClient.rpc('family_create');
+    await reloadFamily('Семейная группа создана', error);
   };
 
   window.joinFamilyGroup = async (token) => {
-    if (!token || !token.startsWith('FAM-')) {
-      glassToast('Неверный формат кода!', { kind: 'error' });
+    if (!token || !token.toUpperCase().startsWith('FAM-')) {
+      glassToast('Код выглядит как FAM-XX-XXXX', { kind: 'error' });
       return;
     }
     tgUtil.haptic('medium');
-    
-    const { data: headUser, error } = await supabaseClient.from('users')
-      .select('user_id, settings')
-      .eq('settings->family->>token', token)
-      .eq('settings->family->>role', 'head')
-      .maybeSingle();
-
-    if (error || !headUser) {
-      glassToast('Группа с таким кодом не найдена!', { kind: 'error' });
-      return;
-    }
-
-    if (headUser.user_id === userId) {
-      glassToast('Вы не можете вступить в свою собственную группу!', { kind: 'error' });
-      return;
-    }
-
-    const headSettings = headUser.settings || {};
-    headSettings.family = headSettings.family || {};
-    headSettings.family.members = headSettings.family.members || [];
-    if (!headSettings.family.members.includes(userId)) {
-      headSettings.family.members.push(userId);
-    }
-
-    await supabaseClient.from('users').update({ settings: headSettings }).eq('user_id', headUser.user_id);
-
-    const memberSettings = {
-      ...window.userSettings,
-      family: { role: 'member', head_id: headUser.user_id, token: token }
-    };
-    const { error: mErr } = await supabaseClient.from('users').update({ settings: memberSettings }).eq('user_id', userId);
-
-    if (!mErr) {
-      window.userSettings = memberSettings;
-      glassToast('Вы успешно вошли в группу!', { kind: 'success' });
-      const bodyEl = document.getElementById('familyModalBody');
-      if (bodyEl) bodyEl.innerHTML = await renderModalContent();
-      renderCurrentScreen();
-    } else {
-      glassToast('Ошибка вступления в группу', { kind: 'error' });
-    }
+    const { error } = await supabaseClient.rpc('family_join', { p_token: token });
+    await reloadFamily('Вы в семейной группе', error);
   };
 
   window.leaveFamilyGroup = async () => {
     tgUtil.haptic('medium');
-    const fam = window.userSettings?.family || {};
-    if (!fam.head_id) return;
-
-    const { data: headUser } = await supabaseClient.from('users').select('settings').eq('user_id', fam.head_id).single();
-    if (headUser) {
-      const headSettings = headUser.settings || {};
-      headSettings.family = headSettings.family || {};
-      headSettings.family.members = headSettings.family.members || [];
-      headSettings.family.members = headSettings.family.members.filter(id => id !== userId);
-      await supabaseClient.from('users').update({ settings: headSettings }).eq('user_id', fam.head_id);
-    }
-
-    const memberSettings = { ...window.userSettings, family: null };
-    const { error } = await supabaseClient.from('users').update({ settings: memberSettings }).eq('user_id', userId);
-    
-    if (!error) {
-      window.userSettings = memberSettings;
-      glassToast('Вы вышли из группы!', { kind: 'success' });
-      const bodyEl = document.getElementById('familyModalBody');
-      if (bodyEl) bodyEl.innerHTML = await renderModalContent();
-      renderCurrentScreen();
-    }
+    const { error } = await supabaseClient.rpc('family_leave');
+    await reloadFamily('Вы вышли из группы', error);
   };
 
   window.disbandFamilyGroup = async () => {
     tgUtil.haptic('medium');
-    const fam = window.userSettings?.family || {};
-    if (fam.members && fam.members.length > 0) {
-      for (const mId of fam.members) {
-        const { data: mUser } = await supabaseClient.from('users').select('settings').eq('user_id', mId).single();
-        if (mUser) {
-          const mSettings = mUser.settings || {};
-          mSettings.family = null;
-          await supabaseClient.from('users').update({ settings: mSettings }).eq('user_id', mId);
-        }
-      }
-    }
-
-    const headSettings = { ...window.userSettings, family: null };
-    const { error } = await supabaseClient.from('users').update({ settings: headSettings }).eq('user_id', userId);
-
-    if (!error) {
-      window.userSettings = headSettings;
-      glassToast('Семейная группа распущена!', { kind: 'success' });
-      const bodyEl = document.getElementById('familyModalBody');
-      if (bodyEl) bodyEl.innerHTML = await renderModalContent();
-      renderCurrentScreen();
-    }
+    const { error } = await supabaseClient.rpc('family_disband');
+    await reloadFamily('Семейная группа распущена', error);
   };
 
   window.removeFamilyMember = async (memberId) => {
     tgUtil.haptic('medium');
-    const { data: mUser } = await supabaseClient.from('users').select('settings').eq('user_id', memberId).single();
-    if (mUser) {
-      const mSettings = mUser.settings || {};
-      mSettings.family = null;
-      await supabaseClient.from('users').update({ settings: mSettings }).eq('user_id', memberId);
-    }
-
-    const headSettings = { ...window.userSettings };
-    headSettings.family.members = headSettings.family.members.filter(id => id !== memberId);
-    
-    const { error } = await supabaseClient.from('users').update({ settings: headSettings }).eq('user_id', userId);
-    if (!error) {
-      window.userSettings = headSettings;
-      glassToast('Участник удален из группы!', { kind: 'success' });
-      const bodyEl = document.getElementById('familyModalBody');
-      if (bodyEl) bodyEl.innerHTML = await renderModalContent();
-      renderCurrentScreen();
-    }
+    const { error } = await supabaseClient.rpc('family_remove_member', { p_member: Number(memberId) });
+    await reloadFamily('Участник удалён из группы', error);
   };
 
   window.approveFamilyOrder = async (orderId) => {
     tgUtil.haptic('success');
-    
-    const { data: order } = await supabaseClient.from('orders').select('*').eq('id', orderId).single();
-    if (!order) {
-      glassToast('Заказ не найден!', { kind: 'error' });
-      return;
-    }
-
-    const { data: headUser } = await supabaseClient.from('users').select('ices_balance').eq('user_id', userId).single();
-    const headBalance = headUser?.ices_balance || 0;
-    
-    if (headBalance < order.total_byn) {
-      glassToast('Недостаточно средств на семейном балансе!', { kind: 'error' });
-      return;
-    }
-
-    const newHeadBalance = headBalance - order.total_byn;
-    await supabaseClient.from('users').update({ ices_balance: newHeadBalance }).eq('user_id', userId);
-
-    await supabaseClient.from('orders').update({
-      status: 'paid',
-      auto_cancel_reason: null
-    }).eq('id', orderId);
-
-    glassToast('Покупка успешно одобрена и оплачена!', { kind: 'success' });
-    const bodyEl = document.getElementById('familyModalBody');
-    if (bodyEl) bodyEl.innerHTML = await renderModalContent();
-    renderCurrentScreen();
+    // Сервер проверит, что заказ от участника вашей семьи, и спишет первый платёж с вашего баланса
+    const { data: res, error } = await supabaseClient.rpc('family_approve_order', { p_order_id: orderId });
+    if (!error && res && res.balance !== undefined && typeof balance !== 'undefined') balance = Number(res.balance);
+    await reloadFamily('Покупка одобрена и оплачена', error);
   };
 
   window.declineFamilyOrder = async (orderId) => {
     tgUtil.haptic('medium');
-    await supabaseClient.from('orders').update({
-      status: 'cancelled',
-      auto_cancel_reason: 'Отклонено главой семейного бюджета'
-    }).eq('id', orderId);
-
-    glassToast('Покупка отклонена!', { kind: 'success' });
-    const bodyEl = document.getElementById('familyModalBody');
-    if (bodyEl) bodyEl.innerHTML = await renderModalContent();
-    renderCurrentScreen();
+    const { error } = await supabaseClient.rpc('family_decline_order', { p_order_id: orderId });
+    await reloadFamily('Покупка отклонена', error);
   };
 
   await updateModalHTML();
@@ -1947,65 +1810,9 @@ async function downloadCustomsInvoice(orderId) {
   }
 }
 
+// Старое колесо (приз в браузере) — переадресация на общее серверное колесо
 function showFortuneWheel() {
-  const modal = document.createElement('div');
-  modal.className = 'full-screen-modal-overlay page-enter';
-  modal.id = 'fortuneWheelModal';
-  modal.innerHTML = `
-    <div class="full-screen-modal-header">
-      <button type="button" class="global-back-btn !mb-0" id="closeWheelBtn" title="Назад">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
-      </button>
-      <div class="text-center">
-        <h3 class="text-white font-bold text-sm">🎡 Колесо Фортуны</h3>
-        <p class="text-white/40 text-[10px]">Призы и бонусы каждый месяц</p>
-      </div>
-      <div style="width: 48px;"></div>
-    </div>
-    <div class="full-screen-modal-body flex flex-col items-center justify-center py-6">
-      <div class="relative w-64 h-64 mb-8">
-        <div id="wheel" class="w-full h-full rounded-full border-4 border-cyan-500 shadow-[0_0_20px_#2F86F5] transition-all duration-[3000ms] ease-out flex items-center justify-center overflow-hidden" style="background: conic-gradient(#4DA3FF 0deg 90deg, #4DA3FF 90deg 180deg, #2F86F5 180deg 270deg, #10b981 270deg 360deg);">
-           <div class="absolute inset-0 flex items-center justify-center font-bold text-white text-xl drop-shadow-md">КРУТИ!</div>
-        </div>
-        <div class="absolute top-0 left-1/2 -ml-3 -mt-2 w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-t-[20px] border-t-white z-10"></div>
-      </div>
-      <button id="spinWheelBtn" class="bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold py-3.5 px-10 rounded-2xl text-base shadow-[0_0_15px_#4DA3FF] hover:scale-105 transition">Крутить (1 раз в месяц)</button>
-    </div>
-  `;
-  document.body.appendChild(modal);
-  
-  modal.querySelector('#closeWheelBtn').onclick = () => window.closeModalWithAnimation(modal);
-  
-  const spinBtn = modal.querySelector('#spinWheelBtn');
-  const wheel = modal.querySelector('#wheel');
-  spinBtn.onclick = async () => {
-    spinBtn.disabled = true;
-    spinBtn.innerText = 'Крутится...';
-    
-    // Проверка БД на spin
-    const { data } = await supabaseClient.from('users').select('last_spin').eq('user_id', userId).single();
-    if (data?.last_spin) {
-      const daysSince = (Date.now() - new Date(data.last_spin).getTime()) / (1000*60*60*24);
-      if (daysSince < 30) {
-        alert('Вы уже крутили колесо в этом месяце!');
-        modal.remove();
-        return;
-      }
-    }
-    
-    const deg = 1080 + Math.floor(Math.random() * 360);
-    wheel.style.transform = `rotate(${deg}deg)`;
-    
-    setTimeout(async () => {
-      const prizes = ['5 ❄️', 'Бесплатная пупырка', 'Скидка 2%', 'Ничего 😢'];
-      const prize = prizes[Math.floor(Math.random() * prizes.length)];
-      alert('🎉 Результат: ' + prize);
-      await supabaseClient.from('users').update({ last_spin: new Date().toISOString() }).eq('user_id', userId);
-      modal.remove();
-    }, 3200);
-  };
+  return showWheelOfFortuneModal();
 }
 
 // Подписание договора (генерирует PDF и сохраняет в Storage)

@@ -1747,17 +1747,18 @@
           const closeBtn = document.getElementById('closeFortuneModalBtn');
           if (closeBtn) closeBtn.style.display = 'none';
 
-          const rand = Math.random() * 100;
-          let sum = 0;
-          let targetIndex = 0;
-          for (let i = 0; i < FORTUNE_REWARDS.length; i++) {
-            sum += FORTUNE_REWARDS[i].weight;
-            if (rand <= sum) {
-              targetIndex = i;
-              break;
-            }
+          // Приз выбирает и начисляет сервер (spin_fortune_wheel), колесо только докручивается до него
+          const { data: spin, error: spinErr } = await supabaseClient.rpc('spin_fortune_wheel');
+          if (spinErr || !spin) {
+            glassToast(spinErr?.message || 'Не получилось крутануть колесо', { kind: 'error' });
+            spinBtn.disabled = false;
+            spinBtn.innerText = 'Закрыть';
+            spinBtn.style.opacity = '1';
+            spinBtn.onclick = closeModal;
+            if (closeBtn) closeBtn.style.display = '';
+            return;
           }
-          const reward = FORTUNE_REWARDS[targetIndex];
+          const targetIndex = Math.min(Math.max(Number(spin.index) || 0, 0), FORTUNE_REWARDS.length - 1);
 
           const N = FORTUNE_REWARDS.length;
           const segmentAngle = (2 * Math.PI) / N;
@@ -1789,47 +1790,23 @@
               tgUtil.haptic('success');
               
               try {
-                const nowStr = new Date().toISOString();
-                const updatedSettings = {
-                  ...window.userSettings,
-                  last_fortune_spin: nowStr
-                };
-
-                let updateData = { settings: updatedSettings };
+                const money = (v) => (typeof window.formatBYN === 'function' ? window.formatBYN(v) : String(v));
                 let resultText = '';
 
-                if (reward.type === 'ice') {
-                  const addedIce = reward.value;
-                  const newBalance = balance + addedIce;
-                  updateData.ices_balance = newBalance;
-                  balance = newBalance;
-                  document.getElementById('headerBalance').innerText = newBalance;
-                  resultText = `🎉 Вы выиграли ${addedIce} ICE!`;
-                } else if (reward.type === 'promo') {
-                  const promoPercent = reward.value === 'ICE5' ? 5 : 10;
-                  const generatedPromo = 'ICE' + promoPercent + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-                  
-                  const { error: promoErr } = await supabaseClient.from('promocodes').insert({
-                    code: generatedPromo,
-                    discount_type: 'percent',
-                    discount_value: promoPercent,
-                    is_active: true
-                  });
-                  if (promoErr) throw promoErr;
-                  
-                  resultText = `🎉 Промокод на ${promoPercent}%: ${generatedPromo}`;
-                } else if (reward.type === 'delivery') {
-                  updatedSettings.free_delivery_tokens = (updatedSettings.free_delivery_tokens || 0) + 1;
-                  updateData.settings = updatedSettings;
-                  resultText = `🎉 Бесплатная доставка на следующий заказ!`;
+                if (spin.type === 'ice') {
+                  balance = Number(spin.balance);
+                  const hb = document.getElementById('headerBalance');
+                  if (hb) hb.innerText = money(balance);
+                  resultText = `Выигрыш ${money(spin.value)} уже на балансе`;
+                } else if (spin.type === 'promo') {
+                  resultText = `Промокод на ${spin.value}%: ${spin.promo_code}`;
+                } else if (spin.type === 'delivery') {
+                  resultText = 'Бесплатная доставка на следующий заказ';
                 } else {
-                  resultText = `🍀 Повезет завтра! Удачи!`;
+                  resultText = 'В этот раз мимо. Попробуйте завтра';
                 }
 
-                const { error: userUpErr } = await supabaseClient.from('users').update(updateData).eq('user_id', userId);
-                if (userUpErr) throw userUpErr;
-
-                window.userSettings = updatedSettings;
+                window.userSettings = spin.settings || window.userSettings;
 
                 const statusTextEl = document.getElementById('fortuneStatusText');
                 if (statusTextEl) {
@@ -2497,6 +2474,17 @@ let adminOrdersTotalPages = 1;
         if (window.supabase) {
           supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
           window.supabaseClient = supabaseClient;
+          // У запросов supabase-js есть только then. Код местами пишет query.catch(() => {}) — без этого
+          // такая строка падала с «catch is not a function» (оформление заказа обрывалось после записи заказа).
+          try {
+            [supabaseClient.from('_').select(), supabaseClient.rpc('_')].forEach((b) => {
+              let p = Object.getPrototypeOf(b);
+              while (p && !Object.prototype.hasOwnProperty.call(p, 'then')) p = Object.getPrototypeOf(p);
+              if (p && typeof p.catch !== 'function') {
+                p.catch = function (onRejected) { return Promise.resolve(this).catch(onRejected); };
+              }
+            });
+          } catch (_) {}
         } else {
           console.error('Supabase SDK failed to load. Database calls will be disabled.');
         }
@@ -2959,17 +2947,13 @@ let adminOrdersTotalPages = 1;
         }
       }
 
-      // Fetch global vacation & exchange buffer settings from the owner's row
+      // Отпуск байера и буфер курса: из настроек владельца через get_public_config (чужие строки users закрыты)
       try {
-        const { data: ownerRow } = await supabaseClient.from('users').select('settings').eq('role', 'owner').limit(1).maybeSingle();
-        if (ownerRow && ownerRow.settings) {
-          if (ownerRow.settings.buyer_vacation) {
-            window.buyerVacation = ownerRow.settings.buyer_vacation;
-          } else {
-            window.buyerVacation = { active: false, days: 0 };
-          }
-          if (ownerRow.settings.exchange_buffer !== undefined) {
-            window.iceLogixPricing.CONFIG.currency_buffer_pct = parseFloat(ownerRow.settings.exchange_buffer);
+        const { data: cfg } = await supabaseClient.rpc('get_public_config');
+        if (cfg) {
+          window.buyerVacation = cfg.buyer_vacation || { active: false, days: 0 };
+          if (cfg.exchange_buffer !== undefined && cfg.exchange_buffer !== null) {
+            window.iceLogixPricing.CONFIG.currency_buffer_pct = parseFloat(cfg.exchange_buffer);
           }
         }
       } catch (err) {

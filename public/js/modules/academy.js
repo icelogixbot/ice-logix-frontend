@@ -326,7 +326,9 @@ async function renderAcademy() {
       async function handleGetCert(courseId, courseTitle) {
         try {
           tgUtil.alert('Подтверждаем статус...');
-          await supabaseClient.from('users').update({ is_trusted: true }).eq('user_id', userId);
+          // Сервер проверит, что курс получен и все уроки пройдены
+          const { error: certErr } = await supabaseClient.rpc('claim_course_certificate', { p_course_id: courseId });
+          if (certErr) throw certErr;
           userLimits.isTrusted = true;
           tgUtil.alert(`Поздравляем! Статус "Проверенный партнер" успешно получен! 🎉`);
           renderCurrentScreen();
@@ -345,10 +347,10 @@ async function renderAcademy() {
           if (!userId) { tgUtil.alert('Авторизуйтесь'); return; }
           if (balance < price) { tgUtil.alert('Недостаточно средств'); return; }
           try {
-            const { error: e1 } = await supabaseClient.from('users').update({ ices_balance: balance - price }).eq('user_id', userId);
+            // Цену берёт и списывает сервер
+            const { data: bought, error: e1 } = await supabaseClient.rpc('buy_course', { p_course_id: courseId });
             if (e1) throw e1;
-            await supabaseClient.from('user_courses').upsert({ user_id: userId, course_id: courseId }, { onConflict: 'user_id,course_id' });
-            balance -= price;
+            balance = Number(bought?.balance ?? balance);
             document.getElementById('headerBalance').innerText = balance;
             tgUtil.alert('✅ Курс куплен! Приятного обучения!');
             renderCurrentScreen();

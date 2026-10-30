@@ -636,6 +636,67 @@ function downloadCSV(csvContent, filename) {
   document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
+// Оплаты на проверке: пополнения «Я оплатил» и остатки по заказам, пока платёжная система не подключена.
+// Деньги зачисляет сервер (admin_confirm_payment -> payment_settle), здесь только решение админа.
+const PAYMENT_TYPE_TEXT = { TOPUP: 'Пополнение баланса', FIRST_PAYMENT: 'Первый платёж по заказу', SECOND_PAYMENT: 'Второй платёж по заказу' };
+const PAYMENT_METHOD_TEXT = { manual: 'перевод', card: 'карта', card_token: 'привязанная карта', erip: 'ЕРИП', oplati: 'Оплати' };
+
+async function renderAdminPaymentsList() {
+  const U = window.UI;
+  try {
+    const { data: rows, error } = await supabaseClient
+      .from('payments')
+      .select('id, user_id, order_id, type, method, amount, created_at')
+      .eq('status', 'PENDING')
+      .order('created_at', { ascending: true })
+      .limit(50);
+    if (error) throw error;
+    if (!rows || !rows.length) {
+      return `<p class="rd-sub">Новых оплат на проверке нет.</p>`;
+    }
+    return rows.map((p) => `
+      <div class="rd-card hs-card hs-col" data-payment-row="${p.id}">
+        <div class="hs-title">${U.esc(PAYMENT_TYPE_TEXT[p.type] || 'Оплата')} · ${U.money(Number(p.amount), { keepCents: true, digits: 2 })}</div>
+        <div class="hs-sub">Клиент ${U.esc(String(p.user_id))} · ${U.esc(PAYMENT_METHOD_TEXT[p.method] || p.method)}${p.order_id ? ' · заказ #' + U.esc(String(p.order_id).slice(0, 8)) : ''} · ${new Date(p.created_at).toLocaleString('ru-RU')}</div>
+        <div class="hs-foot">
+          <button type="button" class="rd-btn rd-btn-sm" onclick="window.adminConfirmPayment('${p.id}')">Деньги пришли</button>
+          <button type="button" class="rd-btn rd-btn-sm rd-btn-ghost" onclick="window.adminRejectPayment('${p.id}')">Оплаты нет</button>
+        </div>
+      </div>`).join('');
+  } catch (e) {
+    return `<p class="rd-sub">Не получилось загрузить оплаты. Обновите экран.</p>`;
+  }
+}
+
+async function refreshAdminPayments() {
+  const box = document.getElementById('adminPaymentsList');
+  if (box) box.innerHTML = await renderAdminPaymentsList();
+}
+
+window.adminConfirmPayment = async (id) => {
+  if (!confirm('Подтвердить, что деньги пришли? Сумма будет зачислена клиенту.')) return;
+  const { error } = await supabaseClient.rpc('admin_confirm_payment', { p_payment_id: id });
+  if (error) { window.UI.toast('Не получилось: ' + error.message); return; }
+  if (window.tgUtil?.haptic) window.tgUtil.haptic('success');
+  window.UI.toast('Оплата подтверждена');
+  await refreshAdminPayments();
+};
+
+window.adminRejectPayment = async (id) => {
+  const reason = await window.UI.ask({
+    title: 'Оплаты нет',
+    text: 'Клиент увидит причину в истории.',
+    fields: [{ name: 'reason', label: 'Причина', type: 'text', value: 'Оплата не найдена' }],
+    action: 'Отклонить',
+    danger: true
+  });
+  if (reason === null) return;
+  const { error } = await supabaseClient.rpc('admin_reject_payment', { p_payment_id: id, p_reason: reason });
+  if (error) { window.UI.toast('Не получилось: ' + error.message); return; }
+  window.UI.toast('Заявка отклонена');
+  await refreshAdminPayments();
+};
+
 async function renderAdminClaimsList() {
   try {
     if (!window.adminCache || !window.adminCache.claims) {
@@ -1086,6 +1147,15 @@ async function renderAdmin() {
           <button id="downloadBackupBtn" class="btn-primary w-full flex items-center justify-center gap-2">
             ${ix('download')} Выгрузить полную резервную копию
           </button>
+        </div>
+
+        <!-- Оплаты на проверке (заявки «Я оплатил» и остатки по заказам) -->
+        <div class="glass-card mt-4">
+          <div class="rd-section"><h2>Оплаты на проверке</h2><button type="button" class="rd-link" onclick="refreshAdminPayments()">Обновить</button></div>
+          <p class="rd-sub">Пока платёжная система не подключена, клиент нажимает «Я оплатил», а вы подтверждаете, когда деньги пришли. Только после этого баланс пополнится или заказ станет оплаченным.</p>
+          <div class="space-y-2" id="adminPaymentsList">
+            ${await renderAdminPaymentsList()}
+          </div>
         </div>
 
         <!-- Страховые претензии (Loss & Damage Moderation) -->
@@ -3998,6 +4068,8 @@ if (typeof renderPromotionsAdminList === 'function') window.renderPromotionsAdmi
 if (typeof logAdminAction === 'function') window.logAdminAction = logAdminAction;
 if (typeof downloadCSV === 'function') window.downloadCSV = downloadCSV;
 if (typeof renderAdminClaimsList === 'function') window.renderAdminClaimsList = renderAdminClaimsList;
+window.renderAdminPaymentsList = renderAdminPaymentsList;
+window.refreshAdminPayments = refreshAdminPayments;
 if (typeof renderAdminLegitChecksList === 'function') window.renderAdminLegitChecksList = renderAdminLegitChecksList;
 if (typeof renderAdmin2FA === 'function') window.renderAdmin2FA = renderAdmin2FA;
 if (typeof attachAdmin2FAHandlers === 'function') window.attachAdmin2FAHandlers = attachAdmin2FAHandlers;

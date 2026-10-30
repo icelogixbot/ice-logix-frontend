@@ -13,11 +13,9 @@
 
       let maskedCard = null;
       try {
-        const { data: udata } = await supabaseClient.from('users').select('encrypted_card').eq('user_id', userId).single();
-        if (udata?.encrypted_card) {
-          const dec = decryptData(udata.encrypted_card);
-          maskedCard = dec?.cardNumber ? maskCard(dec.cardNumber) : '****';
-        }
+        // Номер карты хранится зашифрованным на сервере, приложению отдаются только последние 4 цифры
+        const { data: card } = await supabaseClient.rpc('get_payout_card');
+        if (card?.last4) maskedCard = '•••• •••• •••• ' + card.last4;
       } catch(e) {}
 
       let referrals = [];
@@ -190,9 +188,8 @@
             const cardWrap = document.getElementById('cardInputWrap');
             const cardVisible = cardInput && (!cardWrap || !cardWrap.classList.contains('hidden'));
             if (cardInput && cardVisible && cardInput.value.trim()) {
-              const raw = cardInput.value.replace(/\s/g, '');
-              const encrypted = encryptData({ cardNumber: raw });
-              await supabaseClient.from('users').update({ encrypted_card: encrypted }).eq('user_id', userId);
+              const { error: cardErr } = await supabaseClient.rpc('save_payout_card', { p_card: cardInput.value });
+              if (cardErr) throw cardErr;
             }
             tgUtil.alert('Настройки сохранены');
             renderCurrentScreen();
@@ -205,7 +202,7 @@
         document.getElementById('deleteCardBtn')?.addEventListener('click', async () => {
           if (!(await tgUtil.confirm('Удалить сохранённую карту?'))) return;
           tgUtil.haptic('warning');
-          await supabaseClient.from('users').update({ encrypted_card: null }).eq('user_id', userId);
+          await supabaseClient.rpc('delete_payout_card');
           renderCurrentScreen();
         });
       }

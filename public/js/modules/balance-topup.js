@@ -37,48 +37,23 @@
     return 0;
   }
 
-  // Обновление баланса во всем приложении (DOM + Cache + Supabase)
-  async function applyTopupCredit(addedAmount, successMsg) {
-    const curUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
-    const addedIce = parseFloat(addedAmount) || 0;
-    if (addedIce <= 0) return;
-
-    if (curUserId && typeof supabaseClient !== 'undefined' && supabaseClient) {
-      try {
-        const { data: u } = await supabaseClient.from('users').select('ices_balance').eq('user_id', curUserId).single();
-        const newBal = (u?.ices_balance || 0) + addedIce;
-        await supabaseClient.from('users').update({ ices_balance: newBal }).eq('user_id', curUserId);
-      } catch (e) {
-        console.warn('Failed to update ices_balance in Supabase:', e);
-      }
-    }
-
-    const prevBal = getLiveUserBalance();
-    const nextBal = prevBal + addedIce;
-    window.balance = nextBal;
-
-    const hb = document.getElementById('headerBalance');
-    if (hb) hb.innerText = nextBal;
-
-    const tb = document.getElementById('topupCurrentBalText');
-    if (tb) tb.innerHTML = `${nextBal.toFixed(2)} ${window.bynSign ? window.bynSign() : ''}`;
-
-    const tbByn = document.getElementById('topupCurrentBalByn');
-    if (tbByn) tbByn.innerHTML = '';
-
-    try {
-      const cached = localStorage.getItem('ice_cached_user');
-      if (cached) {
-        const u = JSON.parse(cached);
-        u.balance = nextBal;
-        localStorage.setItem('ice_cached_user', JSON.stringify(u));
-      }
-    } catch (_) {}
-
+  // Пополнение: приложение только создаёт заявку (request_topup). Деньги зачисляет сервер, когда оплату
+  // подтвердит платёжная система или админ. successMsg больше не используется (там было «начислено»).
+  async function applyTopupCredit(addedAmount, successMsg, method = 'manual') {
+    const amount = Math.round((parseFloat(addedAmount) || 0) * 100) / 100;
+    if (amount <= 0) return false;
+    const money = (v) => (typeof window.formatBYN === 'function' ? window.formatBYN(v) : v.toFixed(2));
+    const { error } = await supabaseClient.rpc('request_topup', { p_amount: amount, p_method: method });
     if (typeof tgUtil !== 'undefined') {
+      if (error) {
+        if (tgUtil.haptic) tgUtil.haptic('error');
+        tgUtil.alert(error.message || 'Не получилось создать заявку на пополнение');
+        return false;
+      }
       if (tgUtil.haptic) tgUtil.haptic('success');
-      tgUtil.alert(successMsg || `Баланс успешно пополнен на +${addedIce}!`);
+      tgUtil.alert(`Заявка на пополнение на ${money(amount)} принята. Деньги появятся на балансе, как только мы увидим оплату.`);
     }
+    return !error;
   }
 
   // Генератор реалистичного SVG QR-кода для сервиса «Оплати»
@@ -277,7 +252,7 @@
       await new Promise(r => setTimeout(r, 1500));
 
       if (!isOrder) {
-        await applyTopupCredit(amountVal, `Счёт ЕРИП подтверждён! Начислено +${amountVal} на ваш баланс.`);
+        await applyTopupCredit(amountVal, null, 'erip');
       } else {
         if (typeof tgUtil !== 'undefined') {
           if (tgUtil.haptic) tgUtil.haptic('success');
@@ -418,7 +393,7 @@
       await new Promise(r => setTimeout(r, 1400));
 
       if (!isOrder) {
-        await applyTopupCredit(amountVal, `Платеж получен! Начислено +${amountVal} на ваш баланс.`);
+        await applyTopupCredit(amountVal, null, 'oplati');
       } else {
         if (typeof tgUtil !== 'undefined') {
           if (tgUtil.haptic) tgUtil.haptic('success');
@@ -829,7 +804,7 @@
           if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('medium');
 
           await new Promise(r => setTimeout(r, 1400));
-          await applyTopupCredit(amountVal, `Баланс успешно пополнен на +${amountVal} с банковской карты!`);
+          await applyTopupCredit(amountVal, null, 'card');
 
           submitBtn.disabled = false;
           updateTopupAmount(_selectedTopupAmount);

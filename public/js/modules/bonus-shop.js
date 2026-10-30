@@ -534,45 +534,16 @@
         submitBtn.textContent = 'Подтвердить обмен';
         return;
       }
-    } else if (item.category === 'coupons') {
-      payload.promo_code = `ICE-REWARD-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     }
 
     try {
-      // 1. Списание с ices_balance
-      const newBal = round2(userBalance - item.price_ice);
-      if (typeof supabaseClient !== 'undefined') {
-        const { error: balErr } = await supabaseClient
-          .from('users')
-          .update({ ices_balance: newBal })
-          .eq('user_id', uid);
-        if (balErr) throw balErr;
-
-        // 2. Запись в balance_entries
-        try {
-          await supabaseClient.from('balance_entries').insert({
-            user_id: uid,
-            type: 'BONUS_SHOP_PURCHASE',
-            direction: 'DEBIT',
-            amount: item.price_ice,
-            reason: `Обмен бонусов на: ${item.title}`
-          });
-        } catch (e) {
-          console.warn('balance_entries write warning:', e);
-        }
-
-        // 3. Создание заявки в bonus_shop_orders
-        const { error: ordErr } = await supabaseClient.from('bonus_shop_orders').insert({
-          user_id: uid,
-          item_id: (typeof item.id === 'string' && item.id.length > 20) ? item.id : null,
-          item_title: item.title,
-          category: item.category,
-          price_ice: item.price_ice,
-          contact_payload: payload,
-          status: 'PENDING'
-        });
-        if (ordErr) console.warn('bonus_shop_orders warning:', ordErr);
-      }
+      // Цену, списание, промокод купона и заявку делает сервер (buy_bonus_item)
+      const { data: bought, error: buyErr } = await supabaseClient.rpc('buy_bonus_item', {
+        p_item_id: item.id,
+        p_payload: payload
+      });
+      if (buyErr) throw buyErr;
+      const newBal = round2(Number(bought?.balance ?? userBalance));
 
       // Обновляем локальное состояние
       window.balance = newBal;

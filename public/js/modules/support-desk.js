@@ -85,39 +85,50 @@
       }
     }
 
-    // Проверяем авторизацию
+    // Вход оператора проверяет сервер: подпись Telegram (telegram-auth) и роль в базе (app_is_support).
+    // Параметры ?op= / ?auth_bypass= и сохранённый в браузере id больше не дают доступа.
     const tgUser = tg?.initDataUnsafe?.user;
     const urlParams = new URLSearchParams(window.location.search);
-    const bypassId = urlParams.get('auth_bypass') || urlParams.get('op');
-    const cachedId = localStorage.getItem('ice_operator_id');
+    try { localStorage.removeItem('ice_operator_id'); } catch {}
 
-    let operatorId = tgUser?.id || (bypassId ? parseInt(bypassId, 10) : null) || (cachedId ? parseInt(cachedId, 10) : null);
+    if (!window.supabase?.createClient) {
+      console.error('Supabase client library not found');
+      return;
+    }
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Если оператор из белого списка
-    if (operatorId && AUTHORIZED_OPERATORS.includes(Number(operatorId))) {
-      localStorage.setItem('ice_operator_id', String(operatorId));
-    } else {
-      showAccessDenied(operatorId);
+    let isOperator = false;
+    if (tg?.initData) {
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/telegram-auth`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ initData: tg.initData }),
+        });
+        const auth = await res.json();
+        if (auth.ok && auth.session) {
+          await supabaseClient.auth.setSession({ access_token: auth.session.access_token, refresh_token: auth.session.refresh_token });
+          const { data: ok } = await supabaseClient.rpc('app_is_support');
+          isOperator = ok === true;
+        }
+      } catch (e) {
+        console.error('Operator auth failed:', e);
+      }
+    }
+    if (!isOperator) {
+      showAccessDenied(tgUser?.id || null);
       return;
     }
 
     currentUser = {
-      id: Number(operatorId),
-      name: tgUser?.first_name || 'Кирилл (Оператор)',
-      username: tgUser?.username || 'admin',
+      id: Number(tgUser.id),
+      name: tgUser.first_name || 'Оператор',
+      username: tgUser.username || '',
     };
 
     // Обновляем бейдж оператора в шапке
     const opBadge = document.getElementById('operatorNameBadge');
     if (opBadge) opBadge.textContent = currentUser.name;
-
-    // Инициализация Supabase
-    if (window.supabase?.createClient) {
-      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } else {
-      console.error('Supabase client library not found');
-      return;
-    }
 
     // Восстанавливаем сохраненную вкладку
     const savedTab = localStorage.getItem('ice_desk_active_tab');

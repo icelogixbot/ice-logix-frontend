@@ -317,65 +317,17 @@ function attachLegitCheckHandlers() {
 
 
 
-        // 3. Deduct balance in DB
-
-        const newBalance = balance - cost;
-
-        const { error: balErr } = await supabaseClient
-
-          .from('users')
-
-          .update({ ices_balance: newBalance })
-
-          .eq('user_id', userId);
-
-        if (balErr) throw balErr;
-
-        
-
-        // Обновляем локальный UI баланс
-
+        // 3. Оплата и заявка — на сервере (pay_legit_check): цена из настроек, списание через журнал баланса
+        const { data: paid, error: payErr } = await supabaseClient.rpc('pay_legit_check', {
+          p_brand: brandVal,
+          p_model: modelVal,
+          p_photos: paths
+        });
+        if (payErr) throw payErr;
+        const newBalance = Number(paid?.balance ?? (balance - cost));
         window.balance = newBalance;
-
         const balEl = document.getElementById('headerBalance');
-
         if (balEl) balEl.innerText = newBalance;
-
-
-
-        // 4. Log transaction
-
-        await supabaseClient.from('transactions').insert({
-
-          user_id: userId,
-
-          amount: -cost,
-
-          type: 'legit_check',
-
-          description: `Оплата ручной проверки Legit-Check (${brandVal} ${modelVal})`
-
-        });
-
-
-
-        // 5. Create legit check request row in DB
-
-        const { error: reqErr } = await supabaseClient.from('legit_check_requests').insert({
-
-          user_id: userId,
-
-          brand: brandVal,
-
-          model: modelVal,
-
-          photos: paths,
-
-          status: 'pending'
-
-        });
-
-        if (reqErr) throw reqErr;
 
 
 

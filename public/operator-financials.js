@@ -158,14 +158,17 @@
             const refundAmt = Math.abs(diffBYN);
             const { data: ordData } = await window.supabaseClient.from('orders').select('user_id').eq('id', orderId).single();
             if (ordData?.user_id) {
-              await window.supabaseClient.from('balance_entries').insert({
+              // Запись в журнал сама зачисляет деньги на баланс (триггер в базе); повтор по заказу не пройдёт
+              const { error: beErr } = await window.supabaseClient.from('balance_entries').insert({
                 user_id: ordData.user_id,
                 order_id: orderId,
-                operation_type: 'PRICE_DROP_REFUND',
-                amount: refundAmt,
-                note: `Снижение цены товара по заказу #${orderId.slice(0, 8)}`
-              }).catch(() => {});
-              await window.supabaseClient.rpc('increment_user_balance', { u_id: ordData.user_id, delta: refundAmt }).catch(() => {});
+                type: 'REFUND',
+                direction: 'CREDIT',
+                amount: Math.round(refundAmt * 100) / 100,
+                reason: 'PRICE_DROP_REFUND',
+                source_transaction_id: 'price_drop:' + orderId
+              });
+              if (beErr) console.warn('Возврат при снижении цены не записан:', beErr.message);
             }
           }
 
@@ -353,14 +356,16 @@
           if (surplus > 0.01) {
             const { data: ordData } = await window.supabaseClient.from('orders').select('user_id').eq('id', orderId).single();
             if (ordData?.user_id) {
-              await window.supabaseClient.from('balance_entries').insert({
+              const { error: beErr } = await window.supabaseClient.from('balance_entries').insert({
                 user_id: ordData.user_id,
                 order_id: orderId,
-                operation_type: 'DELIVERY_SURPLUS',
-                amount: surplus,
-                note: `Излишек резерва доставки заказа #${orderId.slice(0, 8)}`
-              }).catch(() => {});
-              await window.supabaseClient.rpc('increment_user_balance', { u_id: ordData.user_id, delta: surplus }).catch(() => {});
+                type: 'REFUND',
+                direction: 'CREDIT',
+                amount: Math.round(surplus * 100) / 100,
+                reason: 'DELIVERY_SURPLUS',
+                source_transaction_id: 'delivery_surplus:' + orderId
+              });
+              if (beErr) console.warn('Излишек доставки не записан:', beErr.message);
             }
           }
 
@@ -655,75 +660,39 @@
   };
 
   // --- 5. Клиентское согласование / отмена при подорожании > 3% (Раздел 25 ТЗ) ---
+  // Решение клиента при подорожании — на сервере (order_price_decision): статус и возврат денег на баланс
+  const priceDecision = async (orderId, accept) => {
+    const { data, error } = await window.supabaseClient.rpc('order_price_decision', { p_order_id: orderId, p_accept: accept });
+    if (error) throw error;
+    return data || {};
+  };
+
   window.confirmOrderPriceIncrease = async function(orderId) {
-    if (!confirm('Вы подтверждаете увеличение стоимости товара? Заказ будет передан в работу на выкуп.')) return;
+    if (!confirm('Согласиться с новой ценой? Заказ уйдёт в работу.')) return;
     try {
-      const { error } = await window.supabaseClient
-        .from('orders')
-        .update({ status: 'paid', updated_at: new Date().toISOString() })
-        .eq('id', orderId);
-      if (error) throw error;
+      await priceDecision(orderId, true);
       if (window.tgUtil) {
         window.tgUtil.haptic('success');
-        window.tgUtil.showPopup('Успешно', 'Вы подтвердили заказ. Оператор завершит выкуп.');
-      } else {
-        alert('Заказ подтвержден!');
+        window.tgUtil.showPopup('Готово', 'Вы согласились с новой ценой. Оператор завершит выкуп.');
       }
       if (typeof window.switchTab === 'function') window.switchTab('my_orders');
     } catch (e) {
-      alert('Ошибка подтверждения: ' + e.message);
+      alert('Не получилось подтвердить: ' + e.message);
     }
   };
 
   window.cancelOrderDueToPrice = async function(orderId) {
-    if (!confirm('Вы уверены, что хотите отменить заказ? Вся внесенная предоплата будет зачислена на ваш баланс без комиссий.')) return;
+    if (!confirm('Отменить заказ? Всё оплаченное вернётся на баланс.')) return;
     try {
-      const { data: order, error: ordErr } = await window.supabaseClient
-        .from('orders')
-        .select('*')
-        .eq('id', orderId)
-        .single();
-      if (ordErr) throw ordErr;
-
-      const refundAmount = Number(order.prepayment_amount || 0);
-
-      if (refundAmount > 0) {
-        const { data: user } = await window.supabaseClient
-          .from('users')
-          .select('ices_balance')
-          .eq('user_id', order.user_id)
-          .single();
-        const currentBal = Number(user?.ices_balance || 0);
-        await window.supabaseClient
-          .from('users')
-          .update({ ices_balance: currentBal + refundAmount })
-          .eq('user_id', order.user_id);
-
-        await window.supabaseClient.from('balance_ledger').insert({
-          user_id: order.user_id,
-          order_id: orderId,
-          direction: 'CREDIT',
-          type: 'REFUND_SCENARIO_C',
-          amount: refundAmount,
-          currency: 'BYN',
-          comment: 'Полный возврат предоплаты при отмене из-за подорожания товара'
-        });
-      }
-
-      await window.supabaseClient
-        .from('orders')
-        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
-        .eq('id', orderId);
-
+      const res = await priceDecision(orderId, false);
+      const money = (v) => (typeof window.formatBYN === 'function' ? window.formatBYN(v) : Number(v || 0).toFixed(2));
       if (window.tgUtil) {
         window.tgUtil.haptic('success');
-        window.tgUtil.showPopup('Заказ отменен', `Заказ отменен. ${refundAmount.toFixed(2)} зачислено на ваш баланс.`);
-      } else {
-        alert(`Заказ отменен. ${refundAmount.toFixed(2)} зачислено на баланс.`);
+        window.tgUtil.showPopup('Заказ отменён', `На баланс вернулось ${money(res.refund)}.`);
       }
       if (typeof window.switchTab === 'function') window.switchTab('my_orders');
     } catch (e) {
-      alert('Ошибка отмены: ' + e.message);
+      alert('Не получилось отменить: ' + e.message);
     }
   };
 
