@@ -433,6 +433,7 @@ window.addToCartFromCalc = async function(item) {
         category: item.category || 'Одежда',
         image_url: it.image_url || item.image_url || '',
         url: item.url || '',
+        weight: item.weight || null,
         total_byn: itCalc.totalByn
       });
       addedCount += it.quantity;
@@ -467,6 +468,7 @@ window.addToCartFromCalc = async function(item) {
     category: item.category || 'Одежда',
     image_url: item.image_url || '',
     url: item.url || '',
+    weight: item.weight || null,
     total_byn: calc.totalByn
   });
   localStorage.setItem('ice_custom_cart', JSON.stringify(customCart));

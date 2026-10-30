@@ -31,7 +31,28 @@
       });
     }
 
+    // Упавший экран не должен оставлять вечную загрузку: показываем сообщение и «Повторить»
     async function renderCurrentScreen() {
+      const myEpoch = (window._navEpoch || 0) + 1;
+      try {
+        return await _renderCurrentScreenInner();
+      } catch (e) {
+        console.error('[ICE LOGIX Router] Экран не открылся:', currentTab, currentSubScreen, e);
+        if (window._navEpoch !== myEpoch) return;   // клиент уже ушёл на другой экран
+        const box = document.getElementById('content');
+        if (box && window.UI) {
+          box.innerHTML = `<div class="rd-screen page-enter">${window.UI.empty({
+            icon: 'alert',
+            title: 'Не получилось открыть экран',
+            text: 'Попробуйте ещё раз. Если не поможет, напишите в поддержку.',
+            action: 'Повторить',
+            onclick: 'renderCurrentScreen()'
+          })}</div>`;
+        }
+      }
+    }
+
+    async function _renderCurrentScreenInner() {
       const thisNavId = ++window._navEpoch;
       const contentDiv = document.getElementById('content');
       syncTelegramBackButton();

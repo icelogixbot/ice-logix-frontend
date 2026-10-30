@@ -959,6 +959,8 @@
     window.ix = ix;
     window.bynSign = bynSign;
     window.formatBYN = formatBYN;
+    // Сумма для обычного текста (окна сообщений показывают текст как есть, значок рубля там — не вёрстка)
+    window.moneyText = (v) => Number(v || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     // Legacy content still contains emoji in a number of dynamically-rendered
     // modules. Normalize it at the DOM boundary so every screen uses one icon
@@ -1460,6 +1462,7 @@
     // Особенно важно для режима «Вручную» — там данные не проходят парсер.
     // Возвращает массив ошибок (пустой = всё ок).
     const ALLOWED_MARKETPLACE_HOSTS = [
+      'pinduoduo.com', 'yangkeduo.com', 'goofish.com', 'xiaohongshu.com',
       'poizon.com', 'dewu.com', 'taobao.com', 'tmall.com', '1688.com', 'jd.com', 'xianyu.com',
       'zalando.pl', 'zalando.de', 'zalando.com', 'zalando-lounge.pl', 'asos.com', 'farfetch.com',
       'aboutyou.com', 'aboutyou.de', 'sneakerstudio.com', 'endclothing.com', 'ssense.com',
@@ -1796,7 +1799,7 @@
                 if (spin.type === 'ice') {
                   balance = Number(spin.balance);
                   const hb = document.getElementById('headerBalance');
-                  if (hb) hb.innerText = money(balance);
+                  if (hb) hb.innerText = balance;
                   resultText = `Выигрыш ${money(spin.value)} уже на балансе`;
                 } else if (spin.type === 'promo') {
                   resultText = `Промокод на ${spin.value}%: ${spin.promo_code}`;
@@ -2366,15 +2369,6 @@ let adminOrdersTotalPages = 1;
                 <div class="flex justify-between text-base font-bold pt-2 border-t border-white/10 mb-2">
                   <span class="text-white">Итого:</span>
                   <span class="text-cyan-400 inline-flex items-baseline gap-1">${_ipMoneyFmt(totalByn - discount)} ${bynSign()}</span>
-                </div>
-                <div class="p-2.5 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[10px] space-y-1 mt-2">
-                  <p class="text-yellow-400 font-bold flex items-center gap-1">
-                    ${ix('trending-up', { size: '12px' })} Выгода заказа в ICE LOGIX
-                  </p>
-                  <p class="text-white/70">
-                    Цена в ТЦ Минска: <span class="text-red-400 line-through font-mono font-bold inline-flex items-baseline gap-1">${_ipMoneyFmt((totalByn - discount) * 1.7)} ${bynSign()}</span><br>
-                    🔥 Ваша экономия: <strong class="text-green-400 font-bold font-mono inline-flex items-baseline gap-1">${_ipMoneyFmt((totalByn - discount) * 0.7)} ${bynSign()} (41%)</strong>!
-                  </p>
                 </div>
               ` : ''}
             </div>

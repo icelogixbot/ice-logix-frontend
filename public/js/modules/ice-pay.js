@@ -8,7 +8,8 @@
   let _config = null;
 
   const U = () => window.UI;
-  const money = (v) => (typeof window.formatBYN === 'function' ? window.formatBYN(v) : Number(v || 0).toFixed(2));
+  const money = (v) => (typeof window.formatBYN === 'function' ? window.formatBYN(v) : Number(v || 0).toFixed(2));   // только в вёрстке
+  const moneyText = (v) => window.moneyText(v);   // для окон сообщений: они показывают текст как есть
   const haptic = (kind) => { try { window.tgUtil?.haptic?.(kind); } catch (_) {} };
   const say = (text) => (window.tgUtil?.alert ? window.tgUtil.alert(text) : alert(text));
 
@@ -121,7 +122,7 @@
       if (c && /^[0-9a-f-]{36}$/i.test(c.id)) { m = 'card_token'; cardId = c.id; }
     }
     const res = await call({ action: 'topup', amount: amt, method: m, card_id: cardId, save_card: opts.save_card !== false });
-    return finish(res, amt, `Заявка на пополнение на ${money(amt)} принята. Деньги появятся на балансе, как только мы увидим оплату.`);
+    return finish(res, amt, `Заявка на пополнение на ${moneyText(amt)} принята. Деньги появятся на балансе, как только мы увидим оплату.`);
   }
 
   // Оплата этапа заказа ('FIRST' | 'SECOND'). Сначала сколько разрешено с баланса, остаток — выбранным способом.

@@ -685,10 +685,9 @@
     if (!confirm('Отменить заказ? Всё оплаченное вернётся на баланс.')) return;
     try {
       const res = await priceDecision(orderId, false);
-      const money = (v) => (typeof window.formatBYN === 'function' ? window.formatBYN(v) : Number(v || 0).toFixed(2));
       if (window.tgUtil) {
         window.tgUtil.haptic('success');
-        window.tgUtil.showPopup('Заказ отменён', `На баланс вернулось ${money(res.refund)}.`);
+        window.tgUtil.showPopup('Заказ отменён', `На баланс вернулось ${window.moneyText(res.refund)}.`);
       }
       if (typeof window.switchTab === 'function') window.switchTab('my_orders');
     } catch (e) {

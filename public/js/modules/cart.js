@@ -6,6 +6,34 @@
 (function () {
   'use strict';
 
+  // Полные данные вещей корзины: нужны для оформления заказа (цена в валюте, вес, категория, ссылка)
+  const _cartItemsById = new Map();
+
+  // Площадка по ссылке. Неизвестная ссылка считается Китаем: заказы сейчас идут только оттуда
+  function platformFromUrl(url) {
+    const u = String(url || '').toLowerCase();
+    if (/wildberries|wb\.ru/.test(u)) return 'wildberries';
+    if (/ozon\./.test(u)) return 'ozon';
+    if (/lamoda/.test(u)) return 'lamoda';
+    if (/avito/.test(u)) return 'avito';
+    if (/taobao/.test(u)) return 'taobao';
+    if (/tmall/.test(u)) return 'tmall';
+    if (/1688\./.test(u)) return '1688';
+    if (/dewu|poizon/.test(u)) return 'poizon';
+    return 'pinduoduo';
+  }
+
+  // Вес: сохранённый при расчёте, иначе тот же, что брал калькулятор для такой категории
+  function cartItemWeight(it) {
+    const saved = parseFloat(it.weight);
+    if (saved > 0) return saved;
+    if (typeof window.calculateAllInclusiveByn === 'function') {
+      const w = window.calculateAllInclusiveByn(it.priceCny, it.category, null, 1).weightKg;
+      if (w > 0) return w;
+    }
+    return 1;
+  }
+
   // --- Helper: Get all unified cart items (Supabase + LocalStorage) ---
   async function loadAllCartItems() {
     const currentUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
@@ -46,11 +74,13 @@
               title: prod.title || 'Товар',
               imageUrl: images[0] || 'https://via.placeholder.com/150',
               priceCny: Number(prod.price || 0),
+              currency: prod.currency || 'CNY',
               priceByn: Number(priceByn.toFixed(2)),
               quantity: Number(row.quantity || 1),
               size: prod.size || '',
               color: prod.color || '',
               category: prod.category || 'Магазин ICE',
+              brand: prod.brand || '',
               url: prod.url || ''
             });
           });
@@ -65,7 +95,8 @@
       const localCustom = JSON.parse(localStorage.getItem('ice_custom_cart') || '[]');
       if (Array.isArray(localCustom)) {
         localCustom.forEach(it => {
-          let priceByn = it.total_byn || 0;
+          // total_byn из калькулятора посчитан на всё количество, корзина хранит цену за штуку
+          let priceByn = it.total_byn ? Number(it.total_byn) / Math.max(1, Number(it.quantity) || 1) : 0;
           if (!priceByn) {
             if (window.iceLogixPricing && typeof window.iceLogixPricing.quickEstimate === 'function') {
               priceByn = window.iceLogixPricing.quickEstimate(it.price, 1);
@@ -80,6 +111,8 @@
             title: it.title || 'Расчет доставки',
             imageUrl: it.image_url || 'https://via.placeholder.com/150',
             priceCny: Number(it.price || 0),
+            currency: it.currency || 'CNY',
+            weight: it.weight,
             priceByn: Number(priceByn.toFixed(2)),
             quantity: Number(it.quantity || 1),
             size: it.size || '',
@@ -93,6 +126,8 @@
       console.error('Failed to load local custom cart items:', e);
     }
 
+    _cartItemsById.clear();
+    unified.forEach((it) => _cartItemsById.set(String(it.id), it));
     return unified;
   }
 
@@ -658,12 +693,25 @@
             const price = parseFloat(card.dataset.price || '0');
             const quantity = parseInt(card.querySelector('.wb-qty-val')?.innerText || '1', 10);
             const imageUrl = card.querySelector('.wb-product-thumb')?.src || '';
+            const full = _cartItemsById.get(String(cartId)) || {};
 
+            // price — цена в валюте площадки: от неё экран оформления считает заказ.
+            // total_byn — цена за штуку в рублях, пока не пришёл точный пересчёт.
             selectedItems.push({
               cartId: cartId,
               productId: productId,
               title: title,
-              price: price,
+              price: Number(full.priceCny) || price,
+              currency: full.currency || 'CNY',
+              total_byn: price,
+              weight: cartItemWeight({ ...full, priceCny: Number(full.priceCny) || price }),
+              category: full.category || 'Одежда',
+              brand: full.brand || '',
+              size: full.size || '',
+              color: full.color || '',
+              url: full.url || '',
+              platform: platformFromUrl(full.url),
+              fromCatalog: full.isCustom === false,
               imageUrl: imageUrl,
               image_url: imageUrl,
               quantity: quantity
@@ -676,7 +724,7 @@
           return;
         }
 
-        const total = selectedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        const total = selectedItems.reduce((sum, item) => sum + item.total_byn * item.quantity, 0);
 
         if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
 

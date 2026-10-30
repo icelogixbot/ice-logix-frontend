@@ -541,7 +541,7 @@ window.applySmartShareLink = applySmartShareLink;
       
       // Sum up total from all items
       window.tempOrder.items.forEach(item => {
-        totalSum += item.total_byn * item.quantity;
+        totalSum += (Number(item.total_byn) || 0) * (Number(item.quantity) || 1);
       });
 
       if (window.tempOrder.items.length === 0) {
@@ -592,7 +592,7 @@ window.applySmartShareLink = applySmartShareLink;
               <div class="flex-1 min-w-0">
                 <div class="text-sm font-bold text-white truncate">${item.title}</div>
                 <div class="text-xs text-white/60 mt-0.5">Размер: ${item.size || 'не указан'} · Категория: ${item.category}</div>
-                <div class="text-xs text-cyan-400 font-bold mt-1 inline-flex items-baseline gap-1">${item.price} ${item.currency} (${item.total_byn.toFixed(2)} ${window.bynSign ? window.bynSign() : ''})</div>
+                <div class="text-xs font-bold mt-1 inline-flex items-baseline gap-1" style="color:var(--rd-b400)">${item.price} ${item.currency || ''} (${(Number(item.total_byn) || 0).toFixed(2)} ${window.bynSign ? window.bynSign() : ''})</div>
               </div>
               <button type="button" class="bg-red-500/20 hover:bg-red-500/40 text-red-400 rounded-full w-8 h-8 flex items-center justify-center transition flex-shrink-0" onclick="deleteOrderItem(${item._originalIndex})">${ix('trash-2')}</button>
             </div>
@@ -1258,10 +1258,12 @@ window.applySmartShareLink = applySmartShareLink;
               url: window.tempOrder.items?.[0]?.url || '',
             };
 
-            const validationErrors = validateOrderBeforeSubmit(consolidatedOrder);
+            // Вопрос про незнакомую площадку — только для ссылок клиента, не для вещей из нашего каталога
+            const firstItem = window.tempOrder.items?.[0];
+            const validationErrors = validateOrderBeforeSubmit(firstItem?.fromCatalog ? { ...consolidatedOrder, url: '' } : consolidatedOrder);
             if (validationErrors.length) {
               tgUtil.haptic('warning');
-              tgUtil.alert('Проверьте заказ:\\n• ' + validationErrors.join('\\n• '));
+              tgUtil.alert('Проверьте заказ:\n• ' + validationErrors.join('\n• '));
               return;
             }
 
@@ -1378,6 +1380,8 @@ window.applySmartShareLink = applySmartShareLink;
                   title: it.title || it.name || 'Товар',
                   variant: it.size || it.variant || '',
                   quantity: it.quantity || 1,
+                  price: it.price || 0,
+                  currency: it.currency || 'CNY',
                   source_price_cny: it.price || 0,
                   calculated_price_byn: Math.round((it.price || 0) * (bk.rates?.CNY_to_BYN || 0.45) * 100) / 100,
                   item_status: 'PENDING'
@@ -1435,14 +1439,13 @@ window.applySmartShareLink = applySmartShareLink;
               if (payRes && (payRes.redirect_url || payRes.erip || payRes.sandbox)) {
                 // ничего: клиент оплачивает на странице банка / в ЕРИП, заказ станет оплаченным сам
               } else {
-                const money = (v) => (typeof window.formatBYN === 'function' ? window.formatBYN(v) : Number(v).toFixed(2));
                 const num = createdOrderId.slice(0, 8);
                 if (isFamilyMember) {
                   tgUtil.alert(`Заказ #${num} оформлен и отправлен главе семейного бюджета на одобрение.`);
                 } else if (payRes && payRes.status === 'paid') {
                   tgUtil.alert(`Заказ #${num} оформлен и оплачен с баланса.`);
                 } else {
-                  tgUtil.alert(`Заказ #${num} оформлен. К оплате ${money(payRes?.remaining ?? firstPaymentToPay)}. Возьмём его в работу, как только подтвердим оплату.`);
+                  tgUtil.alert(`Заказ #${num} оформлен. К оплате ${window.moneyText(payRes?.remaining ?? firstPaymentToPay)}. Возьмём его в работу, как только подтвердим оплату.`);
                 }
               }
 
@@ -4004,13 +4007,12 @@ window.openSecondPaymentModal = function(orderId, amount) {
       if (typeof updateUserCard === 'function') updateUserCard();
 
       tgUtil.haptic('success');
-      const money = (v) => (typeof window.formatBYN === 'function' ? window.formatBYN(v) : Number(v).toFixed(2));
       if (pr && pr.status === 'paid') {
         tgUtil.alert(`Второй платёж по заказу #${orderId.slice(0, 8)} оплачен. Готовим отправку.`);
       } else if (pr && (pr.redirect_url || pr.erip || pr.sandbox)) {
         // страницу банка уже открыл IcePay
       } else {
-        tgUtil.alert(`Осталось оплатить ${money(pr?.remaining ?? cardDue)}. Отправим заказ, как только подтвердим оплату.`);
+        tgUtil.alert(`Осталось оплатить ${window.moneyText(pr?.remaining ?? cardDue)}. Отправим заказ, как только подтвердим оплату.`);
       }
       close();
       if (typeof renderCurrentScreen === 'function') renderCurrentScreen();
