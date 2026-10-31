@@ -481,10 +481,27 @@
       if (visualGroup && sizeGroup) return skuPhotos[`${rawOf(vis)}|${rawOf(size)}`] || skuPhotos[rawOf(vis)] || '';
       return skuPhotos[rawOf(vis || size)] || '';
     }
+    // Как в PDD: выбрали вариант — первое фото карусели становится фото этого варианта (если первым не идёт видео)
+    let firstSlideImg = null;
+    let firstSlideOrig = '';
+    let variantPhotoShown = false;
+    function swapFirstSlide(url) {
+      if (!firstSlideImg) {
+        const first = $('#skGallery .sk-slide');
+        if (!first || first.classList.contains('sk-slide-video')) return;
+        firstSlideImg = first.querySelector('img');
+        if (!firstSlideImg) return;
+        firstSlideOrig = firstSlideImg.getAttribute('src') || '';
+      }
+      const want = url || firstSlideOrig;
+      if (firstSlideImg.getAttribute('src') !== want) firstSlideImg.setAttribute('src', want);
+    }
     function updateVariantPhoto() {
       const box = $('#skVariant');
       if (!box) return;
       const url = variantPhotoUrl();
+      if (variantPhotoShown) swapFirstSlide(url);
+      variantPhotoShown = true;
       if (!url) { box.hidden = true; return; }
       const img = box.querySelector('img');
       if (img.getAttribute('src') !== url) img.src = url;
