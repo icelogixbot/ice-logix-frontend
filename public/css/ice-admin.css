@@ -220,3 +220,7 @@
 .ad-st-ph-add { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--rd-b300); border-style: dashed; font-size: 11px; cursor: pointer; }
 .ad-st-tg { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .ad-static { cursor: default; }
+
+/* Контент (этап 6) */
+.ad-ct-clip { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ad-ct-note { margin: 10px 2px 0; }

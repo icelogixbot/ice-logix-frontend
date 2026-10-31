@@ -36,7 +36,7 @@
     { id: 'clients', icon: 'users', title: 'Клиенты', text: 'Поиск, баланс, история', go: { tab: 'admin_clients' } },
     { id: 'inbox', icon: 'message', title: 'Обращения', text: 'Поддержка, претензии, споры, отзывы', go: { tab: 'admin_inbox' }, count: (a) => n(a.tickets) + n(a.claims) + n(a.disputes) + n(a.legit) + n(a.reviews) + n(a.ugc) + n(a.resale) },
     { id: 'store', icon: 'store', title: 'Витрина', text: 'Товары, акции, промокоды', go: { tab: 'admin_store' } },
-    { id: 'content', icon: 'text', title: 'Контент', text: 'Тексты, вопросы, распаковки', go: { content: true } },
+    { id: 'content', icon: 'text', title: 'Контент', text: 'Тексты, вопросы, Академия, отзывы', go: { tab: 'admin_content' } },
     { id: 'team', icon: 'crown', title: 'Сотрудники', text: 'Кто работает и что может', go: { tab: 'admin_team' } },
     { id: 'all', icon: 'grid', title: 'Все инструменты', text: 'Старый вид, пока всё не перенесено', go: { legacy: null } },
   ];
@@ -61,36 +61,11 @@
     if (target.money) { AD.open('admin_money', { view: target.money }); return; }
     if (target.desk) { AD.openDesk(); return; }
     if (target.bonus) { AD.open('admin_store', { section: 'bonus' }); return; }
-    if (target.content) { openContentSheet(); return; }
     if ('legacy' in target) {
       window._adminLegacyAnchor = target.legacy;
       if (typeof window.invalidateAdminCache === 'function') window.invalidateAdminCache();
       AD.open('admin_legacy');
     }
-  }
-
-  function openContentSheet() {
-    const I = U().icon;
-    const items = [
-      ['admin_texts', 'text', 'Тексты интерфейса', 'Подписи и сообщения в приложении'],
-      ['admin_faq', 'help', 'Вопросы и ответы', 'Раздел помощи для клиентов'],
-      ['admin_reviews_config', 'star', 'Настройки отзывов', 'Что показывать и за что награждать'],
-      ['admin_marketing', 'camera', 'Распаковки и дропы', 'Видео клиентов и расписание дропов'],
-    ];
-    U().sheet({
-      title: 'Контент',
-      html: `<div class="rd-card rd-list">${items.map(([tab, ico, t, s]) => `
-        <div class="rd-row" role="button" tabindex="0" data-tab="${tab}">
-          <span class="rd-ico">${I(ico, 22)}</span>
-          <span class="rd-row-body"><span class="rd-row-title">${t}</span><span class="rd-row-text">${s}</span></span>
-          ${I('chevR', 22, { cls: 'rd-chev' })}
-        </div>`).join('')}</div>`,
-      onOpen: (wrap, close) => {
-        wrap.querySelectorAll('[data-tab]').forEach((row) => {
-          row.onclick = () => { close(); AD.open(row.dataset.tab); };
-        });
-      },
-    });
   }
 
   // ── Отпуск байера из строки «Состояние сервиса» ──
