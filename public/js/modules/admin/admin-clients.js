@@ -45,6 +45,7 @@
     REFUND_TO_BALANCE: 'Мгновенный возврат средств', REFUND: 'Мгновенный возврат средств', REFERRAL_BONUS: 'Бонус за друга',
     DELIVERY_SURPLUS: 'Сдача от пересчёта веса', PRICE_DROP: 'Компенсация снижения цены', TOPUP_ERIP: 'Пополнение через ЕРИП',
     TOPUP_OPLATI: 'Пополнение через «Оплати»', TOPUP_CARD: 'Пополнение с банковской карты', ADMIN_ADJUSTMENT: 'Корректировка администратора',
+    UGC_REWARD: 'Награда за видео-распаковку',
   };
   const DEBIT_TEXT = {
     USED_FOR_ORDER: 'Оплата заказа товаров', SECOND_STAGE_PAY: 'Оплата международной доставки', ADMIN_ADJUSTMENT: 'Корректировка администратора',
@@ -374,6 +375,11 @@
         return `Баланс ${a >= 0 ? 'пополнен' : 'уменьшен'} на ${money(Math.abs(a))}.${why}`;
       }
       case 'set_role': return 'Изменена роль сотрудника.';
+      case 'kyc_approve': return 'Паспорт подтверждён.';
+      case 'kyc_reject': return `Паспорт отклонён.${why}`;
+      case 'kyc_photo_view': return 'Сотрудник открыл фото паспорта.';
+      case 'ugc_approve': return `Видео-распаковка одобрена${d.reward ? ', награда ' + money(Number(d.reward)) : ''}.`;
+      case 'ugc_reject': return 'Видео-распаковка отклонена.';
       default: return 'Действие сотрудника.';
     }
   }
@@ -506,6 +512,8 @@
     }
     const p = card.profile;
     const now = Number(p.balance) || 0;
+    // ключ повтора: одно открытие окна = одно списание/начисление, даже если нажать дважды
+    const idemKey = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
     formSheet({
       title: 'Изменить баланс',
       text: `${esc(nameOf(p))}. Сейчас на балансе ${money(now)}.`,
@@ -531,7 +539,7 @@
         return '';
       },
       onSubmit: async (v, btn) => {
-        const data = await AD.call(btn, 'admin_adjust_balance', { p_user: Number(p.user_id), p_amount: AD.num(v.amount), p_reason: v.reason }, { ok: 'Баланс изменён', after: loadClient });
+        const data = await AD.call(btn, 'admin_adjust_balance', { p_user: Number(p.user_id), p_amount: AD.num(v.amount), p_reason: v.reason, p_idempotency_key: idemKey }, { ok: 'Баланс изменён', after: loadClient });
         return data !== null;
       },
     });

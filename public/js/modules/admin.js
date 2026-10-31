@@ -320,8 +320,9 @@ window.changeUserBalance = async (userId, currentBalance) => {
     validate: (x) => (!Number(String(x.amount).replace(',', '.')) ? 'Введите сумму больше или меньше нуля' : !x.reason ? 'Укажите причину' : '')
   });
   if (!v) return;
+  const idemKey = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
   const { error } = await supabaseClient.rpc('admin_adjust_balance', {
-    p_user: Number(userId), p_amount: Number(String(v.amount).replace(',', '.')), p_reason: v.reason
+    p_user: Number(userId), p_amount: Number(String(v.amount).replace(',', '.')), p_reason: v.reason, p_idempotency_key: idemKey
   });
   if (error) { U.toast(error.message || 'Не получилось изменить баланс', 'bad'); return; }
   U.toast('Баланс изменён');
@@ -614,11 +615,10 @@ async function renderPromotionsAdminList() {
 async function logAdminAction(action, details = {}) {
   if (!userId) return;
   try {
-    await supabaseClient.from('admin_logs').insert({
-      admin_id: userId,
-      action,
-      details: typeof details === 'object' ? JSON.stringify(details) : String(details),
-      created_at: new Date().toISOString()
+    // запись в журнал — только через серверную функцию (прямой insert в admin_logs закрыт)
+    await supabaseClient.rpc('admin_log_action', {
+      p_action: action,
+      p_details: (details && typeof details === 'object') ? details : { value: String(details) }
     });
   } catch(e) { /* silent — never interrupt admin workflow */ }
 }
@@ -3403,12 +3403,8 @@ function attachAdminSuppliersHandlers() {
           if (!(await tgUtil.confirm(`Начислить ${reward} бонусов пользователю ${uploader}?`))) return;
           btn.disabled = true;
           try {
-            const { data: u } = await supabaseClient.from('users').select('ices_balance').eq('user_id', uploader).single();
-            const nb = (parseFloat(u && u.ices_balance) || 0) + reward;
-            await supabaseClient.from('users').update({ ices_balance: nb }).eq('user_id', uploader);
-            await supabaseClient.from('transaction_history').insert({ user_id: uploader, type: 'ugc_reward', amount: reward, balance_after: nb, description: 'Награда за UGC видео-распаковку' });
-            await supabaseClient.from('ugc_videos').update({ status: 'approved', reward_ices: reward, moderated_by: userId, moderated_at: new Date().toISOString() }).eq('id', id);
-            if (typeof logAdminAction === 'function') logAdminAction('ugc_approve', { id, reward, uploader });
+            const { error } = await supabaseClient.rpc('admin_ugc_decision', { p_id: id, p_approve: true, p_reward: reward });
+            if (error) throw new Error(error.message);
             tgUtil.alert('Одобрено');
             renderCurrentScreen();
           } catch (e) { tgUtil.alert('Ошибка: ' + e.message); btn.disabled = false; }
@@ -3420,8 +3416,8 @@ function attachAdminSuppliersHandlers() {
           const id = btn.getAttribute('data-id');
           if (!(await tgUtil.confirm('Отклонить видео?'))) return;
           try {
-            await supabaseClient.from('ugc_videos').update({ status: 'rejected', reject_reason: 'Не соответствует требованиям', moderated_by: userId, moderated_at: new Date().toISOString() }).eq('id', id);
-            if (typeof logAdminAction === 'function') logAdminAction('ugc_reject', { id });
+            const { error } = await supabaseClient.rpc('admin_ugc_decision', { p_id: id, p_approve: false });
+            if (error) throw new Error(error.message);
             tgUtil.alert('Отклонено');
             renderCurrentScreen();
           } catch (e) { tgUtil.alert('Ошибка: ' + e.message); }
