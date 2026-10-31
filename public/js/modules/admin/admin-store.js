@@ -217,6 +217,9 @@
   const thumb = (url, icon) =>
     `<span class="ad-thumb ad-thumb-sm">${url ? `<img src="${esc(url)}" alt="" loading="lazy">` : I(icon, 20)}</span>`;
 
+  // Помощники для соседних файлов (admin-store-promo.js)
+  store.kit = { VErr, bad, loadInto, logAct, fld, inp, area, sw, choice, chipVals, val, checked, openForm, thumb };
+
   async function updateField(table, id, patch, okText) {
     const { error } = await sb().from(table).update(patch).eq('id', id);
     if (error) throw error;
