@@ -258,9 +258,9 @@
     const html = `
       <div class="sk">
         <div class="sk-gallery" id="skGallery">
-          ${gallery.map((src, i) => `<div class="sk-slide"><img ${i === 0 ? 'id="skuModalImg"' : ''} src="${esc(i === 0 ? currentImgUrl : src)}" alt="" ${i ? 'loading="lazy"' : ''}></div>`).join('')}
+          ${gallery.map((src, i) => `<div class="sk-slide"><img src="${esc(src)}" alt="" ${i ? 'loading="lazy"' : ''}></div>`).join('')}
         </div>
-        ${gallery.length > 1 ? `<div class="sk-count">${gallery.length} фото — листайте</div>` : ''}
+        ${gallery.length ? `<div class="sk-count">${gallery.length > 1 ? `${gallery.length} фото. Нажмите, чтобы рассмотреть` : 'Нажмите на фото, чтобы рассмотреть'}</div>` : ''}
 
         <div class="sk-title">${esc(productData.title_ru || productData.title || 'Товар с Pinduoduo')}</div>
         <div class="sk-price">
@@ -413,6 +413,35 @@
       });
     }
     refreshOptPrices();
+
+    // Галерея — фото объявления в их порядке, первой идёт обложка. Выбранный цвет её не подменяет:
+    // фото цвета уже среди них — листаем к нему, иначе показываем отдельным слайдом в начале
+    function showColorPhoto(url) {
+      const gal = $('#skGallery');
+      if (!gal || !url) return;
+      let temp = gal.querySelector('.sk-slide-color');
+      const found = Array.from(gal.querySelectorAll('.sk-slide:not(.sk-slide-color) img')).find((im) => im.getAttribute('src') === url);
+      if (found) {
+        if (temp) temp.remove();
+        gal.scrollTo({ left: found.parentElement.offsetLeft - gal.offsetLeft - 16, behavior: 'smooth' });
+        return;
+      }
+      if (!temp) {
+        temp = document.createElement('div');
+        temp.className = 'sk-slide sk-slide-color';
+        temp.innerHTML = '<img alt="">';
+        gal.prepend(temp);
+      }
+      temp.querySelector('img').src = url;
+      gal.scrollTo({ left: 0, behavior: 'smooth' });
+    }
+
+    $('#skGallery').addEventListener('click', (e) => {
+      const im = e.target.closest('.sk-slide img');
+      if (!im || !window.PhotoViewer) return;
+      const all = Array.from($('#skGallery').querySelectorAll('.sk-slide img'));
+      window.PhotoViewer.open(all.map((x) => x.getAttribute('src')), all.indexOf(im));
+    });
 
     const qtyValEl = $('#skuQtyVal');
     $('#skuQtyMinus').onclick = () => {
@@ -579,12 +608,9 @@
         if (grp === visualGroup) {
           refreshAvailability();
           const img = opt.image_url || opt.thumb_url || masterImg;
-          if (img && img !== currentImgUrl) {
+          if (img) {
             currentImgUrl = img;
-            const imgEl = $('#skuModalImg');
-            if (imgEl) imgEl.src = img;
-            const gal = $('#skGallery');
-            if (gal) gal.scrollTo({ left: 0, behavior: 'smooth' });
+            showColorPhoto(img);
           }
         }
         refreshOptPrices();
