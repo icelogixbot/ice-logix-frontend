@@ -269,6 +269,7 @@
       if (seq !== st.seq || !el('Body')) return;
       if (error) {
         showError(el('Body'), 'Не получилось загрузить', 'Проверьте интернет и обновите экран.', () => { el('Body').innerHTML = loadingHtml(); load(false, keep); });
+        pending = null;
         return;
       }
       const d = data || {};
@@ -404,6 +405,7 @@
   // Запомнить, где мы были, и открыть окно поддержки. Страница при этом перезагрузится.
   function openDesk(query) {
     try {
+      if (typeof adminAuthenticated !== 'undefined' && !adminAuthenticated) throw new Error('no-auth');
       const snap = snapshotCurrent();
       sessionStorage.setItem(KEEP, JSON.stringify({ t: Date.now(), back: false, tab: snap.tab, params: snap.params, state: snap.state, scroll: snap.scroll, stack }));
     } catch (_) {}
