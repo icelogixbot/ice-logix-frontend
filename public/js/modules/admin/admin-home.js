@@ -18,15 +18,15 @@
     { k: 'awaiting_payment', icon: 'receipt', title: 'Ждут второго платежа', text: 'Клиенту выставлена доплата за доставку', go: { orders: 'awaiting_payment' } },
     { k: 'stuck', icon: 'clock', tone: 'bad', title: 'Без движения больше 7 дней', text: 'Заказы в работе, у которых давно не менялся статус', go: { orders: 'work' } },
     { k: 'tickets', icon: 'message', tone: 'warn', title: 'Обращения без ответа', text: 'Клиенты ждут ответа в поддержке', go: { desk: true } },
-    { k: 'claims', icon: 'shield', title: 'Страховые претензии', text: 'Посылка потерялась или пришла повреждённой', go: { legacy: 'adminClaimsList' } },
-    { k: 'disputes', icon: 'alert', tone: 'bad', title: 'Споры по заказам', text: 'Клиент открыл спор', go: { info: 'Споры пока видны только в админской группе Telegram. Раздел появится вместе с «Обращениями».' } },
+    { k: 'claims', icon: 'shield', title: 'Страховые претензии', text: 'Посылка потерялась или пришла повреждённой', go: { tab: 'admin_inbox', params: { kind: 'claims' } } },
+    { k: 'disputes', icon: 'alert', tone: 'bad', title: 'Споры по заказам', text: 'Клиент открыл спор', go: { tab: 'admin_inbox', params: { kind: 'disputes' } } },
     { k: 'bonus_orders', icon: 'gift', title: 'Заказы бонусного магазина', text: 'Выдайте клиенту то, что он купил за бонусы', go: { bonus: true } },
-    { k: 'reviews', icon: 'star', title: 'Отзывы на модерации', text: 'Опубликуйте или отклоните', go: { legacy: 'adminReviewsBlock' } },
-    { k: 'ugc', icon: 'camera', title: 'Распаковки на модерации', text: 'Видео клиентов за награду', go: { tab: 'admin_marketing' } },
+    { k: 'reviews', icon: 'star', title: 'Отзывы на модерации', text: 'Опубликуйте или отклоните', go: { tab: 'admin_inbox', params: { kind: 'reviews' } } },
+    { k: 'ugc', icon: 'camera', title: 'Распаковки на модерации', text: 'Видео клиентов за награду', go: { tab: 'admin_inbox', params: { kind: 'ugc' } } },
     { k: 'kyc', icon: 'idcard', title: 'Паспорта на проверке', text: 'Откройте заявку, проверьте данные и фото', go: { tab: 'admin_kyc' } },
     { k: 'payouts', icon: 'coins', title: 'Заявки на выплату', text: 'Дропшипперы просят вывести деньги', go: { money: 'payouts' } },
-    { k: 'legit', icon: 'scan', title: 'Заявки Legit-Check', text: 'Клиенты ждут вердикт по фото', go: { legacy: 'adminLegitChecksList' } },
-    { k: 'resale', icon: 'tag', title: 'Пристрой на модерации', text: 'Объявления о перепродаже', go: { tab: 'admin_resale' } },
+    { k: 'legit', icon: 'scan', title: 'Заявки Legit-Check', text: 'Клиенты ждут вердикт по фото', go: { tab: 'admin_inbox', params: { kind: 'legit' } } },
+    { k: 'resale', icon: 'tag', title: 'Пристрой на модерации', text: 'Объявления о перепродаже', go: { tab: 'admin_inbox', params: { kind: 'resale' } } },
   ];
 
   // Разделы Пульта. Пока раздел не перенесён, он ведёт в «Все инструменты» на нужный блок.
@@ -34,7 +34,7 @@
     { id: 'orders', icon: 'box', title: 'Заказы', text: 'Выкуп, склад, доставка, трек-номера', go: { orders: 'work' }, count: (a) => a.orders_to_buy + a.awaiting_decision + a.awaiting_payment },
     { id: 'money', icon: 'wallet', title: 'Деньги', text: 'Оплаты, выплаты, сверка, отчёт', go: { money: 'review' }, count: (a) => a.payments_pending + a.payouts },
     { id: 'clients', icon: 'users', title: 'Клиенты', text: 'Поиск, баланс, история', go: { tab: 'admin_clients' } },
-    { id: 'inbox', icon: 'message', title: 'Обращения', text: 'Претензии, Legit-Check, отзывы', go: { legacy: 'adminClaimsList' }, count: (a) => a.claims + a.legit + a.reviews },
+    { id: 'inbox', icon: 'message', title: 'Обращения', text: 'Поддержка, претензии, споры, отзывы', go: { tab: 'admin_inbox' }, count: (a) => n(a.tickets) + n(a.claims) + n(a.disputes) + n(a.legit) + n(a.reviews) + n(a.ugc) + n(a.resale) },
     { id: 'store', icon: 'store', title: 'Витрина', text: 'Товары, акции, промокоды', go: { legacy: 'promotionsList' } },
     { id: 'content', icon: 'text', title: 'Контент', text: 'Тексты, вопросы, распаковки', go: { content: true } },
     { id: 'team', icon: 'crown', title: 'Сотрудники', text: 'Кто работает и что может', go: { tab: 'admin_team' } },
@@ -56,7 +56,7 @@
   function go(target) {
     if (!target) return;
     if (target.info) { U().toast(target.info, 'info'); return; }
-    if (target.tab) { AD.open(target.tab); return; }
+    if (target.tab) { AD.open(target.tab, target.params); return; }
     if (target.orders) { AD.open('admin_orders', { stage: target.orders }); return; }
     if (target.money) { AD.open('admin_money', { view: target.money }); return; }
     if (target.desk) { AD.openDesk(); return; }
