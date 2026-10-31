@@ -3406,7 +3406,8 @@ let adminOrdersTotalPages = 1;
       const _ck = (tabName || '') + ':' + (subScreen || '');
       // Оформление всегда строим заново: кнопка оплаты и шторки живут в body, в сохранённом HTML их нет, и сумма зависит от tempOrder
       const dynamicTabs = ['finances', 'search', 'notifications', 'settings', 'topup', 'wallet', 'cart', 'product', 'neworder', 'admin', 'admin_legacy', 'admin_team'];
-      if (!dynamicTabs.includes(tabName) && _tabCache[_ck] && Date.now() - _tabCache[_ck].ts < 600000) {
+      // «Мои заказы» тоже всегда свежие: статусы и оплаты меняются на сервере
+      if (!dynamicTabs.includes(tabName) && subScreen !== 'myOrders' && _tabCache[_ck] && Date.now() - _tabCache[_ck].ts < 600000) {
         const _cd = document.getElementById('content');
         if (_cd) {
           _cd.innerHTML = _tabCache[_ck].html;

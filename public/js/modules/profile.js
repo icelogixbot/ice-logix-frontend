@@ -84,7 +84,7 @@
     <div class="pf-group-t">Бонусы и заработок</div>
     <div class="rd-card rd-list">
       ${row('referralBtn', 'users', 'Приглашайте друзей', '7% вам и 3% другу с каждого заказа', "switchTab('referral')", '<span class="rd-badge">7% + 3%</span>')}
-      ${row('bonusShopBtn', 'gift', 'Магазин бонусов', 'Меняйте баллы ICE на скидки и подарки', "switchTab('bonus_shop')")}
+      ${row('bonusShopBtn', 'gift', 'Магазин бонусов', 'Меняйте баллы ICE на и подарки', "switchTab('bonus_shop')")}
       ${row('dropshipperProfileBtn', 'store', isDropshipper ? t('dropshipper_cabinet', 'Кабинет дропшиппера') : t('earn_with_us', 'Зарабатывайте с нами'), isDropshipper ? t('dropshipper_cabinet_sub', 'Управление магазином') : t('earn_with_us_sub', 'Станьте партнёром ICE LOGIX'), "switchTab('dropshipper')")}
     </div>
 

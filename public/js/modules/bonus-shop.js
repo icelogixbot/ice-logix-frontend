@@ -181,8 +181,9 @@
     } catch (e) {
       console.warn('loadBonusItems error:', e);
     }
-    bonusItemsCache = FALLBACK_ITEMS;
-    return FALLBACK_ITEMS;
+    // Купоны сняты с продажи: скидки заводятся только в админке
+    bonusItemsCache = FALLBACK_ITEMS.filter((it) => it.category !== 'coupons');
+    return bonusItemsCache;
   }
 
   async function loadUserBonusOrders() {
@@ -215,7 +216,7 @@
       { id: 'mobile', label: 'Связь', icon: 'phone' },
       { id: 'merch', label: 'Мерч', icon: 'bag' },
       { id: 'gadgets', label: 'Уход и гаджеты', icon: 'zap' }
-    ];
+    ].filter((c) => c.id === 'all' || items.some((it) => it.category === c.id));
 
     const filteredItems = currentCategory === 'all'
       ? items
@@ -250,7 +251,7 @@
       <div class="rd-screen page-enter bs">
       <div class="rd-head">
         <button id="bonusShopBackBtn" type="button" class="rd-back" aria-label="Назад">${U.icon('chevL', 22)}</button>
-        <div class="rd-head-txt"><h1 class="rd-head-title">Магазин бонусов</h1><p class="rd-head-sub">Меняйте баллы на скидки и подарки</p></div>
+        <div class="rd-head-txt"><h1 class="rd-head-title">Магазин бонусов</h1><p class="rd-head-sub">Меняйте баллы на подарки</p></div>
         <button id="bonusHistoryBtn" type="button" class="rd-back" aria-label="Мои награды">${U.icon('history', 21)}</button>
       </div>
 

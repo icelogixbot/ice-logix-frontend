@@ -790,6 +790,7 @@ window.applySmartShareLink = applySmartShareLink;
                 discountAmount = data.discount_value;
               }
               if (discountAmount > window.tempOrder.total) discountAmount = window.tempOrder.total;
+              discountAmount = Math.round(discountAmount * 100) / 100;
 
               window.tempOrder.discountAmount = discountAmount;
               window.tempOrder.appliedPromo = data;
@@ -2184,14 +2185,15 @@ async function renderMyOrders() {
       const firstCheck = manualCheck.has(`${order.id}:FIRST_PAYMENT`);
       const firstDue = Math.max(0, Math.round(((Number(order.first_payment_amount) || pre || total) - paidSoFar) * 100) / 100);
       const canPayFirst = !firstPaid && !familyWait && !firstCheck && order.status === 'pending' && firstDue > 0;
+      const canCancel = !firstPaid && order.status === 'pending';
       const firstTag = firstPaid ? '<em class="ok">оплачен</em>'
         : order.status === 'cancelled' ? '<em>отменён</em>'
         : familyWait ? '<em>ждёт одобрения</em>'
         : firstCheck ? '<em class="warn">на проверке</em>'
         : '<em class="warn">к оплате</em>';
       // Неоплаченный заказ не «в обработке»: сначала его нужно оплатить
-      const badge = order.status === 'pending' && !firstPaid && !familyWait
-        ? { text: firstCheck ? 'Проверяем оплату' : 'Ждёт оплаты', tone: 'warn' } : st;
+      const badge = order.status === 'pending' && !firstPaid
+        ? { text: familyWait ? 'Ждёт одобрения' : firstCheck ? 'Проверяем оплату' : 'Ждёт оплаты', tone: 'warn' } : st;
       const claim = claimsMap[order.id];
       const est = parseFloat(order.weight_estimated) || 0;
       const act = parseFloat(order.weight_actual);
@@ -2220,7 +2222,10 @@ async function renderMyOrders() {
           <p>Ожидали ${est.toFixed(2)} кг, на складе ${act.toFixed(2)} кг. ${act > est ? 'Будет доплата за разницу в весе.' : 'Доставку пересчитаем в меньшую сторону.'}</p>
         </div>` : '';
 
-      const money = order.extra_services && order.extra_services.is_gift
+      const refunded = Number(order.total_refunded || 0);
+      const money = order.status === 'cancelled'
+        ? `<div class="oc-money"><div><span>Сумма заказа</span>${fmt(total)}</div>${refunded > 0 ? `<div><span>Вернули на баланс</span>${fmt(refunded)}</div>` : ''}</div>`
+        : order.extra_services && order.extra_services.is_gift
         ? `<details class="oc-gift"><summary>${U.icon('gift', 16)}Подарок: нажмите, чтобы увидеть сумму</summary>
              <div class="oc-money"><div><span>Сумма заказа</span>${fmt(total)}</div><div><span>Внесено</span>${fmt(paidSoFar)}</div><div><span>Остаток</span>${fmt(Math.max(0, total - paidSoFar))}</div></div>
            </details>`
@@ -2229,8 +2234,13 @@ async function renderMyOrders() {
              <div><span>1-й этап ${firstTag}</span>${fmt(firstPaid ? pre : firstDue || pre)}</div>
              <div><span>2-й этап ${secondPaid ? '<em class="ok">оплачен</em>' : arrived && rest > 0 ? '<em class="warn">к оплате</em>' : '<em>после взвешивания</em>'}</span>${secondPaid || arrived ? '' : '≈\u2009'}${fmt(rest)}</div>
            </div>
+           `;
+
+      // Кнопки оплаты и отмены видны и у подарка: сумма скрыта, но заказ всё равно нужно оплатить
+      const payActions = `
            ${canPayFirst ? `<button type="button" class="rd-btn rd-btn-block oc-pay" onclick="window.openStagePayment('${order.id}', 'FIRST', ${firstDue})">${U.icon('card', 18)}Оплатить заказ · ${fmt(firstDue)}</button>` : ''}
-           ${arrived && !secondPaid && rest > 0 ? `<button type="button" class="rd-btn rd-btn-block oc-pay" onclick="window.openStagePayment('${order.id}', 'SECOND', ${rest})">${U.icon('card', 18)}Оплатить доставку · ${fmt(rest)}</button>` : ''}`;
+           ${arrived && !secondPaid && rest > 0 ? `<button type="button" class="rd-btn rd-btn-block oc-pay" onclick="window.openStagePayment('${order.id}', 'SECOND', ${rest})">${U.icon('card', 18)}Оплатить доставку · ${fmt(rest)}</button>` : ''}
+           ${canCancel ? `<button type="button" class="rd-btn rd-btn-ghost rd-btn-block oc-pay" onclick="window.cancelUnpaidOrder('${order.id}', ${firstCheck})">Отменить заказ</button>` : ''}`;
 
       const tracks = [
         order.tracking_number_cn ? ['Трек в Китае', order.tracking_number_cn] : null,
@@ -2269,7 +2279,7 @@ async function renderMyOrders() {
           </header>
           ${progress}
           ${decision}${weight}
-          ${money}
+          ${money}${payActions}
           ${tracks.length ? `<div class="oc-tracks">${tracks.map(([k, v]) => `<button type="button" class="oc-trackno" onclick="navigator.clipboard && navigator.clipboard.writeText('${U.esc(v)}').then(() => window.UI.toast('Трек-номер скопирован'))"><span>${k}</span><b>${U.esc(v)}</b>${U.icon('copy', 16)}</button>`).join('')}</div>` : ''}
           ${photos}${video}${claimHtml}
           <div class="oc-actions">
@@ -3669,6 +3679,41 @@ window.openStagePayment = function (orderId, stage, amount) {
   });
 };
 window.openSecondPaymentModal = (orderId, amount) => window.openStagePayment(orderId, 'SECOND', amount);
+
+// Отмена заказа, пока первый этап не оплачен. Списанное с баланса сервер возвращает на баланс (order_cancel_unpaid).
+window.cancelUnpaidOrder = function (orderId, onCheck) {
+  const U = window.UI;
+  let busy = false;
+  tgUtil.haptic('light');
+  U.sheet({
+    title: `Отменить заказ #${orderId.slice(0, 8)}?`,
+    html: `
+      <p class="co-note-line">Всё, что списали с баланса по этому заказу, сразу вернётся на баланс.${onCheck ? ' Если вы уже перевели деньги, сначала напишите в поддержку.' : ''}</p>
+      <button type="button" class="rd-btn rd-btn-danger rd-btn-block co-gap" data-cancel-yes>Отменить заказ</button>
+      <button type="button" class="rd-btn rd-btn-ghost rd-btn-block co-gap" data-close="1">Не отменять</button>`,
+    onOpen(wrap, close) {
+      const yes = wrap.querySelector('[data-cancel-yes]');
+      yes.onclick = async () => {
+        if (busy) return;
+        busy = true;
+        yes.disabled = true;
+        yes.classList.add('is-busy');
+        const { data, error } = await supabaseClient.rpc('order_cancel_unpaid', { p_order_id: orderId });
+        close();
+        if (error) {
+          tgUtil.haptic('error');
+          tgUtil.alert(error.message);
+          return;
+        }
+        if (data && data.balance !== undefined && data.balance !== null) window.setUserBalance(data.balance);
+        if (window._coUnpaid && window._coUnpaid.id === orderId) window.CheckoutUI.setUnpaid(null);
+        tgUtil.haptic('success');
+        U.toast(Number(data && data.refund) > 0 ? `Заказ отменён, ${window.moneyText(data.refund)} вернули на баланс` : 'Заказ отменён');
+        if (typeof renderCurrentScreen === 'function') renderCurrentScreen();
+      };
+    }
+  });
+};
 
 window.openInvoiceModal = (orderId, originalPrice) => {
   tgUtil.haptic('light');
