@@ -1,5 +1,6 @@
 // Просмотр фото на весь экран, как в Pinduoduo: window.PhotoViewer.open(urls, start).
 // Листать вбок, щипком увеличивать и двигать, двойное нажатие — приблизить, смахнуть вниз или нажать — закрыть.
+// Без вибрации: при листании она только мешает.
 
 (function () {
   'use strict';
@@ -12,9 +13,26 @@
   let closeActive = null;
 
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-  const haptic = (kind) => {
-    try { window.Telegram.WebApp.HapticFeedback.impactOccurred(kind); } catch (_) { /* вне Telegram */ }
-  };
+
+  // Смахивание вниз у Telegram сворачивает приложение: пока открыто окно с фото, жест выключен.
+  // Держать могут несколько окон сразу, возвращаем как было, когда закрылось последнее.
+  let swipeHolds = 0;
+  let swipesWereOn = true;
+  function holdSwipes() {
+    const tg = window.Telegram && window.Telegram.WebApp;
+    let released = false;
+    if (swipeHolds++ === 0 && tg && tg.disableVerticalSwipes) {
+      swipesWereOn = tg.isVerticalSwipesEnabled !== false;
+      try { tg.disableVerticalSwipes(); } catch (_) { /* старая версия Telegram */ }
+    }
+    return () => {
+      if (released) return;
+      released = true;
+      if (--swipeHolds === 0 && tg && tg.enableVerticalSwipes && swipesWereOn) {
+        try { tg.enableVerticalSwipes(); } catch (_) { /* старая версия Telegram */ }
+      }
+    };
+  }
 
   function open(urls, start) {
     const list = (urls || []).filter(Boolean);
@@ -30,15 +48,18 @@
       <div class="pv-bg"></div>
       <div class="pv-track">${list.map(() => '<div class="pv-slide"><img class="pv-img" alt="" draggable="false"></div>').join('')}</div>
       <div class="pv-bar">
-        <span class="pv-count"></span>
         <button type="button" class="pv-close" aria-label="Закрыть">${U && U.icon ? U.icon('x', 22) : '×'}</button>
-      </div>`;
+        <span class="pv-count"></span>
+      </div>
+      ${list.length > 1 ? `<div class="pv-strip">${list.map((u, i) => `<button type="button" class="pv-thumb" data-i="${i}" aria-label="Фото ${i + 1}"><img src="${u.replace(/"/g, '&quot;')}" alt="" draggable="false" loading="lazy"></button>`).join('')}</div>` : ''}`;
     document.body.appendChild(root);
 
     const bg = root.querySelector('.pv-bg');
     const track = root.querySelector('.pv-track');
     const count = root.querySelector('.pv-count');
     const imgs = Array.from(root.querySelectorAll('.pv-img'));
+    const strip = root.querySelector('.pv-strip');
+    const thumbs = Array.from(root.querySelectorAll('.pv-thumb'));
 
     let index = clamp(parseInt(start, 10) || 0, 0, list.length - 1);
     let scale = 1, tx = 0, ty = 0; // положение текущего фото относительно центра экрана
@@ -75,6 +96,14 @@
       const im = imgs[index];
       im.classList.toggle('pv-anim', !!animated);
       im.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`;
+      root.classList.toggle('pv-zoomed', scale > 1.01); // в приближении подписи не закрывают фото
+    }
+
+    function markThumb() {
+      count.textContent = list.length > 1 ? `${index + 1} / ${list.length}` : '';
+      thumbs.forEach((b, i) => b.classList.toggle('on', i === index));
+      const t = thumbs[index];
+      if (t && strip) strip.scrollTo({ left: t.offsetLeft - (strip.clientWidth - t.offsetWidth) / 2, behavior: 'smooth' });
     }
 
     function drawTrack(dx, dy, animated) {
@@ -101,10 +130,9 @@
       if (next !== index) {
         setZoom(1, 0, 0, false); // ушли с фото — оно снова целиком
         index = next;
-        haptic('light');
       }
       scale = 1; tx = 0; ty = 0;
-      count.textContent = list.length > 1 ? `${index + 1} / ${list.length}` : '';
+      markThumb();
       drawImage(false);
       drawTrack(0, 0, true);
       loadAround();
@@ -113,7 +141,6 @@
     function toggleZoom(p) {
       if (scale > 1.01) { setZoom(1, 0, 0, true); return; }
       setZoom(DOUBLE_SCALE, p.x - p.x * DOUBLE_SCALE, p.y - p.y * DOUBLE_SCALE, true);
-      haptic('light');
     }
 
     function startPinch() {
@@ -129,7 +156,7 @@
     }
 
     function onDown(e) {
-      if (e.target.closest && e.target.closest('.pv-close')) return;
+      if (e.target.closest && e.target.closest('.pv-close, .pv-strip')) return;
       e.preventDefault();
       try { root.setPointerCapture(e.pointerId); } catch (_) { /* указатель уже отпущен */ }
       pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -242,6 +269,7 @@
     const goBackBefore = window.goBackGlobal;
     if (typeof goBackBefore === 'function') window.goBackGlobal = () => close();
 
+    const releaseSwipes = holdSwipes();
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
@@ -261,6 +289,7 @@
         } catch (_) { /* старая версия Telegram */ }
       }
       document.body.style.overflow = prevOverflow;
+      releaseSwipes();
       root.classList.add('pv-out');
       setTimeout(() => root.remove(), 160);
     }
@@ -275,17 +304,25 @@
     root.addEventListener('pointerup', onUp);
     root.addEventListener('pointercancel', onUp);
     root.addEventListener('wheel', onWheel, { passive: false });
+    root.addEventListener('touchmove', (e) => {
+      if (!e.target.closest('.pv-strip')) e.preventDefault(); // iOS: страница под просмотром не тянется
+    }, { passive: false });
     root.querySelector('.pv-close').addEventListener('click', close);
+    if (strip) {
+      strip.addEventListener('click', (e) => {
+        const b = e.target.closest('.pv-thumb');
+        if (b) goTo(parseInt(b.dataset.i, 10));
+      });
+    }
     window.addEventListener('keydown', onKey);
     window.addEventListener('resize', onResize);
     imgs.forEach((im, i) => im.addEventListener('load', () => { if (i === index) setZoom(scale, tx, ty, false); }));
 
     measure();
     track.style.transform = `translate3d(${-index * (W + GAP)}px, 0, 0)`;
-    count.textContent = list.length > 1 ? `${index + 1} / ${list.length}` : '';
+    markThumb();
     loadAround();
-    haptic('light');
   }
 
-  window.PhotoViewer = { open, close: () => { if (closeActive) closeActive(); } };
+  window.PhotoViewer = { open, holdSwipes, close: () => { if (closeActive) closeActive(); } };
 })();

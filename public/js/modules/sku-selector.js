@@ -314,7 +314,8 @@
         </div>
       </div>`;
 
-    const sh = U.sheet({ title: 'Выберите вариант', html, onClose: () => { if (_activeSheet === sh) _activeSheet = null; } });
+    const releaseSwipes = window.PhotoViewer ? window.PhotoViewer.holdSwipes() : null; // листая фото, легко свернуть приложение
+    const sh = U.sheet({ title: 'Выберите вариант', html, onClose: () => { if (releaseSwipes) releaseSwipes(); if (_activeSheet === sh) _activeSheet = null; } });
     _activeSheet = sh;
     const root = sh.el;
     const $ = (sel) => root.querySelector(sel);
@@ -439,7 +440,11 @@
     $('#skGallery').addEventListener('click', (e) => {
       const im = e.target.closest('.sk-slide img');
       if (!im || !window.PhotoViewer) return;
-      const all = Array.from($('#skGallery').querySelectorAll('.sk-slide img'));
+      if (im.parentElement.classList.contains('sk-slide-color')) { // фото цвета — одно, галерея остаётся в порядке объявления
+        window.PhotoViewer.open([im.getAttribute('src')], 0);
+        return;
+      }
+      const all = Array.from($('#skGallery').querySelectorAll('.sk-slide:not(.sk-slide-color) img'));
       window.PhotoViewer.open(all.map((x) => x.getAttribute('src')), all.indexOf(im));
     });
 

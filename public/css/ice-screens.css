@@ -1161,15 +1161,23 @@ html body .no-form div[class*="border-white/30"] > input { min-height: 40px !imp
 .sk-slide:only-child { flex-basis: 100%; max-width: none; aspect-ratio: 4 / 3; }
 .sk-slide img { width: 100%; height: 100%; object-fit: cover; display: block; cursor: zoom-in; }
 /* Просмотр фото на весь экран (photo-viewer.js): всегда чёрный, и в светлой теме тоже */
-.pv { position: fixed; inset: 0; z-index: 9800; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; animation: pv-in 0.16s ease-out; }
+.pv { position: fixed; inset: 0; z-index: 9800; overflow: hidden; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; animation: pv-in 0.16s ease-out; }
 .pv.pv-out { opacity: 0; transition: opacity 0.16s ease-out; pointer-events: none; }
-.pv-bg { position: absolute; inset: 0; background: rgb(0, 0, 0); }
-.pv-track { position: absolute; inset: 0; display: flex; gap: 16px; will-change: transform; }
+.pv-bg { position: absolute; inset: 0; background: rgb(0, 0, 0); touch-action: none; }
+.pv-track { position: absolute; inset: 0; display: flex; gap: 16px; will-change: transform; touch-action: none; }
 .pv-slide { flex: 0 0 100%; height: 100%; overflow: hidden; display: flex; align-items: center; justify-content: center; }
 .pv-img { width: 100%; height: 100%; object-fit: contain; display: block; will-change: transform; -webkit-user-drag: none; }
 .pv-anim { transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.22s ease-out; }
-.pv-bar { position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px; pointer-events: none; }
+.pv-bar { position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; justify-content: center; padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px; pointer-events: none; transition: opacity 0.16s ease-out; }
 .pv-count { font-size: 14px; font-weight: 600; color: rgb(255, 255, 255); font-variant-numeric: tabular-nums; }
+.pv-bar .pv-close { position: absolute; left: 16px; }
+.pv-strip { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); touch-action: pan-x; overscroll-behavior: contain; transition: opacity 0.16s ease-out; }
+.pv-strip::-webkit-scrollbar { display: none; }
+.pv-thumb { flex: 0 0 52px; width: 52px; height: 52px; padding: 0; border: 2px solid transparent; border-radius: 8px; overflow: hidden; background: rgba(255, 255, 255, 0.08); opacity: 0.55; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.pv-thumb.on { border-color: var(--rd-b400); opacity: 1; }
+.pv-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+.pv.pv-zoomed .pv-strip { opacity: 0; pointer-events: none; }
+.pv.pv-zoomed .pv-count { opacity: 0; }
 .pv-close { pointer-events: auto; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 999px; background: rgba(255, 255, 255, 0.14); color: rgb(255, 255, 255); cursor: pointer; -webkit-tap-highlight-color: transparent; }
 @keyframes pv-in { from { opacity: 0; } to { opacity: 1; } }
 .sk-count { margin-top: -4px; font-size: 12px; color: var(--rd-tx3); }
