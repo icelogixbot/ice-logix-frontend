@@ -201,7 +201,8 @@
   //   chips: [[ключ, подпись]], chip: ключ по умолчанию, chipCount(counts, ключ)→число, chipAlways: [ключи, которые видны даже с нулём],
   //   searchPlaceholder, pageSize,
   //   args(state, limit, offset)→аргументы функции, rowHtml(строка)→разметка, onRow(строка, элемент),
-  //   empty(state)→{icon,title,text}, onSearch(state) — поправить фильтры перед поиском, onData(data) — когда пришли данные
+  //   empty(state)→{icon,title,text}, onSearch(state) — поправить фильтры перед поиском, onData(data) — когда пришли данные,
+  //   note: true — строка-итог под чипами (#<id>Note), её заполняет onData
   // }
   function list(cfg) {
     const PAGE = cfg.pageSize || 20;
@@ -232,6 +233,7 @@
       return `
         ${cfg.noSearch ? '' : `<div class="rd-field">${I('search', 20)}<input type="search" id="${cfg.id}Search" placeholder="${esc(cfg.searchPlaceholder || 'Поиск')}" autocomplete="off" enterkeyhint="search" value="${esc(st.q)}"></div>`}
         ${cfg.chips ? `<div class="rd-chips ad-chips" id="${cfg.id}Chips">${chipsHtml()}</div>` : ''}
+        ${cfg.note ? `<p class="ad-list-note" id="${cfg.id}Note" hidden></p>` : ''}
         <div id="${cfg.id}Body">${loadingHtml()}</div>`;
     }
 

@@ -90,7 +90,7 @@
 .ad-order-foot { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .ad-order-sum { flex-shrink: 0; text-align: right; font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--rd-tx); }
 .ad-order-sum small { display: block; margin-top: 3px; font-size: 11px; font-weight: 600; color: var(--rd-warn); }
-.ad-order-sum .byn-sign, .ad-order-total .byn-sign, .ad-money-row .byn-sign, .ad-pay .byn-sign { height: 0.8em; width: auto; margin-left: 0.15em; vertical-align: -0.05em; }
+.ad-order-sum .byn-sign, .ad-order-total .byn-sign, .ad-money-row .byn-sign, .ad-pay .byn-sign, .ad-preview .byn-sign { height: 0.8em; width: auto; margin-left: 0.15em; vertical-align: -0.05em; }
 
 /* карточка заказа */
 .ad-order-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
@@ -165,4 +165,18 @@
 .ad-preview.ok { background: rgba(61, 214, 140, 0.1); }
 .ad-preview.warn { background: rgba(255, 194, 74, 0.1); }
 .ad-preview.bad { background: rgba(255, 107, 122, 0.1); }
+/* ─── Деньги ─── */
+.ad-list-note { margin: -4px 0 12px; font-size: 13px; line-height: 1.4; color: var(--rd-tx2); }
+.ad-list-note .byn-sign, .ad-head-sum .byn-sign, .ad-card-num .byn-sign { height: 0.8em; width: auto; margin-left: 0.15em; vertical-align: -0.05em; }
+.ad-thumb-sm { width: 44px; height: 44px; border-radius: 12px; }
+.ad-in { color: var(--rd-ok); }
+.ad-order-sum small.ad-mute { color: var(--rd-tx3); font-weight: 500; }
+.ad-head-sum { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 0 0 12px; font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--rd-tx); }
+.ad-sheet-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.ad-sheet-btns .rd-btn { margin: 0; }
+.ad-cat-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; overflow: visible; }
+.ad-card-num { display: block; margin-bottom: 10px; font-size: 20px; font-weight: 800; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; color: var(--rd-tx); }
+.ad-gap { margin-top: 16px; }
+.ad-money-top { margin-bottom: 12px; }
+
 .ad-draft { margin: 0 0 14px; max-height: 50vh; overflow-y: auto; white-space: pre-wrap; font-size: 13px; line-height: 1.5; color: var(--rd-tx2); user-select: text; -webkit-user-select: text; }

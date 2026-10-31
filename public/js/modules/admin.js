@@ -929,15 +929,6 @@ async function renderAdmin() {
           <span class="ix text-white/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
         </button>
 
-        <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="switchTab('admin_analytics')" style="background: linear-gradient(135deg, rgba(77, 163, 255,0.1), rgba(77, 163, 255,0.05)); border-color: rgba(77, 163, 255,0.3);">
-          <span class="flex items-center gap-2"><span class="ix text-cyan-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span> Аналитика и Финансы</span>
-          <span class="ix text-cyan-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
-        </button>
-
-        <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="window.openReconciliationDashboardModal()" style="background: linear-gradient(135deg, rgba(77, 163, 255,0.15), rgba(99,102,241,0.08)); border-color: rgba(77, 163, 255,0.4);">
-          <span class="flex items-center gap-2">Финансовая сверка заказов</span>
-        </button>
-
         <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="switchTab('admin_crm')" style="background: linear-gradient(135deg, rgba(244,114,182,0.1), rgba(219,39,119,0.05)); border-color: rgba(244,114,182,0.3);">
           <span class="flex items-center gap-2"><span class="ix text-pink-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> CRM и Сегменты</span>
           <span class="ix text-pink-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
@@ -1062,12 +1053,6 @@ async function renderAdmin() {
           </div>
         </div>
         
-        <!-- Заявки на вывод -->
-        <div class="glass-card" id="adminPayoutsBlock">
-          <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18M7 6h1v4M16.71 13.88l.7.71-2.82 2.82"/></svg></span> Заявки на вывод</h3>
-          ${payoutRequests.length === 0 ? '<p class="text-white/70">Нет заявок</p>' : payoutRequests.map(req => `<div class="flex justify-between items-center p-2 bg-white/5 rounded-lg mb-2"><div><span class="text-white">${req.user_id}</span><span class="text-cyan-400 ml-2 inline-flex items-baseline gap-1">${req.amount} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</span></div><div><button class="approvePayoutBtn bg-green-600 px-3 py-1 rounded text-sm mr-2" data-id="${req.id}">Одобрить</button><button class="rejectPayoutBtn bg-red-600 px-3 py-1 rounded text-sm" data-id="${req.id}">Отклонить</button></div></div>`).join('')}
-        </div>
-        
         <!-- Управление пользователями -->
         <div class="glass-card mt-4">
           <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> Управление пользователями</h3>
@@ -1080,15 +1065,6 @@ async function renderAdmin() {
           </div>
         </div>
         
-                <!-- Оплаты на проверке (заявки «Я оплатил» и остатки по заказам) -->
-        <div class="glass-card mt-4">
-          <div class="rd-section"><h2>Оплаты на проверке</h2><button type="button" class="rd-link" onclick="refreshAdminPayments()">Обновить</button></div>
-          <p class="rd-sub">Пока платёжная система не подключена, клиент нажимает «Я оплатил», а вы подтверждаете, когда деньги пришли. Только после этого баланс пополнится или заказ станет оплаченным.</p>
-          <div class="space-y-2" id="adminPaymentsList">
-            ${await renderAdminPaymentsList()}
-          </div>
-        </div>
-
         <!-- Страховые претензии (Loss & Damage Moderation) -->
         <div class="glass-card mt-4">
           <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span> Управление страховками & Претензиями</h3>
@@ -1466,43 +1442,6 @@ function attachAdminHandlers() {
         delete _tabCache['home:'];
         delete _tabCache['catalogs:'];
         logAdminAction('delete_product', { id });
-        renderAdminScreen(true);
-      }
-    };
-  });
-
-  // ================== ЗАЯВКИ НА ВЫВОД ==================
-  document.querySelectorAll('.approvePayoutBtn').forEach(btn => {
-    btn.onclick = async () => {
-      const id = btn.getAttribute('data-id');
-      try {
-        if (window.adminCache && window.adminCache.payoutRequests) {
-          window.adminCache.payoutRequests = window.adminCache.payoutRequests.filter(req => req.id !== id);
-        }
-        renderAdminScreen(false);
-        await supabaseClient.from('payout_requests').update({ status: 'approved', processed_at: new Date() }).eq('id', id);
-        logAdminAction('payout_approved', { id });
-        tgUtil.alert('Заявка одобрена');
-      } catch (err) { 
-        tgUtil.alert('Ошибка: ' + err.message); 
-        renderAdminScreen(true);
-      }
-    };
-  });
-
-  document.querySelectorAll('.rejectPayoutBtn').forEach(btn => {
-    btn.onclick = async () => {
-      const id = btn.getAttribute('data-id');
-      try {
-        if (window.adminCache && window.adminCache.payoutRequests) {
-          window.adminCache.payoutRequests = window.adminCache.payoutRequests.filter(req => req.id !== id);
-        }
-        renderAdminScreen(false);
-        await supabaseClient.from('payout_requests').update({ status: 'rejected', processed_at: new Date() }).eq('id', id);
-        logAdminAction('payout_rejected', { id });
-        tgUtil.alert('Заявка отклонена');
-      } catch (err) { 
-        tgUtil.alert('Ошибка: ' + err.message); 
         renderAdminScreen(true);
       }
     };

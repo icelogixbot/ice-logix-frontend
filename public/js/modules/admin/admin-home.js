@@ -12,7 +12,7 @@
 
   // Что требует внимания: ключ из admin_overview().attention → строка Пульта
   const ATTENTION = [
-    { k: 'payments_pending', icon: 'wallet', tone: 'warn', title: 'Оплаты на проверке', text: 'Клиент сообщил об оплате. Проверьте, пришли ли деньги', go: { legacy: 'adminPaymentsList' } },
+    { k: 'payments_pending', icon: 'wallet', tone: 'warn', title: 'Оплаты на проверке', text: 'Клиент сообщил об оплате. Проверьте, пришли ли деньги', go: { money: 'review' } },
     { k: 'orders_to_buy', icon: 'cart', title: 'Оплачены, ждут выкупа', text: 'Выкупите на площадке и запишите номер заказа', go: { orders: 'paid' } },
     { k: 'awaiting_decision', icon: 'help', title: 'Ждут решения клиента', text: 'Товар подорожал, клиент решает, согласен ли', go: { orders: 'awaiting_decision' } },
     { k: 'awaiting_payment', icon: 'receipt', title: 'Ждут второго платежа', text: 'Клиенту выставлена доплата за доставку', go: { orders: 'awaiting_payment' } },
@@ -24,7 +24,7 @@
     { k: 'reviews', icon: 'star', title: 'Отзывы на модерации', text: 'Опубликуйте или отклоните', go: { legacy: 'adminReviewsBlock' } },
     { k: 'ugc', icon: 'camera', title: 'Распаковки на модерации', text: 'Видео клиентов за награду', go: { tab: 'admin_marketing' } },
     { k: 'kyc', icon: 'idcard', title: 'Паспорта на проверке', text: 'Пока проверяются в боте командой /kyc', go: { info: 'Паспорта проверяются в боте командой /kyc. Проверка в приложении появится в разделе «Клиенты».' } },
-    { k: 'payouts', icon: 'coins', title: 'Заявки на выплату', text: 'Дропшипперы просят вывести деньги', go: { legacy: 'adminPayoutsBlock' } },
+    { k: 'payouts', icon: 'coins', title: 'Заявки на выплату', text: 'Дропшипперы просят вывести деньги', go: { money: 'payouts' } },
     { k: 'legit', icon: 'scan', title: 'Заявки Legit-Check', text: 'Клиенты ждут вердикт по фото', go: { legacy: 'adminLegitChecksList' } },
     { k: 'resale', icon: 'tag', title: 'Пристрой на модерации', text: 'Объявления о перепродаже', go: { tab: 'admin_resale' } },
   ];
@@ -32,7 +32,7 @@
   // Разделы Пульта. Пока раздел не перенесён, он ведёт в «Все инструменты» на нужный блок.
   const SECTIONS = [
     { id: 'orders', icon: 'box', title: 'Заказы', text: 'Выкуп, склад, доставка, трек-номера', go: { orders: 'work' }, count: (a) => a.orders_to_buy + a.awaiting_decision + a.awaiting_payment },
-    { id: 'money', icon: 'wallet', title: 'Деньги', text: 'Оплаты, выплаты, сверка', go: { legacy: 'adminPaymentsList' }, count: (a) => a.payments_pending + a.payouts },
+    { id: 'money', icon: 'wallet', title: 'Деньги', text: 'Оплаты, выплаты, сверка, отчёт', go: { money: 'review' }, count: (a) => a.payments_pending + a.payouts },
     { id: 'clients', icon: 'users', title: 'Клиенты', text: 'Поиск, баланс, история', go: { legacy: 'adminUsersList' } },
     { id: 'inbox', icon: 'message', title: 'Обращения', text: 'Претензии, Legit-Check, отзывы', go: { legacy: 'adminClaimsList' }, count: (a) => a.claims + a.legit + a.reviews },
     { id: 'store', icon: 'store', title: 'Витрина', text: 'Товары, акции, промокоды', go: { legacy: 'promotionsList' } },
@@ -58,6 +58,7 @@
     if (target.info) { U().toast(target.info, 'info'); return; }
     if (target.tab) { AD.open(target.tab); return; }
     if (target.orders) { AD.open('admin_orders', { stage: target.orders }); return; }
+    if (target.money) { AD.open('admin_money', { view: target.money }); return; }
     if (target.desk) { AD.openDesk(); return; }
     if (target.bonus) { openBonusOrders(); return; }
     if (target.content) { openContentSheet(); return; }
