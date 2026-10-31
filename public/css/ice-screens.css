@@ -972,10 +972,16 @@ label.st-static { cursor: pointer; }
 .rd-field input[type="time"] { color-scheme: dark; font-variant-numeric: tabular-nums; }
 
 /* ═══ Код-пароль: экран блокировки и ввод кода (app-lock.js) ═══ */
-/* ниже шторок (9500) и тостов (9999): «Забыли код?» открывает шторку поверх */
-.lk { position: fixed; inset: 0; z-index: 9000; display: flex; flex-direction: column; align-items: center; background: var(--rd-bg); color: var(--rd-tx); padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(16px + env(safe-area-inset-bottom, 0px)); opacity: 0; transition: opacity .2s ease; outline: none; overscroll-behavior: contain; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+/* Выше любых окон приложения (шторки 9500, фото 9800, сканер 100000…): иначе открытая шторка была поверх экрана кода.
+   Над ним — только то, что открывает он сам (.lk-over): шторка «Забыли код?» и его уведомления. */
+.lk { position: fixed; inset: 0; z-index: 2147483000; display: flex; flex-direction: column; align-items: center; background: var(--rd-bg); color: var(--rd-tx); padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(16px + env(safe-area-inset-bottom, 0px)); opacity: 0; transition: opacity .2s ease; outline: none; overscroll-behavior: contain; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
 .lk.show { opacity: 1; }
 body.lk-open { overflow: hidden; }
+body.lk-open .rd-toast-host, .rd-sheet-wrap.lk-over { z-index: 2147483100; }
+/* Приложение заблокировано (body.lk-locked): всё под экраном спрятано и выключено (app-lock.js, data-lk-hide + inert) */
+[data-lk-hide] { visibility: hidden; }
+body.lk-locked .rd-toast:not(.lk-over) { display: none; }
+html.is-browser-gate .lk { z-index: 9000; } /* не в Telegram: заставка «Откройте в Telegram» остаётся сверху, как было */
 .lk-top { width: 100%; max-width: 360px; height: 48px; display: flex; align-items: center; }
 .lk-body { flex: 1; width: 100%; max-width: 360px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; min-height: 0; }
 .lk-ico { width: 64px; height: 64px; border-radius: 20px; display: flex; align-items: center; justify-content: center; background: var(--rd-tint); color: var(--rd-b400); margin-bottom: 18px; }

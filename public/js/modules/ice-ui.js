@@ -195,7 +195,8 @@
   }
 
   // ── Всплывающее уведомление ──
-  function toast(message, kind) {
+  // opts.cls — доп. класс (lk-over: уведомление экрана кода-пароля, app-lock.js)
+  function toast(message, kind, opts) {
     try {
       let host = document.getElementById('rdToastHost');
       if (!host) {
@@ -206,7 +207,7 @@
       }
       const el = document.createElement('div');
       const k = kind || 'ok';
-      el.className = `rd-toast ${k}`;
+      el.className = `rd-toast ${k}${opts && opts.cls ? ' ' + opts.cls : ''}`;
       el.innerHTML = `${icon(k === 'bad' ? 'alert' : k === 'info' ? 'info' : 'checkCircle', 20)}<span>${esc(message)}</span>`;
       host.appendChild(el);
       requestAnimationFrame(() => el.classList.add('show'));
@@ -215,10 +216,11 @@
   }
 
   // ── Шторка снизу (для коротких выборов: размер, способ и т.п.) ──
+  // o.cls — доп. класс обёртки (lk-over: шторка поверх экрана кода-пароля, app-lock.js)
   function sheet(o) {
     const opt = o || {};
     const wrap = document.createElement('div');
-    wrap.className = 'rd-sheet-wrap';
+    wrap.className = 'rd-sheet-wrap' + (opt.cls ? ' ' + opt.cls : '');
     wrap.innerHTML = `
       <div class="rd-sheet-backdrop" data-close="1"></div>
       <div class="rd-sheet" role="dialog" aria-modal="true">
@@ -257,6 +259,7 @@
           <button type="submit" class="rd-btn rd-btn-block${opt.danger ? ' rd-btn-danger' : ''}">${esc(opt.action || 'Готово')}</button>
         </form>`;
       sheet({
+        cls: opt.cls,
         title: opt.title || '',
         html,
         onClose: () => { if (!done) resolve(null); },

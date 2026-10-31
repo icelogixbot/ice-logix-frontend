@@ -11,6 +11,8 @@
   const U = () => window.UI;
   const tg = () => window.Telegram && window.Telegram.WebApp;
   const haptic = (t) => { try { if (window.tgUtil && window.tgUtil.haptic) window.tgUtil.haptic(t); } catch (_) {} };
+  // Уведомления экрана кода с меткой lk-over: пока приложение заблокировано, видны только они (ice-screens.css)
+  const toast = (msg, kind) => U().toast(msg, kind, { cls: 'lk-over' });
   const lsGet = () => { try { return localStorage.getItem(LS_FLAG) === '1'; } catch (_) { return false; } };
   const lsSet = (on) => { try { on ? localStorage.setItem(LS_FLAG, '1') : localStorage.removeItem(LS_FLAG); } catch (_) {} };
   const hasSession = () => { try { return Object.keys(localStorage).some((k) => k.startsWith('sb-') && k.endsWith('-auth-token')); } catch (_) { return false; } };
@@ -106,7 +108,7 @@
   function openPad(o) {
     const ui = U();
     const el = document.createElement('div');
-    el.className = 'lk';
+    el.className = 'lk no-swipe-back'; // no-swipe-back: жест «назад» по экрану кода не листает страницу под ним (app-core)
     el.setAttribute('role', 'dialog');
     el.setAttribute('aria-modal', 'true');
     el.setAttribute('aria-label', o.title || 'Код-пароль');
@@ -156,6 +158,7 @@
       },
       close() {
         el.classList.remove('show');
+        el.classList.add('lk-closing');
         setTimeout(() => { el.remove(); if (!document.querySelector('.lk')) document.body.classList.remove('lk-open'); }, 200);
       },
     };
@@ -215,9 +218,81 @@
     }
   }
 
+  // ── Пока приложение заблокировано, видно и доступно только экран кода ──
+  // Всё остальное в <body> (страница, шторки, окна, просмотр фото, уведомления, сканер) прячем (data-lk-hide)
+  // и выключаем (inert), новые окна — тоже, пока экран не снят; после входа всё возвращается как было.
+  // Не трогаем то, что открывает сам экран кода: шторку «Забыли код» и его уведомления (.lk-over).
+  const shield = { on: false, el: null, obs: null, back: null, nodes: new Set() };
+  const SKIP_TAGS = /^(SCRIPT|STYLE|LINK|TEMPLATE|NOSCRIPT)$/;
+  const stopKeys = (e) => e.stopPropagation(); // клавиши не доходят до окон под экраном (Esc и стрелки просмотра фото)
+
+  function cover(n) {
+    if (!(n instanceof HTMLElement) || n === shield.el || shield.nodes.has(n) || SKIP_TAGS.test(n.tagName)) return;
+    if (n.id === 'rdToastHost' || n.classList.contains('lk-over') || n.classList.contains('lk-closing')) return;
+    n.setAttribute('data-lk-hide', n.hasAttribute('inert') ? 'inert' : '1'); // 'inert' — был выключен и до нас
+    n.setAttribute('inert', '');
+    shield.nodes.add(n);
+  }
+
+  // Кнопка «назад» Telegram: прячем, а что приложение просит показать или скрыть, пока экран кода, — запоминаем
+  function backHold() {
+    const bb = tg() && tg().BackButton;
+    if (!bb || typeof bb.show !== 'function' || typeof bb.hide !== 'function') return;
+    try {
+      const keep = { show: bb.show, hide: bb.hide, want: !!bb.isVisible };
+      bb.hide();
+      bb.show = function () { keep.want = true; return bb; };
+      bb.hide = function () { keep.want = false; return bb; };
+      shield.back = keep;
+    } catch (_) {}
+  }
+  function backRelease() {
+    const bb = tg() && tg().BackButton;
+    const keep = shield.back;
+    shield.back = null;
+    if (!bb || !keep) return;
+    try {
+      bb.show = keep.show;
+      bb.hide = keep.hide;
+      if (keep.want) bb.show();
+    } catch (_) {}
+  }
+
+  function shieldOn(el) {
+    shield.el = el;
+    if (document.documentElement.classList.contains('is-browser-gate')) return; // не в Telegram: приложение и так закрыто заставкой
+    if (!shield.on) {
+      shield.on = true;
+      document.body.classList.add('lk-locked');
+      document.body.addEventListener('keydown', stopKeys);
+      try {
+        shield.obs = new MutationObserver((list) => list.forEach((m) => m.addedNodes.forEach(cover)));
+        shield.obs.observe(document.body, { childList: true });
+      } catch (_) {}
+      backHold();
+    }
+    Array.from(document.body.children).forEach(cover);
+  }
+
+  function shieldOff() {
+    shield.el = null;
+    if (!shield.on) return;
+    shield.on = false;
+    if (shield.obs) { shield.obs.disconnect(); shield.obs = null; }
+    document.body.classList.remove('lk-locked');
+    document.body.removeEventListener('keydown', stopKeys);
+    shield.nodes.forEach((n) => {
+      if (n.getAttribute('data-lk-hide') === '1') n.removeAttribute('inert');
+      n.removeAttribute('data-lk-hide');
+    });
+    shield.nodes.clear();
+    backRelease();
+  }
+
   function unlock() {
     state.unlocked = true;
     state.blocked = false;
+    shieldOff();
     if (lockCtrl) { lockCtrl.close(); lockCtrl = null; }
     haptic('success');
   }
@@ -231,10 +306,11 @@
   async function forgotFlow(ctrl) {
     const ui = U();
     const r = await api('reset_request');
-    if (!r.ok) { ui.toast(errText(r), 'bad'); return false; }
-    ui.toast('Код отправлен в Telegram. Он придёт в течение минуты');
+    if (!r.ok) { toast(errText(r), 'bad'); return false; }
+    toast('Код отправлен в Telegram. Он придёт в течение минуты');
     for (;;) {
       const v = await ui.ask({
+        cls: 'lk-over', // шторка поверх экрана кода
         title: 'Новый код-пароль',
         text: `Введите 6 цифр из сообщения бота ICE LOGIX (код действует ${r.ttl_min || 10} минут) и придумайте новый код-пароль.`,
         fields: [
@@ -256,11 +332,11 @@
         if (b && b.isBiometricTokenSaved) await bioSave(b, '');
         if (ctrl) ctrl.blocked('');
         unlock();
-        ui.toast('Новый код-пароль сохранён');
+        toast('Новый код-пароль сохранён');
         return true;
       }
-      if (res.error === 'code_wrong') { ui.toast(`Неверный код из Telegram. Осталось попыток: ${res.left}`, 'bad'); continue; }
-      ui.toast(errText(res), 'bad');
+      if (res.error === 'code_wrong') { toast(`Неверный код из Telegram. Осталось попыток: ${res.left}`, 'bad'); continue; }
+      toast(errText(res), 'bad');
       if (res.error === 'code_expired') return false;
     }
   }
@@ -302,6 +378,7 @@
         c.setText(r.left != null ? `Неверный код. Осталось попыток: ${r.left}` : errText(r), 'bad');
       },
     });
+    shieldOn(lockCtrl.el);
     lockCtrl.el.addEventListener('click', (e) => { if (e.target.closest('.lk-reset')) forgotFlow(lockCtrl); });
     if (state.blocked) lockCtrl.blocked(blockedHtml());
     else if (b) setTimeout(() => { if (lockCtrl) bioUnlock(lockCtrl); }, 350);
@@ -329,6 +406,7 @@
       if (lockCtrl && state.blocked) lockCtrl.blocked(blockedHtml());
       if (!lockCtrl) lock();
     } else if (!state.enabled && lockCtrl) {
+      shieldOff();
       lockCtrl.close();
       lockCtrl = null;
     }
@@ -348,19 +426,18 @@
   }
 
   async function enableFlow() {
-    const ui = U();
     const app = tg();
-    if (!app || !app.initData) { ui.toast(ERR.telegram, 'info'); return false; }
+    if (!app || !app.initData) { toast(ERR.telegram, 'info'); return false; }
     const pin = await askNewPin('Придумайте код-пароль');
     if (!pin) return false;
     const r = await api('setup', { pin, init_data: app.initData });
-    if (!r.ok) { ui.toast(errText(r), 'bad'); return false; }
+    if (!r.ok) { toast(errText(r), 'bad'); return false; }
     state.enabled = true;
     state.unlocked = true;
     state.blocked = false;
     lsSet(true);
     haptic('success');
-    ui.toast('Код-пароль включён');
+    toast('Код-пароль включён');
     const b = await bio();
     if (b && b.isBiometricAvailable && await window.tgUtil.confirm(`Входить по ${bioLabel(b)} вместо ввода кода на этом телефоне?`)) {
       await bioEnableFlow(pin);
@@ -370,7 +447,6 @@
 
   // Ввести код и сразу проверить его действием action на сервере; при ошибке — повторить с остатком попыток
   async function withServerPin(title, action, extra) {
-    const ui = U();
     let text = 'Введите текущий код-пароль';
     let tone = '';
     for (;;) {
@@ -378,9 +454,9 @@
       if (!pin) return null;
       const r = await api(action, { pin, ...(extra || {}) });
       if (r.ok) return { pin, r };
-      if (r.blocked) { state.blocked = true; ui.toast('Код-пароль заблокирован. Сбросьте его через Telegram', 'bad'); lock(); return null; }
+      if (r.blocked) { state.blocked = true; toast('Код-пароль заблокирован. Сбросьте его через Telegram', 'bad'); lock(); return null; }
       if (r.left != null) { text = `Неверный код. Осталось попыток: ${r.left}`; tone = 'bad'; continue; }
-      ui.toast(errText(r), 'bad');
+      toast(errText(r), 'bad');
       return null;
     }
   }
@@ -393,31 +469,29 @@
     lsSet(false);
     const b = await bio();
     if (b && b.isBiometricTokenSaved) await bioSave(b, '');
-    U().toast('Код-пароль выключен');
+    toast('Код-пароль выключен');
     return true;
   }
 
   async function changeFlow() {
-    const ui = U();
     const old = await askPin('Сменить код-пароль', 'Введите текущий код-пароль');
     if (!old) return false;
     const next = await askNewPin('Новый код-пароль');
     if (!next) return false;
     const r = await api('change', { pin: old, new_pin: next });
-    if (r.ok) { haptic('success'); ui.toast('Код-пароль изменён'); return true; }
-    if (r.blocked) { state.blocked = true; ui.toast('Код-пароль заблокирован. Сбросьте его через Telegram', 'bad'); lock(); return false; }
-    ui.toast(r.left != null ? `Текущий код неверный. Осталось попыток: ${r.left}` : errText(r), 'bad');
+    if (r.ok) { haptic('success'); toast('Код-пароль изменён'); return true; }
+    if (r.blocked) { state.blocked = true; toast('Код-пароль заблокирован. Сбросьте его через Telegram', 'bad'); lock(); return false; }
+    toast(r.left != null ? `Текущий код неверный. Осталось попыток: ${r.left}` : errText(r), 'bad');
     return false;
   }
 
   async function bioEnableFlow(knownPin) {
-    const ui = U();
     const b = await bio();
-    if (!b || !b.isBiometricAvailable) { ui.toast('На этом телефоне вход по биометрии недоступен', 'info'); return false; }
+    if (!b || !b.isBiometricAvailable) { toast('На этом телефоне вход по биометрии недоступен', 'info'); return false; }
     if (!b.isAccessGranted) {
       const granted = await bioRequest(b, 'Чтобы входить в ICE LOGIX без ввода кода');
       if (!granted) {
-        ui.toast('Разрешите доступ к биометрии в настройках Telegram', 'info');
+        toast('Разрешите доступ к биометрии в настройках Telegram', 'info');
         try { b.openSettings(); } catch (_) {}
         return false;
       }
@@ -426,19 +500,19 @@
     if (knownPin) {
       const r = await api('bio_enable', { pin: knownPin, device_id: b.deviceId, type: b.biometricType });
       res = r.ok ? { r } : null;
-      if (!r.ok) ui.toast(errText(r), 'bad');
+      if (!r.ok) toast(errText(r), 'bad');
     } else {
       res = await withServerPin(`Вход по ${bioLabel(b)}`, 'bio_enable', { device_id: b.deviceId, type: b.biometricType });
     }
     if (!res || !res.r.token) return false;
     if (!(await bioSave(b, res.r.token))) {
       await api('bio_disable', { device_id: b.deviceId });
-      ui.toast('Telegram не сохранил ключ. Попробуйте ещё раз', 'bad');
+      toast('Telegram не сохранил ключ. Попробуйте ещё раз', 'bad');
       return false;
     }
     state.bioDevice = true;
     haptic('success');
-    ui.toast(`Вход по ${bioLabel(b)} включён`);
+    toast(`Вход по ${bioLabel(b)} включён`);
     return true;
   }
 
@@ -447,7 +521,7 @@
     if (b) await bioSave(b, '');
     await api('bio_disable', { device_id: b ? b.deviceId : '' });
     state.bioDevice = false;
-    U().toast('Вход по биометрии выключен');
+    toast('Вход по биометрии выключен');
     return true;
   }
 
