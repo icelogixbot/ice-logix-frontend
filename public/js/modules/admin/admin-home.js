@@ -60,7 +60,7 @@
     if (target.orders) { AD.open('admin_orders', { stage: target.orders }); return; }
     if (target.money) { AD.open('admin_money', { view: target.money }); return; }
     if (target.desk) { AD.openDesk(); return; }
-    if (target.bonus) { openBonusOrders(); return; }
+    if (target.bonus) { AD.open('admin_store', { section: 'bonus' }); return; }
     if (target.content) { openContentSheet(); return; }
     if ('legacy' in target) {
       window._adminLegacyAnchor = target.legacy;
@@ -88,59 +88,6 @@
       onOpen: (wrap, close) => {
         wrap.querySelectorAll('[data-tab]').forEach((row) => {
           row.onclick = () => { close(); AD.open(row.dataset.tab); };
-        });
-      },
-    });
-  }
-
-  // ── Заказы бонусного магазина: выдать ──
-  async function openBonusOrders() {
-    const UI = U();
-    const { data, error } = await supabaseClient.from('bonus_shop_orders')
-      .select('id, user_id, item_title, price_ice, contact_payload, status, created_at')
-      .eq('status', 'PENDING').order('created_at', { ascending: true }).limit(50);
-    if (error) { UI.toast('Не получилось загрузить заказы', 'bad'); return; }
-    const rows = data || [];
-    const ids = [...new Set(rows.map((r) => r.user_id).filter(Boolean))];
-    const names = {};
-    if (ids.length) {
-      const { data: us } = await supabaseClient.from('users').select('user_id, full_name, username').in('user_id', ids);
-      (us || []).forEach((u) => {
-        const nick = String(u.username || '').replace(/^@+/, '');
-        names[u.user_id] = u.full_name || (nick ? '@' + nick : 'ID ' + u.user_id);
-      });
-    }
-    // Контакты из заказа: понятные подписи, служебные поля не показываем
-    const LABELS = { phone: 'Телефон', operator: 'Оператор', name: 'Имя', full_name: 'Имя', email: 'Почта', address: 'Адрес', nickname: 'Ник', username: 'Ник', comment: 'Комментарий' };
-    const SKIP = ['category', 'created_at', 'user_id', 'item_id', 'id'];
-    const contact = (p) => {
-      if (!p || typeof p !== 'object') return '';
-      return Object.entries(p).filter(([k, v]) => !SKIP.includes(k) && v !== null && v !== '' && typeof v !== 'object')
-        .map(([k, v]) => `${esc(LABELS[k] || k)}: ${esc(v)}`).join(' · ');
-    };
-    const html = rows.length ? rows.map((r) => `
-      <div class="rd-card hs-card hs-col" data-bonus="${esc(r.id)}">
-        <div class="hs-title">${esc(r.item_title || 'Товар')} · ${esc(n(r.price_ice))} бонусов</div>
-        <div class="hs-sub">${esc(names[r.user_id] || ('ID ' + r.user_id))} · ${new Date(r.created_at).toLocaleString('ru-RU')}</div>
-        ${contact(r.contact_payload) ? `<div class="hs-sub">${contact(r.contact_payload)}</div>` : ''}
-        <div class="hs-foot"><button type="button" class="rd-btn rd-btn-sm" data-done="${esc(r.id)}">Выдан</button></div>
-      </div>`).join('') : UI.empty({ icon: 'gift', title: 'Всё выдано', text: 'Новых заказов за бонусы нет.' });
-    UI.sheet({
-      title: 'Заказы за бонусы',
-      html: `<div class="ad-sheet-list">${html}</div>`,
-      onOpen: (wrap) => {
-        wrap.querySelectorAll('[data-done]').forEach((btn) => {
-          btn.onclick = async () => {
-            btn.disabled = true;
-            const { error: e } = await supabaseClient.from('bonus_shop_orders')
-              .update({ status: 'COMPLETED', completed_at: new Date().toISOString(), operator_id: Number(userId) || null })
-              .eq('id', btn.dataset.done);
-            if (e) { UI.toast('Не получилось отметить', 'bad'); btn.disabled = false; return; }
-            const card = wrap.querySelector(`[data-bonus="${btn.dataset.done}"]`);
-            if (card) card.remove();
-            UI.toast('Отмечено: выдан');
-            refresh();
-          };
         });
       },
     });
