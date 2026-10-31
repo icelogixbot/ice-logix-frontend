@@ -22,7 +22,7 @@ html.light-theme {
   /* текст */
   --rd-tx: #0B1220;
   --rd-tx2: #4B5769;
-  --rd-tx3: #6B778A;
+  --rd-tx3: #5F6B7E;
 
   /* синий: заливка та же, текст и иконки темнее, чтобы читались на белом */
   --rd-blue: #1F6FE0;
@@ -33,9 +33,9 @@ html.light-theme {
   --rd-tint-2: rgba(31, 111, 224, 0.14);
 
   /* смысловые: темнее, чем в тёмной теме, иначе тонут на белом */
-  --rd-ok: #0F9D58;
-  --rd-warn: #B86E00;
-  --rd-bad: #D93349;
+  --rd-ok: #0B7A45;
+  --rd-warn: #8F5600;
+  --rd-bad: #C4243A;
 
   /* стекло: молочное, со светлой кромкой */
   --rd-glass-bg: rgba(255, 255, 255, 0.74);
@@ -67,10 +67,10 @@ html.light-theme body .app-header .icon-btn { color: var(--rd-tx2) !important; }
 html.light-theme body #notifBadge { border: 2px solid #fff; box-sizing: content-box; }
 
 /* ─── Нижнее меню ─── */
-html.light-theme body .tab-item { color: #7D8899 !important; }
+html.light-theme body .tab-item { color: var(--rd-tx3) !important; }
 html.light-theme body .tab-item.active { color: var(--rd-b400) !important; }
 html.light-theme body .tab-item.active .tab-icon { background: var(--rd-tint-2); }
-html.light-theme body .tab-item.center-calc-tab { color: #7D8899 !important; }
+html.light-theme body .tab-item.center-calc-tab { color: var(--rd-tx3) !important; }
 html.light-theme body .tab-item.center-calc-tab.active { color: var(--rd-b400) !important; }
 html.light-theme body .tab-item.center-calc-tab .tab-icon {
   box-shadow: 0 0 0 4px #fff, 0 10px 20px rgba(31, 111, 224, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -3px 8px rgba(0, 20, 60, 0.25) !important;
@@ -194,3 +194,12 @@ html.light-theme .rd-sheet { box-shadow: 0 -10px 40px rgba(20, 40, 80, 0.14); }
 /* онбординг-сторис (onboarding.js): дорожки прогресса и кнопка закрытия */
 html.light-theme { --ob-track: rgba(15, 23, 42, 0.12); --ob-btn: rgba(15, 23, 42, 0.06); }
 html.light-theme .ice-slide-glow { opacity: 0.55; }
+
+/* Тёмные «герои» (баннер курса, магазин бонусов, акции) остаются тёмными в обеих темах,
+   поэтому внутри них возвращаем значения переменных тёмной темы: иначе тёмно-синий текст ложится на тёмно-синий фон */
+html.light-theme body :is(.banner-slide-cny, .bs-hero, .bs-media, .pr-banner) {
+  --rd-tx: #F3F6FB; --rd-tx2: #A3AFC2; --rd-tx3: #7C899D;
+  --rd-b300: #8CC6FF; --rd-b400: #4DA3FF;
+  --rd-tint: rgba(77, 163, 255, 0.13); --rd-tint-2: rgba(77, 163, 255, 0.22);
+  --rd-ok: #3DD68C; --rd-warn: #FFC24A; --rd-bad: #FF6B7A;
+}
