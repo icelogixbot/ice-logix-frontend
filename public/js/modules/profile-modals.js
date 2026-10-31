@@ -1623,28 +1623,17 @@ async function showOwnerControlsForm() {
   `;
   document.body.appendChild(modal);
 
-  let ownerId = null;
-  let currentSettings = {};
-
-  // Load existing owner settings from database
+  // Отпуск байера и буфер курса — общие настройки сервиса (таблица settings, читает get_public_config)
   try {
-    const { data: ownerRow, error } = await supabaseClient.from('users').select('user_id, settings').eq('role', 'owner').limit(1).maybeSingle();
+    const { data: cfg, error } = await supabaseClient.rpc('get_public_config');
     if (error) throw error;
-    if (ownerRow) {
-      ownerId = ownerRow.user_id;
-      currentSettings = ownerRow.settings || {};
-      
-      const v = currentSettings.buyer_vacation || { active: false, days: 0 };
-      document.getElementById('ocVacationActive').checked = v.active || false;
-      document.getElementById('ocVacationDays').value = v.days || '';
-
-      const buf = currentSettings.exchange_buffer !== undefined ? currentSettings.exchange_buffer : 3;
-      document.getElementById('ocExchangeBuffer').value = buf;
-    } else {
-      throw new Error('Учетная запись владельца не найдена.');
-    }
+    const v = (cfg && cfg.buyer_vacation) || { active: false, days: 0 };
+    document.getElementById('ocVacationActive').checked = !!v.active;
+    document.getElementById('ocVacationDays').value = v.days || '';
+    const buf = cfg && cfg.exchange_buffer !== undefined && cfg.exchange_buffer !== null ? cfg.exchange_buffer : 3;
+    document.getElementById('ocExchangeBuffer').value = buf;
   } catch (err) {
-    console.error('Ошибка загрузки настроек владельца:', err);
+    console.error('Ошибка загрузки настроек:', err);
     glassToast('Не удалось загрузить настройки', { kind: 'error' });
   }
 
@@ -1658,20 +1647,12 @@ async function showOwnerControlsForm() {
     const exchangeBuffer = parseFloat(document.getElementById('ocExchangeBuffer').value) || 0;
 
     try {
-      const updatedSettings = {
-        ...currentSettings,
-        buyer_vacation: {
-          active: vacationActive,
-          days: vacationDays
-        },
-        exchange_buffer: exchangeBuffer
-      };
-
-      const { error } = await supabaseClient.from('users').update({
-        settings: updatedSettings
-      }).eq('user_id', ownerId);
-
-      if (error) throw error;
+      const { data: vac, error: vErr } = await supabaseClient.rpc('admin_set_vacation', { p_active: vacationActive, p_days: vacationDays });
+      if (vErr) throw vErr;
+      const { error: bErr } = await supabaseClient.from('settings')
+        .upsert({ key: 'exchange_buffer', value: exchangeBuffer, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+      if (bErr) throw bErr;
+      const updatedSettings = { buyer_vacation: vac || { active: vacationActive, days: vacationDays }, exchange_buffer: exchangeBuffer };
 
       // Update global states instantly
       window.buyerVacation = updatedSettings.buyer_vacation;

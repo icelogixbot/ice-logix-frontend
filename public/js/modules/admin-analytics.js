@@ -65,10 +65,10 @@ async function renderAdminResale() {
               <img src="${firstImg}" class="w-full h-full object-cover cursor-zoom-in" onclick="window.showImagePreview(${JSON.stringify(images)})">
             </div>
             <div class="flex-1">
-              <p class="font-bold text-sm text-white">${item.title}</p>
-              <p class="text-xs text-white/70 mb-1">От: @${item.users?.username || item.user_id}</p>
+              <p class="font-bold text-sm text-white">${adminEsc(item.title)}</p>
+              <p class="text-xs text-white/70 mb-1">От: @${adminEsc(item.users?.username || item.user_id)}</p>
               <p class="text-xs text-white/70 mb-2 inline-flex items-baseline gap-1">Цена: ${item.price_byn} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</p>
-              <p class="text-xs text-white/50 italic mb-3">"${item.description}"</p>
+              <p class="text-xs text-white/50 italic mb-3">"${adminEsc(item.description)}"</p>
               <div class="flex gap-2">
                 <button class="btn-primary flex-1 bg-green-500/20 text-green-400 text-xs" onclick="approveResale('${item.id}')">Одобрить</button>
                 <button class="btn-primary flex-1 bg-red-500/20 text-red-400 text-xs" onclick="rejectResale('${item.id}')">Отклонить</button>
@@ -196,7 +196,7 @@ window.attachAdminCRMHandlers = async () => {
         return `
           <div class="glass-card p-3 rounded-2xl border border-white/5 flex items-center justify-between">
             <div class="min-w-0">
-              <p class="text-white text-sm font-bold truncate">${name}</p>
+              <p class="text-white text-sm font-bold truncate">${adminEsc(name)}</p>
               <p class="text-white/40 text-[11px]">${c.frequency} зак. · посл. ${c.recencyDays} дн. назад</p>
             </div>
             <div class="flex items-center gap-3 shrink-0">
@@ -470,8 +470,8 @@ window.attachAdminAnalyticsHandlers = async () => {
             expensesList.innerHTML = expenses.map(e => `
                 <div class="flex justify-between items-center bg-white/5 p-2 rounded-xl">
                     <div>
-                        <p class="text-white text-sm font-bold">${e.category} <span class="text-white/40 text-[10px] ml-1 font-normal">${new Date(e.created_at).toLocaleDateString('ru-RU')}</span></p>
-                        <p class="text-white/60 text-xs">${e.description || ''}</p>
+                        <p class="text-white text-sm font-bold">${adminEsc(e.category)} <span class="text-white/40 text-[10px] ml-1 font-normal">${new Date(e.created_at).toLocaleDateString('ru-RU')}</span></p>
+                        <p class="text-white/60 text-xs">${adminEsc(e.description || '')}</p>
                     </div>
                     <div class="flex items-center gap-3">
                         <span class="text-red-400 font-bold text-sm inline-flex items-baseline gap-1">-${e.amount} ${window.bynSign ? window.bynSign({ color: 'emerald', size: '0.85em' }) : ''}</span>

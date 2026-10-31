@@ -139,10 +139,19 @@
       submitBtn.innerHTML = '⏳ Сохранение выкупа...';
 
       try {
-        const newStatus = diffPercent > 3.0 ? 'awaiting_customer_decision' : 'bought';
+        // Подорожание сверх 3%: ждём решения клиента (order_price_decision). Разница уходит во второй платёж.
+        const newStatus = diffPercent > 3.0 ? 'awaiting_decision' : 'bought';
 
         if (window.supabaseClient) {
-          await window.supabaseClient.from('purchases').insert({
+          const sb = window.supabaseClient;
+          const { data: ord, error: ordErr } = await sb.from('orders')
+            .select('status, user_id, amount_due, second_payment_amount').eq('id', orderId).single();
+          if (ordErr) throw ordErr;
+          if (ord.status !== 'paid') {
+            throw new Error('Выкуп записывается только для оплаченного заказа. Сейчас: ' + ((window.UI && window.UI.orderStatus(ord.status).text) || ord.status));
+          }
+
+          const { error: purErr } = await sb.from('purchases').insert({
             order_id: orderId,
             platform: 'PINDUODUO',
             pinduoduo_order_id: pddId,
@@ -152,11 +161,12 @@
             payment_method_description: 'DuoDuo Pay 3%',
             purchase_datetime: new Date().toISOString(),
             status: newStatus
-          }).catch(() => {});
+          });
+          if (purErr) console.warn('Запись выкупа не сохранена:', purErr.message);
 
           if (diffPercent < -0.05 && Math.abs(diffBYN) > 0.01) {
             const refundAmt = Math.abs(diffBYN);
-            const { data: ordData } = await window.supabaseClient.from('orders').select('user_id').eq('id', orderId).single();
+            const ordData = ord;
             if (ordData?.user_id) {
               // Запись в журнал сама зачисляет деньги на баланс (триггер в базе); повтор по заказу не пройдёт
               const { error: beErr } = await window.supabaseClient.from('balance_entries').insert({
@@ -172,16 +182,20 @@
             }
           }
 
-          await window.supabaseClient.from('orders').update({
-            status: newStatus,
-            tracking_number_cn: pddId
-          }).eq('id', orderId);
+          const upd = { status: newStatus, tracking_number_cn: pddId };
+          if (diffBYN > 0.01) {
+            const extra = Math.round(diffBYN * 100) / 100;
+            upd.second_payment_amount = Math.round(((Number(ord.second_payment_amount) || 0) + extra) * 100) / 100;
+            upd.amount_due = Math.round(((Number(ord.amount_due) || 0) + extra) * 100) / 100;
+          }
+          const { error: updErr } = await sb.from('orders').update(upd).eq('id', orderId);
+          if (updErr) throw updErr;
 
-          await window.supabaseClient.from('order_events').insert({
+          await sb.from('order_events').insert({
             order_id: orderId,
             actor_type: 'OPERATOR',
             event_type: 'PURCHASE_RECORDED',
-            details: {
+            new_value: {
               pdd_id: pddId,
               price_cny: pCNY,
               rate: rate,
@@ -189,12 +203,14 @@
               diff_byn: diffBYN,
               new_status: newStatus
             }
-          }).catch(() => {});
+          });
         }
 
-        if (window.tgUtil) {
-          window.tgUtil.haptic('success');
-          window.tgUtil.alert(`✅ Выкуп зафиксирован!\\nСтатус заказа: ${newStatus}`);
+        if (window.tgUtil) window.tgUtil.haptic('success');
+        if (window.UI) {
+          window.UI.toast(newStatus === 'awaiting_decision'
+            ? 'Записано. Клиент решит, согласен ли на новую цену. После согласия поставьте статус «Выкуплен»'
+            : 'Выкуп записан');
         }
         close();
         if (typeof window.preloadAdminData === 'function') await window.preloadAdminData(true);
@@ -218,7 +234,7 @@
     modal.id = 'operatorWarehouseModal';
 
     const defaultWeight = Number(estWeight || 1.0);
-    const defaultReserve = Number(reservePaid || 70.0);
+    const defaultReserve = Number(reservePaid) || 0;
 
     modal.innerHTML = `
       <div class="glass-card max-w-sm w-full mx-4 p-5 space-y-4 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.8)] border border-amber-500/30 transform transition-all duration-300 scale-95 opacity-0" id="opWarehouseModalContent">
@@ -315,7 +331,7 @@
 
       previewBox.className = `p-3 rounded-xl border text-xs space-y-1.5 ${bannerClass}`;
       previewBox.innerHTML = `
-        <div class="flex justify-between"><span>Оплаченный резерв (70%):</span><span class="font-mono inline-flex items-baseline gap-1">${reserve.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span></div>
+        <div class="flex justify-between"><span>Резерв доставки в первом платеже:</span><span class="font-mono inline-flex items-baseline gap-1">${reserve.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span></div>
         <div class="flex justify-between"><span>Факт доставки склада:</span><span class="font-mono font-bold inline-flex items-baseline gap-1">${actShip.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span></div>
         <div class="flex justify-between text-white/60"><span>Страховка (2%):</span><span class="font-mono inline-flex items-baseline gap-1">${insurance.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span></div>
         <div class="border-t border-white/10 pt-1 text-[11px] leading-relaxed">${bannerHtml}</div>
@@ -345,16 +361,25 @@
 
       try {
         if (window.supabaseClient) {
-          await window.supabaseClient.from('shipping_actuals').insert({
+          const sb = window.supabaseClient;
+          const { data: ord, error: ordErr } = await sb.from('orders')
+            .select('status, user_id, amount_due, second_payment_amount').eq('id', orderId).single();
+          if (ordErr) throw ordErr;
+          if (!['bought', 'on_sklad_cn'].includes(ord.status)) {
+            throw new Error('Склад записывается для выкупленного заказа. Сейчас: ' + ((window.UI && window.UI.orderStatus(ord.status).text) || ord.status));
+          }
+
+          const { error: shErr } = await sb.from('shipping_actuals').insert({
             order_id: orderId,
             actual_weight: actWeight,
             actual_delivery_amount: actShip,
             source: 'BLUE_SQUIRREL',
             confirmed_at: new Date().toISOString()
-          }).catch(() => {});
+          });
+          if (shErr) console.warn('Данные склада не сохранены:', shErr.message);
 
           if (surplus > 0.01) {
-            const { data: ordData } = await window.supabaseClient.from('orders').select('user_id').eq('id', orderId).single();
+            const ordData = ord;
             if (ordData?.user_id) {
               const { error: beErr } = await window.supabaseClient.from('balance_entries').insert({
                 user_id: ordData.user_id,
@@ -369,28 +394,38 @@
             }
           }
 
-          await window.supabaseClient.from('orders').update({
-            weight_actual: actWeight,
-            status: secondPaymentTotal > 0.05 ? 'awaiting_second_payment' : 'in_belarus'
-          }).eq('id', orderId);
+          // Второй платёж: сумма в amount_due, клиент оплачивает её через order_pay (этап SECOND)
+          const upd = { weight_actual: actWeight };
+          if (secondPaymentTotal > 0.05) {
+            const due = Math.round(secondPaymentTotal * 100) / 100;
+            upd.status = 'awaiting_payment';
+            upd.second_payment_amount = Math.round(((Number(ord.second_payment_amount) || 0) + due) * 100) / 100;
+            upd.amount_due = Math.round(((Number(ord.amount_due) || 0) + due) * 100) / 100;
+          } else {
+            upd.status = 'on_sklad_cn';
+          }
+          const { error: updErr } = await sb.from('orders').update(upd).eq('id', orderId);
+          if (updErr) throw updErr;
 
-          await window.supabaseClient.from('order_events').insert({
+          await sb.from('order_events').insert({
             order_id: orderId,
             actor_type: 'OPERATOR',
             event_type: 'WAREHOUSE_ARRIVED',
-            details: {
+            new_value: {
               weight_kg: actWeight,
               actual_shipping_byn: actShip,
               reserve_paid: reserve,
               surplus_credited: surplus,
               second_payment_due: secondPaymentTotal
             }
-          }).catch(() => {});
+          });
         }
 
-        if (window.tgUtil) {
-          window.tgUtil.haptic('success');
-          window.tgUtil.alert(`✅ Данные склада сохранены!\\n2-й этап выставлен на ${secondPaymentTotal.toFixed(2)} (клиенту ${surplus > 0 ? `начислен излишек ${surplus.toFixed(2)} на баланс` : 'готово'})`);
+        if (window.tgUtil) window.tgUtil.haptic('success');
+        if (window.UI) {
+          window.UI.toast(secondPaymentTotal > 0.05
+            ? `Склад записан. Клиенту выставлен второй платёж ${secondPaymentTotal.toFixed(2).replace('.', ',')}`
+            : 'Склад записан, второй платёж не нужен');
         }
         close();
         if (typeof window.preloadAdminData === 'function') await window.preloadAdminData(true);
@@ -535,12 +570,19 @@
           }
           resolveBtn.disabled = true;
           resolveBtn.innerText = 'Сохранение...';
-          await window.supabaseClient.from('order_events').insert({
+          const { error: evErr } = await window.supabaseClient.from('order_events').insert({
             order_id: orderId,
             actor_type: 'OPERATOR',
             event_type: 'PROBLEM_ORDER_RESOLVED',
-            details: { comment: comment, delta: delta }
-          }).catch(() => {});
+            comment: comment,
+            new_value: { delta: delta }
+          });
+          if (evErr) {
+            if (window.tgUtil) window.tgUtil.alert('Не сохранилось: ' + evErr.message);
+            resolveBtn.disabled = false;
+            resolveBtn.innerText = 'Утвердить решение и закрыть';
+            return;
+          }
           if (window.tgUtil) {
             window.tgUtil.haptic('success');
             window.tgUtil.alert('Решение по расхождению зафиксировано!');

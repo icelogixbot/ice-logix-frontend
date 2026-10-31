@@ -1,0 +1,68 @@
+/* ═══════════════════════════════════════════════════════════════════
+   ICE LOGIX · Админ-панель (Пульт, Сотрудники). Префикс ad-.
+   Только переменные --rd-* из ice-redesign.css, плоские карточки, без стекла и теней.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* счётчик справа в строке и на плитке раздела */
+.ad-count {
+  min-width: 28px; height: 28px; padding: 0 9px; border-radius: 999px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--rd-tint-2); color: var(--rd-b300);
+  font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.ad-count.warn { background: rgba(255, 194, 74, 0.14); color: var(--rd-warn); }
+.ad-count.bad { background: rgba(255, 107, 122, 0.14); color: var(--rd-bad); }
+
+/* строка без действия (состояние сервиса, описание ролей) */
+.rd-row.ad-static { cursor: default; }
+.rd-row.ad-static:active { background: transparent; }
+
+/* «Всё спокойно» */
+.ad-calm { display: flex; align-items: center; gap: 14px; padding: 14px 16px; }
+
+/* переключатель периода */
+.ad-seg { margin-bottom: 0; }
+
+/* плитки-показатели 2×2 */
+.ad-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.ad-kpi { padding: 14px; min-width: 0; }
+.ad-kpi-label { font-size: 12px; font-weight: 600; color: var(--rd-tx2); }
+.ad-kpi-value {
+  margin-top: 6px; font-size: 22px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.15;
+  font-variant-numeric: tabular-nums; color: var(--rd-tx); overflow-wrap: anywhere;
+}
+.ad-kpi-value .byn-sign { height: 0.8em; width: auto; margin-left: 0.15em; vertical-align: -0.05em; }
+.ad-kpi-hint { margin-top: 4px; font-size: 11px; color: var(--rd-tx3); }
+
+/* точка состояния */
+.ad-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; background: var(--rd-tx3); }
+.ad-dot.ok { background: var(--rd-ok); }
+.ad-dot.warn { background: var(--rd-warn); }
+.ad-dot.bad { background: var(--rd-bad); }
+
+/* разделы плитками 2 в ряд */
+.ad-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.ad-tile {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  min-height: 118px; padding: 14px; text-align: left; cursor: pointer;
+  color: var(--rd-tx); font: inherit; transition: transform .15s ease;
+}
+.ad-tile:active { transform: scale(0.98); }
+.ad-tile .rd-ico { margin-bottom: 8px; }
+.ad-tile .ad-count { position: absolute; top: 12px; right: 12px; }
+.ad-tile-title { font-size: 15px; font-weight: 700; }
+.ad-tile-text { font-size: 12px; line-height: 1.35; color: var(--rd-tx2); }
+
+/* аватар-буква сотрудника */
+.ad-ava {
+  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--rd-tint); color: var(--rd-b300); font-size: 17px; font-weight: 800;
+}
+
+/* загрузка */
+.ad-skel { height: 144px; }
+.ad-skel-sm { height: 88px; }
+
+.ad-updated { margin: 16px 0 0; font-size: 12px; line-height: 1.4; text-align: center; color: var(--rd-tx3); }
+.ad-sheet-list { display: flex; flex-direction: column; gap: 10px; }

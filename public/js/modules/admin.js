@@ -1,6 +1,13 @@
 // ============================================================
 // ICE LOGIX Module: Admin Panel (Core Operations)
+// Старая админка («Все инструменты»). Новый Пульт — js/modules/admin/*.js (ADMIN_PLAN.md).
 // ============================================================
+
+// Любой текст из базы (имена, отзывы, описания) вставляем в HTML только через adminEsc:
+// иначе чужой код из имени в Telegram выполнится в админке с правами админа.
+function adminEsc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
 async function renderAdminReviewsConfig() {
   if (!isOwner) return '<p class="text-center mt-10 text-red-400">Доступ запрещён</p>';
 
@@ -301,32 +308,25 @@ function attachAdminReviewsConfigHandlers() {
 let adminUsersSearch = '';
 
 window.changeUserBalance = async (userId, currentBalance) => {
-  const amountStr = prompt(`Текущий баланс пользователя: ${currentBalance}\n\nВведите сумму (с минусом для списания):`);
-  if (!amountStr) return;
-  const amount = parseFloat(amountStr);
-  if (isNaN(amount) || amount === 0) return;
-  
-  try {
-    const newBalance = Number(currentBalance) + amount;
-    
-    const { error } = await supabaseClient.from('users').update({ ices_balance: newBalance }).eq('user_id', userId);
-    if (error) throw error;
-    
-    const { error: txErr } = await supabaseClient.from('transactions').insert({
-      user_id: userId,
-      type: amount > 0 ? 'admin_bonus' : 'admin_correction',
-      amount_ices: amount,
-      status: 'completed',
-      metadata: { note: 'Изменение администратором' }
-    });
-    if (txErr) console.warn('Ошибка записи транзакции', txErr);
-    
-    glassToast('Баланс успешно обновлен!', { kind: 'success' });
-    renderCurrentScreen();
-  } catch (err) {
-    console.error('Ошибка изменения баланса:', err);
-    glassToast('Ошибка: ' + err.message, { kind: 'error' });
-  }
+  const U = window.UI;
+  const v = await U.ask({
+    title: 'Изменить баланс',
+    text: `Сейчас на балансе ${U.money(Number(currentBalance) || 0, { keepCents: true, digits: 2 })}. Чтобы списать, поставьте минус перед суммой.`,
+    fields: [
+      { name: 'amount', label: 'Сумма', type: 'text', inputmode: 'decimal', placeholder: 'Например, 10 или -5' },
+      { name: 'reason', label: 'Причина', type: 'text', placeholder: 'Компенсация за задержку' }
+    ],
+    action: 'Сохранить',
+    validate: (x) => (!Number(String(x.amount).replace(',', '.')) ? 'Введите сумму больше или меньше нуля' : !x.reason ? 'Укажите причину' : '')
+  });
+  if (!v) return;
+  const { error } = await supabaseClient.rpc('admin_adjust_balance', {
+    p_user: Number(userId), p_amount: Number(String(v.amount).replace(',', '.')), p_reason: v.reason
+  });
+  if (error) { U.toast(error.message || 'Не получилось изменить баланс', 'bad'); return; }
+  U.toast('Баланс изменён');
+  window.invalidateAdminCache();
+  renderCurrentScreen();
 };
 
 window.adminUpdateTracking = async (orderId) => {
@@ -440,7 +440,7 @@ async function preloadAdminData(force = false) {
   ] = await Promise.all([
     supabaseClient.from('promocodes').select('*').order('created_at', { ascending: false }).then(r => r.data || []).catch(e => { console.error('promoCodes load failed:', e); return []; }),
     supabaseClient.from('payout_requests').select('*').eq('status', 'pending').then(r => r.data || []).catch(e => { console.error('payoutRequests load failed:', e); return []; }),
-    supabaseClient.from('reviews').select('*').eq('is_published', false).order('created_at', { ascending: false }).then(r => r.data || []).catch(e => { console.error('reviews load failed:', e); return []; }),
+    supabaseClient.from('reviews').select('*').eq('is_published', false).or('moderation_status.is.null,moderation_status.eq.pending').order('created_at', { ascending: false }).then(r => r.data || []).catch(e => { console.error('reviews load failed:', e); return []; }),
     supabaseClient.from('products').select('*').order('created_at', { ascending: false }).then(r => r.data || []).catch(e => { console.error('products load failed:', e); return []; }),
     supabaseClient.from('courses').select('*').order('created_at', { ascending: true }).then(r => r.data || []).catch(e => { console.error('courses load failed:', e); return []; }),
     supabaseClient.from('promotions').select('*').order('created_at', { ascending: false }).then(r => r.data || []).catch(e => { console.error('promotions load failed:', e); return []; }),
@@ -518,7 +518,7 @@ async function renderAdminUsersList() {
       <div class="bg-white/5 rounded-lg p-3">
         <div class="flex justify-between items-start">
           <div>
-            <p class="text-white font-bold text-sm">${u.full_name || 'Без имени'} ${u.username ? '(@' + u.username + ')' : ''}</p>
+            <p class="text-white font-bold text-sm">${adminEsc(u.full_name || 'Без имени')} ${u.username ? '(@' + adminEsc(u.username) + ')' : ''}</p>
             <p class="text-white/50 text-[10px]">ID: ${u.user_id} | Рег: ${new Date(u.created_at).toLocaleDateString('ru-RU')}</p>
             <p class="text-cyan-400 font-bold mt-1 text-sm inline-flex items-baseline gap-1">${Number(u.ices_balance || 0).toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</p>
           </div>
@@ -568,9 +568,9 @@ async function renderMarketplacesAdminList() {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-white/40"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                 `}
               </button>
-              <span class="truncate">${mp.name}</span>
+              <span class="truncate">${adminEsc(mp.name)}</span>
             </span>
-            <span class="text-white/50 text-xs block">${mp.country}</span>
+            <span class="text-white/50 text-xs block">${adminEsc(mp.country)}</span>
           </div>
         </div>
         <div class="flex gap-1 ml-2 flex-shrink-0">
@@ -598,7 +598,7 @@ async function renderPromotionsAdminList() {
     return data.map(p => `
       <div class="flex items-center justify-between p-2 bg-white/5 rounded-lg">
         <div>
-          <span class="text-white">${p.title}</span>
+          <span class="text-white">${adminEsc(p.title)}</span>
           <span class="text-cyan-400 text-xs ml-2 inline-flex items-baseline gap-0.5">${p.discount_type === 'percent' ? p.discount_value + '%' : p.discount_value + ' ' + (window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : '')}</span>
           <span class="text-white/50 text-xs block">${p.is_active ? '<span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Активна' : '<span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span> Неактивна'}</span>
         </div>
@@ -728,9 +728,9 @@ async function renderAdminClaimsList() {
           </div>
           <div class="text-xs text-white leading-normal">
             <p><strong>Заказ:</strong> <span class="font-mono text-cyan-400 font-semibold">#${c.order_id.slice(0, 8)}</span></p>
-            <p class="mt-1"><strong>Сумма возмещения:</strong> <span class="text-green-400 font-mono font-bold inline-flex items-baseline gap-1">${orderTotal.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'emerald', size: '0.85em' }) : ''}</span></p>
+            <p class="mt-1"><strong>Сумма заказа:</strong> <span class="text-green-400 font-mono font-bold inline-flex items-baseline gap-1">${orderTotal.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'emerald', size: '0.85em' }) : ''}</span></p>
             <p class="mt-1.5 p-2 bg-slate-950/60 rounded-lg text-white/70 border border-white/5 font-sans">
-              <strong>Описание:</strong> ${c.description}
+              <strong>Описание:</strong> ${adminEsc(c.description)}
             </p>
           </div>
           ${isPending ? `
@@ -744,12 +744,12 @@ async function renderAdminClaimsList() {
             </div>
           ` : isApproved ? `
             <div class="p-1.5 bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] text-center font-bold rounded-lg font-sans">
-              🟢 ВЫПЛАТА ОДОБРЕНА И ЗАЧИСЛЕНА НА БАЛАНС
+              Возмещение зачислено на баланс
             </div>
           ` : `
             <div class="p-1.5 bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] text-center font-bold rounded-lg font-sans">
-              🔴 ПРЕТЕНЗИЯ ОТКЛОНЕНА
-              ${c.rejection_reason ? '<p class="font-normal text-[9px] text-white/50 mt-0.5 font-sans">Причина: ' + c.rejection_reason + '</p>' : ''}
+              Претензия отклонена
+              ${c.rejection_reason ? '<p class="font-normal text-[9px] text-white/50 mt-0.5 font-sans">Причина: ' + adminEsc(c.rejection_reason) + '</p>' : ''}
             </div>
           `}
         </div>
@@ -794,7 +794,7 @@ async function renderAdminLegitChecksList() {
             <span class="font-mono text-white/70">Юзер: ${c.user_id}</span>
           </div>
           <div class="text-xs text-white leading-normal">
-            <p><strong>Товар:</strong> <span class="text-cyan-400 font-bold">${c.brand} ${c.model}</span></p>
+            <p><strong>Товар:</strong> <span class="font-bold" style="color:var(--rd-b400)">${adminEsc(c.brand)} ${adminEsc(c.model)}</span></p>
             <p class="text-white/40 text-[9px] mt-0.5">Кликните по фото для увеличения во весь экран</p>
             <div class="grid grid-cols-4 gap-1.5 mt-1.5 mb-2">
               ${imageUrls.map((url, i) => `
@@ -824,7 +824,7 @@ async function renderAdminLegitChecksList() {
           ` : `
             <div class="p-1.5 bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] text-center font-bold rounded-lg font-sans">
               🔴 ВЕРДИКТ: ПОДДЕЛКА
-              ${c.comments ? '<p class="font-normal text-[9px] text-white/50 mt-0.5 font-sans">Комментарий эксперта: ' + c.comments + '</p>' : ''}
+              ${c.comments ? '<p class="font-normal text-[9px] text-white/50 mt-0.5 font-sans">Комментарий эксперта: ' + adminEsc(c.comments) + '</p>' : ''}
             </div>
           `}
         </div>
@@ -901,6 +901,10 @@ async function renderAdmin() {
     }
 
     return `
+      <div class="rd-head">
+        <button type="button" class="rd-back" onclick="window.goBackGlobal()" aria-label="Назад">${window.UI.icon('chevL', 22)}</button>
+        <div class="rd-head-txt"><h1 class="rd-head-title">Все инструменты</h1><p class="rd-head-sub">Разделы, которые ещё не перенесены в новый вид</p></div>
+      </div>
       <div class="space-y-4">
         <!-- <span class="ix ix-accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></span> Акции -->
         <div class="glass-card">
@@ -931,8 +935,7 @@ async function renderAdmin() {
         </button>
 
         <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="window.openReconciliationDashboardModal()" style="background: linear-gradient(135deg, rgba(77, 163, 255,0.15), rgba(99,102,241,0.08)); border-color: rgba(77, 163, 255,0.4);">
-          <span class="flex items-center gap-2"><span class="text-lg">📊</span> Финансовая сверка (Reconciliation & Problem Orders)</span>
-          <span class="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">ТЗ v1.0</span>
+          <span class="flex items-center gap-2">Финансовая сверка заказов</span>
         </button>
 
         <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="switchTab('admin_crm')" style="background: linear-gradient(135deg, rgba(244,114,182,0.1), rgba(219,39,119,0.05)); border-color: rgba(244,114,182,0.3);">
@@ -965,11 +968,6 @@ async function renderAdmin() {
           <span class="ix text-green-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
         </button>
 
-        <button class="btn-secondary w-full flex items-center justify-between mb-4 border border-white/10" onclick="downloadTaxInvoicePDF()" style="background: linear-gradient(135deg, rgba(96,165,250,0.12), rgba(77, 163, 255,0.06)); border-color: rgba(96,165,250,0.3);">
-          <span class="flex items-center gap-2"><span class="ix text-blue-400"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg></span> Скачать выписку за год (PDF)</span>
-          <span class="ix text-blue-400/50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
-        </button>
-
         <!-- Список промокодов -->
         <div class="glass-card">
           <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span> Промокоды</h3>
@@ -977,9 +975,13 @@ async function renderAdmin() {
         </div>
         
         <!-- Отзывы на модерации -->
-        <div class="glass-card">
+        <div class="glass-card" id="adminReviewsBlock">
           <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></span> Отзывы на модерации</h3>
-          ${reviews.length === 0 ? '<p class="text-white/70">Нет отзывов</p>' : reviews.map(r => `<div class="p-2 bg-white/5 rounded-lg mb-2"><div class="stars">${'<span class="ix ix-fill ix-warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>'.repeat(r.rating)}${'<span class="ix ix-mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>'.repeat(5-r.rating)}</div><p class="text-white/80 text-sm">${r.text}</p>${r.photo_urls && r.photo_urls.length > 0 ? `<div class="flex gap-2 mt-2 overflow-x-auto pb-1">${r.photo_urls.map(url => `<img src="${url}" class="h-16 w-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition" onclick="tgUtil.popup('${url}', 'Фото отзыва')">`).join('')}</div>` : ''}<p class="text-white/50 text-xs">${r.user_name||'Пользователь'} | ${new Date(r.created_at).toLocaleDateString()}</p><div class="flex gap-2 mt-2"><button class="approveReviewBtn bg-green-600 px-3 py-1 rounded text-sm" data-id="${r.id}"><span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Одобрить</button><button class="rejectReviewBtn bg-red-600 px-3 py-1 rounded text-sm" data-id="${r.id}"><span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span> Отклонить</button></div></div>`).join('')}
+          ${reviews.length === 0 ? '<p class="text-white/70">Нет отзывов</p>' : reviews.map(r => {
+            const photos = (Array.isArray(r.media_urls) ? r.media_urls : []).filter(u => /^https?:\/\//i.test(String(u)));
+            const stars = Math.max(0, Math.min(5, Number(r.rating) || 0));
+            return `<div class="p-2 bg-white/5 rounded-lg mb-2"><div class="stars">${window.UI.icon('star', 14, { fill: true }).repeat(stars)}</div><p class="text-white/80 text-sm">${adminEsc(r.text)}</p>${photos.length ? `<div class="flex gap-2 mt-2 overflow-x-auto pb-1">${photos.map(url => `<a href="${adminEsc(url)}" target="_blank" rel="noopener"><img src="${adminEsc(url)}" class="h-16 w-16 object-cover rounded-lg" alt="Фото отзыва"></a>`).join('')}</div>` : ''}<p class="text-white/50 text-xs">${adminEsc(r.user_name || 'Пользователь')} · ${new Date(r.created_at).toLocaleDateString('ru-RU')}${photos.length ? ' · за фото начислится 5 бонусов' : ''}</p><div class="flex gap-2 mt-2"><button class="approveReviewBtn rd-btn rd-btn-sm" data-id="${r.id}">Опубликовать</button><button class="rejectReviewBtn rd-btn rd-btn-sm rd-btn-ghost" data-id="${r.id}">Отклонить</button></div></div>`;
+          }).join('')}
         </div>
         
         <!-- Встроенный чат (Тикеты поддержки) -->
@@ -991,7 +993,7 @@ async function renderAdmin() {
         </div>
         
         <!-- Управление товарами -->
-        <div class="glass-card">
+        <div class="glass-card" id="adminProductsBlock">
           <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Управление товарами</h3>
           <button id="addProductBtn" class="btn-primary w-full mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Добавить товар</button>
           
@@ -1012,7 +1014,7 @@ async function renderAdmin() {
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-white/40"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                       `}
                     </button>
-                    <span class="truncate">${p.title}</span>
+                    <span class="truncate">${adminEsc(p.title)}</span>
                   </p>
                   <p class="text-cyan-400 text-xs">${p.price} ${p.currency}</p>
                 </div>
@@ -1035,7 +1037,7 @@ async function renderAdmin() {
             ${courses.length === 0 ? '<p class="text-white/50 text-sm">Курсов нет</p>' : courses.map(c => `
               <div class="flex items-center gap-2 p-2 bg-white/5 rounded-xl">
                 <div class="flex-1 min-w-0">
-                  <p class="text-white text-sm truncate">${c.title}</p>
+                  <p class="text-white text-sm truncate">${adminEsc(c.title)}</p>
                   <p class="text-white/40 text-xs inline-flex items-baseline gap-1">${c.price_ice > 0 ? `${c.price_ice} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}` : 'Бесплатно'} · ${c.role_access} · ${c.is_active ? '<span class="ix ix-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span> Активен' : '<span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span> Скрыт'}</p>
                 </div>
                 <button class="btn-secondary adminEditCourseBtn" data-course-id="${c.id}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span></button>
@@ -1061,20 +1063,11 @@ async function renderAdmin() {
         </div>
         
         <!-- Заявки на вывод -->
-        <div class="glass-card">
+        <div class="glass-card" id="adminPayoutsBlock">
           <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18M7 6h1v4M16.71 13.88l.7.71-2.82 2.82"/></svg></span> Заявки на вывод</h3>
           ${payoutRequests.length === 0 ? '<p class="text-white/70">Нет заявок</p>' : payoutRequests.map(req => `<div class="flex justify-between items-center p-2 bg-white/5 rounded-lg mb-2"><div><span class="text-white">${req.user_id}</span><span class="text-cyan-400 ml-2 inline-flex items-baseline gap-1">${req.amount} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</span></div><div><button class="approvePayoutBtn bg-green-600 px-3 py-1 rounded text-sm mr-2" data-id="${req.id}">Одобрить</button><button class="rejectPayoutBtn bg-red-600 px-3 py-1 rounded text-sm" data-id="${req.id}">Отклонить</button></div></div>`).join('')}
         </div>
         
-        <!-- Сводка продаж -->
-        <div class="glass-card mt-4" id="aiPredictionCard">
-          <div class="flex justify-between items-center mb-3">
-            <h3 class="text-white font-bold">Сводка продаж</h3>
-            <button onclick="window._refreshAiPrediction && window._refreshAiPrediction()" class="text-xs text-purple-400 bg-purple-500/10 border border-purple-500/30 px-2 py-1 rounded-lg hover:bg-purple-500/20 transition">↻ Обновить</button>
-          </div>
-          <div id="aiPredictionContent" class="text-white/70 text-xs leading-relaxed whitespace-pre-wrap">Загрузка сводки...</div>
-        </div>
-
         <!-- Управление пользователями -->
         <div class="glass-card mt-4">
           <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> Управление пользователями</h3>
@@ -1124,31 +1117,6 @@ async function renderAdmin() {
           </div>
           </div>
 
-        <!-- Финансовый учёт и Налоги (Белгазпромбанк & Налоговый отчёт РБ) -->
-        <div class="glass-card mt-4">
-          <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span> Финансовый учёт и Налоги РБ</h3>
-          <p class="text-white/50 text-xs mb-3">Автоматический расчёт налогов по ставкам РБ (20% налога с чистой комиссии байера) и распределение чистой прибыли между партнерскими ИП.</p>
-          <div class="bg-white/5 p-3 rounded-xl space-y-2 mb-4 text-xs">
-            <p class="font-bold text-white uppercase text-[10px] tracking-wider mb-1 text-cyan-400">Реквизиты ИП (ОАО «Белгазпромбанк»):</p>
-            <div class="grid grid-cols-1 gap-2 text-white/70">
-              <div>• <strong>ИП Кирилл (Р/С 1):</strong> BY54BGPB3012000000001000 (Чистая прибыль: 50%)</div>
-              <div>• <strong>ИП Партнёр (Р/С 2):</strong> BY12BGPB3012000000002000 (Чистая прибыль: 50%)</div>
-            </div>
-          </div>
-          <button id="generateTaxesReportBtn" class="btn-primary w-full flex items-center justify-center gap-2">
-            ${ix('file-text')} Сгенерировать налоговый отчёт РБ
-          </button>
-        </div>
-
-        <!-- Бэкап и системные утилиты -->
-        <div class="glass-card mt-4">
-          <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span> Зеркало базы (Auto-Backup)</h3>
-          <p class="text-white/50 text-xs mb-3">Мгновенная полная выгрузка базы данных пользователей и заказов в файл резервной копии.</p>
-          <button id="downloadBackupBtn" class="btn-primary w-full flex items-center justify-center gap-2">
-            ${ix('download')} Выгрузить полную резервную копию
-          </button>
-        </div>
-
         <!-- Оплаты на проверке (заявки «Я оплатил» и остатки по заказам) -->
         <div class="glass-card mt-4">
           <div class="rd-section"><h2>Оплаты на проверке</h2><button type="button" class="rd-link" onclick="refreshAdminPayments()">Обновить</button></div>
@@ -1176,33 +1144,15 @@ async function renderAdmin() {
           </div>
         </div>
 
-        <!-- Системные настройки и Бэкап -->
-        <div class="glass-card mt-4">
-          <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Системные настройки и Бэкап</h3>
-          
-          <div class="bg-white/5 p-3 rounded-xl mb-3">
-            <div class="flex justify-between items-center mb-2">
-              <span class="text-white text-sm font-bold">🌴 Режим Отпуска Байера</span>
-              <button id="toggleVacationBtn" class="px-3 py-1 rounded text-xs font-bold ${window.buyerVacation?.active ? 'bg-amber-500/20 text-amber-400' : 'bg-white/10 text-white/50'}">
-                ${window.buyerVacation?.active ? 'ВКЛЮЧЕН' : 'ВЫКЛ'}
-              </button>
-            </div>
-            <p class="text-white/50 text-[10px] mb-2">Если выключить — сроки вернутся в норму. Если включить — ко всем срокам доставки добавится указанное количество дней, и клиенты увидят предупреждение в калькуляторе.</p>
-            <div class="flex gap-2 items-center">
-              <input type="number" id="vacationDaysInput" value="${window.buyerVacation?.days || 10}" class="btn-secondary w-20 p-2 rounded-lg text-sm text-center" placeholder="Дней">
-              <span class="text-white/70 text-xs">дней задержки</span>
-              <button id="saveVacationBtn" class="btn-primary px-3 py-1 text-xs ml-auto">Сохранить</button>
-            </div>
-          </div>
-
-          <div class="bg-white/5 p-3 rounded-xl">
-            <div class="flex justify-between items-center mb-2">
-              <span class="text-white text-sm font-bold">💾 Резервная копия базы</span>
-            </div>
-            <p class="text-white/50 text-[10px] mb-3">Скачать полный дамп всех заказов и пользователей в формате CSV. Рекомендуется делать раз в неделю.</p>
-            <button id="exportDatabaseBtn" class="w-full bg-blue-600/80 hover:bg-blue-600 transition p-2 rounded-lg text-white font-bold text-sm flex items-center justify-center gap-2">
-              <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span> Скачать CSV (Excel) Архив
-            </button>
+        <!-- Отпуск байера -->
+        <div class="glass-card mt-4" id="adminVacationCard">
+          <div class="rd-section" style="margin-top:0"><h2>Отпуск байера</h2><span class="rd-status ${window.buyerVacation?.active ? 'warn' : ''}">${window.buyerVacation?.active ? 'Включён' : 'Выключен'}</span></div>
+          <p class="rd-sub">Когда включено, ко всем срокам доставки добавляются дни задержки, а клиенты видят предупреждение в калькуляторе.</p>
+          <label class="rd-label" for="vacationDaysInput" style="margin-top:12px">Дней задержки</label>
+          <div class="rd-field" style="max-width:140px"><input type="number" id="vacationDaysInput" min="0" max="90" inputmode="numeric" value="${Number(window.buyerVacation?.days) || 10}"></div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button id="toggleVacationBtn" type="button" class="rd-btn rd-btn-sm${window.buyerVacation?.active ? ' rd-btn-ghost' : ''}">${window.buyerVacation?.active ? 'Выключить' : 'Включить'}</button>
+            <button id="saveVacationBtn" type="button" class="rd-btn rd-btn-sm rd-btn-ghost">Сохранить дни</button>
           </div>
         </div>
       </div>
@@ -1245,371 +1195,17 @@ function attachAdminHandlers() {
   // ================== СИСТЕМНЫЕ НАСТРОЙКИ (ОТПУСК И БЭКАП) ==================
   const toggleVacBtn = document.getElementById('toggleVacationBtn');
   const saveVacBtn = document.getElementById('saveVacationBtn');
-  const expDbBtn = document.getElementById('exportDatabaseBtn');
 
-  if (toggleVacBtn) {
-    toggleVacBtn.onclick = async () => {
-      tgUtil.haptic('light');
-      window.buyerVacation = window.buyerVacation || { active: false, days: 10 };
-      window.buyerVacation.active = !window.buyerVacation.active;
-      
-      try {
-        const { error } = await supabaseClient
-          .from('admin_settings')
-          .update({ buyer_vacation: window.buyerVacation })
-          .eq('owner_id', userId);
-        if (error) throw error;
-        
-        glassToast('Режим отпуска ' + (window.buyerVacation.active ? 'ВКЛЮЧЕН' : 'ВЫКЛЮЧЕН'), { kind: 'success' });
-        renderAdminScreen(true);
-      } catch (err) {
-        glassToast('Ошибка сохранения: ' + err.message, { kind: 'error' });
-      }
-    };
-  }
-
-  if (saveVacBtn) {
-    saveVacBtn.onclick = async () => {
-      tgUtil.haptic('medium');
-      const dInput = document.getElementById('vacationDaysInput');
-      const days = parseInt(dInput.value) || 0;
-      window.buyerVacation = window.buyerVacation || { active: false, days: 10 };
-      window.buyerVacation.days = days;
-      
-      try {
-        const { error } = await supabaseClient
-          .from('admin_settings')
-          .update({ buyer_vacation: window.buyerVacation })
-          .eq('owner_id', userId);
-        if (error) throw error;
-        glassToast('Количество дней сохранено', { kind: 'success' });
-      } catch (err) {
-        glassToast('Ошибка: ' + err.message, { kind: 'error' });
-      }
-    };
-  }
-
-  if (expDbBtn) {
-    expDbBtn.onclick = async () => {
-      tgUtil.haptic('medium');
-      glassToast('Сбор данных для бэкапа...', { kind: 'info' });
-      try {
-        const [ordersRes, usersRes] = await Promise.all([
-          supabaseClient.from('orders').select('*'),
-          supabaseClient.from('users').select('*')
-        ]);
-        if (ordersRes.error) throw ordersRes.error;
-        if (usersRes.error) throw usersRes.error;
-        
-        // Создаем CSV
-        let csvContent = "data:text/csv;charset=utf-8,\\uFEFF";
-        csvContent += "=== USERS ===\\n";
-        if (usersRes.data && usersRes.data.length > 0) {
-          const uKeys = Object.keys(usersRes.data[0]);
-          csvContent += uKeys.join(",") + "\\n";
-          usersRes.data.forEach(u => {
-            csvContent += uKeys.map(k => '"' + String(u[k] || '').replace(/"/g, '""') + '"').join(",") + "\\n";
-          });
-        }
-        
-        csvContent += "\\n=== ORDERS ===\\n";
-        if (ordersRes.data && ordersRes.data.length > 0) {
-          const oKeys = Object.keys(ordersRes.data[0]);
-          csvContent += oKeys.join(",") + "\\n";
-          ordersRes.data.forEach(o => {
-            csvContent += oKeys.map(k => '"' + String(o[k] || '').replace(/"/g, '""') + '"').join(",") + "\\n";
-          });
-        }
-        
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "ice_logix_backup_" + new Date().toISOString().slice(0,10) + ".csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        glassToast('Бэкап успешно скачан!', { kind: 'success' });
-      } catch (err) {
-        glassToast('Ошибка при бэкапе: ' + err.message, { kind: 'error' });
-      }
-    };
-  }
-
-  // ================== НАЛОГОВЫЙ ОТЧЕТ РБ ==================
-  const generateTaxesReportBtn = document.getElementById('generateTaxesReportBtn');
-  if (generateTaxesReportBtn) {
-    generateTaxesReportBtn.onclick = async () => {
-      tgUtil.haptic('medium');
-      glassToast('Сбор финансовых данных...', { kind: 'success' });
-      
-      try {
-        const { data: orders, error } = await supabaseClient
-          .from('orders')
-          .select('id, total_byn, commission_byn, status, created_at');
-          
-        if (error) throw error;
-        
-        let totalRevenue = 0;
-        let totalCommission = 0;
-        let activeOrdersCount = 0;
-        let completedOrdersCount = 0;
-        
-        (orders || []).forEach(o => {
-          const totalVal = o.total_byn || 0;
-          const commVal = o.commission_byn || 0;
-          totalRevenue += totalVal;
-          totalCommission += commVal;
-          if (o.status === 'delivered') {
-            completedOrdersCount++;
-          } else {
-            activeOrdersCount++;
-          }
-        });
-        
-        const taxPercent = 20;
-        const totalTax = totalCommission * (taxPercent / 100);
-        const netProfit = totalCommission - totalTax;
-        const splitProfit = netProfit / 2;
-        
-        const reportModal = document.createElement('div');
-        reportModal.className = 'fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center z-[99999] p-4 overflow-y-auto pt-10 pb-10';
-        reportModal.id = 'taxesReportModal';
-        
-        const dateStr = new Date().toLocaleDateString('ru-RU');
-        
-        reportModal.innerHTML = `
-          <div class="bg-slate-900/95 border border-white/10 rounded-2xl max-w-lg w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden page-enter">
-            <div class="p-5 border-b border-white/10 flex justify-between items-center bg-white/5 flex-shrink-0">
-              <div>
-                <h3 class="text-white font-bold text-base flex items-center gap-2">
-                  ${ix('file-text', { cls: 'text-cyan-400' })}
-                  <span>Налоговый отчёт РБ & Учёт</span>
-                </h3>
-                <p class="text-white/50 text-[10px] mt-0.5">Расчет налога 20% с комиссии байера и прибыли по ИП</p>
-              </div>
-              <button id="closeTaxesModalBtn" class="text-white/50 hover:text-white transition-colors text-2xl leading-none">&times;</button>
-            </div>
-            
-            <div class="p-5 overflow-y-auto flex-1 text-xs text-white/80 space-y-4 leading-relaxed bg-slate-950/20 max-h-[60vh] select-text">
-              <div class="text-center font-bold text-sm text-white uppercase mb-2">Налоговая декларация и отчет по комиссии</div>
-              <div class="flex justify-between text-[11px] text-white/50">
-                <span>г. Несвиж, Беларусь</span>
-                <span>Сформирован: ${dateStr} г.</span>
-              </div>
-              
-              <div class="bg-white/5 p-3.5 rounded-xl border border-white/10 space-y-2">
-                <div class="flex justify-between">
-                  <span class="text-white/50">Всего заказов в системе:</span>
-                  <span class="text-white font-bold font-mono">${(orders || []).length} шт.</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-white/50">Завершенных заказов:</span>
-                  <span class="text-green-400 font-bold font-mono">${completedOrdersCount} шт.</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-white/50">Активных заказов:</span>
-                  <span class="text-cyan-400 font-bold font-mono">${activeOrdersCount} шт.</span>
-                </div>
-                <div class="flex justify-between border-t border-white/10 pt-2 mt-2">
-                  <span class="text-white/50">Общий оборот заказов:</span>
-                  <span class="text-white font-extrabold font-mono inline-flex items-baseline gap-1">${totalRevenue.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
-                </div>
-              </div>
-
-              <p class="font-bold text-white uppercase text-[10px] tracking-wider pt-2">1. Расчет налога (20% от комиссии услуги)</p>
-              <div class="bg-yellow-500/10 p-3.5 rounded-xl border border-yellow-500/20 space-y-2">
-                <div class="flex justify-between">
-                  <span class="text-white/60">Валовая комиссия байеров (доход услуги):</span>
-                  <span class="text-white font-bold font-mono inline-flex items-baseline gap-1">${totalCommission.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
-                </div>
-                <div class="flex justify-between text-yellow-400">
-                  <span>Подоходный налог в РБ (20%):</span>
-                  <span class="font-extrabold font-mono inline-flex items-baseline gap-1">${totalTax.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
-                </div>
-                <div class="flex justify-between text-green-400 border-t border-white/10 pt-2 mt-2">
-                  <span>Чистая прибыль после налогов:</span>
-                  <span class="font-extrabold font-mono inline-flex items-baseline gap-1">${netProfit.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span>
-                </div>
-              </div>
-              <p class="text-[10px] text-white/50 italic leading-snug">
-                *Примечание: Согласно законодательству Республики Беларусь, налог исчисляется исключительно с комиссионного вознаграждения байера (20%), а не с общего оборота посылки.
-              </p>
-
-              <p class="font-bold text-white uppercase text-[10px] tracking-wider pt-2">2. Распределение чистой прибыли между ИП (50/50)</p>
-              <div class="bg-cyan-500/10 p-3.5 rounded-xl border border-cyan-500/20 grid grid-cols-2 gap-4 text-[10px]">
-                <div>
-                  <p class="font-bold text-cyan-400 uppercase">ИП Кирилл (50%):</p>
-                  <p class="mt-1 font-extrabold text-sm text-white font-mono inline-flex items-baseline gap-1">${splitProfit.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</p>
-                  <p class="text-white/40 mt-1">ОАО «Белгазпромбанк»</p>
-                  <p class="text-white/40 truncate text-[9px]">BY54BGPB3012000000001000</p>
-                </div>
-                <div>
-                  <p class="font-bold text-cyan-400 uppercase">ИП Партнёр (50%):</p>
-                  <p class="mt-1 font-extrabold text-sm text-white font-mono inline-flex items-baseline gap-1">${splitProfit.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</p>
-                  <p class="text-white/40 mt-1">ОАО «Белгазпромбанк»</p>
-                  <p class="text-white/40 truncate text-[9px]">BY12BGPB3012000000002000</p>
-                </div>
-              </div>
-              
-              <p class="font-bold text-white uppercase text-[10px] tracking-wider pt-2">3. Льготы и взносы</p>
-              <p>
-                ФСЗН не уплачивается в связи с несовершеннолетием учредителей ИП (возраст 16 лет, на основании официального разъяснения Министерства по налогам и сборам Республики Беларусь).
-              </p>
-            </div>
-            
-            <div class="p-5 border-t border-white/10 bg-white/5 flex gap-3 flex-shrink-0">
-              <button id="printTaxesBtn" class="btn-primary flex-1 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2">
-                ${ix('download')} Печать / PDF
-              </button>
-              <button id="closeTaxesModalBtn2" class="btn-secondary flex-1 py-3 rounded-xl font-bold transition">
-                Закрыть
-              </button>
-            </div>
-          </div>
-        `;
-        
-        document.body.appendChild(reportModal);
-        
-        reportModal.querySelector('#closeTaxesModalBtn').onclick = () => reportModal.remove();
-        reportModal.querySelector('#closeTaxesModalBtn2').onclick = () => reportModal.remove();
-        
-        // Print taxes window
-        reportModal.querySelector('#printTaxesBtn').onclick = () => {
-          tgUtil.haptic('medium');
-          const printWindow = window.open('', '_blank');
-          if (!printWindow) {
-            tgUtil.alert('Пожалуйста, разрешите открытие всплывающих окон в браузере для генерации PDF.');
-            return;
-          }
-          
-          const printHtml = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <title>Налоговый отчёт РБ - ICE LOGIX</title>
-              <style>
-                body { font-family: 'Arial', sans-serif; padding: 40px; color: #1e293b; line-height: 1.5; font-size: 13px; }
-                .header { text-align: center; margin-bottom: 30px; }
-                .title { font-size: 18px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
-                .subtitle { font-size: 11px; color: #64748b; }
-                .meta { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 25px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
-                table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 12px; }
-                th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; }
-                th { background-color: #f1f5f9; font-weight: bold; }
-                h3 { font-size: 13px; font-weight: bold; text-transform: uppercase; margin-top: 25px; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; }
-                .grid { display: grid; grid-template-cols: 1fr 1fr; gap: 20px; }
-                .card { border: 1px solid #cbd5e1; padding: 12px; border-radius: 6px; margin-top: 10px; font-size: 11px; }
-              </style>
-            </head>
-            <body>
-              <div class="header">
-                <div class="title">Налоговый отчет по комиссионному вознаграждению</div>
-                <div class="subtitle">Сервис доставки ICE LOGIX · Несвиж, Республика Беларусь</div>
-              </div>
-              <div class="meta">
-                <span>Дата составления: ${dateStr} г.</span>
-                <span>Тип налога: УСН / Подоходный (20%)</span>
-              </div>
-              
-              <h3>1. Сводные показатели по заказам</h3>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Показатель</th>
-                    <th>Значение</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>Общее количество оформленных заказов</td>
-                    <td>${(orders || []).length} шт.</td>
-                  </tr>
-                  <tr>
-                    <td>Завершенные заказы (статус Доставлен)</td>
-                    <td>${completedOrdersCount} шт.</td>
-                  </tr>
-                  <tr>
-                    <td>Активные заказы в работе</td>
-                    <td>${activeOrdersCount} шт.</td>
-                  </tr>
-                  <tr>
-                    <td><strong>Валовый оборот заказов</strong></td>
-                    <td><strong class="inline-flex items-baseline gap-1">${totalRevenue.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</strong></td>
-                  </tr>
-                </tbody>
-              </table>
-
-              <h3>2. Расчет налоговой базы и подоходного налога</h3>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Показатель</th>
-                    <th>База</th>
-                    <th>Ставка</th>
-                    <th>Сумма налога</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>Комиссионный доход байера (20% услуги)</td>
-                    <td><span class="inline-flex items-baseline gap-1">${totalCommission.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</span></td>
-                    <td>20%</td>
-                    <td><strong class="inline-flex items-baseline gap-1">${totalTax.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</strong></td>
-                  </tr>
-                </tbody>
-              </table>
-              <p style="font-size: 11px; color: #64748b; font-style: italic;">
-                *В соответствии с Налоговым кодексом РБ, объектом налогообложения для байера-посредника признается только его комиссионное вознаграждение (доход от оказания услуг), а не вся сумма, переданная для выкупа товаров.
-              </p>
-
-              <h3>3. Распределение прибыли по ИП (50 / 50)</h3>
-              <div class="grid">
-                <div class="card">
-                  <strong>ИП Кирилл (Соучредитель 1):</strong><br>
-                  Доля прибыли: 50%<br>
-                  Сумма к зачислению: <strong class="inline-flex items-baseline gap-1">${splitProfit.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</strong><br>
-                  Банк: ОАО «Белгазпромбанк»<br>
-                  Р/С: BY54BGPB3012000000001000
-                </div>
-                <div class="card">
-                  <strong>ИП Партнёр (Соучредитель 2):</strong><br>
-                  Доля прибыли: 50%<br>
-                  Сумма к зачислению: <strong class="inline-flex items-baseline gap-1">${splitProfit.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</strong><br>
-                  Банк: ОАО «Белгазпромбанк»<br>
-                  Р/С: BY12BGPB3012000000002000
-                </div>
-              </div>
-
-              <h3>4. Подписи сторон и печать ведомства</h3>
-              <div class="grid" style="margin-top: 30px; font-size: 11px;">
-                <div>
-                  <strong>ИП Кирилл:</strong><br>
-                  Подпись: ______________________
-                </div>
-                <div>
-                  <strong>ИП Партнёр:</strong><br>
-                  Подпись: ______________________
-                </div>
-              </div>
-              <script>
-                window.onload = function() {
-                  window.print();
-                };
-              </sc` + `ript>
-            </body>
-            </html>
-          `;
-          printWindow.document.open();
-          printWindow.document.write(printHtml);
-          printWindow.document.close();
-        };
-        
-      } catch (err) {
-        console.error(err);
-        tgUtil.alert('Не удалось сформировать отчет: ' + err.message);
-      }
-    };
-  }
+  const saveVacation = async (active) => {
+    const days = Math.max(0, Math.min(90, parseInt(document.getElementById('vacationDaysInput')?.value, 10) || 0));
+    const { data, error } = await supabaseClient.rpc('admin_set_vacation', { p_active: active, p_days: days });
+    if (error) { window.UI.toast(error.message || 'Не получилось сохранить', 'bad'); return; }
+    window.buyerVacation = data || { active, days };
+    window.UI.toast(active ? `Отпуск включён: +${days} дн. к срокам` : 'Отпуск выключен');
+    renderAdminScreen(false);
+  };
+  if (toggleVacBtn) toggleVacBtn.onclick = () => saveVacation(!window.buyerVacation?.active);
+  if (saveVacBtn) saveVacBtn.onclick = () => saveVacation(!!window.buyerVacation?.active);
 
   // ================== ПРОМОКОДЫ ==================
   const createBtn = document.getElementById('createPromoBtn');
@@ -1655,48 +1251,30 @@ function attachAdminHandlers() {
   document.querySelectorAll('.approveReviewBtn').forEach(btn => {
     btn.onclick = async () => {
       const id = btn.getAttribute('data-id');
-      try {
-        if (window.adminCache && window.adminCache.reviews) {
-          window.adminCache.reviews = window.adminCache.reviews.filter(r => r.id !== id);
-        }
-        renderAdminScreen(false);
-        const { data: rev } = await supabaseClient.from('reviews').select('user_id, photo_urls, cashback_granted').eq('id', id).single();
-        await supabaseClient.from('reviews').update({ is_published: true }).eq('id', id);
-        logAdminAction('review_approved', { id });
-        
-        let alertMsg = 'Отзыв опубликован';
-        if (rev && rev.photo_urls && rev.photo_urls.length > 0 && !rev.cashback_granted) {
-           const { data: u } = await supabaseClient.from('users').select('ices_balance').eq('user_id', rev.user_id).single();
-           if (u) {
-             await supabaseClient.from('users').update({ ices_balance: (u.ices_balance || 0) + 5 }).eq('user_id', rev.user_id);
-             await supabaseClient.from('reviews').update({ cashback_granted: true }).eq('id', id);
-             alertMsg += '. Начислено 5 бонусов за фото!';
-           }
-        }
-        
-        tgUtil.alert(alertMsg);
-      } catch (err) { 
-        tgUtil.alert('Ошибка: ' + err.message); 
-        renderAdminScreen(true);
-      }
+      btn.disabled = true;
+      const { data, error } = await supabaseClient.rpc('admin_review_decision', { p_review: id, p_approve: true, p_reason: null });
+      if (error) { window.UI.toast(error.message || 'Не получилось', 'bad'); btn.disabled = false; return; }
+      if (window.adminCache && window.adminCache.reviews) window.adminCache.reviews = window.adminCache.reviews.filter(r => r.id !== id);
+      window.UI.toast(data && data.bonus > 0 ? 'Отзыв опубликован, начислено 5 бонусов за фото' : 'Отзыв опубликован');
+      renderAdminScreen(false);
     };
   });
 
   document.querySelectorAll('.rejectReviewBtn').forEach(btn => {
     btn.onclick = async () => {
       const id = btn.getAttribute('data-id');
-      try {
-        if (window.adminCache && window.adminCache.reviews) {
-          window.adminCache.reviews = window.adminCache.reviews.filter(r => r.id !== id);
-        }
-        renderAdminScreen(false);
-        await supabaseClient.from('reviews').delete().eq('id', id);
-        logAdminAction('review_rejected', { id });
-        tgUtil.alert('Отзыв отклонён');
-      } catch (err) { 
-        tgUtil.alert('Ошибка: ' + err.message); 
-        renderAdminScreen(true);
-      }
+      const reason = await window.UI.ask({
+        title: 'Отклонить отзыв',
+        text: 'Отзыв не будет опубликован. Причина сохранится в карточке отзыва.',
+        fields: [{ name: 'reason', label: 'Причина', type: 'text', value: 'Не по теме заказа' }],
+        action: 'Отклонить', danger: true
+      });
+      if (reason === null) return;
+      const { error } = await supabaseClient.rpc('admin_review_decision', { p_review: id, p_approve: false, p_reason: reason });
+      if (error) { window.UI.toast(error.message || 'Не получилось', 'bad'); return; }
+      if (window.adminCache && window.adminCache.reviews) window.adminCache.reviews = window.adminCache.reviews.filter(r => r.id !== id);
+      window.UI.toast('Отзыв отклонён');
+      renderAdminScreen(false);
     };
   });
 
@@ -2158,7 +1736,7 @@ function attachAdminHandlers() {
       tgUtil.haptic('medium');
       
       try {
-        const { error } = await supabaseClient.from('orders').update({ status: 'deleted' }).eq('id', orderId);
+        const { error } = await supabaseClient.from('orders').update({ archived_at: new Date().toISOString() }).eq('id', orderId);
         if (error) throw error;
         logAdminAction('archive_order', { orderId });
         if (window.adminCache && window.adminCache.orders) {
@@ -2275,7 +1853,7 @@ function attachAdminHandlers() {
               modal.innerHTML = `
                 <div style="background:#1a1a2e;border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:20px;max-width:480px;width:100%;max-height:80vh;overflow-y:auto">
                   <p style="color:var(--rd-b300);font-size:13px;font-weight:700;margin-bottom:12px">Юридический ответ (шаблон, проверьте перед отправкой)</p>
-                  <pre style="color:#e2e8f0;font-size:12px;white-space:pre-wrap;line-height:1.6">${req.response_text}</pre>
+                  <pre style="color:#e2e8f0;font-size:12px;white-space:pre-wrap;line-height:1.6">${adminEsc(req.response_text)}</pre>
                   <div style="display:flex;gap:8px;margin-top:16px">
                     <button id="_legalCopyBtn" style="flex:1;background:rgba(167,139,250,0.2);border:1px solid rgba(167,139,250,0.4);color:#8CC6FF;border-radius:8px;padding:8px;font-size:12px;cursor:pointer">📋 Скопировать</button>
                     <button id="_legalCloseBtn" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#94a3b8;border-radius:8px;padding:8px;font-size:12px;cursor:pointer">✖ Закрыть</button>
@@ -2422,7 +2000,7 @@ if (archiveBtn) archiveBtn.addEventListener('click', () => {
       tgUtil.haptic('medium');
       
       try {
-        const { error } = await supabaseClient.from('orders').update({ status: 'pending' }).eq('id', orderId);
+        const { error } = await supabaseClient.from('orders').update({ archived_at: null }).eq('id', orderId);
         if (error) throw error;
         logAdminAction('restore_order', { orderId });
         if (window.adminCache && window.adminCache.orders) {
@@ -2472,132 +2050,47 @@ if (archiveBtn) archiveBtn.addEventListener('click', () => {
 const addPromotionBtn = document.getElementById('addPromotionBtn');
 if (addPromotionBtn) addPromotionBtn.onclick = () => openPromotionForm();
 
-// ================== ЗЕРКАЛО БАЗЫ (AUTO-BACKUP) ==================
-const downloadBackupBtn = document.getElementById('downloadBackupBtn');
-if (downloadBackupBtn) {
-  downloadBackupBtn.onclick = async () => {
-    tgUtil.haptic('medium');
-    downloadBackupBtn.disabled = true;
-    const originalText = downloadBackupBtn.innerHTML;
-    downloadBackupBtn.innerHTML = `
-      <span class="ix animate-spin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg></span> Выгрузка базы данных...
-    `;
-    try {
-      const [usersRes, ordersRes] = await Promise.all([
-        supabaseClient.from('users').select('*'),
-        supabaseClient.from('orders').select('*')
-      ]);
-      
-      if (usersRes.error) throw usersRes.error;
-      if (ordersRes.error) throw ordersRes.error;
-      
-      const backupData = {
-        version: '1.0.0',
-        exportedAt: new Date().toISOString(),
-        users: usersRes.data,
-        orders: ordersRes.data
-      };
-      
-      const jsonStr = JSON.stringify(backupData, null, 2);
-      const blob = new Blob([jsonStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      
-      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '_');
-      a.href = url;
-      a.download = `icelogix_backup_${dateStr}.json`;
-      document.body.appendChild(a);
-      a.click();
-      
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      tgUtil.haptic('success');
-      glassToast('Бэкап базы данных успешно сохранен!', { kind: 'success' });
-    } catch (err) {
-      console.error('Backup failed:', err);
-      tgUtil.alert('Не удалось выгрузить бэкап: ' + err.message);
-    } finally {
-      downloadBackupBtn.disabled = false;
-      downloadBackupBtn.innerHTML = originalText;
-    }
-  };
-}
-
   // ================== СТРАХОВЫЕ ПРЕТЕНЗИИ (ОДОБРЕНИЕ / ОТКЛОНЕНИЕ) ==================
   document.querySelectorAll('.approveClaimBtn').forEach(btn => {
     btn.onclick = async () => {
+      const U = window.UI;
       const claimId = btn.dataset.id;
-      const claimUserId = btn.dataset.userId;
-      const amount = parseFloat(btn.dataset.amount || 0);
-      const orderId = btn.dataset.orderId;
-      
-      if (!(await tgUtil.confirm(`Одобрить страховую претензию и выплатить ${amount.toFixed(2)} на баланс клиента?`))) return;
-      tgUtil.haptic('medium');
-      
-      try {
-        btn.disabled = true;
-        // 1. Fetch current user balance
-        const { data: userRec, error: fErr } = await supabaseClient.from('users').select('ices_balance').eq('user_id', claimUserId).single();
-        if (fErr) throw fErr;
-        const currentBalance = userRec ? (userRec.ices_balance || 0) : 0;
-        
-        // 2. Add refund to balance in DB
-        const { error: balErr } = await supabaseClient.from('users').update({ ices_balance: currentBalance + amount }).eq('user_id', claimUserId);
-        if (balErr) throw balErr;
-        
-        // 3. Log transaction
-        await supabaseClient.from('transactions').insert({
-          user_id: claimUserId,
-          amount: amount,
-          type: 'insurance_refund',
-          description: `Возврат по страховке за заказ #${orderId.slice(0, 8)}`
-        });
-        
-        // 4. Update claim status to approved
-        const { error: claimErr } = await supabaseClient.from('insurance_claims').update({ status: 'approved' }).eq('id', claimId);
-        if (claimErr) throw claimErr;
-        
-        glassToast('Страховая претензия успешно одобрена!', { kind: 'success' });
-        if (window.adminCache) window.adminCache.claims = (window.adminCache.claims || []).filter(c => c.id !== claimId);
-        renderAdminScreen(false);
-      } catch(e) {
-        console.error(e);
-        tgUtil.alert('Ошибка: ' + e.message);
-        btn.disabled = false;
-      }
+      const max = parseFloat(btn.dataset.amount || 0);
+      const amount = await U.ask({
+        title: 'Возместить ущерб',
+        text: `Сумма уйдёт клиенту на баланс. Заказ стоил ${U.money(max, { keepCents: true, digits: 2 })}; больше, чем клиент заплатил, сервер не даст.`,
+        fields: [{ name: 'amount', label: 'Сумма возмещения', type: 'text', inputmode: 'decimal', placeholder: 'Например, 45,50' }],
+        action: 'Выплатить',
+        validate: (x) => (Number(String(x.amount).replace(',', '.')) > 0 ? '' : 'Введите сумму больше нуля')
+      });
+      if (amount === null) return;
+      btn.disabled = true;
+      const { error } = await supabaseClient.rpc('admin_claim_decision', { p_claim: claimId, p_approve: true, p_amount: Number(String(amount).replace(',', '.')), p_reason: null });
+      if (error) { U.toast(error.message || 'Не получилось', 'bad'); btn.disabled = false; return; }
+      U.toast('Возмещение зачислено на баланс');
+      window.invalidateAdminCache();
+      renderAdminScreen(false);
     };
   });
-  
+
   document.querySelectorAll('.rejectClaimBtn').forEach(btn => {
     btn.onclick = async () => {
+      const U = window.UI;
       const claimId = btn.dataset.id;
-      const reason = await tgUtil.popup({
+      const reason = await U.ask({
         title: 'Отклонить претензию',
-        message: 'Укажите причину отклонения претензии для клиента:',
-        buttons: [{ id: 'submit', text: 'Отклонить' }]
+        text: 'Клиент увидит причину.',
+        fields: [{ name: 'reason', label: 'Причина', type: 'text' }],
+        action: 'Отклонить', danger: true,
+        validate: (x) => (x.reason ? '' : 'Укажите причину')
       });
-      
-      if (!reason) return;
-      tgUtil.haptic('warning');
-      
-      try {
-        btn.disabled = true;
-        const { error } = await supabaseClient.from('insurance_claims').update({
-          status: 'rejected',
-          rejection_reason: reason
-        }).eq('id', claimId);
-        
-        if (error) throw error;
-        
-        glassToast('Претензия отклонена.', { kind: 'info' });
-        if (window.adminCache) window.adminCache.claims = (window.adminCache.claims || []).filter(c => c.id !== claimId);
-        renderAdminScreen(false);
-      } catch(e) {
-        console.error(e);
-        tgUtil.alert('Ошибка: ' + e.message);
-        btn.disabled = false;
-      }
+      if (reason === null) return;
+      btn.disabled = true;
+      const { error } = await supabaseClient.rpc('admin_claim_decision', { p_claim: claimId, p_approve: false, p_amount: null, p_reason: reason });
+      if (error) { U.toast(error.message || 'Не получилось', 'bad'); btn.disabled = false; return; }
+      U.toast('Претензия отклонена');
+      window.invalidateAdminCache();
+      renderAdminScreen(false);
     };
   });
 
@@ -2722,7 +2215,7 @@ function attachAnalyticsHandlers() {
         <div class="flex justify-between items-center p-2 bg-white/5 rounded-lg">
           <div class="min-w-0 flex-1">
             <p class="text-white/80 truncate">${uMap[t.user_id] || t.user_id || '—'}</p>
-            <p class="text-white/40">${new Date(t.created_at).toLocaleDateString('ru-RU')} · ${t.type || '—'} · ${t.description || ''}</p>
+            <p class="text-white/40">${new Date(t.created_at).toLocaleDateString('ru-RU')} · ${adminEsc(t.type || '—')} · ${adminEsc(t.description || '')}</p>
           </div>
           <div class="ml-2 text-right flex-shrink-0">
             <p class="font-bold ${(t.amount||0) >= 0 ? 'text-green-400' : 'text-red-400'} inline-flex items-baseline gap-1">${(t.amount||0)>=0?'+':''}${t.amount} ${window.bynSign ? window.bynSign({ color: (t.amount||0) >= 0 ? 'emerald' : 'purple', size: '0.85em' }) : ''}</p>
@@ -2829,7 +2322,7 @@ function attachAnalyticsHandlers() {
               <thead><tr class="text-white/40"><th class="text-left pb-1">Товар</th><th class="text-right pb-1">Шт.</th><th class="text-right pb-1">Выручка</th></tr></thead>
               <tbody>${(_topData.length ? _topData : [{title:'Нет данных в заказах',count:0,rev:0}]).map(p=>`
                 <tr class="border-t border-white/5">
-                  <td class="py-1 text-white/80 truncate max-w-[160px]">${p.title}</td>
+                  <td class="py-1 text-white/80 truncate max-w-[160px]">${adminEsc(p.title)}</td>
                   <td class="py-1 text-cyan-400 text-right">${p.count}</td>
                   <td class="py-1 text-green-400 text-right">${p.rev.toFixed(2)}</td>
                 </tr>`).join('')}</tbody>
@@ -2866,10 +2359,10 @@ function attachAnalyticsHandlers() {
       listEl.innerHTML = logs.map(l => `
         <div class="p-2 bg-white/5 rounded-lg">
           <div class="flex justify-between items-start">
-            <span class="text-cyan-400 font-medium">${l.action}</span>
+            <span class="font-medium" style="color:var(--rd-b400)">${adminEsc(l.action)}</span>
             <span class="text-white/40 text-xs">${new Date(l.created_at).toLocaleString('ru-RU')}</span>
           </div>
-          <p class="text-white/50 text-xs">Admin: ${l.admin_id} · ${l.details || ''}</p>
+          <p class="text-white/50 text-xs">Admin: ${adminEsc(l.admin_id)} · ${adminEsc(typeof l.details === 'object' ? JSON.stringify(l.details) : (l.details || ''))}</p>
         </div>`).join('');
     } catch(e) { listEl.innerHTML = `<p class="text-red-400 text-center py-3">Ошибка: ${e.message}</p>`; }
   });
@@ -3106,8 +2599,11 @@ function generateAdminOrderCard(order, userMap, isActive) {
     ? `<select class="changeOrderStatus mt-2 w-full text-xs p-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:border-cyan-500" data-order-id="${order.id}" data-user-id="${order.user_id}" data-previous-status="${order.status}">
         <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Новые</option>
         <option value="paid" ${order.status === 'paid' ? 'selected' : ''}>Оплачен</option>
+        <option value="awaiting_decision" ${order.status === 'awaiting_decision' ? 'selected' : ''}>Ждёт решения клиента</option>
         <option value="bought" ${order.status === 'bought' ? 'selected' : ''}>Выкуплен</option>
         <option value="on_sklad_cn" ${order.status === 'on_sklad_cn' ? 'selected' : ''}>Склад КН</option>
+        <option value="awaiting_payment" ${order.status === 'awaiting_payment' ? 'selected' : ''}>Ждёт доплаты</option>
+        <option value="paid_second" ${order.status === 'paid_second' ? 'selected' : ''}>Доплачен</option>
         <option value="in_transit" ${order.status === 'in_transit' ? 'selected' : ''}>В пути</option>
         <option value="in_belarus" ${order.status === 'in_belarus' ? 'selected' : ''}>В РБ</option>
         <option value="delivered" ${order.status === 'delivered' ? 'selected' : ''}>Доставлен</option>
@@ -3115,11 +2611,7 @@ function generateAdminOrderCard(order, userMap, isActive) {
       </select>`
     : '';
     
-  const managerSelect = isActive ? `
-    <select class="assignManager mt-2 w-full text-[10px] p-1.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/30" disabled>
-      <option>Автораспределение (Фаза 4)</option>
-    </select>
-  ` : '';
+  const managerSelect = '';
 
   const weightInputHtml = isActive ? `
     <div class="mt-2 flex items-center gap-2">
@@ -3143,13 +2635,13 @@ function generateAdminOrderCard(order, userMap, isActive) {
         <p class="text-white font-mono text-sm font-bold">#${order.id.slice(0,8)}</p>
         <span class="text-white/50 text-[10px]">${new Date(order.created_at).toLocaleDateString('ru-RU')}</span>
       </div>
-      <p class="text-white/80 text-xs truncate">👤 ${displayName} ${displayUsername}</p>
+      <p class="text-white/80 text-xs truncate">${adminEsc(displayName)} ${adminEsc(displayUsername)}</p>
       ${user.is_toxic ? '<div class="inline-flex items-center gap-1 mt-1 bg-red-500/20 border border-red-500/40 text-red-400 text-[10px] px-2 py-0.5 rounded-full font-bold">⚠️ Токсичный клиент</div>' : ''}
       <div class="flex justify-between items-end mt-2">
         <p class="text-cyan-400 text-sm font-bold">${Number(order.prepayment_amount || 0).toFixed(2)} ❄️</p>
         <div class="text-right">
-          ${order.tracking_number_cn ? `<p class="text-white/50 text-[10px] truncate max-w-[150px]">Внутр: ${order.tracking_number_cn}</p>` : ''}
-          ${order.sbs_tracking_id ? `<p class="text-cyan-400 text-[10px] font-bold truncate max-w-[150px]">SBS: ${order.sbs_tracking_id}</p>` : ''}
+          ${order.tracking_number_cn ? `<p class="text-white/50 text-[10px] truncate max-w-[150px]">Внутр: ${adminEsc(order.tracking_number_cn)}</p>` : ''}
+          ${order.sbs_tracking_id ? `<p style="color:var(--rd-b400)" class="text-[10px] font-bold truncate max-w-[150px]">SBS: ${adminEsc(order.sbs_tracking_id)}</p>` : ''}
         </div>
       </div>
       ${weightInputHtml}
@@ -3158,7 +2650,7 @@ function generateAdminOrderCard(order, userMap, isActive) {
         <button type="button" class="bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/40 text-cyan-300 text-[11px] py-1.5 px-1 rounded-lg font-semibold flex items-center justify-center gap-1 transition" onclick="window.openOperatorPurchaseModal('${order.id}', ${order.price || order.price_cny || 0}, ${order.total_byn || 0})">
           🛒 Выкуп
         </button>
-        <button type="button" class="bg-amber-500/20 hover:bg-amber-500/40 border border-amber-500/40 text-amber-300 text-[11px] py-1.5 px-1 rounded-lg font-semibold flex items-center justify-center gap-1 transition" onclick="window.openOperatorWarehouseModal('${order.id}', ${order.weight_estimated || 1.0}, ${order.prepayment_amount || 0})">
+        <button type="button" class="bg-amber-500/20 hover:bg-amber-500/40 border border-amber-500/40 text-amber-300 text-[11px] py-1.5 px-1 rounded-lg font-semibold flex items-center justify-center gap-1 transition" onclick="window.openOperatorWarehouseModal('${order.id}', ${Number(order.weight_estimated) || 1.0}, ${Number(order.delivery_reserve_amount) || 0})">
           ⚖️ Склад
         </button>
         <button type="button" class="bg-purple-500/20 hover:bg-purple-500/40 border border-purple-500/40 text-purple-300 text-[11px] py-1.5 px-1 rounded-lg font-semibold flex items-center justify-center gap-1 transition" onclick="window.openOrderReconciliationModal('${order.id}')">
@@ -3538,17 +3030,17 @@ async function renderAdminSuppliers() {
         <div class="bg-white/5 border border-white/10 rounded-xl p-4 mb-3">
           <div class="flex justify-between items-start">
             <div>
-              <p class="text-white font-bold">${s.name}</p>
-              ${s.category ? `<p class="text-cyan-400 text-xs mt-1">Категория: ${s.category}</p>` : ''}
-              ${s.wechat_id ? `<p class="text-white/70 text-xs mt-1">WeChat: <span class="font-mono text-cyan-200 bg-black/20 px-1 rounded select-all">${s.wechat_id}</span></p>` : ''}
+              <p class="text-white font-bold">${adminEsc(s.name)}</p>
+              ${s.category ? `<p class="text-xs mt-1" style="color:var(--rd-b400)">Категория: ${adminEsc(s.category)}</p>` : ''}
+              ${s.wechat_id ? `<p class="text-white/70 text-xs mt-1">WeChat: <span class="bg-black/20 px-1 rounded select-all">${adminEsc(s.wechat_id)}</span></p>` : ''}
               ${s.rating ? `<p class="text-yellow-400 text-xs mt-1">Рейтинг: ${'⭐'.repeat(s.rating)}</p>` : ''}
-              ${s.link ? `<a href="${s.link}" target="_blank" class="text-blue-400 text-xs hover:underline mt-1 block">Ссылка</a>` : ''}
+              ${/^https?:\/\//i.test(s.link || '') ? `<a href="${adminEsc(s.link)}" target="_blank" class="text-blue-400 text-xs hover:underline mt-1 block">Ссылка</a>` : ''}
             </div>
             <button class="deleteSupplierBtn text-red-400 hover:bg-red-500/20 p-1.5 rounded transition" data-id="${s.id}">
               <span class="ix ix-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></span>
             </button>
           </div>
-          ${s.note ? `<div class="mt-2 text-white/50 text-xs p-2 bg-black/20 rounded">${s.note}</div>` : ''}
+          ${s.note ? `<div class="mt-2 text-white/50 text-xs p-2 bg-black/20 rounded">${adminEsc(s.note)}</div>` : ''}
         </div>
       `).join('');
     }
@@ -3951,7 +3443,7 @@ function attachAdminSuppliersHandlers() {
           <div class="p-3 bg-white/5 rounded-xl mb-3" data-ugc="${v.id}" data-uploader="${v.user_id}">
             <video src="${v.video_url}" controls class="w-full rounded-lg mb-2 max-h-60"></video>
             <p class="text-white/60 text-xs mb-1">От ID: ${v.user_id} · ${new Date(v.created_at).toLocaleString('ru-RU')}</p>
-            ${v.caption ? `<p class="text-white/70 text-sm mb-2">${v.caption}</p>` : ''}
+            ${v.caption ? `<p class="text-white/70 text-sm mb-2">${adminEsc(v.caption)}</p>` : ''}
             <div class="flex gap-2 items-center">
               <input type="number" class="ugcRewardInput btn-secondary w-24 p-2 rounded-lg border border-white/30" value="100" placeholder="бонусы">
               <button class="ugcApproveBtn btn-primary flex-1 text-sm" data-id="${v.id}" data-uploader="${v.user_id}">✅ Одобрить</button>
@@ -3961,7 +3453,7 @@ function attachAdminSuppliersHandlers() {
 
       const dropList = dropProducts.map(p => `
         <div class="flex justify-between items-center p-2 border-b border-white/10">
-          <span class="text-white/80 text-sm truncate flex-1">${p.title || ('ID ' + p.id)}</span>
+          <span class="text-white/80 text-sm truncate flex-1">${adminEsc(p.title || ('ID ' + p.id))}</span>
           <button class="toggleDropBtn text-sm px-3 py-1 rounded-lg ${p.is_drop ? 'bg-purple-500 text-white' : 'bg-white/10 text-white/60'}" data-id="${p.id}" data-drop="${p.is_drop ? '1' : '0'}">${p.is_drop ? 'Дроп ✓' : 'Сделать дропом'}</button>
         </div>`).join('');
 

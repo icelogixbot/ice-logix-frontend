@@ -3408,7 +3408,7 @@ let adminOrdersTotalPages = 1;
 
       // Restore from HTML cache for instant screen switch (0ms delay, no flicker)
       const _ck = (tabName || '') + ':' + (subScreen || '');
-      const dynamicTabs = ['finances', 'search', 'notifications', 'settings', 'topup', 'wallet', 'cart', 'product'];
+      const dynamicTabs = ['finances', 'search', 'notifications', 'settings', 'topup', 'wallet', 'cart', 'product', 'admin', 'admin_legacy', 'admin_team'];
       if (!dynamicTabs.includes(tabName) && _tabCache[_ck] && Date.now() - _tabCache[_ck].ts < 600000) {
         const _cd = document.getElementById('content');
         if (_cd) {
@@ -3504,6 +3504,13 @@ let adminOrdersTotalPages = 1;
         window.reviewsScreen = 'hub';
         renderCurrentScreen();
         syncTelegramBackButton();
+        return true;
+      }
+
+      // 3b. Админка: из любого её экрана назад на Пульт, с Пульта — в профиль
+      if (currentTab === 'admin' || String(currentTab).startsWith('admin_')) {
+        window._isNavigatingBack = true;
+        switchTab(currentTab === 'admin' ? 'profile' : 'admin');
         return true;
       }
 

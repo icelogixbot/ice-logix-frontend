@@ -153,10 +153,19 @@
           attachAdmin2FAHandlers();
           window.scrollTo(0, 0);
         } else {
-          contentDiv.innerHTML = await renderAdmin();
-          attachAdminHandlers();
+          // Пульт (js/modules/admin/admin-home.js); старая админка — вкладка admin_legacy
+          contentDiv.innerHTML = await renderAdminHome();
+          attachAdminHomeHandlers();
           window.scrollTo(0, 0);
         }
+      } else if (currentTab === 'admin_legacy' && isOwner) {
+        if (!adminAuthenticated) { switchTab('admin'); return; }
+        contentDiv.innerHTML = await renderAdmin();
+        attachAdminLegacyHandlers();
+      } else if (currentTab === 'admin_team' && isOwner) {
+        if (!adminAuthenticated) { switchTab('admin'); return; }
+        contentDiv.innerHTML = await renderAdminTeam();
+        attachAdminTeamHandlers();
       } else if (currentTab === 'reports') {
         contentDiv.innerHTML = shadowBannerHtml + await renderReports();
         attachReportsHandlers();
