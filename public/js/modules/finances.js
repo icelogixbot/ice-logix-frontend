@@ -340,7 +340,7 @@ function _renderPayTabHtml() {
   if (famRole === 'head') {
     familyTitle = 'Семейный баланс (Вы — глава)';
     familySub = `В группе: ${(fam.members?.length || 0) + 1} чел.`;
-    familyBalanceDisplay = `${curBal.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'emerald', size: '0.9em' }) : ''}`;
+    familyBalanceDisplay = `${window.moneyText(curBal)} ${window.bynSign ? window.bynSign({ color: 'emerald', size: '0.9em' }) : ''}`;
     familyBtnText = 'Управление семейной группой';
   } else if (famRole === 'member' && fam.head_id) {
     familyTitle = 'Семейный баланс (Участник)';
@@ -378,7 +378,7 @@ function _renderPayTabHtml() {
         <div class="relative z-10 my-auto py-1">
           <p class="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-0.5">Доступный баланс</p>
           <div class="flex items-baseline gap-2.5">
-            <span class="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight inline-flex items-baseline gap-1" id="payLiveBalance">${curBal.toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
+            <span class="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight inline-flex items-baseline gap-1" id="payLiveBalance">${window.moneyText(curBal)} ${window.bynSign ? window.bynSign() : ''}</span>
           </div>
         </div>
 

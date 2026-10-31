@@ -2363,7 +2363,7 @@ let adminOrdersTotalPages = 1;
     // ─── ФИНАЛЬНАЯ МОДАЛКА-ПРЕВЬЮ ПЕРЕД СОХРАНЕНИЕМ ───────────────────────────
     // Показывает: фото-кандидат (image confirmation), сравнение цены с рынком,
     // полный обзор заказа. Возвращает Promise<boolean> — true если пользователь подтвердил.
-    function _ipMoneyFmt(v) { return (Math.round(Number(v || 0) * 100) / 100).toFixed(2); }
+    function _ipMoneyFmt(v) { return window.moneyText(Math.round(Number(v || 0) * 100) / 100); }
     function showOrderPreviewModal(order) {
       return new Promise((resolve) => {
         const title = order?.title || '';
@@ -3408,7 +3408,8 @@ let adminOrdersTotalPages = 1;
 
       // Restore from HTML cache for instant screen switch (0ms delay, no flicker)
       const _ck = (tabName || '') + ':' + (subScreen || '');
-      const dynamicTabs = ['finances', 'search', 'notifications', 'settings', 'topup', 'wallet', 'cart', 'product', 'admin', 'admin_legacy', 'admin_team'];
+      // Оформление всегда строим заново: кнопка оплаты и шторки живут в body, в сохранённом HTML их нет, и сумма зависит от tempOrder
+      const dynamicTabs = ['finances', 'search', 'notifications', 'settings', 'topup', 'wallet', 'cart', 'product', 'neworder', 'admin', 'admin_legacy', 'admin_team'];
       if (!dynamicTabs.includes(tabName) && _tabCache[_ck] && Date.now() - _tabCache[_ck].ts < 600000) {
         const _cd = document.getElementById('content');
         if (_cd) {
@@ -3638,7 +3639,7 @@ let adminOrdersTotalPages = 1;
             if (error) throw error;
             return data;
           }, 300000);
-          if (data && data.length > 0) dbPromos = data;
+          if (data && data.length > 0) dbPromos = data.filter((p) => !window.isPromotionLive || window.isPromotionLive(p));
         } catch (e) {
           console.error('Ошибка загрузки баннеров:', e);
         }
@@ -3658,7 +3659,7 @@ let adminOrdersTotalPages = 1;
           cnyRate = 0.46;
         }
         const cnyRateNum = Number(cnyRate) || 0.46;
-        const cnyRateFormatted = cnyRateNum.toFixed(2);
+        const cnyRateFormatted = cnyRateNum.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const cny100Formatted = (cnyRateNum * 100).toFixed(0);
 
         const rateSlide = {

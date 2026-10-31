@@ -147,7 +147,7 @@
 
           <div>
             <p class="text-xs text-white/50">Сумма к оплате</p>
-            <p class="text-3xl font-black text-white font-mono tracking-tight">${amountVal.toFixed(2)} <span class="text-cyan-400 text-lg">${window.bynSign ? window.bynSign({ color: 'cyan' }) : ''}</span></p>
+            <p class="text-3xl font-black text-white font-mono tracking-tight">${window.moneyText(amountVal)} <span style="color: var(--rd-b400)" class=" text-lg">${window.bynSign ? window.bynSign({ color: 'cyan' }) : ''}</span></p>
             <p class="text-[11px] text-emerald-400 font-semibold mt-0.5">Комиссия 0% • Оплата без ввода данных карты</p>
           </div>
 
@@ -297,7 +297,7 @@
 
           <div>
             <p class="text-xs text-white/50">К оплате через кошелек</p>
-            <p class="text-3xl font-black text-white font-mono tracking-tight">${amountVal.toFixed(2)} <span class="text-emerald-400 text-lg">${window.bynSign ? window.bynSign({ color: 'emerald' }) : ''}</span></p>
+            <p class="text-3xl font-black text-white font-mono tracking-tight">${window.moneyText(amountVal)} <span class="text-emerald-400 text-lg">${window.bynSign ? window.bynSign({ color: 'emerald' }) : ''}</span></p>
             <p class="text-[11px] text-emerald-300/80 font-medium mt-0.5">Кэшбэк и бонусы в приложении «Оплати»</p>
           </div>
 
@@ -451,7 +451,7 @@
           </div>
 
           <div class="flex items-baseline gap-2 relative z-10">
-            <span class="text-3xl font-black text-white font-mono tracking-tight inline-flex items-baseline gap-1" id="topupCurrentBalText">${curBalance.toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
+            <span class="text-3xl font-black text-white font-mono tracking-tight inline-flex items-baseline gap-1" id="topupCurrentBalText">${window.moneyText(curBalance)} ${window.bynSign ? window.bynSign() : ''}</span>
           </div>
         </div>
 

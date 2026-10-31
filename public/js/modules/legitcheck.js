@@ -247,7 +247,7 @@ function attachLegitCheckHandlers() {
 
       if (balance < cost) {
 
-        tgUtil.alert(`На балансе не хватает денег.\n\nПроверка стоит 5, а на балансе ${balance.toFixed(2)}.\nПополните кошелёк кнопкой «+» в шапке.`);
+        tgUtil.alert(`На балансе не хватает денег.\n\nПроверка стоит 5, а на балансе ${window.moneyText(balance)}.\nПополните кошелёк кнопкой «+» в шапке.`);
 
         return;
 

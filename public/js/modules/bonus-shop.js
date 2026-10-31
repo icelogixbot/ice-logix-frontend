@@ -257,7 +257,7 @@
       <div class="bs-hero">
         <div class="bs-hero-l">
           <span>Ваши баллы</span>
-          <b><span id="bonusShopUserBal">${userBalance.toFixed(2)}</span>${window.bynSign ? window.bynSign({ size: '0.8em' }) : ''}</b>
+          <b><span id="bonusShopUserBal">${window.moneyText(userBalance)}</span>${window.bynSign ? window.bynSign({ size: '0.8em' }) : ''}</b>
           <button type="button" class="bs-more" onclick="switchTab('referral')">Как накопить больше${U.icon('chevR', 15)}</button>
         </div>
         <div class="bs-hero-art" aria-hidden="true"><span class="g1">${U.icon('gift', 38)}</span><span class="g2">${U.icon('star', 18)}</span><span class="g3">${U.icon('sparkles', 16)}</span></div>
@@ -379,9 +379,9 @@
         const userBalance = Number(window.balance || window.icesBalance || 0);
         if (userBalance < item.price_ice) {
           if (typeof tgUtil !== 'undefined' && tgUtil.popup) {
-            tgUtil.popup(`Награда стоит ${item.price_ice}, а у вас ${userBalance.toFixed(2)}. Приглашайте друзей, чтобы накопить быстрее.`, 'Пока не хватает баллов');
+            tgUtil.popup(`Награда стоит ${window.moneyText(item.price_ice)}, а у вас ${window.moneyText(userBalance)}. Приглашайте друзей, чтобы накопить быстрее.`, 'Пока не хватает баллов');
           } else {
-            alert(`Недостаточно средств на балансе (${userBalance.toFixed(2)} из ${item.price_ice})`);
+            alert(`Недостаточно средств на балансе (${window.moneyText(userBalance)} из ${window.moneyText(item.price_ice)})`);
           }
           return;
         }
@@ -549,7 +549,7 @@
       window.setUserBalance(newBal);
       window.icesBalance = newBal;
       const el = document.getElementById('bonusShopUserBal');
-      if (el) el.textContent = newBal.toFixed(2);
+      if (el) el.textContent = window.moneyText(newBal);
 
       // Закрываем модалку
       document.getElementById('bonusRedeemModal').classList.add('hidden');

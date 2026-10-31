@@ -326,7 +326,7 @@ window.applySmartShareLink = applySmartShareLink;
                     <p class="text-white/50 text-[10px] mt-0.5">Размер: ${escHtmlC(c.size || '—')} · Цвет: ${escHtmlC(c.color || '—')} · ${c.weight || 1.0} кг</p>
                   </div>
                   <div class="flex flex-col justify-center items-end ml-2 pl-2 border-l border-white/5">
-                    <span class="text-cyan-400 font-extrabold text-xs font-mono inline-flex items-baseline gap-1">${c.total_byn ? Number(c.total_byn).toFixed(2) : '0.00'} ${window.bynSign ? window.bynSign() : ''}</span>
+                    <span style="color: var(--rd-b400)" class=" font-extrabold text-xs font-mono inline-flex items-baseline gap-1">${c.total_byn ? window.moneyText(Number(c.total_byn)) : '0.00'} ${window.bynSign ? window.bynSign() : ''}</span>
                     <span class="text-[9px] text-cyan-400/80 font-bold bg-cyan-500/10 px-1.5 py-0.5 rounded-lg border border-cyan-500/20 mt-1">Выбрать</span>
                   </div>
                 </div>
@@ -886,8 +886,22 @@ window.applySmartShareLink = applySmartShareLink;
             }
 
             // Тот же заказ, у которого сорвалась оплата: клиент не может изменить или удалить его, второй создавать нельзя
+            // Неоплаченный заказ мог остаться с прошлой попытки, в том числе до перезахода: сверяем его с базой
+            if (window._coUnpaid) {
+              await window.CheckoutUI.syncUnpaid();
+              await recalculateOrderTotals();
+            }
             const orderSig = window.CheckoutUI.orderSig(orderItems, window.tempOrder.first_payment_subtotal_byn);
             const unpaidOrder = window._coUnpaid && window._coUnpaid.sig === orderSig ? window._coUnpaid : null;
+            if (window._coUnpaid && !unpaidOrder) {
+              if (window._coUnpaid.done) {
+                window.CheckoutUI.setUnpaid(null);
+              } else if (!(await tgUtil.confirm(`Прошлый заказ #${window._coUnpaid.id.slice(0, 8)} ещё не оплачен, а состав или сумма с тех пор изменились. Оформить новый заказ? Старый можно оплатить в «Мои заказы».`))) {
+                return;
+              } else {
+                window.CheckoutUI.setUnpaid(null);
+              }
+            }
 
             try {
               const bk = window.tempOrder.breakdown || {};
@@ -980,7 +994,7 @@ window.applySmartShareLink = applySmartShareLink;
                 if (error) throw error;
 
                 createdOrderId = data[0].id;
-                window._coUnpaid = { id: createdOrderId, sig: orderSig, paid: 0 };
+                window.CheckoutUI.setUnpaid({ id: createdOrderId, sig: orderSig, paid: 0 });
 
                 // Сохранение отдельных позиций заказа (Раздел 56 ТЗ: order_items)
                 if (Array.isArray(window.tempOrder.items) && window.tempOrder.items.length > 0) {
@@ -1025,7 +1039,9 @@ window.applySmartShareLink = applySmartShareLink;
               // Оплата 1-го этапа — на сервере (order_pay): сначала с баланса, остаток — заявкой на оплату,
               // которую подтвердит платёжная система или админ. Заказ участника семьи оплачивает глава.
               let payRes = null;
-              if (!isFamilyMember) {
+              if (!isFamilyMember && unpaidOrder && unpaidOrder.done) {
+                payRes = { ok: true, status: 'paid' };   // заказ уже оплачен, пока приложение было закрыто
+              } else if (!isFamilyMember) {
                 // IcePay: баланс + карта (выбранная привязанная или новая на странице bePaid) / ЕРИП / заявка админу
                 const payMethod = window._checkoutPaymentMethod === 'erip' ? 'erip'
                   : window._checkoutPaymentMethod === 'oplati' ? 'oplati' : 'card';
@@ -1094,7 +1110,7 @@ window.applySmartShareLink = applySmartShareLink;
               }
               await updateCartBadge();
 
-              window._coUnpaid = null;
+              window.CheckoutUI.setUnpaid(null);
               window.tempOrder = null;
               window.orderCountry = 'CN';
               delete _tabCache['cart:'];
@@ -1107,12 +1123,11 @@ window.applySmartShareLink = applySmartShareLink;
               if (window._coUnpaid) {
                 // Экран не перерисовываем: услуги и переключатели должны остаться, иначе изменится сумма заказа
                 try {
-                  const { data: row } = await supabaseClient.from('orders').select('total_paid').eq('id', window._coUnpaid.id).maybeSingle();
-                  if (row) window._coUnpaid.paid = Number(row.total_paid) || 0;
+                  await window.CheckoutUI.syncUnpaid();
                   await window.refreshUserBalance();
                   await recalculateOrderTotals();
                 } catch (_) {}
-                tgUtil.alert(`Заказ создан, но оплата не прошла. ${err.message}\n\nНажмите кнопку ещё раз: второго заказа не будет.`);
+                tgUtil.alert(`Заказ создан, но оплата не прошла. ${err.message}\n\nНажмите кнопку ещё раз: второго заказа не будет. Оплатить можно и позже в «Мои заказы».`);
               } else {
                 tgUtil.alert('Не получилось оформить заказ: ' + err.message);
               }
@@ -2130,9 +2145,10 @@ async function renderMyOrders() {
     return `<div class="rd-screen page-enter">${head(0)}${U.empty({ icon: 'box', title: 'Войдите, чтобы видеть заказы', text: 'Здесь будет статус каждой посылки, фото со склада и трек-номера.', action: 'Войти', onclick: 'window.requireAuth()' })}</div>`;
   }
   try {
-    const [ordersRes, claimsRes] = await Promise.all([
+    const [ordersRes, claimsRes, paysRes] = await Promise.all([
       supabaseClient.from('orders').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
-      supabaseClient.from('insurance_claims').select('*').eq('user_id', userId)
+      supabaseClient.from('insurance_claims').select('*').eq('user_id', userId),
+      supabaseClient.from('payments').select('order_id, type, provider').eq('user_id', userId).in('status', ['CREATED', 'PENDING'])
     ]);
     if (ordersRes.error) throw ordersRes.error;
     const data = ordersRes.data || [];
@@ -2141,6 +2157,8 @@ async function renderMyOrders() {
     }
     const claimsMap = {};
     (claimsRes.data || []).forEach((c) => { claimsMap[c.order_id] = c; });
+    // Заявка без платёжной системы ждёт оператора: вторую кнопку оплаты не показываем
+    const manualCheck = new Set((paysRes.data || []).filter((p) => p.provider === 'manual').map((p) => `${p.order_id}:${p.type}`));
 
     const fmt = (n) => U.money(Number(n || 0), { keepCents: true, digits: 2 });
     const NODES = ['Заказ', 'Выкуп', 'Склад', 'В пути', 'В РБ', 'Готово'];
@@ -2160,6 +2178,20 @@ async function renderMyOrders() {
       const rest = Math.max(0, total - pre);
       const arrived = ['in_belarus', 'ready_for_pickup', 'delivered'].includes(order.status);
       const secondPaid = order.second_payment_paid || order.status === 'delivered';
+      const paidSoFar = Number(order.total_paid || 0);
+      const firstPaid = Boolean(order.first_payment_paid);
+      const familyWait = order.auto_cancel_reason === 'family_approval_pending';
+      const firstCheck = manualCheck.has(`${order.id}:FIRST_PAYMENT`);
+      const firstDue = Math.max(0, Math.round(((Number(order.first_payment_amount) || pre || total) - paidSoFar) * 100) / 100);
+      const canPayFirst = !firstPaid && !familyWait && !firstCheck && order.status === 'pending' && firstDue > 0;
+      const firstTag = firstPaid ? '<em class="ok">оплачен</em>'
+        : order.status === 'cancelled' ? '<em>отменён</em>'
+        : familyWait ? '<em>ждёт одобрения</em>'
+        : firstCheck ? '<em class="warn">на проверке</em>'
+        : '<em class="warn">к оплате</em>';
+      // Неоплаченный заказ не «в обработке»: сначала его нужно оплатить
+      const badge = order.status === 'pending' && !firstPaid && !familyWait
+        ? { text: firstCheck ? 'Проверяем оплату' : 'Ждёт оплаты', tone: 'warn' } : st;
       const claim = claimsMap[order.id];
       const est = parseFloat(order.weight_estimated) || 0;
       const act = parseFloat(order.weight_actual);
@@ -2190,14 +2222,15 @@ async function renderMyOrders() {
 
       const money = order.extra_services && order.extra_services.is_gift
         ? `<details class="oc-gift"><summary>${U.icon('gift', 16)}Подарок: нажмите, чтобы увидеть сумму</summary>
-             <div class="oc-money"><div><span>Сумма заказа</span>${fmt(total)}</div><div><span>Внесено</span>${fmt(pre)}</div><div><span>Остаток</span>${fmt(rest)}</div></div>
+             <div class="oc-money"><div><span>Сумма заказа</span>${fmt(total)}</div><div><span>Внесено</span>${fmt(paidSoFar)}</div><div><span>Остаток</span>${fmt(Math.max(0, total - paidSoFar))}</div></div>
            </details>`
         : `<div class="oc-money">
              <div><span>Сумма заказа</span>${fmt(total)}</div>
-             <div><span>1-й этап <em class="ok">оплачен</em></span>${fmt(pre)}</div>
+             <div><span>1-й этап ${firstTag}</span>${fmt(firstPaid ? pre : firstDue || pre)}</div>
              <div><span>2-й этап ${secondPaid ? '<em class="ok">оплачен</em>' : arrived && rest > 0 ? '<em class="warn">к оплате</em>' : '<em>после взвешивания</em>'}</span>${secondPaid || arrived ? '' : '≈\u2009'}${fmt(rest)}</div>
            </div>
-           ${arrived && !secondPaid && rest > 0 ? `<button type="button" class="rd-btn rd-btn-block oc-pay" onclick="window.openSecondPaymentModal('${order.id}', ${rest})">${U.icon('card', 18)}Оплатить доставку · ${fmt(rest)}</button>` : ''}`;
+           ${canPayFirst ? `<button type="button" class="rd-btn rd-btn-block oc-pay" onclick="window.openStagePayment('${order.id}', 'FIRST', ${firstDue})">${U.icon('card', 18)}Оплатить заказ · ${fmt(firstDue)}</button>` : ''}
+           ${arrived && !secondPaid && rest > 0 ? `<button type="button" class="rd-btn rd-btn-block oc-pay" onclick="window.openStagePayment('${order.id}', 'SECOND', ${rest})">${U.icon('card', 18)}Оплатить доставку · ${fmt(rest)}</button>` : ''}`;
 
       const tracks = [
         order.tracking_number_cn ? ['Трек в Китае', order.tracking_number_cn] : null,
@@ -2231,7 +2264,7 @@ async function renderMyOrders() {
             <span class="oc-thumb">${img ? `<img src="${U.esc(img)}" alt="" loading="lazy" onerror="this.remove()">` : ''}${U.icon('box', 22)}</span>
             <div class="oc-hinfo">
               <div class="oc-title">${U.esc(orderTitle(order))}</div>
-              <div class="oc-sub"><span class="rd-status ${st.tone} oc-st">${st.text}</span><span>№ ${order.id.slice(0, 8).toUpperCase()} · ${dateStr}</span></div>
+              <div class="oc-sub"><span class="rd-status ${badge.tone} oc-st">${badge.text}</span><span>№ ${order.id.slice(0, 8).toUpperCase()} · ${dateStr}</span></div>
             </div>
           </header>
           ${progress}
@@ -3547,126 +3580,95 @@ window.openCardsManagementModal = async function() {
   };
 
 
-window.openSecondPaymentModal = function(orderId, amount) {
+// Оплата этапа заказа из «Мои заказы» ('FIRST' — если при оформлении оплата сорвалась, 'SECOND' — после взвешивания).
+// Сумму этапа считает сервер (order_pay), здесь только выбор способа и сколько взять с баланса.
+window.openStagePayment = function (orderId, stage, amount) {
+  const U = window.UI;
+  const due = Math.round(Number(amount || 0) * 100) / 100;
+  const bal = Number(typeof balance !== 'undefined' ? (balance || 0) : 0);
+  const sign = window.bynSign();
+  const money = (v) => `${window.moneyText(v)}${sign}`;
+  const row = (label, v) => `<div class="co-total-row"><span>${label}</span><span>${v < 0 ? '−' : ''}${money(Math.abs(v))}</span></div>`;
+  const LABELS = { card: 'Картой', erip: 'Через ЕРИП', oplati: 'Через «Оплати»' };
+  let method = 'card';
+  let useBal = false;
+  let busy = false;
   tgUtil.haptic('light');
-  const modal = document.createElement('div');
-  modal.className = 'full-screen-modal-overlay page-enter';
-  modal.id = 'secondPaymentModal';
 
-  const totalDue = Number(amount || 0);
-  const curBal = Number(typeof balance !== 'undefined' ? (balance || 0) : 0);
-
-  modal.innerHTML = `
-    <div class="full-screen-modal-header">
-      <button id="closeSecondPayBtn" type="button" class="global-back-btn !mb-0" title="Назад">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
-      </button>
-      <div class="text-center font-bold text-sm text-white">Оплата 2-го этапа</div>
-      <div style="width: 48px;"></div>
-    </div>
-
-    <div class="full-screen-modal-body space-y-4" id="secondPayModalContent">
-
-      <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-1">
-        <div class="flex justify-between text-white/80">
-          <span>Сумма к оплате:</span>
-          <span class="text-amber-400 font-bold font-mono text-sm inline-flex items-baseline gap-1">${totalDue.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'gold' }) : ''}</span>
-        </div>
-        <p class="text-[10px] text-white/50">Включает остаток международной доставки за вычетом 70% резерва, страховку 2% и долю сборной посылки.</p>
+  U.sheet({
+    title: stage === 'FIRST' ? 'Оплата заказа' : 'Оплата доставки',
+    html: `
+      <div class="co-total-now"><span>К оплате</span><b>${money(due)}</b></div>
+      <p class="co-note-line">${stage === 'FIRST'
+        ? `Заказ #${orderId.slice(0, 8)}: вещи, упаковка и часть доставки. Остальное — после взвешивания на складе.`
+        : `Заказ #${orderId.slice(0, 8)}: остаток доставки и страховка после взвешивания.`}</p>
+      <div class="fn-seg co-gap" data-st-tabs>
+        <button type="button" class="on" data-m="card">Карта</button><button type="button" data-m="erip">ЕРИП</button><button type="button" data-m="oplati">Оплати</button>
       </div>
-
-      <!-- Баланс -->
-      ${curBal > 0 ? `
-        <div class="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
-          <div>
-            <p class="text-xs font-bold text-white">Списать с персонального баланса</p>
-            <p class="text-[10px] text-cyan-400 inline-flex items-baseline gap-1">Доступно: ${curBal.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'cyan' }) : ''}</p>
-          </div>
-          <input type="checkbox" id="secondPayApplyBalance" class="w-5 h-5 accent-cyan-500 cursor-pointer">
-        </div>
-      ` : ''}
-
-      <!-- Итог к оплате картой -->
-      <div class="flex justify-between items-baseline pt-2 border-t border-white/10 text-xs">
-        <span class="text-white font-bold">К оплате картой:</span>
-        <span class="text-amber-400 font-bold text-base font-mono inline-flex items-baseline gap-1" id="secondPayCardAmount">${totalDue.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'gold' }) : ''}</span>
-      </div>
-
-      <button id="submitSecondPayBtn" class="btn-primary w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black py-3 rounded-xl font-bold flex items-center justify-center gap-2 text-sm shadow-lg shadow-amber-500/20">
-        <span>💳 Оплатить 2-й этап</span>
-      </button>
-    </div>
-  `;
-
-  document.body.appendChild(modal);
-
-  requestAnimationFrame(() => {
-    const el = document.getElementById('secondPayModalContent');
-    if (el) { el.classList.remove('scale-95', 'opacity-0'); el.classList.add('scale-100', 'opacity-100'); }
+      ${bal > 0 ? `
+        <div class="rd-card rd-list co-gap">
+          <label class="rd-row co-opt">
+            <span class="rd-row-body"><span class="rd-row-title">Списать с баланса</span><span class="rd-row-text">Доступно ${money(bal)}</span></span>
+            <span class="rd-switch"><input type="checkbox" data-st-bal><span></span></span>
+          </label>
+        </div>` : ''}
+      <div class="co-gap" data-st-rows></div>
+      <button type="button" class="rd-btn rd-btn-block co-gap" data-st-pay></button>`,
+    onOpen(wrap, close) {
+      const btn = wrap.querySelector('[data-st-pay]');
+      const split = () => {
+        const fromBal = useBal ? Math.round(Math.min(bal, due) * 100) / 100 : 0;
+        return { fromBal, rest: Math.max(0, Math.round((due - fromBal) * 100) / 100) };
+      };
+      const paint = () => {
+        const { fromBal, rest } = split();
+        wrap.querySelector('[data-st-rows]').innerHTML = fromBal > 0 ? row('С баланса', -fromBal) + (rest > 0 ? row(LABELS[method], rest) : '') : '';
+        btn.disabled = busy;
+        btn.classList.toggle('is-busy', busy);
+        btn.innerHTML = busy ? '<span>Проводим оплату…</span>' : `<span>${rest > 0 ? 'Оплатить' : 'Оплатить с баланса'}&nbsp;${money(rest > 0 ? rest : fromBal)}</span>`;
+      };
+      wrap.querySelectorAll('[data-st-tabs] button').forEach((b) => {
+        b.onclick = () => {
+          method = b.dataset.m;
+          wrap.querySelectorAll('[data-st-tabs] button').forEach((x) => x.classList.toggle('on', x === b));
+          paint();
+        };
+      });
+      const balChk = wrap.querySelector('[data-st-bal]');
+      if (balChk) balChk.onchange = () => { useBal = balChk.checked; paint(); };
+      btn.onclick = async () => {
+        if (busy) return;
+        busy = true;
+        paint();
+        const { fromBal, rest } = split();
+        try {
+          const pr = await window.IcePay.payOrder(orderId, stage, fromBal, method);
+          if (!pr || !pr.ok) throw new Error((pr && pr.error) || 'Не получилось провести оплату');
+          if (pr.balance !== undefined && pr.balance !== null) window.setUserBalance(pr.balance);
+          else await window.refreshUserBalance();
+          tgUtil.haptic('success');
+          if (pr.status === 'paid') {
+            tgUtil.alert(stage === 'FIRST'
+              ? `Заказ #${orderId.slice(0, 8)} оплачен. Берём его в работу.`
+              : `Доставка по заказу #${orderId.slice(0, 8)} оплачена. Готовим отправку.`);
+          } else if (!(pr.redirect_url || pr.erip || pr.sandbox)) {
+            tgUtil.alert(`К оплате ${window.moneyText(pr.remaining ?? rest)}. Продолжим, как только подтвердим оплату.`);
+          }
+          close();
+          if (typeof renderCurrentScreen === 'function') renderCurrentScreen();
+        } catch (err) {
+          tgUtil.haptic('error');
+          tgUtil.alert('Оплата не прошла: ' + err.message);
+          await window.refreshUserBalance();
+          busy = false;
+          paint();
+        }
+      };
+      paint();
+    }
   });
-
-  const close = () => {
-    const el = document.getElementById('secondPayModalContent');
-    if (el) { el.classList.remove('scale-100', 'opacity-100'); el.classList.add('scale-95', 'opacity-0'); }
-    setTimeout(() => modal.remove(), 250);
-  };
-
-  document.getElementById('closeSecondPayBtn').onclick = close;
-  modal.onclick = (e) => { if (e.target === modal) close(); };
-
-  const balChk = document.getElementById('secondPayApplyBalance');
-  const cardAmountSpan = document.getElementById('secondPayCardAmount');
-
-  const updateCardDue = () => {
-    let balUsed = 0;
-    if (balChk && balChk.checked) {
-      balUsed = Math.min(curBal, totalDue);
-    }
-    const cardDue = Math.max(0, totalDue - balUsed);
-    if (cardAmountSpan) cardAmountSpan.innerHTML = `${cardDue.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'gold' }) : ''}`;
-  };
-
-  if (balChk) balChk.onchange = updateCardDue;
-
-  document.getElementById('submitSecondPayBtn').onclick = async () => {
-    const submitBtn = document.getElementById('submitSecondPayBtn');
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '⏳ Проведение оплаты...';
-
-    let balUsed = 0;
-    if (balChk && balChk.checked) {
-      balUsed = Math.min(curBal, totalDue);
-    }
-    const cardDue = Math.max(0, totalDue - balUsed);
-    try {
-      // Оплата 2-го этапа — на сервере (order_pay): с баланса сколько выбрано, остаток — заявкой на оплату
-      // IcePay: с баланса сколько выбрано, остаток — основной привязанной картой / страница bePaid / заявка админу
-      const pr = await window.IcePay.payOrder(orderId, 'SECOND', balUsed, 'card');
-      if (!pr || !pr.ok) throw new Error((pr && pr.error) || 'Не получилось провести оплату');
-      if (pr.balance !== undefined && pr.balance !== null) window.setUserBalance(pr.balance);
-      else await window.refreshUserBalance();
-
-      tgUtil.haptic('success');
-      if (pr && pr.status === 'paid') {
-        tgUtil.alert(`Второй платёж по заказу #${orderId.slice(0, 8)} оплачен. Готовим отправку.`);
-      } else if (pr && (pr.redirect_url || pr.erip || pr.sandbox)) {
-        // страницу банка уже открыл IcePay
-      } else {
-        tgUtil.alert(`Осталось оплатить ${window.moneyText(pr?.remaining ?? cardDue)}. Отправим заказ, как только подтвердим оплату.`);
-      }
-      close();
-      if (typeof renderCurrentScreen === 'function') renderCurrentScreen();
-    } catch (err) {
-      tgUtil.haptic('error');
-      tgUtil.alert('Ошибка оплаты: ' + err.message);
-      await window.refreshUserBalance();
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = '💳 Оплатить 2-й этап';
-    }
-  };
 };
+window.openSecondPaymentModal = (orderId, amount) => window.openStagePayment(orderId, 'SECOND', amount);
 
 window.openInvoiceModal = (orderId, originalPrice) => {
   tgUtil.haptic('light');
@@ -3893,7 +3895,7 @@ window.generatePdfInvoice = async (orderId, isB2b = false, customPrice = null) =
               <span style="color: #6b7280; font-size: 12px;">Weight: ~${order.weight_estimated} kg</span>
             </td>
             <td style="padding: 15px 12px; text-align: right; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600;">
-              ${Number(goodsByn).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}
+              ${window.moneyText(Number(goodsByn))} ${window.bynSign ? window.bynSign() : ''}
             </td>
           </tr>
           ${!isB2b ? `
@@ -3902,7 +3904,7 @@ window.generatePdfInvoice = async (orderId, isB2b = false, customPrice = null) =
               <strong>Service Fee (Commission)</strong>
             </td>
             <td style="padding: 15px 12px; text-align: right; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600;">
-              ${Number(order.commission_byn||0).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}
+              ${window.moneyText(Number(order.commission_byn||0))} ${window.bynSign ? window.bynSign() : ''}
             </td>
           </tr>
           ` : ''}
@@ -3913,17 +3915,17 @@ window.generatePdfInvoice = async (orderId, isB2b = false, customPrice = null) =
         <div style="width: 300px;">
           <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
             <span style="font-size: 14px; color: #4b5563;">Subtotal:</span>
-            <span style="font-weight: 600;">${Number(totalByn).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
+            <span style="font-weight: 600;">${window.moneyText(Number(totalByn))} ${window.bynSign ? window.bynSign() : ''}</span>
           </div>
           ${!isB2b ? `
           <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 2px solid #111827;">
             <span style="font-size: 14px; color: #4b5563;">Paid (Prepayment):</span>
-            <span style="font-weight: 600;">${Number(order.prepayment_amount||0).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
+            <span style="font-weight: 600;">${window.moneyText(Number(order.prepayment_amount||0))} ${window.bynSign ? window.bynSign() : ''}</span>
           </div>
           ` : ''}
           <div style="display: flex; justify-content: space-between; padding: 15px 0;">
             <span style="font-size: 18px; font-weight: 800; color: #111827;">TOTAL DUE:</span>
-            <span style="font-size: 18px; font-weight: 800; color: #0284c7;">${Number(isB2b ? totalByn : (totalByn - (order.prepayment_amount||0))).toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</span>
+            <span style="font-size: 18px; font-weight: 800; color: #0284c7;">${window.moneyText(isB2b ? totalByn : (totalByn - (order.prepayment_amount||0)))} ${window.bynSign ? window.bynSign() : ''}</span>
           </div>
         </div>
       </div>
@@ -4074,7 +4076,7 @@ window.openInsuranceClaimModal = (orderId, orderTotal) => {
         <ul class="space-y-1.5 pl-1 relative z-10">
           <li class="flex items-start gap-1.5">
             <span class="text-amber-400 mt-0.5">•</span>
-            <span>Полный возврат стоимости (<strong>${orderTotal.toFixed(2)} ${window.bynSign ? window.bynSign() : ''}</strong>) начисляется на ваш баланс после проверки.</span>
+            <span>Полный возврат стоимости (<strong>${window.moneyText(orderTotal)} ${window.bynSign ? window.bynSign() : ''}</strong>) начисляется на ваш баланс после проверки.</span>
           </li>
           <li class="flex items-start gap-1.5">
             <span class="text-amber-400 mt-0.5">•</span>

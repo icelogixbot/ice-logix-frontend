@@ -32,6 +32,30 @@
   let busy = false;
   let termsResolve = null;
 
+  // Неоплаченный заказ из оформления хранится и после перезахода, чтобы повтор не создал второй заказ
+  const UNPAID_KEY = 'ice_co_unpaid';
+  function setUnpaid(v) {
+    window._coUnpaid = v || null;
+    try {
+      if (v) localStorage.setItem(UNPAID_KEY, JSON.stringify({ ...v, user: window.userId }));
+      else localStorage.removeItem(UNPAID_KEY);
+    } catch (_) {}
+  }
+  try { window._coUnpaid = JSON.parse(localStorage.getItem(UNPAID_KEY) || 'null'); } catch (_) { window._coUnpaid = null; }
+
+  // Сверяем с базой: сколько уже внесено, не оплачен ли этап, не отменён ли заказ
+  async function syncUnpaid() {
+    const u = window._coUnpaid;
+    if (!u) return null;
+    if (u.user && window.userId && String(u.user) !== String(window.userId)) { setUnpaid(null); return null; }
+    try {
+      const { data } = await window.supabaseClient.from('orders').select('status, total_paid, first_payment_paid').eq('id', u.id).maybeSingle();
+      if (!data || data.status === 'cancelled') { setUnpaid(null); return null; }
+      setUnpaid({ ...u, paid: Number(data.total_paid) || 0, done: Boolean(data.first_payment_paid) });
+    } catch (_) {}
+    return window._coUnpaid;
+  }
+
   function plural(n, one, few, many) {
     const a = Math.abs(n) % 100;
     const b = a % 10;
@@ -300,6 +324,7 @@
       };
     }
     window.setCheckoutPaymentMethod(window._checkoutPaymentMethod || 'card');
+    if (window._coUnpaid) syncUnpaid().then(() => window.recalculateOrderTotals());
     if (window.IcePay) {
       window.IcePay.config().then((c) => { window._coGateway = Boolean(c.gateway); renderPayNote(); refresh(); });
     }
@@ -401,14 +426,17 @@
   function payAmounts(t) {
     const stage = Math.max(0, Number(t.first_payment_subtotal_byn) || 0);
     const rest = Math.max(0, Number(t.first_payment_byn) || 0);
-    return { stage, rest, fromBalance: Math.round((stage - rest) * 100) / 100 };
+    const earlier = Math.max(0, Number(t.paid_earlier) || 0);
+    const fromBalance = Math.max(0, Number(t.balance_used) || 0);
+    return { stage, rest, earlier, fromBalance, nothing: rest <= 0 && fromBalance <= 0 };
   }
 
   function payRows(t) {
-    const { rest, fromBalance } = payAmounts(t);
+    const { rest, earlier, fromBalance } = payAmounts(t);
     const note = t.discount_covers_first ? '<p class="co-note-line">Скидка больше первого платежа, поэтому весь остаток по оценке оплачивается сейчас.</p>' : '';
-    if (fromBalance <= 0) return note;
-    return moneyRow('С баланса', -fromBalance)
+    if (earlier <= 0 && fromBalance <= 0) return note;
+    return (earlier > 0 ? moneyRow('Уже оплачено', -earlier) : '')
+      + (fromBalance > 0 ? moneyRow('С баланса', -fromBalance) : '')
       + (rest > 0 ? moneyRow(PAY_LABELS[window._checkoutPaymentMethod] || PAY_LABELS.card, rest) : '')
       + note;
   }
@@ -435,8 +463,8 @@
 
   function payButtonHtml(t) {
     if (busy) return '<span>Оформляем заказ…</span>';
-    const { stage, rest, fromBalance } = payAmounts(t);
-    if (isFamilyMember() || stage <= 0) return '<span>Оформить заказ</span>';
+    const { rest, fromBalance, nothing } = payAmounts(t);
+    if (isFamilyMember() || nothing) return '<span>Оформить заказ</span>';
     return `<span>${rest > 0 ? 'Оплатить' : 'Оплатить с баланса'}&nbsp;<span id="btnPayAmount">${num(rest > 0 ? rest : fromBalance)}</span>${sign()}</span>`;
   }
 
@@ -452,8 +480,8 @@
     const t = window.tempOrder;
     const body = $('coConfirmBody');
     if (!t || !body || termsResolve) return Promise.resolve(false);
-    const { stage } = payAmounts(t);
-    const label = family || stage <= 0 ? 'Принять и оформить' : 'Принять и оплатить';
+    const { stage, nothing } = payAmounts(t);
+    const label = family || nothing ? 'Принять и оформить' : 'Принять и оплатить';
     const sums = family
       ? `${moneyRow('Всего за заказ', t.total_byn)}<p class="co-note-line">Заказ уйдёт на одобрение главе семейного бюджета.</p>`
       : `<div class="co-total-now"><span>Сейчас</span><b>${num(stage)}${sign()}</b></div>${payRows(t)}
@@ -571,5 +599,5 @@
 
   window.setCheckoutPaymentMethod = setCheckoutPaymentMethod;
   window.renderCheckoutCards = renderCheckoutCards;
-  window.CheckoutUI = { render, mount, refresh, showDoc, confirmTerms, setBusy, orderSig };
+  window.CheckoutUI = { render, mount, refresh, showDoc, confirmTerms, setBusy, orderSig, setUnpaid, syncUnpaid };
 })();

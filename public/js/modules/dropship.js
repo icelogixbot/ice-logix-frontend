@@ -44,7 +44,7 @@
 
       const totalTurnover = referralOrders.reduce((sum, order) => sum + (Number(order.total_byn) || Number(order.total) || 0), 0);
       const referralOrdersCount = referralOrders.length;
-      const averageCheck = referralOrdersCount > 0 ? (totalTurnover / referralOrdersCount).toFixed(2) : 0;
+      const averageCheck = referralOrdersCount > 0 ? window.moneyText(totalTurnover / referralOrdersCount) : window.moneyText(0);
 
       const referralLink = userReferralCode ? `https://t.me/icelogix_bot?start=ref_${userReferralCode}` : null;
 
@@ -100,7 +100,7 @@
               <div class="glass-card">
                 <h3 class="text-white font-bold text-lg mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Статистика продаж</h3>
                 <div class="grid grid-cols-2 gap-3">
-                  <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Оборот</p><p class="text-cyan-400 text-lg font-bold inline-flex items-center justify-center gap-1">${totalTurnover.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</p></div>
+                  <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Оборот</p><p style="color: var(--rd-b400)" class=" text-lg font-bold inline-flex items-center justify-center gap-1">${window.moneyText(totalTurnover)} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</p></div>
                   <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Всего заказов</p><p class="text-white text-lg font-bold">${referralOrdersCount}</p></div>
                   <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Средний чек</p><p class="text-white text-lg font-bold inline-flex items-center justify-center gap-1">${averageCheck} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</p></div>
                   <div class="bg-white/5 rounded-xl p-3 text-center"><p class="text-white/70 text-[10px] uppercase tracking-wider">Клиентов</p><p class="text-white text-lg font-bold">${referrals.length}</p></div>

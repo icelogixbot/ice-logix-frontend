@@ -2,6 +2,16 @@
 // ICE LOGIX Module: Promotions & History
 // ============================================================
 // ==================== АКЦИИ (ПРОМО + КОЛЕСО ФОРТУНЫ) ====================
+// Акция видна, только пока она идёт: выключенную, ещё не начавшуюся и просроченную не показываем
+function isPromotionLive(p) {
+  const now = Date.now();
+  if (!p || p.is_active === false) return false;
+  if (p.starts_at && new Date(p.starts_at).getTime() > now) return false;
+  if (p.expires_at && new Date(p.expires_at).getTime() < now) return false;
+  return true;
+}
+window.isPromotionLive = isPromotionLive;
+
 async function renderPromoPage() {
   let promos = [];
   if (window.CacheDB) {
@@ -13,6 +23,7 @@ async function renderPromoPage() {
     const { data } = await supabaseClient.from('promotions').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(10);
     promos = data || [];
   }
+  promos = (promos || []).filter(isPromotionLive);
   const U = window.UI;
   const promosHtml = promos && promos.length
     ? promos.map(p => {

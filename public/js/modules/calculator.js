@@ -1600,10 +1600,9 @@ if (typeof attachCalculatorHandlers === 'function') {
       const pvsCity = document.getElementById('pvsCitySelect')?.value || window.tempOrder?.pvs?.city || 'Минск';
       const pvsPoint = document.getElementById('pvsPointSelect')?.value || window.tempOrder?.pvs?.point || '';
       
-      let pvsCost = 0;
-      if (pvsMethod !== 'none' && window.iceLogixPricing.LOCAL_DELIVERY_RATES[pvsMethod]) {
-        pvsCost = window.iceLogixPricing.LOCAL_DELIVERY_RATES[pvsMethod].calc(aggregatedWeight);
-      }
+      // Тариф по Беларуси клиент платит перевозчику при получении (так и написано на экране), в сумму заказа он не входит.
+      // Раньше это держалось на том, что ключи способов (europoshta, belpochta, sdek) не совпадали с LOCAL_DELIVERY_RATES.
+      const pvsCost = 0;
       
       const useFreeDelivery = document.getElementById('orderUseFreeDelivery')?.checked || window.tempOrder?.useFreeDelivery || false;
       if (window.tempOrder) window.tempOrder.useFreeDelivery = useFreeDelivery;
@@ -1719,7 +1718,7 @@ if (typeof attachCalculatorHandlers === 'function') {
               <label class="rd-row co-opt" for="orderUseCustomsSplit">
                 <span class="rd-row-body">
                   <span class="rd-row-title">Разделить на двух получателей</span>
-                  <span class="rd-row-text">Пошлина ${money(dutyOne)} на одного. На двоих ${dutySplit > 0 ? money(dutySplit) : 'её не будет'}: лимит 200 евро и 31 кг у каждого свой</span>
+                  <span class="rd-row-text">Пошлина ${money(dutyOne)} на одного. На двоих ${dutySplit > 0 ? money(dutySplit) : 'её не будет'}: лимит 200 евро у каждого свой</span>
                 </span>
                 <span class="rd-switch"><input type="checkbox" id="orderUseCustomsSplit" ${useCustomsSplit ? 'checked' : ''}><span></span></span>
               </label>
@@ -1743,7 +1742,7 @@ if (typeof attachCalculatorHandlers === 'function') {
             };
           }
         } else {
-          splitPlaceholder.innerHTML = `<div class="ct-hint co-duty">${window.UI.icon('info', 18)}<span>Посылка дороже лимита, пошлина ${money(dutyOne)}. У каждого получателя свой лимит 200 евро и 31 кг: добавьте второго получателя в профиле, и посылку можно будет разделить.</span></div>`;
+          splitPlaceholder.innerHTML = `<div class="ct-hint co-duty">${window.UI.icon('info', 18)}<span>Посылка дороже лимита, пошлина ${money(dutyOne)}. У каждого получателя свой лимит 200 евро: добавьте второго получателя в профиле, и посылку можно будет разделить.</span></div>`;
         }
       }
 
@@ -1791,6 +1790,7 @@ if (typeof attachCalculatorHandlers === 'function') {
       const unpaid = window._coUnpaid;
       const paidEarlier = unpaid && window.CheckoutUI && unpaid.sig === window.CheckoutUI.orderSig(window.tempOrder.items, firstPaymentSubtotal)
         ? (Number(unpaid.paid) || 0) : 0;
+      window.tempOrder.paid_earlier = paidEarlier;
       const stageDue = Math.round((firstPaymentSubtotal - paidEarlier) * 100) / 100;
       if (applyBalance && curBal > 0) {
         balanceUsed = Math.min(Math.max(0, stageDue), curBal);
@@ -1831,11 +1831,11 @@ if (typeof attachCalculatorHandlers === 'function') {
       const balRow = document.getElementById('checkoutBalanceAmountRow');
       const balText = document.getElementById('checkoutBalanceUsedText');
 
-      if (totalSpan) totalSpan.innerText = finalTotal.toFixed(2);
-      if (prepaymentSpan) prepaymentSpan.innerText = firstPaymentFinal.toFixed(2);
-      if (firstPaySpan) firstPaySpan.innerText = firstPaymentFinal.toFixed(2);
-      if (secondPaySpan) secondPaySpan.innerText = secondPaymentEst.toFixed(2);
-      if (btnPaySpan) btnPaySpan.innerText = firstPaymentFinal.toFixed(2);
+      if (totalSpan) totalSpan.innerText = window.moneyText(finalTotal);
+      if (prepaymentSpan) prepaymentSpan.innerText = window.moneyText(firstPaymentFinal);
+      if (firstPaySpan) firstPaySpan.innerText = window.moneyText(firstPaymentFinal);
+      if (secondPaySpan) secondPaySpan.innerText = window.moneyText(secondPaymentEst);
+      if (btnPaySpan) btnPaySpan.innerText = window.moneyText(firstPaymentFinal);
       if (balText) balText.innerHTML = window.moneyText(balanceUsed) + (window.bynSign ? window.bynSign() : '');
       if (balRow) balRow.classList.toggle('hidden', !applyBalance || balanceUsed <= 0);
 

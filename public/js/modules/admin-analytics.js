@@ -756,14 +756,14 @@ window.downloadTaxInvoicePDF = async () => {
       tableBody.push([
         dateStr,
         `№ ${o.id.slice(0, 8)}`,
-        totalByn.toFixed(2)
+        window.moneyText(totalByn)
       ]);
     });
 
     tableBody.push([
       { text: 'ИТОГО', colSpan: 2, style: 'tableHeader', alignment: 'right' },
       {},
-      { text: totalSum.toFixed(2), style: 'tableHeader' }
+      { text: window.moneyText(totalSum), style: 'tableHeader' }
     ]);
 
     const docDefinition = {

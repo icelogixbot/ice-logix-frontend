@@ -104,9 +104,9 @@ async function showCommissionContractModal() {
           <p>
             1.1. Комиссионер обязуется по поручению Комитента за вознаграждение совершить от своего имени, но за счет Комитента сделку по приобретению и доставке товаров народного потребления (одежда, обувь, аксессуары) из международных маркетплейсов (Китай, Европа, Россия).
             <br>
-            1.2. Общая стоимость поручения составляет <strong>${totalSum.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</strong>.
+            1.2. Общая стоимость поручения составляет <strong>${window.moneyText(totalSum)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</strong>.
             <br>
-            1.3. Вознаграждение Комиссионера за оказанные услуги составляет 20% от базовой стоимости товара и включено в общую стоимость поручения (составляет <strong>${commission.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</strong>).
+            1.3. Вознаграждение Комиссионера за оказанные услуги составляет 20% от базовой стоимости товара и включено в общую стоимость поручения (составляет <strong>${window.moneyText(commission)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</strong>).
           </p>
 
           <p class="font-bold text-white uppercase text-[10px] tracking-wider pt-2">2. Права и обязанности сторон</p>
@@ -196,8 +196,8 @@ async function showCommissionContractModal() {
           
           <h3>1. ПРЕДМЕТ ДОГОВОРА</h3>
           <p>1.1. Комиссионер обязуется по поручению Комитента за вознаграждение совершить от своего имени, но за счет Комитента одну или несколько сделок по приобретению и организации доставки товаров народного потребления из зарубежных интернет-магазинов (включая Poizon, Zalando, ASOS, Dewu, Taobao, 1688).</p>
-          <p>1.2. Общая стоимость заказанных товаров и услуг логистики по настоящему поручению составляет <strong>${totalSum.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</strong>.</p>
-          <p>1.3. Комиссионное вознаграждение Исполнителя за услуги выкупа и сопровождения сделки составляет 20% от базовой стоимости товара (включено в общую сумму договора и составляет <strong class="inline-flex items-baseline gap-0.5">${commission.toFixed(2)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</strong>).</p>
+          <p>1.2. Общая стоимость заказанных товаров и услуг логистики по настоящему поручению составляет <strong>${window.moneyText(totalSum)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</strong>.</p>
+          <p>1.3. Комиссионное вознаграждение Исполнителя за услуги выкупа и сопровождения сделки составляет 20% от базовой стоимости товара (включено в общую сумму договора и составляет <strong class="inline-flex items-baseline gap-0.5">${window.moneyText(commission)} ${window.bynSign ? window.bynSign({ size: '0.85em' }) : ''}</strong>).</p>
 
           <h3>2. ПРАВА И ОБЯЗАННОСТИ СТОРОН</h3>
           <p>2.1. Комиссионер обязуется произвести выкуп товара в зарубежном магазине в течение 3-х рабочих дней после получения 75% предоплаты от Комитента.</p>
@@ -356,7 +356,7 @@ async function showFamilySettingsModal() {
           <div class="bg-white/5 p-3 rounded-xl border border-cyan-500/30 space-y-2 page-enter">
             <div class="flex justify-between items-baseline">
               <span class="text-white/60 text-[10px]">От: ID ${o.user_id}</span>
-              <span class="text-cyan-400 font-bold text-sm inline-flex items-baseline gap-1">${o.total_byn.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</span>
+              <span style="color: var(--rd-b400)" class=" font-bold text-sm inline-flex items-baseline gap-1">${window.moneyText(o.total_byn)} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</span>
             </div>
             <p class="text-xs text-white font-semibold truncate">${_esc(itemsSummary)}</p>
             <div class="flex gap-2 mt-2 pt-1 border-t border-white/5">
@@ -418,7 +418,7 @@ async function showFamilySettingsModal() {
               <p class="text-xs text-white font-bold truncate">${_esc(itemsSummary)}</p>
               <p class="text-[10px] text-amber-400 mt-0.5">⏱️ Ожидает одобрения</p>
             </div>
-            <span class="text-white font-mono text-xs font-bold text-right inline-flex items-baseline gap-1">${o.total_byn.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'white', size: '0.85em' }) : ''}</span>
+            <span class="text-white font-mono text-xs font-bold text-right inline-flex items-baseline gap-1">${window.moneyText(o.total_byn)} ${window.bynSign ? window.bynSign({ color: 'white', size: '0.85em' }) : ''}</span>
           </div>
         `;
       }).join('') || '<p class="text-xs text-white/40 text-center py-2">Нет активных запросов</p>';

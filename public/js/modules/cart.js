@@ -206,7 +206,7 @@
         <span class="wb-cta-dot">·</span>
         <span id="wbCheckoutCount">${count} шт.</span>
         <span class="wb-cta-dot">·</span>
-        <span id="wbCheckoutTotal" class="inline-flex items-baseline">${Number(total || 0).toFixed(2).replace('.', ',')}${window.bynSign ? window.bynSign({ size: '0.82em' }) : ''}</span>
+        <span id="wbCheckoutTotal" class="inline-flex items-baseline">${window.moneyText(Number(total || 0))}${window.bynSign ? window.bynSign({ size: '0.82em' }) : ''}</span>
       `;
     } else {
       checkoutBtn.className = 'wb-checkout-cta disabled';
@@ -218,7 +218,7 @@
   // --- Render Clean Cart Screen ---
   async function renderCart() {
     const U = window.UI;
-    const fmt = (n) => Number(n || 0).toFixed(2).replace('.', ',');
+    const fmt = (n) => window.moneyText(Number(n || 0));
     const sign = () => (window.bynSign ? window.bynSign({ size: '0.82em' }) : '');
     const currentUserId = window.userId || (typeof userId !== 'undefined' ? userId : null);
     if (!currentUserId) {
@@ -375,7 +375,7 @@
       if (totalBadge) totalBadge.innerText = `${visibleCards.length} поз.`;
 
       // Блок «Итого»
-      const _f = (n) => Number(n || 0).toFixed(2).replace('.', ',');
+      const _f = (n) => window.moneyText(Number(n || 0));
       const _sg = window.bynSign ? window.bynSign({ size: '0.82em' }) : '';
       const _c = document.getElementById('rdCartSumCount'); if (_c) _c.innerText = totalCount;
       const _pack = totalCount > 0 ? cartPackagingByn() : 0;
@@ -452,7 +452,7 @@
         // Optimistic UI update
         if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
         qtySpan.innerText = currentQty;
-        if (priceSpan) priceSpan.innerText = (unitPrice * currentQty).toFixed(2).replace('.', ',');
+        if (priceSpan) priceSpan.innerText = window.moneyText(unitPrice * currentQty);
         updateWbTotals();
 
         // Update local memory

@@ -1281,6 +1281,8 @@ html body .no-form div[class*="border-white/30"] > input { min-height: 40px !imp
 .co-terms button { padding: 0; border: 0; background: transparent; color: var(--rd-b400); font: inherit; cursor: pointer; }
 .co-cta .rd-btn { flex: 1; }
 .co-cta .byn-sign { height: .82em; width: auto; margin-left: .14em; }
+.rd-sheet .rd-btn .byn-sign { height: .82em; width: auto; margin-left: .14em; }
+.rd-sheet .rd-btn > span { display: inline-flex; align-items: baseline; }
 .co-cta .rd-btn > span { display: inline-flex; align-items: baseline; }
 .co-doc { font-size: 14px; line-height: 1.55; color: var(--rd-tx2); }
 .co-doc h2 { margin: 16px 0 6px; font-size: 15px; font-weight: 700; color: var(--rd-tx); }

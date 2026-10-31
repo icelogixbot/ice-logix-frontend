@@ -520,7 +520,7 @@ async function renderAdminUsersList() {
           <div>
             <p class="text-white font-bold text-sm">${adminEsc(u.full_name || 'Без имени')} ${u.username ? '(@' + adminEsc(u.username) + ')' : ''}</p>
             <p class="text-white/50 text-[10px]">ID: ${u.user_id} | Рег: ${new Date(u.created_at).toLocaleDateString('ru-RU')}</p>
-            <p class="text-cyan-400 font-bold mt-1 text-sm inline-flex items-baseline gap-1">${Number(u.ices_balance || 0).toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</p>
+            <p style="color: var(--rd-b400)" class=" font-bold mt-1 text-sm inline-flex items-baseline gap-1">${window.moneyText(Number(u.ices_balance || 0))} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</p>
           </div>
           <div class="flex flex-col gap-2">
             <button class="btn-primary px-3 py-1.5 text-xs rounded-lg shadow-[0_0_10px_rgba(77, 163, 255,0.3)]" onclick="window.changeUserBalance('${u.user_id}', ${u.ices_balance || 0})">
@@ -728,7 +728,7 @@ async function renderAdminClaimsList() {
           </div>
           <div class="text-xs text-white leading-normal">
             <p><strong>Заказ:</strong> <span class="font-mono text-cyan-400 font-semibold">#${c.order_id.slice(0, 8)}</span></p>
-            <p class="mt-1"><strong>Сумма заказа:</strong> <span class="text-green-400 font-mono font-bold inline-flex items-baseline gap-1">${orderTotal.toFixed(2)} ${window.bynSign ? window.bynSign({ color: 'emerald', size: '0.85em' }) : ''}</span></p>
+            <p class="mt-1"><strong>Сумма заказа:</strong> <span class="text-green-400 font-mono font-bold inline-flex items-baseline gap-1">${window.moneyText(orderTotal)} ${window.bynSign ? window.bynSign({ color: 'emerald', size: '0.85em' }) : ''}</span></p>
             <p class="mt-1.5 p-2 bg-slate-950/60 rounded-lg text-white/70 border border-white/5 font-sans">
               <strong>Описание:</strong> ${adminEsc(c.description)}
             </p>
@@ -1216,7 +1216,8 @@ function attachAdminHandlers() {
       const value = parseFloat(document.getElementById('promoValue')?.value);
       if (!code || !value) { tgUtil.alert('Заполните все поля'); return; }
       try {
-        await supabaseClient.from('promocodes').insert({ code, discount_type: type, discount_value: value, is_active: true });
+        const { error } = await supabaseClient.from('promocodes').insert({ code, discount_type: type, discount_value: value, is_active: true });
+        if (error) throw new Error(error.code === '23505' ? 'Такой промокод уже есть' : error.message);
         logAdminAction('create_promo', { code, type, value });
         if (window.adminCache && window.adminCache.promoCodes) {
           window.adminCache.promoCodes.unshift({ id: Date.now().toString(), code, discount_type: type, discount_value: value, is_active: true });
@@ -1237,7 +1238,8 @@ function attachAdminHandlers() {
           if (promo) promo.is_active = !currentActive;
         }
         renderAdminScreen(false);
-        await supabaseClient.from('promocodes').update({ is_active: !currentActive }).eq('id', id);
+        const { error } = await supabaseClient.from('promocodes').update({ is_active: !currentActive }).eq('id', id);
+        if (error) throw error;
         logAdminAction('toggle_promo', { id, active: !currentActive });
         tgUtil.alert('Статус обновлён');
       } catch (err) { 
@@ -2324,7 +2326,7 @@ function attachAnalyticsHandlers() {
                 <tr class="border-t border-white/5">
                   <td class="py-1 text-white/80 truncate max-w-[160px]">${adminEsc(p.title)}</td>
                   <td class="py-1 text-cyan-400 text-right">${p.count}</td>
-                  <td class="py-1 text-green-400 text-right">${p.rev.toFixed(2)}</td>
+                  <td class="py-1 text-green-400 text-right">${window.moneyText(p.rev)}</td>
                 </tr>`).join('')}</tbody>
             </table>
           </div>
@@ -2382,6 +2384,7 @@ async function openPromotionForm(promotion = null) {
           <input type="text" id="promoTitle" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Название *" value="${promotion?.title || ''}">
           <textarea id="promoDesc" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="Описание">${promotion?.description || ''}</textarea>
           <input type="url" id="promoBanner" class="btn-secondary w-full p-3 rounded-xl border border-white/30" placeholder="URL баннера" value="${promotion?.banner_url || ''}">
+          <p class="text-white/60 text-xs">Карточка акции только рассказывает о ней. Скидку в заказе даёт промокод: создайте его в разделе «Промокоды» и напишите код в описании.</p>
           <select id="promoDiscountType" class="btn-secondary w-full p-3 rounded-xl border border-white/30">
             <option value="percent" ${promotion?.discount_type === 'percent' ? 'selected' : ''}>Процент (%)</option>
             <option value="fixed" ${promotion?.discount_type === 'fixed' ? 'selected' : ''}>Фикс (сумма)</option>
@@ -2440,10 +2443,12 @@ async function openPromotionForm(promotion = null) {
       if (isEdit) {
         const resend = modal.querySelector('#promoResendPush');
         if (resend && resend.checked) payload.push_sent = false;
-        await supabaseClient.from('promotions').update(payload).eq('id', promotion.id);
+        const { error } = await supabaseClient.from('promotions').update(payload).eq('id', promotion.id);
+        if (error) throw error;
       } else {
         payload.push_sent = false;
-        await supabaseClient.from('promotions').insert(payload);
+        const { error } = await supabaseClient.from('promotions').insert(payload);
+        if (error) throw error;
       }
       tgUtil.alert(isEdit ? 'Акция обновлена' : 'Акция создана');
       modal.remove();
@@ -2463,8 +2468,8 @@ document.addEventListener('click', async (e) => {
     const id = e.target.dataset.id;
     if (!(await tgUtil.confirm('Удалить акцию?'))) return;
     tgUtil.haptic('warning');
-    await supabaseClient.from('promotions').delete().eq('id', id);
-    tgUtil.alert('Удалено');
+    const { error } = await supabaseClient.from('promotions').delete().eq('id', id);
+    tgUtil.alert(error ? 'Не удалось удалить: ' + error.message : 'Удалено');
     renderCurrentScreen();
   }
 });
@@ -2638,7 +2643,7 @@ function generateAdminOrderCard(order, userMap, isActive) {
       <p class="text-white/80 text-xs truncate">${adminEsc(displayName)} ${adminEsc(displayUsername)}</p>
       ${user.is_toxic ? '<div class="inline-flex items-center gap-1 mt-1 bg-red-500/20 border border-red-500/40 text-red-400 text-[10px] px-2 py-0.5 rounded-full font-bold">⚠️ Токсичный клиент</div>' : ''}
       <div class="flex justify-between items-end mt-2">
-        <p class="text-cyan-400 text-sm font-bold">${Number(order.prepayment_amount || 0).toFixed(2)} ❄️</p>
+        <p style="color: var(--rd-b400)" class=" text-sm font-bold">${window.formatBYN(order.prepayment_amount || 0)}</p>
         <div class="text-right">
           ${order.tracking_number_cn ? `<p class="text-white/50 text-[10px] truncate max-w-[150px]">Внутр: ${adminEsc(order.tracking_number_cn)}</p>` : ''}
           ${order.sbs_tracking_id ? `<p style="color:var(--rd-b400)" class="text-[10px] font-bold truncate max-w-[150px]">SBS: ${adminEsc(order.sbs_tracking_id)}</p>` : ''}
