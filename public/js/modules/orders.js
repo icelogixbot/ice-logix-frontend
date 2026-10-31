@@ -780,7 +780,9 @@ window.applySmartShareLink = applySmartShareLink;
                 return;
               }
               if (!data) {
-                promoMessage.innerText = 'Неверный или неактивный промокод';
+                promoMessage.innerText = chk && chk.reason === 'expired' ? 'Срок действия промокода закончился'
+                  : chk && chk.reason === 'exhausted' ? 'Промокод уже использован максимальное число раз'
+                  : 'Неверный или неактивный промокод';
                 promoMessage.classList.remove('hidden');
                 return;
               }
