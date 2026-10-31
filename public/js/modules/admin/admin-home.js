@@ -23,7 +23,7 @@
     { k: 'bonus_orders', icon: 'gift', title: 'Заказы бонусного магазина', text: 'Выдайте клиенту то, что он купил за бонусы', go: { bonus: true } },
     { k: 'reviews', icon: 'star', title: 'Отзывы на модерации', text: 'Опубликуйте или отклоните', go: { legacy: 'adminReviewsBlock' } },
     { k: 'ugc', icon: 'camera', title: 'Распаковки на модерации', text: 'Видео клиентов за награду', go: { tab: 'admin_marketing' } },
-    { k: 'kyc', icon: 'idcard', title: 'Паспорта на проверке', text: 'Пока проверяются в боте командой /kyc', go: { info: 'Паспорта проверяются в боте командой /kyc. Проверка в приложении появится в разделе «Клиенты».' } },
+    { k: 'kyc', icon: 'idcard', title: 'Паспорта на проверке', text: 'Откройте заявку, проверьте данные и фото', go: { tab: 'admin_kyc' } },
     { k: 'payouts', icon: 'coins', title: 'Заявки на выплату', text: 'Дропшипперы просят вывести деньги', go: { money: 'payouts' } },
     { k: 'legit', icon: 'scan', title: 'Заявки Legit-Check', text: 'Клиенты ждут вердикт по фото', go: { legacy: 'adminLegitChecksList' } },
     { k: 'resale', icon: 'tag', title: 'Пристрой на модерации', text: 'Объявления о перепродаже', go: { tab: 'admin_resale' } },
@@ -33,7 +33,7 @@
   const SECTIONS = [
     { id: 'orders', icon: 'box', title: 'Заказы', text: 'Выкуп, склад, доставка, трек-номера', go: { orders: 'work' }, count: (a) => a.orders_to_buy + a.awaiting_decision + a.awaiting_payment },
     { id: 'money', icon: 'wallet', title: 'Деньги', text: 'Оплаты, выплаты, сверка, отчёт', go: { money: 'review' }, count: (a) => a.payments_pending + a.payouts },
-    { id: 'clients', icon: 'users', title: 'Клиенты', text: 'Поиск, баланс, история', go: { legacy: 'adminUsersList' } },
+    { id: 'clients', icon: 'users', title: 'Клиенты', text: 'Поиск, баланс, история', go: { tab: 'admin_clients' } },
     { id: 'inbox', icon: 'message', title: 'Обращения', text: 'Претензии, Legit-Check, отзывы', go: { legacy: 'adminClaimsList' }, count: (a) => a.claims + a.legit + a.reviews },
     { id: 'store', icon: 'store', title: 'Витрина', text: 'Товары, акции, промокоды', go: { legacy: 'promotionsList' } },
     { id: 'content', icon: 'text', title: 'Контент', text: 'Тексты, вопросы, распаковки', go: { content: true } },

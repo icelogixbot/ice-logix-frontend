@@ -235,9 +235,10 @@
     const name = u.name || (nick(u.nick) ? '@' + nick(u.nick) : 'ID ' + u.user_id);
     const bits = [nick(u.nick) ? '@' + esc(nick(u.nick)) : '', u.phone ? esc(u.phone) : '', `заказов: ${Number(u.orders) || 0}`, `баланс ${money(u.balance)}`].filter(Boolean).join(' · ');
     return `<div class="rd-card rd-list">
-      <div class="rd-row ad-static">
+      <div class="rd-row" role="button" tabindex="0" data-client="${esc(u.user_id)}">
         <span class="ad-ava" aria-hidden="true">${esc((name.replace('@', '').trim().charAt(0) || '?').toUpperCase())}</span>
         <span class="rd-row-body"><span class="rd-row-title">${esc(name)}${u.trusted ? '<span class="rd-badge">Проверенный</span>' : ''}</span><span class="rd-row-text">${bits}</span></span>
+        ${I('chevR', 22, { cls: 'rd-chev' })}
       </div>
       ${nick(u.nick) ? `<a class="rd-row ad-rowlink" href="https://t.me/${esc(nick(u.nick))}" target="_blank" rel="noopener"><span class="rd-ico">${I('send', 22)}</span><span class="rd-row-body"><span class="rd-row-title">Написать в Telegram</span></span>${I('external', 18, { cls: 'rd-chev' })}</a>` : ''}
     </div>`;
@@ -397,6 +398,7 @@
     const o = card.order;
     mountCta(nextStep(o));
     body.querySelectorAll('[data-act]').forEach((row) => { row.onclick = () => runAction(row.dataset.act); });
+    body.querySelectorAll('[data-client]').forEach((r) => { r.onclick = () => AD.open('admin_client', { id: r.dataset.client }); });
     body.querySelectorAll('[data-pay-ok]').forEach((b) => { b.onclick = () => confirmPayment(b.dataset.payOk); });
     body.querySelectorAll('[data-pay-no]').forEach((b) => { b.onclick = () => rejectPayment(b.dataset.payNo); });
   }
