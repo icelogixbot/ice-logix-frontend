@@ -708,45 +708,17 @@ async function showCurrencyAlertsModal(opts) {
   });
 }
 
+// Блок в админке: обращения живут в пульте поддержки (support-desk.html)
 async function renderAdminTicketsList() {
+  let waiting = 0;
   try {
-    const { data: msgs, error } = await supabaseClient.from('order_messages')
-      .select('order_id, user_id, message_text, created_at, sender_role')
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    if (!msgs || msgs.length === 0) {
-      return '<p class="text-xs text-white/40 text-center py-4">Нет активных обращений в чат</p>';
-    }
-
-    const threads = {};
-    for (const m of msgs) {
-      if (!threads[m.order_id]) {
-        threads[m.order_id] = m;
-      }
-    }
-
-    const _esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]));
-
-    return Object.values(threads).map(t => {
-      const isUnread = t.sender_role === 'client';
-      return `
-        <div class="p-2.5 bg-white/5 rounded-xl flex justify-between items-center border border-white/5 hover:border-cyan-500/20 transition-all mb-2">
-          <div class="min-w-0 flex-1 text-left">
-            <div class="flex items-center gap-1.5">
-              <span class="font-bold text-xs text-white">Заказ #${t.order_id.slice(0, 8)}</span>
-              ${isUnread ? '<span class="bg-cyan-500 text-slate-900 font-extrabold text-[8px] px-1 py-0.5 rounded uppercase tracking-wider animate-pulse">Новое</span>' : ''}
-            </div>
-            <p class="text-[10px] text-white/50 truncate mt-0.5">${isUnread ? 'Клиент: ' : 'Вы: '}${_esc(t.message_text)}</p>
-          </div>
-          <button class="bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold px-3 py-1.5 rounded-lg text-[10px] transition ml-2" onclick="window.openSupportChat('${t.order_id}', true)">Ответить</button>
-        </div>
-      `;
-    }).join('');
-  } catch (e) {
-    console.error(e);
-    return '<p class="text-xs text-red-400 text-center py-2">Ошибка загрузки тикетов</p>';
-  }
+    const { count } = await supabaseClient.from('support_tickets').select('id', { count: 'exact', head: true }).eq('status', 'open');
+    waiting = count || 0;
+  } catch (_) { /* счётчик необязателен */ }
+  return `
+    <p class="text-sm text-white/70 mb-3">${waiting ? `Ждут ответа: <b>${waiting}</b>. ` : ''}Обращения клиентов, ответы, заметки и шаблоны — в пульте поддержки.</p>
+    <button type="button" class="rd-btn rd-btn-sm" onclick="window.location.href='/support-desk.html'">Открыть пульт поддержки</button>
+  `;
 }
 
 window.showLogisticsHistory = async (orderId) => {
@@ -826,135 +798,12 @@ window.showLogisticsHistory = async (orderId) => {
   }
 };
 
+// Вопрос по заказу ведёт в бот поддержки сразу с этим заказом: оператор видит его в карточке и в пульте.
+// Прежний чат по заказу (таблица order_messages) никто из операторов не видел — его заменил бот поддержки.
+// Сотрудник из админки попадает в пульт поддержки.
 window.openSupportChat = (orderId, isAdmin = false) => {
-  tgUtil.haptic('medium');
-  const modal = document.createElement('div');
-  modal.className = 'full-screen-modal-overlay page-enter';
-  modal.id = 'supportChatModal';
-  
-  const _esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]));
-  
-  let chatInterval = null;
-
-  const fetchAndRenderMessages = async () => {
-    try {
-      const { data: messages, error } = await supabaseClient.from('order_messages')
-        .select('*')
-        .eq('order_id', orderId)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      
-      const messagesContainer = document.getElementById('chatMessagesContainer');
-      if (!messagesContainer) return;
-
-      const isAtBottom = messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight < 40;
-
-      const messagesHtml = messages.map(m => {
-        const isMe = isAdmin ? m.sender_role === 'manager' : m.sender_role === 'client';
-        const senderName = m.sender_role === 'manager' ? 'Поддержка' : 'Вы';
-        const dateStr = new Date(m.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-        
-        return `
-          <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} space-y-1 page-enter">
-            <span class="text-[9px] text-white/40 px-1">${senderName}</span>
-            <div class="max-w-[80%] rounded-2xl px-3.5 py-2 text-xs leading-relaxed text-left border ${
-              isMe 
-                ? 'bg-cyan-500 text-slate-900 border-cyan-400/20 rounded-tr-none' 
-                : 'bg-white/5 text-white/95 border-white/10 rounded-tl-none'
-            }">
-              ${_esc(m.message_text)}
-            </div>
-            <span class="text-[8px] text-white/30 px-1 font-mono">${dateStr}</span>
-          </div>
-        `;
-      }).join('') || '<p class="text-xs text-white/40 text-center py-10">Напишите первое сообщение, менеджер ответит вам в ближайшее время!</p>';
-
-      messagesContainer.innerHTML = messagesHtml;
-      
-      if (isAtBottom || messagesContainer.scrollTop === 0) {
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-      }
-    } catch (e) {
-      console.error('Error fetching messages:', e);
-    }
-  };
-
-  modal.innerHTML = `
-    <div class="full-screen-modal-header">
-      <button type="button" class="global-back-btn !mb-0" id="closeChatModalBtn" title="Назад">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
-      </button>
-      <div class="text-center min-w-0 flex-1 px-2">
-        <h3 class="text-white font-bold text-sm truncate">Чат по заказу #${orderId.slice(0, 8)}</h3>
-        <p class="text-cyan-400 text-[10px]">${isAdmin ? 'Режим менеджера' : 'Ответ в течение 5-15 минут'}</p>
-      </div>
-      <div style="width: 48px;"></div>
-    </div>
-
-    <div class="full-screen-modal-body p-4 space-y-3" id="chatMessagesContainer">
-      <div class="flex items-center justify-center py-10">
-        <div class="animate-spin rounded-full h-6 w-6 border-2 border-cyan-500 border-t-transparent"></div>
-      </div>
-    </div>
-
-    <div class="p-3 border-t border-white/10 bg-slate-900/95 flex gap-2 items-center flex-shrink-0" style="padding-bottom: calc(12px + env(safe-area-inset-bottom, 12px));">
-      <input type="text" id="chatMessageInput" placeholder="Введите сообщение..." class="flex-1 p-2.5 rounded-xl bg-slate-800 border border-white/20 text-white text-xs focus:border-cyan-500 focus:outline-none">
-      <button id="sendChatMessageBtn" class="bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold px-4 py-2.5 rounded-xl text-xs transition">Отправить</button>
-    </div>
-  `;
-  document.body.appendChild(modal);
-
-  const closeBtn = document.getElementById('closeChatModalBtn');
-  if (closeBtn) {
-    closeBtn.onclick = () => {
-      clearInterval(chatInterval);
-      modal.remove();
-    };
-  }
-  modal.onclick = (e) => {
-    if (e.target === modal) {
-      clearInterval(chatInterval);
-      modal.remove();
-    }
-  };
-
-  const sendBtn = document.getElementById('sendChatMessageBtn');
-  const inputEl = document.getElementById('chatMessageInput');
-
-  const sendMessage = async () => {
-    const text = inputEl.value.trim();
-    if (!text) return;
-    
-    tgUtil.haptic('light');
-    inputEl.value = '';
-    
-    try {
-      const { error } = await supabaseClient.from('order_messages').insert({
-        order_id: orderId,
-        user_id: userId,
-        sender_role: isAdmin ? 'manager' : 'client',
-        message_text: text
-      });
-
-      if (error) throw error;
-      fetchAndRenderMessages();
-    } catch (e) {
-      glassToast('Ошибка отправки сообщения', { kind: 'error' });
-    }
-  };
-
-  if (sendBtn && inputEl) {
-    sendBtn.onclick = sendMessage;
-    inputEl.onkeydown = (e) => {
-      if (e.key === 'Enter') sendMessage();
-    };
-  }
-
-  fetchAndRenderMessages();
-  chatInterval = setInterval(fetchAndRenderMessages, 4000);
+  if (isAdmin) { window.location.href = '/support-desk.html'; return; }
+  window.openSupport({ orderId });
 };
 
   window.triggerConfetti = () => {

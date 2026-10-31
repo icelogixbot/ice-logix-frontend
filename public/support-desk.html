@@ -2,175 +2,73 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ICE LOGIX — Пульт Оператора Поддержки</title>
-  <meta name="theme-color" content="#090d16">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Пульт поддержки ICE LOGIX</title>
   <link rel="icon" type="image/png" href="/assets/splash-logo-512.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="/vendor/supabase.min.js"></script>
-  <link rel="stylesheet" href="/css/support-desk.css?v=20261014_21">
+  <link rel="stylesheet" href="/css/ice-redesign.css?v=20261031_th1">
+  <link rel="stylesheet" href="/css/ice-screens.css?v=20261031_co6">
+  <link rel="stylesheet" href="/css/support-desk.css?v=20261031_01">
+  <script src="/js/modules/ice-ui.js?v=20261102_01"></script>
 </head>
-<body>
-  <!-- Фоновое арктическое свечение -->
-  <div class="desk-ambient"></div>
-
-  <!-- Экран блокировки (при неавторизованном доступе) -->
-  <div id="lockdownScreen" class="lockdown-overlay" style="display: none;">
-    <div class="lockdown-card">
-      <div class="lockdown-shield">🛡️</div>
-      <h2 style="font-size: 20px; font-weight: 800; color: #fff; margin: 0 0 8px;">Доступ ограничен</h2>
-      <p style="font-size: 13px; color: #94a3b8; line-height: 1.5; margin: 0 0 16px;">
-        Этот терминал предназначен исключительно для авторизованных операторов службы заботы <b>ICE LOGIX</b>.
-      </p>
-      <div id="lockdownUserDetail" style="font-size: 11px; color: #ef4444; background: rgba(239,68,68,0.1); padding: 8px 12px; border-radius: 8px; margin-bottom: 20px;">
-        Проверка прав доступа...
-      </div>
-      <button id="lockdownCloseBtn" style="width: 100%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 12px; border-radius: 12px; font-weight: 700; cursor: pointer;">
-        Закрыть окно
-      </button>
-    </div>
+<body class="sd-body">
+  <!-- Проверка входа / нет доступа -->
+  <div id="sdGate" class="sd-gate">
+    <div class="sd-gate-spin" aria-label="Загрузка"></div>
   </div>
 
-  <!-- Главный контейнер пульта -->
-  <div id="deskContainer" class="desk-container">
-    
-    <!-- Шапка пульта -->
-    <header class="desk-header">
-      <div class="desk-header-brand">
-        <div class="desk-brand-logo">❄️</div>
-        <div>
-          <div class="desk-header-title">ICE LOGIX • Служба заботы</div>
-          <div class="desk-header-subtitle">
-            <span class="status-dot-pulse"></span>
-            <span id="operatorNameBadge">Оператор в сети</span>
+  <div id="sdApp" class="sd-app" hidden>
+    <!-- Список обращений -->
+    <section class="sd-pane sd-list-pane" aria-label="Обращения">
+      <header class="sd-bar">
+        <div class="sd-bar-txt">
+          <h1 class="sd-title">Поддержка</h1>
+          <p class="sd-sub" id="sdMe"></p>
+        </div>
+        <button type="button" class="sd-icon-btn" id="sdTemplatesBtn" aria-label="Шаблоны ответов"></button>
+        <button type="button" class="sd-icon-btn" id="sdTeamBtn" aria-label="Команда поддержки"></button>
+      </header>
+      <div class="sd-tools">
+        <div class="rd-chips sd-chips" id="sdFilters" role="tablist"></div>
+        <label class="rd-field sd-search" id="sdSearchField">
+          <input id="sdSearch" type="search" enterkeyhint="search" placeholder="Имя, текст или номер обращения" autocomplete="off">
+        </label>
+      </div>
+      <div class="sd-list" id="sdTickets"></div>
+    </section>
+
+    <!-- Диалог -->
+    <section class="sd-pane sd-chat-pane" aria-label="Диалог">
+      <div class="sd-chat-empty" id="sdChatEmpty"></div>
+      <div class="sd-room" id="sdRoom" hidden>
+        <header class="sd-bar sd-room-bar">
+          <button type="button" class="sd-icon-btn sd-back" id="sdBack" aria-label="К списку обращений"></button>
+          <button type="button" class="sd-who" id="sdWho" aria-label="Карточка клиента"></button>
+        </header>
+        <div class="sd-actions" id="sdActions"></div>
+        <div class="sd-msgs" id="sdMsgs" aria-live="polite"></div>
+        <div class="sd-composer" id="sdComposer">
+          <div class="fn-seg sd-mode" id="sdMode">
+            <button type="button" class="on" data-mode="reply">Ответ клиенту</button>
+            <button type="button" data-mode="note">Заметка для команды</button>
           </div>
+          <div class="sd-attach" id="sdAttach" hidden></div>
+          <div class="sd-compose-row">
+            <button type="button" class="sd-cbtn" id="sdTplBtn" aria-label="Вставить шаблон"></button>
+            <button type="button" class="sd-cbtn" id="sdFileBtn" aria-label="Прикрепить фото или файл"></button>
+            <textarea id="sdInput" class="sd-input" rows="1" placeholder="Ответ клиенту"></textarea>
+            <button type="button" class="sd-send" id="sdSend" aria-label="Отправить"></button>
+          </div>
+          <input type="file" id="sdFileInput" hidden>
         </div>
       </div>
-
-      <div class="desk-header-actions">
-        <button id="deskRefreshBtn" class="desk-btn-icon" title="Обновить список">
-          <span>🔄</span>
-          <span class="hidden sm:inline">Обновить</span>
-        </button>
-      </div>
-    </header>
-
-    <!-- Основная рабочая область -->
-    <div class="desk-body">
-      
-      <!-- Сайдбар со списком тикетов -->
-      <aside class="desk-sidebar">
-        <!-- Табы фильтрации -->
-        <div class="desk-tabs-bar">
-          <div class="desk-tab active" data-tab="all">
-            <span>Все</span>
-            <span id="badgeAll" class="tab-badge" style="display: none; background: rgba(255,255,255,0.2);">0</span>
-          </div>
-          <div class="desk-tab" data-tab="open">
-            <span>🔴 Новые</span>
-            <span id="badgeOpen" class="tab-badge" style="display: none;">0</span>
-          </div>
-          <div class="desk-tab" data-tab="in_progress">
-            <span>🟡 В работе</span>
-            <span id="badgeInProgress" class="tab-badge" style="display: none; background: #eab308;">0</span>
-          </div>
-          <div class="desk-tab" data-tab="closed">
-            <span>⚪ Архив</span>
-            <span id="badgeClosed" class="tab-badge" style="display: none; background: #64748b;">0</span>
-          </div>
-        </div>
-
-        <!-- Поисковая строка -->
-        <div class="desk-search-box">
-          <input type="text" id="ticketSearchInput" class="desk-search-input" placeholder="🔍 Поиск по имени или @юзернейму...">
-        </div>
-
-        <!-- Контейнер карточек тикетов -->
-        <div id="ticketsListContainer" class="desk-tickets-list">
-          <!-- Рендерится через JS -->
-        </div>
-      </aside>
-
-      <!-- Правая панель: Окно переписки -->
-      <main id="chatPanel" class="desk-chat-panel">
-        
-        <!-- Заглушка, когда диалог не выбран -->
-        <div id="chatEmptyState" class="empty-state-box">
-          <div class="empty-state-icon">🎧</div>
-          <div style="font-size: 16px; font-weight: 800; color: #fff;">Пульт управления обращениями</div>
-          <p style="font-size: 13px; max-width: 300px; margin-top: 6px; line-height: 1.4;">
-            Выберите диалог из списка слева, чтобы посмотреть историю и ответить клиенту.
-          </p>
-        </div>
-
-        <!-- Активная комната диалога -->
-        <div id="chatActiveRoom" style="display: none; flex-direction: column; width: 100%; height: 100%;">
-          
-          <!-- Шапка диалога + Досье клиента -->
-          <div class="chat-client-bar">
-            <div class="client-meta-box">
-              <button id="mobileBackBtn" class="mobile-back-btn" title="Назад">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="15 18 9 12 15 6"/>
-                </svg>
-              </button>
-              
-              <div id="chatClientAvatar" class="client-avatar">U</div>
-              
-              <div class="client-info-col">
-                <div class="client-title-row">
-                  <span id="chatClientName" class="client-display-name">Клиент</span>
-                  <span id="chatClientHandle" class="client-handle">@user</span>
-                </div>
-                <div id="clientDossierChips" class="client-dossier-chips">
-                  <!-- Загружается из базы: баланс, заказы -->
-                </div>
-              </div>
-            </div>
-
-            <!-- Действия над тикетом -->
-            <div>
-              <button id="chatCloseTicketBtn" class="desk-btn-icon" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: #34d399;" title="Завершить обращение">
-                <span>✅</span>
-                <span class="hidden sm:inline">Завершить</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Область сообщений -->
-          <div id="chatMessagesContainer" class="chat-messages-container">
-            <!-- Сообщения рендерятся через JS -->
-          </div>
-
-          <!-- Полоса быстрых ответов (Шаблоны в 1 клик) -->
-          <div class="quick-templates-bar">
-            <div class="template-chip" data-text="Здравствуйте! Уточняем информацию по вашему вопросу на складе.">📦 Уточняем на складе</div>
-            <div class="template-chip" data-text="Сроки доставки из Китая в Беларусь составляют 10-14 рабочих дней.">✈️ Сроки 10-14 дней</div>
-            <div class="template-chip" data-text="Пожалуйста, пришлите скриншот или фото бирки/товара для точной проверки.">📸 Пришлите фото</div>
-            <div class="template-chip" data-text="Оплата проходит через защищенный шлюз bePaid картами Visa, Mastercard и БЕЛКАРТ.">💳 Оплата bePaid</div>
-            <div class="template-chip" data-text="Ваш заказ уже поступил на склад и готовится к выдаче.">🏢 На складе</div>
-          </div>
-
-          <!-- Нижняя панель ввода сообщения -->
-          <div class="chat-input-bar">
-            <textarea id="chatMessageInput" class="chat-input-textarea" placeholder="Напишите ответ клиенту... (Enter для отправки)"></textarea>
-            <button id="chatSendBtn" class="btn-send">
-              <span>Отправить</span>
-              <span>✈️</span>
-            </button>
-          </div>
-
-        </div>
-
-      </main>
-
-    </div>
+    </section>
   </div>
 
-  <!-- Подключение логики пульта -->
-  <script src="/js/modules/support-desk.js?v=20261030_sec1"></script>
+  <script src="/js/modules/support-desk.js?v=20261031_01"></script>
 </body>
 </html>

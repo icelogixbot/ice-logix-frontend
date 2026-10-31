@@ -341,18 +341,11 @@
     },
     {
       id: 'shortcut_manager',
-      title: 'Служба заботы 24/7 (Поддержка)',
+      title: 'Поддержка (10:00–22:00)',
       keywords: ['поддержка', 'менеджер', 'помощь', 'связь', 'оператор', 'вопрос', 'чат', 'служба заботы'],
-      subtitle: 'Официальный Telegram-бот поддержки @icelogix_support_bot',
+      subtitle: 'Чат с оператором в Telegram, каждый день с 10:00 до 22:00',
       iconSvg: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
-      action: () => {
-        const tgLink = 'https://t.me/icelogix_support_bot';
-        if (window.Telegram?.WebApp?.openTelegramLink) {
-          window.Telegram.WebApp.openTelegramLink(tgLink);
-        } else {
-          window.open(tgLink, '_blank');
-        }
-      }
+      action: () => window.openSupport()
     }
   ];
 
@@ -601,7 +594,7 @@
           } else if (topic.id === 'customs_limits') {
             suggestions.push({ icon: '⚖️', text: 'Таможенный лимит 200€ и пошлина', q: 'таможенный лимит 200 евро' });
           } else if (topic.id === 'support_care_service') {
-            suggestions.push({ icon: '🎧', text: 'Служба заботы 24/7 (Telegram)', q: 'связаться с поддержкой' });
+            suggestions.push({ icon: '🎧', text: 'Написать в поддержку', q: 'связаться с поддержкой' });
           }
         }
       }
@@ -1200,17 +1193,17 @@
     {
       id: 'support_care_service',
       keywords: ['поддерж', 'поддержка', 'поддержку', 'поддержкой', 'поддержке', 'менеджер', 'менеджера', 'оператор', 'оператора', 'помощь', 'помогите', 'связь', 'связаться', 'вопрос', 'чат', 'служба заботы', 'человек', 'живой'],
-      title: 'Служба заботы ICE LOGIX: живая поддержка 24/7',
-      badge: '🎧 Персональная забота',
-      summary: 'Если вам нужна помощь с поиском редкой пары, замерами стельки или расчетом — наши специалисты готовы помочь в Telegram.',
+      title: 'Поддержка ICE LOGIX: живые операторы',
+      badge: 'Поддержка',
+      summary: 'Если нужна помощь с заказом, размером или расчётом, напишите оператору в Telegram. Мы на связи каждый день с 10:00 до 22:00.',
       bullets: [
-        '🙋 <span class="font-bold text-white">Поиск по фото:</span> Пришлите скриншот модели из Instagram, TikTok или Pinterest — найдем лучшую цену на Poizon.',
-        '⚡ <span class="font-bold text-white">Быстрый ответ:</span> Среднее время ответа оператора — до 5–10 минут.',
-        '📍 <span class="font-bold text-white">Индивидуальное ведение:</span> Отслеживаем заказ до момента вручения в пункте выдачи.'
+        '🙋 <span class="font-bold text-white">Можно с фото:</span> пришлите скриншот модели или ссылку — подскажем, как её заказать.',
+        '⏱️ <span class="font-bold text-white">Когда ответим:</span> каждый день с 10:00 до 22:00. Если пишете ночью, ответим утром.',
+        '📍 <span class="font-bold text-white">Вопрос по заказу:</span> откройте заказ и нажмите «Вопрос» — оператор сразу увидит, о чём речь.'
       ],
       actionTitle: 'Написать оператору в Telegram →',
       actionType: 'support',
-      sources: ['🎧 @icelogix_support_bot', '👥 Команда заботы']
+      sources: ['@icelogix_support_bot']
     }
   ];
 
@@ -1773,11 +1766,11 @@
       bodyHtml = `<span class="font-bold text-white text-[13px] block mb-1">${topFaq.title}</span>${topFaq.summary}`;
       bullets = [
         `📌 <span class="font-bold text-white">Подробности:</span> ${topFaq.details}`,
-        `⏱️ <span class="font-bold text-white">Оперативность:</span> Служба заботы ICE LOGIX готова проконсультировать вас по любым нестандартным отправлениям.`
+        `⏱️ <span class="font-bold text-white">Не нашли ответ?</span> Напишите в поддержку, мы на связи каждый день с 10:00 до 22:00.`
       ];
       actions = [
         `<button id="aiOverviewAskSupportBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md flex items-center gap-1.5">
-          <span>🎧</span> Служба заботы 24/7
+          <span>🎧</span> Написать в поддержку
         </button>`
       ];
       sources = [`💡 База знаний FAQ`, `📋 Регламент обслуживания`];
@@ -1832,7 +1825,7 @@
       bodyHtml = `По запросу «<span class="text-cyan-300 font-bold">${query}</span>» точных прямых совпадений в каталоге не обнаружено. Однако вы можете:`;
       bullets = [
         `🔗 <span class="font-bold text-white">Поиск по ссылке:</span> Скопируйте ссылку на интересующую вещь прямо в приложении Dewu, TaoBao или Pinduoduo и вставьте в строку поиска.`,
-        `🎧 <span class="font-bold text-white">Помощь человека:</span> Наша Служба заботы 24/7 найдет любую модель обуви или одежды по фото или названию.`
+        `🎧 <span class="font-bold text-white">Помощь человека:</span> напишите в поддержку фото или название модели — подскажем, где её заказать.`
       ];
       actions = [
         `<button id="aiOverviewAskSupportBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md flex items-center gap-1.5">
@@ -2206,12 +2199,7 @@
           if (typeof showLegitCheckScreen === 'function') showLegitCheckScreen();
           else if (typeof switchTab === 'function') switchTab('profile');
         } else if (actionType === 'support') {
-          const tgLink = 'https://t.me/icelogix_support_bot';
-          if (window.Telegram?.WebApp?.openTelegramLink) {
-            window.Telegram.WebApp.openTelegramLink(tgLink);
-          } else {
-            window.open(tgLink, '_blank');
-          }
+          window.openSupport();
         } else if (actionType && actionType.startsWith('brand_')) {
           const brandName = actionType.replace('brand_', '');
           if (typeof window.spotlightOpenBrand === 'function') {
@@ -2236,14 +2224,7 @@
     // AI Overview Action: Ask Support
     const supportBtns = contentEl.querySelectorAll('#aiOverviewAskSupportBtn');
     supportBtns.forEach(btn => {
-      btn.onclick = () => {
-        const tgLink = 'https://t.me/icelogix_support_bot';
-        if (window.Telegram?.WebApp?.openTelegramLink) {
-          window.Telegram.WebApp.openTelegramLink(tgLink);
-        } else {
-          window.open(tgLink, '_blank');
-        }
-      };
+      btn.onclick = () => window.openSupport();
     });
 
     // Shortcut clicks

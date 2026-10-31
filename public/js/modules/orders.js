@@ -2274,7 +2274,7 @@ async function renderMyOrders() {
           ${photos}${video}${claimHtml}
           <div class="oc-actions">
             <button type="button" class="oc-act" onclick="window.showLogisticsHistory('${order.id}')">${U.icon('history', 18)}<span>Трекинг</span></button>
-            <button type="button" class="oc-act" onclick="window.openSupportChat('${order.id}')">${U.icon('message', 18)}<span>Чат</span></button>
+            <button type="button" class="oc-act" onclick="window.openSupportChat('${order.id}')">${U.icon('message', 18)}<span>Вопрос</span></button>
             <button type="button" class="oc-act" onclick="window.openInvoiceModal('${order.id}', ${total.toFixed(2)})">${U.icon('receipt', 18)}<span>Инвойс</span></button>
             ${canInsure ? `<button type="button" class="oc-act" onclick="window.openInsuranceClaimModal('${order.id}', ${total})">${U.icon('shield', 18)}<span>Страховка</span></button>` : `<button type="button" class="oc-act" onclick="window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink('https://t.me/icelogix_bot?start=order_${order.id}')">${U.icon('send', 18)}<span>В боте</span></button>`}
           </div>

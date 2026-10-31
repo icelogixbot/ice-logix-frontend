@@ -23,10 +23,12 @@ async function renderAboutUs() {
     </div>
 
     <div class="ab-quick">
-      <button id="aboutTgSupportBtn" type="button"><span>${U.icon('message', 22)}</span><b>Поддержка</b><small>Чат в Telegram</small></button>
+      <button id="aboutTgSupportBtn" type="button"><span>${U.icon('message', 22)}</span><b>Поддержка</b><small>${window.SUPPORT_HOURS_SHORT || '10:00–22:00'}</small></button>
       <button id="aboutFaqBtn" type="button"><span>${U.icon('help', 22)}</span><b>Вопросы</b><small>Частые ответы</small></button>
       <button id="aboutContactsBtn" type="button"><span>${U.icon('phone', 22)}</span><b>Контакты</b><small>Адрес и связь</small></button>
     </div>
+
+    ${typeof window.renderMyTickets === 'function' ? await window.renderMyTickets() : ''}
 
     <div class="rd-section"><h2>Условия</h2></div>
     <div class="rd-card rd-list ab-terms">
@@ -67,13 +69,7 @@ function attachAboutUsHandlers() {
   // 1. Поддержка
   const tgBtn = document.getElementById('aboutTgSupportBtn');
   if (tgBtn) {
-    tgBtn.onclick = () => {
-      if (window.Telegram?.WebApp?.openTelegramLink) {
-        window.Telegram.WebApp.openTelegramLink('https://t.me/icelogix_support_bot');
-      } else {
-        window.open('https://t.me/icelogix_support_bot', '_blank');
-      }
-    };
+    tgBtn.onclick = () => window.openSupport();
   }
 
   // 2. FAQ
@@ -412,6 +408,13 @@ async function renderFAQ() {
         </div>
         <div id="faqNoResults" class="hidden">${U.empty({ icon: 'search', title: 'Ничего не нашлось', text: 'Попробуйте другие слова или напишите нам в поддержку.' })}</div>
         <div id="faqList">${faqsHtml}</div>
+        <div class="rd-card rd-list" style="margin-top:16px">
+          <div class="rd-row" role="button" tabindex="0" onclick="window.openSupport()">
+            <span class="rd-ico">${U.icon('message', 22)}</span>
+            <span class="rd-row-body"><span class="rd-row-title">Не нашли ответ?</span><span class="rd-row-text">Напишите в поддержку, мы на связи ${window.SUPPORT_HOURS || 'каждый день с 10:00 до 22:00'}</span></span>
+            ${U.icon('chevR', 22, { cls: 'rd-chev' })}
+          </div>
+        </div>
       </div>
     `;
   } catch (err) {
@@ -494,11 +497,11 @@ function showContactsModal() {
       <div class="glass-card p-3.5 rounded-2xl bg-gradient-to-br from-cyan-950/40 to-blue-950/40 border border-cyan-500/30">
         <div class="flex items-center justify-between mb-1.5">
           <div class="flex items-center gap-2">
-            <span class="text-base">🎧</span>
-            <span class="font-bold text-white text-sm">Служба заботы о клиентах</span>
+            ${window.UI.icon('message', 18)}
+            <span class="font-bold text-white text-sm">Поддержка</span>
           </div>
           <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-            Онлайн 10:00–21:00
+            Ежедневно 10:00–22:00
           </span>
         </div>
         <p class="text-xs text-white/70 leading-relaxed mb-3">
@@ -508,7 +511,7 @@ function showContactsModal() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.458c.538-.196 1.006.128.832.967z"/>
           </svg>
-          Написать в @icelogix_support_bot
+          Написать в поддержку
         </button>
       </div>
 
@@ -602,14 +605,7 @@ function showContactsModal() {
   });
 
   // Кнопка перехода в Telegram
-  document.getElementById('contactsTgSupportBtn')?.addEventListener('click', () => {
-    const tgUrl = 'https://t.me/icelogix_support_bot';
-    if (window.Telegram?.WebApp?.openTelegramLink) {
-      window.Telegram.WebApp.openTelegramLink(tgUrl);
-    } else {
-      window.open(tgUrl, '_blank');
-    }
-  });
+  document.getElementById('contactsTgSupportBtn')?.addEventListener('click', () => window.openSupport());
 
   // Кнопки копирования
   sheet.querySelectorAll('.contacts-copy-btn').forEach(btn => {

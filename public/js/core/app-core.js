@@ -867,11 +867,7 @@
         e.preventDefault();
         const link = footerLink.getAttribute('data-link');
         if (link === 'support') {
-          if (window.Telegram?.WebApp?.openTelegramLink) {
-            window.Telegram.WebApp.openTelegramLink('https://t.me/icelogix_support_bot');
-          } else {
-            window.open('https://t.me/icelogix_support_bot', '_blank');
-          }
+          window.openSupport();
         } else if (link === 'faq') {
           currentSubScreen = 'faq';
           renderCurrentScreen();

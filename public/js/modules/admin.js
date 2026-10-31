@@ -804,7 +804,7 @@ async function renderAdminLegitChecksList() {
               `).join('')}
             </div>
             <div class="mt-3 flex gap-2">
-              <button class="flex-1 bg-white/20 hover:bg-white/30 py-2 rounded-lg text-sm text-white" onclick="window.open('https://t.me/icelogix_bot?text=Вопрос по заказу ${c.order_id ? c.order_id.slice(0,8) : c.id.slice(0,8)}', '_blank')">💬 Поддержка</button>
+              <button class="flex-1 bg-white/20 hover:bg-white/30 py-2 rounded-lg text-sm text-white" onclick="window.location.href='/support-desk.html'">Пульт поддержки</button>
               <button class="flex-1 bg-blue-500/50 hover:bg-blue-500/70 py-2 rounded-lg text-sm text-white" onclick="downloadCustomsInvoice('${c.order_id || c.id}')">📄 PDF Инвойс</button>
             </div>
           </div>
@@ -986,7 +986,7 @@ async function renderAdmin() {
         
         <!-- Встроенный чат (Тикеты поддержки) -->
         <div class="glass-card">
-          <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> Чат поддержки & Тикеты</h3>
+          <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> Поддержка</h3>
           <div class="space-y-2 max-h-60 overflow-y-auto" id="adminTicketsList">
             ${await renderAdminTicketsList()}
           </div>
