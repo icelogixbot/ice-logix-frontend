@@ -760,6 +760,8 @@ window.applySmartShareLink = applySmartShareLink;
         if (applyPromoBtn) {
           applyPromoBtn.onclick = async () => {
             const code = promoInput?.value.trim().toUpperCase();
+            // Ошибки красным, успех зелёным: цвет сбрасываем при каждой проверке, иначе ошибка после успеха осталась бы зелёной
+            promoMessage.style.color = 'var(--rd-bad)';
             if (!code) {
               promoMessage.innerText = 'Введите код';
               promoMessage.classList.remove('hidden');
@@ -798,7 +800,7 @@ window.applySmartShareLink = applySmartShareLink;
               
               promoMessage.innerHTML = `Промокод применён! Скидка: ${window.formatBYN(discountAmount)}`;
               promoMessage.classList.remove('hidden');
-              promoMessage.style.color = '#4ade80';
+              promoMessage.style.color = 'var(--rd-ok)';
             } catch (err) {
               promoMessage.innerText = 'Ошибка: ' + err.message;
               promoMessage.classList.remove('hidden');
