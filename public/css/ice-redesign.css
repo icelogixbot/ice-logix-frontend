@@ -461,6 +461,9 @@ html body .font-mono { font-family: var(--rd-font) !important; font-variant-nume
 
 /* значок рубля внутри текста: цвет текста, а не неон */
 html body .byn-cyan, html body .byn-sign.byn-cyan { color: inherit; }
+/* старый слой даёт знаку неоновое свечение (drop-shadow) и голубую заливку: в новом дизайне знак — просто цвет текста */
+html body .byn-sign { filter: none !important; }
+html body .byn-sign.byn-cyan { fill: currentColor; }
 
 /* корзина (cart.css): новый вид */
 html body .wb-cart-title { font-size: 26px !important; font-weight: 800 !important; letter-spacing: -0.02em; }

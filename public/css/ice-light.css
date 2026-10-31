@@ -61,8 +61,8 @@ html.light-theme body { color: var(--rd-tx) !important; }
 html.light-theme ::selection { background: rgba(31, 111, 224, 0.2); }
 
 /* ─── Шапка ─── */
-html.light-theme body .user-avatar { border-color: #fff !important; box-shadow: 0 2px 6px rgba(20, 40, 80, 0.15) !important; }
-html.light-theme body .balance-island { background: rgba(15, 23, 42, 0.05) !important; border-color: rgba(15, 23, 42, 0.06) !important; }
+html.light-theme body .user-avatar { border: 1px solid rgba(15, 23, 42, 0.1) !important; box-shadow: none !important; }
+html.light-theme body .balance-island { background: rgba(15, 23, 42, 0.045) !important; border: 0 !important; }
 html.light-theme body .app-header .icon-btn { color: var(--rd-tx2) !important; }
 html.light-theme body #notifBadge { border: 2px solid #fff; box-sizing: content-box; }
 
