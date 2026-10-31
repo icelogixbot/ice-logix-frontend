@@ -203,6 +203,20 @@
 
     // 3. Разметка
     const gallery = (productData.gallery && productData.gallery.length ? productData.gallery : [masterImg]).filter(Boolean);
+    // Карусель объявления в порядке PDD: видео (если оно было) и фото. Нет media — как раньше, только фото
+    const mediaList = (Array.isArray(productData.media) ? productData.media : []).filter((m) => m && m.url);
+    const hasVideo = mediaList.some((m) => m.type === 'video');
+    const slides = hasVideo
+      ? mediaList.map((m) => (m.type === 'video' ? { type: 'video', src: m.poster || '', video: m.url, duration: m.duration } : { type: 'photo', src: m.url }))
+      : gallery.map((src) => ({ type: 'photo', src }));
+    const photoCount = slides.filter((x) => x.type === 'photo').length;
+    const fmtDur = (n) => { const t = parseInt(n, 10); return t > 0 ? `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}` : ''; };
+    const slideHtml = (m, i) => (m.type === 'video'
+      ? `<div class="sk-slide sk-slide-video" data-video="${esc(m.video)}">${m.src ? `<img src="${esc(m.src)}" alt="">` : ''}<span class="sk-play"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg></span>${fmtDur(m.duration) ? `<span class="sk-dur">${fmtDur(m.duration)}</span>` : ''}</div>`
+      : `<div class="sk-slide"><img src="${esc(m.src)}" alt="" ${i ? 'loading="lazy"' : ''}></div>`);
+    const countText = hasVideo
+      ? (photoCount ? `${photoCount} фото и видео. Нажмите, чтобы рассмотреть` : 'Видео. Нажмите, чтобы посмотреть')
+      : (gallery.length > 1 ? `${gallery.length} фото. Нажмите, чтобы рассмотреть` : 'Нажмите на фото, чтобы рассмотреть');
     const v = VERDICT[productData.verdict] || null;
     const reason = productData.verdict_reason || productData.reason || '';
     const tags = (productData.tags || []).filter((t) => t && !HAS_CJK.test(t)).slice(0, 3);
@@ -258,9 +272,9 @@
     const html = `
       <div class="sk">
         <div class="sk-gallery" id="skGallery">
-          ${gallery.map((src, i) => `<div class="sk-slide"><img src="${esc(src)}" alt="" ${i ? 'loading="lazy"' : ''}></div>`).join('')}
+          ${slides.map(slideHtml).join('')}
         </div>
-        ${gallery.length ? `<div class="sk-count">${gallery.length > 1 ? `${gallery.length} фото. Нажмите, чтобы рассмотреть` : 'Нажмите на фото, чтобы рассмотреть'}</div>` : ''}
+        ${slides.length ? `<div class="sk-count">${countText}</div>` : ''}
         <button type="button" class="sk-variant" id="skVariant" hidden>
           <img alt="">
           <span class="sk-variant-txt"><span class="sk-variant-cap">Фото выбранного варианта</span><span class="sk-variant-name" id="skVariantName"></span></span>
@@ -425,7 +439,7 @@
       const gal = $('#skGallery');
       if (!gal || !url) return;
       let temp = gal.querySelector('.sk-slide-color');
-      const found = Array.from(gal.querySelectorAll('.sk-slide:not(.sk-slide-color) img')).find((im) => im.getAttribute('src') === url);
+      const found = Array.from(gal.querySelectorAll('.sk-slide:not(.sk-slide-color):not(.sk-slide-video) img')).find((im) => im.getAttribute('src') === url);
       if (found) {
         if (temp) temp.remove();
         gal.scrollTo({ left: found.parentElement.offsetLeft - gal.offsetLeft - 16, behavior: 'smooth' });
@@ -442,14 +456,21 @@
     }
 
     $('#skGallery').addEventListener('click', (e) => {
-      const im = e.target.closest('.sk-slide img');
-      if (!im || !window.PhotoViewer) return;
-      if (im.parentElement.classList.contains('sk-slide-color')) { // фото цвета — одно, галерея остаётся в порядке объявления
-        window.PhotoViewer.open([im.getAttribute('src')], 0);
+      const slide = e.target.closest('.sk-slide');
+      if (!slide || !window.PhotoViewer) return;
+      const im = slide.querySelector('img');
+      if (slide.classList.contains('sk-slide-color')) { // фото цвета — одно, галерея остаётся в порядке объявления
+        if (im) window.PhotoViewer.open([im.getAttribute('src')], 0);
         return;
       }
-      const all = Array.from($('#skGallery').querySelectorAll('.sk-slide:not(.sk-slide-color) img'));
-      window.PhotoViewer.open(all.map((x) => x.getAttribute('src')), all.indexOf(im));
+      const all = Array.from($('#skGallery').querySelectorAll('.sk-slide:not(.sk-slide-color)'));
+      const items = all.map((sl) => {
+        const pic = sl.querySelector('img');
+        return sl.dataset.video
+          ? { type: 'video', url: sl.dataset.video, poster: pic ? pic.getAttribute('src') : '' }
+          : (pic ? pic.getAttribute('src') : '');
+      });
+      window.PhotoViewer.open(items, all.indexOf(slide));
     });
 
     // Фото выбранного варианта из шторки PDD (sku_photos: «цвет|размер» или просто цвет). Нет фото — блока нет

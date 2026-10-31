@@ -1,4 +1,6 @@
 // Просмотр фото на весь экран, как в Pinduoduo: window.PhotoViewer.open(urls, start).
+// В списке рядом со ссылкой на фото может стоять видео: { type: 'video', url, poster }. Оно показывается обложкой
+// с кнопкой «играть», по нажатию запускается встроенный плеер (playsinline: без выхода на весь экран и без сворачивания).
 // Листать вбок, щипком увеличивать и двигать, двойное нажатие — приблизить, смахнуть вниз или нажать — закрыть.
 // Без вибрации: при листании она только мешает.
 
@@ -35,33 +37,44 @@
   }
 
   function open(urls, start) {
-    const list = (urls || []).filter(Boolean);
-    if (!list.length || closeActive) return;
+    const items = (urls || []).map((u) => {
+      if (!u) return null;
+      if (typeof u === 'string') return { type: 'photo', url: u };
+      return u.url ? { type: u.type === 'video' ? 'video' : 'photo', url: u.url, poster: u.poster || '' } : null;
+    }).filter(Boolean);
+    const list = items.map((it) => (it.type === 'video' ? it.poster : it.url)); // картинка слайда: у видео это обложка
+    if (!items.length || closeActive) return;
+    const hasVideo = items.some((it) => it.type === 'video');
+    const isVideo = (i) => !!items[i] && items[i].type === 'video';
+    const PLAY_ICO = '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>';
 
     const U = window.UI;
     const root = document.createElement('div');
     root.className = 'pv';
     root.setAttribute('role', 'dialog');
     root.setAttribute('aria-modal', 'true');
-    root.setAttribute('aria-label', 'Просмотр фото');
+    root.setAttribute('aria-label', hasVideo ? 'Просмотр фото и видео' : 'Просмотр фото');
     root.innerHTML = `
       <div class="pv-bg"></div>
-      <div class="pv-track">${list.map(() => '<div class="pv-slide"><img class="pv-img" alt="" draggable="false"></div>').join('')}</div>
+      <div class="pv-track">${items.map((it) => (it.type === 'video'
+        ? `<div class="pv-slide pv-slide-video"><img class="pv-img" alt="" draggable="false"><span class="pv-play">${PLAY_ICO}</span></div>`
+        : '<div class="pv-slide"><img class="pv-img" alt="" draggable="false"></div>')).join('')}</div>
       <div class="pv-bar">
         <button type="button" class="pv-close" aria-label="Закрыть">${U && U.icon ? U.icon('x', 22) : '×'}</button>
         <span class="pv-count"></span>
       </div>
-      ${list.length > 1 ? `<div class="pv-strip">${list.map((u, i) => `<button type="button" class="pv-thumb" data-i="${i}" aria-label="Фото ${i + 1}"><img src="${u.replace(/"/g, '&quot;')}" alt="" draggable="false" loading="lazy"></button>`).join('')}</div>` : ''}`;
+      ${items.length > 1 ? `<div class="pv-strip">${list.map((u, i) => `<button type="button" class="pv-thumb${isVideo(i) ? ' pv-thumb-video' : ''}" data-i="${i}" aria-label="${isVideo(i) ? 'Видео' : 'Фото'} ${i + 1}"><img src="${(u || '').replace(/"/g, '&quot;')}" alt="" draggable="false" loading="lazy">${isVideo(i) ? `<span class="pv-thumb-play">${PLAY_ICO}</span>` : ''}</button>`).join('')}</div>` : ''}`;
     document.body.appendChild(root);
 
     const bg = root.querySelector('.pv-bg');
     const track = root.querySelector('.pv-track');
     const count = root.querySelector('.pv-count');
     const imgs = Array.from(root.querySelectorAll('.pv-img'));
+    const slides = Array.from(root.querySelectorAll('.pv-slide'));
     const strip = root.querySelector('.pv-strip');
     const thumbs = Array.from(root.querySelectorAll('.pv-thumb'));
 
-    let index = clamp(parseInt(start, 10) || 0, 0, list.length - 1);
+    let index = clamp(parseInt(start, 10) || 0, 0, items.length - 1);
     let scale = 1, tx = 0, ty = 0; // положение текущего фото относительно центра экрана
     let W = 0, H = 0, left = 0, top = 0;
 
@@ -100,7 +113,7 @@
     }
 
     function markThumb() {
-      count.textContent = list.length > 1 ? `${index + 1} / ${list.length}` : '';
+      count.textContent = items.length > 1 ? `${index + 1} / ${items.length}` : '';
       thumbs.forEach((b, i) => b.classList.toggle('on', i === index));
       const t = thumbs[index];
       if (t && strip) strip.scrollTo({ left: t.offsetLeft - (strip.clientWidth - t.offsetWidth) / 2, behavior: 'smooth' });
@@ -121,13 +134,40 @@
 
     function loadAround() {
       [index, index - 1, index + 1].forEach((i) => {
-        if (imgs[i] && !imgs[i].getAttribute('src')) imgs[i].src = list[i];
+        if (imgs[i] && list[i] && !imgs[i].getAttribute('src')) imgs[i].src = list[i];
       });
     }
 
+    // Видео: плеер создаём по первому нажатию (до этого — только обложка, трафик не тратим)
+    function videoOf(i) { return slides[i] ? slides[i].querySelector('video') : null; }
+    function playVideo(i) {
+      if (!isVideo(i)) return;
+      let v = videoOf(i);
+      if (!v) {
+        v = document.createElement('video');
+        v.className = 'pv-video';
+        v.setAttribute('playsinline', '');
+        v.setAttribute('webkit-playsinline', '');
+        v.controls = true;
+        v.preload = 'auto';
+        if (items[i].poster) v.poster = items[i].poster;
+        v.src = items[i].url;
+        v.addEventListener('ended', () => slides[i].classList.remove('pv-playing'));
+        v.addEventListener('pause', () => slides[i].classList.remove('pv-playing'));
+        v.addEventListener('play', () => slides[i].classList.add('pv-playing'));
+        slides[i].appendChild(v);
+      }
+      const r = v.play();
+      if (r && r.catch) r.catch(() => { /* автозапуск запретили: остаются кнопки плеера */ });
+    }
+    function pauseVideos() {
+      slides.forEach((sl) => { const v = sl.querySelector('video'); if (v && !v.paused) v.pause(); });
+    }
+
     function goTo(i) {
-      const next = clamp(i, 0, list.length - 1);
+      const next = clamp(i, 0, items.length - 1);
       if (next !== index) {
+        pauseVideos(); // ушли со слайда — видео не должно играть за кадром
         setZoom(1, 0, 0, false); // ушли с фото — оно снова целиком
         index = next;
       }
@@ -139,11 +179,13 @@
     }
 
     function toggleZoom(p) {
+      if (isVideo(index)) return;
       if (scale > 1.01) { setZoom(1, 0, 0, true); return; }
       setZoom(DOUBLE_SCALE, p.x - p.x * DOUBLE_SCALE, p.y - p.y * DOUBLE_SCALE, true);
     }
 
     function startPinch() {
+      if (isVideo(index)) { mode = 'ignore'; return; }
       const [a, b] = Array.from(pointers.values());
       const c = local({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
       pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, s: scale, px: (c.x - tx) / scale, py: (c.y - ty) / scale };
@@ -157,6 +199,10 @@
 
     function onDown(e) {
       if (e.target.closest && e.target.closest('.pv-close, .pv-strip')) return;
+      if (e.target.closest && e.target.closest('.pv-video')) { // нижняя полоса плеера (пауза, перемотка) — его собственная, жесты не перехватываем
+        const vr = e.target.getBoundingClientRect();
+        if (e.clientY > vr.bottom - 72) return;
+      }
       e.preventDefault();
       try { root.setPointerCapture(e.pointerId); } catch (_) { /* указатель уже отпущен */ }
       pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -192,7 +238,7 @@
       if (mode === 'pan') {
         setZoom(scale, from.tx + dx, from.ty + dy, false);
       } else if (mode === 'swipe') {
-        const edge = (index === 0 && dx > 0) || (index === list.length - 1 && dx < 0);
+        const edge = (index === 0 && dx > 0) || (index === items.length - 1 && dx < 0);
         drawTrack(edge ? dx * 0.3 : dx, 0, false);
       } else if (mode === 'dismiss') {
         drawTrack(0, dy, false);
@@ -230,6 +276,12 @@
     }
 
     function onTap(p) {
+      if (isVideo(index)) { // нажатие по видео: запустить или поставить на паузу, окно не закрываем
+        const v = videoOf(index);
+        if (!v || v.paused) playVideo(index);
+        else v.pause();
+        return;
+      }
       const now = Date.now();
       if (lastTap && now - lastTap.t < TAP_MS && Math.hypot(p.x - lastTap.x, p.y - lastTap.y) < 40) {
         clearTimeout(tapTimer);
@@ -288,6 +340,7 @@
           if (!backWasVisible) backBtn.hide();
         } catch (_) { /* старая версия Telegram */ }
       }
+      pauseVideos();
       document.body.style.overflow = prevOverflow;
       releaseSwipes();
       root.classList.add('pv-out');
