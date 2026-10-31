@@ -526,9 +526,6 @@ async function renderAdminUsersList() {
             <button class="btn-primary px-3 py-1.5 text-xs rounded-lg shadow-[0_0_10px_rgba(77, 163, 255,0.3)]" onclick="window.changeUserBalance('${u.user_id}', ${u.ices_balance || 0})">
               💸 Изменить
             </button>
-            <button class="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 text-xs rounded-lg transition" onclick="window.enterShadowMode('${u.user_id}')">
-              <span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span> Войти как
-            </button>
           </div>
         </div>
       </div>
@@ -1115,19 +1112,6 @@ async function renderAdmin() {
     }
   }
 }
-
-window.enterShadowMode = function(targetUserId) {
-  const isConfirmed = confirm(`Войти в аккаунт пользователя ${targetUserId}? Режим "Только чтение" (без оплаты).`);
-  if (isConfirmed) {
-    originalAdminId = userId;
-    userId = targetUserId;
-    isShadowMode = true;
-    currentSubScreen = null;
-    tgUtil.haptic('success');
-    tgUtil.alert('Теневой режим активирован');
-    switchTab('home');
-  }
-};
 
 function attachAdminHandlers() {
 

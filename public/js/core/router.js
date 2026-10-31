@@ -65,15 +65,6 @@
       }
       
       let shadowBannerHtml = '';
-      if (isShadowMode && originalAdminId) {
-        shadowBannerHtml = `
-          <div class="bg-red-500 text-white text-center py-2 px-4 text-xs font-bold w-full fixed top-0 left-0 z-[100] flex justify-between items-center shadow-lg">
-            <span>ВНИМАНИЕ: Режим юзера (ID: <span class="font-mono bg-black/20 px-1 rounded">${userId}</span>)</span>
-            <button id="exitShadowModeBtn" class="bg-white text-red-500 px-3 py-1 rounded shadow hover:bg-white/90 active:scale-95 transition">Вернуться в админку</button>
-          </div>
-          <div class="h-10 w-full"></div> <!-- spacer -->
-        `;
-      }
 
       // Seamless instant render — previous content remains visible until new screen is ready
 
@@ -282,8 +273,6 @@
       
       ensureGlobalFooter();
 
-      if (isShadowMode) attachShadowModeExit();
-
       if (contentDiv) {
         contentDiv.classList.remove('screen-fade-in');
         void contentDiv.offsetWidth;
@@ -328,20 +317,6 @@
       footers.forEach(f => f.remove());
     }
     window.ensureGlobalFooter = ensureGlobalFooter;
-
-    function attachShadowModeExit() {
-      const btn = document.getElementById('exitShadowModeBtn');
-      if (btn) {
-        btn.onclick = () => {
-          userId = originalAdminId;
-          originalAdminId = null;
-          isShadowMode = false;
-          tgUtil.alert('Вы вернулись в админку');
-          currentSubScreen = null;
-          switchTab('admin');
-        };
-      }
-    }
 
     // [EXTRACTED MODULE] Catalogs & Marketplaces is loaded from /js/modules/catalogs.js
 // ==================== ШИФРОВАНИЕ И УТИЛИТЫ ====================

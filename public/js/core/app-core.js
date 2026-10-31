@@ -1932,8 +1932,6 @@
       get() { return userId; },
       set(val) { userId = val; }
     });
-    let originalAdminId = null;
-    let isShadowMode = false;
     let adminAuthenticated = false;
     window.adminCache = null;
     window.invalidateAdminCache = function() {
@@ -3298,7 +3296,6 @@ let adminOrdersTotalPages = 1;
         else if (tab === 'ugc') attachUGCHandlers();
         else if (tab === 'reftree') attachReferralTreeHandlers();
         initCardSliders();
-        if (isShadowMode) attachShadowModeExit();
       } catch(e) {}
     }
 
