@@ -62,6 +62,8 @@
 
 /* ─── Основа ─── */
 html, body, #app { background: var(--rd-bg) !important; }
+/* страница не «оттягивается» у верха и низа: такой рывок Telegram принимал за жест сворачивания */
+html, body { overscroll-behavior-y: none; }
 body {
   font-family: var(--rd-font) !important;
   color: var(--rd-tx) !important;

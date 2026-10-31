@@ -332,7 +332,7 @@
     return `<div class="rd-section"><h2>Платежи</h2></div>
       <div class="rd-card rd-list">${pays.map((p) => {
         const st = PAY_STATUS[p.status] || [p.status, ''];
-        const canDecide = p.status === 'PENDING' && p.method === 'manual';
+        const canDecide = p.status === 'PENDING' && p.provider === 'manual';
         return `<div class="ad-pay">
           <div class="ad-pay-top"><span><b>${esc(PAY_TYPE[p.type] || 'Платёж')}</b> · ${money(p.amount)}</span><span class="rd-status${st[1] ? ' ' + st[1] : ''}">${esc(st[0])}</span></div>
           <div class="ad-pay-sub">${esc(PAY_METHOD[p.method] || p.method)} · ${esc(dateTime(p.paid_at || p.created_at))}</div>

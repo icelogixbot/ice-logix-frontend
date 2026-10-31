@@ -2482,6 +2482,9 @@ let adminOrdersTotalPages = 1;
           try { tg.expand(); } catch {}
           // Enable closing-confirmation so accidental swipes don't kill the WebApp mid-checkout.
           try { tg.enableClosingConfirmation?.(); } catch {}
+          // Иначе Telegram принимает прокрутку вниз у верха страницы за жест сворачивания.
+          // Свернуть приложение по-прежнему можно, смахнув его шапку (так задумано в Telegram).
+          try { if (tg.isVersionAtLeast?.('7.7')) tg.disableVerticalSwipes(); } catch {}
           // Шапка, фон и нижняя панель Telegram в цвет фона приложения: чёрный или светлый по теме
           if (typeof window.syncThemeChrome === 'function') window.syncThemeChrome();
           // Mark <body> so CSS hides duplicate in-page back buttons when native BackButton is available.
@@ -3447,6 +3450,15 @@ let adminOrdersTotalPages = 1;
     window.goBackGlobal = function() {
       if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
 
+      // 0. Открытая шторка снизу (UI.sheet, шторки оформления): закрываем верхнюю, экран не меняем
+      const sheets = document.querySelectorAll('.rd-sheet-wrap.show');
+      if (sheets.length) {
+        const top = sheets[sheets.length - 1];
+        const closer = top.querySelector('.rd-sheet-backdrop') || top.querySelector('[data-close], [data-co-close]');
+        if (closer) closer.click(); else top.remove();
+        return true;
+      }
+
       // 1. Check if any active overlay / modal is open in the DOM
       const openOverlay = document.querySelector('.full-screen-modal-overlay, #spotlightModal:not(.opacity-0), #settingsModal, #notificationsModal, #personalDataModal, #commissionContractModal, #fortuneWheelModal, #allTransactionsModal, #reviewActionModal, #familySettingsModal, #recoveryCodeModal');
       if (openOverlay) {
@@ -3559,12 +3571,26 @@ let adminOrdersTotalPages = 1;
       }
     });
 
-    // Edge-swipe Right Gesture Navigation (iOS-like feel, expanded comfortable touch zone)
+    // Жест «назад»: провести вправо от самого левого края экрана, как в iOS.
+    // Раньше зона была 38% ширины, и обычная прокрутка чипов или карточек срабатывала как «назад»
+    // (два раза подряд — и человека выкидывало из админки в профиль).
     (function initEdgeSwipeNavigation() {
+      const EDGE_PX = 24;
       let touchStartX = 0;
       let touchStartY = 0;
       let touchStartTime = 0;
       let isEdgeSwipe = false;
+
+      // Палец внутри ленты, которая листается вбок: это прокрутка, а не «назад»
+      function insideHorizontalScroller(el) {
+        for (let node = el; node && node !== document.body; node = node.parentElement) {
+          if (node.scrollWidth > node.clientWidth + 2) {
+            const ox = getComputedStyle(node).overflowX;
+            if (ox === 'auto' || ox === 'scroll') return true;
+          }
+        }
+        return false;
+      }
 
       document.addEventListener('touchstart', (e) => {
         if (!e.touches || e.touches.length !== 1) return;
@@ -3572,11 +3598,7 @@ let adminOrdersTotalPages = 1;
         touchStartX = touch.clientX;
         touchStartY = touch.clientY;
         touchStartTime = Date.now();
-        
-        // Комфортная широкая зона свайпа: левые 38% экрана (минимум 120px),
-        // чтобы не приходилось целиться в край рамки телефона
-        const maxStartX = Math.max(120, Math.floor(window.innerWidth * 0.38));
-        isEdgeSwipe = touchStartX <= maxStartX;
+        isEdgeSwipe = touchStartX <= EDGE_PX;
       }, { passive: true });
 
       document.addEventListener('touchend', (e) => {
@@ -3591,24 +3613,18 @@ let adminOrdersTotalPages = 1;
 
         isEdgeSwipe = false;
 
-        // Порог: 50px (или 35px при быстром естественном флике) под удобным углом
-        const isHorizontalSwipe = deltaX >= 50 || (deltaX >= 35 && deltaTime <= 260);
-        const isNotVertical = Math.abs(deltaX) > Math.abs(deltaY) * 1.25;
+        // Порог: 70px (или 50px при быстром флике), движение явно горизонтальное
+        const isHorizontalSwipe = deltaX >= 70 || (deltaX >= 50 && deltaTime <= 260);
+        const isNotVertical = Math.abs(deltaX) > Math.abs(deltaY) * 1.5;
         const isWithinTime = deltaTime <= 650;
 
         if (isHorizontalSwipe && isNotVertical && isWithinTime) {
           const target = e.target;
-          if (target && target.closest && target.closest('input, textarea, select, [contenteditable="true"], .no-swipe-back, input[type="range"], .wb-cart-screen')) {
+          if (target && target.closest && target.closest('input, textarea, select, [contenteditable="true"], .no-swipe-back, .wb-cart-screen, .rd-chips, .rd-sheet-wrap, .pv-strip')) {
             return;
           }
-          if (currentTab === 'cart' || (typeof bottomRootTabs !== 'undefined' && bottomRootTabs.includes(currentTab) && !currentSubScreen)) {
-            return;
-          }
-          // Если жест внутри горизонтального скроллера, не находящегося в самом начале — не перехватываем
-          const hScroll = target && target.closest && target.closest('.overflow-x-auto');
-          if (hScroll && hScroll.scrollLeft > 10) {
-            return;
-          }
+          if (currentTab === 'cart') return;
+          if (insideHorizontalScroller(target)) return;
 
           if (typeof window.goBackGlobal === 'function') {
             window.goBackGlobal();
