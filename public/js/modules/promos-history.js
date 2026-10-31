@@ -38,16 +38,7 @@ async function renderPromoPage() {
     <div class="rd-screen page-enter pr">
       <div class="rd-head">
         <button type="button" class="rd-back" onclick="window.goBackGlobal()" aria-label="Назад">${U.icon('chevL', 22)}</button>
-        <div class="rd-head-txt"><h1 class="rd-head-title">Акции</h1><p class="rd-head-sub">Скидки, розыгрыши и колесо удачи</p></div>
-      </div>
-
-      <div class="pr-wheel" id="promoFortuneBtn" role="button" tabindex="0">
-        <div class="pr-wheel-art" aria-hidden="true"><div class="pr-wheel-disc"></div><span class="pr-wheel-hub">${U.icon('star', 18)}</span><span class="pr-wheel-pin"></span></div>
-        <div class="pr-wheel-txt">
-          <b>Колесо удачи</b>
-          <span>Крутите раз в день бесплатно и выигрывайте до 10 бонусов</span>
-          <button type="button" class="rd-btn rd-btn-sm">Крутить${U.icon('arrowR', 16)}</button>
-        </div>
+        <div class="rd-head-txt"><h1 class="rd-head-title">Акции</h1><p class="rd-head-sub">Скидки и розыгрыши</p></div>
       </div>
 
       <div class="rd-section"><h2>Сейчас действуют</h2>${promos && promos.length ? `<span class="rd-pill">${promos.length}</span>` : ''}</div>

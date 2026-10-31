@@ -1652,6 +1652,9 @@
     }
 
     async function showWheelOfFortuneModal() {
+      // Колесо закрыто, пока не продумана механика (сервер тоже не крутит: миграция 20261031100000_close_fortune_wheel)
+      window.UI.toast('Колесо удачи пока закрыто');
+      return;
       if (!window.userId) { window.requireAuth('Авторизуйтесь, чтобы крутить Колесо Фортуны и выигрывать призы!'); return; }
       const cd = getFortuneSpinCooldown();
       if (cd > 0) {
