@@ -205,3 +205,18 @@
 .ad-inb-area { width: 100%; min-height: 110px; padding: 10px 0; resize: vertical; border: 0; outline: 0; background: transparent; color: var(--rd-tx); font: inherit; font-size: 15px; line-height: 1.45; }
 .ad-inb-first { margin-top: 0; }
 .ad-inb-copy { margin-top: 12px; }
+
+/* ── Витрина (admin-store.js) ── */
+.ad-st-form { display: flex; flex-direction: column; gap: 12px; }
+.ad-st-foot { position: sticky; bottom: 0; background: var(--rd-s1); padding: 10px 0 2px; margin-top: 4px; border-top: 1px solid var(--rd-line); z-index: 2; }
+.ad-st-sw { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; color: var(--rd-tx); }
+.ad-st-sw-t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ad-st-sw-t b { font-weight: 600; font-size: 15px; }
+.ad-st-sw-t small { color: var(--rd-tx3); font-size: 12px; }
+.ad-st-photos { display: flex; flex-wrap: wrap; gap: 8px; }
+.ad-st-ph { position: relative; width: 76px; height: 76px; border-radius: var(--rd-r12); overflow: hidden; background: var(--rd-s2); border: 1px solid var(--rd-line); }
+.ad-st-ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ad-st-ph-x { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border-radius: 12px; border: 0; background: var(--rd-bg); color: var(--rd-tx); display: flex; align-items: center; justify-content: center; padding: 0; }
+.ad-st-ph-add { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--rd-b300); border-style: dashed; font-size: 11px; cursor: pointer; }
+.ad-st-tg { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.ad-static { cursor: default; }
