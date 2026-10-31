@@ -291,8 +291,8 @@
     if (!rows.length) return `<div class="rd-card ad-pad"><p class="rd-sub" style="margin:0">Движений по балансу пока не было.</p></div>`;
     return `<div class="rd-card rd-list">${rows.map((l) => {
       const debit = String(l.direction || l.type).toUpperCase() === 'DEBIT';
-      const sub = [when(l.at), l.balance_after != null ? 'остаток ' + money(l.balance_after) : '', l.reason === 'ADMIN_ADJUSTMENT' && l.by ? l.by : ''].filter(Boolean);
-      const body = `<span class="rd-row-body"><span class="rd-row-title">${esc(ledgerText(l.direction || l.type, l.reason))}</span><span class="rd-row-text">${sub.map((s, i) => (i === 1 ? s : esc(s))).join(' · ')}</span></span>
+      const sub = [esc(when(l.at) || ''), l.balance_after != null ? 'остаток ' + money(l.balance_after) : '', l.reason === 'ADMIN_ADJUSTMENT' && l.by ? esc(l.by) : ''].filter(Boolean);
+      const body = `<span class="rd-row-body"><span class="rd-row-title">${esc(ledgerText(l.direction || l.type, l.reason))}</span><span class="rd-row-text">${sub.join(' · ')}</span></span>
         <span class="ad-order-sum${debit ? '' : ' plus'}">${debit ? '−' : '+'}${money(Math.abs(Number(l.amount) || 0))}</span>`;
       return l.order_id
         ? `<div class="rd-row" role="button" tabindex="0" data-order="${esc(l.order_id)}">${body}</div>`
