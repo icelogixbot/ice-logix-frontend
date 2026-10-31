@@ -162,14 +162,13 @@
         if (!adminAuthenticated) { switchTab('admin'); return; }
         contentDiv.innerHTML = await renderAdmin();
         attachAdminLegacyHandlers();
-      } else if (currentTab === 'admin_orders' && isOwner) {
+      } else if (isOwner && window.AD && AD.has(currentTab)) {
+        // Новые разделы админки регистрируются в каркасе (admin/admin-kit.js, AD.screen), отдельной ветки на каждый не нужно
         if (!adminAuthenticated) { switchTab('admin'); return; }
-        contentDiv.innerHTML = await renderAdminOrders();
-        attachAdminOrdersHandlers();
-      } else if (currentTab === 'admin_order' && isOwner) {
-        if (!adminAuthenticated || !window._adminOrderId) { switchTab('admin'); return; }
-        contentDiv.innerHTML = await renderAdminOrder();
-        attachAdminOrderHandlers();
+        const adHtml = await AD.renderTab(currentTab);
+        if (adHtml === null) { switchTab('admin'); return; }
+        contentDiv.innerHTML = adHtml;
+        AD.attachTab(currentTab);
       } else if (currentTab === 'admin_team' && isOwner) {
         if (!adminAuthenticated) { switchTab('admin'); return; }
         contentDiv.innerHTML = await renderAdminTeam();

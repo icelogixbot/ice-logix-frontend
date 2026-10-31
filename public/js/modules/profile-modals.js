@@ -717,7 +717,7 @@ async function renderAdminTicketsList() {
   } catch (_) { /* счётчик необязателен */ }
   return `
     <p class="text-sm text-white/70 mb-3">${waiting ? `Ждут ответа: <b>${waiting}</b>. ` : ''}Обращения клиентов, ответы, заметки и шаблоны — в пульте поддержки.</p>
-    <button type="button" class="rd-btn rd-btn-sm" onclick="window.location.href='/support-desk.html'">Открыть пульт поддержки</button>
+    <button type="button" class="rd-btn rd-btn-sm" onclick="window.AD ? AD.openDesk() : (window.location.href='/support-desk.html')">Открыть пульт поддержки</button>
   `;
 }
 
@@ -802,7 +802,7 @@ window.showLogisticsHistory = async (orderId) => {
 // Прежний чат по заказу (таблица order_messages) никто из операторов не видел — его заменил бот поддержки.
 // Сотрудник из админки попадает в пульт поддержки.
 window.openSupportChat = (orderId, isAdmin = false) => {
-  if (isAdmin) { window.location.href = '/support-desk.html'; return; }
+  if (isAdmin) { if (window.AD) AD.openDesk(); else window.location.href = '/support-desk.html'; return; }
   window.openSupport({ orderId });
 };
 

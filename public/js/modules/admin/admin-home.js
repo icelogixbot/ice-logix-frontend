@@ -46,34 +46,25 @@
   let lastData = null;
   let pollTimer = null;
 
+  const AD = window.AD;
   const U = () => window.UI;
-  const esc = (s) => U().esc(s);
+  const esc = AD.esc;
   const n = (v) => Number(v) || 0;
+  const timeAgo = AD.timeAgo;
 
-  function timeAgo(ts) {
-    if (!ts) return 'нет данных';
-    const d = new Date(ts);
-    const min = Math.round((Date.now() - d.getTime()) / 60000);
-    if (min < 1) return 'только что';
-    if (min < 60) return `${min} мин назад`;
-    const h = Math.round(min / 60);
-    if (h < 24) return `${h} ч назад`;
-    return d.toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
-  }
-
-  // ── Переходы ──
+  // ── Переходы: все через стек AD, чтобы «Назад» возвращал на Пульт на то же место ──
   function go(target) {
     if (!target) return;
     if (target.info) { U().toast(target.info, 'info'); return; }
-    if (target.tab) { switchTab(target.tab); return; }
-    if (target.orders) { window.adminOpenOrders(target.orders); return; }
-    if (target.desk) { window.location.href = '/support-desk.html'; return; }
+    if (target.tab) { AD.open(target.tab); return; }
+    if (target.orders) { AD.open('admin_orders', { stage: target.orders }); return; }
+    if (target.desk) { AD.openDesk(); return; }
     if (target.bonus) { openBonusOrders(); return; }
     if (target.content) { openContentSheet(); return; }
     if ('legacy' in target) {
       window._adminLegacyAnchor = target.legacy;
       if (typeof window.invalidateAdminCache === 'function') window.invalidateAdminCache();
-      switchTab('admin_legacy');
+      AD.open('admin_legacy');
     }
   }
 
@@ -95,7 +86,7 @@
         </div>`).join('')}</div>`,
       onOpen: (wrap, close) => {
         wrap.querySelectorAll('[data-tab]').forEach((row) => {
-          row.onclick = () => { close(); switchTab(row.dataset.tab); };
+          row.onclick = () => { close(); AD.open(row.dataset.tab); };
         });
       },
     });
@@ -175,10 +166,10 @@
         wrap.querySelector('#adVacSave').onclick = async () => {
           const active = wrap.querySelector('#adVacOn').checked;
           const days = Math.max(0, Math.min(90, parseInt(wrap.querySelector('#adVacDays').value, 10) || 0));
-          const { data, error } = await supabaseClient.rpc('admin_set_vacation', { p_active: active, p_days: days });
-          if (error) { UI.toast(error.message || 'Не получилось сохранить', 'bad'); return; }
-          window.buyerVacation = data || { active, days };
-          UI.toast(active ? `Отпуск включён: +${days} дн. к срокам` : 'Отпуск выключен');
+          const data = await AD.call(wrap.querySelector('#adVacSave'), 'admin_set_vacation', { p_active: active, p_days: days },
+            active ? `Отпуск включён: +${days} дн. к срокам` : 'Отпуск выключен');
+          if (!data) return;
+          window.buyerVacation = typeof data.active === 'boolean' ? data : { active, days };
           close();
           refresh();
         };
@@ -275,7 +266,7 @@
   function skeletonHtml() {
     return `
       <div class="rd-section"><h2>Требует внимания</h2></div>
-      <div class="rd-card ad-skel rd-shimmer"></div>
+      ${AD.loadingHtml()}
       <div class="rd-section"><h2>Сводка</h2></div>
       <div class="ad-kpis">${'<div class="rd-card ad-kpi ad-skel-sm rd-shimmer"></div>'.repeat(4)}</div>`;
   }
@@ -320,14 +311,10 @@
   async function refresh(manual) {
     const body = document.getElementById('adBody');
     if (!body) return;
-    const { data, error } = await supabaseClient.rpc('admin_overview');
+    const { data, error } = await AD.rpc('admin_overview');
     if (!document.getElementById('adBody')) return;
     if (error) {
-      if (manual || !lastData) {
-        body.innerHTML = U().empty({ icon: 'alert', title: 'Не получилось загрузить', text: 'Проверьте интернет и обновите экран.', action: 'Обновить', actionId: 'adRetry' });
-        const r = document.getElementById('adRetry');
-        if (r) r.onclick = () => refresh(true);
-      }
+      if (manual || !lastData) AD.showError(body, 'Не получилось загрузить', 'Проверьте интернет и обновите экран.', () => refresh(true));
       return;
     }
     lastData = data;
@@ -335,13 +322,16 @@
     if (roleEl && data.me) roleEl.textContent = ROLE_TEXT[data.me.role] || 'Пульт управления';
     body.innerHTML = bodyHtml(data);
     bind();
+    AD.restoreScroll();
     if (manual) U().toast('Обновлено');
   }
 
   function attachAdminHomeHandlers() {
     const btn = document.getElementById('adRefresh');
-    if (btn) btn.onclick = () => { if (window.tgUtil && tgUtil.haptic) tgUtil.haptic('light'); refresh(true); };
+    if (btn) btn.onclick = () => { AD.haptic('light'); refresh(true); };
     bind();
+    // цифры с прошлого раза уже на экране: прокрутку возвращаем сразу, не дожидаясь сервера
+    if (lastData) AD.restoreScroll();
     refresh(false);
     clearInterval(pollTimer);
     pollTimer = setInterval(() => {

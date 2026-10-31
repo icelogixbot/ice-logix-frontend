@@ -1,6 +1,7 @@
 // ============================================================
 // ICE LOGIX · Админ-панель: Заказы (этап 2 ADMIN_PLAN.md)
 // Список с поиском и этапами (вкладка admin_orders) и карточка заказа (admin_order).
+// Построен на каркасе admin-kit.js (window.AD): список, шторки, плавающая кнопка и навигация общие.
 // Заказ ведётся кнопками шагов, а не выбором статуса. Деньги и проверки — на сервере:
 // admin_order_purchase, admin_order_weigh, admin_order_advance, admin_order_cancel и др.
 // (миграция 20261031140000_admin_orders). Здесь только подсказки до нажатия, итог считает сервер.
@@ -39,50 +40,61 @@
   const RECEIVING = { SELF_PICKUP: 'Самовывоз', FORWARD_SHIPPING: 'Отправка клиенту' };
 
   const PAGE = 20;
-  const list = { stage: 'work', search: '', rows: [], total: 0, counts: {}, timer: null, seq: 0 };
   let card = null;
 
+  const AD = window.AD;
   const U = () => window.UI;
-  const esc = (s) => U().esc(s);
+  const esc = AD.esc;
   const I = (name, size, opts) => U().icon(name, size, opts);
-  const money = (v) => U().money(Number(v) || 0, { keepCents: true, digits: 2 });
-  const num = (v) => { const n = parseFloat(String(v == null ? '' : v).replace(/\s/g, '').replace(',', '.')); return Number.isFinite(n) ? n : 0; };
-  const fmt2 = (v) => (Number(v) || 0).toFixed(2).replace('.', ',');
+  const money = AD.money;
+  const num = AD.num;
+  const fmt2 = AD.fmt2;
   const cny = (v) => '¥' + fmt2(v);
-  const shortId = (id) => String(id || '').slice(0, 8);
-  const nick = (v) => String(v || '').replace(/^@+/, '');
-  const dateTime = (ts) => (ts ? new Date(ts).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
-  const daysSince = (ts) => (ts ? Math.floor((Date.now() - new Date(ts).getTime()) / 86400000) : 0);
-  const statusBadge = (st) => { const s = STATUS[st] || [st || 'Без статуса', '']; return `<span class="rd-status${s[1] ? ' ' + s[1] : ''}">${esc(s[0])}</span>`; };
-  const fail = (error, text) => U().toast((error && error.message) || text || 'Не получилось', 'bad');
-  const haptic = (kind) => { try { if (window.tgUtil && tgUtil.haptic) tgUtil.haptic(kind); } catch (_) {} };
+  const shortId = AD.shortId;
+  const nick = AD.nick;
+  const dateTime = AD.dateTime;
+  const daysSince = AD.daysSince;
+  const statusBadge = (st) => AD.statusBadge(STATUS, st);
+  const haptic = AD.haptic;
+  const call = (btn, rpc, args, okText) => AD.call(btn, rpc, args, { ok: okText, after: loadCard });
+  const formSheet = AD.formSheet;
+  const confirmSheet = AD.confirmSheet;
+  const mountCta = (next) => AD.mountCta(next, 'adOrderBody');
 
   // ══ Список ══
   function openOrders(stage) {
-    if (stage) list.stage = stage;
-    list.search = '';
-    switchTab('admin_orders');
+    AD.open('admin_orders', { stage: stage || '' });
   }
 
   function openOrder(id) {
-    window._adminOrderId = id;
-    switchTab('admin_order');
+    AD.open('admin_order', { id });
   }
 
-  function chipsHtml() {
-    const c = list.counts || {};
-    const count = (k) => {
+  const list = AD.list({
+    id: 'adOrders',
+    rpc: 'admin_orders_list',
+    chips: STAGES,
+    chip: 'work',
+    chipAlways: ['work', 'all'],
+    chipCount: (c, k) => {
       if (k === 'all') return Object.values(c).reduce((a, b) => a + Number(b), 0);
       if (k === 'work') return Object.entries(c).reduce((a, [s, n]) => (WORK_EXCLUDED.includes(s) ? a : a + Number(n)), 0);
       return Number(c[k]) || 0;
-    };
-    return STAGES.map(([k, t]) => {
-      const n = count(k);
-      // пустые этапы не загромождают ряд, кроме основных
-      if (!n && !['work', 'all', list.stage].includes(k)) return '';
-      return `<button type="button" class="rd-chip${list.stage === k ? ' on' : ''}" data-stage="${k}">${t}${n ? ` · ${n}` : ''}</button>`;
-    }).join('');
-  }
+    },
+    searchPlaceholder: 'Номер, имя, @ник, трек или товар',
+    pageSize: PAGE,
+    listClass: 'ad-orders',
+    args: (st, limit, offset) => ({ p_stage: st.chip, p_search: st.q || null, p_limit: limit, p_offset: offset }),
+    // при поиске смотрим все этапы, иначе заказ из архива не найдётся
+    onSearch: (st) => { if (st.q && st.chip === 'work') st.chip = 'all'; },
+    rowHtml: orderRowHtml,
+    onRow: (id) => openOrder(id),
+    empty: (st) => ({
+      icon: st.q ? 'search' : 'box',
+      title: st.q ? 'Ничего не нашли' : 'Здесь пусто',
+      text: st.q ? 'Проверьте номер, имя или трек и попробуйте ещё раз.' : 'На этом этапе заказов нет. Загляните в другие этапы выше.',
+    }),
+  });
 
   function orderRowHtml(r) {
     const days = daysSince(r.updated_at);
@@ -91,7 +103,7 @@
     const who = r.name || (nick(r.nick) ? '@' + nick(r.nick) : 'ID ' + r.user_id);
     const extra = Number(r.count) > 1 ? ` и ещё ${Number(r.count) - 1}` : '';
     return `
-      <div class="ad-order" role="button" tabindex="0" data-order="${esc(r.id)}">
+      <div class="ad-order" role="button" tabindex="0" data-row="${esc(r.id)}">
         <span class="ad-thumb">${/^https?:\/\//i.test(r.image || '') ? `<img src="${esc(r.image)}" alt="" loading="lazy">` : I('box', 22)}</span>
         <span class="ad-order-body">
           <span class="ad-order-title">${esc(r.title || 'Заказ')}${esc(extra)}</span>
@@ -106,95 +118,33 @@
       </div>`;
   }
 
-  function listBodyHtml() {
-    if (!list.rows.length) {
-      const text = list.search ? 'Проверьте номер, имя или трек и попробуйте ещё раз.' : 'На этом этапе заказов нет. Загляните в другие этапы выше.';
-      return `<div class="rd-card">${U().empty({ icon: list.search ? 'search' : 'box', title: list.search ? 'Ничего не нашли' : 'Здесь пусто', text })}</div>`;
+  function renderAdminOrders(params, restored) {
+    // пришли с Пульта по плитке или счётчику — нужный этап; вернулись назад — всё как было
+    if (!restored) {
+      list.state.q = '';
+      if (params && params.stage) list.state.chip = params.stage;
     }
-    const more = list.rows.length < list.total
-      ? `<button type="button" class="rd-btn rd-btn-ghost rd-btn-block ad-more" id="adOrdersMore">Показать ещё ${Math.min(PAGE, list.total - list.rows.length)}</button>` : '';
-    return `<div class="rd-card rd-list ad-orders">${list.rows.map(orderRowHtml).join('')}</div>${more}`;
-  }
-
-  async function loadList(append) {
-    const seq = ++list.seq;
-    const { data, error } = await supabaseClient.rpc('admin_orders_list', {
-      p_stage: list.stage, p_search: list.search || null, p_limit: PAGE, p_offset: append ? list.rows.length : 0,
-    });
-    if (seq !== list.seq || !document.getElementById('adOrdersBody')) return;
-    if (error) {
-      document.getElementById('adOrdersBody').innerHTML = `<div class="rd-card">${U().empty({ icon: 'alert', title: 'Не получилось загрузить', text: 'Проверьте интернет и обновите экран.', action: 'Обновить', actionId: 'adOrdersRetry' })}</div>`;
-      const b = document.getElementById('adOrdersRetry');
-      if (b) b.onclick = () => loadList(false);
-      return;
-    }
-    const d = data || {};
-    list.rows = append ? list.rows.concat(d.rows || []) : (d.rows || []);
-    list.total = Number(d.total) || 0;
-    list.counts = d.counts || {};
-    paintList();
-  }
-
-  function paintList() {
-    const chips = document.getElementById('adOrdersChips');
-    const body = document.getElementById('adOrdersBody');
-    if (!chips || !body) return;
-    chips.innerHTML = chipsHtml();
-    body.innerHTML = listBodyHtml();
-    chips.querySelectorAll('[data-stage]').forEach((b) => {
-      b.onclick = () => {
-        if (list.stage === b.dataset.stage) return;
-        haptic('light');
-        list.stage = b.dataset.stage;
-        chips.querySelectorAll('.rd-chip').forEach((x) => x.classList.toggle('on', x === b));
-        body.innerHTML = '<div class="rd-card ad-skel rd-shimmer"></div>';
-        loadList(false);
-      };
-    });
-    body.querySelectorAll('[data-order]').forEach((row) => { row.onclick = () => openOrder(row.dataset.order); });
-    const more = document.getElementById('adOrdersMore');
-    if (more) more.onclick = () => { more.disabled = true; loadList(true); };
-  }
-
-  async function renderAdminOrders() {
     return `
       <div class="rd-screen page-enter ad-screen">
         <div class="rd-head">
           <button type="button" class="rd-back" onclick="window.goBackGlobal()" aria-label="Назад">${I('chevL', 22)}</button>
           <div class="rd-head-txt"><h1 class="rd-head-title">Заказы</h1><p class="rd-head-sub">Выкуп, склад, доставка и деньги</p></div>
         </div>
-        <div class="rd-field">${I('search', 20)}<input type="search" id="adOrdersSearch" placeholder="Номер, имя, @ник, трек или товар" autocomplete="off" enterkeyhint="search" value="${esc(list.search)}"></div>
-        <div class="rd-chips ad-chips" id="adOrdersChips">${chipsHtml()}</div>
-        <div id="adOrdersBody"><div class="rd-card ad-skel rd-shimmer"></div></div>
+        ${list.shellHtml()}
       </div>`;
   }
 
-  function attachAdminOrdersHandlers() {
-    const input = document.getElementById('adOrdersSearch');
-    if (input) {
-      input.oninput = () => {
-        clearTimeout(list.timer);
-        list.timer = setTimeout(() => {
-          list.search = input.value.trim();
-          // при поиске смотрим все этапы, иначе заказ из архива не найдётся
-          if (list.search && list.stage === 'work') list.stage = 'all';
-          loadList(false);
-        }, 300);
-      };
-    }
-    loadList(false);
-  }
-
   // ══ Карточка ══
-  async function renderAdminOrder() {
+  function renderAdminOrder(params) {
+    const id = params && params.id;
     return `
       <div class="rd-screen page-enter ad-screen">
         <div class="rd-head">
           <button type="button" class="rd-back" onclick="window.goBackGlobal()" aria-label="Назад">${I('chevL', 22)}</button>
-          <div class="rd-head-txt"><h1 class="rd-head-title">Заказ #${esc(shortId(window._adminOrderId))}</h1><p class="rd-head-sub" id="adOrderSub">Загружаем…</p></div>
+          <div class="rd-head-txt"><h1 class="rd-head-title">Заказ #${esc(shortId(id))}</h1><p class="rd-head-sub" id="adOrderSub">Загружаем…</p></div>
           <button type="button" class="rd-back" id="adOrderRefresh" aria-label="Обновить">${I('refresh', 20)}</button>
         </div>
-        <div id="adOrderBody"><div class="rd-card ad-skel rd-shimmer"></div></div>
+        <div id="adOrderBody">${AD.loadingHtml()}</div>
       </div>`;
   }
 
@@ -205,14 +155,12 @@
   }
 
   async function loadCard() {
-    const id = window._adminOrderId;
-    const { data, error } = await supabaseClient.rpc('admin_order_card', { p_order: id });
+    const id = AD.params.id;
+    const { data, error } = await AD.rpc('admin_order_card', { p_order: id });
     const body = document.getElementById('adOrderBody');
-    if (!body || id !== window._adminOrderId) return;
+    if (!body || id !== AD.params.id) return;
     if (error) {
-      body.innerHTML = `<div class="rd-card">${U().empty({ icon: 'alert', title: 'Не получилось открыть заказ', text: 'Проверьте интернет и попробуйте ещё раз.', action: 'Обновить', actionId: 'adOrderRetry' })}</div>`;
-      const r = document.getElementById('adOrderRetry');
-      if (r) r.onclick = loadCard;
+      AD.showError(body, 'Не получилось открыть заказ', 'Проверьте интернет и попробуйте ещё раз.', loadCard);
       return;
     }
     card = data;
@@ -220,6 +168,7 @@
     if (sub) sub.textContent = `Оформлен ${dateTime(card.order.created_at)}`;
     body.innerHTML = cardHtml();
     bindCard();
+    AD.restoreScroll();
   }
 
   // Следующий шаг заказа: главная кнопка внизу экрана
@@ -452,31 +401,6 @@
     body.querySelectorAll('[data-pay-no]').forEach((b) => { b.onclick = () => rejectPayment(b.dataset.payNo); });
   }
 
-  // Кнопка следующего шага живёт в body: внутри экрана position: fixed ломается анимацией появления.
-  // Убирается сама, как только карточка исчезла с экрана.
-  let ctaWatch = null;
-  function mountCta(next) {
-    const old = document.getElementById('adNextCta');
-    if (old) old.remove();
-    if (ctaWatch) { ctaWatch.disconnect(); ctaWatch = null; }
-    if (!next) return;
-    const el = document.createElement('div');
-    el.id = 'adNextCta';
-    el.className = 'rd-cta';
-    el.innerHTML = `<button type="button" class="rd-btn rd-btn-block" id="adNextStep">${esc(next.label)}</button>`;
-    el.firstChild.onclick = () => { haptic('light'); next.run(); };
-    document.body.appendChild(el);
-    const host = document.getElementById('content');
-    if (!host) return;
-    ctaWatch = new MutationObserver(() => {
-      if (document.getElementById('adOrderBody')) return;
-      el.remove();
-      ctaWatch.disconnect();
-      ctaWatch = null;
-    });
-    ctaWatch.observe(host, { childList: true, subtree: false });
-  }
-
   function runAction(id) {
     const o = card.order;
     switch (id) {
@@ -496,75 +420,6 @@
       case 'force': return forceSheet();
       default: return null;
     }
-  }
-
-  // Общий вызов шага: блокирует кнопку, показывает ошибку сервера, обновляет карточку
-  async function call(btn, rpc, args, okText) {
-    if (btn) btn.disabled = true;
-    const { data, error } = await supabaseClient.rpc(rpc, args);
-    if (error) {
-      if (btn) btn.disabled = false;
-      haptic('error');
-      fail(error);
-      return null;
-    }
-    haptic('success');
-    const text = typeof okText === 'function' ? okText(data) : okText;
-    if (text) U().toast(text);
-    await loadCard();
-    return data || {};
-  }
-
-  // Шторка с полями и живой подсказкой; поля описаны как в UI.ask
-  function formSheet(o) {
-    const opt = o || {};
-    U().sheet({
-      title: opt.title,
-      html: `<form class="rd-ask ad-form" novalidate>
-        ${opt.text ? `<p class="rd-ask-text">${opt.text}</p>` : ''}
-        ${(opt.fields || []).map((f) => `
-          <label class="rd-ask-field">
-            <span class="rd-label">${esc(f.label)}</span>
-            <span class="rd-field"><input name="${f.name}" type="text" ${f.decimal ? 'inputmode="decimal"' : ''} autocomplete="off" value="${esc(f.value == null ? '' : f.value)}" placeholder="${esc(f.placeholder || '')}"></span>
-            ${f.hint ? `<span class="ad-hint">${f.hint}</span>` : ''}
-          </label>`).join('')}
-        ${opt.extraHtml || ''}
-        <div class="ad-preview" data-preview hidden></div>
-        <p class="rd-ask-err" hidden></p>
-        <button type="submit" class="rd-btn rd-btn-block${opt.danger ? ' rd-btn-danger' : ''}" data-submit>${esc(opt.action || 'Сохранить')}</button>
-      </form>`,
-      onOpen: (wrap, close) => {
-        const form = wrap.querySelector('form');
-        const err = wrap.querySelector('.rd-ask-err');
-        const prev = wrap.querySelector('[data-preview]');
-        const submit = wrap.querySelector('[data-submit]');
-        const values = () => {
-          const v = {};
-          form.querySelectorAll('input').forEach((i) => { v[i.name] = i.type === 'checkbox' ? i.checked : i.value.trim(); });
-          return v;
-        };
-        const refresh = () => {
-          if (!opt.preview) return;
-          const r = opt.preview(values());
-          prev.hidden = !r || !r.html;
-          prev.className = `ad-preview ${(r && r.tone) || ''}`;
-          prev.innerHTML = (r && r.html) || '';
-          if (r && r.action) submit.textContent = r.action;
-        };
-        form.addEventListener('input', refresh);
-        form.addEventListener('change', refresh);
-        refresh();
-        form.addEventListener('submit', async (e) => {
-          e.preventDefault();
-          const v = values();
-          const msg = opt.validate ? opt.validate(v) : '';
-          if (msg) { err.textContent = msg; err.hidden = false; return; }
-          err.hidden = true;
-          const done = await opt.onSubmit(v, submit);
-          if (done) close();
-        });
-      },
-    });
   }
 
   // ── Выкуп ──
@@ -778,18 +633,6 @@
     await call(null, 'admin_reject_payment', { p_payment_id: id, p_reason: reason }, 'Заявка отклонена');
   }
 
-  function confirmSheet(title, text, action) {
-    return new Promise((resolve) => {
-      let done = false;
-      U().sheet({
-        title,
-        html: `<p class="rd-sub" style="margin-top:0">${esc(text)}</p><button type="button" class="rd-btn rd-btn-block" style="margin-top:16px" data-yes>${esc(action)}</button>`,
-        onClose: () => { if (!done) resolve(false); },
-        onOpen: (wrap, close) => { wrap.querySelector('[data-yes]').onclick = () => { done = true; resolve(true); close(); }; },
-      });
-    });
-  }
-
   // ── Шаблон ответа на претензию: составляет бот (ai_requests), без сторонних сервисов ──
   async function legalSheet() {
     const UI = U();
@@ -803,7 +646,7 @@
     const { data: req, error } = await supabaseClient.from('ai_requests')
       .insert({ admin_id: Number(userId) || 0, prompt_text: `Заказ #${o.id}. Клиент (Telegram ID: ${o.user_id}). Суть претензии: ${complaint}. Составь официальный ответ клиенту.` })
       .select('id').single();
-    if (error || !req) { fail(error, 'Не получилось отправить запрос'); return; }
+    if (error || !req) { AD.fail(error, 'Не получилось отправить запрос'); return; }
     UI.toast('Составляем ответ…', 'info');
     let tries = 0;
     const timer = setInterval(async () => {
@@ -828,8 +671,16 @@
 
   window.adminOpenOrders = openOrders;
   window.adminOpenOrder = openOrder;
-  window.renderAdminOrders = renderAdminOrders;
-  window.attachAdminOrdersHandlers = attachAdminOrdersHandlers;
-  window.renderAdminOrder = renderAdminOrder;
-  window.attachAdminOrderHandlers = attachAdminOrderHandlers;
+
+  AD.screen('admin_orders', {
+    render: renderAdminOrders,
+    attach: (params, restored) => list.attach(restored),
+    save: list.save,
+    restore: list.restore,
+  });
+  AD.screen('admin_order', {
+    guard: (params) => !!(params && params.id),
+    render: renderAdminOrder,
+    attach: attachAdminOrderHandlers,
+  });
 })();

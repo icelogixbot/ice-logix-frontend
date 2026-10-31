@@ -186,7 +186,11 @@
         const bg = getComputedStyle(document.documentElement).getPropertyValue('--rd-bg').trim();
         if (bg) { tg.setHeaderColor(bg); tg.setBackgroundColor(bg); if (tg.setBottomBarColor) tg.setBottomBarColor(bg); }
       } catch (_) {}
-      if (tg.BackButton) tg.BackButton.onClick(backToList);
+      if (tg.BackButton) {
+        tg.BackButton.onClick(onBackButton);
+        // Пришли из админки: «Назад» в Telegram вернёт в приложение, а из диалога сначала к списку
+        if (FROM_ADMIN) tg.BackButton.show();
+      }
     }
     if (!window.supabase || !window.supabase.createClient) {
       denied('Пульт не загрузился', 'Закройте окно и откройте пульт заново.', true);
@@ -420,10 +424,26 @@
     }
   }
 
+  // Открыто из админки приложения (?from=admin): путь назад в приложение. Метку back читает AD.resume,
+  // она позволяет вернуться в админку без нового ввода код-пароля (только по этой кнопке).
+  const FROM_ADMIN = new URLSearchParams(location.search).get('from') === 'admin';
+  function leaveToApp() {
+    try {
+      const raw = sessionStorage.getItem('ice_admin_return');
+      if (raw) { const d = JSON.parse(raw); d.back = true; d.t = Date.now(); sessionStorage.setItem('ice_admin_return', JSON.stringify(d)); }
+    } catch (_) {}
+    window.location.href = '/';
+  }
+  function onBackButton() {
+    const inChat = $('sdApp').classList.contains('in-chat') && !isDesktop();
+    if (inChat || !FROM_ADMIN) { backToList(); return; }
+    leaveToApp();
+  }
+
   function backToList() {
     saveDraft();
     $('sdApp').classList.remove('in-chat');
-    if (tg && tg.BackButton) tg.BackButton.hide();
+    if (tg && tg.BackButton && !FROM_ADMIN) tg.BackButton.hide();
     if (!isDesktop()) {
       S.activeId = null;
       store.set('sd_active', null);

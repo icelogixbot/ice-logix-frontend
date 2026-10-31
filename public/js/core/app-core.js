@@ -2841,6 +2841,8 @@ let adminOrdersTotalPages = 1;
           } else if (sp === 'calc') {
             switchTab('calculator');
           }
+          // Вернулись из окна поддержки кнопкой «Назад»: открыть админку на прежнем месте без нового ввода код-пароля
+          if (window.AD && typeof AD.resume === 'function') AD.resume();
         } catch (dlErr) { console.error('deep-link handling failed:', dlErr); }
       }
 
@@ -3356,6 +3358,9 @@ let adminOrdersTotalPages = 1;
         return;
       }
 
+      // Каркас админки следит за своим стеком экранов (admin/admin-kit.js)
+      if (window.AD && AD.onSwitch) AD.onSwitch(currentTab, tabName);
+
       // Save scroll position of current screen before leaving
       const _prevKey = (currentTab || '') + ':' + (currentSubScreen || '');
       if (!window._isNavigatingBack && currentTab) {
@@ -3408,9 +3413,12 @@ let adminOrdersTotalPages = 1;
       // Restore from HTML cache for instant screen switch (0ms delay, no flicker)
       const _ck = (tabName || '') + ':' + (subScreen || '');
       // Оформление всегда строим заново: кнопка оплаты и шторки живут в body, в сохранённом HTML их нет, и сумма зависит от tempOrder
-      const dynamicTabs = ['finances', 'search', 'notifications', 'settings', 'topup', 'wallet', 'cart', 'product', 'neworder', 'admin', 'admin_legacy', 'admin_team', 'admin_orders', 'admin_order'];
+      // Все вкладки админки (admin, admin_*) тоже строятся заново: в сохранённой копии нет обработчиков и плавающих кнопок
+      const dynamicTabs = ['finances', 'search', 'notifications', 'settings', 'topup', 'wallet', 'cart', 'product', 'neworder', 'admin', 'admin_legacy', 'admin_team', 'admin_orders', 'admin_order',
+        'admin_money', 'admin_clients', 'admin_client', 'admin_inbox', 'admin_store', 'admin_content', 'admin_settings', 'admin_system'];
+      const _isAdminTab = String(tabName || '').startsWith('admin');
       // «Мои заказы» тоже всегда свежие: статусы и оплаты меняются на сервере
-      if (!dynamicTabs.includes(tabName) && subScreen !== 'myOrders' && _tabCache[_ck] && Date.now() - _tabCache[_ck].ts < 600000) {
+      if (!dynamicTabs.includes(tabName) && !_isAdminTab && subScreen !== 'myOrders' && _tabCache[_ck] && Date.now() - _tabCache[_ck].ts < 600000) {
         const _cd = document.getElementById('content');
         if (_cd) {
           _cd.innerHTML = _tabCache[_ck].html;
@@ -3517,11 +3525,10 @@ let adminOrdersTotalPages = 1;
         return true;
       }
 
-      // 3b. Админка: из любого её экрана назад на Пульт, с Пульта — в профиль
-      if (currentTab === 'admin' || String(currentTab).startsWith('admin_')) {
-        window._isNavigatingBack = true;
-        switchTab(currentTab === 'admin' ? 'profile' : currentTab === 'admin_order' ? 'admin_orders' : 'admin');
-        return true;
+      // 3b. Админка: настоящий стек экранов (admin/admin-kit.js). Назад возвращает туда, откуда пришли,
+      // с прежней прокруткой и фильтрами; с Пульта — в профиль. Кнопка на экране, кнопка Telegram и жест идут сюда же.
+      if (window.AD && AD.isAdminTab(currentTab)) {
+        return AD.back();
       }
 
       // 4. Primary bottom navigation tabs (cannot be swiped back - navigation handled via bottom bar)
