@@ -1080,44 +1080,7 @@ async function renderAdmin() {
           </div>
         </div>
         
-                <!-- Управление заказами -->
-        <div class="glass-card mt-4">
-          <h3 class="text-white font-bold mb-3"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Управление заказами</h3>
-          
-          <!-- Переключатели Активные / Архив -->
-          <div class="flex gap-2 mb-3">
-            <button id="showActiveOrdersBtn" class="btn-secondary btn-primary px-4 py-2 rounded-lg text-sm font-medium ${adminOrdersMode === 'active' ? '' : ''}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span> Активные</button>
-            <button id="showArchivedOrdersBtn" class="btn-secondary btn-primary px-4 py-2 rounded-lg text-sm font-medium ${adminOrdersMode === 'archived' ? '' : ''}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></span> Корзина (Удаленные)</button>
-          </div>
-          
-          <!-- Фильтр по статусу (чипсы) -->
-          <div class="mb-3">
-            <div class="flex flex-wrap gap-1.5" id="adminOrdersFilterChips">
-              <button class="filter-chip text-xs px-3 py-1.5" data-status="all">Все</button>
-              <button class="filter-chip text-xs px-3 py-1.5" data-status="paid">Оплачен</button>
-              <button class="filter-chip text-xs px-3 py-1.5" data-status="bought">Выкуплен</button>
-              <button class="filter-chip text-xs px-3 py-1.5" data-status="on_sklad_cn">Склад КН</button>
-              <button class="filter-chip text-xs px-3 py-1.5" data-status="in_transit">В пути</button>
-              <button class="filter-chip text-xs px-3 py-1.5" data-status="in_belarus">В РБ</button>
-              <button class="filter-chip text-xs px-3 py-1.5" data-status="delivered">Доставлен</button>
-              <button class="filter-chip text-xs px-3 py-1.5" data-status="cancelled">Отменён</button>
-            </div>
-          </div>
-          
-          <!-- Список заказов -->
-          <div id="adminOrdersList" class="space-y-2 max-h-96 overflow-y-auto">
-            ${await renderAdminOrdersList()}
-          </div>
-
-          <!-- Пагинация -->
-          <div class="flex justify-center gap-2 mt-3">
-            <button id="adminOrdersPrev" class="btn-secondary" ${adminOrdersPage <= 1 ? 'disabled' : ''}><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span></button>
-            <span class="text-white/70 py-2 text-sm">Стр. ${adminOrdersPage} из ${adminOrdersTotalPages}</span>
-            <button id="adminOrdersNext" class="btn-secondary" ${adminOrdersPage >= adminOrdersTotalPages ? 'disabled' : ''}><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span></button>
-          </div>
-          </div>
-
-        <!-- Оплаты на проверке (заявки «Я оплатил» и остатки по заказам) -->
+                <!-- Оплаты на проверке (заявки «Я оплатил» и остатки по заказам) -->
         <div class="glass-card mt-4">
           <div class="rd-section"><h2>Оплаты на проверке</h2><button type="button" class="rd-link" onclick="refreshAdminPayments()">Обновить</button></div>
           <p class="rd-sub">Пока платёжная система не подключена, клиент нажимает «Я оплатил», а вы подтверждаете, когда деньги пришли. Только после этого баланс пополнится или заказ станет оплаченным.</p>

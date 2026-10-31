@@ -13,12 +13,11 @@
   // Что требует внимания: ключ из admin_overview().attention → строка Пульта
   const ATTENTION = [
     { k: 'payments_pending', icon: 'wallet', tone: 'warn', title: 'Оплаты на проверке', text: 'Клиент сообщил об оплате. Проверьте, пришли ли деньги', go: { legacy: 'adminPaymentsList' } },
-    { k: 'orders_to_buy', icon: 'cart', title: 'Оплачены, ждут выкупа', text: 'Выкупите на площадке и запишите номер заказа', go: { legacy: 'adminOrdersList', filter: 'paid' } },
-    { k: 'client_priced', icon: 'calc', tone: 'warn', title: 'Цену посчитал браузер', text: 'Сверьте цену с площадкой перед выкупом', go: { legacy: 'adminOrdersList', filter: 'paid' } },
-    { k: 'awaiting_decision', icon: 'help', title: 'Ждут решения клиента', text: 'Товар подорожал, клиент решает, согласен ли', go: { legacy: 'adminOrdersList', filter: 'awaiting_decision' } },
-    { k: 'awaiting_payment', icon: 'receipt', title: 'Ждут второго платежа', text: 'Клиенту выставлена доплата за доставку', go: { legacy: 'adminOrdersList', filter: 'awaiting_payment' } },
-    { k: 'stuck', icon: 'clock', tone: 'bad', title: 'Без движения больше 7 дней', text: 'Заказы в работе, у которых давно не менялся статус', go: { legacy: 'adminOrdersList', filter: 'all' } },
-    { k: 'tickets', icon: 'message', tone: 'warn', title: 'Обращения без ответа', text: 'Клиенты ждут ответа в поддержке', go: { info: 'Отвечать можно в окне поддержки. Раздел «Обращения» в админке появится на следующих этапах.' } },
+    { k: 'orders_to_buy', icon: 'cart', title: 'Оплачены, ждут выкупа', text: 'Выкупите на площадке и запишите номер заказа', go: { orders: 'paid' } },
+    { k: 'awaiting_decision', icon: 'help', title: 'Ждут решения клиента', text: 'Товар подорожал, клиент решает, согласен ли', go: { orders: 'awaiting_decision' } },
+    { k: 'awaiting_payment', icon: 'receipt', title: 'Ждут второго платежа', text: 'Клиенту выставлена доплата за доставку', go: { orders: 'awaiting_payment' } },
+    { k: 'stuck', icon: 'clock', tone: 'bad', title: 'Без движения больше 7 дней', text: 'Заказы в работе, у которых давно не менялся статус', go: { orders: 'work' } },
+    { k: 'tickets', icon: 'message', tone: 'warn', title: 'Обращения без ответа', text: 'Клиенты ждут ответа в поддержке', go: { desk: true } },
     { k: 'claims', icon: 'shield', title: 'Страховые претензии', text: 'Посылка потерялась или пришла повреждённой', go: { legacy: 'adminClaimsList' } },
     { k: 'disputes', icon: 'alert', tone: 'bad', title: 'Споры по заказам', text: 'Клиент открыл спор', go: { info: 'Споры пока видны только в админской группе Telegram. Раздел появится вместе с «Обращениями».' } },
     { k: 'bonus_orders', icon: 'gift', title: 'Заказы бонусного магазина', text: 'Выдайте клиенту то, что он купил за бонусы', go: { bonus: true } },
@@ -32,7 +31,7 @@
 
   // Разделы Пульта. Пока раздел не перенесён, он ведёт в «Все инструменты» на нужный блок.
   const SECTIONS = [
-    { id: 'orders', icon: 'box', title: 'Заказы', text: 'Статусы, выкуп, склад, трек-номера', go: { legacy: 'adminOrdersList', filter: 'all' }, count: (a) => a.orders_to_buy + a.awaiting_decision + a.awaiting_payment },
+    { id: 'orders', icon: 'box', title: 'Заказы', text: 'Выкуп, склад, доставка, трек-номера', go: { orders: 'work' }, count: (a) => a.orders_to_buy + a.awaiting_decision + a.awaiting_payment },
     { id: 'money', icon: 'wallet', title: 'Деньги', text: 'Оплаты, выплаты, сверка', go: { legacy: 'adminPaymentsList' }, count: (a) => a.payments_pending + a.payouts },
     { id: 'clients', icon: 'users', title: 'Клиенты', text: 'Поиск, баланс, история', go: { legacy: 'adminUsersList' } },
     { id: 'inbox', icon: 'message', title: 'Обращения', text: 'Претензии, Legit-Check, отзывы', go: { legacy: 'adminClaimsList' }, count: (a) => a.claims + a.legit + a.reviews },
@@ -67,14 +66,11 @@
     if (!target) return;
     if (target.info) { U().toast(target.info, 'info'); return; }
     if (target.tab) { switchTab(target.tab); return; }
+    if (target.orders) { window.adminOpenOrders(target.orders); return; }
+    if (target.desk) { window.location.href = '/support-desk.html'; return; }
     if (target.bonus) { openBonusOrders(); return; }
     if (target.content) { openContentSheet(); return; }
     if ('legacy' in target) {
-      if (target.filter) {
-        adminOrdersMode = 'active';
-        adminOrdersFilter = target.filter;
-        adminOrdersPage = 1;
-      }
       window._adminLegacyAnchor = target.legacy;
       if (typeof window.invalidateAdminCache === 'function') window.invalidateAdminCache();
       switchTab('admin_legacy');

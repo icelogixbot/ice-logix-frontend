@@ -2179,6 +2179,11 @@ async function renderMyOrders() {
       const rest = Math.max(0, total - pre);
       const arrived = ['in_belarus', 'ready_for_pickup', 'delivered'].includes(order.status);
       const secondPaid = order.second_payment_paid || order.status === 'delivered';
+      // Доплату выставляет сервер после взвешивания (admin_order_weigh), сумма — в amount_due
+      const waitsSecond = order.status === 'awaiting_payment';
+      const secondDue = Number(order.amount_due) || 0;
+      const secondCheck = manualCheck.has(`${order.id}:SECOND_PAYMENT`);
+      const secondSum = waitsSecond ? secondDue : (Number(order.second_payment_amount) || rest);
       const paidSoFar = Number(order.total_paid || 0);
       const firstPaid = Boolean(order.first_payment_paid);
       const familyWait = order.auto_cancel_reason === 'family_approval_pending';
@@ -2209,7 +2214,7 @@ async function renderMyOrders() {
       const decision = order.status === 'awaiting_decision' ? `
         <div class="oc-alert warn">
           <div class="oc-alert-t">${U.icon('alert', 18)}Продавец поднял цену больше чем на 3%</div>
-          <p>Согласуйте новую цену и мы продолжим, или отмените заказ: все деньги сразу вернутся на баланс.</p>
+          <p>${Number(order.additional_payment_required) > 0 ? `Доплата составит ${fmt(order.additional_payment_required)}. ` : ''}Согласуйте новую цену и мы продолжим, или отмените заказ: все деньги сразу вернутся на баланс.</p>
           <div class="oc-alert-btns">
             <button type="button" class="rd-btn rd-btn-sm" onclick="window.confirmOrderPriceIncrease('${order.id}')">Согласовать</button>
             <button type="button" class="rd-btn rd-btn-sm rd-btn-ghost" onclick="window.cancelOrderDueToPrice('${order.id}')">Отменить заказ</button>
@@ -2232,14 +2237,14 @@ async function renderMyOrders() {
         : `<div class="oc-money">
              <div><span>Сумма заказа</span>${fmt(total)}</div>
              <div><span>1-й этап ${firstTag}</span>${fmt(firstPaid ? pre : firstDue || pre)}</div>
-             <div><span>2-й этап ${secondPaid ? '<em class="ok">оплачен</em>' : arrived && rest > 0 ? '<em class="warn">к оплате</em>' : '<em>после взвешивания</em>'}</span>${secondPaid || arrived ? '' : '≈\u2009'}${fmt(rest)}</div>
+             <div><span>2-й этап ${secondPaid ? '<em class="ok">оплачен</em>' : waitsSecond ? `<em class="warn">${secondCheck ? 'на проверке' : 'к оплате'}</em>` : '<em>после взвешивания</em>'}</span>${secondPaid || waitsSecond ? '' : '≈\u2009'}${fmt(secondSum)}</div>
            </div>
            `;
 
       // Кнопки оплаты и отмены видны и у подарка: сумма скрыта, но заказ всё равно нужно оплатить
       const payActions = `
            ${canPayFirst ? `<button type="button" class="rd-btn rd-btn-block oc-pay" onclick="window.openStagePayment('${order.id}', 'FIRST', ${firstDue})">${U.icon('card', 18)}Оплатить заказ · ${fmt(firstDue)}</button>` : ''}
-           ${arrived && !secondPaid && rest > 0 ? `<button type="button" class="rd-btn rd-btn-block oc-pay" onclick="window.openStagePayment('${order.id}', 'SECOND', ${rest})">${U.icon('card', 18)}Оплатить доставку · ${fmt(rest)}</button>` : ''}
+           ${waitsSecond && !secondPaid && !secondCheck && secondDue > 0 ? `<button type="button" class="rd-btn rd-btn-block oc-pay" onclick="window.openStagePayment('${order.id}', 'SECOND', ${secondDue})">${U.icon('card', 18)}Оплатить доставку · ${fmt(secondDue)}</button>` : ''}
            ${canCancel ? `<button type="button" class="rd-btn rd-btn-ghost rd-btn-block oc-pay" onclick="window.cancelUnpaidOrder('${order.id}', ${firstCheck})">Отменить заказ</button>` : ''}`;
 
       const tracks = [

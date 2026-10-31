@@ -3405,7 +3405,7 @@ let adminOrdersTotalPages = 1;
       // Restore from HTML cache for instant screen switch (0ms delay, no flicker)
       const _ck = (tabName || '') + ':' + (subScreen || '');
       // Оформление всегда строим заново: кнопка оплаты и шторки живут в body, в сохранённом HTML их нет, и сумма зависит от tempOrder
-      const dynamicTabs = ['finances', 'search', 'notifications', 'settings', 'topup', 'wallet', 'cart', 'product', 'neworder', 'admin', 'admin_legacy', 'admin_team'];
+      const dynamicTabs = ['finances', 'search', 'notifications', 'settings', 'topup', 'wallet', 'cart', 'product', 'neworder', 'admin', 'admin_legacy', 'admin_team', 'admin_orders', 'admin_order'];
       // «Мои заказы» тоже всегда свежие: статусы и оплаты меняются на сервере
       if (!dynamicTabs.includes(tabName) && subScreen !== 'myOrders' && _tabCache[_ck] && Date.now() - _tabCache[_ck].ts < 600000) {
         const _cd = document.getElementById('content');
@@ -3508,7 +3508,7 @@ let adminOrdersTotalPages = 1;
       // 3b. Админка: из любого её экрана назад на Пульт, с Пульта — в профиль
       if (currentTab === 'admin' || String(currentTab).startsWith('admin_')) {
         window._isNavigatingBack = true;
-        switchTab(currentTab === 'admin' ? 'profile' : 'admin');
+        switchTab(currentTab === 'admin' ? 'profile' : currentTab === 'admin_order' ? 'admin_orders' : 'admin');
         return true;
       }
 

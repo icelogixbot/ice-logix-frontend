@@ -162,6 +162,14 @@
         if (!adminAuthenticated) { switchTab('admin'); return; }
         contentDiv.innerHTML = await renderAdmin();
         attachAdminLegacyHandlers();
+      } else if (currentTab === 'admin_orders' && isOwner) {
+        if (!adminAuthenticated) { switchTab('admin'); return; }
+        contentDiv.innerHTML = await renderAdminOrders();
+        attachAdminOrdersHandlers();
+      } else if (currentTab === 'admin_order' && isOwner) {
+        if (!adminAuthenticated || !window._adminOrderId) { switchTab('admin'); return; }
+        contentDiv.innerHTML = await renderAdminOrder();
+        attachAdminOrderHandlers();
       } else if (currentTab === 'admin_team' && isOwner) {
         if (!adminAuthenticated) { switchTab('admin'); return; }
         contentDiv.innerHTML = await renderAdminTeam();
