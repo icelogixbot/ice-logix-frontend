@@ -33,11 +33,11 @@
 
   // ShopbyShop тарифы (USD/кг + lead-time дней)
   const SHOPBYSHOP_RATES = {
-    'CN-air':  { rate_usd_per_kg: 10, lead_days: [10, 15] },
-    'CN-sea':  { rate_usd_per_kg: 4,  lead_days: [30, 45] },
-    'PL-road': { rate_usd_per_kg: 8,  lead_days: [5, 10] },
-    'EU-road': { rate_usd_per_kg: 8,  lead_days: [5, 10] },
-    'RU-road': { rate_usd_per_kg: 7,  lead_days: [3, 7] },
+    'CN-air':  { rate_usd_per_kg: 10, lead_days: [25, 35] },
+    'CN-sea':  { rate_usd_per_kg: 4,  lead_days: [25, 35] },
+    'PL-road': { rate_usd_per_kg: 8,  lead_days: [25, 35] },
+    'EU-road': { rate_usd_per_kg: 8,  lead_days: [25, 35] },
+    'RU-road': { rate_usd_per_kg: 7,  lead_days: [25, 35] },
   };
 
   // Доступные источники
@@ -268,7 +268,7 @@
     }
 
     // 5. Доставка ShopbyShop
-    const route = SHOPBYSHOP_RATES[countryInfo.delivery] ?? { rate_usd_per_kg: 10, lead_days: [10, 15] };
+    const route = SHOPBYSHOP_RATES[countryInfo.delivery] ?? { rate_usd_per_kg: 10, lead_days: [25, 35] };
     const deliveryUSD = weightKg * route.rate_usd_per_kg;
     const deliveryBYN = round2(deliveryUSD * (rates.USD_to_BYN || FALLBACK_RATES.USD_to_BYN));
     
@@ -530,7 +530,7 @@
           ✓ Без скрытых комиссий
         </div>
         <div class="text-white/60 text-xs">
-          ⏱️ Срок доставки: ${result.delivery_days[0]}-${result.delivery_days[1]} рабочих дней
+          ⏱️ Срок доставки: около месяца
         </div>
         ${warnsHtml}
       </div>`;
@@ -563,7 +563,7 @@
     lines.push(`👉 ОРИЕНТИРОВОЧНО 2-Й ЭТАП: ~${secondPay.toFixed(2)} Б`);
     lines.push('—'.repeat(40));
     lines.push(`💵 ПОЛНЫЙ ИТОГ:            ${result.total_byn.toFixed(2)} Б`);
-    lines.push(`⏱️ Срок: ${result.delivery_days[0]}-${result.delivery_days[1]} дней`);
+    lines.push('⏱️ Срок: около месяца');
     if (result.warnings.length > 0) {
       lines.push('', '⚠️ Внимание:');
       result.warnings.forEach(w => lines.push('  • ' + w));

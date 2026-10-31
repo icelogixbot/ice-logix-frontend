@@ -132,7 +132,7 @@
       id: 'faq_delivery_terms',
       title: 'Сроки доставки из Китая в Беларусь и РФ',
       keywords: ['сроки', 'срок', 'время', 'сколько', 'дней', 'когда', 'приедет', 'доставка', 'скорость', 'авиа', 'авто', 'минск'],
-      summary: 'Экспресс авиа: 8–12 дней. Автодоставка: 18–25 дней.',
+      summary: 'Доставка из Китая занимает около месяца.',
       details: 'Доставка организуется через нашего официального партнера ShopbyShop. Товар поступает на транзитный склад в Китае, проходит проверку, после чего отправляется в Беларусь или РФ.',
       badge: '⏱️ Сроки',
       color: 'cyan'
@@ -402,7 +402,7 @@
       label: 'Доставка и цены',
       prompts: [
         { ico: 'calc', title: 'Пуховик 850¥ весом 2 кг в Минск', desc: 'Мгновенный расчет доставки с пошлиной', q: 'пуховик 850¥ вес 2 кг в Минск' },
-        { ico: 'clock', title: 'Сроки авиа и авто доставки', desc: 'Сколько дней идет из Китая в Беларусь/РФ', q: 'сроки доставки из Китая' },
+        { ico: 'clock', title: 'Сроки доставки', desc: 'Сколько идёт заказ из Китая в Беларусь и РФ', q: 'сроки доставки из Китая' },
         { ico: 'receipt', title: 'Таможенный лимит 200€', desc: 'Как рассчитывается пошлина при превышении', q: 'таможенный лимит 200 евро' },
         { ico: 'shield', title: 'Страховка груза и гарантия', desc: 'Защита от утери и повреждения при пути', q: 'страховка груза' }
       ]
@@ -1108,7 +1108,7 @@
       summary: 'Все посылки прибывают рейсом из Китая на центральный сортировочный хаб в Минске, проходят таможню и за 24–48 часов доставляются в любой пункт Европочты или СДЭК в вашем городе.',
       bullets: [
         '📦 <span class="font-bold text-white">Пункты выдачи:</span> Более 500 отделений Европочты и СДЭК по всей Беларуси — забирайте рядом с домом.',
-        '⏱️ <span class="font-bold text-white">Сроки:</span> Авиарейс из Китая 8–12 рабочих дней + 1–2 дня пересылка по Беларуси.',
+        '⏱️ <span class="font-bold text-white">Сроки:</span> доставка из Китая занимает около месяца, включая пересылку по Беларуси.',
         '💳 <span class="font-bold text-white">Оплата:</span> Карты любых белорусских банков (Белкарт, Visa, Mastercard), ЕРИП и Оплати без скрытых комиссий.'
       ],
       actionTitle: 'Рассчитать доставку в калькуляторе →',
@@ -1123,7 +1123,7 @@
       summary: 'ICE LOGIX организует бесперебойную доставку оригинальных товаров с Poizon в Российскую Федерацию с выдачей в пунктах СДЭК.',
       bullets: [
         '🚚 <span class="font-bold text-white">Пункты выдачи:</span> Любое удобное отделение СДЭК в вашем городе или курьерская доставка до двери.',
-        '⏱️ <span class="font-bold text-white">Сроки:</span> Авиадоставка 10–14 дней до Москвы и СПб, в регионы РФ 12–16 дней.',
+        '⏱️ <span class="font-bold text-white">Сроки:</span> доставка занимает около месяца.',
         '💳 <span class="font-bold text-white">Оплата:</span> Принимаем карты МИР через защищенный шлюз bePaid.'
       ],
       actionTitle: 'Рассчитать доставку в РФ →',
@@ -1608,7 +1608,7 @@
       bodyHtml = `Обнаружена прямая ссылка на каталог <span class="text-cyan-300 font-bold">${detectedUrl.platformName}</span>. Товар доступен для официального выкупа в Китае, прохождения экспертизы на подлинность (легитчек) и экспресс-доставки в Беларусь или РФ.`;
       bullets = [
         `🔍 <span class="font-bold text-white">Проверка оригинальности:</span> Каждая позиция проверяется экспертами на складе Poizon с выдачей синей пломбы и QR-сертификата.`,
-        `⏱️ <span class="font-bold text-white">Сроки доставки:</span> Экспресс-авиа 8–12 рабочих дней до Минска с дальнейшей отправкой Европочтой или СДЭК.`
+        `⏱️ <span class="font-bold text-white">Сроки доставки:</span> около месяца до Минска, дальше отправка Европочтой или СДЭК.`
       ];
       actions = [
         `<button id="aiOverviewCalcUrlBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md flex items-center gap-1.5">
@@ -1626,7 +1626,7 @@
       bullets = [
         `💰 <span class="font-bold text-white">Итоговая стоимость с доставкой:</span> <span class="text-cyan-300 font-extrabold text-sm">≈ ${aiIntent.totalRub.toLocaleString('ru-RU')} ₽</span> или <span class="text-white font-bold inline-flex items-center gap-0.5">≈ ${aiIntent.totalByn} ${window.bynSign ? window.bynSign({ color: 'white', size: '0.85em' }) : ''}</span>.`,
         `🇨🇳 <span class="font-bold text-white">Выкуп товара в Китае:</span> <span class="inline-flex items-center gap-0.5">${aiIntent.buyCostByn} ${window.bynSign ? window.bynSign({ color: 'white', size: '0.85em' }) : ''}</span> (по курсу ЦБ с официальной комиссией сервиса 20%).`,
-        `✈️ <span class="font-bold text-white">Экспресс-авиадоставка:</span> <span class="inline-flex items-center gap-0.5">${aiIntent.shippingCostByn} ${window.bynSign ? window.bynSign({ color: 'white', size: '0.85em' }) : ''}</span> (тариф $10 за 1 кг). Оплачивается вторым этапом по точному весу.`,
+        `✈️ <span class="font-bold text-white">Доставка:</span> <span class="inline-flex items-center gap-0.5">${aiIntent.shippingCostByn} ${window.bynSign ? window.bynSign({ color: 'white', size: '0.85em' }) : ''}</span> (тариф $10 за 1 кг). Оплачивается вторым этапом по точному весу.`,
         `⚖️ <span class="font-bold text-white">Таможня:</span> Пошлина 0 (стоимость не превышает беспошлинный лимит 200€ на посылку).`
       ];
       actions = [
@@ -1700,7 +1700,7 @@
           : `В вашем профиле еще не сохранен адрес пункта выдачи. Вы сможете указать ближайшее отделение СДЭК или Европочты при первом оформлении заказа.`;
         bullets = [
           `📦 <span class="font-bold text-white">Службы выдачи:</span> Европочта (вся Беларусь), СДЭК (Беларусь и РФ), Белпочта.`,
-          `⏱️ <span class="font-bold text-white">Срок по прибытии:</span> 1–2 дня после прохождения таможенного контроля в Минске.`
+          `⏱️ <span class="font-bold text-white">Срок:</span> доставка занимает около месяца.`
         ];
         actions = [
           `<button id="aiOverviewProfileBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md">
@@ -1732,7 +1732,7 @@
         bodyHtml = `Здравствуйте, ${userCtx.userName}! В вашем профиле пока нет оформленных посылок. Как только вы сделаете первый заказ, здесь в режиме реального времени появится его трек-номер, видеоотчет проверки и статус перемещения.`;
         bullets = [
           `💡 <span class="font-bold text-white">Как сделать заказ:</span> Скопируйте ссылку на интересующую вещь в приложении Poizon и вставьте её в наш калькулятор.`,
-          `⏱️ <span class="font-bold text-white">Сроки доставки:</span> Авиадоставка 8–12 дней с момента поступления на китайский склад.`
+          `⏱️ <span class="font-bold text-white">Сроки доставки:</span> около месяца с момента поступления на склад в Китае.`
         ];
         actions = [
           `<button id="aiOverviewStartOrderBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md">
@@ -1809,9 +1809,9 @@
     else if (qLower.includes('доставк') || qLower.includes('срок') || qLower.includes('когда') || qLower.includes('минск') || qLower.includes('пошлин') || qLower.includes('таможн')) {
       bodyHtml = `Сроки и таможенные правила доставки ICE LOGIX в Беларусь и РФ:`;
       bullets = [
-        `✈️ <span class="font-bold text-white">Экспресс-авиа (ShopbyShop):</span> 8–12 дней от китайского склада до центрального хаба в Минске.`,
+        `✈️ <span class="font-bold text-white">Доставка (ShopbyShop):</span> около месяца от склада в Китае до Минска.`,
         `⚖️ <span class="font-bold text-white">Таможенный лимит:</span> Беспошлинно до 200€ и 31 кг на одну посылку (при превышении — 15% от суммы превышения).`,
-        `🚚 <span class="font-bold text-white">Выдача:</span> СДЭК и Европочта по всей Беларуси и РФ (1–2 дня после выпуска с таможни).`
+        `🚚 <span class="font-bold text-white">Выдача:</span> СДЭК и Европочта по всей Беларуси и РФ.`
       ];
       actions = [
         `<button id="aiOverviewOpenCalcBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md">

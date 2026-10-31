@@ -571,7 +571,7 @@
     });
     const days = t.breakdown?.delivery_days;
     const count = t.items.reduce((s, it) => s + (Number(it.quantity) || 1), 0);
-    setText('coHeadSub', `${count} ${plural(count, 'вещь', 'вещи', 'вещей')}${days && days[1] ? ` · ${days[0]}–${days[1]} рабочих дней` : ''}`);
+    setText('coHeadSub', `${count} ${plural(count, 'вещь', 'вещи', 'вещей')}${days && days[1] ? ' · доставка около месяца' : ''}`);
     const box = $('coBreakdown');
     if (box) box.innerHTML = breakdownHtml(t);
   }

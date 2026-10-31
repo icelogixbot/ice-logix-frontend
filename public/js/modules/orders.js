@@ -2096,15 +2096,9 @@ function getDeliveryCountdownText(order) {
   }
   
   const createdDate = new Date(order.created_at);
-  let daysMin = 10;
-  let daysMax = 15;
-  if (order.source_country === 'PL') {
-    daysMin = 14;
-    daysMax = 20;
-  } else if (order.source_country === 'RU') {
-    daysMin = 3;
-    daysMax = 5;
-  }
+  // Доставка занимает около месяца
+  let daysMin = 25;
+  let daysMax = 35;
   
   if (window.buyerVacation && window.buyerVacation.active) {
     const vDays = window.buyerVacation.days || 0;

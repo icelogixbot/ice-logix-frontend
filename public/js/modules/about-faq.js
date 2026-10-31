@@ -33,7 +33,7 @@ async function renderAboutUs() {
     <div class="rd-section"><h2>Условия</h2></div>
     <div class="rd-card rd-list ab-terms">
       <div class="rd-row"><span class="rd-ico">${U.icon('percent', 22)}</span><span class="rd-row-body"><span class="rd-row-title">Комиссия 20%</span><span class="rd-row-text">За выкуп, упаковку и логистику. С неё платим налоги, скрытых наценок нет.</span></span></div>
-      <div class="rd-row"><span class="rd-ico">${U.icon('plane', 22)}</span><span class="rd-row-body"><span class="rd-row-title">Доставка 10 $ за кг</span><span class="rd-row-text">10–15 дней через партнёра ShopbyShop, по фактическому или объёмному весу.</span></span></div>
+      <div class="rd-row"><span class="rd-ico">${U.icon('plane', 22)}</span><span class="rd-row-body"><span class="rd-row-title">Доставка 10 $ за кг</span><span class="rd-row-text">Около месяца через партнёра ShopbyShop, цена по фактическому или объёмному весу.</span></span></div>
       <div class="rd-row"><span class="rd-ico">${U.icon('globe', 22)}</span><span class="rd-row-body"><span class="rd-row-title">Откуда возим</span><span class="rd-row-text">Китай: Poizon, Taobao, 1688. Европа: Zalando. Россия: Lamoda.</span></span></div>
     </div>
 

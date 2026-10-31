@@ -277,7 +277,7 @@
           <div class="ct-info">
             <div class="ct-title wb-product-title">${title}</div>
             ${variant ? `<div class="ct-variant wb-product-variant">${U.esc(variant)}</div>` : ''}
-            <div class="ct-ship">${U.icon('truck', 14)}<span>Доставим за 8–12 дней</span></div>
+            <div class="ct-ship">${U.icon('truck', 14)}<span>Доставим примерно за месяц</span></div>
             <div class="ct-bottom">
               <span class="ct-price wb-current-price"><span class="wb-row-price" data-unit-price="${it.priceByn}">${fmt(it.priceByn * it.quantity)}</span>${sign()}</span>
               <div class="wb-stepper ct-stepper">
