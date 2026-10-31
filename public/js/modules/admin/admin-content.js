@@ -44,7 +44,7 @@
   // Шторка с формой; «Сохранить» в липком низу
   function openForm(o) {
     return U().sheet({
-      title: o.title,
+      title: esc(o.title),
       html: `<form class="rd-ask ad-form ad-st-form" novalidate>${o.body}<p class="rd-ask-err" hidden></p>
         <div class="ad-st-foot"><button type="submit" class="rd-btn rd-btn-block" data-submit>${esc(o.submit || 'Сохранить')}</button></div></form>`,
       onOpen: (wrap, close) => {
@@ -304,7 +304,7 @@
       wrap.querySelector('[data-add]').onclick = () => { closeFn(); lessonForm(course, null, ctx, rows); };
     };
     U().sheet({
-      title: course.title,
+      title: esc(course.title),
       html: '<div id="adCtLessons">' + AD.loadingHtml(2) + '</div>',
       onOpen: async (wrap, close) => {
         closeFn = close;
@@ -409,7 +409,7 @@
         ctx.reload();
       };
       ctx.cta('Сохранить', async () => {
-        try { await saveRun(); } catch (x) { if (x instanceof VErr) U().toast(x.message, 'error'); else AD.fail(x, 'Не получилось сохранить'); }
+        try { await saveRun(); } catch (x) { if (x instanceof VErr) U().toast(x.message, 'bad'); else AD.fail(x, 'Не получилось сохранить'); }
       });
     });
   }

@@ -38,6 +38,8 @@
     { id: 'store', icon: 'store', title: 'Витрина', text: 'Товары, акции, промокоды', go: { tab: 'admin_store' } },
     { id: 'content', icon: 'text', title: 'Контент', text: 'Тексты, вопросы, Академия, отзывы', go: { tab: 'admin_content' } },
     { id: 'team', icon: 'crown', title: 'Сотрудники', text: 'Кто работает и что может', go: { tab: 'admin_team' } },
+    { id: 'settings', icon: 'sliders', title: 'Настройки', text: 'Оплата, реквизиты, ставки, рефералы', go: { tab: 'admin_settings' } },
+    { id: 'system', icon: 'shield', title: 'Система', text: 'Службы, очереди, журнал действий', go: { tab: 'admin_system' } },
     { id: 'all', icon: 'grid', title: 'Все инструменты', text: 'Старый вид, пока всё не перенесено', go: { legacy: null } },
   ];
 
@@ -160,7 +162,7 @@
 
   function sectionsHtml(a, role) {
     const I = U().icon;
-    return `<div class="ad-tiles">${SECTIONS.filter((s) => s.id !== 'team' || role === 'owner' || role === 'admin').map((s) => {
+    return `<div class="ad-tiles">${SECTIONS.filter((s) => (s.id !== 'team' || role === 'owner' || role === 'admin') && ((s.id !== 'settings' && s.id !== 'system') || role === 'owner')).map((s) => {
       const c = s.count ? n(s.count(a)) : 0;
       return `<button type="button" class="rd-card ad-tile" data-section="${s.id}">
         <span class="rd-ico">${I(s.icon, 22)}</span>

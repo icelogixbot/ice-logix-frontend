@@ -1413,110 +1413,6 @@ async function showPersonalDataForm() {
   };
 }
 
-async function showOwnerControlsForm() {
-  const modal = document.createElement('div');
-  modal.className = 'full-screen-modal-overlay page-enter';
-  modal.id = 'ownerControlsModal';
-  modal.innerHTML = `
-    <div class="full-screen-modal-header">
-      <button type="button" class="global-back-btn !mb-0" id="closeOwnerControlsBtn" title="Назад">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
-      </button>
-      <div class="text-center">
-        <h3 class="text-white font-bold text-sm truncate">Управление тарифами</h3>
-        <p class="text-white/40 text-[10px]">Настройки отпуска и буфера</p>
-      </div>
-      <div style="width: 48px;"></div>
-    </div>
-    
-    <div class="full-screen-modal-body space-y-5">
-      <!-- Раздел: Режим отпуска -->
-      <div class="space-y-3">
-        <h4 class="text-cyan-400 font-bold text-xs uppercase tracking-wider flex items-center gap-1">
-          <span>🌴 Режим отпуска байера</span>
-        </h4>
-        <div class="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
-          <span class="text-white text-sm font-semibold">Активировать отпуск</span>
-          <input type="checkbox" id="ocVacationActive" class="w-5 h-5 accent-cyan-500">
-        </div>
-        <div>
-          <label class="text-white/60 text-xs font-semibold block mb-1">Количество дней отпуска</label>
-          <input type="number" id="ocVacationDays" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="Напр. 7" min="0">
-          <p class="text-white/40 text-[10px] mt-1 leading-relaxed">Эти дни будут автоматически добавлены ко всем срокам доставки на сайте, а пользователям будет показан предупреждающий баннер в калькуляторе и корзине.</p>
-        </div>
-      </div>
-      
-      <!-- Раздел: Курсовой буфер -->
-      <div class="space-y-3 pt-2 border-t border-white/5">
-        <h4 class="text-cyan-400 font-bold text-xs uppercase tracking-wider flex items-center gap-1">
-          <span>💱 Курсовой буфер безопасности (P2P эквивалент)</span>
-        </h4>
-        <div>
-          <label class="text-white/60 text-xs font-semibold block mb-1">Размер буфера (%)</label>
-          <input type="number" id="ocExchangeBuffer" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm bg-white/5 text-white" placeholder="Напр. 3" min="0" max="20" step="0.5">
-          <p class="text-white/40 text-[10px] mt-1 leading-relaxed">Процент надбавки ко всем курсам валют НБРБ для защиты от резких скачков (по умолчанию +3%). Рекомендуется устанавливать буфер на уровне +3%..+5% для полного соответствия коммерческому курсу Binance P2P (USDT/BYN).</p>
-        </div>
-      </div>
-    </div>
-    
-    <div class="p-4 border-t border-white/10 bg-slate-900/95 flex gap-3 flex-shrink-0" style="padding-bottom: calc(16px + env(safe-area-inset-bottom, 16px));">
-      <button id="saveOwnerControlsBtn" class="btn-primary flex-1 py-3.5 rounded-xl font-bold transition flex items-center justify-center gap-2">
-        ${ix('check')} Сохранить
-      </button>
-      <button id="cancelOwnerControlsBtn" class="btn-secondary flex-1 py-3.5 rounded-xl font-bold transition flex items-center justify-center gap-2">
-        Отмена
-      </button>
-    </div>
-  `;
-  document.body.appendChild(modal);
-
-  // Отпуск байера и буфер курса — общие настройки сервиса (таблица settings, читает get_public_config)
-  try {
-    const { data: cfg, error } = await supabaseClient.rpc('get_public_config');
-    if (error) throw error;
-    const v = (cfg && cfg.buyer_vacation) || { active: false, days: 0 };
-    document.getElementById('ocVacationActive').checked = !!v.active;
-    document.getElementById('ocVacationDays').value = v.days || '';
-    const buf = cfg && cfg.exchange_buffer !== undefined && cfg.exchange_buffer !== null ? cfg.exchange_buffer : 3;
-    document.getElementById('ocExchangeBuffer').value = buf;
-  } catch (err) {
-    console.error('Ошибка загрузки настроек:', err);
-    glassToast('Не удалось загрузить настройки', { kind: 'error' });
-  }
-
-  const closeForm = () => modal.remove();
-  document.getElementById('closeOwnerControlsBtn').onclick = closeForm;
-  document.getElementById('cancelOwnerControlsBtn').onclick = closeForm;
-
-  document.getElementById('saveOwnerControlsBtn').onclick = async () => {
-    const vacationActive = document.getElementById('ocVacationActive').checked;
-    const vacationDays = parseInt(document.getElementById('ocVacationDays').value) || 0;
-    const exchangeBuffer = parseFloat(document.getElementById('ocExchangeBuffer').value) || 0;
-
-    try {
-      const { data: vac, error: vErr } = await supabaseClient.rpc('admin_set_vacation', { p_active: vacationActive, p_days: vacationDays });
-      if (vErr) throw vErr;
-      const { error: bErr } = await supabaseClient.from('settings')
-        .upsert({ key: 'exchange_buffer', value: exchangeBuffer, updated_at: new Date().toISOString() }, { onConflict: 'key' });
-      if (bErr) throw bErr;
-      const updatedSettings = { buyer_vacation: vac || { active: vacationActive, days: vacationDays }, exchange_buffer: exchangeBuffer };
-
-      // Update global states instantly
-      window.buyerVacation = updatedSettings.buyer_vacation;
-      window.iceLogixPricing.CONFIG.currency_buffer_pct = exchangeBuffer;
-
-      tgUtil.haptic('success');
-      glassToast('Настройки тарифов сохранены!', { kind: 'success' });
-      closeForm();
-    } catch (err) {
-      console.error('Ошибка сохранения настроек владельца:', err);
-      tgUtil.alert('Не удалось сохранить настройки: ' + err.message);
-    }
-  };
-}
-
 
 function showMeasurementsForm() {
   const modal = document.createElement('div');
@@ -1784,7 +1680,6 @@ if (typeof showCurrencyAlertsModal === 'function') window.showCurrencyAlertsModa
 if (typeof renderAdminTicketsList === 'function') window.renderAdminTicketsList = renderAdminTicketsList;
 if (typeof showRecoveryCodeModal === 'function') window.showRecoveryCodeModal = showRecoveryCodeModal;
 if (typeof showPersonalDataForm === 'function') window.showPersonalDataForm = showPersonalDataForm;
-if (typeof showOwnerControlsForm === 'function') window.showOwnerControlsForm = showOwnerControlsForm;
 if (typeof showMeasurementsForm === 'function') window.showMeasurementsForm = showMeasurementsForm;
 if (typeof downloadCustomsInvoice === 'function') window.downloadCustomsInvoice = downloadCustomsInvoice;
 if (typeof showFortuneWheel === 'function') window.showFortuneWheel = showFortuneWheel;
