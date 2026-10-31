@@ -371,13 +371,6 @@ input:focus, textarea:focus, select:focus { border-color: var(--ui-blue) !import
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
 
-html.light-theme { --ui-bg: #f3f8fc; --ui-text: #102235; --ui-text-soft: #4d6275; --ui-text-muted: #71879a; }
-html.light-theme body { background-image: radial-gradient(ellipse 90% 45% at 50% -10%, rgba(93,176,229,.18), transparent 68%) !important; }
-html.light-theme .glass-card, html.light-theme .product-card, html.light-theme .rate-tracker-card { background: rgba(255,255,255,.86) !important; box-shadow: 0 12px 30px rgba(31,85,118,.10) !important; }
-html.light-theme .app-header, html.light-theme .tab-bar { background: rgba(255,255,255,.84) !important; }
-html.light-theme input, html.light-theme textarea, html.light-theme select { background: #fff !important; color: var(--ui-text) !important; }
-html.light-theme .text-white { color: var(--ui-text) !important; }
-html.light-theme .app-footer { background: rgba(255,255,255,.88) !important; }
 
 @media (min-width: 768px) {
   .main-content { max-width: 760px; margin: 0 auto; }
@@ -442,11 +435,6 @@ body::before {
   background-image: none !important;
 }
 
-html.light-theme,
-html.light-theme body,
-html.light-theme #app {
-  background: #000000 !important;
-  background-image: none !important;
 }
 
 /*! end ICE LOGIX premium redesign */

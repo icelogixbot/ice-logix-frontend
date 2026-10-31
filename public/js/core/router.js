@@ -360,6 +360,7 @@ function applyTheme(theme) {
   }
   // Force layout reflow only when theme actually changed
   void document.documentElement.offsetHeight;
+  if (typeof window.syncThemeChrome === 'function') window.syncThemeChrome();
   setTimeout(() => {
     document.documentElement.classList.remove('no-transitions');
   }, 50);

@@ -5,6 +5,20 @@
       document.documentElement.classList.add('light-theme');
     }
 
+    // Системная шапка и фон Telegram (и theme-color браузера) в цвет фона текущей темы.
+    // Цвет берём из --rd-bg: чёрный в тёмной теме, светлый в светлой.
+    function syncThemeChrome() {
+      const color = getComputedStyle(document.documentElement).getPropertyValue('--rd-bg').trim() || '#000000';
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', color);
+      const tg = window.Telegram?.WebApp;
+      if (!tg) return;
+      try { tg.setHeaderColor?.(color); } catch {}
+      try { tg.setBackgroundColor?.(color); } catch {}
+      try { tg.setBottomBarColor?.(color); } catch {}
+    }
+    window.syncThemeChrome = syncThemeChrome;
+
     const i18n = {
       ru: {
         tab_home: 'Главная',
@@ -2472,10 +2486,8 @@ let adminOrdersTotalPages = 1;
           try { tg.expand(); } catch {}
           // Enable closing-confirmation so accidental swipes don't kill the WebApp mid-checkout.
           try { tg.enableClosingConfirmation?.(); } catch {}
-          // Match the Telegram chrome (header + background + bottom bar) to pure black (#000000) so the WebApp blends in seamlessly.
-          try { tg.setHeaderColor?.('#000000'); } catch {}
-          try { tg.setBackgroundColor?.('#000000'); } catch {}
-          try { tg.setBottomBarColor?.('#000000'); } catch {}
+          // Шапка, фон и нижняя панель Telegram в цвет фона приложения: чёрный или светлый по теме
+          if (typeof window.syncThemeChrome === 'function') window.syncThemeChrome();
           // Mark <body> so CSS hides duplicate in-page back buttons when native BackButton is available.
           if (tg?.BackButton) document.body.classList.add('tg-native-back');
           const user = tg.initDataUnsafe?.user;
@@ -2947,7 +2959,7 @@ let adminOrdersTotalPages = 1;
         }, 100);
       } else {
         isRegistered = true;
-        applyTheme('dark');
+        applyTheme(localStorage.getItem('theme') === 'light' ? 'light' : 'dark');
         
         // Fallback: Create default row in users table client-side if missing
         const { data: { session } } = await supabaseClient.auth.getSession();

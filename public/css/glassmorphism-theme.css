@@ -50,34 +50,6 @@
       animation: none !important;
     }
     
-        html.light-theme {
-      --bg-gradient-start: #FFFFFF;
-      --bg-gradient-mid: #FFFFFF;
-      --bg-gradient-end: #FFFFFF;
-      
-      --glass-bg: rgba(255, 255, 255, 0.7);
-      --glass-bg-strong: rgba(255, 255, 255, 0.9);
-      --glass-border: rgba(200, 220, 240, 0.5);
-      --glass-border-strong: rgba(150, 200, 230, 0.6);
-      
-      --text-primary: #0F2847;
-      --text-secondary: rgba(15, 40, 71, 0.75);
-      --text-muted: rgba(15, 40, 71, 0.5);
-      
-      --shadow-glow: 0 0 30px rgba(91, 191, 235, 0.4);
-      --shadow-card: 0 8px 32px rgba(91, 191, 235, 0.15);
-      --shadow-island: 0 4px 24px rgba(91, 191, 235, 0.1), 0 0 40px rgba(91, 191, 235, 0.2);
-    }
-    html.light-theme body::before {
-      opacity: 0.5;
-      background-image: 
-        radial-gradient(2px 2px at 20% 30%, rgba(91,191,235,0.3) 0%, transparent 100%),
-        radial-gradient(2px 2px at 40% 70%, rgba(91,191,235,0.2) 0%, transparent 100%),
-        radial-gradient(3px 3px at 70% 20%, rgba(91,191,235,0.25) 0%, transparent 100%),
-        radial-gradient(2px 2px at 90% 50%, rgba(91,191,235,0.2) 0%, transparent 100%),
-        radial-gradient(2px 2px at 10% 80%, rgba(91,191,235,0.15) 0%, transparent 100%),
-        radial-gradient(3px 3px at 60% 90%, rgba(91,191,235,0.2) 0%, transparent 100%);
-    }
     
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -783,14 +755,6 @@
       text-overflow: ellipsis;
     }
 
-    html.light-theme .story-icon {
-      background: #f1f5f9;
-      border-color: rgba(0, 0, 0, 0.06);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-    }
-    html.light-theme .story-label {
-      color: #1e293b;
-    }
     
     /* ═══════════════════════════════════════════════════════════════════════════
        BANNER CAROUSEL (WB Inspired Auto-scroll Slider)
@@ -1829,144 +1793,6 @@
       }
     }
     
-    /* Light theme overrides */
-    html.light-theme,
-    html.light-theme body { 
-      background: linear-gradient(165deg, #E8F4FC 0%, #F5FAFD 50%, #D9EAF5 100%) !important; 
-      background-attachment: fixed !important;
-      background-repeat: no-repeat !important;
-      background-size: cover !important;
-    }
-    html.light-theme .app-header,
-    html.light-theme .tab-bar { 
-      background: linear-gradient(135deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.7) 100%) !important;
-      border-color: rgba(91,191,235,0.3) !important;
-      box-shadow: 0 4px 24px rgba(91, 191, 235, 0.1), 0 0 40px rgba(91, 191, 235, 0.15) !important;
-    }
-    
-    /* Text Color Mappings for Light Theme */
-    html.light-theme .text-white { color: #0F2847 !important; }
-    html.light-theme .text-white\/90 { color: rgba(15, 40, 71, 0.9) !important; }
-    html.light-theme .text-white\/80 { color: rgba(15, 40, 71, 0.8) !important; }
-    html.light-theme .text-white\/70 { color: rgba(15, 40, 71, 0.75) !important; }
-    html.light-theme .text-white\/60 { color: rgba(15, 40, 71, 0.65) !important; }
-    html.light-theme .text-white\/50 { color: rgba(15, 40, 71, 0.5) !important; }
-    html.light-theme .text-white\/40 { color: rgba(15, 40, 71, 0.4) !important; }
-    html.light-theme .text-white\/30 { color: rgba(15, 40, 71, 0.3) !important; }
-    html.light-theme .text-white\/20 { color: rgba(15, 40, 71, 0.2) !important; }
-    
-    html.light-theme .text-slate-400 { color: rgba(15, 40, 71, 0.55) !important; }
-    html.light-theme .text-slate-300 { color: rgba(15, 40, 71, 0.75) !important; }
-    html.light-theme .text-cyan-400 { color: #0284c7 !important; }
-    html.light-theme .text-cyan-300 { color: #0369a1 !important; }
-    
-    /* Background & Border Mappings for Light Theme */
-    html.light-theme .bg-white\/5 { background-color: rgba(15, 40, 71, 0.04) !important; }
-    html.light-theme .bg-white\/10 { background-color: rgba(15, 40, 71, 0.08) !important; }
-    html.light-theme .bg-white\/15 { background-color: rgba(15, 40, 71, 0.12) !important; }
-    html.light-theme .bg-white\/20 { background-color: rgba(15, 40, 71, 0.16) !important; }
-    
-    html.light-theme .border-white\/5 { border-color: rgba(15, 40, 71, 0.05) !important; }
-    html.light-theme .border-white\/10 { border-color: rgba(15, 40, 71, 0.1) !important; }
-    html.light-theme .border-white\/20 { border-color: rgba(15, 40, 71, 0.18) !important; }
-    html.light-theme .border-white\/30 { border-color: rgba(15, 40, 71, 0.25) !important; }
-    
-    /* Card Styles — Arctic Premium */
-    html.light-theme .glass-card {
-      background: var(--ice-light-surface) !important;
-      border-color: var(--ice-light-line) !important;
-      box-shadow: 0 8px 32px rgba(26, 123, 181, 0.06) !important;
-    }
-    html.light-theme .product-card {
-      background: rgba(255,255,255,0.75) !important;
-      border: 1px solid var(--ice-light-line) !important;
-      border-radius: 24px !important;
-      box-shadow: 0 8px 32px rgba(26, 123, 181, 0.06) !important;
-    }
-    
-    /* Modals & Slate elements */
-    html.light-theme .bg-\[\#1e293b\],
-    html.light-theme .bg-slate-900,
-    html.light-theme .bg-slate-900\/90,
-    html.light-theme .bg-slate-900\/95,
-    html.light-theme .bg-slate-800,
-    html.light-theme .bg-slate-950\/40,
-    html.light-theme .bg-slate-950\/60 {
-      background-color: #FFFFFF !important;
-      color: #0F2847 !important;
-      border-color: rgba(91, 191, 235, 0.3) !important;
-    }
-    html.light-theme .bg-slate-900\/40 {
-      background-color: rgba(184, 224, 246, 0.3) !important;
-    }
-    html.light-theme .bg-slate-900\/50 {
-      background-color: rgba(184, 224, 246, 0.4) !important;
-    }
-    html.light-theme .alert-modal-card {
-      background: rgba(255, 255, 255, 0.95) !important;
-      color: #0F2847 !important;
-    }
-    html.light-theme .rate-tracker-card {
-      background: rgba(15, 40, 71, 0.05) !important;
-      border-color: rgba(15, 40, 71, 0.1) !important;
-    }
-    
-    /* Settings Modal specifics */
-    html.light-theme #settingsModalCard {
-      background: #FFFFFF !important;
-      border-color: rgba(91, 191, 235, 0.4) !important;
-      box-shadow: 0 10px 30px rgba(91, 191, 235, 0.25) !important;
-    }
-    html.light-theme #settingsModalCard .settings-tab:not(.text-cyan-400) {
-      color: rgba(26, 59, 92, 0.6) !important;
-    }
-    html.light-theme #settingsModalCard svg:not(.text-cyan-400):not(.text-purple-400) {
-      color: #1a3a5c !important;
-    }
-    html.light-theme #settingsModalCard .settings-row-bg {
-      background: rgba(26, 59, 92, 0.04) !important;
-      border-color: rgba(26, 59, 92, 0.08) !important;
-    }
-    html.light-theme #settingsModalCard .settings-action-btn {
-      background: rgba(26, 59, 92, 0.05) !important;
-      border-color: rgba(26, 59, 92, 0.1) !important;
-      color: #1a3a5c !important;
-    }
-    html.light-theme #settingsModalCard .settings-action-btn span {
-      color: #1a3a5c !important;
-    }
-    html.light-theme #settingsModalCard .settings-action-btn svg {
-      color: #1a3a5c !important;
-    }
-    html.light-theme #settingsModalCard .theme-btn {
-      border-color: rgba(91, 191, 235, 0.2) !important;
-    }
-    html.light-theme #settingsModalCard .theme-btn.border-cyan-500 {
-      border-color: var(--ice-primary) !important;
-      background-color: rgba(91, 191, 235, 0.1) !important;
-    }
-    html.light-theme #settingsModalCard .theme-btn:not(.border-cyan-500) {
-      background: rgba(255, 255, 255, 0.5) !important;
-    }
-    html.light-theme #settingsModalCard input:not(:checked) + div {
-      background: rgba(26, 59, 92, 0.15) !important;
-    }
-    html.light-theme input::placeholder, 
-    html.light-theme textarea::placeholder {
-      color: rgba(15, 40, 71, 0.4) !important;
-    }
-    html.light-theme select option {
-      background-color: #FFFFFF !important;
-      color: #0F2847 !important;
-    }
-    html.light-theme .btn-secondary {
-      background: rgba(15, 40, 71, 0.08) !important;
-      color: #0F2847 !important;
-      border-color: rgba(15, 40, 71, 0.15) !important;
-    }
-    html.light-theme .btn-secondary:hover {
-      background: rgba(15, 40, 71, 0.12) !important;
-    }
 
     /* ═══════════════════════════════════════════════════════════════════════════
        ICE LOGIX ICON SYSTEM
