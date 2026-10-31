@@ -261,6 +261,10 @@
           ${gallery.map((src, i) => `<div class="sk-slide"><img src="${esc(src)}" alt="" ${i ? 'loading="lazy"' : ''}></div>`).join('')}
         </div>
         ${gallery.length ? `<div class="sk-count">${gallery.length > 1 ? `${gallery.length} фото. Нажмите, чтобы рассмотреть` : 'Нажмите на фото, чтобы рассмотреть'}</div>` : ''}
+        <button type="button" class="sk-variant" id="skVariant" hidden>
+          <img alt="">
+          <span class="sk-variant-txt"><span class="sk-variant-cap">Фото выбранного варианта</span><span class="sk-variant-name" id="skVariantName"></span></span>
+        </button>
 
         <div class="sk-title">${esc(productData.title_ru || productData.title || 'Товар с Pinduoduo')}</div>
         <div class="sk-price">
@@ -448,6 +452,30 @@
       window.PhotoViewer.open(all.map((x) => x.getAttribute('src')), all.indexOf(im));
     });
 
+    // Фото выбранного варианта из шторки PDD (sku_photos: «цвет|размер» или просто цвет). Нет фото — блока нет
+    const skuPhotos = productData.sku_photos || {};
+    function variantPhotoUrl() {
+      const vis = visualGroup ? selectedState[visualGroup.id] : null;
+      const size = sizeGroup ? selectedState[sizeGroup.id] : null;
+      if (visualGroup && sizeGroup) return skuPhotos[`${rawOf(vis)}|${rawOf(size)}`] || skuPhotos[rawOf(vis)] || '';
+      return skuPhotos[rawOf(vis || size)] || '';
+    }
+    function updateVariantPhoto() {
+      const box = $('#skVariant');
+      if (!box) return;
+      const url = variantPhotoUrl();
+      if (!url) { box.hidden = true; return; }
+      const img = box.querySelector('img');
+      if (img.getAttribute('src') !== url) img.src = url;
+      $('#skVariantName').textContent = getCombinedSummary();
+      box.hidden = false;
+    }
+    $('#skVariant').addEventListener('click', () => {
+      const url = variantPhotoUrl();
+      if (url && window.PhotoViewer) window.PhotoViewer.open([url], 0);
+    });
+    updateVariantPhoto();
+
     const qtyValEl = $('#skuQtyVal');
     $('#skuQtyMinus').onclick = () => {
       if (currentQty <= 1) return;
@@ -622,6 +650,7 @@
         recomputePrice();
         updatePriceDisplay();
         updateSummaryDisplay();
+        updateVariantPhoto();
       };
     });
 
