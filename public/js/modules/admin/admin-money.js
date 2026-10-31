@@ -43,12 +43,13 @@
   };
   const REFUND_DEST = { BALANCE: 'на баланс', CARD: 'на карту' };
   const PAYOUT_STATUS = { pending: ['Ждёт решения', 'warn'], approved: ['Одобрена, переведите', 'warn'], completed: ['Переведено', 'ok'], rejected: ['Отклонена', 'bad'] };
-  const ISSUE_SHORT = { paid_mismatch: 'Оплата не сходится', refund_mismatch: 'Возвраты не сходятся', refund_balance_mismatch: 'Возвраты и журнал', cancelled_held: 'Деньги не вернули' };
+  const ISSUE_SHORT = { paid_mismatch: 'Оплата не сходится', refund_mismatch: 'Возвраты не сходятся', refund_balance_mismatch: 'Возвраты и журнал', cancelled_held: 'Деньги не вернули', overpaid: 'Переплата' };
   const ISSUE_TEXT = {
     paid_mismatch: '«Оплачено» в заказе не равно сумме полученных платежей и списаний с баланса.',
     refund_mismatch: '«Возвращено» в заказе не равно сумме записей о возвратах.',
     refund_balance_mismatch: 'Возвраты на баланс не совпадают с зачислениями в журнале баланса.',
     cancelled_held: 'Заказ отменён, но клиенту вернули не всё, что он заплатил.',
+    overpaid: 'Клиент заплатил больше суммы заказа. Если это второй платёж или доставка — проверьте и отметьте; иначе верните лишнее.',
   };
   const EXPENSE_CATS = ['Реклама', 'Доставка', 'Упаковка', 'Сервисы и подписки', 'Зарплата', 'Прочее'];
 
