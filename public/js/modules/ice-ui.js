@@ -217,6 +217,7 @@
 
   // ── Шторка снизу (для коротких выборов: размер, способ и т.п.) ──
   // o.cls — доп. класс обёртки (lk-over: шторка поверх экрана кода-пароля, app-lock.js)
+  // o.onRefresh — async-функция: потянули тело шторки вниз у верха → обновить содержимое
   function sheet(o) {
     const opt = o || {};
     const wrap = document.createElement('div');
@@ -229,6 +230,7 @@
         <div class="rd-sheet-body">${opt.html || ''}</div>
       </div>`;
     document.body.appendChild(wrap);
+    if (typeof opt.onRefresh === 'function' && window.PullRefresh) window.PullRefresh.bind(wrap, opt.onRefresh);
     requestAnimationFrame(() => wrap.classList.add('show'));
     const close = () => {
       wrap.classList.remove('show');

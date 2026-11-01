@@ -1,8 +1,12 @@
 // Потянуть вниз у верха страницы — обновить текущий экран (как в Wildberries).
 // Страница сама едет вниз за пальцем, в освободившемся месте проявляется спиннер.
 // Не перезагружает приложение: сбрасывает кэши данных и заново рисует экран через renderCurrentScreen().
-// Не включается на экранах с вводом (заказ, калькулятор, корзина, проверка паспорта), внутри
-// окон и шторок (всё, что position: fixed) и внутри блоков, прокрученных не к самому верху.
+// Работает на всех экранах и тянется в том числе за шапку и нижнее меню.
+// Экраны с вводом (заказ, калькулятор, проверка паспорта) не перерисовываются, чтобы не потерять введённое:
+// обновляются только данные (настройки, профиль), экран остаётся как есть.
+// Окна и шторки (position: fixed) жест не берут, если сами не объявили обновление: UI.sheet({ onRefresh }) или
+// PullRefresh.bind(элемент, async () => …) — тогда тянется содержимое шторки и вызывается их функция.
+// Блок, прокрученный не к самому верху, сам забирает жест.
 // Горизонтальные ленты (баннеры, карточки) жест не блокируют: вбок листает лента, вниз — обновление.
 (function () {
   if (window.__pullRefreshInit) return;
@@ -18,13 +22,17 @@
   const EASE = 'cubic-bezier(.22,.9,.3,1)';
   const IN_MS = 260;         // сколько новый экран проявляется на месте скелетона
   const HOLD_MS = 340;       // пока страница доезжает до спиннера, экран не перерисовываем (тяжёлая работа сбила бы анимацию)
-  const BLOCKED_TABS = ['neworder', 'calculator', 'cart', 'legitcheck', 'kyc', 'checkout'];
+  const INPUT_TABS = ['neworder', 'calculator', 'legitcheck', 'kyc', 'checkout'];   // экраны с вводом: перерисовывать нельзя
+  const CHROME = '.app-header, .tab-bar, .rd-cta, .wb-sticky-dock';                // закреплённые части самого экрана: жест через них идёт как обычно
 
   let el = null;
   let startY = 0, startX = 0, pull = 0;
   let tracking = false, armed = false, refreshing = false, releasing = false, ready = false;
   let headerBottom = 0, firstTop = 0;   // где кончается шапка и где начинается первый блок экрана (на старте жеста)
   let raf = 0, backTimer = 0;
+  let host = null;          // что едет вниз за пальцем: #content или тело шторки
+  let sheetFn = null;       // обновление шторки (если жест начат в ней)
+  let light = false;        // обновление без перерисовки экрана (экраны с вводом)
 
   function build() {
     if (el) return el;
@@ -44,6 +52,9 @@
   function haptic(t) { try { if (window.tgUtil && window.tgUtil.haptic) window.tgUtil.haptic(t); } catch (_) {} }
   function scrollTop() { return window.scrollY || document.documentElement.scrollTop || 0; }
   function contentEl() { return document.getElementById('content'); }
+  function currentTabName() {
+    try { return typeof currentTab !== 'undefined' ? currentTab : ''; } catch (_) { return ''; }
+  }
 
   // Резиновое сопротивление: сперва почти 1:1, дальше всё туже, к MAX_PULL подходит плавно
   function rubber(d) { return d <= 0 ? 0 : (MAX_PULL * d) / (d + MAX_PULL * 1.2); }
@@ -52,15 +63,21 @@
   function canStart(target) {
     if (refreshing || releasing) return false;
     if (scrollTop() > 0) return false;
-    let tab = '';
-    try { tab = typeof currentTab !== 'undefined' ? currentTab : ''; } catch (_) {}
-    if (BLOCKED_TABS.includes(tab)) return false;
+    sheetFn = null;
     const a = document.activeElement;
     if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return false;
     for (let n = target; n && n !== document.body && n !== document.documentElement; n = n.parentElement) {
       if (n.nodeType !== 1) continue;
       const cs = getComputedStyle(n);
-      if (cs.position === 'fixed') return false;                       // шапка, меню, окна, шторки
+      if (cs.position === 'fixed') {
+        if (n.matches(CHROME)) continue;                               // шапка и меню — обычный жест
+        let w = n;                                                     // окно или шторка: берём жест, только если они объявили обновление
+        while (w && !w._ptrRefresh) w = w.parentElement;
+        if (!w) return false;
+        sheetFn = w._ptrRefresh;
+        host = w.querySelector('.rd-sheet-body') || w;
+        return true;
+      }
       const oy = cs.overflowY;
       // вертикальный блок, уже прокрученный вниз, сам заберёт жест; горизонтальные ленты не мешают
       if ((oy === 'auto' || oy === 'scroll') && n.scrollTop > 0) return false;
@@ -71,8 +88,8 @@
   // Замеряем, где шапка и где начало экрана — чтобы поставить спиннер ровно посередине просвета
   function measure() {
     const header = document.querySelector('.app-header');
-    const c = contentEl();
-    headerBottom = header ? header.getBoundingClientRect().bottom : 0;
+    const c = host || contentEl();
+    headerBottom = sheetFn ? c.getBoundingClientRect().top : (header ? header.getBoundingClientRect().bottom : 0);
     const first = c && c.firstElementChild;
     firstTop = first ? first.getBoundingClientRect().top : (c ? c.getBoundingClientRect().top + 96 : headerBottom + 16);
   }
@@ -80,7 +97,7 @@
   // Рисуем кадр: страница уехала на px вниз; спиннер — по центру просвета между шапкой и первым блоком
   function paint(px, p, fade) {
     const node = build();
-    const c = contentEl();
+    const c = host || contentEl();
     if (c) c.style.translate = '0 ' + px.toFixed(1) + 'px';
     const gap = Math.max(0, firstTop + px - headerBottom);
     node.style.setProperty('--ptr-y', (headerBottom + gap / 2 - SPINNER / 2).toFixed(1) + 'px');
@@ -100,10 +117,12 @@
   function start() {
     armed = true;
     clearTimeout(backTimer);
+    if (!sheetFn) host = contentEl();
     measure();
-    const c = contentEl();
+    const c = host;
     if (c) { c.style.transition = 'none'; c.style.willChange = 'translate'; }
     const node = build();
+    node.style.zIndex = sheetFn ? '2147483600' : '';
     node.classList.remove('ptr-spin');
     node.classList.add('ptr-drag', 'ptr-on');
   }
@@ -113,7 +132,7 @@
     releasing = true;
     armed = false; ready = false; pull = 0;
     if (raf) { cancelAnimationFrame(raf); raf = 0; }
-    const c = contentEl();
+    const c = host || contentEl();
     if (c) {
       c.style.transition = 'translate ' + BACK_MS + 'ms ' + EASE;
       c.style.translate = '0 0';
@@ -121,7 +140,7 @@
     if (el) el.classList.remove('ptr-on', 'ptr-spin', 'ptr-drag');
     clearTimeout(backTimer);
     backTimer = setTimeout(() => {
-      const cc = contentEl();
+      const cc = c;
       if (cc) { cc.style.translate = ''; cc.style.transition = ''; cc.style.willChange = ''; }
       releasing = false;
       refreshing = false;
@@ -177,6 +196,7 @@
 
   // Сбросить всё, что приложение держит в памяти, и заново нарисовать текущий экран
   async function softRefresh() {
+    if (sheetFn) { await sheetFn(); return; }
     try { if (typeof _tabCache !== 'undefined') Object.keys(_tabCache).forEach((k) => { delete _tabCache[k]; }); } catch (_) {}
     try { if (typeof _pdCache !== 'undefined') _pdCache = {}; } catch (_) {}
     try { if (typeof _memHomeDbMarketplaces !== 'undefined') _memHomeDbMarketplaces = null; } catch (_) {}
@@ -187,6 +207,12 @@
       if (f) Object.keys(f).forEach((k) => { f[k] = Array.isArray(f[k]) ? [] : null; });
     } catch (_) {}
     try { if (typeof window.invalidateAdminCache === 'function') window.invalidateAdminCache(); } catch (_) {}
+    if (light) {
+      // экран с вводом: подтягиваем свежие настройки и профиль, а введённое не трогаем
+      try { if (typeof loadAppSettings === 'function') await loadAppSettings(); } catch (_) {}
+      try { if (typeof loadUserData === 'function') await loadUserData(); } catch (_) {}
+      return;
+    }
     if (typeof renderCurrentScreen === 'function') await renderCurrentScreen();
   }
 
@@ -194,10 +220,12 @@
     refreshing = true;
     clearTimeout(backTimer);
     if (raf) { cancelAnimationFrame(raf); raf = 0; }
-    if (!armed) measure();                                // запуск не жестом (PullRefresh.run())
+    if (!armed) { sheetFn = null; host = contentEl(); measure(); }   // запуск не жестом (PullRefresh.run())
+    light = !sheetFn && INPUT_TABS.includes(currentTabName());
+    const wholeScreen = !sheetFn && !light;
     armed = false;
     const node = build();
-    const c = contentEl();
+    const c = host;
     if (c) {
       c.style.willChange = 'translate';
       c.style.transition = 'translate .32s ' + EASE;
@@ -207,13 +235,13 @@
     paint(HOLD, 1, false);
     haptic('medium');
     const t0 = Date.now();
-    if (c) c.classList.add('ptr-run');                    // на время обновления гасим собственные «въезды» экрана
-    skeleton(true);
+    if (wholeScreen && c) c.classList.add('ptr-run');     // на время обновления гасим собственные «въезды» экрана
+    if (wholeScreen) skeleton(true);
     await new Promise((r) => setTimeout(r, HOLD_MS));     // страница доехала, скелетон показан — теперь можно грузить
     try { await softRefresh(); } catch (e) { console.warn('[pull-refresh]', e); }
     const wait = Math.max(0, MIN_SHOW_MS - (Date.now() - t0));
     setTimeout(() => {
-      skeleton(false);                                    // скелетон сменяется новым экраном, пока страница возвращается на место
+      if (wholeScreen) skeleton(false);                   // скелетон сменяется новым экраном, пока страница возвращается на место
       release();
       haptic('success');
       setTimeout(() => { const cc = contentEl(); if (cc) cc.classList.remove('ptr-run'); }, IN_MS + 80);
@@ -275,5 +303,8 @@
     if (armed) release();
   }, { passive: true });
 
-  window.PullRefresh = { run: () => (refreshing || releasing ? null : run()) };
+  // Объявить обновление для окна или шторки: тянешь вниз у верха — сдвигается тело шторки и вызывается fn
+  function bind(node, fn) { if (node && typeof fn === 'function') node._ptrRefresh = fn; return node; }
+
+  window.PullRefresh = { run: () => (refreshing || releasing ? null : run()), bind };
 })();
