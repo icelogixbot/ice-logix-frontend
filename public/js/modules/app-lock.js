@@ -392,7 +392,16 @@
     shieldOn(lockCtrl.el);
     lockCtrl.el.addEventListener('click', (e) => { if (e.target.closest('.lk-reset')) forgotFlow(lockCtrl); });
     if (state.blocked) lockCtrl.blocked(blockedHtml());
-    else if (b) setTimeout(() => { if (lockCtrl) bioUnlock(lockCtrl); }, 60);
+    else if (b) {
+      // Face ID — только когда заставка ушла и виден экран кода (экран кода лежит под заставкой)
+      const t0 = Date.now();
+      const go = () => {
+        const sp = document.getElementById('iceSplash');
+        if (sp && !sp.classList.contains('out') && Date.now() - t0 < 12000) return setTimeout(go, 80);
+        setTimeout(() => { if (lockCtrl) bioUnlock(lockCtrl); }, 150);
+      };
+      go();
+    }
   }
 
   // Состояние с сервера. Вызывается после загрузки профиля (app-core) и экраном настроек.
