@@ -163,13 +163,12 @@
       close() {
         el.classList.remove('show');
         el.classList.add('lk-closing');
-        setTimeout(() => {
-          el.remove();
-          if (!document.querySelector('.lk')) {
-            document.body.classList.remove('lk-open');
-            if (typeof window.syncThemeChrome === 'function') window.syncThemeChrome(); // вошли в приложение — шапка синяя
-          }
-        }, 160);
+        // Шапка Telegram синеет сразу, вместе с появлением верхнего меню приложения (а не после конца затухания)
+        if (!document.querySelector('.lk:not(.lk-closing)')) {
+          document.body.classList.remove('lk-open');
+          if (typeof window.syncThemeChrome === 'function') window.syncThemeChrome();
+        }
+        setTimeout(() => el.remove(), 160);
       },
     };
 
