@@ -7,16 +7,21 @@
   if (window.__pullRefreshInit) return;
   window.__pullRefreshInit = true;
 
-  const THRESHOLD = 64;      // на сколько px должна уехать страница, чтобы обновилось
-  const MAX_PULL = 110;      // дальше страница не уезжает
+  const THRESHOLD = 60;      // на сколько px должна уехать страница, чтобы обновилось
+  const MAX_PULL = 150;      // предел, к которому страница подходит всё медленнее
   const HOLD = 56;           // на сколько страница остаётся опущенной, пока идёт обновление
   const SPINNER = 28;        // размер спиннера, px
+  const DEAD_ZONE = 6;       // дрожь пальца не считаем
   const MIN_SHOW_MS = 800;   // спиннер не мигает на быстрых экранах
+  const BACK_MS = 300;       // сколько страница возвращается на место
+  const EASE = 'cubic-bezier(.22,.9,.3,1)';
   const BLOCKED_TABS = ['neworder', 'calculator', 'cart', 'legitcheck', 'kyc', 'checkout'];
 
   let el = null;
-  let startY = 0, startX = 0, pull = 0, tracking = false, refreshing = false, armed = false;
+  let startY = 0, startX = 0, pull = 0;
+  let tracking = false, armed = false, refreshing = false, releasing = false, ready = false;
   let headerBottom = 0, firstTop = 0;   // где кончается шапка и где начинается первый блок экрана (на старте жеста)
+  let raf = 0, backTimer = 0;
 
   function build() {
     if (el) return el;
@@ -34,14 +39,15 @@
   }
 
   function haptic(t) { try { if (window.tgUtil && window.tgUtil.haptic) window.tgUtil.haptic(t); } catch (_) {} }
-
   function scrollTop() { return window.scrollY || document.documentElement.scrollTop || 0; }
-
   function contentEl() { return document.getElementById('content'); }
+
+  // Резиновое сопротивление: сперва почти 1:1, дальше всё туже, к MAX_PULL подходит плавно
+  function rubber(d) { return d <= 0 ? 0 : (MAX_PULL * d) / (d + MAX_PULL * 1.2); }
 
   // Можно ли начинать жест с этого места
   function canStart(target) {
-    if (refreshing) return false;
+    if (refreshing || releasing) return false;
     if (scrollTop() > 0) return false;
     let tab = '';
     try { tab = typeof currentTab !== 'undefined' ? currentTab : ''; } catch (_) {}
@@ -68,34 +74,55 @@
     firstTop = first ? first.getBoundingClientRect().top : (c ? c.getBoundingClientRect().top + 96 : headerBottom + 16);
   }
 
-  // Страница уехала на px вниз; спиннер — по центру просвета между шапкой и первым блоком
-  function place(px) {
+  // Рисуем кадр: страница уехала на px вниз; спиннер — по центру просвета между шапкой и первым блоком
+  function paint(px, p, fade) {
     const node = build();
     const c = contentEl();
-    if (c) c.style.translate = '0 ' + px + 'px';
+    if (c) c.style.translate = '0 ' + px.toFixed(1) + 'px';
     const gap = Math.max(0, firstTop + px - headerBottom);
     node.style.setProperty('--ptr-y', (headerBottom + gap / 2 - SPINNER / 2).toFixed(1) + 'px');
+    node.style.setProperty('--ptr-p', p.toFixed(3));
+    // пока просвет меньше спиннера, он проявляется, а не торчит из-под шапки
+    node.style.setProperty('--ptr-o', fade ? Math.max(0, Math.min(1, (gap - 4) / SPINNER)).toFixed(3) : '1');
   }
 
-  function setPull(px) {
+  function schedule() {
+    if (raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = 0;
+      if (armed) paint(pull, Math.min(1, pull / THRESHOLD), true);
+    });
+  }
+
+  function start() {
+    armed = true;
+    clearTimeout(backTimer);
+    measure();
+    const c = contentEl();
+    if (c) { c.style.transition = 'none'; c.style.willChange = 'translate'; }
     const node = build();
-    pull = px;
-    node.style.setProperty('--ptr-p', Math.min(1, px / THRESHOLD).toFixed(3));
-    node.classList.toggle('ptr-ready', px >= THRESHOLD);
-    node.classList.add('ptr-on');
-    place(px);
+    node.classList.remove('ptr-spin');
+    node.classList.add('ptr-drag', 'ptr-on');
   }
 
-  // Вернуть страницу на место; после анимации снимаем смещение совсем (иначе fixed-окна внутри уехали бы)
+  // Вернуть страницу на место; когда доехала — снимаем смещение совсем (иначе fixed-окна внутри уехали бы)
   function release() {
+    releasing = true;
+    armed = false; ready = false; pull = 0;
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
     const c = contentEl();
     if (c) {
-      c.style.transition = 'translate .28s cubic-bezier(.2,.8,.2,1)';
+      c.style.transition = 'translate ' + BACK_MS + 'ms ' + EASE;
       c.style.translate = '0 0';
-      setTimeout(() => { c.style.translate = ''; c.style.transition = ''; }, 320);
     }
-    if (el) el.classList.remove('ptr-on', 'ptr-ready', 'ptr-spin', 'ptr-drag');
-    pull = 0;
+    if (el) el.classList.remove('ptr-on', 'ptr-spin', 'ptr-drag');
+    clearTimeout(backTimer);
+    backTimer = setTimeout(() => {
+      const cc = contentEl();
+      if (cc) { cc.style.translate = ''; cc.style.transition = ''; cc.style.willChange = ''; }
+      releasing = false;
+      refreshing = false;
+    }, BACK_MS + 30);
   }
 
   // Сбросить всё, что приложение держит в памяти, и заново нарисовать текущий экран
@@ -115,22 +142,29 @@
 
   async function run() {
     refreshing = true;
+    clearTimeout(backTimer);
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    if (!armed) measure();                                // запуск не жестом (PullRefresh.run())
+    armed = false;
     const node = build();
     const c = contentEl();
-    if (c) c.style.transition = 'translate .28s cubic-bezier(.2,.8,.2,1)';
-    node.classList.remove('ptr-drag', 'ptr-ready');
+    if (c) {
+      c.style.willChange = 'translate';
+      c.style.transition = 'translate .32s ' + EASE;
+    }
+    node.classList.remove('ptr-drag');
     node.classList.add('ptr-spin', 'ptr-on');
-    node.style.setProperty('--ptr-p', '1');
-    place(HOLD);
+    paint(HOLD, 1, false);
     haptic('medium');
     const t0 = Date.now();
     try { await softRefresh(); } catch (e) { console.warn('[pull-refresh]', e); }
     const wait = Math.max(0, MIN_SHOW_MS - (Date.now() - t0));
-    setTimeout(() => { release(); refreshing = false; haptic('success'); }, wait);
+    setTimeout(() => { release(); haptic('success'); }, wait);
   }
 
   document.addEventListener('touchstart', (e) => {
-    tracking = false; armed = false;
+    tracking = false;
+    if (armed) return;
     if (!e.touches || e.touches.length !== 1) return;
     if (!canStart(e.target)) return;
     startY = e.touches[0].clientY;
@@ -139,43 +173,49 @@
   }, { passive: true });
 
   document.addEventListener('touchmove', (e) => {
-    if (!tracking || refreshing) return;
-    if (!e.touches || e.touches.length !== 1) { tracking = false; if (armed) release(); armed = false; return; }
-    const dy = e.touches[0].clientY - startY;
-    const dx = e.touches[0].clientX - startX;
-    // вверх, вбок или страница уже поехала — это обычная прокрутка
-    if (dy <= 0 || scrollTop() > 0 || (!armed && Math.abs(dx) > Math.abs(dy))) {
+    if (!tracking) return;
+    if (!e.touches || e.touches.length !== 1) {          // второй палец — это уже не наш жест
+      tracking = false;
       if (armed) release();
-      tracking = false; armed = false;
       return;
     }
-    if (dy < 8) return;                                  // дрожь пальца не считаем
+    const dy = e.touches[0].clientY - startY;
+    const dx = e.touches[0].clientX - startX;
     if (!armed) {
-      armed = true;
-      measure();
-      const c = contentEl();
-      if (c) c.style.transition = 'none';
-      build().classList.add('ptr-drag');
+      // пока палец не сдвинулся заметно, направление не решаем (дрожь в 1–2 px не должна срывать жест)
+      if (Math.hypot(dx, dy) < DEAD_ZONE + 2) return;
+      // вверх, вбок или страница уже поехала — это обычная прокрутка
+      if (dy <= 0 || scrollTop() > 0 || Math.abs(dx) > Math.abs(dy)) { tracking = false; return; }
+      start();
+    } else if (scrollTop() > 0) {                         // пока тянули, страница вдруг поехала вверх
+      tracking = false;
+      release();
+      return;
     }
-    // чем дальше тянешь, тем туже
-    const eased = Math.min(MAX_PULL, (dy - 8) * 0.5);
-    const wasReady = pull >= THRESHOLD;
-    setPull(eased);
-    if (!wasReady && eased >= THRESHOLD) haptic('light');
-  }, { passive: true });
+    // палец можно вести обратно — страница едет следом, жест не отменяется
+    pull = rubber(dy - DEAD_ZONE);
+    const nowReady = pull >= THRESHOLD;
+    if (nowReady !== ready) {
+      ready = nowReady;
+      if (ready) haptic('light');
+    }
+    schedule();
+    // на старых iOS без overscroll-behavior страница иначе сама «пружинит» вместе с нашим сдвигом
+    if (e.cancelable) e.preventDefault();
+  }, { passive: false });
 
-  function end() {
+  document.addEventListener('touchend', () => {
     if (!tracking) return;
-    const go = armed && pull >= THRESHOLD;
-    const wasArmed = armed;
-    tracking = false; armed = false;
-    if (go) run(); else if (wasArmed) release();
-  }
-  document.addEventListener('touchend', end, { passive: true });
-  document.addEventListener('touchcancel', () => {
-    if (tracking && !refreshing && armed) release();
-    tracking = false; armed = false;
+    tracking = false;
+    if (!armed) return;
+    if (pull >= THRESHOLD) run(); else release();
   }, { passive: true });
 
-  window.PullRefresh = { run: () => (refreshing ? null : run()) };
+  document.addEventListener('touchcancel', () => {
+    if (!tracking) return;
+    tracking = false;
+    if (armed) release();
+  }, { passive: true });
+
+  window.PullRefresh = { run: () => (refreshing || releasing ? null : run()) };
 })();
