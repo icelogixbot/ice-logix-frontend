@@ -45,7 +45,7 @@ revoke all on function public._promo_order_check(text, numeric, numeric) from pu
 grant execute on function public._promo_order_check(text, numeric, numeric) to authenticated;
 
 -- ── 2. admin_save_content_settings: проверка reviews_config + запись в журнал ──
--- Ссылки попадают в разметку приложения, поэтому принимаем только обычные http(s)-адреса без кавычек, пробелов и скобок.
+-- Ссылки попадают в разметку приложения, поэтому принимаем только обычные http(s)-адреса без кавычек, пробелов, угловых скобок и обратных апострофов.
 -- Остальные ключи конфигурации (темы Telegram, бонусные проценты и т.п.) не трогаем: их читает бот.
 create or replace function public.admin_save_content_settings(p_rows jsonb) returns jsonb
 language plpgsql security definer set search_path = public as $$
