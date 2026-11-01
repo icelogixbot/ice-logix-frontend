@@ -1351,16 +1351,13 @@ html body .no-form div[class*="border-white/30"] > input { min-height: 40px !imp
 .co-doc .co-doc-draft { padding: 10px 12px; border-radius: var(--rd-r12); background: rgba(255, 194, 74, 0.13); color: var(--rd-warn); }
 
 /* ─── Потянуть вниз, чтобы обновить (js/modules/pull-refresh.js) ─── */
-.ptr { position: fixed; left: 0; right: 0; top: calc(70px + env(safe-area-inset-top, 0px)); z-index: 90; display: flex; justify-content: center; pointer-events: none; opacity: 0; transform: translateY(calc(var(--ptr-y, 0px) - 44px)); transition: transform .28s cubic-bezier(.2,.8,.2,1), opacity .2s ease; }
-.ptr.ptr-on { opacity: calc(0.25 + var(--ptr-p, 0) * 0.75); }
-.ptr.ptr-spin { opacity: 1; }
-.ptr.ptr-drag { transition: none; }
-.ptr-dot { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--rd-s2); border: 1px solid var(--rd-line-2); color: var(--rd-b400); }
-.ptr-arrow { transition: transform .2s ease; transform-origin: 12px 12px; }
-.ptr.ptr-ready .ptr-arrow { transform: rotate(180deg); }
-.ptr.ptr-spin .ptr-dot svg { animation: ptr-spin .8s linear infinite; }
-.ptr-ring { display: none; }
-.ptr.ptr-spin .ptr-arrow { display: none; }
-.ptr.ptr-spin .ptr-ring { display: block; }
+/* Страница сама едет вниз (translate на #content), спиннер проявляется в просвете под шапкой */
+.ptr { position: fixed; left: 0; right: 0; top: 0; z-index: 2; display: flex; justify-content: center; pointer-events: none; opacity: 0; transform: translate3d(0, var(--ptr-y, 0px), 0); transition: opacity .2s ease; }
+.ptr.ptr-on { opacity: 1; }
+.ptr-spinner { display: block; overflow: visible; transition: transform .2s ease; }
+.ptr.ptr-ready .ptr-spinner { transform: scale(1.1); }
+.ptr-spoke { stroke: var(--rd-b400); stroke-width: 2; stroke-linecap: round; opacity: clamp(0, calc(var(--ptr-p, 0) * 12 - var(--i)), 1); }
+.ptr.ptr-spin .ptr-spinner { animation: ptr-spin .9s steps(12) infinite; }
+.ptr.ptr-spin .ptr-spoke { opacity: calc(0.2 + var(--i) * 0.07); }
 @keyframes ptr-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .ptr, .ptr-arrow { transition: none; } .ptr.ptr-spin .ptr-dot svg { animation-duration: 1.6s; } }
+@media (prefers-reduced-motion: reduce) { .ptr, .ptr-spinner { transition: none; } .ptr.ptr-spin .ptr-spinner { animation-duration: 1.8s; } }
