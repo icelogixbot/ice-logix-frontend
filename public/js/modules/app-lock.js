@@ -396,8 +396,8 @@
       const t0 = Date.now();
       const go = () => {
         const sp = document.getElementById('iceSplash');
-        if (sp && Date.now() - t0 < 12000) return setTimeout(go, 80);
-        setTimeout(() => { if (lockCtrl) bioUnlock(lockCtrl); }, 100);
+        if (sp && !sp.classList.contains('out') && Date.now() - t0 < 12000) return setTimeout(go, 50);
+        if (lockCtrl) bioUnlock(lockCtrl);
       };
       go();
     }
