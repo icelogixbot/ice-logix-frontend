@@ -15,8 +15,8 @@
       if (meta) meta.setAttribute('content', color);
       const tg = window.Telegram?.WebApp;
       if (!tg) return;
-      // Чёрная шапка только на заставке. На экране кода-пароля она уже синяя, как верхнее меню приложения: при входе цвет не меняется
-      const locked = !!document.getElementById('iceSplash');
+      // Пока открыт экран кода-пароля, шапка чёрная; синей становится только внутри приложения
+      const locked = !!document.body?.classList.contains('lk-open') || !!document.getElementById('iceSplash');
       try { tg.setHeaderColor?.(locked ? color : HEADER_BLUE); } catch {}
       try { tg.setBackgroundColor?.(color); } catch {}
       try { tg.setBottomBarColor?.(color); } catch {}
