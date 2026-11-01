@@ -449,7 +449,7 @@ window.addToCartFromCalc = async function(item) {
     }
     if (typeof updateCartBadge === 'function') updateCartBadge();
     if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
-    glassToast(`✨ Добавлено ${addedCount} шт. (${bundle.length} поз.) в корзину!`, { kind: 'success' });
+    glassToast(`Добавлено ${addedCount} шт. (${bundle.length} поз.) в корзину!`, { kind: 'success' });
     return;
   }
 
@@ -481,7 +481,7 @@ window.addToCartFromCalc = async function(item) {
   }
   if (typeof updateCartBadge === 'function') updateCartBadge();
   if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('success');
-  glassToast('✨ Товар добавлен в корзину!', { kind: 'success' });
+  glassToast('Товар добавлен в корзину!', { kind: 'success' });
 };
 
 window.updateLiveCalcBreakdown = function() {
@@ -577,35 +577,21 @@ window.renderSmartCalculator = async function() {
   // 2. LINK MODE (EMULATOR PROTOTYPE INTEGRATION)
   if (mode === 'link') {
     return `
-      <div class="space-y-4 page-enter">
-        <div class="flex items-center gap-3 mb-2">
-          <button type="button" class="global-back-btn !mb-0" onclick="window.setCalcMode('hub')" title="Назад к выбору способа">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="15 18 9 12 15 6"/>
-            </svg>
-          </button>
-          <div class="flex-1 min-w-0 text-left">
-            <h3 class="text-white font-bold text-sm">Расчет по ссылке</h3>
-            <p class="text-white/40 text-[10px]">Poizon, Dewu, Taobao, 1688 и другие площадки</p>
-          </div>
+      <div class="rd-screen page-enter cl">
+        <div class="rd-head">
+          <button type="button" class="rd-back" onclick="window.setCalcMode('hub')" aria-label="Назад к выбору способа">${window.UI.icon('chevronLeft', 22)}</button>
+          <div class="rd-head-txt"><h1 class="rd-head-title">Расчёт по ссылке</h1><p class="rd-head-sub">Poizon, Taobao, Pinduoduo, 1688 и другие площадки</p></div>
         </div>
 
-        <div class="glass-card p-5 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
-          <label class="text-white/70 text-xs block mb-1.5 font-medium text-left">Вставьте ссылку на товар <span class="text-cyan-400">*</span></label>
-          <div class="flex gap-2 items-stretch">
-            <div class="flex-1 flex gap-1 bg-white/5 border border-white/20 rounded-xl overflow-hidden px-2 py-1.5 focus-within:border-cyan-500/60 transition">
-              <input type="text" id="calcUrlInput" class="bg-transparent flex-1 border-0 outline-none p-1.5 text-sm text-white placeholder-white/30" placeholder="https://dw4.co/... или taobao.com/...">
-              <button type="button" id="calcPasteUrlBtn" class="bg-white/10 hover:bg-white/15 border border-white/10 rounded-lg px-3 transition flex items-center justify-center text-cyan-400 gap-1.5 text-xs font-bold" title="Вставить из буфера">
-                📋 Вставить
-              </button>
-            </div>
-            <button type="button" id="calcAnalyzeLinkBtn" class="btn-primary whitespace-nowrap transition px-4 py-2 font-bold text-xs flex items-center gap-1.5 cursor-pointer">
-              <span>⚡ Рассчитать</span>
-            </button>
+        <div class="rd-card cl-form">
+          <label class="rd-label" for="calcUrlInput">Ссылка на товар</label>
+          <div class="rd-field">
+            <input type="text" id="calcUrlInput" placeholder="https://dw4.co/... или taobao.com/..." autocomplete="off" autocapitalize="off">
+            <button type="button" id="calcPasteUrlBtn" class="rd-btn rd-btn-tonal rd-btn-sm" title="Вставить из буфера">${window.UI.icon('paste', 16)}Вставить</button>
           </div>
-
-          <div id="calcLinkStatusBox" class="hidden mt-3 p-3.5 rounded-2xl text-xs text-left"></div>
-          <p class="text-white/40 text-[10px] mt-2.5 text-left">Подтянем цену, размеры и цвета прямо со страницы товара.</p>
+          <button type="button" id="calcAnalyzeLinkBtn" class="rd-btn rd-btn-block">${window.UI.icon('zap', 18)}Рассчитать</button>
+          <div id="calcLinkStatusBox" class="cl-status hidden"></div>
+          <p class="cl-hint">Подтянем цену, размеры и цвета прямо со страницы товара.</p>
         </div>
       </div>
       ${renderFooter()}
@@ -619,58 +605,34 @@ window.renderSmartCalculator = async function() {
 
   // 5. MANUAL MODE
   if (mode === 'manual') {
+    const fld = (id, type, ph, extra = '') => `<div class="rd-field"><input type="${type}" id="${id}" placeholder="${ph}" ${extra}></div>`;
+    const sel = (id, opts) => `<div class="rd-field"><select id="${id}" class="co-select" data-gx-skip>${opts}</select>${window.UI.icon('chevronDown', 18)}</div>`;
     return `
-      <div class="space-y-4 page-enter">
-        <div class="flex items-center gap-3 mb-2">
-          <button type="button" class="global-back-btn !mb-0" onclick="window.setCalcMode('hub')" title="Назад к выбору способа">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="15 18 9 12 15 6"/>
-            </svg>
-          </button>
-          <div class="flex-1 min-w-0 text-left">
-            <h3 class="text-white font-bold text-sm">Ручной ввод стоимости</h3>
-            <p class="text-white/40 text-[10px]">Если вы уже знаете цену товара на площадке</p>
-          </div>
+      <div class="rd-screen page-enter cl">
+        <div class="rd-head">
+          <button type="button" class="rd-back" onclick="window.setCalcMode('hub')" aria-label="Назад к выбору способа">${window.UI.icon('chevronLeft', 22)}</button>
+          <div class="rd-head-txt"><h1 class="rd-head-title">Ручной ввод</h1><p class="rd-head-sub">Если вы уже знаете цену товара на площадке</p></div>
         </div>
 
-        <div class="glass-card p-5 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
-          <div class="space-y-3.5 text-left">
+        <div class="rd-card cl-form">
+          <label class="rd-label" for="calcManualTitle">Наименование или бренд</label>
+          ${fld('calcManualTitle', 'text', 'Например: Кроссовки или Худи')}
+
+          <div class="cl-two">
             <div>
-              <label class="text-white/70 text-xs block mb-1">Наименование или бренд</label>
-              <input type="text" id="calcManualTitle" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm text-white" placeholder="Например: Кроссовки или Худи">
+              <label class="rd-label" for="calcManualPrice">Стоимость</label>
+              ${fld('calcManualPrice', 'number', '350', 'step="0.01" min="1" inputmode="decimal"')}
             </div>
-
-            <div class="grid grid-cols-2 gap-2.5">
-              <div>
-                <label class="text-white/70 text-xs block mb-1">Стоимость</label>
-                <input type="number" id="calcManualPrice" step="0.01" min="1" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm text-white" placeholder="350">
-              </div>
-              <div>
-                <label class="text-white/70 text-xs block mb-1">Валюта</label>
-                <select id="calcManualCurrency" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm text-white">
-                  <option value="CNY" selected>CNY (¥)</option>
-                  <option value="USD">USD ($)</option>
-                  <option value="EUR">EUR (€)</option>
-                  <option value="RUB">RUB (₽)</option>
-                </select>
-              </div>
-            </div>
-
             <div>
-              <label class="text-white/70 text-xs block mb-1">Категория товара</label>
-              <select id="calcManualCategory" class="btn-secondary w-full p-3 rounded-xl border border-white/20 text-sm text-white">
-                <option value="Обувь" selected>👟 Обувь (кроссовки/ботинки ~1.2 кг)</option>
-                <option value="Одежда">👕 Одежда (худи/брюки ~0.8 кг)</option>
-                <option value="Куртки">🧥 Верхняя одежда (куртки ~1.5 кг)</option>
-                <option value="Электроника">📱 Электроника (~0.5 кг)</option>
-                <option value="Аксессуары">🧢 Аксессуары/мелочь (~0.3 кг)</option>
-              </select>
+              <label class="rd-label" for="calcManualCurrency">Валюта</label>
+              ${sel('calcManualCurrency', '<option value="CNY" selected>CNY (¥)</option><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="RUB">RUB (₽)</option>')}
             </div>
-
-            <button type="button" id="calcManualSubmitBtn" class="btn-primary w-full py-3.5 mt-2 rounded-xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-cyan-500/20">
-              ⚡ Рассчитать стоимость
-            </button>
           </div>
+
+          <label class="rd-label" for="calcManualCategory">Категория товара</label>
+          ${sel('calcManualCategory', '<option value="Обувь" selected>Обувь (около 1,2 кг)</option><option value="Одежда">Одежда (около 0,8 кг)</option><option value="Куртки">Верхняя одежда (около 1,5 кг)</option><option value="Электроника">Электроника (около 0,5 кг)</option><option value="Аксессуары">Аксессуары и мелочь (около 0,3 кг)</option>')}
+
+          <button type="button" id="calcManualSubmitBtn" class="rd-btn rd-btn-block">${window.UI.icon('zap', 18)}Рассчитать стоимость</button>
         </div>
       </div>
       ${renderFooter()}
@@ -724,166 +686,103 @@ window.renderSmartCalculator = async function() {
 
     if (variantsList && variantsList.length > 0) {
       sizeChipsHtml = `
-        <div class="mt-3 text-left">
-          <div class="flex items-center justify-between mb-1.5">
-            <label class="text-white/70 text-xs font-semibold">${variantsLabel}</label>
-            ${typeof window.openSkuSelectorModal === 'function' && sku?.has_options ? `
-              <button type="button" id="calcOpenSkuModalBtn" class="text-[11px] text-cyan-400 hover:text-cyan-300 font-semibold bg-cyan-500/10 px-2.5 py-0.5 rounded-lg border border-cyan-500/20 cursor-pointer flex items-center gap-1 active:scale-95 transition">
-                <span>🎨</span> Все опции и фото
-              </button>
-            ` : ''}
+        <div class="rd-card cl-variants">
+          <div class="cl-variants-head">
+            <span class="rd-label">${variantsLabel}</span>
+            ${typeof window.openSkuSelectorModal === 'function' && sku?.has_options ? `<button type="button" id="calcOpenSkuModalBtn" class="rd-link">Все опции и фото</button>` : ''}
           </div>
-          <div class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
+          <div class="cl-chips">
             ${variantsList.map((s, idx) => {
               const sName = s.name_ru || s.name || s.size || s;
               const sPrice = s.price || s.price_cny || item.price;
               const isActive = (window._calcSelectedSize === sName || window._calcSelectedColor === sName) || (!window._calcSelectedSize && !window._calcSelectedColor && idx === 0);
-              return `
-                <button type="button" class="calc-size-chip ${isActive ? 'active' : ''}" data-size="${sName}" data-price="${sPrice}">
-                  <span>${sName}</span>
-                  ${sPrice ? `<span class="text-[10px] text-cyan-300/80">(${sPrice}¥)</span>` : ''}
-                </button>
-              `;
+              return `<button type="button" class="calc-size-chip ${isActive ? 'active' : ''}" data-size="${String(sName).replace(/"/g, '&quot;')}" data-price="${sPrice}"><span>${sName}</span>${sPrice ? `<small>${sPrice} ¥</small>` : ''}</button>`;
             }).join('')}
           </div>
         </div>
       `;
     }
 
+    const money2 = (v) => (window.UI ? window.UI.money(v, { keepCents: true, digits: 2 }) : Number(v).toFixed(2));
+    const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const isBundle = window._calcBundleItems && window._calcBundleItems.length > 1;
     return `
-      <div class="space-y-4 page-enter">
-        <div class="flex items-center gap-3 mb-2">
-          <button type="button" class="global-back-btn !mb-0" onclick="window.setCalcMode('hub')" title="Назад к выбору">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="15 18 9 12 15 6"/>
-            </svg>
-          </button>
-          <div class="flex-1 min-w-0 text-left">
-            <h3 class="text-white font-bold text-sm truncate">${item.title || 'Расчет стоимости'}</h3>
-            <p class="text-white/40 text-[10px]">Расчет «под ключ» с доставкой в Беларусь</p>
+      <div class="rd-screen page-enter cl">
+        <div class="rd-head">
+          <button type="button" class="rd-back" onclick="window.setCalcMode('hub')" aria-label="Назад">${window.UI.icon('chevronLeft', 22)}</button>
+          <div class="rd-head-txt"><h1 class="rd-head-title">Расчёт заказа</h1><p class="rd-head-sub">Цена под ключ с доставкой в Беларусь</p></div>
+        </div>
+
+        <div class="rd-card cl-item">
+          ${item.image_url
+            ? `<img src="${esc(item.image_url)}" class="cl-img" alt="" onerror="this.style.display='none'">`
+            : `<div class="cl-img cl-img-ph">${window.UI.icon('bag', 26)}</div>`
+          }
+          <div class="cl-item-body">
+            <div class="cl-tags"><span class="rd-status">${esc(item.platform || 'PINDUODUO')}</span><span class="cl-cat">${esc(item.category || 'Одежда')}</span></div>
+            <h2 class="cl-name">${esc(item.title)}</h2>
+            <div class="cl-meta">
+              ${isBundle
+                ? `<span class="rd-status">Партия: ${window._calcBundleItems.length} поз. (${qty} шт.)</span>`
+                : `${item.color ? `<span class="cl-pill">Цвет: <b>${esc(item.color)}</b></span>` : ''}${window._calcSelectedSize || item.size ? `<span class="cl-pill">Размер: <b>${esc(window._calcSelectedSize || item.size)}</b></span>` : ''}`
+              }
+            </div>
+            <div class="cl-cny"><span id="calcCurrentPriceCny">${calc.priceCny}</span> ¥</div>
           </div>
         </div>
 
-        <div class="glass-card p-5 border border-white/15 relative overflow-hidden shadow-2xl rounded-3xl" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px);">
-          <!-- Product Card Header -->
-          <div class="flex items-center gap-3.5 pb-4 border-b border-white/10 text-left">
-            ${item.image_url 
-              ? `<img src="${item.image_url}" class="w-16 h-16 rounded-2xl object-cover border border-white/15 flex-shrink-0" onerror="this.style.display='none'">`
-              : `<div class="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-3xl flex-shrink-0">🛍️</div>`
-            }
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-1.5 mb-1">
-                <span class="text-[9px] font-extrabold text-cyan-300 bg-cyan-500/15 px-2 py-0.5 rounded-md border border-cyan-500/30">🇨🇳 ${item.platform || 'PINDUODUO'}</span>
-                <span class="text-[9px] text-white/50">${item.category || 'Одежда'}</span>
-              </div>
-              <h4 class="text-sm font-bold text-white leading-snug line-clamp-2" title="${item.title}">${item.title}</h4>
-              <div class="text-[11px] text-white/70 mt-1 flex flex-wrap items-center gap-1.5">
-                ${window._calcBundleItems && window._calcBundleItems.length > 1
-                  ? `<span class="bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-md border border-cyan-500/30 font-bold">Партия: ${window._calcBundleItems.length} поз. (${qty} шт.)</span>`
-                  : `
-                    ${item.color ? `<span class="bg-white/10 px-2 py-0.5 rounded-md border border-white/15 text-white/90">Цвет: <strong class="text-white">${item.color}</strong></span>` : ''}
-                    ${window._calcSelectedSize || item.size ? `<span class="bg-cyan-500/15 text-cyan-300 px-2 py-0.5 rounded-md border border-cyan-500/30">Размер: <strong class="text-white">${window._calcSelectedSize || item.size}</strong></span>` : ''}
-                  `
-                }
-              </div>
-              <p class="text-xs text-cyan-400 font-bold mt-1.5 font-mono"><span id="calcCurrentPriceCny">${calc.priceCny}</span> ¥</p>
+        ${isBundle ? `
+          <div class="rd-card cl-bundle">
+            <div class="cl-bundle-head">
+              <span>Состав партии (${qty} шт.)</span>
+              ${typeof window.openSkuSelectorModal === 'function' && sku?.has_options ? `<button type="button" id="calcReopenSkuModalBtn" class="rd-link">Изменить набор</button>` : ''}
             </div>
-          </div>
-
-          ${window._calcBundleItems && window._calcBundleItems.length > 1 ? `
-            <div class="mt-3 p-3.5 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-left space-y-2.5">
-              <div class="flex items-center justify-between text-xs font-bold text-white/90">
-                <span class="flex items-center gap-1.5">
-                  <span>🛍️</span> Состав партии (${qty} шт.)
-                </span>
-                ${typeof window.openSkuSelectorModal === 'function' && sku?.has_options ? `
-                  <button type="button" id="calcReopenSkuModalBtn" class="text-[11px] text-cyan-400 hover:text-cyan-300 font-semibold cursor-pointer bg-transparent border-0 flex items-center gap-1 active:scale-95 transition">
-                    <span>✏️</span> Изменить набор
-                  </button>
-                ` : ''}
-              </div>
-              <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                ${window._calcBundleItems.map(it => `
-                  <div class="flex items-center justify-between py-2 px-3 rounded-xl bg-white/5 border border-white/10 text-xs gap-2">
-                    <div class="flex items-center gap-2.5 min-w-0">
-                      <img src="${it.image_url}" class="w-8 h-8 rounded-lg object-cover flex-shrink-0 bg-black/40 border border-white/15" onerror="this.src='${item.image_url}'">
-                      <div class="truncate">
-                        <span class="font-bold text-white">${it.color ? it.color + ' • ' : ''}${it.size || ''}</span>
-                        <span class="text-white/40 block text-[10px]">¥${it.price} за шт.</span>
-                      </div>
-                    </div>
-                    <div class="font-mono font-bold text-cyan-300 text-right flex-shrink-0">
-                      ${it.quantity} шт. • ¥${Math.round(it.price * it.quantity * 100) / 100}
-                    </div>
+            <div class="cl-bundle-list">
+              ${window._calcBundleItems.map(it => `
+                <div class="cl-bundle-row">
+                  <img src="${esc(it.image_url)}" class="cl-bundle-img" alt="" onerror="this.src='${esc(item.image_url)}'">
+                  <div class="cl-bundle-txt">
+                    <b>${esc((it.color ? it.color + ' • ' : '') + (it.size || ''))}</b>
+                    <span>¥${it.price} за шт.</span>
                   </div>
-                `).join('')}
-              </div>
-            </div>
-          ` : sizeChipsHtml}
-
-          <!-- Quantity Stepper -->
-          <div class="flex items-center justify-between py-3 border-b border-white/10 text-left mt-2">
-            <span class="text-xs text-white/70 font-semibold">Количество:</span>
-            <div class="flex items-center gap-2 bg-white/5 px-2 py-1 rounded-xl border border-white/10">
-              <button type="button" id="calcQtyMinus" class="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 text-white font-bold flex items-center justify-center transition border-0 cursor-pointer">−</button>
-              <span id="calcQtyVal" class="text-xs font-mono font-bold text-white min-w-[20px] text-center">${qty}</span>
-              <button type="button" id="calcQtyPlus" class="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 text-white font-bold flex items-center justify-center transition border-0 cursor-pointer">+</button>
+                  <div class="cl-bundle-sum">${it.quantity} шт. • ¥${Math.round(it.price * it.quantity * 100) / 100}</div>
+                </div>
+              `).join('')}
             </div>
           </div>
+        ` : sizeChipsHtml}
 
-          <!-- Total All-Inclusive Breakdown -->
-          <div class="cl-box">
-            <div class="text-center pb-2 border-b border-white/10">
-              <span class="cl-cap">Цена под ключ в Беларуси</span>
-              <span class="cl-total" id="calcTotalBynDisplay">${(window.UI ? window.UI.money(calc.totalByn, { keepCents: true, digits: 2 }) : calc.totalByn.toFixed(2))}</span>
-              <span class="cl-incl">${window.UI.icon('checkCircle', 14)}Вещь, доставка, страховка и Европочта</span>
+        <div class="rd-card cl-qty">
+          <span class="cl-qty-label">Количество</span>
+          <div class="cl-stepper">
+            <button type="button" id="calcQtyMinus" aria-label="Меньше">−</button>
+            <span id="calcQtyVal">${qty}</span>
+            <button type="button" id="calcQtyPlus" aria-label="Больше">+</button>
+          </div>
+        </div>
+
+        <div class="cl-box">
+          <div>
+            <span class="cl-cap">Цена под ключ в Беларуси</span>
+            <span class="cl-total" id="calcTotalBynDisplay">${money2(calc.totalByn)}</span>
+            <span class="cl-incl">${window.UI.icon('check', 14)}Вещь, доставка, страховка и Европочта</span>
+          </div>
+          <details open>
+            <summary><span>Из чего складывается цена</span><span class="cl-sum-chev">${window.UI.icon('chevronDown', 16)}</span></summary>
+            <div class="cl-rows">
+              <div class="cl-line"><span>Выкуп товара (<span id="calcDetailCnyPrice">${calc.priceCny}</span> ¥ по курсу ${calc.cnyRate})</span><b id="calcDetailProductByn">${money2(calc.productByn)}</b></div>
+              <div class="cl-line"><span>Международная доставка (~${calc.weightKg} кг)</span><b id="calcDetailShippingByn">${money2(calc.shippingByn)}</b></div>
+              <div class="cl-line"><span>Обязательная страховка (2%)</span><b id="calcDetailInsuranceByn">${money2(calc.insuranceByn)}</b></div>
+              <div class="cl-line"><span>Доставка Европочтой по Беларуси</span><b>${money2(5)}</b></div>
+              <div class="cl-line"><span>Комиссия сервиса ICE LOGIX</span><b id="calcDetailCommissionByn">${money2(calc.commissionByn)}</b></div>
             </div>
+          </details>
+        </div>
 
-            <!-- Details Spoiler -->
-            <details class="text-xs text-white/70 cursor-pointer" open>
-              <summary class="font-bold text-cyan-300 hover:text-cyan-200 select-none flex items-center justify-between py-1">
-                <span>Из чего складывается цена</span>
-                <span class="cl-sum-chev">${window.UI.icon('chevD', 16)}</span>
-              </summary>
-              <div class="space-y-1.5 pt-2 text-[11px]">
-                <div class="flex justify-between text-white/60">
-                  <span>Выкуп товара (<span id="calcDetailCnyPrice">${calc.priceCny}</span> ¥ по курсу ${calc.cnyRate}):</span>
-                  <span class="font-mono text-white font-semibold inline-flex items-center gap-0.5" id="calcDetailProductByn">${(window.UI ? window.UI.money(calc.productByn, { keepCents: true, digits: 2 }) : calc.productByn.toFixed(2))}</span>
-                </div>
-                <div class="flex justify-between text-white/60">
-                  <span>Международная доставка (~${calc.weightKg} кг):</span>
-                  <span class="font-mono text-white inline-flex items-center gap-0.5" id="calcDetailShippingByn">${(window.UI ? window.UI.money(calc.shippingByn, { keepCents: true, digits: 2 }) : calc.shippingByn.toFixed(2))}</span>
-                </div>
-                <div class="flex justify-between text-white/60">
-                  <span>Обязательная страховка (2%):</span>
-                  <span class="font-mono text-white inline-flex items-center gap-0.5" id="calcDetailInsuranceByn">${(window.UI ? window.UI.money(calc.insuranceByn, { keepCents: true, digits: 2 }) : calc.insuranceByn.toFixed(2))}</span>
-                </div>
-                <div class="flex justify-between text-white/60">
-                  <span>Доставка Европочтой по Беларуси:</span>
-                  <span class="font-mono text-white inline-flex items-center gap-0.5">${window.UI ? window.UI.money(5, { keepCents: true, digits: 2 }) : '5.00'}</span>
-                </div>
-                <div class="flex justify-between text-white/60">
-                  <span>Комиссия сервиса ICE LOGIX:</span>
-                  <span class="font-mono text-white inline-flex items-center gap-0.5" id="calcDetailCommissionByn">${(window.UI ? window.UI.money(calc.commissionByn, { keepCents: true, digits: 2 }) : calc.commissionByn.toFixed(2))}</span>
-                </div>
-              </div>
-            </details>
-          </div>
-
-          <!-- Action Buttons -->
-          <div class="flex flex-col gap-2.5 mt-5">
-            <button type="button" id="calcInstantOrderBtn" class="btn-primary w-full py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-cyan-500/25 active:scale-[0.98] transition">
-              <span class="inline-flex items-center gap-2">${window.UI.icon('zap', 18)}Оформить заказ</span>
-            </button>
-
-            <button type="button" id="calcAddToCartBtn" class="w-full py-3.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] transition">
-              <span class="inline-flex items-center gap-2">${window.UI.icon('cart', 18)}В корзину</span>
-            </button>
-
-            <button type="button" class="w-full py-2.5 rounded-xl text-white/40 hover:text-white/70 text-xs font-semibold bg-transparent border-0 cursor-pointer transition" onclick="window.setCalcMode('hub')">
-              Посчитать другую вещь
-            </button>
-          </div>
+        <div class="cl-actions">
+          <button type="button" id="calcInstantOrderBtn" class="rd-btn rd-btn-block">${window.UI.icon('zap', 18)}Оформить заказ</button>
+          <button type="button" id="calcAddToCartBtn" class="rd-btn rd-btn-tonal rd-btn-block">${window.UI.icon('cart', 18)}В корзину</button>
+          <button type="button" class="rd-btn rd-btn-ghost rd-btn-block" onclick="window.setCalcMode('hub')">Посчитать другую вещь</button>
         </div>
       </div>
       ${renderFooter()}
@@ -919,7 +818,7 @@ window.renderSmartCalculator = async function() {
               if (cleaned) {
                 const applied = (typeof applySmartShareLink === 'function') ? applySmartShareLink(urlInp, cleaned, false) : false;
                 if (!applied) urlInp.value = cleaned;
-                glassToast('✨ Ссылка вставлена', { kind: 'success' });
+                glassToast('Ссылка вставлена', { kind: 'success' });
               }
             } catch(e) {
               glassToast('Вставьте ссылку вручную', { kind: 'info' });
@@ -953,12 +852,12 @@ window.renderSmartCalculator = async function() {
 
             const origText = analyzeBtn.innerHTML;
             analyzeBtn.disabled = true;
-            analyzeBtn.innerHTML = '<span class="ix animate-spin">⏳</span> Чтение...';
+            analyzeBtn.innerHTML = '<span class="ug-load"><i></i>Читаем…</span>';
 
             if (statusBox) {
               statusBox.classList.remove('hidden');
-              statusBox.className = 'mt-3 p-3.5 rounded-2xl text-xs text-left bg-cyan-500/10 border border-cyan-500/25 text-cyan-300';
-              statusBox.innerHTML = '<span class="animate-spin inline-block mr-1">⚡</span> Аппаратный выкуп… Подключение к эмулятору...';
+              statusBox.className = 'cl-status';
+              statusBox.innerHTML = '<span class=\"ug-load\"><i></i>Аппаратный выкуп… Подключение к эмулятору...</span>';
             }
 
             // Smart category detector from Russian & Chinese titles
@@ -1067,7 +966,7 @@ window.renderSmartCalculator = async function() {
               // ── FALLBACK PATH: SUPABASE PARSE_QUEUE ──
               if (!handled && typeof supabaseClient !== 'undefined' && supabaseClient) {
                 if (statusBox) {
-                  statusBox.innerHTML = '<span class="animate-spin inline-block mr-1">⏳</span> Проверяем базу товаров…';
+                  statusBox.innerHTML = '<span class=\"ug-load\"><i></i>Проверяем базу товаров…</span>';
                   statusBox.classList.remove('hidden');
                 }
                 const isPdd = /yangkeduo|pinduoduo|goods_id=/i.test(url);
@@ -1150,7 +1049,7 @@ window.renderSmartCalculator = async function() {
 
                 // 3. Старая очередь parse_queue (если новой очереди в базе нет)
                 if (statusBox) {
-                  statusBox.innerHTML = '<span class="animate-spin inline-block mr-1">⚡</span> Подключение к аппаратному мосту Pinduoduo...';
+                  statusBox.innerHTML = '<span class=\"ug-load\"><i></i>Подключение к аппаратному мосту Pinduoduo...</span>';
                 }
 
                 const currentUserId = window.userId || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) || 6107097715;
@@ -1178,7 +1077,7 @@ window.renderSmartCalculator = async function() {
                       if (checkData?.status === 'processing') {
                         statusBox.innerHTML = '<span class="ug-load"><i></i>Открываем страницу товара, смотрим размеры и фото…</span>';
                       } else if (checkData?.status === 'pdd_pending' && i > 5) {
-                        statusBox.innerHTML = '<span class="animate-spin inline-block mr-1">⚡</span> Эмулятор в очереди, запуск защищенного шлюза…';
+                        statusBox.innerHTML = '<span class=\"ug-load\"><i></i>Эмулятор в очереди, запуск защищенного шлюза…</span>';
                       }
                     }
 
@@ -1256,8 +1155,8 @@ window.renderSmartCalculator = async function() {
 
               if (statusBox) {
                 statusBox.classList.remove('hidden');
-                statusBox.className = 'mt-3 p-3.5 rounded-2xl text-xs text-left bg-red-500/15 border border-red-500/30 text-red-300';
-                statusBox.innerHTML = '⚠️ ' + friendlyMsg;
+                statusBox.className = 'cl-status bad';
+                statusBox.textContent = friendlyMsg;
               }
             } finally {
               analyzeBtn.disabled = false;
@@ -1723,7 +1622,7 @@ if (typeof attachCalculatorHandlers === 'function') {
                 <span class="rd-switch"><input type="checkbox" id="orderUseCustomsSplit" ${useCustomsSplit ? 'checked' : ''}><span></span></span>
               </label>
               <div class="rd-row ${useCustomsSplit ? '' : 'hidden'}" id="customsSplitRecipientSelect">
-                <div class="rd-field co-grow"><select id="splitRecipientDropdown" class="co-select" data-gx-skip><option value="">Выберите второго получателя</option>${recOptions}</select>${window.UI.icon('chevD', 18)}</div>
+                <div class="rd-field co-grow"><select id="splitRecipientDropdown" class="co-select" data-gx-skip><option value="">Выберите второго получателя</option>${recOptions}</select>${window.UI.icon('chevronDown', 18)}</div>
               </div>
             </div>`;
           const chk = document.getElementById('orderUseCustomsSplit');
