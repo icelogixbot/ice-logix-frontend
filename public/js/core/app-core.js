@@ -3482,8 +3482,8 @@ let adminOrdersTotalPages = 1;
       }
 
       // 2b. If on Home tab inside a calculator / AI search submode
-      if (currentTab === 'home' && window._calcMode && window._calcMode !== 'menu') {
-        window._calcMode = 'menu';
+      if (currentTab === 'home' && window._calcMode && window._calcMode !== 'hub' && window._calcMode !== 'menu') {
+        window._calcMode = 'hub';
         renderCurrentScreen();
         syncTelegramBackButton();
         return true;
@@ -3543,7 +3543,8 @@ let adminOrdersTotalPages = 1;
     function syncTelegramBackButton() {
       // Bottom tabs that do not have on-screen back button
       const noHeaderBackTabs = ['home', 'calculator', 'neworder', 'new-order', 'catalogs', 'profile', 'cart'];
-      const isHomeSubmode = currentTab === 'home' && window._calcMode && window._calcMode !== 'menu';
+      // корень главной — 'hub' (раньше тут стояло только 'menu', и на главной всегда торчала стрелка «назад»)
+      const isHomeSubmode = currentTab === 'home' && window._calcMode && window._calcMode !== 'hub' && window._calcMode !== 'menu';
       const hasOrderItems = Boolean(window.tempOrder && window.tempOrder.items && window.tempOrder.items.length > 0);
       const isOrderSubmode = (currentTab === 'neworder' || currentTab === 'new-order') && 
         (Boolean(window.orderAddSubMode) || (Boolean(window.orderAddMode) && hasOrderItems));
