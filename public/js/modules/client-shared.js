@@ -144,20 +144,16 @@ function _catTurnkey(row) {
 }
 
 function _catCard(row, i) {
-  const U = window.UI;
+  // Та же карточка, что на главной (UI.productCard); без сердечка и корзины, клик ведёт в расчёт по ссылке
   const total = _catTurnkey(row);
-  return `
-    <div class="rd-card ps-item" role="button" tabindex="0" data-cat="${i}">
-      <div class="ps-item-img">${row.image_url ? `<img src="${_catEsc(row.image_url)}" alt="" loading="lazy">` : U.icon('image', 26)}</div>
-      <div class="ps-item-body">
-        <div class="ps-item-title">${_catEsc(row.title_ru || row.title_cn || 'Товар с Pinduoduo')}</div>
-        ${row.brand ? `<div class="ps-item-facts">${_catEsc(row.brand)}</div>` : ''}
-        <div class="ps-item-price">
-          ${total != null ? `<span class="rd-price">${window.formatBYN(total)}</span><span class="ps-item-sub">под ключ</span>` : ''}
-          <span class="ps-item-sub">¥${_catEsc(row.price_cny)} на площадке</span>
-        </div>
-      </div>
-    </div>`;
+  const html = window.UI.productCard({
+    id: '', url: '', title: row.title_ru || row.title_cn || 'Товар с Pinduoduo', brand: row.brand,
+    image_urls: row.image_url ? [row.image_url] : [], price: total || 0, currency: 'BYN', // design-ok: код валюты в данных
+  }, false);
+  return html
+    .replace(/<button[^>]*pc-fav[\s\S]*?<\/button>/, '')
+    .replace(/<button[^>]*pc-add[\s\S]*?<\/button>/, '')
+    .replace(/(<article[^>]*?) data-product-id="[^"]*"/, `$1 data-cat="${i}"`);
 }
 
 async function renderProductsCatalog() {
@@ -178,7 +174,7 @@ async function renderProductsCatalog() {
     return `
     <div class="rd-screen page-enter">
       ${head}
-      <div class="ps-list">${_catalogRows.map(_catCard).join('')}</div>
+      <div class="hm-grid">${_catalogRows.map(_catCard).join('')}</div>
     </div>`;
   }
   return `
