@@ -1591,3 +1591,22 @@ html body .app-header {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
+
+/* Меню читаемее: на чистом чёрном скругления и края не видны, поэтому панели — на тёмно-сером (--rd-s2)
+   с заметной линией, а активная вкладка получает мягкую синюю «таблетку» под иконкой. */
+html body .app-header,
+html body .tab-bar,
+html body .rd-cta,
+html body .wb-sticky-dock,
+html body #wbStickyDock {
+  background: var(--rd-s2) !important;
+}
+html body .app-header { border-bottom: 1px solid #2A2A31 !important; border-radius: 0 0 24px 24px !important; }
+html body .tab-bar { border-top: 1px solid #2A2A31 !important; }
+html body .rd-cta,
+html body .wb-sticky-dock,
+html body #wbStickyDock { border-top: 1px solid #2A2A31 !important; }
+html body .tab-item .tab-icon { border-radius: 16px !important; width: 56px !important; height: 40px !important; transition: background .2s ease; }
+html body .tab-item.active .tab-icon,
+html body .tab-item.center-calc-tab.active .tab-icon { background: rgba(59,130,246,.22) !important; }
+html body #tabCartBadge { border-color: var(--rd-s2) !important; }
