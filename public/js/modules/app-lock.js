@@ -168,6 +168,11 @@
           document.body.classList.remove('lk-open');
           if (typeof window.syncThemeChrome === 'function') window.syncThemeChrome();
         }
+        // Верхнее меню приложения на время затухания поверх экрана кода: синеет на глазах ровно вместе с шапкой Telegram
+        if (!document.querySelector('.lk:not(.lk-closing)')) {
+          document.documentElement.classList.add('lk-up');
+          setTimeout(() => document.documentElement.classList.remove('lk-up'), 450);
+        }
         setTimeout(() => el.remove(), 280);
       },
     };
