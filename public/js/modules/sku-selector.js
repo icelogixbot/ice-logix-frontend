@@ -275,74 +275,123 @@
         </table></div>
       </details>` : '';
 
+    const thumbHtml = (m, i) => `<button type="button" class="sk-th${i === 0 ? ' on' : ''}" data-i="${i}" aria-label="Фото ${i + 1}">${
+      m.type === 'collage' ? `<span class="sk-th-col">${m.tiles.map((t) => `<img src="${esc(t.url)}" alt="" style="left:${pct(t.x)};top:${pct(t.y)};width:${pct(t.w)};height:${pct(t.h)}">`).join('')}</span>`
+      : `<img src="${esc(m.src)}" alt="" decoding="async">`}${m.type === 'video' ? '<span class="sk-th-play"></span>' : ''}</button>`;
+
     const html = `
       <div class="sk">
-        <div class="sk-gallery" id="skGallery">
-          ${slides.map(slideHtml).join('')}
-        </div>
-        ${slides.length ? `<div class="sk-count">${countText}</div>` : ''}
-        <button type="button" class="sk-variant" id="skVariant" hidden>
-          <img alt="">
-          <span class="sk-variant-txt"><span class="sk-variant-cap">Фото выбранного варианта</span><span class="sk-variant-name" id="skVariantName"></span></span>
-        </button>
-
-        <div class="sk-title">${esc(productData.title_ru || productData.title || 'Товар с Pinduoduo')}</div>
-        <div class="sk-price">
-          <span class="rd-price-big" id="skuModalPrice">${cnyText(currentPriceCny)}</span>
-          <span class="sk-price-sub" id="skuModalPriceRu">≈ ${money(currentPriceCny * cnyRate())} на площадке</span>
-        </div>
-        <p class="sk-note" id="skuPriceNote" ${currentEstimated || !currentInStock ? '' : 'hidden'}>${!currentInStock ? 'Этого варианта нет в наличии' : 'Цена этого варианта примерная, уточним при выкупе'}</p>
-
-        ${v || tags.length ? `<div class="sk-badges">${v ? `<span class="rd-status ${v.tone}">${icon('shield', 14)}${v.text}</span>` : ''}${tags.map((t) => `<span class="rd-status">${esc(t)}</span>`).join('')}</div>` : ''}
-        ${reason ? `<p class="sk-reason">${esc(reason)}</p>` : ''}
-        ${facts.length ? `<div class="sk-facts">${facts.map(esc).join(' · ')}</div>` : ''}
-
-        ${groupsHtml}
-        ${chartHtml}
-
-        <div class="rd-card sk-qty">
-          <div class="sk-qty-body"><span class="sk-qty-title">Количество</span><span class="sk-qty-sub" id="skuSummaryPill">${esc(getCombinedSummary())}</span></div>
-          <div class="sk-stepper">
-            <button type="button" id="skuQtyMinus" aria-label="Меньше">${icon('minus', 18)}</button>
-            <span id="skuQtyVal">1</span>
-            <button type="button" id="skuQtyPlus" aria-label="Больше">${icon('plus', 18)}</button>
+        <div class="sk-hero">
+          <div class="sk-gallery" id="skGallery">
+            ${slides.map(slideHtml).join('')}
           </div>
+          ${slides.length > 1 ? `<span class="sk-pos" id="skPos">1 / ${slides.length}</span>` : ''}
         </div>
-        <div class="sk-alert" id="skuCustomsAlert" hidden></div>
-        <button type="button" id="skuAddVariantBtn" class="rd-btn rd-btn-ghost rd-btn-block sk-add">${icon('plus', 18)}Добавить ещё вариант</button>
+        ${slides.length > 1 ? `<div class="sk-thumbs" id="skThumbs">${slides.map(thumbHtml).join('')}</div>` : ''}
 
-        <div id="skuBundleSection" class="sk-bundle" hidden>
-          <div class="rd-section"><h2>В заказе <span id="skuBundleCount">0</span> шт.</h2><button type="button" class="rd-link" id="skuClearBundleBtn">Очистить</button></div>
-          <div id="skuBundleList" class="rd-card rd-list"></div>
+        <div class="sk-main">
+          <div class="sk-price">
+            <span class="rd-price-big" id="skuModalPrice">${cnyText(currentPriceCny)}</span>
+            <span class="sk-price-sub" id="skuModalPriceRu">≈ ${money(currentPriceCny * cnyRate())} на площадке</span>
+          </div>
+          <p class="sk-note" id="skuPriceNote" ${currentEstimated || !currentInStock ? '' : 'hidden'}>${!currentInStock ? 'Этого варианта нет в наличии' : 'Цена этого варианта примерная, уточним при выкупе'}</p>
+          <div class="sk-title">${esc(productData.title_ru || productData.title || 'Товар с Pinduoduo')}</div>
+          ${v || tags.length ? `<div class="sk-badges">${v ? `<span class="rd-status ${v.tone}">${icon('shield', 14)}${v.text}</span>` : ''}${tags.map((t) => `<span class="rd-status">${esc(t)}</span>`).join('')}</div>` : ''}
+          ${reason ? `<p class="sk-reason">${esc(reason)}</p>` : ''}
+          ${facts.length ? `<div class="sk-facts">${facts.map(esc).join(' · ')}</div>` : ''}
+
+          ${groups.length ? `<button type="button" class="rd-card sk-pickrow" id="skOpenPick2"><span class="sk-pickrow-k">Вариант</span><span class="sk-pickrow-v" id="skPickSummary">${esc(getCombinedSummary())}</span>${icon('chevR', 18)}</button>` : ''}
+
+          ${shopName ? `
+            <div class="rd-card rd-list sk-block">
+              <div class="rd-row"><span class="rd-ico">${icon('bag', 22)}</span>
+                <span class="rd-row-body"><span class="rd-row-title">${esc(shopName)}</span><span class="rd-row-text">${esc(shopFacts.length ? shopFacts.join(' · ') : 'Магазин на Pinduoduo')}</span></span>
+              </div>
+            </div>` : ''}
+
+          ${reviewTags.length || reviews.length ? `
+            <div class="sk-h">Отзывы покупателей</div>
+            ${reviewTags.length ? `<div class="sk-badges">${reviewTags.map((t) => `<span class="rd-status">${esc(t)}</span>`).join('')}</div>` : ''}
+            ${reviews.map((t) => `<div class="rd-card sk-review">${esc(t)}</div>`).join('')}
+            <p class="sk-reason">Отзывы переведены автоматически с китайского.</p>` : ''}
+
+          ${specs.length ? `
+            <div class="sk-h">Характеристики</div>
+            <div class="rd-card sk-specs">${specs.map((s) => `<div class="sk-spec"><span>${esc(s.k)}</span><b>${esc(s.v)}</b></div>`).join('')}</div>` : ''}
         </div>
 
-        ${shopName ? `
-          <div class="rd-card rd-list sk-block">
-            <div class="rd-row"><span class="rd-ico">${icon('bag', 22)}</span>
-              <span class="rd-row-body"><span class="rd-row-title">${esc(shopName)}</span><span class="rd-row-text">${esc(shopFacts.length ? shopFacts.join(' · ') : 'Магазин на Pinduoduo')}</span></span>
+        <div class="sk-bar" id="skBar">
+          <div class="sk-bar-sum"><b id="skBarPrice">${cnyText(currentPriceCny)}</b></div>
+          <button type="button" class="rd-btn sk-bar-btn" id="skOpenPick">Выбрать</button>
+        </div>
+
+        <div class="sk-pick" id="skPick" hidden>
+          <div class="sk-pick-back" data-pick-close="1"></div>
+          <div class="sk-pick-panel">
+            <div class="sk-pick-head">
+              <button type="button" class="sk-variant" id="skVariant" hidden><img alt=""></button>
+              <div class="sk-pick-info">
+                <div class="sk-pick-price" id="skPickPrice">${cnyText(currentPriceCny)}</div>
+                <div class="sk-pick-name" id="skVariantName">${esc(getCombinedSummary())}</div>
+              </div>
+              <button type="button" class="rd-sheet-x" data-pick-close="1" aria-label="Закрыть">${icon('x', 20)}</button>
             </div>
-          </div>` : ''}
+            <div class="sk-pick-body">
+              ${groupsHtml}
+              ${chartHtml}
 
-        ${specs.length ? `
-          <div class="sk-h">Характеристики</div>
-          <div class="rd-card sk-specs">${specs.map((s) => `<div class="sk-spec"><span>${esc(s.k)}</span><b>${esc(s.v)}</b></div>`).join('')}</div>` : ''}
+              <div class="rd-card sk-qty">
+                <div class="sk-qty-body"><span class="sk-qty-title">Количество</span><span class="sk-qty-sub" id="skuSummaryPill">${esc(getCombinedSummary())}</span></div>
+                <div class="sk-stepper">
+                  <button type="button" id="skuQtyMinus" aria-label="Меньше">${icon('minus', 18)}</button>
+                  <span id="skuQtyVal">1</span>
+                  <button type="button" id="skuQtyPlus" aria-label="Больше">${icon('plus', 18)}</button>
+                </div>
+              </div>
+              <div class="sk-alert" id="skuCustomsAlert" hidden></div>
+              <button type="button" id="skuAddVariantBtn" class="rd-btn rd-btn-ghost rd-btn-block sk-add">${icon('plus', 18)}Добавить ещё вариант</button>
 
-        ${reviewTags.length || reviews.length ? `
-          <div class="sk-h">Что пишут покупатели</div>
-          ${reviewTags.length ? `<div class="sk-badges">${reviewTags.map((t) => `<span class="rd-status">${esc(t)}</span>`).join('')}</div>` : ''}
-          ${reviews.map((t) => `<div class="rd-card sk-review">${esc(t)}</div>`).join('')}
-          <p class="sk-reason">Отзывы переведены автоматически с китайского.</p>` : ''}
-
-        <div class="sk-foot">
-          <button type="button" id="skuApplyBtn" class="rd-btn rd-btn-block"></button>
+              <div id="skuBundleSection" class="sk-bundle" hidden>
+                <div class="rd-section"><h2>В заказе <span id="skuBundleCount">0</span> шт.</h2><button type="button" class="rd-link" id="skuClearBundleBtn">Очистить</button></div>
+                <div id="skuBundleList" class="rd-card rd-list"></div>
+              </div>
+            </div>
+            <div class="sk-foot">
+              <button type="button" id="skuApplyBtn" class="rd-btn rd-btn-block"></button>
+            </div>
+          </div>
         </div>
       </div>`;
 
     const releaseSwipes = window.PhotoViewer ? window.PhotoViewer.holdSwipes() : null; // листая фото, легко свернуть приложение
-    const sh = U.sheet({ title: 'Выберите вариант', html, onClose: () => { if (releaseSwipes) releaseSwipes(); if (_activeSheet === sh) _activeSheet = null; } });
+    const sh = U.sheet({ cls: 'sk-full', title: '', html, onClose: () => { if (releaseSwipes) releaseSwipes(); if (_activeSheet === sh) _activeSheet = null; } });
     _activeSheet = sh;
     const root = sh.el;
     const $ = (sel) => root.querySelector(sel);
+
+    // Карточка на весь экран: нижняя панель и шторка выбора живут в корне листа, чтобы не уезжать со скроллом
+    const sheetEl = root.querySelector('.rd-sheet');
+    ['#skBar', '#skPick'].forEach((q) => { const el = $(q); if (el) sheetEl.appendChild(el); });
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button'; closeBtn.className = 'sk-close'; closeBtn.setAttribute('data-close', '1'); closeBtn.setAttribute('aria-label', 'Закрыть');
+    closeBtn.innerHTML = icon('x', 20);
+    sheetEl.appendChild(closeBtn);
+    const pickEl = $('#skPick');
+    const openPick = () => { pickEl.hidden = false; requestAnimationFrame(() => pickEl.classList.add('on')); haptic(); };
+    const closePick = () => { pickEl.classList.remove('on'); setTimeout(() => { pickEl.hidden = true; }, 220); };
+    $('#skOpenPick').onclick = openPick;
+    const row2 = $('#skOpenPick2'); if (row2) row2.onclick = openPick;
+    pickEl.addEventListener('click', (e) => { if (e.target.closest('[data-pick-close]')) closePick(); });
+    {
+      const gal = $('#skGallery'); const pos = $('#skPos'); const th = $('#skThumbs');
+      const slideEls = Array.from(gal.querySelectorAll('.sk-slide'));
+      const mark = (i) => {
+        if (pos) pos.textContent = `${i + 1} / ${slideEls.length}`;
+        if (th) { th.querySelectorAll('.sk-th').forEach((b, k) => b.classList.toggle('on', k === i)); const b = th.children[i]; if (b) th.scrollTo({ left: b.offsetLeft - th.clientWidth / 2 + b.offsetWidth / 2, behavior: 'smooth' }); }
+      };
+      gal.addEventListener('scroll', () => { if (gal.clientWidth) mark(Math.max(0, Math.min(slideEls.length - 1, Math.round(gal.scrollLeft / gal.clientWidth)))); }, { passive: true });
+      if (th) th.addEventListener('click', (e) => { const b = e.target.closest('.sk-th'); if (b) gal.scrollTo({ left: Number(b.dataset.i) * gal.clientWidth, behavior: 'smooth' }); });
+    }
 
     // 4. Логика
     let currentQty = 1;
@@ -353,6 +402,8 @@
       const prEl = $('#skuModalPriceRu');
       const note = $('#skuPriceNote');
       if (pEl) pEl.textContent = cnyText(currentPriceCny);
+      const bp = $('#skBarPrice'); if (bp) bp.textContent = cnyText(currentPriceCny);
+      const pp = $('#skPickPrice'); if (pp) pp.textContent = cnyText(currentPriceCny);
       if (prEl) prEl.innerHTML = `≈ ${money(currentPriceCny * cnyRate())} на площадке`;
       if (note) {
         note.hidden = currentInStock && !currentEstimated;
@@ -365,6 +416,8 @@
     function updateSummaryDisplay() {
       const pill = $('#skuSummaryPill');
       if (pill) pill.textContent = getCombinedSummary();
+      const ps = $('#skPickSummary'); if (ps) ps.textContent = getCombinedSummary();
+      const nm = $('#skVariantName'); if (nm) nm.textContent = getCombinedSummary();
       updateFooterButton();
     }
 
@@ -445,7 +498,7 @@
       const gal = $('#skGallery');
       if (!gal || !url) return;
       const found = Array.from(gal.querySelectorAll('.sk-slide:not(.sk-slide-video) img')).find((im) => im.getAttribute('src') === url);
-      if (found) gal.scrollTo({ left: found.parentElement.offsetLeft - gal.offsetLeft - 16, behavior: 'smooth' });
+      if (found) gal.scrollTo({ left: found.parentElement.offsetLeft - gal.offsetLeft, behavior: 'smooth' });
     }
 
     $('#skGallery').addEventListener('click', (e) => {
@@ -485,11 +538,12 @@
     function updateVariantPhoto() {
       const box = $('#skVariant');
       if (!box) return;
+      const nm = $('#skVariantName'); if (nm) nm.textContent = getCombinedSummary();
+      const ps = $('#skPickSummary'); if (ps) ps.textContent = getCombinedSummary();
       const url = variantPhotoUrl();
       if (!url) { box.hidden = true; return; }
       const img = box.querySelector('img');
       if (img.getAttribute('src') !== url) img.src = url;
-      $('#skVariantName').textContent = getCombinedSummary();
       box.hidden = false;
     }
     $('#skVariant').addEventListener('click', () => {
