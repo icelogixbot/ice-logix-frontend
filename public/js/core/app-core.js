@@ -15,7 +15,9 @@
       if (meta) meta.setAttribute('content', color);
       const tg = window.Telegram?.WebApp;
       if (!tg) return;
-      try { tg.setHeaderColor?.(HEADER_BLUE); } catch {}
+      // Пока открыт экран кода-пароля, шапка чёрная; синей становится только внутри приложения
+      const locked = !!document.body?.classList.contains('lk-open');
+      try { tg.setHeaderColor?.(locked ? color : HEADER_BLUE); } catch {}
       try { tg.setBackgroundColor?.(color); } catch {}
       try { tg.setBottomBarColor?.(color); } catch {}
     }

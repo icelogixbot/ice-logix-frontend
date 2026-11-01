@@ -131,6 +131,7 @@
       ${o.onForgot ? '<button type="button" class="lk-link">Забыли код-пароль?</button>' : '<span class="lk-link-gap"></span>'}`;
     document.body.appendChild(el);
     document.body.classList.add('lk-open');
+    if (typeof window.syncThemeChrome === 'function') window.syncThemeChrome(); // шапка Telegram — чёрная
     requestAnimationFrame(() => el.classList.add('show'));
 
     let pin = '';
@@ -159,7 +160,13 @@
       close() {
         el.classList.remove('show');
         el.classList.add('lk-closing');
-        setTimeout(() => { el.remove(); if (!document.querySelector('.lk')) document.body.classList.remove('lk-open'); }, 200);
+        setTimeout(() => {
+          el.remove();
+          if (!document.querySelector('.lk')) {
+            document.body.classList.remove('lk-open');
+            if (typeof window.syncThemeChrome === 'function') window.syncThemeChrome(); // вошли в приложение — шапка синяя
+          }
+        }, 200);
       },
     };
 
