@@ -1134,6 +1134,14 @@ window.applySmartShareLink = applySmartShareLink;
                   await recalculateOrderTotals();
                 } catch (_) {}
                 tgUtil.alert(`Заказ создан, но оплата не прошла. ${err.message}\n\nНажмите кнопку ещё раз: второго заказа не будет. Оплатить можно и позже в «Мои заказы».`);
+              } else if (/промокод/i.test(String(err && err.message)) && window.tempOrder && window.tempOrder.appliedPromo) {
+                // Сервер отклонил код (просрочен, выключен, исчерпан): сбрасываем его из корзины и пересчитываем сумму
+                window.tempOrder.appliedPromo = null;
+                window.tempOrder.discountAmount = 0;
+                const pm = document.getElementById('promoMessage');
+                if (pm) { pm.innerText = err.message; pm.style.color = 'var(--rd-bad)'; pm.classList.remove('hidden'); }
+                try { await recalculateOrderTotals(); } catch (_) {}
+                tgUtil.alert(`${err.message}. Код убран из заказа, сумма пересчитана. Проверьте её и нажмите кнопку ещё раз.`);
               } else {
                 tgUtil.alert('Не получилось оформить заказ: ' + err.message);
               }

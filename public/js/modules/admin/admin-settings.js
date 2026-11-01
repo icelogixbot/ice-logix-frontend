@@ -180,6 +180,10 @@
             ${fld('Сбор DuoDuo Pay, %', inp('duo_percent', { value: Number(duo.percent) || 0, mode: 'decimal' }))}
             ${fld('Минимум сбора DuoDuo Pay, ¥', inp('duo_min', { value: Number(duo.min_cny) || 0, mode: 'decimal' }))}
           </div>
+          ${section('Бонусы')}
+          <div class="rd-card">
+            ${fld(`Бонус за отзыв, ${c}`, inp('review_bonus', { value: num('review_bonus', 5), mode: 'decimal' }), 'Начисляется клиенту один раз за отзыв с фото или видео')}
+          </div>
           ${section('Карты')}
           <div class="rd-card">
             ${fld('Сколько карт можно привязать', inp('card_limit', { value: num('card_limit', 5), mode: 'numeric' }))}
@@ -205,6 +209,7 @@
               percent: numIn(form, 'duo_percent', 'Сбор DuoDuo Pay', 0, 30),
               min_cny: numIn(form, 'duo_min', 'Минимум сбора DuoDuo Pay', 0, 1000),
             }),
+            review_bonus: numIn(form, 'review_bonus', 'Бонус за отзыв', 0, 1000),
             card_limit: Math.round(numIn(form, 'card_limit', 'Лимит карт', 1, 20)),
           };
           const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
