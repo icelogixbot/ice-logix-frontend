@@ -373,7 +373,7 @@
     const sheetEl = root.querySelector('.rd-sheet');
     ['#skBar', '#skPick'].forEach((q) => { const el = $(q); if (el) sheetEl.appendChild(el); });
     const closeBtn = document.createElement('button');
-    closeBtn.type = 'button'; closeBtn.className = 'sk-close'; closeBtn.setAttribute('data-close', '1'); closeBtn.setAttribute('aria-label', 'Назад');
+    closeBtn.type = 'button'; closeBtn.className = 'rd-back sk-close'; closeBtn.setAttribute('data-close', '1'); closeBtn.setAttribute('aria-label', 'Назад');
     closeBtn.innerHTML = icon('chevL', 22);
     sheetEl.appendChild(closeBtn);
     // Шапка и нижнее меню приложения остаются видны: пока карточка открыта, поднимаем их над ней, а тап по ним её закрывает
@@ -408,6 +408,7 @@
       const slideEls = Array.from(gal.querySelectorAll('.sk-slide'));
       const mark = (i) => {
         if (pos) pos.textContent = `${i + 1} / ${slideEls.length}`;
+        slideEls.forEach((s, k) => { if (k !== i) { const v = s.querySelector('video'); if (v) v.pause(); } }); // видео не играет за кадром
         if (th) { th.querySelectorAll('.sk-th').forEach((b, k) => b.classList.toggle('on', k === i)); const b = th.children[i]; if (b) th.scrollTo({ left: b.offsetLeft - th.clientWidth / 2 + b.offsetWidth / 2, behavior: 'smooth' }); }
       };
       gal.addEventListener('scroll', () => { if (gal.clientWidth) mark(Math.max(0, Math.min(slideEls.length - 1, Math.round(gal.scrollLeft / gal.clientWidth)))); }, { passive: true });
@@ -524,7 +525,22 @@
 
     $('#skGallery').addEventListener('click', (e) => {
       const slide = e.target.closest('.sk-slide');
-      if (!slide || !window.PhotoViewer) return;
+      if (!slide) return;
+      // Кнопка-плеер запускает видео прямо на слайде; тап по картинке раскрывает на весь экран
+      if (slide.dataset.video && e.target.closest('.sk-play')) {
+        if (!slide.querySelector('video')) {
+          const v = document.createElement('video');
+          v.src = slide.dataset.video; v.controls = true; v.autoplay = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', '');
+          v.poster = (slide.querySelector('img') || {}).src || '';
+          v.className = 'sk-inline-video';
+          slide.appendChild(v);
+          slide.classList.add('playing');
+          v.addEventListener('ended', () => { slide.classList.remove('playing'); v.remove(); });
+        }
+        return;
+      }
+      if (e.target.closest('video')) return;
+      if (!window.PhotoViewer) return;
       const all = Array.from($('#skGallery').querySelectorAll('.sk-slide'));
       const items = [];
       let start = 0;

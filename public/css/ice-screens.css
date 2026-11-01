@@ -1181,7 +1181,9 @@ html body .no-form div[class*="border-white/30"] > input { min-height: 40px !imp
 .sk-slide-video { position: relative; }
 .sk-slide-collage { position: relative; background: #fff; }
 .sk-slide-collage .sk-tile { position: absolute; width: auto; height: auto; border-radius: 6px; object-fit: cover; }
-.sk-play { position: absolute; left: 50%; top: 50%; width: 48px; height: 48px; margin: -24px 0 0 -24px; display: flex; align-items: center; justify-content: center; border-radius: 999px; background: rgba(0, 0, 0, 0.55); color: rgb(255, 255, 255); pointer-events: none; }
+.sk-play { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; display: flex; align-items: center; justify-content: center; border-radius: 999px; background: rgba(0, 0, 0, 0.6); color: rgb(255, 255, 255); cursor: pointer; }
+.sk-slide.playing .sk-play, .sk-slide.playing .sk-dur { display: none; }
+.sk-inline-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; z-index: 2; }
 .sk-play svg { margin-left: 2px; }
 .sk-dur { position: absolute; left: 8px; bottom: 8px; padding: 2px 8px; border-radius: 999px; background: rgba(0, 0, 0, 0.55); color: rgb(255, 255, 255); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; pointer-events: none; }
 /* Просмотр фото на весь экран (photo-viewer.js): всегда чёрный, и в светлой теме тоже */
@@ -1431,18 +1433,20 @@ html body .sp-composer input { flex: 1; min-width: 0; height: 42px; padding: 0 !
 .sp-send:disabled { background: var(--rd-s3); color: var(--rd-tx3); cursor: default; }
 
 /* ═══ Карточка товара на весь экран (sku-selector.js), как карточка в Pinduoduo ═══ */
-.rd-sheet-wrap.sk-full .rd-sheet { top: 0; max-height: none; height: 100%; border: 0; border-radius: 0; padding: calc(78px + env(safe-area-inset-top, 0px)) 0 176px; overflow-y: auto; overscroll-behavior: contain; }
+.rd-sheet-wrap.sk-full .rd-sheet { top: 0; max-height: none; height: 100%; border: 0; border-radius: 0; background: var(--rd-bg); padding: calc(148px + env(safe-area-inset-top, 0px)) 16px calc(176px + env(safe-area-inset-bottom, 0px)); overflow-y: auto; overscroll-behavior: contain; }
 .sk-full .rd-sheet-handle, .sk-full .rd-sheet-backdrop { display: none; }
 .sk-full .sk { gap: 0; }
-.sk-full .sk-hero { position: relative; background: var(--rd-s2); }
-.sk-full .sk-gallery { gap: 0; margin: 0; padding: 0; }
-.sk-full .sk-slide { flex: 0 0 100%; max-width: none; aspect-ratio: 1 / 1; border-radius: 0; background: var(--rd-s2); }
+.sk-full .sk-hero { position: relative; background: transparent; }
+.sk-full .sk-gallery { gap: 10px; margin: 0; padding: 0; }
+.sk-full .sk-slide { flex: 0 0 100%; max-width: none; aspect-ratio: 1 / 1; border-radius: var(--rd-r22); border: 1px solid var(--rd-line); background: var(--rd-s1); }
 .sk-full .sk-slide:only-child { flex-basis: 100%; aspect-ratio: 1 / 1; }
 .sk-full .sk-slide img { object-fit: contain; }
 .sk-full .sk-slide-video img { background: rgb(0, 0, 0); }
-.sk-close { position: fixed; z-index: 3; left: 12px; top: calc(86px + env(safe-area-inset-top, 0px)); width: 40px; height: 40px; border: 0; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.55); color: rgb(255, 255, 255); cursor: pointer; -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
-.sk-pos { position: absolute; right: 12px; bottom: 12px; padding: 3px 10px; border-radius: 999px; background: rgba(0, 0, 0, 0.55); color: rgb(255, 255, 255); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; pointer-events: none; }
-.sk-thumbs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 10px 16px; background: var(--rd-s1); }
+/* «Назад» как .rd-back в других разделах: 42x42, радиус 14, под шапкой на отступе 84px (как .main-content) */
+.sk-full .sk-close { position: absolute; z-index: 3; left: 16px; top: calc(88px + env(safe-area-inset-top, 0px)); width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; }
+.sk-full .sk-main { padding: 14px 0 8px; }
+.sk-pos { position: absolute; right: 12px; bottom: 12px; padding: 3px 10px; border-radius: 999px; background: rgba(0, 0, 0, 0.6); color: rgb(255, 255, 255); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; pointer-events: none; }
+.sk-thumbs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 12px 0 0; background: transparent; }
 .sk-thumbs::-webkit-scrollbar { display: none; }
 .sk-th { position: relative; flex: 0 0 56px; width: 56px; height: 56px; padding: 0; border: 2px solid transparent; border-radius: 10px; overflow: hidden; background: var(--rd-s2); cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .sk-th.on { border-color: var(--rd-b400); }
@@ -1456,7 +1460,8 @@ html body .sp-composer input { flex: 1; min-width: 0; height: 42px; padding: 0 !
 .sk-pickrow-k { flex: 0 0 auto; font-size: 14px; color: var(--rd-tx3); }
 .sk-pickrow-v { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sk-pickrow svg { flex: 0 0 auto; color: var(--rd-tx3); }
-.sk-bar { position: fixed; z-index: 2; left: 12px; right: 12px; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; background: var(--rd-s1); border: 1px solid var(--rd-line); border-radius: 22px; }
+/* Панель «цена + Выбрать»: стеклянный «хвост», приставленный к нижнему меню (меню: bottom 12px, высота 68px) */
+.sk-bar { position: fixed; z-index: 2; left: 12px; right: 12px; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 20px; background: var(--rd-glass-bg); border: 1px solid var(--rd-glass-line); border-bottom: 0; border-radius: 26px 26px 6px 6px; box-shadow: var(--rd-glass-shadow); -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%); }
 .sk-bar-sum { flex: 1; min-width: 0; font-size: 20px; font-weight: 800; color: var(--rd-tx); font-variant-numeric: tabular-nums; }
 .sk-bar-btn { flex: 0 0 auto; min-width: 160px; }
 .sk-pick { position: fixed; z-index: 4; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; }
