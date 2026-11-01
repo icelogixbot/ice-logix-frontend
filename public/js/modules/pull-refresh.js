@@ -15,6 +15,9 @@
   const MIN_SHOW_MS = 800;   // спиннер не мигает на быстрых экранах
   const BACK_MS = 300;       // сколько страница возвращается на место
   const EASE = 'cubic-bezier(.22,.9,.3,1)';
+  const REVEAL_MS = 420;     // сколько проявляется один блок нового экрана
+  const REVEAL_STEP = 55;    // пауза между блоками каскада
+  const REVEAL_MAX = 8;      // дальше блоки, скорее всего, ниже экрана — их не анимируем
   const BLOCKED_TABS = ['neworder', 'calculator', 'cart', 'legitcheck', 'kyc', 'checkout'];
 
   let el = null;
@@ -125,6 +128,29 @@
     }, BACK_MS + 30);
   }
 
+  // Пока идёт обновление, содержимое экрана притушено — видно, что старое уходит
+  function dim(on) {
+    const c = contentEl();
+    if (c) c.classList.toggle('ptr-loading', on);
+  }
+
+  // Новый экран проявляется каскадом: блоки по очереди поднимаются снизу и становятся чёткими
+  function reveal() {
+    const c = contentEl();
+    if (!c || !c.animate) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let i = 0;
+    for (const child of c.children) {
+      if (i >= REVEAL_MAX) break;
+      if (getComputedStyle(child).position === 'fixed') continue;
+      child.animate(
+        [{ opacity: 0, transform: 'translate3d(0, 14px, 0)' }, { opacity: 1, transform: 'translate3d(0, 0, 0)' }],
+        { duration: REVEAL_MS, delay: i * REVEAL_STEP, easing: EASE, fill: 'backwards' }
+      );
+      i++;
+    }
+  }
+
   // Сбросить всё, что приложение держит в памяти, и заново нарисовать текущий экран
   async function softRefresh() {
     try { if (typeof _tabCache !== 'undefined') Object.keys(_tabCache).forEach((k) => { delete _tabCache[k]; }); } catch (_) {}
@@ -157,7 +183,10 @@
     paint(HOLD, 1, false);
     haptic('medium');
     const t0 = Date.now();
+    dim(true);
     try { await softRefresh(); } catch (e) { console.warn('[pull-refresh]', e); }
+    dim(false);
+    reveal();
     const wait = Math.max(0, MIN_SHOW_MS - (Date.now() - t0));
     setTimeout(() => { release(); haptic('success'); }, wait);
   }
