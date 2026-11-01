@@ -204,14 +204,20 @@
     // 3. Разметка
     const gallery = (productData.gallery && productData.gallery.length ? productData.gallery : [masterImg]).filter(Boolean);
     // Карусель объявления в порядке PDD: видео (если оно было) и фото. Нет media — как раньше, только фото
-    const mediaList = (Array.isArray(productData.media) ? productData.media : []).filter((m) => m && m.url);
+    const mediaList = (Array.isArray(productData.media) ? productData.media : []).filter((m) => m && (m.url || (m.type === 'collage' && Array.isArray(m.tiles) && m.tiles.length)));
     const hasVideo = mediaList.some((m) => m.type === 'video');
-    const slides = hasVideo
-      ? mediaList.map((m) => (m.type === 'video' ? { type: 'video', src: m.poster || '', video: m.url, duration: m.duration } : { type: 'photo', src: m.url }))
+    const hasCollage = mediaList.some((m) => m.type === 'collage');
+    const slides = hasVideo || hasCollage
+      ? mediaList.map((m) => (m.type === 'video' ? { type: 'video', src: m.poster || '', video: m.url, duration: m.duration }
+        : m.type === 'collage' ? { type: 'collage', tiles: m.tiles.filter((t) => t && t.url) }
+        : { type: 'photo', src: m.url }))
       : gallery.map((src) => ({ type: 'photo', src }));
-    const photoCount = slides.filter((x) => x.type === 'photo').length;
+    const photoCount = slides.filter((x) => x.type !== 'video').length;
     const fmtDur = (n) => { const t = parseInt(n, 10); return t > 0 ? `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}` : ''; };
-    const slideHtml = (m, i) => (m.type === 'video'
+    const pct = (n) => `${(Number(n) * 100).toFixed(2)}%`;
+    const slideHtml = (m, i) => (m.type === 'collage'
+      ? `<div class="sk-slide sk-slide-collage">${m.tiles.map((t) => `<img class="sk-tile" src="${esc(t.url)}" alt="" decoding="async" style="left:${pct(t.x)};top:${pct(t.y)};width:${pct(t.w)};height:${pct(t.h)}">`).join('')}</div>`
+      : m.type === 'video'
       ? `<div class="sk-slide sk-slide-video" data-video="${esc(m.video)}">${m.src ? `<img src="${esc(m.src)}" alt="">` : ''}<span class="sk-play"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg></span>${fmtDur(m.duration) ? `<span class="sk-dur">${fmtDur(m.duration)}</span>` : ''}</div>`
       : `<div class="sk-slide"><img src="${esc(m.src)}" alt="" decoding="async"></div>`);
     const countText = hasVideo
@@ -446,13 +452,24 @@
       const slide = e.target.closest('.sk-slide');
       if (!slide || !window.PhotoViewer) return;
       const all = Array.from($('#skGallery').querySelectorAll('.sk-slide'));
-      const items = all.map((sl) => {
+      const items = [];
+      let start = 0;
+      all.forEach((sl) => {
         const pic = sl.querySelector('img');
-        return sl.dataset.video
-          ? { type: 'video', url: sl.dataset.video, poster: pic ? pic.getAttribute('src') : '' }
-          : (pic ? pic.getAttribute('src') : '');
+        if (sl === slide) start = items.length;
+        if (sl.classList.contains('sk-slide-collage')) {
+          // каждая плитка коллажа открывается отдельным фото
+          Array.from(sl.querySelectorAll('img')).forEach((im) => {
+            if (sl === slide && im === e.target) start = items.length;
+            items.push(im.getAttribute('src'));
+          });
+        } else {
+          items.push(sl.dataset.video
+            ? { type: 'video', url: sl.dataset.video, poster: pic ? pic.getAttribute('src') : '' }
+            : (pic ? pic.getAttribute('src') : ''));
+        }
       });
-      window.PhotoViewer.open(items, all.indexOf(slide));
+      window.PhotoViewer.open(items, start);
     });
 
     // Фото выбранного варианта из шторки PDD (sku_photos: «цвет|размер» или просто цвет). Нет фото — блока нет
