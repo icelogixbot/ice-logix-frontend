@@ -882,11 +882,6 @@
     return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  const GREETING_RE = /^(привет|приветик|здравствуй(те)?|добрый (день|вечер)|доброе утро|хай|салам|hello|hi)[\s!.,)]*$/i;
-  const HOWAREYOU_RE = /^(как\s+(у\s+тебя\s+)?дела|как\s+ты|как\s+жизнь|что\s+нового|как\s+поживаешь)[\s!?.,)]*$/i;
-  const ABOUT_RE = /^(ты\s+кто|кто\s+ты|что\s+(ты\s+)?(умеешь|можешь)|чем\s+занимаешься|помоги|помощь)[\s!?.,)]*$/i;
-  const BYE_RE = /^(пока|до\s+свидания|до\s+встречи|всего\s+доброго)[\s!.,)]*$/i;
-  const THANKS_RE = /^(спасибо|спс|благодарю|thanks)[\s!.,)]*$/i;
 
   function chatScroll() {
     const el = contentEl && contentEl.lastElementChild;
@@ -1001,17 +996,7 @@
     let actHtml = '';
     let personal = false;
     let rated = null;
-    if (GREETING_RE.test(q)) {
-      answer = 'Привет! Я ассистент ICE LOGIX. Подскажу про заказы, цены, доставку и выкуп из Китая — спрашивайте.';
-    } else if (HOWAREYOU_RE.test(q)) {
-      answer = 'Всё хорошо, спасибо! Чем помочь: заказ, цена, доставка или выкуп из Китая?';
-    } else if (ABOUT_RE.test(q)) {
-      answer = 'Я ассистент ICE LOGIX. Расскажу про цены, комиссию, доставку и оплату, найду ваш заказ и покажу баланс. Спросите своими словами.';
-    } else if (BYE_RE.test(q)) {
-      answer = 'Всего доброго! Если что — я здесь.';
-    } else if (THANKS_RE.test(q)) {
-      answer = 'Пожалуйста! Если появятся вопросы — пишите.';
-    } else if (detectUserDataIntent(q)) {
+    if (detectUserDataIntent(q)) {
       // Личное: без doc-ai и модели, только шаблон + данные пользователя
       let own = null;
       try { own = await answerUserData(detectUserDataIntent(q), getUserContext()); } catch (_e) { own = { answer: 'Не получилось загрузить ваши данные. Попробуйте чуть позже.' }; }
