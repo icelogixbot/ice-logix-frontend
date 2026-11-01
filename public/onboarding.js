@@ -14,7 +14,6 @@
   position: fixed; inset: 0; z-index: 9999;
   background: var(--rd-bg);
   display: flex; align-items: center; justify-content: center;
-  animation: iceFadeIn 0.3s ease-out;
   -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none;
   font-family: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
 }

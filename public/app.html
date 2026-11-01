@@ -50,9 +50,9 @@
       function hide() {
         if (done) return; done = true;
         var el = document.getElementById('iceSplash'); if (!el) return;
-        el.classList.add('out');
+        el.classList.add('out'); document.documentElement.classList.add('sp-out');
         try { window.syncThemeChrome && window.syncThemeChrome(); } catch (e) {}
-        setTimeout(function () { try { el.remove(); } catch (e) {} try { window.syncThemeChrome && window.syncThemeChrome(); } catch (e) {} }, 750);
+        setTimeout(function () { try { el.remove(); } catch (e) {} document.documentElement.classList.remove('sp-out'); try { window.syncThemeChrome && window.syncThemeChrome(); } catch (e) {} }, 750);
       }
       function tick() {
         if (done) return;
@@ -88,7 +88,7 @@
   <script src="/vendor/supabase.min.js"></script>
   <script src="/vendor/crypto-js.min.js"></script>
   <script src="/pricing-engine.js?v=20261101_nofee"></script>
-  <script src="/onboarding.js?v=20261031_th1"></script>
+  <script src="/onboarding.js?v=20261102_ob2"></script>
   <script async src="/vendor/chart.umd.min.js"></script>
   <script defer src="/vendor/pdfmake.min.js"></script>
   <script defer src="/vendor/vfs_fonts.js"></script>
@@ -100,7 +100,7 @@
   <link rel="stylesheet" href="/css/cart.css?v=20261024_48">
   <link rel="stylesheet" href="/css/ice-redesign.css?v=20261101_blk1">
   <link rel="stylesheet" href="/css/ice-redesign-compat.css?v=20261029_07">
-  <link rel="stylesheet" href="/css/ice-screens.css?v=20261102_hdr2">
+  <link rel="stylesheet" href="/css/ice-screens.css?v=20261102_hdr3">
   <link rel="stylesheet" href="/css/ice-admin.css?v=20261101_ib1">
   <link rel="stylesheet" href="/css/ice-light.css?v=20261101_pm2">
   <script src="/js/modules/browser-gate.js?v=20261101_spl1"></script>
