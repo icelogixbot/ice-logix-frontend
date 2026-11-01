@@ -1178,6 +1178,9 @@ html body .no-form div[class*="border-white/30"] > input { min-height: 40px !imp
 .pv-slide { flex: 0 0 100%; height: 100%; overflow: hidden; display: flex; align-items: center; justify-content: center; }
 .pv-img { width: 100%; height: 100%; object-fit: contain; display: block; will-change: transform; -webkit-user-drag: none; }
 .pv-slide-video { position: relative; }
+.pv-wait { background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.07) 50%, transparent 70%) 0 0 / 200% 100%; animation: pvWait 1.2s linear infinite; }
+@keyframes pvWait { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .pv-wait { animation: none; } }
 .pv-play { position: absolute; left: 50%; top: 50%; width: 72px; height: 72px; margin: -36px 0 0 -36px; display: flex; align-items: center; justify-content: center; border-radius: 999px; background: rgba(0, 0, 0, 0.55); color: rgb(255, 255, 255); pointer-events: none; }
 .pv-play svg { width: 34px; height: 34px; margin-left: 3px; }
 .pv-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: rgb(0, 0, 0); }

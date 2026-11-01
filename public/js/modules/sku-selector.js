@@ -159,7 +159,7 @@
     const selectedState = {};
     groups.forEach((grp) => {
       const opts = grp.options || [];
-      selectedState[grp.id] = opts.find((o) => o.selected && !o.disabled) || opts.find((o) => !o.disabled) || opts[0] || null;
+      selectedState[grp.id] = opts.find((o) => !o.disabled) || opts[0] || null;
     });
     if (sizeGroup && !optAvailable(sizeGroup, selectedState[sizeGroup.id])) {
       selectedState[sizeGroup.id] = sizeGroup.options.find((o) => optAvailable(sizeGroup, o)) || selectedState[sizeGroup.id];
@@ -213,7 +213,7 @@
     const fmtDur = (n) => { const t = parseInt(n, 10); return t > 0 ? `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}` : ''; };
     const slideHtml = (m, i) => (m.type === 'video'
       ? `<div class="sk-slide sk-slide-video" data-video="${esc(m.video)}">${m.src ? `<img src="${esc(m.src)}" alt="">` : ''}<span class="sk-play"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg></span>${fmtDur(m.duration) ? `<span class="sk-dur">${fmtDur(m.duration)}</span>` : ''}</div>`
-      : `<div class="sk-slide"><img src="${esc(m.src)}" alt="" ${i ? 'loading="lazy"' : ''}></div>`);
+      : `<div class="sk-slide"><img src="${esc(m.src)}" alt="" decoding="async"></div>`);
     const countText = hasVideo
       ? (photoCount ? `${photoCount} фото и видео. Нажмите, чтобы рассмотреть` : 'Видео. Нажмите, чтобы посмотреть')
       : (gallery.length > 1 ? `${gallery.length} фото. Нажмите, чтобы рассмотреть` : 'Нажмите на фото, чтобы рассмотреть');
@@ -244,7 +244,7 @@
       return `
         <button type="button" class="sk-opt${grp.type === 'visual' ? ' sk-opt-vis' : ''}${isSel ? ' on' : ''}${avail ? '' : ' off'}"
           data-group-id="${esc(grp.id)}" data-opt-idx="${optIdx}" ${avail ? '' : 'aria-disabled="true"'}>
-          ${grp.type === 'visual' ? (thumb ? `<img src="${esc(thumb)}" alt="" loading="lazy">` : `<span class="sk-opt-noimg">${icon('image', 18)}</span>`) : ''}
+          ${grp.type === 'visual' ? (thumb ? `<img src="${esc(thumb)}" alt="" decoding="async">` : `<span class="sk-opt-noimg">${icon('image', 18)}</span>`) : ''}
           <span class="sk-opt-body"><span class="sk-opt-name">${esc(label)}</span><span class="sk-opt-price"></span></span>
         </button>`;
     };
@@ -433,37 +433,19 @@
     }
     refreshOptPrices();
 
-    // Галерея — фото объявления в их порядке, первой идёт обложка. Выбранный цвет её не подменяет:
-    // фото цвета уже среди них — листаем к нему, иначе показываем отдельным слайдом в начале
+    // Галерея — фото объявления в их порядке PDD. Выбор цвета или модели её не меняет и ничего в неё не вставляет:
+    // фото варианта показывает отдельный блок #skVariant. Если такое же фото уже есть в галерее — просто листаем к нему
     function showColorPhoto(url) {
       const gal = $('#skGallery');
       if (!gal || !url) return;
-      let temp = gal.querySelector('.sk-slide-color');
-      const found = Array.from(gal.querySelectorAll('.sk-slide:not(.sk-slide-color):not(.sk-slide-video) img')).find((im) => im.getAttribute('src') === url);
-      if (found) {
-        if (temp) temp.remove();
-        gal.scrollTo({ left: found.parentElement.offsetLeft - gal.offsetLeft - 16, behavior: 'smooth' });
-        return;
-      }
-      if (!temp) {
-        temp = document.createElement('div');
-        temp.className = 'sk-slide sk-slide-color';
-        temp.innerHTML = '<img alt="">';
-        gal.prepend(temp);
-      }
-      temp.querySelector('img').src = url;
-      gal.scrollTo({ left: 0, behavior: 'smooth' });
+      const found = Array.from(gal.querySelectorAll('.sk-slide:not(.sk-slide-video) img')).find((im) => im.getAttribute('src') === url);
+      if (found) gal.scrollTo({ left: found.parentElement.offsetLeft - gal.offsetLeft - 16, behavior: 'smooth' });
     }
 
     $('#skGallery').addEventListener('click', (e) => {
       const slide = e.target.closest('.sk-slide');
       if (!slide || !window.PhotoViewer) return;
-      const im = slide.querySelector('img');
-      if (slide.classList.contains('sk-slide-color')) { // фото цвета — одно, галерея остаётся в порядке объявления
-        if (im) window.PhotoViewer.open([im.getAttribute('src')], 0);
-        return;
-      }
-      const all = Array.from($('#skGallery').querySelectorAll('.sk-slide:not(.sk-slide-color)'));
+      const all = Array.from($('#skGallery').querySelectorAll('.sk-slide'));
       const items = all.map((sl) => {
         const pic = sl.querySelector('img');
         return sl.dataset.video
@@ -475,33 +457,18 @@
 
     // Фото выбранного варианта из шторки PDD (sku_photos: «цвет|размер» или просто цвет). Нет фото — блока нет
     const skuPhotos = productData.sku_photos || {};
+    // Фото вариантов и плиток подгружаем заранее, чтобы при выборе они появлялись сразу
+    Array.from(new Set(Object.values(skuPhotos).filter(Boolean))).forEach((u) => { new Image().src = u; });
     function variantPhotoUrl() {
       const vis = visualGroup ? selectedState[visualGroup.id] : null;
       const size = sizeGroup ? selectedState[sizeGroup.id] : null;
       if (visualGroup && sizeGroup) return skuPhotos[`${rawOf(vis)}|${rawOf(size)}`] || skuPhotos[rawOf(vis)] || '';
       return skuPhotos[rawOf(vis || size)] || '';
     }
-    // Как в PDD: выбрали вариант — первое фото карусели становится фото этого варианта (если первым не идёт видео)
-    let firstSlideImg = null;
-    let firstSlideOrig = '';
-    let variantPhotoShown = false;
-    function swapFirstSlide(url) {
-      if (!firstSlideImg) {
-        const first = $('#skGallery .sk-slide');
-        if (!first || first.classList.contains('sk-slide-video')) return;
-        firstSlideImg = first.querySelector('img');
-        if (!firstSlideImg) return;
-        firstSlideOrig = firstSlideImg.getAttribute('src') || '';
-      }
-      const want = url || firstSlideOrig;
-      if (firstSlideImg.getAttribute('src') !== want) firstSlideImg.setAttribute('src', want);
-    }
     function updateVariantPhoto() {
       const box = $('#skVariant');
       if (!box) return;
       const url = variantPhotoUrl();
-      if (variantPhotoShown) swapFirstSlide(url);
-      variantPhotoShown = true;
       if (!url) { box.hidden = true; return; }
       const img = box.querySelector('img');
       if (img.getAttribute('src') !== url) img.src = url;

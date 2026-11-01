@@ -63,7 +63,7 @@
         <button type="button" class="pv-close" aria-label="Закрыть">${U && U.icon ? U.icon('x', 22) : '×'}</button>
         <span class="pv-count"></span>
       </div>
-      ${items.length > 1 ? `<div class="pv-strip">${list.map((u, i) => `<button type="button" class="pv-thumb${isVideo(i) ? ' pv-thumb-video' : ''}" data-i="${i}" aria-label="${isVideo(i) ? 'Видео' : 'Фото'} ${i + 1}"><img src="${(u || '').replace(/"/g, '&quot;')}" alt="" draggable="false" loading="lazy">${isVideo(i) ? `<span class="pv-thumb-play">${PLAY_ICO}</span>` : ''}</button>`).join('')}</div>` : ''}`;
+      ${items.length > 1 ? `<div class="pv-strip">${list.map((u, i) => `<button type="button" class="pv-thumb${isVideo(i) ? ' pv-thumb-video' : ''}" data-i="${i}" aria-label="${isVideo(i) ? 'Видео' : 'Фото'} ${i + 1}"><img src="${(u || '').replace(/"/g, '&quot;')}" alt="" draggable="false" decoding="async">${isVideo(i) ? `<span class="pv-thumb-play">${PLAY_ICO}</span>` : ''}</button>`).join('')}</div>` : ''}`;
     document.body.appendChild(root);
 
     const bg = root.querySelector('.pv-bg');
@@ -132,9 +132,16 @@
       drawImage(animated);
     }
 
+    // Грузим сразу все кадры (их десяток, в основном уже в кэше окна выбора): сначала текущий и соседи,
+    // иначе при быстром листании или нажатии на миниатюру остаются тёмные пустые кадры
     function loadAround() {
-      [index, index - 1, index + 1].forEach((i) => {
-        if (imgs[i] && list[i] && !imgs[i].getAttribute('src')) imgs[i].src = list[i];
+      const order = [index, index + 1, index - 1];
+      for (let d = 2; d < items.length; d++) order.push(index + d, index - d);
+      order.forEach((i) => {
+        const im = imgs[i];
+        if (!im || !list[i] || im.getAttribute('src')) return;
+        slides[i].classList.add('pv-wait');
+        im.src = list[i];
       });
     }
 
@@ -369,7 +376,15 @@
     }
     window.addEventListener('keydown', onKey);
     window.addEventListener('resize', onResize);
-    imgs.forEach((im, i) => im.addEventListener('load', () => { if (i === index) setZoom(scale, tx, ty, false); }));
+    imgs.forEach((im, i) => {
+      const done = () => slides[i].classList.remove('pv-wait');
+      im.addEventListener('load', () => { done(); if (i === index) setZoom(scale, tx, ty, false); });
+      im.addEventListener('error', () => { // не загрузилось: один повтор, потом пустой кадр без вечного ожидания
+        if (im.dataset.retry || !list[i]) { done(); return; }
+        im.dataset.retry = '1';
+        setTimeout(() => { im.src = list[i] + (list[i].includes('?') ? '&' : '?') + 'r=1'; }, 400);
+      });
+    });
 
     measure();
     track.style.transform = `translate3d(${-index * (W + GAP)}px, 0, 0)`;
