@@ -238,7 +238,7 @@
 
   function cover(n) {
     if (!(n instanceof HTMLElement) || n === shield.el || shield.nodes.has(n) || SKIP_TAGS.test(n.tagName)) return;
-    if (n.id === 'rdToastHost' || n.classList.contains('lk-over') || n.classList.contains('lk-closing')) return;
+    if (n.id === 'rdToastHost' || n.id === 'iceSplash' || n.classList.contains('lk-over') || n.classList.contains('lk-closing')) return;
     n.setAttribute('data-lk-hide', n.hasAttribute('inert') ? 'inert' : '1'); // 'inert' — был выключен и до нас
     n.setAttribute('inert', '');
     shield.nodes.add(n);
