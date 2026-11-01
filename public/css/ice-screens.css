@@ -1522,3 +1522,43 @@ body.sk-picking .tab-bar { display: none; }
 .sk-slide img, .sk-th img { opacity: 0; transition: opacity .25s ease; }
 .sk-slide img.ld, .sk-th img.ld { opacity: 1; }
 .cl-box > div:first-child { text-align: center; padding-bottom: 14px; margin-bottom: 10px; border-bottom: 1px solid var(--rd-line); }
+
+/* ═══ Нижнее меню в стиле WB: плоская чёрная панель до краёв, только иконки ═══
+   Высота 80 = 68 рабочих + 12 запаса снизу: плавающая панель (bottom: 80px) по-прежнему садится вплотную. */
+html body .tab-bar {
+  left: 0 !important; right: 0 !important; bottom: 0 !important;
+  height: 80px !important;
+  padding: 0 4px 12px !important;
+  background: #000 !important;
+  border: 0 !important;
+  border-top: 1px solid var(--rd-line) !important;
+  border-radius: 22px 22px 0 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+html body .tab-item,
+html body .tab-item.center-calc-tab {
+  justify-content: center !important;
+  padding: 0 !important; margin: 0 !important;
+  height: 100%;
+  color: var(--rd-tx3) !important;
+  background: transparent !important;
+}
+html body .tab-item.active,
+html body .tab-item.center-calc-tab.active { color: var(--rd-b300) !important; }
+html body .tab-item .tab-label { display: none !important; }
+html body .tab-item .tab-icon,
+html body .tab-item.center-calc-tab .tab-icon,
+html body .tab-item.active .tab-icon,
+html body .tab-item.center-calc-tab.active .tab-icon {
+  width: 44px !important; height: 44px !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  color: inherit !important;
+}
+html body .tab-item .tab-icon svg,
+html body .tab-item.center-calc-tab .tab-icon svg { width: 28px; height: 28px; }
+html body #tabCartBadge { top: 2px !important; right: 0 !important; border-color: #000 !important; }
