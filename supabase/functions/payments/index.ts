@@ -69,6 +69,7 @@ Deno.serve(async (req) => {
           card_token: GATEWAY_ON || MODE === "sandbox",
           erip: GATEWAY_ON || MODE === "sandbox",
           oplati: false, // после договора с Белинвестбанком и их документации
+          krok: false,   // пока подтверждает админ (как ЕРИП/Оплати без шлюза)
           manual: true,
         },
       });
@@ -76,15 +77,17 @@ Deno.serve(async (req) => {
 
     if (action === "topup" || action === "order") {
       const method = normMethod(body.method);
+      // RPC знают только старые способы: «КРОК» создаём как manual и сразу помечаем method = 'krok'
+      const rpcMethod = method === "krok" ? "manual" : method;
       let created: any;
       if (action === "topup") {
-        const { data, error } = await asUser.rpc("request_topup", { p_amount: Number(body.amount), p_method: method === "card_token" ? "card" : method });
+        const { data, error } = await asUser.rpc("request_topup", { p_amount: Number(body.amount), p_method: rpcMethod === "card_token" ? "card" : rpcMethod });
         if (error) return json({ ok: false, error: error.message }, 400);
         created = data;
       } else {
         const { data, error } = await asUser.rpc("order_pay", {
           p_order_id: body.order_id, p_stage: body.stage === "SECOND" ? "SECOND" : "FIRST",
-          p_use_balance: Number(body.use_balance || 0), p_method: method,
+          p_use_balance: Number(body.use_balance || 0), p_method: rpcMethod,
         });
         if (error) return json({ ok: false, error: error.message }, 400);
         created = data;
@@ -143,7 +146,7 @@ Deno.serve(async (req) => {
 
 function normMethod(m: unknown): string {
   const s = String(m || "manual");
-  return ["card", "card_token", "erip", "oplati", "manual"].includes(s) ? s : "manual";
+  return ["card", "card_token", "erip", "oplati", "krok", "manual"].includes(s) ? s : "manual";
 }
 
 function checkoutSettings() {
@@ -164,8 +167,16 @@ async function startPayment(paymentId: string, method: string, userId: number, b
   if (!p) return { ok: false, error: "Платёж не найден" };
   const base = { ok: true, payment_id: p.id, status: "pending", remaining: Number(p.amount) };
 
-  if (method === "manual" || method === "oplati" || (!GATEWAY_ON && MODE !== "sandbox")) {
-    // Ручная проверка админом (пока нет договора с платёжкой; «Оплати» — до их документации)
+  if (method === "manual" || method === "oplati" || method === "krok" || (!GATEWAY_ON && MODE !== "sandbox")) {
+    // Ручная проверка админом (пока нет договора с платёжкой; «Оплати» и «КРОК» — до подключения шлюза)
+    if (method === "krok") {
+      const { error: ke } = await admin.from("payments").update({ method: "krok" }).eq("id", p.id);
+      if (ke) {
+        // миграция с method='krok' ещё не применена: оставляем manual, но помечаем в metadata, ответ клиенту не роняем
+        console.error("payments: не удалось поставить method=krok:", ke.message);
+        await admin.from("payments").update({ metadata: { ...(p.metadata || {}), requested_method: "krok" } }).eq("id", p.id);
+      }
+    }
     return { ...base, manual: true };
   }
 
