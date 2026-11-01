@@ -1576,3 +1576,18 @@ html body #wbStickyDock {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
+
+/* Верхнее меню — зеркало нижнего: плоская чёрная панель до краёв, скруглены нижние углы.
+   Высота 68 = 10 сверху (прежний отступ) + 58 рабочих, так что содержимое шапки и отступы экранов не сдвигаются. */
+html body .app-header {
+  top: 0 !important; left: 0 !important; right: 0 !important;
+  height: 68px !important;
+  padding: 10px 10px 0 9px !important;
+  background: #000 !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--rd-line) !important;
+  border-radius: 0 0 22px 22px !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
