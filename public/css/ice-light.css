@@ -203,3 +203,6 @@ html.light-theme body :is(.banner-slide-cny, .bs-hero, .bs-media, .pr-banner) {
   --rd-tint: rgba(77, 163, 255, 0.13); --rd-tint-2: rgba(77, 163, 255, 0.22);
   --rd-ok: #3DD68C; --rd-warn: #FFC24A; --rd-bad: #FF6B7A;
 }
+
+/* логотипы КРОК / ЕРИП / Оплати нарисованы белым под тёмную тему: на светлой переворачиваем яркость, оттенок сохраняем */
+html.light-theme .pm-logo-krok, html.light-theme .pm-logo-erip, html.light-theme .pm-logo-oplati { filter: invert(1) hue-rotate(180deg); }

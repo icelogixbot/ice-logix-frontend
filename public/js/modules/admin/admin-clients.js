@@ -44,7 +44,7 @@
   const CREDIT_TEXT = {
     REFUND_TO_BALANCE: 'Мгновенный возврат средств', REFUND: 'Мгновенный возврат средств', REFERRAL_BONUS: 'Бонус за друга',
     DELIVERY_SURPLUS: 'Сдача от пересчёта веса', PRICE_DROP: 'Компенсация снижения цены', TOPUP_ERIP: 'Пополнение через ЕРИП',
-    TOPUP_OPLATI: 'Пополнение через «Оплати»', TOPUP_CARD: 'Пополнение с банковской карты', ADMIN_ADJUSTMENT: 'Корректировка администратора',
+    TOPUP_OPLATI: 'Пополнение через «Оплати»', TOPUP_KROK: 'Пополнение через КРОК', TOPUP_CARD: 'Пополнение с банковской карты', ADMIN_ADJUSTMENT: 'Корректировка администратора',
     UGC_REWARD: 'Награда за видео-распаковку',
   };
   const DEBIT_TEXT = {

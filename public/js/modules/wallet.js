@@ -13,7 +13,7 @@
 
   let _activeWalletSubTab = 'topup'; // 'topup' | 'cards' | 'history' | 'coupons'
   let _selectedTopupAmount = 50;
-  let _selectedTopupMethod = 'erip'; // 'erip' | 'oplati' | 'card'
+  let _selectedTopupMethod = 'erip'; // 'erip' | 'krok' | 'oplati' | 'card'
   let _cachedLedgerEntries = null;
   let _activeHistoryFilter = 'all'; // 'all' | 'credit' | 'debit' | 'refund'
 
@@ -50,7 +50,7 @@
       console.warn('applyWalletCredit: начислять деньги из приложения нельзя, причина', reason);
       return false;
     }
-    const method = reason === 'TOPUP_CARD' ? 'card' : reason === 'TOPUP_ERIP' ? 'erip' : reason === 'TOPUP_OPLATI' ? 'oplati' : 'manual';
+    const method = reason === 'TOPUP_CARD' ? 'card' : reason === 'TOPUP_ERIP' ? 'erip' : reason === 'TOPUP_OPLATI' ? 'oplati' : reason === 'TOPUP_KROK' ? 'krok' : 'manual';
     const res = await window.IcePay.topup(addedVal, method);
     _cachedLedgerEntries = null;
     return Boolean(res && res.ok);
@@ -81,6 +81,7 @@
       if (reason === 'PRICE_DROP') return 'Компенсация снижения цены';
       if (reason === 'TOPUP_ERIP') return 'Пополнение через ЕРИП';
       if (reason === 'TOPUP_OPLATI') return 'Пополнение через «Оплати»';
+      if (reason === 'TOPUP_KROK') return 'Пополнение через КРОК';
       if (reason === 'TOPUP_CARD') return 'Пополнение с банковской карты';
       return 'Пополнение кошелька';
     } else {
@@ -130,7 +131,7 @@
     const method = (id, icon, title, text, tag) => `
       <label class="topup-method-card wl-method ${_selectedTopupMethod === id ? 'on' : ''}" data-method="${id}">
         <input type="radio" name="topupMethodRadio" value="${id}" ${_selectedTopupMethod === id ? 'checked' : ''} class="wl-radio-input">
-        <span class="wl-method-ico">${icon}</span>
+        ${icon}
         <span class="wl-method-body"><span class="wl-method-title">${title}${tag ? `<em>${tag}</em>` : ''}</span><span class="wl-method-text">${text}</span></span>
         <span class="wl-radio"></span>
       </label>`;
@@ -150,9 +151,10 @@
       <section class="wl-block">
         <div class="wl-block-h"><h2>Способ оплаты</h2></div>
         <div class="wl-methods" id="topupMethodsGroup">
-          ${method('erip', U.icon('receipt', 22), 'ЕРИП', 'Из интернет-банка любого банка Беларуси', 'без карты')}
-          ${method('oplati', '<b class="wl-oplati">О!</b>', 'Оплати', 'QR-код в приложении банка, в один тап', 'QR')}
-          ${method('card', U.icon('card', 22), 'Банковская карта', primaryCard ? `Карта •••• ${U.esc(primaryCard.last4 || '')}` : 'Белкарт, Visa, Mastercard, МИР', '')}
+          ${method('erip', window.payLogoTile('erip'), 'ЕРИП', 'Из интернет-банка любого банка Беларуси', 'без карты')}
+          ${method('krok', window.payLogoTile('krok'), 'КРОК', 'Оплата через систему КРОК', '')}
+          ${method('oplati', window.payLogoTile('oplati'), 'Оплати', 'QR-код в приложении банка, в один тап', 'QR')}
+          ${method('card', `<span class="wl-method-ico">${U.icon('card', 22)}</span>`, 'Банковская карта', primaryCard ? `Карта •••• ${U.esc(primaryCard.last4 || '')}` : window.payCardBrands(), '')}
         </div>
       </section>
 
@@ -355,6 +357,10 @@
           } else {
             tgUtil.alert(`QR-код «Оплати» на сумму ${amt} сформирован!`);
           }
+        } else if (_selectedTopupMethod === 'krok') {
+          // пока нет договора с КРОК — заявка, которую подтверждает оператор (как у «Оплати»)
+          submitBtn.disabled = true;
+          try { await window.IcePay.topup(amt, 'krok'); } finally { submitBtn.disabled = false; }
         } else if (_selectedTopupMethod === 'card') {
           const cards = Array.isArray(window.userCards) ? window.userCards : [];
           if (cards.length === 0) {

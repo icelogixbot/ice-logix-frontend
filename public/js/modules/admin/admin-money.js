@@ -31,7 +31,7 @@
   const VIEW_KEYS = VIEWS.map((v) => v[0]);
 
   const PAY_TYPE = { TOPUP: 'Пополнение баланса', FIRST_PAYMENT: 'Оплата заказа', SECOND_PAYMENT: 'Доплата за доставку', PRICE_ADJUSTMENT: 'Корректировка', OTHER: 'Платёж' };
-  const PAY_METHOD = { manual: 'Перевод', card: 'Карта', card_token: 'Привязанная карта', erip: 'ЕРИП', oplati: 'Оплати' };
+  const PAY_METHOD = { manual: 'Перевод', card: 'Карта', card_token: 'Привязанная карта', erip: 'ЕРИП', oplati: 'Оплати', krok: 'КРОК' };
   const PAY_STATUS = {
     PENDING: ['Ждёт проверки', 'warn'], REQUIRES_REVIEW: ['Нужна проверка', 'warn'], CREATED: ['Создан', ''], PAID: ['Получен', 'ok'],
     DECLINED: ['Отклонён', 'bad'], FAILED: ['Ошибка оплаты', 'bad'], CANCELLED: ['Отменён', ''], EXPIRED: ['Истёк', ''],

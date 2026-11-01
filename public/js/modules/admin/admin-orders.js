@@ -35,7 +35,7 @@
   };
   const ACTOR_TEXT = { OPERATOR: 'Сотрудник', CLIENT: 'Клиент', SYSTEM: 'Система', WEBHOOK: 'Платёжная система' };
   const PAY_TYPE = { FIRST_PAYMENT: 'Первый платёж', SECOND_PAYMENT: 'Доплата', PRICE_ADJUSTMENT: 'Корректировка', TOPUP: 'Пополнение', OTHER: 'Платёж' };
-  const PAY_METHOD = { manual: 'перевод', card: 'карта', card_token: 'привязанная карта', erip: 'ЕРИП', oplati: 'Оплати' };
+  const PAY_METHOD = { manual: 'перевод', card: 'карта', card_token: 'привязанная карта', erip: 'ЕРИП', oplati: 'Оплати', krok: 'КРОК' };
   const PAY_STATUS = { PENDING: ['Ждёт проверки', 'warn'], CREATED: ['Создан', ''], PAID: ['Получен', 'ok'], DECLINED: ['Отклонён', 'bad'], FAILED: ['Ошибка', 'bad'], CANCELLED: ['Отменён', ''], EXPIRED: ['Истёк', ''], REQUIRES_REVIEW: ['Нужна проверка', 'warn'], REFUNDED: ['Возвращён', ''], PARTIALLY_REFUNDED: ['Возвращён частично', ''] };
   const RECEIVING = { SELF_PICKUP: 'Самовывоз', FORWARD_SHIPPING: 'Отправка клиенту' };
 

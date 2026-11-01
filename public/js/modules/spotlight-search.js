@@ -186,7 +186,7 @@
       id: 'faq_payments',
       title: 'Способы оплаты и валюта',
       keywords: ['оплата', 'карта', 'карты', 'белкарт', 'мир', 'bepaid', 'visa', 'mastercard', 'валюта', 'рубли', 'byn', 'платеж'],
-      summary: 'Принимаем карты банков РБ (Белкарт), ЕРИП, Оплати и РФ (МИР) через bePaid без скрытых комиссий.',
+      summary: 'Принимаем карты банков РБ (Белкарт), ЕРИП, КРОК, Оплати и РФ (МИР) через bePaid без скрытых комиссий.',
       details: 'Безопасная оплата через шлюз bePaid с поддержкой 3D-Secure. Данные карт шифруются по стандарту PCI-DSS.',
       badge: '💳 Оплата',
       color: 'cyan'
@@ -1109,7 +1109,7 @@
       bullets: [
         '📦 <span class="font-bold text-white">Пункты выдачи:</span> Более 500 отделений Европочты и СДЭК по всей Беларуси — забирайте рядом с домом.',
         '⏱️ <span class="font-bold text-white">Сроки:</span> доставка из Китая занимает около месяца, включая пересылку по Беларуси.',
-        '💳 <span class="font-bold text-white">Оплата:</span> Карты любых белорусских банков (Белкарт, Visa, Mastercard), ЕРИП и Оплати без скрытых комиссий.'
+        '💳 <span class="font-bold text-white">Оплата:</span> Карты любых белорусских банков (Белкарт, Visa, Mastercard), ЕРИП, КРОК и Оплати без скрытых комиссий.'
       ],
       actionTitle: 'Рассчитать доставку в калькуляторе →',
       actionType: 'calculator',
@@ -1670,7 +1670,7 @@
         bodyHtml = `Здравствуйте, ${userCtx.userName}! На вашем персональном балансе сейчас <span class="text-cyan-300 font-black text-sm inline-flex items-center gap-1">${userCtx.balance || 0} ${window.bynSign ? window.bynSign({ color: 'cyan', size: '0.85em' }) : ''}</span>.`;
         bullets = [
           `💡 <span class="font-bold text-white">Использование:</span> Средства на балансе можно использовать для моментальной оплаты выкупа товаров и доставки без банковских комиссий.`,
-          `⚡ <span class="font-bold text-white">Пополнение:</span> Моментальное зачисление через ЕРИП, Оплати и картами любых банков Беларуси (0% комиссии).`
+          `⚡ <span class="font-bold text-white">Пополнение:</span> Моментальное зачисление через ЕРИП, КРОК, Оплати и картами любых банков Беларуси (0% комиссии).`
         ];
         actions = [
           `<button id="aiOverviewFinancesBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md">

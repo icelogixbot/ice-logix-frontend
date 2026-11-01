@@ -28,7 +28,7 @@
     const fam = window.userSettings?.family || {};
     return Boolean(fam.role === 'member' && fam.head_id);
   };
-  const PAY_LABELS = { card: 'Картой', erip: 'Через ЕРИП', oplati: 'Через «Оплати»' };
+  const PAY_LABELS = { card: 'Картой', erip: 'Через ЕРИП', oplati: 'Через «Оплати»', krok: 'Через КРОК' };
   let busy = false;
   let termsResolve = null;
 
@@ -139,8 +139,9 @@
     return sheetHtml('coSheetPay', 'Способ оплаты', `
       <div class="fn-seg" id="checkoutPaymentMethodTabs">
         <button type="button" id="checkoutMethodTabCard" onclick="window.setCheckoutPaymentMethod('card')">Карта</button>
-        <button type="button" id="checkoutMethodTabErip" onclick="window.setCheckoutPaymentMethod('erip')">ЕРИП</button>
-        <button type="button" id="checkoutMethodTabOplati" onclick="window.setCheckoutPaymentMethod('oplati')">Оплати</button>
+        <button type="button" id="checkoutMethodTabErip" class="pm-seg-logo" aria-label="ЕРИП" onclick="window.setCheckoutPaymentMethod('erip')">${window.payLogo('erip')}</button>
+        <button type="button" id="checkoutMethodTabKrok" class="pm-seg-logo" aria-label="КРОК" onclick="window.setCheckoutPaymentMethod('krok')">${window.payLogo('krok')}</button>
+        <button type="button" id="checkoutMethodTabOplati" class="pm-seg-logo" aria-label="Оплати" onclick="window.setCheckoutPaymentMethod('oplati')">${window.payLogo('oplati')}</button>
       </div>
       <div id="checkoutCardsList"></div>
       <p class="co-note-line" id="coPayNote" hidden></p>
@@ -342,6 +343,8 @@
       text = 'После нажатия «Оплатить» покажем номер счёта. Оплатите его в любом банке, деньги зачислятся сами.';
     } else if (method === 'oplati') {
       text = 'Пока оплату через «Оплати» подтверждает оператор.';
+    } else if (method === 'krok') {
+      text = 'Пока оплату через КРОК подтверждает оператор.';
     } else {
       text = 'Карту вводите только на защищённой странице bePaid. Мы не храним её номер.';
     }
@@ -362,7 +365,12 @@
     const method = window._checkoutPaymentMethod || 'card';
     const uI = U();
     if (method !== 'card') {
-      box.innerHTML = `<div class="rd-card rd-list"><div class="rd-row"><span class="rd-ico">${uI.icon(method === 'erip' ? 'receipt' : 'zap', 22)}</span><span class="rd-row-body"><span class="rd-row-title">${method === 'erip' ? 'Система «Расчёт» (ЕРИП)' : 'Сервис «Оплати»'}</span><span class="rd-row-text">${method === 'erip' ? 'Из интернет-банка любого банка' : 'Через приложение банка'}</span></span></div></div>`;
+      const info = {
+        erip: ['Система «Расчёт» (ЕРИП)', 'Из интернет-банка любого банка'],
+        krok: ['КРОК', 'Оплата через систему КРОК'],
+        oplati: ['Сервис «Оплати»', 'Через приложение банка']
+      }[method] || ['Оплата', ''];
+      box.innerHTML = `<div class="rd-card rd-list"><div class="rd-row">${window.payLogoTile(method)}<span class="rd-row-body"><span class="rd-row-title">${info[0]}</span><span class="rd-row-text">${info[1]}</span></span></div></div>`;
       renderPayNote();
       return;
     }
@@ -392,7 +400,7 @@
 
   function setCheckoutPaymentMethod(method) {
     window._checkoutPaymentMethod = method;
-    const tabs = { card: 'checkoutMethodTabCard', erip: 'checkoutMethodTabErip', oplati: 'checkoutMethodTabOplati' };
+    const tabs = { card: 'checkoutMethodTabCard', erip: 'checkoutMethodTabErip', krok: 'checkoutMethodTabKrok', oplati: 'checkoutMethodTabOplati' };
     Object.keys(tabs).forEach((k) => $(tabs[k])?.classList.toggle('on', k === method));
     renderCheckoutCards();
     refresh();
@@ -536,7 +544,7 @@
       setText('coRowPayTitle', card ? `Карта •••• ${card.last4}` : 'Новая карта');
       setText('coRowPayText', window._coGateway ? 'На защищённой странице bePaid' : 'Подтвердит оператор');
     } else {
-      setText('coRowPayTitle', method === 'erip' ? 'ЕРИП' : 'Оплати');
+      setText('coRowPayTitle', method === 'erip' ? 'ЕРИП' : method === 'krok' ? 'КРОК' : 'Оплати');
       setText('coRowPayText', method === 'erip' && window._coGateway ? 'Покажем номер счёта' : 'Подтвердит оператор');
     }
 

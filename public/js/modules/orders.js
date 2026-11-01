@@ -1049,7 +1049,8 @@ window.applySmartShareLink = applySmartShareLink;
               } else if (!isFamilyMember) {
                 // IcePay: баланс + карта (выбранная привязанная или новая на странице bePaid) / ЕРИП / заявка админу
                 const payMethod = window._checkoutPaymentMethod === 'erip' ? 'erip'
-                  : window._checkoutPaymentMethod === 'oplati' ? 'oplati' : 'card';
+                  : window._checkoutPaymentMethod === 'oplati' ? 'oplati'
+                  : window._checkoutPaymentMethod === 'krok' ? 'krok' : 'card';
                 const pr = await window.IcePay.payOrder(createdOrderId, 'FIRST', balanceUsed, payMethod,
                   { card_id: isDbUuid(selectedCardId) ? selectedCardId : null, new_card: selectedCardId === 'new' });
                 if (!pr || !pr.ok) throw new Error((pr && pr.error) || 'Не получилось провести оплату');
@@ -2754,6 +2755,7 @@ window.setCheckoutPaymentMethod = function(method) {
   const tabCard = document.getElementById('checkoutMethodTabCard');
   const tabErip = document.getElementById('checkoutMethodTabErip');
   const tabOplati = document.getElementById('checkoutMethodTabOplati');
+  const tabKrok = document.getElementById('checkoutMethodTabKrok');
   const addCardBtn = document.getElementById('checkoutAddCardBtn');
   const cardLogosRow = document.getElementById('checkoutCardLogosRow');
 
@@ -2763,6 +2765,7 @@ window.setCheckoutPaymentMethod = function(method) {
   if (tabCard) tabCard.className = method === 'card' ? activeCls : inactiveCls;
   if (tabErip) tabErip.className = method === 'erip' ? activeCls : inactiveCls;
   if (tabOplati) tabOplati.className = method === 'oplati' ? activeCls : inactiveCls;
+  if (tabKrok) tabKrok.className = method === 'krok' ? activeCls : inactiveCls;
 
   if (addCardBtn) addCardBtn.style.display = method === 'card' ? '' : 'none';
   if (cardLogosRow) cardLogosRow.style.display = method === 'card' ? '' : 'none';
@@ -2781,7 +2784,7 @@ window.renderCheckoutCards = function() {
       <div class="p-3.5 rounded-2xl bg-cyan-500/10 border border-cyan-400/30 space-y-2">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <span class="text-base">🏛️</span>
+            ${window.payLogo('erip')}
             <span class="text-xs font-bold text-white">Система «Расчет» (ЕРИП) bePaid</span>
           </div>
           <span class="text-[9px] font-bold text-emerald-400 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30">0% КОМИССИЯ</span>
@@ -2799,7 +2802,7 @@ window.renderCheckoutCards = function() {
       <div class="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-400/30 space-y-2">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <span class="w-5 h-5 rounded-md bg-emerald-500 text-white font-black text-[10px] flex items-center justify-center">О!</span>
+            ${window.payLogo('oplati')}
             <span class="text-xs font-bold text-white">Сервис «Оплати» (Белинвестбанк)</span>
           </div>
           <span class="text-[9px] font-bold text-emerald-300 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30">QR • КЭШБЭК</span>
@@ -2809,6 +2812,11 @@ window.renderCheckoutCards = function() {
         </p>
       </div>
     `;
+    return;
+  }
+
+  if (method === 'krok') {
+    container.innerHTML = `<div class="rd-card rd-list"><div class="rd-row">${window.payLogoTile('krok')}<span class="rd-row-body"><span class="rd-row-title">КРОК</span><span class="rd-row-text">Пока оплату через КРОК подтверждает оператор.</span></span></div></div>`;
     return;
   }
 
@@ -3602,7 +3610,7 @@ window.openStagePayment = function (orderId, stage, amount) {
   const sign = window.bynSign();
   const money = (v) => `${window.moneyText(v)}${sign}`;
   const row = (label, v) => `<div class="co-total-row"><span>${label}</span><span>${v < 0 ? '−' : ''}${money(Math.abs(v))}</span></div>`;
-  const LABELS = { card: 'Картой', erip: 'Через ЕРИП', oplati: 'Через «Оплати»' };
+  const LABELS = { card: 'Картой', erip: 'Через ЕРИП', oplati: 'Через «Оплати»', krok: 'Через КРОК' };
   let method = 'card';
   let useBal = false;
   let busy = false;
@@ -3616,7 +3624,7 @@ window.openStagePayment = function (orderId, stage, amount) {
         ? `Заказ #${orderId.slice(0, 8)}: вещи, упаковка и часть доставки. Остальное — после взвешивания на складе.`
         : `Заказ #${orderId.slice(0, 8)}: остаток доставки и страховка после взвешивания.`}</p>
       <div class="fn-seg co-gap" data-st-tabs>
-        <button type="button" class="on" data-m="card">Карта</button><button type="button" data-m="erip">ЕРИП</button><button type="button" data-m="oplati">Оплати</button>
+        <button type="button" class="on" data-m="card">Карта</button><button type="button" class="pm-seg-logo" data-m="erip" aria-label="ЕРИП">${window.payLogo('erip')}</button><button type="button" class="pm-seg-logo" data-m="krok" aria-label="КРОК">${window.payLogo('krok')}</button><button type="button" class="pm-seg-logo" data-m="oplati" aria-label="Оплати">${window.payLogo('oplati')}</button>
       </div>
       ${bal > 0 ? `
         <div class="rd-card rd-list co-gap">

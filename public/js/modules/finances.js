@@ -474,9 +474,7 @@ function _renderPayTabHtml() {
             <label class="pay-method-card flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer bg-cyan-500/10 border-cyan-500/50 shadow-md shadow-cyan-950/40" data-method="erip">
               <div class="flex items-center gap-3">
                 <input type="radio" name="payTopupMethod" value="erip" checked class="hidden">
-                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
-                  🏛️
-                </div>
+                ${window.payLogoTile('erip')}
                 <div>
                   <p class="text-xs font-bold text-white">ЕРИП (АИС «Расчет»)</p>
                   <p class="text-[10px] text-white/50">Мгновенно из любого банкинга Беларуси</p>
@@ -489,9 +487,7 @@ function _renderPayTabHtml() {
             <label class="pay-method-card flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer bg-white/[0.03] border-white/10 hover:border-white/20" data-method="oplati">
               <div class="flex items-center gap-3">
                 <input type="radio" name="payTopupMethod" value="oplati" class="hidden">
-                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
-                  📱
-                </div>
+                ${window.payLogoTile('oplati')}
                 <div>
                   <p class="text-xs font-bold text-white">Оплати</p>
                   <p class="text-[10px] text-white/50">По QR-коду или через приложение</p>
@@ -500,16 +496,26 @@ function _renderPayTabHtml() {
               <span class="text-[10px] font-bold text-emerald-400">0%</span>
             </label>
 
+            <!-- КРОК -->
+            <label class="pay-method-card flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer bg-white/[0.03] border-white/10 hover:border-white/20" data-method="krok">
+              <div class="flex items-center gap-3">
+                <input type="radio" name="payTopupMethod" value="krok" class="hidden">
+                ${window.payLogoTile('krok')}
+                <div>
+                  <p class="text-xs font-bold text-white">КРОК</p>
+                  <p class="text-[10px] text-white/50">Подтвердит оператор</p>
+                </div>
+              </div>
+            </label>
+
             <!-- Банковская карта онлайн -->
             <label class="pay-method-card flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer bg-white/[0.03] border-white/10 hover:border-white/20" data-method="card">
               <div class="flex items-center gap-3">
                 <input type="radio" name="payTopupMethod" value="card" class="hidden">
-                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
-                  💳
-                </div>
+                <span class="pm-tile">${window.UI && window.UI.icon ? window.UI.icon('card', 22) : ''}</span>
                 <div>
                   <p class="text-xs font-bold text-white">Банковская карта онлайн</p>
-                  <p class="text-[10px] text-white/50">Белкарт, Mastercard, Visa, МИР</p>
+                  <p class="mt-1">${window.payCardBrands()}</p>
                 </div>
               </div>
               <span class="text-[10px] font-bold text-purple-400">0%</span>
@@ -631,6 +637,12 @@ function _attachPayTabHandlers() {
         } else {
           tgUtil.alert(`QR-код «Оплати» на сумму ${amt} сформирован!`);
         }
+      } else if (_selectedPayMethod === 'krok') {
+        submitBtn.disabled = true;
+        if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('medium');
+        await window.IcePay.topup(amt, 'krok');
+        submitBtn.disabled = false;
+        updateAmount(_selectedPayAmount);
       } else if (_selectedPayMethod === 'card') {
         // Карта: привязанная (основная) или новая на странице bePaid; без платёжки — заявка админу.
         // Начисляет только сервер, «пополнить из воздуха» отсюда больше нельзя.
