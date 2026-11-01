@@ -16,7 +16,7 @@
   const MIN_SHOW_MS = 800;   // спиннер не мигает на быстрых экранах
   const BACK_MS = 300;       // сколько страница возвращается на место
   const EASE = 'cubic-bezier(.22,.9,.3,1)';
-  const VEIL_OUT_MS = 520;   // сколько слой растворяется, открывая новый экран
+  const IN_MS = 260;         // сколько новый экран проявляется на месте скелетона
   const HOLD_MS = 340;       // пока страница доезжает до спиннера, экран не перерисовываем (тяжёлая работа сбила бы анимацию)
   const BLOCKED_TABS = ['neworder', 'calculator', 'cart', 'legitcheck', 'kyc', 'checkout'];
 
@@ -128,10 +128,15 @@
     }, BACK_MS + 30);
   }
 
-  // Один общий полупрозрачный слой поверх экрана (#content::after): старое уходит под завесу, новое из-под неё проявляется
-  function veil(on) {
+  // Скелетон: детали экрана гаснут и остаются серые пустые блоки (стили — .ptr-skel в ice-screens.css)
+  function skeleton(on) {
     const c = contentEl();
-    if (c) c.classList.toggle('ptr-veil', on);
+    if (!c) return;
+    c.classList.toggle('ptr-skel', on);
+    if (!on) {
+      c.classList.add('ptr-in');
+      setTimeout(() => { const cc = contentEl(); if (cc) cc.classList.remove('ptr-in'); }, IN_MS + 40);
+    }
   }
 
   // Сбросить всё, что приложение держит в памяти, и заново нарисовать текущий экран
@@ -167,15 +172,15 @@
     haptic('medium');
     const t0 = Date.now();
     if (c) c.classList.add('ptr-run');                    // на время обновления гасим собственные «въезды» экрана
-    veil(true);
-    await new Promise((r) => setTimeout(r, HOLD_MS));     // страница доехала, слой лёг — теперь можно грузить
+    skeleton(true);
+    await new Promise((r) => setTimeout(r, HOLD_MS));     // страница доехала, скелетон показан — теперь можно грузить
     try { await softRefresh(); } catch (e) { console.warn('[pull-refresh]', e); }
     const wait = Math.max(0, MIN_SHOW_MS - (Date.now() - t0));
     setTimeout(() => {
-      veil(false);                                        // слой растворяется, пока страница возвращается на место
+      skeleton(false);                                    // скелетон сменяется новым экраном, пока страница возвращается на место
       release();
       haptic('success');
-      setTimeout(() => { const cc = contentEl(); if (cc) cc.classList.remove('ptr-run'); }, VEIL_OUT_MS + 40);
+      setTimeout(() => { const cc = contentEl(); if (cc) cc.classList.remove('ptr-run'); }, IN_MS + 80);
     }, wait);
   }
 
