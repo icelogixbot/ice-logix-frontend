@@ -16,7 +16,10 @@
       const tg = window.Telegram?.WebApp;
       if (!tg) return;
       // Пока открыт экран кода-пароля, шапка чёрная; синей становится только внутри приложения
-      const locked = !!document.body?.classList.contains('lk-open') || !!document.getElementById('iceSplash');
+      const spl = document.getElementById('iceSplash');
+      const locked = !!document.body?.classList.contains('lk-open') || (!!spl && !spl.classList.contains('out'));
+      // Верхнее меню приложения краснеет в тот же миг и той же скоростью, что и шапка Telegram (см. .hdr-hold в ice-screens.css)
+      document.documentElement.classList.toggle('hdr-hold', locked);
       try { tg.setHeaderColor?.(locked ? color : HEADER_BLUE); } catch {}
       try { tg.setBackgroundColor?.(color); } catch {}
       try { tg.setBottomBarColor?.(color); } catch {}

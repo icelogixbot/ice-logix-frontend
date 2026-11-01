@@ -1595,6 +1595,8 @@ html body .app-header {
 
 /* Верхнее меню — яркий синий, в один цвет с системной шапкой Telegram (HEADER_BLUE в app-core.js) */
 html body .app-header { background: #2F7BFF !important; border-bottom: 0 !important; }
+html body .app-header { transition: background-color .25s ease; }
+html.hdr-hold body .app-header { background: var(--rd-bg) !important; }
 html body .app-header .icon-btn,
 html body .app-header .icon-btn svg,
 html body .app-header #loginBtn,
