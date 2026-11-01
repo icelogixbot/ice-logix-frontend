@@ -270,7 +270,7 @@ html body .wb-checkout-cta.active { background: var(--rd-blue) !important; color
 html body .wb-checkout-cta.disabled { background: var(--rd-s3) !important; color: var(--rd-tx3) !important; }
 html body .wb-checkout-cta .byn-sign { height: .82em; width: auto; margin-left: .16em; color: inherit !important; }
 .wb-cta-dot { opacity: .5; }
-html body .wb-cart-screen { padding-bottom: 96px; }
+html body .wb-cart-screen { padding-bottom: calc(120px + var(--tg-viewport-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))) !important; }
 html body .pc .pc-add.addToCartBtn { max-width: none !important; }
 
 /* ═══ Профиль ═══ */

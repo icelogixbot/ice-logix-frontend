@@ -315,14 +315,6 @@
         <div class="ct-list wb-cart-list" id="wbCartList">
           ${cardsHtml}
         </div>
-
-        <div class="rd-card ct-sum">
-          <div class="ct-sum-row"><span>Товары с доставкой, <b id="rdCartSumCount">${initialCount}</b> шт.</span><span id="rdCartSumTotal">${fmt(initialGoods)}${sign()}</span></div>
-          <div class="ct-sum-row"><span>Упаковка на заказ</span><span id="rdCartSumPack">${fmt(cartPackagingByn())}${sign()}</span></div>
-          <div class="ct-sum-row ${initialDuty > 0 ? '' : 'hidden'}" id="rdCartDutyRow"><span>Таможенная пошлина</span><span id="rdCartSumDuty">${fmt(initialDuty)}${sign()}</span></div>
-          <div class="ct-sum-line"></div>
-          <div class="ct-sum-row ct-sum-total"><span>Итого</span><span id="rdCartSumGrand">${fmt(initialTotal)}${sign()}</span></div>
-        </div>
       </div>
     `;
   }
