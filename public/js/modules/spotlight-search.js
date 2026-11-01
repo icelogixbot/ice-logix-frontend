@@ -664,6 +664,8 @@
 
     searchInputEl.addEventListener('focus', () => document.body.classList.add('sp-kb'));
     searchInputEl.addEventListener('blur', () => document.body.classList.remove('sp-kb'));
+    // кнопки композера не крадут фокус: иначе клавиатура уходит, композер прыгает и тап мимо
+    document.querySelectorAll('.sp-composer button').forEach(b => b.addEventListener('pointerdown', e => e.preventDefault()));
 
     clearBtnEl.onclick = () => {
       searchInputEl.value = '';

@@ -1379,7 +1379,8 @@ html body .no-form div[class*="border-white/30"] > input { min-height: 40px !imp
 @media (prefers-reduced-motion: reduce) { #content.ptr-skel, #content.ptr-in { animation: none; } .ptr { transition: none; } .ptr.ptr-spin .ptr-spinner { animation: none; } }
 
 /* ===== Поиск как чат с ассистентом ===== */
-.sp-content { padding: 6px 0 130px; }
+.sp-content { padding: 6px 0 170px; }
+.sp-content *, .sp-thread > * { scroll-margin-bottom: 170px; }
 .rd-screen.sp.page-enter { animation: none; transform: none; }
 .main-content:has(> .rd-screen.sp) { animation: none !important; transform: none !important; }
 .sp-composer .sp-clear.hidden { display: none; }
