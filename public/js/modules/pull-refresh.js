@@ -18,7 +18,8 @@
   const HOLD = 56;           // на сколько страница остаётся опущенной, пока идёт обновление
   const SPINNER = 28;        // размер спиннера, px
   const DEAD_ZONE = 6;       // дрожь пальца не считаем
-  const MIN_SHOW_MS = 800;   // спиннер не мигает на быстрых экранах
+  const REFRESH_MAX_MS = 12000;   // дольше не ждём: плохая сеть не должна держать экран в обновлении
+  const MIN_SHOW_MS = 800;  // спиннер не мигает на быстрых экранах
   const BACK_MS = 300;       // сколько страница возвращается на место
   const EASE = 'cubic-bezier(.22,.9,.3,1)';
   const IN_MS = 260;         // сколько новый экран проявляется на месте скелетона
@@ -217,9 +218,20 @@
     try { if (typeof loadUserData === 'function') await loadUserData(); } catch (_) {}
   }
 
+  // Модули с кэшем внутри себя (скрытым от остального кода) кладут сюда функцию сброса:
+  // (window._refreshResets = window._refreshResets || []).push(() => { мойКэш = null; })
+  function runResets() {
+    (window._refreshResets || []).forEach((fn) => { try { fn(); } catch (_) {} });
+  }
+
+  // Если загрузка зависла (нет сети), обновление не должно держать экран вечно
+  function withTimeout(p, ms) {
+    return Promise.race([p, new Promise((r) => setTimeout(r, ms))]);
+  }
+
   // Сбросить всё, что приложение держит в памяти, и заново нарисовать текущий экран
   async function softRefresh() {
-    if (sheetFn) { await sheetFn(); return; }
+    if (sheetFn) { runResets(); await withTimeout(sheetFn(), REFRESH_MAX_MS); return; }
     try { if (typeof _tabCache !== 'undefined') Object.keys(_tabCache).forEach((k) => { delete _tabCache[k]; }); } catch (_) {}
     try { if (typeof _pdCache !== 'undefined') _pdCache = {}; } catch (_) {}
     try { if (typeof _memHomeDbMarketplaces !== 'undefined') _memHomeDbMarketplaces = null; } catch (_) {}
@@ -227,11 +239,13 @@
     try { if (window.CacheDB && typeof window.CacheDB.clearAll === 'function') window.CacheDB.clearAll(); } catch (_) {}
     try {
       const f = window._financesCache;
-      if (f) Object.keys(f).forEach((k) => { f[k] = Array.isArray(f[k]) ? [] : null; });
+      if (f) Object.keys(f).forEach((k) => { f[k] = Array.isArray(f[k]) ? [] : (f[k] && typeof f[k] === 'object' ? {} : null); });
     } catch (_) {}
+    try { window._cachedImportCalcs = null; } catch (_) {}
+    runResets();
     try { if (typeof window.invalidateAdminCache === 'function') window.invalidateAdminCache(); } catch (_) {}
-    if (light) { await lightRefresh(); return; }
-    if (typeof renderCurrentScreen === 'function') await renderCurrentScreen();
+    if (light) { await withTimeout(lightRefresh(), REFRESH_MAX_MS); return; }
+    if (typeof renderCurrentScreen === 'function') await withTimeout(renderCurrentScreen(), REFRESH_MAX_MS);
   }
 
   async function run() {

@@ -211,6 +211,9 @@
     return `<div class="rd-chips wl-hchips">${chips}</div>${list}`;
   }
 
+  // Потянули вниз для обновления — историю берём заново (pull-refresh.js)
+  (window._refreshResets = window._refreshResets || []).push(() => { _cachedLedgerEntries = null; });
+
   // Загрузка истории транзакций из Supabase
   async function loadLedgerHistory() {
     if (_cachedLedgerEntries) return _cachedLedgerEntries;
