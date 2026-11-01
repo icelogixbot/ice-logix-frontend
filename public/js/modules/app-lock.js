@@ -166,7 +166,7 @@
             document.body.classList.remove('lk-open');
             if (typeof window.syncThemeChrome === 'function') window.syncThemeChrome(); // вошли в приложение — шапка синяя
           }
-        }, 200);
+        }, 360);
       },
     };
 

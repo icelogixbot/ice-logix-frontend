@@ -31,7 +31,7 @@
   let startY = 0, startX = 0, pull = 0;
   let tracking = false, armed = false, refreshing = false, releasing = false, ready = false;
   let headerBottom = 0, firstTop = 0;   // где кончается шапка и где начинается первый блок экрана (на старте жеста)
-  const NO_PULL = '.pv, .lk, .kyc-scanner-modal, .sd-viewer, .sd-gate, .ice-splash-screen, .image-preview-modal, .rd-toast-host';   // просмотр фото, код-пароль, сканер: тут вниз — свои жесты
+  const NO_PULL = '.pv, .lk, .kyc-scanner-modal, .sd-viewer, .sd-gate, #iceSplash, .image-preview-modal, .rd-toast-host';   // просмотр фото, код-пароль, сканер: тут вниз — свои жесты
   let raf = 0, backTimer = 0;
   let host = null;          // что едет вниз за пальцем: #content или тело шторки
   let sheetFn = null;       // обновление шторки (если жест начат в ней)

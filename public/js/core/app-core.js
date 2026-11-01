@@ -16,7 +16,7 @@
       const tg = window.Telegram?.WebApp;
       if (!tg) return;
       // Пока открыт экран кода-пароля, шапка чёрная; синей становится только внутри приложения
-      const locked = !!document.body?.classList.contains('lk-open');
+      const locked = !!document.body?.classList.contains('lk-open') || !!document.getElementById('iceSplash');
       try { tg.setHeaderColor?.(locked ? color : HEADER_BLUE); } catch {}
       try { tg.setBackgroundColor?.(color); } catch {}
       try { tg.setBottomBarColor?.(color); } catch {}
@@ -2431,18 +2431,6 @@ let adminOrdersTotalPages = 1;
 
       });
     }
-
-    function dismissSplashScreen() {
-      const splash = document.getElementById('iceSplashScreen');
-      if (splash && !splash.classList.contains('ice-splash-hidden')) {
-        splash.classList.add('ice-splash-hidden');
-        setTimeout(() => {
-          try { splash.remove(); } catch (e) {}
-        }, 450);
-      }
-    }
-    window.dismissSplashScreen = dismissSplashScreen;
-    setTimeout(dismissSplashScreen, 2800);
 
     async function init() {
       if (window.isTelegramEnvironment === false) {

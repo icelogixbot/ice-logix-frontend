@@ -986,7 +986,7 @@ label.st-static { cursor: pointer; }
 /* ═══ Код-пароль: экран блокировки и ввод кода (app-lock.js) ═══ */
 /* Выше любых окон приложения (шторки 9500, фото 9800, сканер 100000…): иначе открытая шторка была поверх экрана кода.
    Над ним — только то, что открывает он сам (.lk-over): шторка «Забыли код?» и его уведомления. */
-.lk { position: fixed; inset: 0; z-index: 2147483000; display: flex; flex-direction: column; align-items: center; background: var(--rd-bg); color: var(--rd-tx); padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(16px + env(safe-area-inset-bottom, 0px)); opacity: 0; transition: opacity .2s ease; outline: none; overscroll-behavior: contain; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.lk { position: fixed; inset: 0; z-index: 2147483000; display: flex; flex-direction: column; align-items: center; background: var(--rd-bg); color: var(--rd-tx); padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(16px + env(safe-area-inset-bottom, 0px)); opacity: 0; transition: opacity .35s ease; outline: none; overscroll-behavior: contain; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
 .lk.show { opacity: 1; }
 body.lk-open { overflow: hidden; }
 body.lk-open .rd-toast-host, .rd-sheet-wrap.lk-over { z-index: 2147483100; }

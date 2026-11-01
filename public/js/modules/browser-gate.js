@@ -83,16 +83,7 @@
 
     function setupGateUI() {
       // 1. Hide Splash Screen smoothly
-      if (typeof window.dismissSplashScreen === 'function') {
-        window.dismissSplashScreen();
-      } else {
-        const splash = document.getElementById('iceSplashScreen');
-        if (splash) {
-          splash.style.opacity = '0';
-          splash.style.pointerEvents = 'none';
-          setTimeout(() => { try { splash.remove(); } catch (e) {} }, 300);
-        }
-      }
+      if (typeof window.dismissSplashScreen === 'function') window.dismissSplashScreen(true);
 
       // 2. Configure Main CTA Button
       const ctaBtn = document.getElementById('gateCtaBtn');

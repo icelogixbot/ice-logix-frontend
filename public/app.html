@@ -20,7 +20,7 @@
   <!-- Open Graph / SEO -->
   <meta property="og:title" content="ICE LOGIX — Сервис выкупа и доставки из Китая">
   <meta property="og:description" content="Выкуп и экспресс-доставка оригинальных товаров (POIZON, Taobao, 1688). Калькулятор доставки и трекинг посылок.">
-  <meta property="og:image" content="https://icelogix.by/assets/splash-logo-512.png?v=20261014">
+  <meta property="og:image" content="https://icelogix.by/assets/splash-logo-512.png?v=20261101">
   <meta property="og:url" content="https://icelogix.by">
   <meta property="og:type" content="website">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -49,25 +49,25 @@
   <link rel="preload" as="image" href="/assets/reviews-platforms/2gis.png">
   <link rel="preload" as="image" href="/assets/reviews-platforms/telegram.png">
   <link rel="preload" as="image" href="/assets/reviews-platforms/vk.png">
-  <link rel="stylesheet" href="/css/glassmorphism-theme.css?v=20261031_th1">
+  <link rel="stylesheet" href="/css/glassmorphism-theme.css?v=20261101_spl1">
   <link rel="stylesheet" href="/css/ice-premium-theme.css?v=20261031_th1">
-  <link rel="stylesheet" href="/css/ice-arctic-components.css?v=20261031_th1">
-  <link rel="stylesheet" href="/css/browser-gate.css?v=20261014_01">
+  <link rel="stylesheet" href="/css/ice-arctic-components.css?v=20261101_spl1">
+  <link rel="stylesheet" href="/css/browser-gate.css?v=20261101_spl1">
   <link rel="stylesheet" href="/css/kyc-scanner.css?v=20261021_12">
   <link rel="stylesheet" href="/css/cart.css?v=20261024_48">
   <link rel="stylesheet" href="/css/ice-redesign.css?v=20261101_blk1">
   <link rel="stylesheet" href="/css/ice-redesign-compat.css?v=20261029_07">
-  <link rel="stylesheet" href="/css/ice-screens.css?v=20261101_wbnav5">
+  <link rel="stylesheet" href="/css/ice-screens.css?v=20261101_spl1">
   <link rel="stylesheet" href="/css/ice-admin.css?v=20261101_ib1">
   <link rel="stylesheet" href="/css/ice-light.css?v=20261101_pm2">
-  <script src="/js/modules/browser-gate.js?v=20261014_01"></script>
+  <script src="/js/modules/browser-gate.js?v=20261101_spl1"></script>
   <script src="/js/data/marketplace-logos-data.js?v=20261024_01"></script>
   <script src="/js/data/reviews-platforms-data.js?v=20261024_01"></script>
   <script src="/js/ui-dict.js?v=20261005"></script>
   <script src="/js/icons-data.js?v=20261024_30"></script>
   <script src="/js/modules/ice-ui.js?v=20261101_chat3"></script>
   <script src="/js/modules/support-client.js?v=20261031_sup1"></script>
-  <script src="/js/modules/app-lock.js?v=20261101_lk2"></script>
+  <script src="/js/modules/app-lock.js?v=20261101_spl1"></script>
   <script src="/js/pvz-data.js?v=20261005"></script>
   <script src="/js/modules/dropship.js?v=20261031_lf1"></script>
   <script src="/js/modules/academy.js?v=20261031_co5"></script>
@@ -91,7 +91,7 @@
   <script src="/js/modules/admin/admin-settings.js?v=20261101_st2"></script>
   <script src="/js/modules/admin/admin-system.js?v=20261101_st1"></script>
   <script src="/js/modules/photo-viewer.js?v=20261101_car1"></script>
-  <script src="/js/modules/pull-refresh.js?v=20261101_ptr12"></script>
+  <script src="/js/modules/pull-refresh.js?v=20261101_spl1"></script>
   <script src="/js/modules/sku-selector.js?v=20261101_blk1"></script>
   <script src="/js/modules/orders.js?v=20261101_pm3"></script>
   <script src="/js/modules/reports-reviews.js?v=20261101_lk1"></script>
@@ -106,6 +106,38 @@
   <script src="/js/modules/kyc-scanner.js?v=20261024_10"></script>
   <script src="/js/modules/kyc.js?v=20261030_06"></script>
 <body>
+  <!-- Заставка на 3 секунды: только логотип на чёрном. Уходит плавно к коду-паролю или главному экрану -->
+  <style>
+    #iceSplash{position:fixed;inset:0;z-index:2147483200;background:#000;display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity .7s cubic-bezier(.4,0,.2,1);pointer-events:auto}
+    #iceSplash img{width:min(78vw,380px);height:auto;aspect-ratio:1/1;object-fit:contain;opacity:0;transform:scale(.94);animation:iceSplashIn .9s cubic-bezier(.16,1,.3,1) .1s forwards;transition:transform .7s cubic-bezier(.4,0,.2,1)}
+    #iceSplash.out{opacity:0;pointer-events:none}
+    #iceSplash.out img{transform:scale(1.06)}
+    body.is-browser-gate #iceSplash{display:none!important}
+    @keyframes iceSplashIn{to{opacity:1;transform:scale(1)}}
+    @media (prefers-reduced-motion:reduce){#iceSplash,#iceSplash img{transition:none;animation:none;opacity:1;transform:none}#iceSplash.out{opacity:0}}
+  </style>
+  <div id="iceSplash" aria-hidden="true"><img src="/assets/splash-logo-512.png?v=20261101" alt="" width="512" height="512" decoding="async" fetchpriority="high"></div>
+  <script>
+    (function () {
+      var T0 = Date.now(), MIN = 3000, MAX = 8000, asked = false, done = false;
+      try { var tg = window.Telegram && window.Telegram.WebApp; if (tg) { tg.setHeaderColor && tg.setHeaderColor('#000000'); tg.setBackgroundColor && tg.setBackgroundColor('#000000'); tg.setBottomBarColor && tg.setBottomBarColor('#000000'); } } catch (e) {}
+      function hide() {
+        if (done) return; done = true;
+        var el = document.getElementById('iceSplash'); if (!el) return;
+        el.classList.add('out');
+        try { window.syncThemeChrome && window.syncThemeChrome(); } catch (e) {}
+        setTimeout(function () { try { el.remove(); } catch (e) {} try { window.syncThemeChrome && window.syncThemeChrome(); } catch (e) {} }, 750);
+      }
+      function tick() {
+        if (done) return;
+        var age = Date.now() - T0;
+        if (age >= MAX || (age >= MIN && (window._appReady || asked))) hide(); else setTimeout(tick, 100);
+      }
+      // force: сразу (браузер вне Telegram); обычный вызов: уйти не раньше 3 секунд
+      window.dismissSplashScreen = function (force) { asked = true; if (force === true) hide(); };
+      setTimeout(tick, MIN);
+    })();
+  </script>
   <!-- Network Connection Status Banner -->
   <div id="netStatusBanner" data-nosnippet style="position:fixed;top:12px;left:50%;transform:translateX(-50%) translateY(-60px);z-index:99999;padding:8px 18px;border-radius:9999px;background:rgba(239,68,68,0.95);color:#fff;font-size:12px;font-weight:700;letter-spacing:0.3px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 32px rgba(0,0,0,0.3);transition:all 0.35s cubic-bezier(0.16,1,0.3,1);pointer-events:none;opacity:0;">
     ⚡ Нет связи с сетью. Переподключение...
@@ -391,7 +423,7 @@
       } catch(e) {}
     })();
   </script>
-  <script src="/js/core/app-core.js?v=20261101_hdr1"></script>
+  <script src="/js/core/app-core.js?v=20261101_spl1"></script>
   <script src="/js/modules/home.js?v=20261030_05"></script>
   <script src="/js/modules/pdd-product.js?v=20261030_21"></script>
   <script src="/js/modules/pdd-search.js?v=20261030_21"></script>
