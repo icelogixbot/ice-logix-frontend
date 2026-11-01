@@ -440,7 +440,7 @@
 
         <div class="sp-composer">
           <input type="text" id="spotlightSearchInput"
-            placeholder="Спросите про заказ, цену или доставку"
+            placeholder="Спросите ассистента"
             enterkeyhint="send"
             autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false">
           <button id="spotlightClearBtn" type="button" class="sp-clear hidden" aria-label="Очистить">${U.icon('x', 16, { stroke: 2.4 })}</button>
@@ -661,6 +661,9 @@
     if (!searchInputEl || !contentEl) return;
 
     suggestionsBarEl = document.getElementById('spotlightSuggestionsBar');
+
+    searchInputEl.addEventListener('focus', () => document.body.classList.add('sp-kb'));
+    searchInputEl.addEventListener('blur', () => document.body.classList.remove('sp-kb'));
 
     clearBtnEl.onclick = () => {
       searchInputEl.value = '';

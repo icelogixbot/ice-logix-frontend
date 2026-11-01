@@ -1379,7 +1379,13 @@ html body .no-form div[class*="border-white/30"] > input { min-height: 40px !imp
 @media (prefers-reduced-motion: reduce) { #content.ptr-skel, #content.ptr-in { animation: none; } .ptr { transition: none; } .ptr.ptr-spin .ptr-spinner { animation: none; } }
 
 /* ===== Поиск как чат с ассистентом ===== */
-.sp-content { padding-bottom: 120px; }
+.sp-content { padding: 6px 0 130px; }
+.rd-screen.sp.page-enter { animation: none; transform: none; }
+.main-content:has(> .rd-screen.sp) { animation: none !important; transform: none !important; }
+.sp-composer .sp-clear.hidden { display: none; }
+.sp-kb .sp-composer { bottom: 10px; }
+.sp-kb .tab-bar { display: none; }
+.sp-top { position: sticky; top: 0; z-index: 5; }
 .sp-top { display: flex; justify-content: flex-end; margin-bottom: 8px; }
 .sp-new { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border: 1px solid var(--rd-line); border-radius: 999px; background: var(--rd-s1); color: var(--rd-tx2); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .sp-new:active { background: var(--rd-s2); }
@@ -1408,7 +1414,7 @@ html body .no-form div[class*="border-white/30"] > input { min-height: 40px !imp
 .sp-typing i:nth-child(2) { animation-delay: .15s; }
 .sp-typing i:nth-child(3) { animation-delay: .3s; }
 @keyframes spTyping { 0%, 80%, 100% { opacity: .3; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
-.sp-composer { position: fixed; left: 12px; right: 12px; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); z-index: 95; display: flex; align-items: center; gap: 6px; padding: 5px 5px 5px 18px; border-radius: 26px; background: var(--rd-glass-bg); border: 1px solid var(--rd-glass-line); box-shadow: var(--rd-glass-shadow); -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%); }
+.sp-composer { position: fixed; left: 12px; right: 12px; bottom: calc(104px + env(safe-area-inset-bottom, 0px)); z-index: 95; display: flex; align-items: center; gap: 6px; padding: 5px 5px 5px 18px; border-radius: 26px; background: var(--rd-glass-bg); border: 1px solid var(--rd-glass-line); box-shadow: var(--rd-glass-shadow); -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%); }
 .sp-composer:focus-within { border-color: var(--rd-b400); }
 html body .sp-composer input { flex: 1; min-width: 0; height: 42px; padding: 0 !important; background: transparent !important; border: 0 !important; box-shadow: none !important; font-size: 16px !important; font-weight: 500; color: var(--rd-tx) !important; }
 .sp-composer .sp-clear { width: 30px; height: 30px; flex-shrink: 0; border: 0; border-radius: 50%; background: var(--rd-s3); color: var(--rd-tx2); display: flex; align-items: center; justify-content: center; cursor: pointer; }

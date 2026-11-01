@@ -23,6 +23,7 @@
     chevR: '<path d="m9.5 6 6 6-6 6"/>',
     chevL: '<path d="m14.5 6-6 6 6 6"/>',
     chevD: '<path d="m6 9.5 6 6 6-6"/>',
+    arrowUp: '<path d="M12 19V5m-6.5 6.5L12 5l6.5 6.5"/>',
     arrowR: '<path d="M5 12h14m-5.5-5.5L19 12l-5.5 5.5"/>',
     x: '<path d="M6 6l12 12M18 6 6 18"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',

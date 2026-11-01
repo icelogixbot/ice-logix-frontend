@@ -3389,7 +3389,8 @@ let adminOrdersTotalPages = 1;
       const searchBtn = document.getElementById('globalSearchBtn');
       const notifBtn = document.getElementById('notificationsBtn');
       const settBtn = document.getElementById('settingsBtn');
-      if (searchBtn) searchBtn.classList.toggle('active-header-btn', tabName === 'search');
+      if (searchBtn) { searchBtn.classList.toggle('active-header-btn', tabName === 'search'); searchBtn.style.visibility = tabName === 'search' ? 'hidden' : ''; }
+      if (tabName !== 'search') document.body.classList.remove('sp-kb');
       if (notifBtn) notifBtn.classList.toggle('active-header-btn', tabName === 'notifications');
       if (settBtn) settBtn.classList.toggle('active-header-btn', tabName === 'settings');
 
