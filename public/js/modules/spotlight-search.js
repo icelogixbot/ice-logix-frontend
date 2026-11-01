@@ -894,6 +894,8 @@
     return `<div class="sp-msg bot"${id ? ` id="${id}"` : ''}><span class="sp-msg-ico">${window.UI.icon('sparkles', 15)}</span><div class="sp-bubble">${inner}</div></div>`;
   }
 
+  const CHAT_TABS = ['calculator', 'neworder', 'finances', 'profile', 'catalogs', 'resale'];
+
   async function sendChat(raw) {
     const q = String(raw || '').trim().slice(0, 300);
     if (!q || chatBusy || !contentEl) return;
@@ -915,6 +917,7 @@
 
     let answer = '';
     let srcHtml = '';
+    let actHtml = '';
     if (GREETING_RE.test(q)) {
       answer = 'Привет! Я ассистент ICE LOGIX. Подскажу про заказы, цены, доставку и выкуп из Китая — спрашивайте.';
     } else if (THANKS_RE.test(q)) {
@@ -933,6 +936,8 @@
         if (!r.ok) throw new Error(r.error || 'Ассистент не ответил');
         answer = String(r.answer || '');
         const src = (r.sources || []).map(x => escHtml(x.title || x)).filter(Boolean);
+        const act = (r.actions || []).filter(a => a && CHAT_TABS.includes(a.tab)).slice(0, 2);
+        if (act.length) actHtml = `<div class="sp-acts">${act.map(a => `<button type="button" class="sp-act" data-tab="${escHtml(a.tab)}">${escHtml(a.label || 'Открыть')}</button>`).join('')}</div>`;
         if (src.length) srcHtml = `<div class="sp-src"><span>Откуда:</span>${src.map(x => `<span>${x}</span>`).join('')}</div>`;
       } catch (e) {
         answer = e.message || 'Ассистент сейчас недоступен. Попробуйте чуть позже.';
@@ -943,7 +948,10 @@
     const pending = document.getElementById('spPending');
     if (pending) {
       pending.removeAttribute('id');
-      pending.querySelector('.sp-bubble').innerHTML = `<div style="white-space:pre-line">${escHtml(answer)}</div>${srcHtml}`;
+      pending.querySelector('.sp-bubble').innerHTML = `<div style="white-space:pre-line">${escHtml(answer)}</div>${actHtml}${srcHtml}`;
+      pending.querySelectorAll('.sp-act').forEach(b => b.addEventListener('click', () => {
+        if (typeof switchTab === 'function') switchTab(b.dataset.tab);
+      }));
     }
     const cards = document.createElement('div');
     cards.className = 'sp-cards';

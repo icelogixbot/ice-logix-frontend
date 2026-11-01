@@ -1407,6 +1407,9 @@ html body .no-form div[class*="border-white/30"] > input { min-height: 40px !imp
 .sp-bubble { min-width: 0; font-size: 15.5px; line-height: 1.55; word-break: break-word; color: var(--rd-tx); }
 .sp-msg.me .sp-bubble { max-width: 82%; padding: 10px 15px; border-radius: 20px 20px 6px 20px; background: var(--rd-blue); color: #fff; }
 .sp-msg.bot .sp-bubble { flex: 1; padding-top: 3px; }
+.sp-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.sp-act { min-height: 40px; padding: 0 16px; border-radius: 12px; border: 0; background: var(--rd-blue); color: #fff; font: inherit; font-size: 14px; font-weight: 600; }
+.sp-act:active { opacity: .8; }
 .sp-bubble .sp-src { margin-top: 10px; padding-top: 0; border-top: 0; }
 .sp-cards { margin-left: 38px; }
 .sp-cards .sp-answer:first-child { margin-top: 0; }
