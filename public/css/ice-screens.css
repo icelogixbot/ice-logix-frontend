@@ -1593,7 +1593,8 @@ html body .app-header {
   backdrop-filter: none !important;
 }
 
-/* Верхнее меню всегда чёрное, в один цвет с системной шапкой Telegram (syncThemeChrome в app-core.js) */
+/* Верхнее меню всегда чёрное, в один цвет с системной шапкой Telegram (syncThemeChrome в app-core.js); нижняя линия белая, 2px */
+html body .app-header { border-bottom: 2px solid #fff !important; }
 html.lk-up body .app-header { z-index: 2147483050 !important; }
 /* заставка гаснет 0.7с, а шапка Telegram синеет за 0.25с: шапку приложения держим над заставкой, чтобы синели вместе */
 html.sp-out body .app-header { z-index: 2147483300 !important; }
