@@ -194,8 +194,7 @@
     let dutyBYN = Math.max(byValue, byWeight);
     let warning = null;
     if (exceedsValue) {
-      dutyBYN += 10; // таможенный сбор РБ
-      warning = `Превышен лимит беспошлинного ввоза в РБ €${CONFIG.customs_limit_eur} (пошлина ${CONFIG.customs_duty_pct}% с превышения + сбор)`;
+      warning = `Превышен лимит беспошлинного ввоза в РБ €${CONFIG.customs_limit_eur} (пошлина ${CONFIG.customs_duty_pct}% с превышения)`;
     }
     if (exceedsWeight) {
       warning = (warning ? warning + ' ' : '') + `Превышен лимит веса ${CONFIG.customs_limit_kg} кг`;

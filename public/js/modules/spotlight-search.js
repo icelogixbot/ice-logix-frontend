@@ -894,7 +894,7 @@
     return `<div class="sp-msg bot"${id ? ` id="${id}"` : ''}><span class="sp-msg-ico">${window.UI.icon('sparkles', 15)}</span><div class="sp-bubble">${inner}</div></div>`;
   }
 
-  const CHAT_TABS = ['calculator', 'neworder', 'finances', 'profile', 'catalogs', 'resale'];
+  const CHAT_TABS = ['calculator', 'neworder', 'finances', 'profile', 'catalogs', 'resale', 'support'];
 
   async function sendChat(raw) {
     const q = String(raw || '').trim().slice(0, 300);
@@ -950,6 +950,7 @@
       pending.removeAttribute('id');
       pending.querySelector('.sp-bubble').innerHTML = `<div style="white-space:pre-line">${escHtml(answer)}</div>${actHtml}${srcHtml}`;
       pending.querySelectorAll('.sp-act').forEach(b => b.addEventListener('click', () => {
+        if (b.dataset.tab === 'support' && typeof window.openSupport === 'function') return window.openSupport();
         if (typeof switchTab === 'function') switchTab(b.dataset.tab);
       }));
     }
