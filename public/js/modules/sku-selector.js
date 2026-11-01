@@ -216,10 +216,10 @@
     const fmtDur = (n) => { const t = parseInt(n, 10); return t > 0 ? `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}` : ''; };
     const pct = (n) => `${(Number(n) * 100).toFixed(2)}%`;
     const slideHtml = (m, i) => (m.type === 'collage'
-      ? `<div class="sk-slide sk-slide-collage">${m.tiles.map((t) => `<img class="sk-tile" src="${esc(t.url)}" alt="" decoding="async" style="left:${pct(t.x)};top:${pct(t.y)};width:${pct(t.w)};height:${pct(t.h)}">`).join('')}</div>`
+      ? `<div class="sk-slide sk-slide-collage">${m.tiles.map((t) => `<img class="sk-tile" src="${esc(t.url)}" alt="" style="left:${pct(t.x)};top:${pct(t.y)};width:${pct(t.w)};height:${pct(t.h)}">`).join('')}</div>`
       : m.type === 'video'
       ? `<div class="sk-slide sk-slide-video" data-video="${esc(m.video)}">${m.src ? `<img src="${esc(m.src)}" alt="">` : ''}<span class="sk-play"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg></span>${fmtDur(m.duration) ? `<span class="sk-dur">${fmtDur(m.duration)}</span>` : ''}</div>`
-      : `<div class="sk-slide"><img src="${esc(m.src)}" alt="" decoding="async"></div>`);
+      : `<div class="sk-slide"><img src="${esc(m.src)}" alt=""></div>`);
     const countText = hasVideo
       ? (photoCount ? `${photoCount} фото и видео. Нажмите, чтобы рассмотреть` : 'Видео. Нажмите, чтобы посмотреть')
       : (gallery.length > 1 ? `${gallery.length} фото. Нажмите, чтобы рассмотреть` : 'Нажмите на фото, чтобы рассмотреть');
@@ -250,7 +250,7 @@
       return `
         <button type="button" class="sk-opt${grp.type === 'visual' ? ' sk-opt-vis' : ''}${isSel ? ' on' : ''}${avail ? '' : ' off'}"
           data-group-id="${esc(grp.id)}" data-opt-idx="${optIdx}" ${avail ? '' : 'aria-disabled="true"'}>
-          ${grp.type === 'visual' ? (thumb ? `<img src="${esc(thumb)}" alt="" decoding="async">` : `<span class="sk-opt-noimg">${icon('image', 18)}</span>`) : ''}
+          ${grp.type === 'visual' ? (thumb ? `<img src="${esc(thumb)}" alt="">` : `<span class="sk-opt-noimg">${icon('image', 18)}</span>`) : ''}
           <span class="sk-opt-body"><span class="sk-opt-name">${esc(label)}</span><span class="sk-opt-price"></span></span>
         </button>`;
     };
@@ -277,7 +277,7 @@
 
     const thumbHtml = (m, i) => `<button type="button" class="sk-th${i === 0 ? ' on' : ''}" data-i="${i}" aria-label="Фото ${i + 1}">${
       m.type === 'collage' ? `<span class="sk-th-col">${m.tiles.map((t) => `<img src="${esc(t.url)}" alt="" style="left:${pct(t.x)};top:${pct(t.y)};width:${pct(t.w)};height:${pct(t.h)}">`).join('')}</span>`
-      : `<img src="${esc(m.src)}" alt="" decoding="async">`}${m.type === 'video' ? '<span class="sk-th-play"></span>' : ''}</button>`;
+      : `<img src="${esc(m.src)}" alt="">`}${m.type === 'video' ? '<span class="sk-th-play"></span>' : ''}</button>`;
 
     const html = `
       <div class="sk">
@@ -373,12 +373,25 @@
     const sheetEl = root.querySelector('.rd-sheet');
     ['#skBar', '#skPick'].forEach((q) => { const el = $(q); if (el) sheetEl.appendChild(el); });
     const closeBtn = document.createElement('button');
-    closeBtn.type = 'button'; closeBtn.className = 'sk-close'; closeBtn.setAttribute('data-close', '1'); closeBtn.setAttribute('aria-label', 'Закрыть');
-    closeBtn.innerHTML = icon('x', 20);
+    closeBtn.type = 'button'; closeBtn.className = 'sk-close'; closeBtn.setAttribute('data-close', '1'); closeBtn.setAttribute('aria-label', 'Назад');
+    closeBtn.innerHTML = icon('chevL', 22);
     sheetEl.appendChild(closeBtn);
+    // Шапка и нижнее меню приложения остаются видны: пока карточка открыта, поднимаем их над ней, а тап по ним её закрывает
+    document.body.classList.add('sk-open');
+    const onChrome = (e) => { if (e.target.closest && e.target.closest('.app-header, .tab-bar')) sh.close(); };
+    document.addEventListener('click', onChrome, true);
+    const chromeWatch = new MutationObserver(() => { if (!document.body.contains(root)) { document.body.classList.remove('sk-open', 'sk-picking'); document.removeEventListener('click', onChrome, true); chromeWatch.disconnect(); } });
+    chromeWatch.observe(document.body, { childList: true });
+    // Все фото грузим сразу, битые перезапрашиваем один раз
+    root.querySelectorAll('img').forEach((im) => {
+      im.loading = 'eager';
+      im.addEventListener('error', () => { if (im.dataset.retry) return; im.dataset.retry = '1'; const u = im.getAttribute('src'); if (u) setTimeout(() => { im.src = u + (u.includes('?') ? '&' : '?') + 'r=1'; }, 600); });
+      im.addEventListener('load', () => im.classList.add('ld'));
+      if (im.complete && im.naturalWidth) im.classList.add('ld');
+    });
     const pickEl = $('#skPick');
-    const openPick = () => { pickEl.hidden = false; requestAnimationFrame(() => pickEl.classList.add('on')); haptic(); };
-    const closePick = () => { pickEl.classList.remove('on'); setTimeout(() => { pickEl.hidden = true; }, 220); };
+    const openPick = () => { document.body.classList.add('sk-picking'); pickEl.hidden = false; requestAnimationFrame(() => pickEl.classList.add('on')); haptic(); };
+    const closePick = () => { document.body.classList.remove('sk-picking'); pickEl.classList.remove('on'); setTimeout(() => { pickEl.hidden = true; }, 220); };
     $('#skOpenPick').onclick = openPick;
     const row2 = $('#skOpenPick2'); if (row2) row2.onclick = openPick;
     pickEl.addEventListener('click', (e) => { if (e.target.closest('[data-pick-close]')) closePick(); });

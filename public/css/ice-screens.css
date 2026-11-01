@@ -1427,23 +1427,23 @@ html body .sp-composer input { flex: 1; min-width: 0; height: 42px; padding: 0 !
 .sp-send:disabled { background: var(--rd-s3); color: var(--rd-tx3); cursor: default; }
 
 /* ═══ Карточка товара на весь экран (sku-selector.js), как карточка в Pinduoduo ═══ */
-.rd-sheet-wrap.sk-full .rd-sheet { top: 0; max-height: none; height: 100%; border: 0; border-radius: 0; padding: 0 0 calc(76px + env(safe-area-inset-bottom, 0px)); overflow-y: auto; overscroll-behavior: contain; }
+.rd-sheet-wrap.sk-full .rd-sheet { top: 0; max-height: none; height: 100%; border: 0; border-radius: 0; padding: calc(78px + env(safe-area-inset-top, 0px)) 0 176px; overflow-y: auto; overscroll-behavior: contain; }
 .sk-full .rd-sheet-handle, .sk-full .rd-sheet-backdrop { display: none; }
 .sk-full .sk { gap: 0; }
-.sk-full .sk-hero { position: relative; background: rgb(255, 255, 255); }
+.sk-full .sk-hero { position: relative; background: var(--rd-s2); }
 .sk-full .sk-gallery { gap: 0; margin: 0; padding: 0; }
-.sk-full .sk-slide { flex: 0 0 100%; max-width: none; aspect-ratio: 1 / 1; border-radius: 0; background: rgb(255, 255, 255); }
+.sk-full .sk-slide { flex: 0 0 100%; max-width: none; aspect-ratio: 1 / 1; border-radius: 0; background: var(--rd-s2); }
 .sk-full .sk-slide:only-child { flex-basis: 100%; aspect-ratio: 1 / 1; }
 .sk-full .sk-slide img { object-fit: contain; }
 .sk-full .sk-slide-video img { background: rgb(0, 0, 0); }
-.sk-close { position: fixed; z-index: 3; left: 12px; top: calc(12px + env(safe-area-inset-top, 0px)); width: 40px; height: 40px; border: 0; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.55); color: rgb(255, 255, 255); cursor: pointer; -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.sk-close { position: fixed; z-index: 3; left: 12px; top: calc(86px + env(safe-area-inset-top, 0px)); width: 40px; height: 40px; border: 0; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.55); color: rgb(255, 255, 255); cursor: pointer; -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
 .sk-pos { position: absolute; right: 12px; bottom: 12px; padding: 3px 10px; border-radius: 999px; background: rgba(0, 0, 0, 0.55); color: rgb(255, 255, 255); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; pointer-events: none; }
 .sk-thumbs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 10px 16px; background: var(--rd-s1); }
 .sk-thumbs::-webkit-scrollbar { display: none; }
-.sk-th { position: relative; flex: 0 0 56px; width: 56px; height: 56px; padding: 0; border: 2px solid transparent; border-radius: 10px; overflow: hidden; background: rgb(255, 255, 255); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.sk-th { position: relative; flex: 0 0 56px; width: 56px; height: 56px; padding: 0; border: 2px solid transparent; border-radius: 10px; overflow: hidden; background: var(--rd-s2); cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .sk-th.on { border-color: var(--rd-b400); }
 .sk-th img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; }
-.sk-th-col { position: absolute; inset: 0; background: rgb(255, 255, 255); }
+.sk-th-col { position: absolute; inset: 0; background: var(--rd-s2); }
 .sk-th-col img { position: absolute; width: auto; height: auto; object-fit: cover; }
 .sk-th-play { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.3); }
 .sk-th-play::after { content: ""; position: absolute; left: 50%; top: 50%; margin: -7px 0 0 -4px; border-style: solid; border-width: 7px 0 7px 12px; border-color: transparent transparent transparent rgb(255, 255, 255); }
@@ -1452,7 +1452,7 @@ html body .sp-composer input { flex: 1; min-width: 0; height: 42px; padding: 0 !
 .sk-pickrow-k { flex: 0 0 auto; font-size: 14px; color: var(--rd-tx3); }
 .sk-pickrow-v { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sk-pickrow svg { flex: 0 0 auto; color: var(--rd-tx3); }
-.sk-bar { position: fixed; z-index: 2; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 12px; padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px)); background: var(--rd-s1); border-top: 1px solid var(--rd-line); }
+.sk-bar { position: fixed; z-index: 2; left: 12px; right: 12px; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; background: var(--rd-s1); border: 1px solid var(--rd-line); border-radius: 22px; }
 .sk-bar-sum { flex: 1; min-width: 0; font-size: 20px; font-weight: 800; color: var(--rd-tx); font-variant-numeric: tabular-nums; }
 .sk-bar-btn { flex: 0 0 auto; min-width: 160px; }
 .sk-pick { position: fixed; z-index: 4; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; }
@@ -1469,3 +1469,9 @@ html body .sp-composer input { flex: 1; min-width: 0; height: 42px; padding: 0 !
 .sk-pick-name { font-size: 13px; line-height: 1.35; color: var(--rd-tx2); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .sk-pick-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 12px; padding: 4px 16px 12px; }
 .sk-pick-panel .sk-foot { position: static; margin: 0; padding: 12px 16px calc(14px + env(safe-area-inset-bottom, 0px)); }
+
+/* Карточка товара: шапка и нижнее меню приложения видны поверх неё */
+body.sk-open .app-header, body.sk-open .tab-bar { z-index: 9600 !important; }
+body.sk-picking .tab-bar { display: none; }
+.sk-slide img, .sk-th img { opacity: 0; transition: opacity .25s ease; }
+.sk-slide img.ld, .sk-th img.ld { opacity: 1; }
