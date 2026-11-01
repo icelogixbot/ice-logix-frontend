@@ -432,11 +432,7 @@
     const U = window.UI;
     return `
       <div class="rd-screen page-enter sp">
-        <div class="rd-head">
-          <button type="button" class="rd-back" onclick="window.goBackGlobal()" aria-label="Назад">${U.icon('chevL', 22)}</button>
-          <div class="rd-head-txt"><h1 class="rd-head-title">Ассистент</h1><p class="rd-head-sub">Заказы, цены, доставка и ответы на вопросы</p></div>
-          <button type="button" id="spNewChat" class="rd-link hidden">Новый чат</button>
-        </div>
+        <div class="sp-top hidden" id="spTop"><button type="button" id="spNewChat" class="sp-new">${U.icon('plus', 15, { stroke: 2.4 })}Новый чат</button></div>
 
         <div id="spotlightSuggestionsBar" class="hidden sp-suggest"></div>
 
@@ -444,11 +440,11 @@
 
         <div class="sp-composer">
           <input type="text" id="spotlightSearchInput"
-            placeholder="Спросите что угодно"
+            placeholder="Спросите про заказ, цену или доставку"
             enterkeyhint="send"
             autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false">
           <button id="spotlightClearBtn" type="button" class="sp-clear hidden" aria-label="Очистить">${U.icon('x', 16, { stroke: 2.4 })}</button>
-          <button id="spSendBtn" type="button" class="sp-send" aria-label="Отправить" disabled>${U.icon('arrowR', 20, { stroke: 2.4 })}</button>
+          <button id="spSendBtn" type="button" class="sp-send" aria-label="Отправить" disabled>${U.icon('arrowUp', 20, { stroke: 2.6 })}</button>
         </div>
       </div>
     `;
@@ -689,19 +685,9 @@
     if (newChatEl) newChatEl.onclick = () => {
       chatHistory = [];
       chatBusy = false;
-      newChatEl.classList.add('hidden');
+      document.getElementById('spTop')?.classList.add('hidden');
       renderSpotlightHome();
     };
-
-    searchInputEl.addEventListener('focus', () => {
-      stopPlaceholderAnimation();
-    });
-
-    searchInputEl.addEventListener('blur', () => {
-      if (!searchInputEl.value.trim()) {
-        startPlaceholderAnimation();
-      }
-    });
 
     // Handle pending initial query or start fresh
     if (window._pendingSpotlightQuery) {
@@ -710,7 +696,6 @@
       sendChat(initQ);
     } else {
       renderSpotlightHome();
-      startPlaceholderAnimation();
     }
   }
 
@@ -758,52 +743,33 @@
     if (!contentEl) return;
     updateGoogleSuggestions('');
 
-    const userCtx = getUserContext();
-    const history = getSearchHistory();
-    const activeCategory = PROMPT_CATEGORIES.find(c => c.id === activePromptCategoryId) || PROMPT_CATEGORIES[0];
-
+    const history = getSearchHistory().slice(0, 3);
     const U = window.UI;
+    const starters = [
+      { ico: 'truck', t: 'Где моя посылка?', q: 'где моя посылка' },
+      { ico: 'calc', t: 'Сколько стоит доставка?', q: 'пуховик 850¥ вес 2 кг в Минск' },
+      { ico: 'wallet', t: 'Мой баланс и карты', q: 'мой баланс и карты' },
+      { ico: 'link', t: 'Как заказать с Poizon?', q: 'как заказать по ссылке Poizon' }
+    ];
     contentEl.innerHTML = `
       <div class="sp-home">
-        ${history.length > 0 ? `
-          <div class="sp-sec">
-            <div class="sp-sec-h"><span>Вы искали</span><button id="spotlightClearHistoryBtn" type="button" class="rd-link">Очистить</button></div>
-            <div class="rd-chips">
-              ${history.map(item => `<button type="button" class="spotlight-chip rd-chip sp-hchip" data-search-trigger="${U.esc(item)}">${U.icon('history', 14)}<span>${U.esc(item)}</span></button>`).join('')}
-            </div>
-          </div>
-        ` : ''}
-
-        <div class="sp-sec">
-          <div class="sp-sec-h"><span>Частые вопросы</span></div>
-          <div class="rd-chips sp-cats">
-            ${PROMPT_CATEGORIES.map(cat => `<button type="button" class="prompt-category-btn rd-chip ${cat.id === activeCategory.id ? 'on' : ''}" data-category-id="${cat.id}">${U.icon(cat.icon, 15)}${cat.label}</button>`).join('')}
-          </div>
-          <div class="rd-card rd-list sp-prompts">
-            ${activeCategory.prompts.map(p => `
-              <div class="rd-row spotlight-prompt-item" role="button" tabindex="0" data-search-trigger="${U.esc(p.q)}">
-                <span class="rd-ico">${U.icon(p.ico || activeCategory.icon, 21)}</span>
-                <span class="rd-row-body"><span class="rd-row-title">${p.title}</span><span class="rd-row-text">${p.desc}</span></span>
-                ${U.icon('arrowR', 18)}
-              </div>
-            `).join('')}
-          </div>
+        <div class="sp-hero">
+          <span class="sp-orb">${U.icon('sparkles', 30, { stroke: 1.8 })}</span>
+          <h2 class="sp-hello">Чем помочь?</h2>
+          <p class="sp-hello-sub">Отвечу про заказы, цены и доставку</p>
         </div>
-
-        <p class="sp-foot">${U.icon('sparkles', 14)}Пишите как другу, поиск поймёт</p>
+        <div class="sp-starters">
+          ${starters.map(x => `<button type="button" class="sp-starter" data-search-trigger="${U.esc(x.q)}"><span class="sp-starter-ico">${U.icon(x.ico, 18)}</span><span>${x.t}</span></button>`).join('')}
+        </div>
+        ${history.length > 0 ? `
+          <div class="sp-recent">
+            <div class="sp-sec-h"><span>Недавнее</span><button id="spotlightClearHistoryBtn" type="button" class="rd-link">Очистить</button></div>
+            <div class="rd-chips">
+              ${history.map(item => `<button type="button" class="rd-chip sp-hchip" data-search-trigger="${U.esc(item)}">${U.icon('history', 14)}<span>${U.esc(item)}</span></button>`).join('')}
+            </div>
+          </div>` : ''}
       </div>
     `;
-
-    // Category button click handlers
-    contentEl.querySelectorAll('.prompt-category-btn').forEach(btn => {
-      btn.onclick = () => {
-        const catId = btn.getAttribute('data-category-id');
-        if (catId && catId !== activePromptCategoryId) {
-          activePromptCategoryId = catId;
-          renderSpotlightHome();
-        }
-      };
-    });
 
     // Attach click triggers to all cards and chips
     contentEl.querySelectorAll('[data-search-trigger]').forEach(btn => {
@@ -935,7 +901,7 @@
       thread = contentEl.querySelector('.sp-thread');
     }
     thread.querySelectorAll('.sp-cards').forEach(n => n.remove());
-    document.getElementById('spNewChat')?.classList.remove('hidden');
+    document.getElementById('spTop')?.classList.remove('hidden');
     thread.insertAdjacentHTML('beforeend',
       `<div class="sp-msg me"><div class="sp-bubble">${escHtml(q)}</div></div>` +
       botBubble('<span class="sp-typing"><i></i><i></i><i></i></span>', 'spPending'));
