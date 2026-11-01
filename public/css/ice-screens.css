@@ -1179,6 +1179,8 @@ html body .no-form div[class*="border-white/30"] > input { min-height: 40px !imp
 .sk-slide:only-child { flex-basis: 100%; max-width: none; aspect-ratio: 4 / 3; }
 .sk-slide img { width: 100%; height: 100%; object-fit: cover; display: block; cursor: zoom-in; }
 .sk-slide-video { position: relative; }
+.sk-slide-collage { position: relative; background: #fff; }
+.sk-slide-collage .sk-tile { position: absolute; width: auto; height: auto; border-radius: 6px; object-fit: cover; }
 .sk-play { position: absolute; left: 50%; top: 50%; width: 48px; height: 48px; margin: -24px 0 0 -24px; display: flex; align-items: center; justify-content: center; border-radius: 999px; background: rgba(0, 0, 0, 0.55); color: rgb(255, 255, 255); pointer-events: none; }
 .sk-play svg { margin-left: 2px; }
 .sk-dur { position: absolute; left: 8px; bottom: 8px; padding: 2px 8px; border-radius: 999px; background: rgba(0, 0, 0, 0.55); color: rgb(255, 255, 255); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; pointer-events: none; }
@@ -1360,13 +1362,14 @@ html body .no-form div[class*="border-white/30"] > input { min-height: 40px !imp
 .ptr.ptr-spin .ptr-spinner { animation: ptr-spin .9s steps(12) infinite; }
 .ptr.ptr-spin .ptr-spoke { opacity: calc(0.2 + var(--i) * 0.07); }
 @keyframes ptr-spin { to { transform: rotate(360deg); } }
-/* Пока экран обновляется, его детали гаснут и на их месте остаются серые пустые блоки (скелетон, как в WB/Ozon):
-   текст — плашки, картинки и иконки скрыты, фоны карточек остаются. Мягкая пульсация — только opacity (GPU). */
+/* Пока экран обновляется, он превращается в ровные пустые силуэты (скелетон, как в WB/Ozon): крупные плитки (.ptr-blk,
+   их находит pull-refresh.js) — одним гладким цветом, всё внутри и всё мелкое скрыто. Пульсация — только opacity (GPU). */
 #content.ptr-skel { animation: ptr-pulse 1.1s ease-in-out infinite alternate; }
-#content.ptr-skel * { color: transparent !important; text-shadow: none !important; box-shadow: none !important; border-color: transparent !important; caret-color: transparent; }
+#content.ptr-skel * { color: transparent !important; text-shadow: none !important; box-shadow: none !important; border-color: transparent !important; background-image: none !important; background-color: transparent !important; caret-color: transparent; outline: 0 !important; }
 #content.ptr-skel :is(img, svg, video, canvas, picture, iframe) { visibility: hidden !important; }
-#content.ptr-skel :not(:has(*)):not(img, svg, video, canvas, picture, iframe, path, line, circle, rect, use, source) { background-color: var(--rd-s2) !important; background-image: none !important; border-radius: 6px; }
-#content.ptr-skel :is(input, textarea, select) { background: var(--rd-s2) !important; }
+#content.ptr-skel .ptr-blk { background-color: var(--rd-s2) !important; border-radius: 14px; overflow: hidden; }
+#content.ptr-skel .ptr-blk * { visibility: hidden !important; }
+#content.ptr-skel :is(img, video, canvas).ptr-blk { visibility: visible !important; opacity: 1; object-fit: none; object-position: 400% 400%; }
 #content.ptr-skel > * { pointer-events: none; }
 @keyframes ptr-pulse { from { opacity: .55; } to { opacity: 1; } }
 #content.ptr-in { animation: ptr-in .26s ease-out; }

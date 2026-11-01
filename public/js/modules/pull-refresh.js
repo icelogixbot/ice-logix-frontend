@@ -129,9 +129,45 @@
   }
 
   // Скелетон: детали экрана гаснут и остаются серые пустые блоки (стили — .ptr-skel в ice-screens.css)
+  // Находит крупные «плитки» (карточки, баннеры, обложки) — самые внешние, с фоном или картинкой, не мельче 56×40.
+  // Они получают .ptr-blk: ровный силуэт, всё внутри скрыто (никаких вложенных блоков, точек и плашек).
+  function markBlocks(c) {
+    const cr = c.getBoundingClientRect();
+    const walk = (el) => {
+      for (const ch of el.children) {
+        if (ch.tagName === 'SCRIPT' || ch.tagName === 'STYLE') continue;
+        const r = ch.getBoundingClientRect();
+        if (r.width < 8 || r.height < 8) continue;
+        const cs = getComputedStyle(ch);
+        if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+        const big = r.width >= 56 && r.height >= 40 && r.width <= cr.width + 2;
+        const media = ch.tagName === 'IMG' || ch.tagName === 'VIDEO' || ch.tagName === 'CANVAS';
+        const bg = cs.backgroundImage !== 'none' || !/^rgba\(\s*0,\s*0,\s*0,\s*0\s*\)$|^transparent$/.test(cs.backgroundColor);
+        if (big && (bg || media)) { ch.classList.add('ptr-blk'); continue; }
+        if (ch.firstElementChild) walk(ch);
+      }
+    };
+    walk(c);
+  }
+
+  let skelObs = null;
   function skeleton(on) {
     const c = contentEl();
     if (!c) return;
+    c.querySelectorAll('.ptr-blk').forEach((n) => n.classList.remove('ptr-blk'));
+    if (skelObs) { skelObs.disconnect(); skelObs = null; }
+    if (on) {
+      try { markBlocks(c); } catch (_) {}
+      // экран перерисовывается прямо под скелетоном — новые плитки отмечаем сразу, до отрисовки кадра
+      skelObs = new MutationObserver(() => {
+        skelObs.disconnect();
+        c.classList.remove('ptr-skel');                  // без скелетона фоны читаются как есть (перекраска синхронная, кадр не рисуется)
+        try { markBlocks(c); } catch (_) {}
+        c.classList.add('ptr-skel');
+        skelObs.observe(c, { childList: true, subtree: true });
+      });
+      skelObs.observe(c, { childList: true, subtree: true });
+    }
     c.classList.toggle('ptr-skel', on);
     if (!on) {
       c.classList.add('ptr-in');
