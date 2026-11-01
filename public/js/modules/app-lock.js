@@ -5,7 +5,10 @@
 (function () {
   const LOCK_AFTER_MS = 2 * 60 * 1000;
   const LS_FLAG = 'ice_app_lock'; // '1' — показать экран сразу при запуске, ещё до ответа сервера
-  const state = { enabled: false, blocked: false, bioDevice: false, unlocked: false, checked: false, hiddenAt: 0 };
+  const LS_BIO = 'ice_app_lock_bio'; // '1' — на этом телефоне включён вход по Face ID: запрос биометрии сразу, не ждём сервер
+  const lsBioGet = () => { try { return localStorage.getItem(LS_BIO) === '1'; } catch (_) { return false; } };
+  const lsBioSet = (on) => { try { on ? localStorage.setItem(LS_BIO, '1') : localStorage.removeItem(LS_BIO); } catch (_) {} };
+  const state = { enabled: false, blocked: false, bioDevice: lsBioGet(), unlocked: false, checked: false, hiddenAt: 0 };
   let lockCtrl = null;
 
   const U = () => window.UI;
@@ -46,7 +49,7 @@
     const until = Date.now() + (ms || 15000);
     while (Date.now() < until) {
       if (window.supabaseClient && window.userId) return true;
-      await new Promise((r) => setTimeout(r, 250));
+      await new Promise((r) => setTimeout(r, 100));
     }
     return false;
   }
@@ -360,6 +363,7 @@
     if (r.blocked) { state.blocked = true; return ctrl.blocked(blockedHtml()); }
     if (r.error === 'bio_unknown') {
       state.bioDevice = false;
+      lsBioSet(false);
       const btn = ctrl.el.querySelector('.lk-bio');
       if (btn) btn.style.visibility = 'hidden';
     }
@@ -388,7 +392,7 @@
     shieldOn(lockCtrl.el);
     lockCtrl.el.addEventListener('click', (e) => { if (e.target.closest('.lk-reset')) forgotFlow(lockCtrl); });
     if (state.blocked) lockCtrl.blocked(blockedHtml());
-    else if (b) setTimeout(() => { if (lockCtrl) bioUnlock(lockCtrl); }, 350);
+    else if (b) setTimeout(() => { if (lockCtrl) bioUnlock(lockCtrl); }, 60);
   }
 
   // Состояние с сервера. Вызывается после загрузки профиля (app-core) и экраном настроек.
@@ -401,6 +405,7 @@
     state.bioDevice = !!r.bio_device;
     state.checked = true;
     lsSet(state.enabled);
+    lsBioSet(state.enabled && state.bioDevice);
     return r;
   }
 

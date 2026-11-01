@@ -23,6 +23,18 @@
   <script>
     (function () {
       var T0 = Date.now(), MIN = 3000, MAX = 8000, asked = false, done = false;
+      // Цвет шапки Telegram: до загрузки SDK шлём событие напрямую в Telegram, чтобы шторка не мигала
+      try {
+        var raw = function (ev, data) {
+          try {
+            if (window.TelegramWebviewProxy && window.TelegramWebviewProxy.postEvent) window.TelegramWebviewProxy.postEvent(ev, JSON.stringify(data));
+            else if (window.external && window.external.notify) window.external.notify(JSON.stringify({ eventType: ev, eventData: data }));
+          } catch (e) {}
+        };
+        raw('web_app_set_header_color', { color: '#000000' });
+        raw('web_app_set_background_color', { color: '#000000' });
+        raw('web_app_set_bottom_bar_color', { color: '#000000' });
+      } catch (e) {}
       function paint() { try { var tg = window.Telegram && window.Telegram.WebApp; if (tg) { tg.setHeaderColor && tg.setHeaderColor('#000000'); tg.setBackgroundColor && tg.setBackgroundColor('#000000'); tg.setBottomBarColor && tg.setBottomBarColor('#000000'); return true; } } catch (e) {} return false; }
       if (!paint()) { var n = 0, iv = setInterval(function () { if (paint() || ++n > 100 || done) clearInterval(iv); }, 50); }
       function hide() {
@@ -100,7 +112,7 @@
   <script src="/js/icons-data.js?v=20261024_30"></script>
   <script src="/js/modules/ice-ui.js?v=20261101_chat3"></script>
   <script src="/js/modules/support-client.js?v=20261031_sup1"></script>
-  <script src="/js/modules/app-lock.js?v=20261101_spl1"></script>
+  <script src="/js/modules/app-lock.js?v=20261101_spl2"></script>
   <script src="/js/pvz-data.js?v=20261005"></script>
   <script src="/js/modules/dropship.js?v=20261031_lf1"></script>
   <script src="/js/modules/academy.js?v=20261031_co5"></script>
