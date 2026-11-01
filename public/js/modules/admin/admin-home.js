@@ -40,7 +40,6 @@
     { id: 'team', icon: 'crown', title: 'Сотрудники', text: 'Кто работает и что может', go: { tab: 'admin_team' } },
     { id: 'settings', icon: 'sliders', title: 'Настройки', text: 'Оплата, реквизиты, ставки, рефералы', go: { tab: 'admin_settings' } },
     { id: 'system', icon: 'shield', title: 'Система', text: 'Службы, очереди, журнал действий', go: { tab: 'admin_system' } },
-    { id: 'all', icon: 'grid', title: 'Все инструменты', text: 'Старый вид, пока всё не перенесено', go: { legacy: null } },
   ];
 
   const PERIODS = [['today', 'Сегодня'], ['d7', '7 дней'], ['d30', '30 дней']];
@@ -63,11 +62,6 @@
     if (target.money) { AD.open('admin_money', { view: target.money }); return; }
     if (target.desk) { AD.openDesk(); return; }
     if (target.bonus) { AD.open('admin_store', { section: 'bonus' }); return; }
-    if ('legacy' in target) {
-      window._adminLegacyAnchor = target.legacy;
-      if (typeof window.invalidateAdminCache === 'function') window.invalidateAdminCache();
-      AD.open('admin_legacy');
-    }
   }
 
   // ── Отпуск байера из строки «Состояние сервиса» ──
@@ -265,22 +259,7 @@
     }, 30000);
   }
 
-  // «Все инструменты» (старая админка): после отрисовки прокрутить к блоку, с которого пришли
-  function attachAdminLegacyHandlers() {
-    if (typeof attachAdminHandlers === 'function') attachAdminHandlers();
-    const anchor = window._adminLegacyAnchor;
-    window._adminLegacyAnchor = null;
-    if (!anchor) return;
-    setTimeout(() => {
-      const el = document.getElementById(anchor);
-      const card = el && (el.closest('.glass-card') || el);
-      // отступ под плавающую шапку приложения
-      if (card) window.scrollTo({ top: card.getBoundingClientRect().top + window.scrollY - 92, behavior: 'smooth' });
-    }, 120);
-  }
-
   window.renderAdminHome = renderAdminHome;
   window.attachAdminHomeHandlers = attachAdminHomeHandlers;
-  window.attachAdminLegacyHandlers = attachAdminLegacyHandlers;
   window.adminHomeRoleText = ROLE_TEXT;
 })();

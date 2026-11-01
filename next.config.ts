@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: "/:file(pricing-engine\\.js|onboarding\\.js|operator-financials\\.js)",
+        source: "/:file(pricing-engine\\.js|onboarding\\.js)",
         headers: [
           {
             key: "Cache-Control",

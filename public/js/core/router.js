@@ -6,7 +6,7 @@
     // [EXTRACTED MODULE] Reports & Reviews is loaded from /js/modules/reports-reviews.js
 
 
-    // [EXTRACTED MODULE] Admin Panel Core is loaded from /js/modules/admin.js
+    // Админка — js/modules/admin/*; общие клиентские функции — js/modules/client-shared.js
     async function renderAdminScreen(force = true) {
       if (force) {
         window.invalidateAdminCache();
@@ -144,15 +144,11 @@
           attachAdmin2FAHandlers();
           window.scrollTo(0, 0);
         } else {
-          // Пульт (js/modules/admin/admin-home.js); старая админка — вкладка admin_legacy
+          // Пульт (js/modules/admin/admin-home.js)
           contentDiv.innerHTML = await renderAdminHome();
           attachAdminHomeHandlers();
           window.scrollTo(0, 0);
         }
-      } else if (currentTab === 'admin_legacy' && isOwner) {
-        if (!adminAuthenticated) { switchTab('admin'); return; }
-        contentDiv.innerHTML = await renderAdmin();
-        attachAdminLegacyHandlers();
       } else if (isOwner && window.AD && AD.has(currentTab)) {
         // Новые разделы админки регистрируются в каркасе (admin/admin-kit.js, AD.screen), отдельной ветки на каждый не нужно
         if (!adminAuthenticated) { switchTab('admin'); return; }
@@ -184,25 +180,6 @@
         attachFinancesHandlers();
       } else if (currentTab === 'resale') {
         contentDiv.innerHTML = shadowBannerHtml + await renderResale();
-      } else if (currentTab === 'admin_resale' && isOwner) {
-        if (!adminAuthenticated) { switchTab('admin'); return; }
-        contentDiv.innerHTML = await renderAdminResale();
-      } else if (currentTab === 'admin_reviews_config' && isOwner) {
-        if (!adminAuthenticated) { switchTab('admin'); return; }
-        contentDiv.innerHTML = await renderAdminReviewsConfig();
-        attachAdminReviewsConfigHandlers();
-      } else if (currentTab === 'admin_analytics' && isOwner) {
-        if (!adminAuthenticated) { switchTab('admin'); return; }
-        contentDiv.innerHTML = await renderAdminAnalytics();
-        if (typeof attachAdminAnalyticsHandlers === 'function') attachAdminAnalyticsHandlers();
-      } else if (currentTab === 'admin_crm' && isOwner) {
-        if (!adminAuthenticated) { switchTab('admin'); return; }
-        contentDiv.innerHTML = await renderAdminCRM();
-        if (typeof attachAdminCRMHandlers === 'function') attachAdminCRMHandlers();
-      } else if (currentTab === 'admin_suppliers' && isOwner) {
-        if (!adminAuthenticated) { switchTab('admin'); return; }
-        contentDiv.innerHTML = await renderAdminSuppliers();
-        attachAdminSuppliersHandlers();
       } else if (currentTab === 'ugc') {
         contentDiv.innerHTML = shadowBannerHtml + await renderUGC();
         attachUGCHandlers();
@@ -219,18 +196,6 @@
           contentDiv.innerHTML = shadowBannerHtml + await renderReferralPage();
           if (typeof attachReferralPageHandlers === 'function') attachReferralPageHandlers();
         }
-      } else if (currentTab === 'admin_marketing' && isOwner) {
-        if (!adminAuthenticated) { switchTab('admin'); return; }
-        contentDiv.innerHTML = await renderAdminMarketing();
-        attachAdminMarketingHandlers();
-      } else if (currentTab === 'admin_texts' && isOwner) {
-        if (!adminAuthenticated) { switchTab('admin'); return; }
-        contentDiv.innerHTML = await renderAdminTexts();
-        attachAdminTextsHandlers();
-      } else if (currentTab === 'admin_faq' && isOwner) {
-        if (!adminAuthenticated) { switchTab('admin'); return; }
-        contentDiv.innerHTML = await renderAdminFAQ();
-        attachAdminFAQHandlers();
       } else if (currentTab === 'search') {
         if (typeof renderSpotlightPage === 'function') {
           contentDiv.innerHTML = shadowBannerHtml + await renderSpotlightPage();
@@ -661,43 +626,10 @@ window.togglePackageConsolidation = (country) => {
   recalculateOrderTotals();
 };
 
-  // ================== ПАГИНАЦИЯ ЗАКАЗОВ ==================
-  const prevBtn = document.getElementById('adminOrdersPrev');
-  const nextBtn = document.getElementById('adminOrdersNext');
-  if (prevBtn) prevBtn.onclick = () => { if (adminOrdersPage > 1) { adminOrdersPage--; renderCurrentScreen(); } };
-  if (nextBtn) nextBtn.onclick = () => { if (adminOrdersPage < adminOrdersTotalPages) { adminOrdersPage++; renderCurrentScreen(); } };
-    // ================== СМЕНА СТАТУСА ЗАКАЗА (ДЕЛЕГИРОВАНИЕ) ==================
-    if (!window._statusChangeHandler) {
-    window._statusChangeHandler = async (e) => {
-      if (e.target.classList.contains('changeOrderStatus')) {
-        const select = e.target;
-        const newStatus = select.value;
-        if (!newStatus) return;
-        const orderId = select.dataset.orderId;
-        const userId = select.dataset.userId;
-        const previousStatus = select.dataset.previousStatus;
-        if (!confirm(`Изменить статус заказа на "${getStatusText(newStatus)}"?`)) {
-          select.value = previousStatus || '';
-          return;
-        }
-        try {
-          const { error } = await supabaseClient.from('orders').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', orderId);
-          if (error) throw error;
-          logAdminAction('order_status', { orderId, newStatus, previousStatus });
-          renderCurrentScreen();
-        } catch (err) {
-          alert('Ошибка: ' + err.message);
-          select.value = previousStatus || '';
-        }
-      }
-    };
-    document.addEventListener('change', window._statusChangeHandler);
-  }
     // [EXTRACTED MODULE] Profile Modals & Settings is loaded from /js/modules/profile-modals.js
     // [EXTRACTED MODULE] Promotions & History is loaded from /js/modules/promos-history.js
     // [EXTRACTED MODULE] AI Legit Check is loaded from /js/modules/legitcheck.js
     // [EXTRACTED MODULE] ICE Resale & Group Delivery is loaded from /js/modules/resale.js
-    // [EXTRACTED MODULE] Admin Analytics & CRM is loaded from /js/modules/admin-analytics.js
         // ==================== ЗАПУСК ====================
         init();
 

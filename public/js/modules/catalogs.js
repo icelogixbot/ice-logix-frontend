@@ -451,28 +451,6 @@ function attachMarketplacesHandlers() {
     };
   }
 
-  if (!window._marketplaceHandlers) {
-    window._marketplaceHandlers = true;
-    document.addEventListener('click', async (e) => {
-      const editBtn = e.target.closest('.editMarketplaceBtn');
-      if (editBtn) {
-        const id = editBtn.dataset.id;
-        const { data } = await supabaseClient.from('marketplaces').select('*').eq('id', id).single();
-        if (data) openMarketplaceForm(data);
-        return;
-      }
-      
-      const deleteBtn = e.target.closest('.deleteMarketplaceBtn');
-      if (deleteBtn) {
-        const id = deleteBtn.dataset.id;
-        if (!confirm('Удалить площадку?')) return;
-        await supabaseClient.from('marketplaces').delete().eq('id', id);
-        alert('Удалено');
-        renderCurrentScreen();
-        return;
-      }
-    });
-  }
   
   (async () => {
     await renderFilteredGrid();

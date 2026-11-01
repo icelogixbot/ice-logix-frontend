@@ -3411,7 +3411,7 @@ let adminOrdersTotalPages = 1;
       const _ck = (tabName || '') + ':' + (subScreen || '');
       // Оформление всегда строим заново: кнопка оплаты и шторки живут в body, в сохранённом HTML их нет, и сумма зависит от tempOrder
       // Все вкладки админки (admin, admin_*) тоже строятся заново: в сохранённой копии нет обработчиков и плавающих кнопок
-      const dynamicTabs = ['finances', 'search', 'notifications', 'settings', 'topup', 'wallet', 'cart', 'product', 'neworder', 'admin', 'admin_legacy', 'admin_team', 'admin_orders', 'admin_order',
+      const dynamicTabs = ['finances', 'search', 'notifications', 'settings', 'topup', 'wallet', 'cart', 'product', 'neworder', 'admin', 'admin_team', 'admin_orders', 'admin_order',
         'admin_money', 'admin_clients', 'admin_client', 'admin_kyc', 'admin_kyc_item', 'admin_inbox', 'admin_inbox_item', 'admin_store', 'admin_content', 'admin_settings', 'admin_system'];
       const _isAdminTab = String(tabName || '').startsWith('admin');
       // «Мои заказы» тоже всегда свежие: статусы и оплаты меняются на сервере
