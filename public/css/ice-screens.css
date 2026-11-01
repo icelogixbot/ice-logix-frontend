@@ -1471,7 +1471,7 @@ html body .sp-composer input { flex: 1; min-width: 0; height: 42px; padding: 0 !
 .sp-send:disabled { background: var(--rd-s3); color: var(--rd-tx3); cursor: default; }
 
 /* ═══ Карточка товара на весь экран (sku-selector.js), как карточка в Pinduoduo ═══ */
-.rd-sheet-wrap.sk-full .rd-sheet { top: 0; max-height: none; height: 100%; border: 0; border-radius: 0; background: var(--rd-bg); padding: calc(84px + env(safe-area-inset-top, 0px)) 16px calc(176px + env(safe-area-inset-bottom, 0px)); overflow-y: auto; overscroll-behavior: contain; }
+.rd-sheet-wrap.sk-full .rd-sheet { top: 0; max-height: none; height: 100%; border: 0; border-radius: 0; background: var(--rd-bg); padding: calc(90px + env(safe-area-inset-top, 0px)) 16px calc(176px + env(safe-area-inset-bottom, 0px)); overflow-y: auto; overscroll-behavior: contain; }
 .sk-full .rd-sheet-handle, .sk-full .rd-sheet-backdrop { display: none; }
 .sk-full .sk { gap: 0; }
 .sk-full .sk-hero { position: relative; background: transparent; }
@@ -1480,8 +1480,8 @@ html body .sp-composer input { flex: 1; min-width: 0; height: 42px; padding: 0 !
 .sk-full .sk-slide:only-child { flex-basis: 100%; aspect-ratio: 1 / 1; }
 .sk-full .sk-slide img { object-fit: contain; }
 .sk-full .sk-slide-video img { background: rgb(0, 0, 0); }
-/* «Назад» как .rd-back в других разделах: 42x42, радиус 14, под шапкой на отступе 84px (как .main-content) */
-.sk-full .sk-close { position: absolute; z-index: 3; left: 28px; top: calc(96px + env(safe-area-inset-top, 0px)); width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center; padding: 0; background: rgba(0, 0, 0, 0.55); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); cursor: pointer; }
+/* «Назад» как .rd-back в других разделах: 42x42, радиус 14, под шапкой на отступе 90px (как .main-content) */
+.sk-full .sk-close { position: absolute; z-index: 3; left: 28px; top: calc(102px + env(safe-area-inset-top, 0px)); width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center; padding: 0; background: rgba(0, 0, 0, 0.55); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); cursor: pointer; }
 .sk-full .sk-main { padding: 14px 0 8px; }
 .sk-pos { position: absolute; right: 12px; bottom: 12px; padding: 3px 10px; border-radius: 999px; background: rgba(0, 0, 0, 0.6); color: rgb(255, 255, 255); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; pointer-events: none; }
 .sk-thumbs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 12px 0 0; background: transparent; }
@@ -1579,11 +1579,11 @@ html body #wbStickyDock {
 }
 
 /* Верхнее меню — зеркало нижнего: плоская чёрная панель до краёв, скруглены нижние углы.
-   Высота 68 = 10 сверху (прежний отступ) + 58 рабочих, так что содержимое шапки и отступы экранов не сдвигаются. */
+   Высота 80 = 16 сверху + 58 рабочих + 6 снизу (как нижнее меню); отступ экранов 90. */
 html body .app-header {
   top: 0 !important; left: 0 !important; right: 0 !important;
-  height: 68px !important;
-  padding: 10px 10px 0 9px !important;
+  height: 80px !important;
+  padding: 16px 10px 0 9px !important;
   background: #000 !important;
   border: 0 !important;
   border-bottom: 1px solid var(--rd-line) !important;
