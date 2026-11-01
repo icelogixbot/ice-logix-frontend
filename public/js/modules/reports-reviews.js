@@ -161,6 +161,12 @@
           }
         }
 
+        // Ссылка из настроек попадает в разметку: пропускаем только обычный http(s)-адрес без кавычек и скобок
+        function reviewLink(u, fallback) {
+          const s = String(u || '').trim();
+          return /^https?:\/\/[^\s"'<>\\`]+$/i.test(s) ? s : fallback;
+        }
+
         async function loadReviewsConfig() {
           if (window.currentReviewsConfig) return window.currentReviewsConfig;
           try {
@@ -311,23 +317,23 @@
 
                 <!-- Внешние гео-ресурсы и соцсети с реальными логотипами -->
                 <div class="grid grid-cols-5 gap-2 border-t border-white/10 pt-3">
-                  <button type="button" onclick="openExternalLink('${config.yandex_maps_link || 'https://yandex.by/maps/'}')" class="btn-secondary py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1.5 border border-white/5 hover:border-white/20 active:scale-95 transition" title="Яндекс Карты">
+                  <button type="button" data-url="${reviewLink(config.yandex_maps_link, 'https://yandex.by/maps/')}" onclick="openExternalLink(this.dataset.url)" class="btn-secondary py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1.5 border border-white/5 hover:border-white/20 active:scale-95 transition" title="Яндекс Карты">
                     <img src="${getReviewPlatformLogo('yandex-maps')}" alt="Яндекс Карты" width="32" height="32" class="w-8 h-8 rounded-lg shadow-sm object-contain flex-shrink-0" loading="eager" decoding="sync" fetchpriority="high">
                     <span class="text-[9.5px] font-bold text-white/80 leading-none">Яндекс</span>
                   </button>
-                  <button type="button" onclick="openExternalLink('${config.google_maps_link || 'https://maps.google.com/'}')" class="btn-secondary py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1.5 border border-white/5 hover:border-white/20 active:scale-95 transition" title="Google Maps">
+                  <button type="button" data-url="${reviewLink(config.google_maps_link, 'https://maps.google.com/')}" onclick="openExternalLink(this.dataset.url)" class="btn-secondary py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1.5 border border-white/5 hover:border-white/20 active:scale-95 transition" title="Google Maps">
                     <img src="${getReviewPlatformLogo('google-maps')}" alt="Google Maps" width="32" height="32" class="w-8 h-8 rounded-lg shadow-sm object-contain flex-shrink-0" loading="eager" decoding="sync" fetchpriority="high">
                     <span class="text-[9.5px] font-bold text-white/80 leading-none">Google</span>
                   </button>
-                  <button type="button" onclick="openExternalLink('${config.gis_2_link || 'https://2gis.by/'}')" class="btn-secondary py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1.5 border border-white/5 hover:border-white/20 active:scale-95 transition" title="2ГИС">
+                  <button type="button" data-url="${reviewLink(config.gis_2_link, 'https://2gis.by/')}" onclick="openExternalLink(this.dataset.url)" class="btn-secondary py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1.5 border border-white/5 hover:border-white/20 active:scale-95 transition" title="2ГИС">
                     <img src="${getReviewPlatformLogo('2gis')}" alt="2ГИС" width="32" height="32" class="w-8 h-8 rounded-lg shadow-sm object-contain flex-shrink-0" loading="eager" decoding="sync" fetchpriority="high">
                     <span class="text-[9.5px] font-bold text-white/80 leading-none">2ГИС</span>
                   </button>
-                  <button type="button" onclick="openExternalLink('${config.telegram_group_link || 'https://t.me/'}')" class="btn-secondary py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1.5 border border-white/5 hover:border-white/20 active:scale-95 transition" title="Telegram Отзывы">
+                  <button type="button" data-url="${reviewLink(config.telegram_group_link, 'https://t.me/')}" onclick="openExternalLink(this.dataset.url)" class="btn-secondary py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1.5 border border-white/5 hover:border-white/20 active:scale-95 transition" title="Telegram Отзывы">
                     <img src="${getReviewPlatformLogo('telegram')}" alt="Telegram" width="32" height="32" class="w-8 h-8 rounded-lg shadow-sm object-contain flex-shrink-0" loading="eager" decoding="sync" fetchpriority="high">
                     <span class="text-[9.5px] font-bold text-white/80 leading-none">Telegram</span>
                   </button>
-                  <button type="button" onclick="openExternalLink('${config.social_media_links?.vk || 'https://vk.com/'}')" class="btn-secondary py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1.5 border border-white/5 hover:border-white/20 active:scale-95 transition" title="ВКонтакте">
+                  <button type="button" data-url="${reviewLink(config.social_media_links?.vk, 'https://vk.com/')}" onclick="openExternalLink(this.dataset.url)" class="btn-secondary py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1.5 border border-white/5 hover:border-white/20 active:scale-95 transition" title="ВКонтакте">
                     <img src="${getReviewPlatformLogo('vk')}" alt="VK" width="32" height="32" class="w-8 h-8 rounded-lg shadow-sm object-contain flex-shrink-0" loading="eager" decoding="sync" fetchpriority="high">
                     <span class="text-[9.5px] font-bold text-white/80 leading-none">VK</span>
                   </button>

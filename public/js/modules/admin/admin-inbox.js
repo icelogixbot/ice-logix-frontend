@@ -432,7 +432,7 @@
       h += topCard(k, d, `Оценка ${Number(d.rating) || 0} из 5${d.category ? ' · ' + d.category : ''}`, textBlock(d.text || 'Клиент не оставил текста'));
       if (media.length) h += section('Фото и видео') + mediaGrid(media);
       h += `<div class="rd-card ad-pad">${kvRow('Бонус за отзыв', Number(d.media_count) ? (d.bonus_given ? 'уже выдан' : 'будет выдан при одобрении') : 'не положен')}</div>`;
-      h += '<p class="ad-hint">Бонус всегда 5 и только за отзыв с фото или видео. Без них клиент ничего не получает.</p>';
+      h += '<p class="ad-hint">Бонус — сумма из настроек денег, и только за отзыв с фото или видео. Без них клиент ничего не получает.</p>';
       if (d.status === 'rejected' && d.moderation_reason) h += noteBlock('bad', 'Причина отказа', d.moderation_reason);
       h += linksHtml(d);
       if (d.status === 'pending') h += actions(btn('adInbApprove', 'Опубликовать') + btn('adInbReject', 'Отклонить', 'rd-btn-danger'));
