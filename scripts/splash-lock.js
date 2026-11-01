@@ -5,6 +5,7 @@
 //  - block:   блок от «#iceSplash{» до первого «</script>» в public/app.html (стили, тайминги, SVG, скрипт показа/скрытия заставки и перехода);
 //  - png:     файл public/assets/splash-logo-hd.png;
 //  - lockjs:  public/js/modules/app-lock.js целиком (экран блокировки, PIN, Face ID);
+//  - trigger: строки с dismissSplashScreen и _appReady = true в app-core.js и browser-gate.js (когда заставка уходит);
 //  - lockcss: строки public/css/ice-screens.css с .lk-*, lk-open, lk-up, sp-out, iceSplash.
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const root = path.join(__dirname, '..');
@@ -28,6 +29,7 @@ const names = {
   block: 'код/тайминги заставки в app.html',
   png: 'картинка splash-logo-hd.png',
   lockjs: 'js/modules/app-lock.js (экран блокировки, Face ID)',
+  trigger: 'момент ухода заставки (dismissSplashScreen / _appReady в app-core.js, browser-gate.js)',
   lockcss: 'стили экрана блокировки/заставки в ice-screens.css',
 };
 const cur = current();
