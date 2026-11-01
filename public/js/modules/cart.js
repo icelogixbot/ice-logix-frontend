@@ -323,8 +323,6 @@
           <div class="ct-sum-line"></div>
           <div class="ct-sum-row ct-sum-total"><span>Итого</span><span id="rdCartSumGrand">${fmt(initialTotal)}${sign()}</span></div>
         </div>
-
-        <div class="ct-hint">${U.icon('info', 18)}<span>Оплата в два этапа: основная часть сейчас, остаток за доставку после взвешивания на складе.</span></div>
       </div>
     `;
   }
