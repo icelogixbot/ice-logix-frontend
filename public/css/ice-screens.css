@@ -1360,6 +1360,11 @@ html body .no-form div[class*="border-white/30"] > input { min-height: 40px !imp
 .ptr.ptr-spin .ptr-spinner { animation: ptr-spin .9s steps(12) infinite; }
 .ptr.ptr-spin .ptr-spoke { opacity: calc(0.2 + var(--i) * 0.07); }
 @keyframes ptr-spin { to { transform: rotate(360deg); } }
-/* пока экран обновляется, старое содержимое притушено */
-#content.ptr-loading > * { opacity: .38; transition: opacity .25s ease; }
-@media (prefers-reduced-motion: reduce) { #content.ptr-loading > * { transition: none; } .ptr { transition: none; } .ptr.ptr-spin .ptr-spinner { animation: none; } }
+/* Пока экран обновляется, поверх него ложится один слой цвета фона (на высоту экрана, GPU: только opacity),
+   по готовности он растворяется — новый экран проявляется из-под него. Детей экрана не трогаем. */
+#content::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 100vh; z-index: 5; background: var(--rd-bg); opacity: 0; pointer-events: none; transition: opacity .52s cubic-bezier(.3,.6,.2,1); }
+#content.ptr-run::after { will-change: opacity; }
+#content.ptr-veil::after { opacity: .72; transition-duration: .3s; }
+/* на время обновления экран не запускает свои въезды: иначе проявление дёргается дважды */
+#content.ptr-run, #content.ptr-run .page-enter { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { #content::after { transition: none; } .ptr { transition: none; } .ptr.ptr-spin .ptr-spinner { animation: none; } }

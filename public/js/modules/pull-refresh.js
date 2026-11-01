@@ -2,7 +2,8 @@
 // Страница сама едет вниз за пальцем, в освободившемся месте проявляется спиннер.
 // Не перезагружает приложение: сбрасывает кэши данных и заново рисует экран через renderCurrentScreen().
 // Не включается на экранах с вводом (заказ, калькулятор, корзина, проверка паспорта), внутри
-// окон и шторок (всё, что position: fixed), в горизонтальных лентах и в прокручиваемых блоках.
+// окон и шторок (всё, что position: fixed) и внутри блоков, прокрученных не к самому верху.
+// Горизонтальные ленты (баннеры, карточки) жест не блокируют: вбок листает лента, вниз — обновление.
 (function () {
   if (window.__pullRefreshInit) return;
   window.__pullRefreshInit = true;
@@ -15,9 +16,8 @@
   const MIN_SHOW_MS = 800;   // спиннер не мигает на быстрых экранах
   const BACK_MS = 300;       // сколько страница возвращается на место
   const EASE = 'cubic-bezier(.22,.9,.3,1)';
-  const REVEAL_MS = 420;     // сколько проявляется один блок нового экрана
-  const REVEAL_STEP = 55;    // пауза между блоками каскада
-  const REVEAL_MAX = 8;      // дальше блоки, скорее всего, ниже экрана — их не анимируем
+  const VEIL_OUT_MS = 520;   // сколько слой растворяется, открывая новый экран
+  const HOLD_MS = 340;       // пока страница доезжает до спиннера, экран не перерисовываем (тяжёлая работа сбила бы анимацию)
   const BLOCKED_TABS = ['neworder', 'calculator', 'cart', 'legitcheck', 'kyc', 'checkout'];
 
   let el = null;
@@ -61,9 +61,9 @@
       if (n.nodeType !== 1) continue;
       const cs = getComputedStyle(n);
       if (cs.position === 'fixed') return false;                       // шапка, меню, окна, шторки
-      const oy = cs.overflowY, ox = cs.overflowX;
-      if ((oy === 'auto' || oy === 'scroll') && n.scrollHeight > n.clientHeight + 2) return false;
-      if ((ox === 'auto' || ox === 'scroll') && n.scrollWidth > n.clientWidth + 2) return false;
+      const oy = cs.overflowY;
+      // вертикальный блок, уже прокрученный вниз, сам заберёт жест; горизонтальные ленты не мешают
+      if ((oy === 'auto' || oy === 'scroll') && n.scrollTop > 0) return false;
     }
     return true;
   }
@@ -128,27 +128,10 @@
     }, BACK_MS + 30);
   }
 
-  // Пока идёт обновление, содержимое экрана притушено — видно, что старое уходит
-  function dim(on) {
+  // Один общий полупрозрачный слой поверх экрана (#content::after): старое уходит под завесу, новое из-под неё проявляется
+  function veil(on) {
     const c = contentEl();
-    if (c) c.classList.toggle('ptr-loading', on);
-  }
-
-  // Новый экран проявляется каскадом: блоки по очереди поднимаются снизу и становятся чёткими
-  function reveal() {
-    const c = contentEl();
-    if (!c || !c.animate) return;
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    let i = 0;
-    for (const child of c.children) {
-      if (i >= REVEAL_MAX) break;
-      if (getComputedStyle(child).position === 'fixed') continue;
-      child.animate(
-        [{ opacity: 0, transform: 'translate3d(0, 14px, 0)' }, { opacity: 1, transform: 'translate3d(0, 0, 0)' }],
-        { duration: REVEAL_MS, delay: i * REVEAL_STEP, easing: EASE, fill: 'backwards' }
-      );
-      i++;
-    }
+    if (c) c.classList.toggle('ptr-veil', on);
   }
 
   // Сбросить всё, что приложение держит в памяти, и заново нарисовать текущий экран
@@ -183,12 +166,17 @@
     paint(HOLD, 1, false);
     haptic('medium');
     const t0 = Date.now();
-    dim(true);
+    if (c) c.classList.add('ptr-run');                    // на время обновления гасим собственные «въезды» экрана
+    veil(true);
+    await new Promise((r) => setTimeout(r, HOLD_MS));     // страница доехала, слой лёг — теперь можно грузить
     try { await softRefresh(); } catch (e) { console.warn('[pull-refresh]', e); }
-    dim(false);
-    reveal();
     const wait = Math.max(0, MIN_SHOW_MS - (Date.now() - t0));
-    setTimeout(() => { release(); haptic('success'); }, wait);
+    setTimeout(() => {
+      veil(false);                                        // слой растворяется, пока страница возвращается на место
+      release();
+      haptic('success');
+      setTimeout(() => { const cc = contentEl(); if (cc) cc.classList.remove('ptr-run'); }, VEIL_OUT_MS + 40);
+    }, wait);
   }
 
   document.addEventListener('touchstart', (e) => {
