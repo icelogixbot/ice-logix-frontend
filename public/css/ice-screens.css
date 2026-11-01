@@ -1591,3 +1591,14 @@ html body .app-header {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
+
+/* Верхнее меню — яркий синий, в один цвет с системной шапкой Telegram (HEADER_BLUE в app-core.js) */
+html body .app-header { background: #2F7BFF !important; border-bottom: 0 !important; }
+html body .app-header .icon-btn,
+html body .app-header .icon-btn svg,
+html body .app-header #loginBtn,
+html body .app-header .user-balance,
+html body .app-header .balance-text { color: #fff !important; }
+html body .app-header .icon-btn { background: transparent !important; }
+html body .app-header .balance-add { background: #fff !important; color: #2F7BFF !important; }
+html body .app-header .byn-sign { color: #fff !important; }

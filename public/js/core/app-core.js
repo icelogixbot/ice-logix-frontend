@@ -7,13 +7,15 @@
 
     // Системная шапка и фон Telegram (и theme-color браузера) в цвет фона текущей темы.
     // Цвет берём из --rd-bg: чёрный в тёмной теме, светлый в светлой.
+    // Яркий синий шапки: верхнее меню приложения и системная шапка Telegram одного цвета (см. .app-header в ice-screens.css).
+    const HEADER_BLUE = '#2F7BFF';
     function syncThemeChrome() {
       const color = getComputedStyle(document.documentElement).getPropertyValue('--rd-bg').trim() || '#000000';
       const meta = document.querySelector('meta[name="theme-color"]');
       if (meta) meta.setAttribute('content', color);
       const tg = window.Telegram?.WebApp;
       if (!tg) return;
-      try { tg.setHeaderColor?.(color); } catch {}
+      try { tg.setHeaderColor?.(HEADER_BLUE); } catch {}
       try { tg.setBackgroundColor?.(color); } catch {}
       try { tg.setBottomBarColor?.(color); } catch {}
     }
