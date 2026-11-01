@@ -168,7 +168,7 @@
           document.body.classList.remove('lk-open');
           if (typeof window.syncThemeChrome === 'function') window.syncThemeChrome();
         }
-        setTimeout(() => el.remove(), 160);
+        setTimeout(() => el.remove(), 280);
       },
     };
 
