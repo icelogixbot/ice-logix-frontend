@@ -9,6 +9,39 @@
   <meta http-equiv="Expires" content="0">
   <title>ICE LOGIX</title>
   <meta name="theme-color" content="#000000">
+  <style>
+    html,body{background:#000}
+    #iceSplash{position:fixed;inset:0;z-index:2147483200;background:#000;display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity .7s cubic-bezier(.4,0,.2,1);pointer-events:auto}
+    #iceSplash img{width:min(78vw,380px);height:auto;aspect-ratio:1/1;object-fit:contain;opacity:0;transform:scale(.94);animation:iceSplashIn .9s cubic-bezier(.16,1,.3,1) .1s forwards;transition:transform .7s cubic-bezier(.4,0,.2,1)}
+    #iceSplash.out{opacity:0;pointer-events:none}
+    #iceSplash.out img{transform:scale(1.06)}
+    body.is-browser-gate #iceSplash{display:none!important}
+    @keyframes iceSplashIn{to{opacity:1;transform:scale(1)}}
+    @media (prefers-reduced-motion:reduce){#iceSplash,#iceSplash img{transition:none;animation:none;opacity:1;transform:none}#iceSplash.out{opacity:0}}
+  </style>
+  <div id="iceSplash" aria-hidden="true"><img src="/assets/splash-logo-512.png?v=20261101" alt="" width="512" height="512" decoding="async" fetchpriority="high"></div>
+  <script>
+    (function () {
+      var T0 = Date.now(), MIN = 3000, MAX = 8000, asked = false, done = false;
+      function paint() { try { var tg = window.Telegram && window.Telegram.WebApp; if (tg) { tg.setHeaderColor && tg.setHeaderColor('#000000'); tg.setBackgroundColor && tg.setBackgroundColor('#000000'); tg.setBottomBarColor && tg.setBottomBarColor('#000000'); return true; } } catch (e) {} return false; }
+      if (!paint()) { var n = 0, iv = setInterval(function () { if (paint() || ++n > 100 || done) clearInterval(iv); }, 50); }
+      function hide() {
+        if (done) return; done = true;
+        var el = document.getElementById('iceSplash'); if (!el) return;
+        el.classList.add('out');
+        try { window.syncThemeChrome && window.syncThemeChrome(); } catch (e) {}
+        setTimeout(function () { try { el.remove(); } catch (e) {} try { window.syncThemeChrome && window.syncThemeChrome(); } catch (e) {} }, 750);
+      }
+      function tick() {
+        if (done) return;
+        var age = Date.now() - T0;
+        if (age >= MAX || (age >= MIN && (window._appReady || asked))) hide(); else setTimeout(tick, 100);
+      }
+      // force: сразу (браузер вне Telegram); обычный вызов: уйти не раньше 3 секунд
+      window.dismissSplashScreen = function (force) { asked = true; if (force === true) hide(); };
+      setTimeout(tick, MIN);
+    })();
+  </script>
   <meta name="description" content="ICE LOGIX — сервис выкупа и экспресс-доставки оригинальных товаров из Китая (POIZON, Taobao, 1688, Weidian). Доставка в Беларусь и СНГ. Отслеживание заказов и расчет стоимости онлайн.">
   <!-- Favicon & Touch Icons -->
   <link rel="icon" href="/favicon.ico?v=20261014" sizes="any">
@@ -107,37 +140,6 @@
   <script src="/js/modules/kyc.js?v=20261030_06"></script>
 <body>
   <!-- Заставка на 3 секунды: только логотип на чёрном. Уходит плавно к коду-паролю или главному экрану -->
-  <style>
-    #iceSplash{position:fixed;inset:0;z-index:2147483200;background:#000;display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity .7s cubic-bezier(.4,0,.2,1);pointer-events:auto}
-    #iceSplash img{width:min(78vw,380px);height:auto;aspect-ratio:1/1;object-fit:contain;opacity:0;transform:scale(.94);animation:iceSplashIn .9s cubic-bezier(.16,1,.3,1) .1s forwards;transition:transform .7s cubic-bezier(.4,0,.2,1)}
-    #iceSplash.out{opacity:0;pointer-events:none}
-    #iceSplash.out img{transform:scale(1.06)}
-    body.is-browser-gate #iceSplash{display:none!important}
-    @keyframes iceSplashIn{to{opacity:1;transform:scale(1)}}
-    @media (prefers-reduced-motion:reduce){#iceSplash,#iceSplash img{transition:none;animation:none;opacity:1;transform:none}#iceSplash.out{opacity:0}}
-  </style>
-  <div id="iceSplash" aria-hidden="true"><img src="/assets/splash-logo-512.png?v=20261101" alt="" width="512" height="512" decoding="async" fetchpriority="high"></div>
-  <script>
-    (function () {
-      var T0 = Date.now(), MIN = 3000, MAX = 8000, asked = false, done = false;
-      try { var tg = window.Telegram && window.Telegram.WebApp; if (tg) { tg.setHeaderColor && tg.setHeaderColor('#000000'); tg.setBackgroundColor && tg.setBackgroundColor('#000000'); tg.setBottomBarColor && tg.setBottomBarColor('#000000'); } } catch (e) {}
-      function hide() {
-        if (done) return; done = true;
-        var el = document.getElementById('iceSplash'); if (!el) return;
-        el.classList.add('out');
-        try { window.syncThemeChrome && window.syncThemeChrome(); } catch (e) {}
-        setTimeout(function () { try { el.remove(); } catch (e) {} try { window.syncThemeChrome && window.syncThemeChrome(); } catch (e) {} }, 750);
-      }
-      function tick() {
-        if (done) return;
-        var age = Date.now() - T0;
-        if (age >= MAX || (age >= MIN && (window._appReady || asked))) hide(); else setTimeout(tick, 100);
-      }
-      // force: сразу (браузер вне Telegram); обычный вызов: уйти не раньше 3 секунд
-      window.dismissSplashScreen = function (force) { asked = true; if (force === true) hide(); };
-      setTimeout(tick, MIN);
-    })();
-  </script>
   <!-- Network Connection Status Banner -->
   <div id="netStatusBanner" data-nosnippet style="position:fixed;top:12px;left:50%;transform:translateX(-50%) translateY(-60px);z-index:99999;padding:8px 18px;border-radius:9999px;background:rgba(239,68,68,0.95);color:#fff;font-size:12px;font-weight:700;letter-spacing:0.3px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 32px rgba(0,0,0,0.3);transition:all 0.35s cubic-bezier(0.16,1,0.3,1);pointer-events:none;opacity:0;">
     ⚡ Нет связи с сетью. Переподключение...
