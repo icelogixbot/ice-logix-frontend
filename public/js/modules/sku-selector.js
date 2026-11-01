@@ -383,12 +383,20 @@
     const chromeWatch = new MutationObserver(() => { if (!document.body.contains(root)) { document.body.classList.remove('sk-open', 'sk-picking'); document.removeEventListener('click', onChrome, true); chromeWatch.disconnect(); } });
     chromeWatch.observe(document.body, { childList: true });
     // Все фото грузим сразу, битые перезапрашиваем один раз
-    root.querySelectorAll('img').forEach((im) => {
-      im.loading = 'eager';
-      im.addEventListener('error', () => { if (im.dataset.retry) return; im.dataset.retry = '1'; const u = im.getAttribute('src'); if (u) setTimeout(() => { im.src = u + (u.includes('?') ? '&' : '?') + 'r=1'; }, 600); });
-      im.addEventListener('load', () => im.classList.add('ld'));
-      if (im.complete && im.naturalWidth) im.classList.add('ld');
-    });
+    // Слушаем на корне (capture): так же работают картинки, которые перерисовываются позже — строки вариантов, фото в шапке выбора
+    const firstPhoto = (root.querySelector('.sk-slide img') || {}).src || '';
+    root.addEventListener('error', (e) => {
+      const im = e.target; if (!im || im.tagName !== 'IMG') return;
+      const n = +(im.dataset.retry || 0);
+      const u = im.getAttribute('src') || '';
+      if (n === 0 && u) { im.dataset.retry = '1'; setTimeout(() => { im.src = u + (u.includes('?') ? '&' : '?') + 'r=1'; }, 600); }
+      else if (n === 1 && u) { im.dataset.retry = '2'; setTimeout(() => { im.src = u.replace(/[?&]r=1$/, '') + (u.includes('?') && !/[?&]r=1$/.test(u) ? '&' : '?') + 'r=2'; }, 1800); }
+      else if (n === 2 && firstPhoto && im.closest('.sk-opt, .sk-variant')) { im.dataset.retry = '3'; im.src = firstPhoto; }
+    }, true);
+    root.addEventListener('load', (e) => { if (e.target && e.target.tagName === 'IMG') e.target.classList.add('ld'); }, true);
+    const wireImgs = () => root.querySelectorAll('img').forEach((im) => { im.loading = 'eager'; if (im.complete && im.naturalWidth) im.classList.add('ld'); });
+    wireImgs();
+    new MutationObserver(wireImgs).observe(root, { childList: true, subtree: true });
     const pickEl = $('#skPick');
     const openPick = () => { document.body.classList.add('sk-picking'); pickEl.hidden = false; requestAnimationFrame(() => pickEl.classList.add('on')); haptic(); };
     const closePick = () => { document.body.classList.remove('sk-picking'); pickEl.classList.remove('on'); setTimeout(() => { pickEl.hidden = true; }, 220); };
