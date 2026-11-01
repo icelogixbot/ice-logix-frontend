@@ -15,8 +15,8 @@
     #iceSplash{position:fixed;inset:0;box-sizing:border-box;padding-bottom:11vh;z-index:2147483200;background:#000;display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity .7s cubic-bezier(.4,0,.2,1);pointer-events:auto}
     #iceSplash .sp-box{position:relative;width:min(84vw,420px);aspect-ratio:1/1;transition:transform .7s cubic-bezier(.4,0,.2,1)}
     #iceSplash .sp-box svg,#iceSplash .sp-box img{position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible}#iceSplash .sp-box svg{transform:scale(1.036);transform-origin:50% 50%}
-    #iceSplash .sp-line{fill:none;stroke:#a9d6ff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;animation:spDraw 3.6s cubic-bezier(.6,.1,.4,1) .1s forwards,spFade 1.2s ease-in-out 4.4s forwards;animation-play-state:paused}
-    #iceSplash .sp-img{opacity:0;-webkit-clip-path:inset(100% 0 0 0);clip-path:inset(100% 0 0 0);animation:spPaint 3s cubic-bezier(.4,0,.2,1) 1.6s forwards;animation-play-state:paused}
+    #iceSplash .sp-line{fill:none;stroke:#a9d6ff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;animation:spDraw 3.6s cubic-bezier(.6,.1,.4,1) .1s forwards,spFade .9s ease-in-out 4.2s forwards;animation-play-state:paused}
+    #iceSplash .sp-img{opacity:0;-webkit-clip-path:inset(100% 0 0 0);clip-path:inset(100% 0 0 0);animation:spPaint 2.5s cubic-bezier(.4,0,.2,1) 1.6s forwards;animation-play-state:paused}
     #iceSplash.go .sp-img,#iceSplash.go .sp-line{animation-play-state:running}
     #iceSplash.out{opacity:0;pointer-events:none}
     #iceSplash.out .sp-box{transform:scale(1.06)}
@@ -32,7 +32,7 @@
   <script>
     (function () {
       (function(){var e=document.getElementById("iceSplash"),i=e&&e.querySelector(".sp-img");if(!e)return;var g=function(){e.classList.add("go")};if(!i||i.complete){g()}else{i.addEventListener("load",g);i.addEventListener("error",g);setTimeout(g,700)}})();
-      var T0 = Date.now(), MIN = 6200, MAX = 9500, asked = false, done = false;
+      var T0 = Date.now(), MIN = 5600, MAX = 9500, asked = false, done = false;
       // Цвет шапки Telegram: до загрузки SDK шлём событие напрямую в Telegram, чтобы шторка не мигала
       try {
         var raw = function (ev, data) {
