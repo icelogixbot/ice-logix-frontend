@@ -4,8 +4,9 @@
 // Работает на всех экранах и тянется в том числе за шапку и нижнее меню.
 // Экраны с вводом (заказ, калькулятор, проверка паспорта) не перерисовываются, чтобы не потерять введённое:
 // обновляются только данные (настройки, профиль), экран остаётся как есть.
-// Окна и шторки (position: fixed) жест не берут, если сами не объявили обновление: UI.sheet({ onRefresh }) или
-// PullRefresh.bind(элемент, async () => …) — тогда тянется содержимое шторки и вызывается их функция.
+// Окна и шторки (position: fixed) тоже тянутся: у них едет прокручиваемый блок, освежаются настройки и профиль.
+// Шторка со своими данными объявляет обновление сама: UI.sheet({ onRefresh }) или PullRefresh.bind(элемент, async () => …).
+// Исключения (NO_PULL): просмотр фото, код-пароль, сканер — у них свои жесты вниз.
 // Блок, прокрученный не к самому верху, сам забирает жест.
 // Горизонтальные ленты (баннеры, карточки) жест не блокируют: вбок листает лента, вниз — обновление.
 (function () {
@@ -29,6 +30,7 @@
   let startY = 0, startX = 0, pull = 0;
   let tracking = false, armed = false, refreshing = false, releasing = false, ready = false;
   let headerBottom = 0, firstTop = 0;   // где кончается шапка и где начинается первый блок экрана (на старте жеста)
+  const NO_PULL = '.pv, .lk, .kyc-scanner-modal, .sd-viewer, .sd-gate, .ice-splash-screen, .image-preview-modal, .rd-toast-host';   // просмотр фото, код-пароль, сканер: тут вниз — свои жесты
   let raf = 0, backTimer = 0;
   let host = null;          // что едет вниз за пальцем: #content или тело шторки
   let sheetFn = null;       // обновление шторки (если жест начат в ней)
@@ -73,9 +75,20 @@
         if (n.matches(CHROME)) continue;                               // шапка и меню — обычный жест
         let w = n;                                                     // окно или шторка: берём жест, только если они объявили обновление
         while (w && !w._ptrRefresh) w = w.parentElement;
-        if (!w) return false;
-        sheetFn = w._ptrRefresh;
-        host = w.querySelector('.rd-sheet-body') || w;
+        if (w) {
+          sheetFn = w._ptrRefresh;
+          host = w.querySelector('.rd-sheet-body') || w;
+          return true;
+        }
+        if (n.matches(NO_PULL)) return false;
+        // шторка без своего обновления: тянется ближайший прокручиваемый блок (или она сама), данные приложения освежаются
+        sheetFn = lightRefresh;
+        host = n;
+        for (let m = target; m && m !== n; m = m.parentElement) {
+          if (m.nodeType !== 1) continue;
+          const oy = getComputedStyle(m).overflowY;
+          if (oy === 'auto' || oy === 'scroll') { host = m; break; }
+        }
         return true;
       }
       const oy = cs.overflowY;
@@ -194,6 +207,13 @@
     }
   }
 
+  // Освежить данные, не трогая то, что на экране (экраны с вводом, шторки): подтягиваем настройки и профиль
+  async function lightRefresh() {
+    try { if (window.CacheDB && typeof window.CacheDB.clearAll === 'function') window.CacheDB.clearAll(); } catch (_) {}
+    try { if (typeof loadAppSettings === 'function') await loadAppSettings(); } catch (_) {}
+    try { if (typeof loadUserData === 'function') await loadUserData(); } catch (_) {}
+  }
+
   // Сбросить всё, что приложение держит в памяти, и заново нарисовать текущий экран
   async function softRefresh() {
     if (sheetFn) { await sheetFn(); return; }
@@ -207,12 +227,7 @@
       if (f) Object.keys(f).forEach((k) => { f[k] = Array.isArray(f[k]) ? [] : null; });
     } catch (_) {}
     try { if (typeof window.invalidateAdminCache === 'function') window.invalidateAdminCache(); } catch (_) {}
-    if (light) {
-      // экран с вводом: подтягиваем свежие настройки и профиль, а введённое не трогаем
-      try { if (typeof loadAppSettings === 'function') await loadAppSettings(); } catch (_) {}
-      try { if (typeof loadUserData === 'function') await loadUserData(); } catch (_) {}
-      return;
-    }
+    if (light) { await lightRefresh(); return; }
     if (typeof renderCurrentScreen === 'function') await renderCurrentScreen();
   }
 
