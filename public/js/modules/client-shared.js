@@ -129,15 +129,61 @@ window.renderSizeGuides = async () => {
   `;
 };
 
-// ==================== ТОВАРЫ (скоро) ====================
+// ==================== ТОВАРЫ (авто-каталог, ADR-032) ====================
+let _catalogRows = [];
+
+function _catEsc(v) {
+  return String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function _catTurnkey(row) {
+  try {
+    const r = window.calculateAllInclusiveByn(Number(row.price_cny), row.category || row.title_ru || '');
+    return r && r.totalByn > 0 ? r.totalByn : null;
+  } catch (e) { return null; }
+}
+
+function _catCard(row, i) {
+  const U = window.UI;
+  const total = _catTurnkey(row);
+  return `
+    <div class="rd-card ps-item" role="button" tabindex="0" data-cat="${i}">
+      <div class="ps-item-img">${row.image_url ? `<img src="${_catEsc(row.image_url)}" alt="" loading="lazy">` : U.icon('image', 26)}</div>
+      <div class="ps-item-body">
+        <div class="ps-item-title">${_catEsc(row.title_ru || row.title_cn || 'Товар с Pinduoduo')}</div>
+        ${row.brand ? `<div class="ps-item-facts">${_catEsc(row.brand)}</div>` : ''}
+        <div class="ps-item-price">
+          ${total != null ? `<span class="rd-price">${window.formatBYN(total)}</span><span class="ps-item-sub">под ключ</span>` : ''}
+          <span class="ps-item-sub">¥${_catEsc(row.price_cny)} на площадке</span>
+        </div>
+      </div>
+    </div>`;
+}
+
 async function renderProductsCatalog() {
   const U = window.UI;
-  return `
-    <div class="rd-screen page-enter soon">
+  _catalogRows = [];
+  try {
+    const { data } = await supabaseClient.from('catalog_products')
+      .select('id,url,title_ru,title_cn,brand,category,image_url,price_cny')
+      .eq('status', 'published').order('created_at', { ascending: false }).limit(60);
+    _catalogRows = data || [];
+  } catch (e) { _catalogRows = []; }
+  const head = `
       <div class="rd-head">
         <button id="backFromProductsCatalogBtn" type="button" class="rd-back" aria-label="Назад">${U.icon('chevL', 22)}</button>
-        <div class="rd-head-txt"><h1 class="rd-head-title">Товары</h1><p class="rd-head-sub">Готовые вещи по фиксированной цене</p></div>
-      </div>
+        <div class="rd-head-txt"><h1 class="rd-head-title">Товары</h1><p class="rd-head-sub">Подборка с Pinduoduo, цена под ключ</p></div>
+      </div>`;
+  if (_catalogRows.length) {
+    return `
+    <div class="rd-screen page-enter">
+      ${head}
+      <div class="ps-list">${_catalogRows.map(_catCard).join('')}</div>
+    </div>`;
+  }
+  return `
+    <div class="rd-screen page-enter soon">
+      ${head}
       <div class="soon-hero">
         <div class="soon-art" aria-hidden="true"><span class="b1">${U.icon('bag', 30)}</span><span class="b2">${U.icon('box', 34)}</span><span class="b3">${U.icon('tag', 24)}</span></div>
         <span class="rd-soon">${U.icon('clock', 12)}Скоро</span>
@@ -163,6 +209,19 @@ function attachProductsCatalogHandlers() {
   };
   if (backBtn) backBtn.onclick = goBack;
   if (returnBtn) returnBtn.onclick = () => switchTab('catalogs', 'marketplaces');
+  const open = (el) => {
+    const row = _catalogRows[Number(el.getAttribute('data-cat'))];
+    if (!row || !row.url) return;
+    // Просим работника свежо проверить цену; расчёт откроется сразу, цена по ссылке считается заново
+    try { supabaseClient.rpc('catalog_request_recheck', { p_id: row.id }).then(() => {}, () => {}); } catch (e) { /* не критично */ }
+    window._pendingCalcUrl = row.url;
+    switchTab('calculator');
+    window.setCalcMode('link');
+  };
+  document.querySelectorAll('[data-cat]').forEach((el) => {
+    el.onclick = () => open(el);
+    el.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(el); } };
+  });
 }
 
 // ==================== РАСПАКОВКА ЗА БОНУСЫ И РЕФЕРАЛЬНАЯ СЕТЬ ====================
