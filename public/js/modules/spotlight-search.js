@@ -145,7 +145,7 @@
       id: 'faq_commission',
       title: 'Комиссия сервиса ICE LOGIX',
       keywords: ['комиссия', 'процент', 'сколько берете', 'стоимость услуг', 'наценка', 'цена', 'условия', '20%'],
-      summary: 'Фиксированная комиссия 20% за выкуп и консолидацию.',
+      summary: 'Комиссия сервиса — 20% от стоимости товара за выкуп и консолидацию.',
       details: 'Никаких скрытых платежей. В комиссию входит проверка оригинальности, фотоотчет на складе, общение с продавцом и оформление документов. Официальная работа и налоги в РБ.',
       badge: '🤝 Комиссия',
       color: 'blue'
@@ -173,7 +173,7 @@
       title: 'Как сделать заказ с Poizon / Taobao',
       keywords: ['как заказать', 'заказ', 'инструкция', 'пойзон', 'poizon', 'taobao', 'ссылка', 'новичок', 'купить'],
       summary: '1. Скопируй ссылку в Poizon → 2. Вставь в Калькулятор → 3. Оплати выкуп.',
-      details: 'После оформления заказа наш оператор в Китае выкупает позицию в течение 1–3 часов и направляет на склад для легитчека.',
+      details: 'После оплаты товара наш эмулятор выкупает позицию автоматически, почти сразу, и товар едет на склад для легитчека.',
       badge: '💡 Инструкция',
       color: 'violet'
     },
@@ -190,7 +190,7 @@
       id: 'faq_payments',
       title: 'Способы оплаты и валюта',
       keywords: ['оплата', 'карта', 'карты', 'белкарт', 'мир', 'bepaid', 'visa', 'mastercard', 'валюта', 'рубли', 'byn', 'платеж'],
-      summary: 'Принимаем карты банков РБ (Белкарт), ЕРИП, КРОК, Оплати и РФ (МИР) через bePaid без скрытых комиссий.',
+      summary: 'Принимаем карты банков РБ, ЕРИП, КРОК и Оплати через bePaid. Оплата картами Белкарт и МИР планируется — скоро.',
       details: 'Безопасная оплата через шлюз bePaid с поддержкой 3D-Secure. Данные карт шифруются по стандарту PCI-DSS.',
       badge: '💳 Оплата',
       color: 'cyan'
@@ -199,8 +199,8 @@
       id: 'faq_insurance',
       title: 'Страховка груза и гарантия безопасности',
       keywords: ['страховка', 'страхование', 'потеря', 'компенсация', 'разбили', 'украли', 'пропала', 'риски'],
-      summary: 'Все посылки застрахованы на 100% стоимости выкупа.',
-      details: 'В случае утери посылки при транспортировке или повреждения содержимого клиент получает полную компенсацию стоимости товара и доставки.',
+      summary: 'Страховка по желанию: услуга «Голубая белка» стоит 2% от стоимости товара.',
+      details: 'Подробные условия компенсации уточняйте у поддержки.',
       badge: '🛡️ Страховка',
       color: 'blue'
     },
@@ -235,8 +235,8 @@
       id: 'faq_refund',
       title: 'Условия возврата и отмена заказа',
       keywords: ['возврат', 'отмена', 'отменить', 'вернуть деньги', 'брак', 'дефект'],
-      summary: 'Бесплатный возврат продавцу при обнаружении брака на складе в Китае.',
-      details: 'Если при проверке на китайском складе обнаружен брак, не тот размер или цвет — мы возвращаем товар продавцу и делаем полный возврат средств клиенту.',
+      summary: 'По возврату и отмене заказа лучше уточнить у поддержки.',
+      details: 'Условия возврата зависят от ситуации — напишите в поддержку, там подскажут точно.',
       badge: '🔄 Возврат',
       color: 'rose'
     }
@@ -896,6 +896,84 @@
 
   const CHAT_TABS = ['calculator', 'neworder', 'finances', 'profile', 'catalogs', 'resale', 'support'];
 
+  // Личные данные (заказы, баланс) ассистент отдаёт сам, по правилам и шаблонами:
+  // читаем только под сессией самого пользователя (RLS), в doc-ai и модель ничего личного не уходит.
+  const ORDERS_INTENT_RE = /(мо[иёе]\s+(заказ|посыл)|статус\s+заказ|покажи\s+заказ|список\s+заказ|где\s+(мо[яйе]\s+)?(заказ|посылк))/i;
+  const ORDER_NUM_RE = /(?:заказ[а-я]*|посылк[а-я]*|№|#)\s*[№#]?\s*([a-zа-я0-9][a-zа-я0-9-]{2,24})/i;
+  const BALANCE_INTENT_RE = /(мой\s+баланс|сколько\s+(у\s+меня\s+)?(денег|на\s+счет|на\s+балансе)|баланс)/i;
+
+  function detectUserDataIntent(q) {
+    const s = q.toLowerCase().replace(/ё/g, 'е');
+    if (BALANCE_INTENT_RE.test(s) && !/(пополн|как\s+|вывест)/.test(s)) return { type: 'balance' };
+    const m = s.match(ORDER_NUM_RE);
+    if (m && /\d/.test(m[1])) return { type: 'order', num: m[1] };
+    if (ORDERS_INTENT_RE.test(s)) return { type: 'orders' };
+    return null;
+  }
+
+  function orderLine(o) {
+    const n = o.order_number || String(o.id || '').slice(0, 8);
+    const title = o.title || o.product_name || 'без названия';
+    return `№${n} — ${title}: ${formatOrderStatus(o.status)}`;
+  }
+
+  async function findOwnOrder(num, userCtx) {
+    const key = String(num).toLowerCase();
+    const hit = (userCtx.orders || []).find(o =>
+      [o.order_number, o.id, o.track_number, o.tracking_number].some(v => v != null && String(v).toLowerCase() === key));
+    if (hit) return hit;
+    if (!window.supabaseClient || !userCtx.userId) return null;
+    const safe = key.replace(/[^a-zа-я0-9-]/g, '');
+    if (!safe) return null;
+    const { data } = await window.supabaseClient
+      .from('orders')
+      .select('id, order_number, track_number, tracking_number, status, title, price_byn, created_at')
+      .eq('user_id', userCtx.userId)
+      .or(`order_number.eq.${safe},track_number.eq.${safe}`)
+      .limit(1);
+    return (data && data[0]) || null;
+  }
+
+  async function answerUserData(intent, userCtx) {
+    if (!userCtx.userId) return { answer: 'Чтобы показать ваши данные, войдите в приложение.' };
+    if (intent.type === 'balance') {
+      return {
+        answer: `Ваш баланс: ${window.formatBYN(userCtx.balance || 0)}.`,
+        acts: [{ label: 'Открыть финансы', tab: 'finances' }]
+      };
+    }
+    if (intent.type === 'order') {
+      const o = await findOwnOrder(intent.num, userCtx);
+      if (!o) return { answer: `Заказ «${intent.num}» среди ваших не нашёл. Проверьте номер или откройте список заказов в профиле.`, acts: [{ label: 'Мои заказы', tab: 'profile' }] };
+      return { answer: orderLine(o) + (o.price_byn ? `\nСумма: ${window.formatBYN(o.price_byn)}` : ''), openId: o.id };
+    }
+    const list = (userCtx.orders || []).slice().sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || ''))).slice(0, 5);
+    if (!list.length) return { answer: 'У вас пока нет заказов. Оформить первый можно по кнопке ниже.', acts: [{ label: 'Новый заказ', tab: 'neworder' }] };
+    return { answer: 'Ваши последние заказы:\n' + list.map(orderLine).join('\n'), acts: [{ label: 'Все заказы', tab: 'profile' }] };
+  }
+
+  function rateHtml() {
+    const I = window.UI.icon;
+    return `<div class="sp-rate"><button type="button" class="sp-rate-btn" data-v="1" aria-label="Ответ помог">${I('check', 15)}<span>Помог</span></button><button type="button" class="sp-rate-btn" data-v="-1" aria-label="Ответ не помог">${I('x', 15)}<span>Не помог</span></button></div>`;
+  }
+
+  async function sendRating(btn, question, answer, meta) {
+    const box = btn.parentElement;
+    if (!box || box.dataset.done) return;
+    box.dataset.done = '1';
+    box.innerHTML = '<span class="sp-rate-thanks">Спасибо за оценку</span>';
+    try {
+      const { data } = await window.supabaseClient.auth.getSession();
+      const token = data?.session?.access_token;
+      if (!token) return;
+      await fetch(ASSISTANT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ feedback: { question, answer: answer.slice(0, 600), rating: Number(btn.dataset.v) > 0 ? 1 : -1, mode: meta.mode, sources: meta.sources } })
+      });
+    } catch (_e) { /* оценка не обязательна */ }
+  }
+
   async function sendChat(raw) {
     const q = String(raw || '').trim().slice(0, 300);
     if (!q || chatBusy || !contentEl) return;
@@ -918,10 +996,21 @@
     let answer = '';
     let srcHtml = '';
     let actHtml = '';
+    let personal = false;
+    let rated = null;
     if (GREETING_RE.test(q)) {
       answer = 'Привет! Я ассистент ICE LOGIX. Подскажу про заказы, цены, доставку и выкуп из Китая — спрашивайте.';
     } else if (THANKS_RE.test(q)) {
       answer = 'Пожалуйста! Если появятся вопросы — пишите.';
+    } else if (detectUserDataIntent(q)) {
+      // Личное: без doc-ai и модели, только шаблон + данные пользователя
+      let own = null;
+      try { own = await answerUserData(detectUserDataIntent(q), getUserContext()); } catch (_e) { own = { answer: 'Не получилось загрузить ваши данные. Попробуйте чуть позже.' }; }
+      answer = own.answer;
+      personal = true;
+      const acts = own.acts || [];
+      if (own.openId) actHtml = `<div class="sp-acts"><button type="button" class="sp-act" data-open-order="${escHtml(own.openId)}">Открыть заказ</button></div>`;
+      else if (acts.length) actHtml = `<div class="sp-acts">${acts.map(a => `<button type="button" class="sp-act" data-tab="${escHtml(a.tab)}">${escHtml(a.label)}</button>`).join('')}</div>`;
     } else {
       try {
         const { data } = await window.supabaseClient.auth.getSession();
@@ -935,6 +1024,7 @@
         const r = await res.json();
         if (!r.ok) throw new Error(r.error || 'Ассистент не ответил');
         answer = String(r.answer || '');
+        rated = { mode: r.mode || '', sources: (r.sources || []).map(x => String(x.title || x)).slice(0, 4) };
         const src = (r.sources || []).map(x => escHtml(x.title || x)).filter(Boolean);
         const act = (r.actions || []).filter(a => a && CHAT_TABS.includes(a.tab)).slice(0, 2);
         if (act.length) actHtml = `<div class="sp-acts">${act.map(a => `<button type="button" class="sp-act" data-tab="${escHtml(a.tab)}">${escHtml(a.label || 'Открыть')}</button>`).join('')}</div>`;
@@ -943,13 +1033,18 @@
         answer = e.message || 'Ассистент сейчас недоступен. Попробуйте чуть позже.';
       }
     }
-    chatHistory.push({ role: 'user', content: q }, { role: 'assistant', content: answer.slice(0, 500) });
-    chatHistory = chatHistory.slice(-12);
+    // Личные ответы в историю не кладём: история уходит в ИИ-сервер
+    if (!personal) {
+      chatHistory.push({ role: 'user', content: q }, { role: 'assistant', content: answer.slice(0, 500) });
+      chatHistory = chatHistory.slice(-12);
+    }
     const pending = document.getElementById('spPending');
     if (pending) {
       pending.removeAttribute('id');
-      pending.querySelector('.sp-bubble').innerHTML = `<div style="white-space:pre-line">${escHtml(answer)}</div>${actHtml}${srcHtml}`;
+      pending.querySelector('.sp-bubble').innerHTML = `<div style="white-space:pre-line">${escHtml(answer)}</div>${actHtml}${srcHtml}${rated ? rateHtml() : ''}`;
+      pending.querySelectorAll('.sp-rate-btn').forEach(b => b.addEventListener('click', () => sendRating(b, q, answer, rated)));
       pending.querySelectorAll('.sp-act').forEach(b => b.addEventListener('click', () => {
+        if (b.dataset.openOrder && typeof window.spotlightOpenOrder === 'function') return window.spotlightOpenOrder(b.dataset.openOrder);
         if (b.dataset.tab === 'support' && typeof window.openSupport === 'function') return window.openSupport();
         if (typeof switchTab === 'function') switchTab(b.dataset.tab);
       }));
@@ -1014,7 +1109,7 @@
       bullets: [
         '🔬 <span class="font-bold text-white">Двойная экспертиза:</span> Каждая пара исследуется в лаборатории Poizon на оптических спектрометрах, под ультрафиолетом и экспертами вручную.',
         '🏷️ <span class="font-bold text-white">Фирменная пломба:</span> Товар запечатывается в защитную коробку с уникальной номерной пломбой и QR-сертификатом подлинности.',
-        '🤝 <span class="font-bold text-white">100% защита:</span> Если вещь не проходит экспертизу на складе в Китае, средства мгновенно возвращаются покупателю в полном объеме.'
+        '🤝 <span class="font-bold text-white">Легитчек:</span> Каждую вещь проверяем на складе в Китае. По возврату средств уточняйте у поддержки.'
       ],
       actionTitle: 'Узнать подробнее о легитчеке →',
       actionType: 'legitcheck',
@@ -1104,11 +1199,11 @@
       bullets: [
         '📏 <span class="font-bold text-white">Размеры Yeezy & Slides:</span> Yeezy маломерят минимум на 1 размер! Тапочки Slides и сабо Foam Runner обязательно берите на 1–2 размера больше своего обычного.',
         '🛡️ <span class="font-bold text-white">Строжайшая аутентификация:</span> Все редкие пары проверяются по базам данных фабричных партий и защитным чипам Poizon.',
-        '✈️ <span class="font-bold text-white">100% страховка:</span> Дорогостоящие пары страхуются на полную стоимость на всех этапах доставки.'
+        '✈️ <span class="font-bold text-white">Страховка:</span> По желанию — услуга «Голубая белка», 2% от стоимости товара.'
       ],
       actionTitle: 'Открыть калькулятор цен →',
       actionType: 'calculator',
-      sources: ['🔥 Poizon Limited Division', '🛡️ 100% Insurance Guarantee']
+      sources: ['🔥 Poizon Limited Division', '🛡️ Страховка «Голубая белка»']
     },
     {
       id: 'streetwear_trapstar_corteiz',
@@ -1164,7 +1259,7 @@
       bullets: [
         '📦 <span class="font-bold text-white">Пункты выдачи:</span> Более 500 отделений Европочты и СДЭК по всей Беларуси — забирайте рядом с домом.',
         '⏱️ <span class="font-bold text-white">Сроки:</span> доставка из Китая занимает около месяца, включая пересылку по Беларуси.',
-        '💳 <span class="font-bold text-white">Оплата:</span> Карты любых белорусских банков (Белкарт, Visa, Mastercard), ЕРИП, КРОК и Оплати без скрытых комиссий.'
+        '💳 <span class="font-bold text-white">Оплата:</span> Карты белорусских банков (Visa, Mastercard), ЕРИП, КРОК и Оплати. Белкарт — скоро.'
       ],
       actionTitle: 'Рассчитать доставку в калькуляторе →',
       actionType: 'calculator',
@@ -1179,11 +1274,11 @@
       bullets: [
         '🚚 <span class="font-bold text-white">Пункты выдачи:</span> Любое удобное отделение СДЭК в вашем городе или курьерская доставка до двери.',
         '⏱️ <span class="font-bold text-white">Сроки:</span> доставка занимает около месяца.',
-        '💳 <span class="font-bold text-white">Оплата:</span> Принимаем карты МИР через защищенный шлюз bePaid.'
+        '💳 <span class="font-bold text-white">Оплата:</span> Карты МИР и Белкарт планируются — скоро.'
       ],
       actionTitle: 'Рассчитать доставку в РФ →',
       actionType: 'calculator',
-      sources: ['🚚 Логистическая сеть СДЭК', '💳 Платежи МИР']
+      sources: ['🚚 Логистическая сеть СДЭК', '💳 Способы оплаты']
     },
     {
       id: 'process_two_steps',
@@ -1239,7 +1334,7 @@
       bullets: [
         '🛡️ <span class="font-bold text-white">Стандарт PCI-DSS Level 1:</span> Данные банковских карт никогда не сохраняются на наших серверах и токенизируются на стороне банка.',
         '🔐 <span class="font-bold text-white">Поддержка 3D-Secure:</span> Подтверждение каждой операции одноразовым СМС-кодом от вашего банка.',
-        '🇧🇾 <span class="font-bold text-white">Все банки Беларуси:</span> Беларусбанк, Приорбанк, Альфа-Банк, Сбер Банк, МТБанк и любые карты Белкарт.'
+        '🇧🇾 <span class="font-bold text-white">Все банки Беларуси:</span> Беларусбанк, Приорбанк, Альфа-Банк, Сбер Банк, МТБанк.'
       ],
       actionTitle: 'Управление картами в профиле →',
       actionType: 'finances',
@@ -1740,7 +1835,7 @@
           : `К вашему профилю пока не привязаны банковские карты. Сервис ICE LOGIX поддерживает карты всех 20 банков Беларуси.`;
         bullets = [
           `🛡️ <span class="font-bold text-white">Безопасность:</span> Данные карт не хранятся на наших серверах, а токенизируются по стандарту безопасности PCI-DSS Level 1 через шлюз bePaid.`,
-          `🇧🇾 <span class="font-bold text-white">Поддерживаемые банки:</span> Беларусбанк, Приорбанк, Альфа-Банк, МТБанк, Сбер Банк, Белинвестбанк и все остальные банки РБ (Белкарт, Visa, Mastercard, МИР).`
+          `🇧🇾 <span class="font-bold text-white">Поддерживаемые банки:</span> Беларусбанк, Приорбанк, Альфа-Банк, МТБанк, Сбер Банк, Белинвестбанк и все остальные банки РБ (Visa, Mastercard).`
         ];
         actions = [
           `<button id="aiOverviewManageCardsBtn" class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md">
@@ -1775,7 +1870,7 @@
         bullets = [
           `📍 <span class="font-bold text-white">Трек-номер:</span> ${topOrder.track_number ? `<code class="px-1.5 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[11px]">${topOrder.track_number}</code>` : '<span class="text-white/60">Формируется на складе в Китае</span>'}.`,
           `✈️ <span class="font-bold text-white">Маршрут:</span> Транзитный склад Китая → Сортировочный хаб в Минске → Пункт выдачи (${userCtx.deliveryInfo?.city || 'Беларусь / РФ'}).`,
-          `🛡️ <span class="font-bold text-white">Страховка:</span> Посылка застрахована на 100% стоимости выкупа.`
+          `🛡️ <span class="font-bold text-white">Страховка:</span> Страховка по желанию: «Голубая белка», 2% от стоимости товара.`
         ];
         actions = [
           `<button class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md" onclick="window.spotlightOpenOrder('${topOrder.id}')">

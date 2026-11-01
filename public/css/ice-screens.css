@@ -1410,6 +1410,10 @@ html body .no-form div[class*="border-white/30"] > input { min-height: 40px !imp
 .sp-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .sp-act { min-height: 40px; padding: 0 16px; border-radius: 12px; border: 0; background: var(--rd-blue); color: #fff; font: inherit; font-size: 14px; font-weight: 600; }
 .sp-act:active { opacity: .8; }
+.sp-rate { display: flex; gap: 8px; margin-top: 10px; }
+.sp-rate-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,.12); background: transparent; color: var(--rd-text-2, #9aa0a6); font: inherit; font-size: 13px; }
+.sp-rate-btn:active { opacity: .7; }
+.sp-rate-thanks { font-size: 13px; color: var(--rd-text-2, #9aa0a6); }
 .sp-bubble .sp-src { margin-top: 10px; padding-top: 0; border-top: 0; }
 .sp-cards { margin-left: 38px; }
 .sp-cards .sp-answer:first-child { margin-top: 0; }

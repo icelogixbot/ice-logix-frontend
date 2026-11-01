@@ -47,8 +47,30 @@ Deno.serve(async (req) => {
   if (!uid) return json({ ok: false, error: "Войдите в приложение" }, 401);
   if (tooOften(uid)) return json({ ok: false, error: "Слишком часто. Подождите минуту" }, 429);
 
-  let body: { query?: unknown; history?: unknown };
+  let body: { query?: unknown; history?: unknown; feedback?: any };
   try { body = await req.json(); } catch { return json({ ok: false, error: "Неверный запрос" }, 400); }
+
+  // Оценка ответа 👍/👎: уходит в doc-ai без id пользователя, там обезличивается и пишется в JSONL
+  if (body.feedback && typeof body.feedback === "object") {
+    const f = body.feedback;
+    const payload = {
+      question: String(f.question || "").slice(0, 300),
+      answer: String(f.answer || "").slice(0, 600),
+      rating: Number(f.rating) > 0 ? 1 : -1,
+      mode: String(f.mode || "").slice(0, 12),
+      sources: (Array.isArray(f.sources) ? f.sources : []).slice(0, 4).map((x: unknown) => String(x).slice(0, 80)),
+    };
+    if (!payload.question || !payload.answer) return json({ ok: false, error: "Пустая оценка" }, 400);
+    try {
+      const r = await fetch(`${DOC_AI_URL}/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Ice-Ai-Key": DOC_AI_KEY },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(10000),
+      });
+      return json({ ok: r.ok });
+    } catch (_e) { return json({ ok: false }, 504); }
+  }
 
   const query = typeof body.query === "string" ? body.query.trim().slice(0, 300) : "";
   if (!query) return json({ ok: false, error: "Пустой вопрос" }, 400);
