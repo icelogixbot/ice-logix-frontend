@@ -691,6 +691,7 @@
         const q = searchInputEl.value.trim();
         if (q) {
           saveQueryToHistory(q);
+          if (q.length >= 3) askAssistant(q);
           searchInputEl.blur();
         }
       }
@@ -907,6 +908,61 @@
       matchingOrders, 
       matchingProducts 
     });
+    mountAskAssistant(query, currentReq);
+  }
+
+  // ============================================================
+  // АССИСТЕНТ: наша ИИ через функцию assistant-chat (по кнопке или Enter)
+  // ============================================================
+  const ASSISTANT_URL = 'https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/assistant-chat';
+  let assistantBusy = false;
+
+  function escHtml(t) {
+    return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function assistantCard(inner) {
+    return `<div id="spAssistantBox" class="google-ai-overview-card sp-answer">
+      <div class="sp-answer-h"><span class="sp-answer-ico">${window.UI.icon('sparkles', 16)}</span><b>Ассистент ICE LOGIX</b></div>
+      ${inner}
+    </div>`;
+  }
+
+  function mountAskAssistant(query, reqId) {
+    if (!contentEl || query.length < 3 || reqId !== searchRequestId) return;
+    const wrap = contentEl.firstElementChild;
+    if (!wrap) return;
+    wrap.insertAdjacentHTML('afterbegin', `<div id="spAssistantBox"><button type="button" id="spAskAiBtn" class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition active:scale-95 inline-flex items-center gap-1.5">${window.UI.icon('sparkles', 14)} Спросить ассистента</button></div>`);
+    document.getElementById('spAskAiBtn')?.addEventListener('click', () => askAssistant(query));
+  }
+
+  async function askAssistant(query) {
+    const box = document.getElementById('spAssistantBox');
+    if (!box || assistantBusy) return;
+    assistantBusy = true;
+    box.outerHTML = assistantCard('<div class="text-xs text-white/60 leading-relaxed">Думаю над ответом, это займёт несколько секунд…</div>');
+    let html;
+    try {
+      const { data } = await window.supabaseClient.auth.getSession();
+      const token = data?.session?.access_token;
+      if (!token) throw new Error('Войдите в приложение');
+      const res = await fetch(ASSISTANT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ query })
+      });
+      const r = await res.json();
+      if (!r.ok) throw new Error(r.error || 'Ассистент не ответил');
+      const src = (r.sources || []).map(x => escHtml(x.title || x)).filter(Boolean);
+      html = `<div class="text-xs text-white/90 leading-relaxed" style="white-space:pre-line">${escHtml(r.answer)}</div>` +
+        (src.length ? `<div class="sp-src"><span>Откуда:</span>${src.map(s => `<span class="flex-shrink-0 text-[10px] px-2 py-0.5 rounded-md bg-white/5 text-white/60 border border-white/5 font-medium">${s}</span>`).join('')}</div>` : '');
+    } catch (e) {
+      html = `<div class="text-xs text-white/70 leading-relaxed">${escHtml(e.message || 'Ассистент сейчас недоступен. Ответы из базы знаний — ниже.')}</div>`;
+    } finally {
+      assistantBusy = false;
+    }
+    const cur = document.getElementById('spAssistantBox');
+    if (cur) cur.outerHTML = assistantCard(html);
   }
 
   // ============================================================
