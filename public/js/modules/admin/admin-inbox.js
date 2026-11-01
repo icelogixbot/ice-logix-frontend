@@ -431,7 +431,7 @@
       const media = (Array.isArray(d.media_urls) ? d.media_urls : []).filter((u) => /^https?:\/\//i.test(String(u)));
       h += topCard(k, d, `Оценка ${Number(d.rating) || 0} из 5${d.category ? ' · ' + d.category : ''}`, textBlock(d.text || 'Клиент не оставил текста'));
       if (media.length) h += section('Фото и видео') + mediaGrid(media);
-      h += `<div class="rd-card ad-pad">${kvRow('Бонус за отзыв', Number(d.media_count) ? (d.bonus_given ? 'уже выдан' : '5 бонусов') : 'не положен')}</div>`;
+      h += `<div class="rd-card ad-pad">${kvRow('Бонус за отзыв', Number(d.media_count) ? (d.bonus_given ? 'уже выдан' : 'будет выдан при одобрении') : 'не положен')}</div>`;
       h += '<p class="ad-hint">Бонус всегда 5 и только за отзыв с фото или видео. Без них клиент ничего не получает.</p>';
       if (d.status === 'rejected' && d.moderation_reason) h += noteBlock('bad', 'Причина отказа', d.moderation_reason);
       h += linksHtml(d);
@@ -680,7 +680,7 @@
   async function reviewApprove(d) {
     const hasMedia = Number(d.media_count) > 0;
     const text = hasMedia
-      ? (d.bonus_given ? 'Отзыв увидят все клиенты. Бонус за него уже выдан раньше.' : 'Отзыв увидят все клиенты. Клиент получит 5 бонусов за фото или видео.')
+      ? (d.bonus_given ? 'Отзыв увидят все клиенты. Бонус за него уже выдан раньше.' : 'Отзыв увидят все клиенты. Клиент получит бонус за фото или видео.')
       : 'Отзыв увидят все клиенты. Бонус не начисляется: он положен только за отзыв с фото или видео.';
     if (!await confirmSheet('Опубликовать отзыв?', text, 'Опубликовать')) return;
     if (await AD.call(null, 'admin_review_decision', { p_review: d.id, p_approve: true }, { ok: hasMedia && !d.bonus_given ? 'Отзыв опубликован, бонус начислен' : 'Отзыв опубликован' }) !== null) leave();

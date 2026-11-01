@@ -449,7 +449,29 @@
     return 'key_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
   }
 
-  function renderNews(host, ctx) {
+  // Рассылку запускает только владелец: сервер проверяет это сам, здесь — понятная заглушка для админа
+  async function renderNews(host, ctx) {
+    let owner = false;
+    try {
+      const { data, error } = await sb().rpc('app_is_owner');
+      owner = !error && data === true;
+    } catch (_) { /* считаем, что не владелец */ }
+    if (!ctx.alive()) return;
+    if (!owner) {
+      host.innerHTML = `
+        <div class="ad-note">
+          ${I('info', 18)}
+          <div>
+            <b>Рассылку запускает владелец</b>
+            <p>Сообщения уходят сразу всем клиентам, поэтому отправка доступна только владельцу сервиса.</p>
+          </div>
+        </div>`;
+      return;
+    }
+    renderNewsForm(host, ctx);
+  }
+
+  function renderNewsForm(host, ctx) {
     let pKey = genKey();
     let lastTitle = '';
     let lastText = '';

@@ -446,7 +446,7 @@ function attachMarketplacesHandlers() {
       const limit = document.getElementById('customsLimitEur').value;
       const percent = document.getElementById('customsDutyPercent').value;
       const { error } = await supabaseClient.from('settings').upsert({ key: 'customs_limits', value: { limit, percent } });
-      if (error) alert('Ошибка сохранения: ' + error.message);
+      if (error) alert(error.code === '42501' || /row-level security|permission/i.test(error.message || '') ? 'Таможенные лимиты может менять только владелец' : 'Ошибка сохранения: ' + error.message);
       else alert('Таможенные лимиты обновлены!');
     };
   }

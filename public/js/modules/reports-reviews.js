@@ -177,9 +177,6 @@
               google_maps_link: "https://maps.google.com/?cid=12345678",
               gis_2_link: "https://2gis.by/minsk/firm/12345678",
               telegram_group_link: "https://t.me/icelogix_reviews",
-              bonus_internal_pct: 2.0,
-              bonus_external_text_pct: 1.0,
-              bonus_external_media_pct: 3.0,
               partner_user_ids: []
             };
           }

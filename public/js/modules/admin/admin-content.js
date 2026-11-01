@@ -400,7 +400,7 @@
         const ids = raw ? raw.split(/[\s,;]+/).filter(Boolean) : [];
         if (ids.some((x) => !/^\d+$/.test(x))) bad('Telegram ID — только цифры, через запятую.');
         next.partner_user_ids = ids.map(Number);
-        const { error: e2 } = await sb().from('settings').upsert({ key: 'reviews_config', value: next }, { onConflict: 'key' });
+        const { error: e2 } = await sb().rpc('admin_save_content_settings', { p_rows: [{ key: 'reviews_config', value: next }] });
         if (e2) throw e2;
         window.currentReviewsConfig = next;
         logAct('update_reviews_config', { links: LINKS.filter(([k]) => next[k]).length, partners: ids.length });

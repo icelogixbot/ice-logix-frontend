@@ -703,7 +703,7 @@
           { key: 'drop_duration_min', value: String(dur) },
           { key: 'drop_enabled', value: checked(form, 'enabled') ? 'true' : 'false' },
         ];
-        const { error } = await sb().from('settings').upsert(rows, { onConflict: 'key' });
+        const { error } = await sb().rpc('admin_save_content_settings', { p_rows: rows });
         if (error) throw error;
         logAct('update_drop_window', { hour, minute, dur });
         U().toast('Окно дропа сохранено', 'ok');
