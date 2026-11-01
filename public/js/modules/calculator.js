@@ -215,6 +215,7 @@ window.setCalcMode = function(mode) {
     window._calcSelectedColor = null;
     window._calcQuantity = 1;
     window._calcSkuBundle = null;
+    window._calcBundleItems = null;
   }
   if (typeof renderCurrentScreen === 'function') renderCurrentScreen();
 };
@@ -947,7 +948,8 @@ window.renderSmartCalculator = async function() {
               if (statusBox) statusBox.classList.add('hidden');
               const hasOpts = bundleData.has_options || (bundleData.colors && bundleData.colors.length > 0) || (bundleData.sizes && bundleData.sizes.length > 0) || (bundleData.spec_groups && bundleData.spec_groups.length > 0) || (bundleData.visual_options && bundleData.visual_options.length > 0);
               try {
-                if (hasOpts && typeof window.openSkuSelectorModal === 'function') {
+                // Карточка товара нужна всегда, если пришёл пакет от движка (даже у товара без вариантов)
+                if ((hasOpts || bundleData.is_sku_bundle) && typeof window.openSkuSelectorModal === 'function') {
                   window.openSkuSelectorModal(bundleData, (selected) => {
                     finalizeParsedItem(bundleData, selected);
                   });
