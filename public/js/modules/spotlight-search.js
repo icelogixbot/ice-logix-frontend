@@ -14,6 +14,10 @@
   let currentPlaceholderIndex = 0;
   let debounceTimeout = null;
   let searchRequestId = 0;
+  let cardsOnly = false;
+  let chatHistory = [];
+  let chatBusy = false;
+  let chatUi = null;
 
   const MAX_HISTORY_ITEMS = 6;
 
@@ -430,21 +434,22 @@
       <div class="rd-screen page-enter sp">
         <div class="rd-head">
           <button type="button" class="rd-back" onclick="window.goBackGlobal()" aria-label="Назад">${U.icon('chevL', 22)}</button>
-          <div class="rd-head-txt"><h1 class="rd-head-title">Поиск</h1><p class="rd-head-sub">Заказы, бренды, цены и ответы на вопросы</p></div>
-        </div>
-
-        <div class="sp-field">
-          ${U.icon('search', 20)}
-          <input type="text" id="spotlightSearchInput"
-            placeholder="Например, где моя посылка"
-            enterkeyhint="search"
-            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-          <button id="spotlightClearBtn" type="button" class="sp-clear hidden" aria-label="Очистить">${U.icon('x', 16, { stroke: 2.4 })}</button>
+          <div class="rd-head-txt"><h1 class="rd-head-title">Ассистент</h1><p class="rd-head-sub">Заказы, цены, доставка и ответы на вопросы</p></div>
+          <button type="button" id="spNewChat" class="rd-link hidden">Новый чат</button>
         </div>
 
         <div id="spotlightSuggestionsBar" class="hidden sp-suggest"></div>
 
         <div id="spotlightContent" class="sp-content"></div>
+
+        <div class="sp-composer">
+          <input type="text" id="spotlightSearchInput"
+            placeholder="Спросите что угодно"
+            enterkeyhint="send"
+            autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false">
+          <button id="spotlightClearBtn" type="button" class="sp-clear hidden" aria-label="Очистить">${U.icon('x', 16, { stroke: 2.4 })}</button>
+          <button id="spSendBtn" type="button" class="sp-send" aria-label="Отправить" disabled>${U.icon('arrowR', 20, { stroke: 2.4 })}</button>
+        </div>
       </div>
     `;
   }
@@ -665,37 +670,28 @@
       searchInputEl.value = '';
       searchInputEl.focus();
       clearBtnEl.classList.add('hidden');
-      updateGoogleSuggestions('');
-      renderSpotlightHome();
+      if (chatUi) chatUi.syncSend();
     };
 
-    searchInputEl.addEventListener('input', (e) => {
-      const q = e.target.value;
-      if (q.trim().length > 0) {
-        clearBtnEl.classList.remove('hidden');
-      } else {
-        clearBtnEl.classList.add('hidden');
-      }
-
-      // Live 0ms Google Suggestion Pills
-      updateGoogleSuggestions(q);
-
-      if (debounceTimeout) clearTimeout(debounceTimeout);
-      debounceTimeout = setTimeout(() => {
-        handleSearchQuery(q);
-      }, 140);
-    });
-
+    const sendBtnEl = document.getElementById('spSendBtn');
+    const newChatEl = document.getElementById('spNewChat');
+    const syncSend = () => {
+      const has = searchInputEl.value.trim().length > 0;
+      clearBtnEl.classList.toggle('hidden', !has);
+      if (sendBtnEl) sendBtnEl.disabled = !has || chatBusy;
+    };
+    searchInputEl.addEventListener('input', syncSend);
     searchInputEl.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        const q = searchInputEl.value.trim();
-        if (q) {
-          saveQueryToHistory(q);
-          if (q.length >= 3) askAssistant(q);
-          searchInputEl.blur();
-        }
-      }
+      if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); sendChat(searchInputEl.value); }
     });
+    if (sendBtnEl) sendBtnEl.onclick = () => sendChat(searchInputEl.value);
+    chatUi = { syncSend, newChatEl };
+    if (newChatEl) newChatEl.onclick = () => {
+      chatHistory = [];
+      chatBusy = false;
+      newChatEl.classList.add('hidden');
+      renderSpotlightHome();
+    };
 
     searchInputEl.addEventListener('focus', () => {
       stopPlaceholderAnimation();
@@ -711,9 +707,7 @@
     if (window._pendingSpotlightQuery) {
       const initQ = window._pendingSpotlightQuery;
       delete window._pendingSpotlightQuery;
-      searchInputEl.value = initQ;
-      clearBtnEl.classList.remove('hidden');
-      handleSearchQuery(initQ);
+      sendChat(initQ);
     } else {
       renderSpotlightHome();
       startPlaceholderAnimation();
@@ -815,13 +809,7 @@
     contentEl.querySelectorAll('[data-search-trigger]').forEach(btn => {
       btn.onclick = () => {
         const query = btn.getAttribute('data-search-trigger');
-        if (searchInputEl) {
-          searchInputEl.value = query;
-          clearBtnEl?.classList.remove('hidden');
-          saveQueryToHistory(query);
-          handleSearchQuery(query);
-          searchInputEl.focus();
-        }
+        sendChat(query);
       };
     });
 
@@ -835,15 +823,15 @@
   // SEARCH LOGIC & DISPATCHER (AI & MULTI-ENGINE)
   // ============================================================
 
-  async function handleSearchQuery(rawQuery) {
+  async function handleSearchQuery(rawQuery, target) {
     if (!contentEl) return;
     const query = (rawQuery || '').trim();
     if (!query) {
-      renderSpotlightHome();
+      if (!target) renderSpotlightHome();
       return;
     }
 
-    const currentReq = ++searchRequestId;
+    const currentReq = target ? searchRequestId : ++searchRequestId;
     const cleanLower = query.toLowerCase();
     const userCtx = getUserContext();
 
@@ -893,7 +881,10 @@
     // Check if this request is still the freshest one
     if (currentReq !== searchRequestId) return;
 
-    // Render Results View
+    // В чате карточки рисуются в отдельный блок под ответом ассистента
+    const prevContentEl = contentEl;
+    if (target) { contentEl = target; cardsOnly = true; }
+    try {
     renderSearchResults({
       query,
       userCtx,
@@ -908,61 +899,89 @@
       matchingOrders, 
       matchingProducts 
     });
-    mountAskAssistant(query, currentReq);
+    } finally { contentEl = prevContentEl; cardsOnly = false; }
   }
 
   // ============================================================
   // АССИСТЕНТ: наша ИИ через функцию assistant-chat (по кнопке или Enter)
   // ============================================================
   const ASSISTANT_URL = 'https://vrvwdagjpttvfvjanbwq.supabase.co/functions/v1/assistant-chat';
-  let assistantBusy = false;
 
   function escHtml(t) {
     return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  function assistantCard(inner) {
-    return `<div id="spAssistantBox" class="google-ai-overview-card sp-answer">
-      <div class="sp-answer-h"><span class="sp-answer-ico">${window.UI.icon('sparkles', 16)}</span><b>Ассистент ICE LOGIX</b></div>
-      ${inner}
-    </div>`;
+  const GREETING_RE = /^(привет|приветик|здравствуй(те)?|добрый (день|вечер)|доброе утро|хай|салам|hello|hi)[\s!.,)]*$/i;
+  const THANKS_RE = /^(спасибо|спс|благодарю|thanks)[\s!.,)]*$/i;
+
+  function chatScroll() {
+    const el = contentEl && contentEl.lastElementChild;
+    if (el && el.scrollIntoView) el.scrollIntoView({ block: 'end', behavior: 'smooth' });
   }
 
-  function mountAskAssistant(query, reqId) {
-    if (!contentEl || query.length < 3 || reqId !== searchRequestId) return;
-    const wrap = contentEl.firstElementChild;
-    if (!wrap) return;
-    wrap.insertAdjacentHTML('afterbegin', `<div id="spAssistantBox"><button type="button" id="spAskAiBtn" class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition active:scale-95 inline-flex items-center gap-1.5">${window.UI.icon('sparkles', 14)} Спросить ассистента</button></div>`);
-    document.getElementById('spAskAiBtn')?.addEventListener('click', () => askAssistant(query));
+  function botBubble(inner, id) {
+    return `<div class="sp-msg bot"${id ? ` id="${id}"` : ''}><span class="sp-msg-ico">${window.UI.icon('sparkles', 15)}</span><div class="sp-bubble">${inner}</div></div>`;
   }
 
-  async function askAssistant(query) {
-    const box = document.getElementById('spAssistantBox');
-    if (!box || assistantBusy) return;
-    assistantBusy = true;
-    box.outerHTML = assistantCard('<div class="text-xs text-white/60 leading-relaxed">Думаю над ответом, это займёт несколько секунд…</div>');
-    let html;
-    try {
-      const { data } = await window.supabaseClient.auth.getSession();
-      const token = data?.session?.access_token;
-      if (!token) throw new Error('Войдите в приложение');
-      const res = await fetch(ASSISTANT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-        body: JSON.stringify({ query })
-      });
-      const r = await res.json();
-      if (!r.ok) throw new Error(r.error || 'Ассистент не ответил');
-      const src = (r.sources || []).map(x => escHtml(x.title || x)).filter(Boolean);
-      html = `<div class="text-xs text-white/90 leading-relaxed" style="white-space:pre-line">${escHtml(r.answer)}</div>` +
-        (src.length ? `<div class="sp-src"><span>Откуда:</span>${src.map(s => `<span class="flex-shrink-0 text-[10px] px-2 py-0.5 rounded-md bg-white/5 text-white/60 border border-white/5 font-medium">${s}</span>`).join('')}</div>` : '');
-    } catch (e) {
-      html = `<div class="text-xs text-white/70 leading-relaxed">${escHtml(e.message || 'Ассистент сейчас недоступен. Ответы из базы знаний — ниже.')}</div>`;
-    } finally {
-      assistantBusy = false;
+  async function sendChat(raw) {
+    const q = String(raw || '').trim().slice(0, 300);
+    if (!q || chatBusy || !contentEl) return;
+    chatBusy = true;
+    saveQueryToHistory(q);
+    if (searchInputEl) { searchInputEl.value = ''; searchInputEl.blur(); }
+    let thread = contentEl.querySelector('.sp-thread');
+    if (!thread) {
+      contentEl.innerHTML = '<div class="sp-thread"></div>';
+      thread = contentEl.querySelector('.sp-thread');
     }
-    const cur = document.getElementById('spAssistantBox');
-    if (cur) cur.outerHTML = assistantCard(html);
+    thread.querySelectorAll('.sp-cards').forEach(n => n.remove());
+    document.getElementById('spNewChat')?.classList.remove('hidden');
+    thread.insertAdjacentHTML('beforeend',
+      `<div class="sp-msg me"><div class="sp-bubble">${escHtml(q)}</div></div>` +
+      botBubble('<span class="sp-typing"><i></i><i></i><i></i></span>', 'spPending'));
+    if (chatUi) chatUi.syncSend();
+    chatScroll();
+
+    let answer = '';
+    let srcHtml = '';
+    if (GREETING_RE.test(q)) {
+      answer = 'Привет! Я ассистент ICE LOGIX. Подскажу про заказы, цены, доставку и выкуп из Китая — спрашивайте.';
+    } else if (THANKS_RE.test(q)) {
+      answer = 'Пожалуйста! Если появятся вопросы — пишите.';
+    } else {
+      try {
+        const { data } = await window.supabaseClient.auth.getSession();
+        const token = data?.session?.access_token;
+        if (!token) throw new Error('Войдите в приложение');
+        const res = await fetch(ASSISTANT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+          body: JSON.stringify({ query: q, history: chatHistory.slice(-6) })
+        });
+        const r = await res.json();
+        if (!r.ok) throw new Error(r.error || 'Ассистент не ответил');
+        answer = String(r.answer || '');
+        const src = (r.sources || []).map(x => escHtml(x.title || x)).filter(Boolean);
+        if (src.length) srcHtml = `<div class="sp-src"><span>Откуда:</span>${src.map(x => `<span>${x}</span>`).join('')}</div>`;
+      } catch (e) {
+        answer = e.message || 'Ассистент сейчас недоступен. Попробуйте чуть позже.';
+      }
+    }
+    chatHistory.push({ role: 'user', content: q }, { role: 'assistant', content: answer.slice(0, 500) });
+    chatHistory = chatHistory.slice(-12);
+    const pending = document.getElementById('spPending');
+    if (pending) {
+      pending.removeAttribute('id');
+      pending.querySelector('.sp-bubble').innerHTML = `<div style="white-space:pre-line">${escHtml(answer)}</div>${srcHtml}`;
+    }
+    const cards = document.createElement('div');
+    cards.className = 'sp-cards';
+    thread.appendChild(cards);
+    try { await handleSearchQuery(q, cards); } catch (_e) { /* карточки не обязательны */ }
+    if (!cards.textContent.trim()) cards.remove();
+    chatBusy = false;
+    if (chatUi) chatUi.syncSend();
+    chatScroll();
   }
 
   // ============================================================
@@ -1956,7 +1975,8 @@
     let html = `<div class="space-y-4 animate-fadeIn">`;
 
     // ── TOP: GOOGLE AI OVERVIEW SYNTHESIS CARD ──
-    html += buildGoogleAiOverview({
+    const showOverview = !cardsOnly || profileMatch || aiIntent || detectedUrl || mathResult || matchingOrders.length > 0;
+    if (showOverview) html += buildGoogleAiOverview({
       query,
       userCtx,
       profileMatch,
