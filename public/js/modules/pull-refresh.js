@@ -67,12 +67,14 @@
     if (scrollTop() > 0) return false;
     sheetFn = null;
     const a = document.activeElement;
-    if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return false;
+    if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.contains(target)) return false;   // палец на самом поле — это выделение текста
     for (let n = target; n && n !== document.body && n !== document.documentElement; n = n.parentElement) {
       if (n.nodeType !== 1) continue;
       const cs = getComputedStyle(n);
       if (cs.position === 'fixed') {
         if (n.matches(CHROME)) continue;                               // шапка и меню — обычный жест
+        const r = n.getBoundingClientRect();                           // маленькие закреплённые панели и кнопки (док корзины, плавающие кнопки) — не шторки
+        if (!n._ptrRefresh && (r.height < innerHeight * 0.45 || r.width < innerWidth * 0.8) && !n.querySelector('.rd-sheet-body')) continue;
         let w = n;                                                     // окно или шторка: берём жест, только если они объявили обновление
         while (w && !w._ptrRefresh) w = w.parentElement;
         if (w) {
@@ -130,6 +132,7 @@
   function start() {
     armed = true;
     clearTimeout(backTimer);
+    try { const f = document.activeElement; if (f && /^(INPUT|TEXTAREA|SELECT)$/.test(f.tagName)) f.blur(); } catch (_) {}   // клавиатура уходит, пока тянут
     if (!sheetFn) host = contentEl();
     measure();
     const c = host;
