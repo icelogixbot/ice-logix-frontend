@@ -1498,8 +1498,8 @@ html body .sp-composer input { flex: 1; min-width: 0; height: 42px; padding: 0 !
 .sk-full .sk-slide:only-child { flex-basis: 100%; aspect-ratio: 1 / 1; }
 .sk-full .sk-slide img { object-fit: contain; }
 .sk-full .sk-slide-video img { background: rgb(0, 0, 0); }
-/* «Назад» как .rd-back в других разделах: 42x42, радиус 14, под шапкой на отступе 90px (как .main-content) */
-.sk-full .sk-close { position: absolute; z-index: 3; left: 28px; top: calc(102px + env(safe-area-inset-top, 0px)); width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center; padding: 0; background: rgba(0, 0, 0, 0.55); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); cursor: pointer; }
+/* «Назад» как .rd-back в других разделах: 42x42, радиус 14, под шапкой на отступе 74px (как .main-content) */
+.sk-full .sk-close { position: absolute; z-index: 3; left: 28px; top: calc(86px + env(safe-area-inset-top, 0px)); width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center; padding: 0; background: rgba(0, 0, 0, 0.55); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); cursor: pointer; }
 .sk-full .sk-main { padding: 14px 0 8px; }
 .sk-pos { position: absolute; right: 12px; bottom: 12px; padding: 3px 10px; border-radius: 999px; background: rgba(0, 0, 0, 0.6); color: rgb(255, 255, 255); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; pointer-events: none; }
 .sk-thumbs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 12px 0 0; background: transparent; }
@@ -1600,7 +1600,7 @@ html body #wbStickyDock {
    Высота 80 = 16 сверху + 58 рабочих + 6 снизу (как нижнее меню); отступ экранов 90. */
 html body .app-header {
   top: 0 !important; left: 0 !important; right: 0 !important;
-  height: 80px !important;
+  height: 64px !important;
   padding: 16px 10px 0 9px !important;
   background: #000 !important;
   border: 0 !important;
@@ -1631,14 +1631,14 @@ html body .app-header .header-left { order: 0; gap: 0; flex: 0 0 auto; }
 html body .app-header .header-center { order: 1; margin: 0 auto; }
 html body .app-header .header-right { order: 2; flex: 0 0 auto; }
 html body .app-header .header-spacer { display: none !important; }
-html body .app-header .logo-img { height: 46px !important; width: auto; margin: 0 !important; display: block; filter: drop-shadow(0 0 14px rgba(47,123,255,.35)); }
+html body .app-header .logo-img { height: 40px !important; width: auto; margin: 0 !important; display: block; filter: drop-shadow(0 0 14px rgba(47,123,255,.35)); }
 
 html body .app-header .user-card {
-  height: 44px; padding: 0 4px 0 4px !important; gap: 6px !important;
+  height: 40px; padding: 0 4px 0 4px !important; gap: 6px !important;
   background: var(--rd-s2) !important; border: 1px solid var(--rd-line) !important;
   border-radius: 999px !important; box-shadow: none !important;
 }
-html body .app-header .user-avatar { width: 34px !important; height: 34px !important; border: 0 !important; font-size: 14px; }
+html body .app-header .user-avatar { width: 32px !important; height: 32px !important; border: 0 !important; font-size: 14px; }
 html body .app-header .balance-island {
   height: auto !important; padding: 0 !important; gap: 6px !important;
   background: none !important; border: 0 !important;
@@ -1646,18 +1646,18 @@ html body .app-header .balance-island {
 }
 html body .app-header .balance-info { display: flex; flex-direction: column; justify-content: center; min-width: 0; line-height: 1.1; }
 html body .app-header .balance-label { font-size: 10px; font-weight: 600; letter-spacing: .02em; color: var(--rd-tx3) !important; }
-html body .app-header .balance-amount { font-size: 15px !important; font-weight: 800 !important; margin-top: 1px; }
+html body .app-header .balance-amount { font-size: 14px !important; font-weight: 800 !important; margin-top: 1px; }
 html body .app-header .balance-icon svg { height: 13px; }
-html body .app-header .balance-add { width: 32px; height: 32px; font-size: 22px; font-weight: 500; box-shadow: 0 0 0 3px rgba(47,123,255,.18) !important; }
+html body .app-header .balance-add { width: 30px; height: 30px; font-size: 20px; font-weight: 500; box-shadow: 0 0 0 3px rgba(47,123,255,.18) !important; }
 
 html body .app-header .header-center {
-  height: 44px; padding: 0 3px; gap: 0;
+  height: 40px; padding: 0 3px; gap: 0;
   background: var(--rd-s2); border: 1px solid var(--rd-line); border-radius: 999px;
 }
-html body .app-header .header-center .icon-btn { width: 34px !important; height: 34px !important; border-radius: 50% !important; }
-html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; }
+html body .app-header .header-center .icon-btn { width: 32px !important; height: 32px !important; border-radius: 50% !important; }
+html body .app-header .header-center .icon-btn svg { width: 19px; height: 19px; }
 @media (max-width: 359px) {
-  html body .app-header .logo-img { height: 40px !important; }
+  html body .app-header .logo-img { height: 36px !important; }
 }
 
 /* Вещи от клиентов */

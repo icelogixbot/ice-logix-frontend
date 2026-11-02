@@ -203,7 +203,7 @@ html body #tabCartBadge, html body #cartBadge {
 }
 
 /* поля экрана и отступы под плавающие панели */
-html body .main-content { padding-top: 90px !important; padding-bottom: 112px !important; padding-left: 16px !important; padding-right: 16px !important; }
+html body .main-content { padding-top: 74px !important; padding-bottom: 112px !important; padding-left: 16px !important; padding-right: 16px !important; }
 
 /* ─── Пользовательская карточка в шапке: без лишней рамки ─── */
 html body .user-card { background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; }

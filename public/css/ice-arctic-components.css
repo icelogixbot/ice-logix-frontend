@@ -62,7 +62,7 @@ body::before { opacity: .12 !important; }
 .app-header { top: 10px !important; left: 10px !important; right: 10px !important; border-radius: 20px !important; }
 .tab-bar { bottom: 10px !important; left: 10px !important; right: 10px !important; border-radius: 22px !important; }
 
-.main-content { padding-top: 90px !important; padding-bottom: 104px !important; }
+.main-content { padding-top: 74px !important; padding-bottom: 104px !important; }
 
 .balance-island {
   background: linear-gradient(135deg, rgba(72,164,221,.22), rgba(20,61,95,.42)) !important;
