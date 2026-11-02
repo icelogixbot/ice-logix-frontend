@@ -191,7 +191,8 @@ window._mpCard = _mpCard;
 
 async function _mpLoad() {
   const allowedSlugs = ['dewu', 'poizon', 'taobao', 'pinduoduo', 'пиндуодуо', 'goofish', 'xianyu', 'сяньюй', '95', '95fen', 'jd', 'tmall'];
-  if (!window.marketplacesCache) {
+  const _stale = window.marketplacesCache && !window.marketplacesCache.some((mp) => mp && mp.tagline !== undefined);
+  if (!window.marketplacesCache || _stale) {
     try {
       const { data: rawData } = await supabaseClient
         .from('marketplaces')

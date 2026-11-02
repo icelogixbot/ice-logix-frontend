@@ -811,6 +811,13 @@
     window.CacheDB = {
       data: (() => {
         try {
+          // Новая версия приложения — данные в кэше могли быть другой формы: начинаем с чистого
+          const v = localStorage.getItem('ice_app_v') || '';
+          if (localStorage.getItem('ice_cache_db_v') !== v) {
+            localStorage.removeItem('ice_cache_db');
+            localStorage.setItem('ice_cache_db_v', v);
+            return {};
+          }
           const s = localStorage.getItem('ice_cache_db');
           return s ? JSON.parse(s) : {};
         } catch(e) { return {}; }
