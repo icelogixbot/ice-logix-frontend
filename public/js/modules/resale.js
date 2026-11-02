@@ -3,12 +3,108 @@
 // ============================================================
 // ==================== ФАЗА 18: ICE Resale и Совместная доставка ====================
 
-window.publishToResale = async (orderId, orderTitle) => {
-  if (typeof tgUtil !== 'undefined' && tgUtil.alert) {
-    tgUtil.alert('Раздел "Наличие" (ICE Resale) находится в разработке. Возможность публикации вещей откроется в ближайших обновлениях!');
-  } else {
-    alert('Раздел "Наличие" (ICE Resale) находится в разработке.');
-  }
+// Заявка «Вещи от клиентов»: шторка с формой → RPC resale_submit (поддержка проверяет, потом вещь попадает в каталог)
+window.publishToResale = (orderId, orderTitle, orderTotal) => {
+  const U = window.UI;
+  if (!U || !window.supabaseClient) return;
+  if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+  const toast = (msg, kind) => (typeof glassToast === 'function' ? glassToast(msg, { kind }) : U.toast(msg));
+  const files = [];
+  const total = Number(orderTotal || 0);
+  const hint = total > 0
+    ? `<p class="rd-ask-text">Вы заплатили за заказ ${U.money(total, { keepCents: true, digits: 2 })} ${window.bynSign ? window.bynSign() : ''}. Цену ставите вы, комиссии нет: покупатель платит ровно столько, сколько вы укажете.</p>`
+    : '<p class="rd-ask-text">Цену ставите вы, комиссии нет: покупатель платит ровно столько, сколько вы укажете.</p>';
+  const field = (label, inner) => `<label class="rd-ask-field"><span class="rd-label">${label}</span><span class="rd-field">${inner}</span></label>`;
+  const html = `
+    <form class="rd-ask" novalidate>
+      <p class="rd-ask-text">Не подошёл размер или цвет? Расскажите о вещи — мы проверим заявку и покажем её другим клиентам.</p>
+      ${field('Название', `<input name="title" type="text" maxlength="120" value="${U.esc(orderTitle || '')}" autocomplete="off">`)}
+      <div class="rd-ask-field">
+        <span class="rd-label">Фото (от 1 до 8)</span>
+        <div class="rs-photos" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+          <button type="button" class="rd-btn rd-btn-ghost rs-add">${U.icon('plus', 18)}Добавить фото</button>
+          <span class="rs-count rd-label"></span>
+        </div>
+        <input class="rs-file" type="file" accept="image/*" multiple hidden>
+      </div>
+      ${field('Размер', '<input name="size" type="text" maxlength="20" placeholder="Например, 42 или M" autocomplete="off">')}
+      ${field('Состояние', `<select name="condition">
+        <option value="">Выберите</option>
+        <option value="new_tags">Новое, с бирками</option>
+        <option value="new">Новое, без бирок</option>
+        <option value="excellent">Отличное</option>
+        <option value="good">Хорошее</option>
+      </select>`)}
+      ${field('Бренд (необязательно)', '<input name="brand" type="text" maxlength="60" autocomplete="off">')}
+      ${field('Описание (необязательно)', '<textarea name="description" rows="3" maxlength="1000" placeholder="Что важно знать покупателю"></textarea>')}
+      ${hint}
+      ${field(`Цена, ${window.bynSign ? window.bynSign() : ''}`, '<input name="price" type="text" inputmode="decimal" placeholder="0" autocomplete="off">')}
+      <p class="rd-ask-err" hidden></p>
+      <button type="submit" class="rd-btn rd-btn-block">Отправить на проверку</button>
+    </form>`;
+  U.sheet({
+    title: 'Помочь продать',
+    html,
+    onOpen: (wrap, close) => {
+      const form = wrap.querySelector('form');
+      const err = wrap.querySelector('.rd-ask-err');
+      const fileInp = wrap.querySelector('.rs-file');
+      const count = wrap.querySelector('.rs-count');
+      const submit = form.querySelector('button[type="submit"]');
+      const showErr = (m) => { err.textContent = m; err.hidden = !m; };
+      const upd = () => { count.textContent = files.length ? `Выбрано: ${files.length}` : ''; };
+      wrap.querySelector('.rs-add').addEventListener('click', () => fileInp.click());
+      fileInp.addEventListener('change', () => {
+        Array.from(fileInp.files || []).forEach((f) => { if (files.length < 8 && /^image\//.test(f.type)) files.push(f); });
+        fileInp.value = '';
+        upd();
+      });
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const v = {};
+        ['title', 'size', 'condition', 'brand', 'description', 'price'].forEach((n) => { v[n] = (form.elements[n].value || '').trim(); });
+        const price = Number(String(v.price).replace(',', '.'));
+        if (v.title.length < 3) return showErr('Укажите название вещи');
+        if (!files.length) return showErr('Добавьте хотя бы одно фото');
+        if (!v.condition) return showErr('Выберите состояние');
+        if (!(price > 0) || price > 100000) return showErr('Укажите цену');
+        showErr('');
+        submit.disabled = true;
+        submit.textContent = 'Отправляем…';
+        try {
+          let sessionId = localStorage.getItem('icelogix_session_id');
+          if (!sessionId) { sessionId = crypto.randomUUID(); localStorage.setItem('icelogix_session_id', sessionId); }
+          const photos = [];
+          for (const f of files) {
+            const safe = f.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 50);
+            const path = `${sessionId}/${Date.now()}_resale_${safe}`;
+            const { error: upErr } = await window.supabaseClient.storage.from('product-screenshots').upload(path, f, { contentType: f.type, upsert: false });
+            if (upErr) throw new Error('Не удалось загрузить фото');
+            photos.push(path);
+          }
+          const { error } = await window.supabaseClient.rpc('resale_submit', {
+            p_order: orderId, p_title: v.title, p_description: v.description || null, p_price: price,
+            p_size: v.size || null, p_condition: v.condition, p_brand: v.brand || null, p_photos: photos,
+          });
+          if (error) throw error;
+          toast('Заявка отправлена. Мы проверим её и сообщим в приложении', 'success');
+          close();
+          if (typeof renderCurrentScreen === 'function') renderCurrentScreen();
+        } catch (ex) {
+          showErr(ex.message || 'Не получилось отправить, попробуйте ещё раз');
+          submit.disabled = false;
+          submit.textContent = 'Отправить на проверку';
+        }
+      });
+    },
+  });
+};
+
+window.withdrawResale = async (id) => {
+  if (!window.supabaseClient) return;
+  const { error } = await window.supabaseClient.rpc('resale_withdraw', { p_id: id });
+  if (error) { if (typeof glassToast === 'function') glassToast(error.message, { kind: 'error' }); return; }
+  if (typeof renderCurrentScreen === 'function') renderCurrentScreen();
 };
 
 async function renderResale() {

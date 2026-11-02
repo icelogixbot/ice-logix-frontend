@@ -2153,11 +2153,14 @@ async function renderMyOrders() {
     return `<div class="rd-screen page-enter">${head(0)}${U.empty({ icon: 'box', title: 'Войдите, чтобы видеть заказы', text: 'Здесь будет статус каждой посылки, фото со склада и трек-номера.', action: 'Войти', onclick: 'window.requireAuth()' })}</div>`;
   }
   try {
-    const [ordersRes, claimsRes, paysRes] = await Promise.all([
+    const [ordersRes, claimsRes, paysRes, resaleRes] = await Promise.all([
       supabaseClient.from('orders').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
       supabaseClient.from('insurance_claims').select('*').eq('user_id', userId),
-      supabaseClient.from('payments').select('order_id, type, provider').eq('user_id', userId).in('status', ['CREATED', 'PENDING'])
+      supabaseClient.from('payments').select('order_id, type, provider').eq('user_id', userId).in('status', ['CREATED', 'PENDING']),
+      supabaseClient.from('resale_items').select('id, order_ref, status, admin_note, created_at').eq('user_id', userId).not('order_ref', 'is', null).order('created_at', { ascending: false })
     ]);
+    const resaleMap = {};
+    (resaleRes.data || []).forEach((r) => { if (!resaleMap[r.order_ref]) resaleMap[r.order_ref] = r; });
     if (ordersRes.error) throw ordersRes.error;
     const data = ordersRes.data || [];
     if (!data.length) {
@@ -2300,7 +2303,18 @@ async function renderMyOrders() {
             <button type="button" class="oc-act" onclick="window.openInvoiceModal('${order.id}', ${total.toFixed(2)})">${U.icon('receipt', 18)}<span>Инвойс</span></button>
             ${canInsure ? `<button type="button" class="oc-act" onclick="window.openInsuranceClaimModal('${order.id}', ${total})">${U.icon('shield', 18)}<span>Страховка</span></button>` : `<button type="button" class="oc-act" onclick="window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink('https://t.me/icelogix_bot?start=order_${order.id}')">${U.icon('send', 18)}<span>В боте</span></button>`}
           </div>
-          ${order.status === 'delivered' ? `<button type="button" class="rd-btn rd-btn-ghost rd-btn-block oc-resale" onclick="publishToResale('${order.id}', '${(order.description || '').replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">${U.icon('tag', 18)}Продать в «Наличии»</button>` : ''}
+          ${order.status === 'delivered' ? (() => {
+            const rs = resaleMap[order.id];
+            const live = rs && ['pending', 'approved', 'reserved', 'sold'].includes(rs.status);
+            if (live) {
+              const label = { pending: 'Заявка на проверке', approved: 'Вещь в каталоге «Вещи от клиентов»', reserved: 'Вещь забронирована покупателем', sold: 'Вещь продана' }[rs.status];
+              const can = rs.status === 'pending' || rs.status === 'approved';
+              return `<p class="rd-ask-text oc-resale">${U.esc(label)}</p>${can ? `<button type="button" class="rd-btn rd-btn-ghost rd-btn-block oc-resale" onclick="withdrawResale('${rs.id}')">Снять с продажи</button>` : ''}`;
+            }
+            const note = rs && rs.status === 'rejected' && rs.admin_note ? `<p class="rd-ask-text oc-resale">Прошлую заявку не приняли: ${U.esc(rs.admin_note)}</p>` : '';
+            const ttl = U.esc(orderTitle(order)).replace(/\\/g, '').replace(/'/g, '&#39;');
+            return `${note}<button type="button" class="rd-btn rd-btn-ghost rd-btn-block oc-resale" onclick="publishToResale('${order.id}', '${ttl}', ${total})">${U.icon('tag', 18)}Не подошло? Помочь продать</button>`;
+          })() : ''}
         </article>`;
     }).join('');
 
