@@ -349,7 +349,10 @@
     
     <!-- Main Content Area -->
     <div id="content" class="main-content"></div>
-    <script>try{localStorage.removeItem('ice_tab_home_v2');localStorage.removeItem('ice_tab_screens_v2');localStorage.setItem('ice_app_v','20261022_04');}catch(e){}</script>
+    <script>try{localStorage.removeItem('ice_tab_home_v2');localStorage.removeItem('ice_tab_screens_v2');localStorage.setItem('ice_app_v','20261103_rv2');}catch(e){}
+    // Автообновление: Telegram сворачивает мини-приложение, а не закрывает. При возврате сверяем версию с сервером и перезагружаем страницу.
+    (function(){var V='20261103_rv2',busy=false,last=0;function chk(){var n=Date.now();if(busy||n-last<15000)return;busy=true;last=n;fetch('/?_='+n,{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/ice_app_v','([^']+)'/);if(m&&m[1]!==V)location.reload();}).catch(function(){}).then(function(){busy=false;});}
+    document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('focus',chk);setTimeout(chk,4000);})();</script>
     
     <!-- ═══════════════════════════════════════════════════════════════════════
          WB CART FIXED CHECKOUT DOCK - Always anchored above Tab Bar
