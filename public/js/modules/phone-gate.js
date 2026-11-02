@@ -16,7 +16,7 @@
   function cover(on) { document.documentElement.classList.toggle('pg-wait', !!on); }
   (function () {
     const st = document.createElement('style');
-    st.textContent = 'html.pg-wait body::before{content:"";position:fixed;inset:0;z-index:2147483400;background:#000;}';
+    st.textContent = 'html.pg-wait::after{content:"";position:fixed;inset:0;z-index:2147483500;background:#000;}';
     document.head.appendChild(st);
     const app = window.Telegram && window.Telegram.WebApp;
     const u = app && app.initDataUnsafe && app.initDataUnsafe.user;
@@ -48,7 +48,7 @@
     const st = document.createElement('style');
     st.id = 'pgStyle';
     st.textContent =
-      '#phoneGate{position:fixed;inset:0;z-index:2000000000;background:var(--rd-bg);display:flex;align-items:center;justify-content:center;padding:24px;}' +
+      '#phoneGate{position:fixed;inset:0;z-index:2147483600;background:#000;display:flex;align-items:center;justify-content:center;padding:24px;}' +
       '#phoneGate .pg-card{width:100%;max-width:380px;background:var(--rd-s1);border:1px solid var(--rd-line);border-radius:var(--rd-r22);padding:28px 22px 22px;text-align:center;}' +
       '#phoneGate .pg-ico{width:64px;height:64px;margin:0 auto 18px;border-radius:20px;background:var(--rd-s2);border:1px solid var(--rd-line);display:flex;align-items:center;justify-content:center;color:var(--rd-b300);}' +
       '#phoneGate h2{margin:0 0 10px;font-size:20px;font-weight:800;color:var(--rd-tx);}' +
