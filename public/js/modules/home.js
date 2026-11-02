@@ -110,12 +110,12 @@ async function renderHome() {
     const _name = (typeof userName !== 'undefined' && userName && userName !== 'Гость') ? String(userName).split(' ')[0] : '';
     const _wl = (typeof wishlist !== 'undefined' && wishlist) ? wishlist : (window.wishlist || null);
     const _quick = [
-      { story: 'onboarding', icon: 'book', label: 'Как заказать' },
-      { story: 'legitcheck', icon: 'shield', label: 'Легит-чек' },
+      { story: 'onboarding', icon: 'book', label: 'Покажем всё' },
       { story: 'my_orders', icon: 'box', label: 'Мои заказы' },
-      { story: 'reports', icon: 'camera', label: 'Фотоотчёты' },
-      { story: 'reviews', icon: 'star', label: 'Отзывы' },
       { story: 'promo', icon: 'gift', label: 'Акции' },
+      { story: 'reviews', icon: 'star', label: 'Отзывы' },
+      { story: 'reports', icon: 'camera', label: 'Фотоотчёты' },
+      { story: 'legitcheck', icon: 'shield', label: 'Легит-чек' },
     ];
 
     return `
