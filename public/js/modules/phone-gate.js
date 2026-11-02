@@ -13,11 +13,16 @@
   function tg() { return window.Telegram && window.Telegram.WebApp; }
   function tgUserId() { const u = tg() && tg().initDataUnsafe && tg().initDataUnsafe.user; return u ? u.id : null; }
   function validPhone(p) { return typeof p === 'string' && /^\+375\d{9}$/.test(p.replace(/[\s()-]/g, '')); }
+  const REASONS = {
+    not_by: 'Нужен белорусский номер +375. Другие номера мы не принимаем.',
+    other_phone: 'К этому аккаунту уже привязан другой номер. Для замены напишите в поддержку.',
+    taken: 'Этот номер уже занят другим аккаунтом. Если это ваш номер, напишите в поддержку.'
+  };
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   async function readProfile(userId) {
     try {
-      const { data } = await window.supabaseClient.from('users').select('role, phone').eq('user_id', userId).maybeSingle();
+      const { data } = await window.supabaseClient.from('users').select('role, phone, settings').eq('user_id', userId).maybeSingle();
       return data || null;
     } catch (_) { return null; }
   }
@@ -65,17 +70,22 @@
       }
       say('');
       btn.disabled = true;
+      const before = await readProfile(userId);
+      const seenAt = before && before.settings && before.settings.phone_check ? before.settings.phone_check.at : 0;
       app.requestContact(async (sent) => {
         if (!sent) { btn.disabled = false; say('Без номера войти не получится. Нажмите кнопку ещё раз и разрешите.'); return; }
         btn.textContent = 'Проверяем номер…';
-        for (let i = 0; i < 30; i++) {
-          await sleep(1500);
+        let reason = '';
+        for (let i = 0; i < 40 && !reason; i++) {
+          await sleep(i < 6 ? 400 : 800);
           const p = await readProfile(userId);
           if (p && validPhone(p.phone)) { el.remove(); try { app.HapticFeedback && app.HapticFeedback.notificationOccurred('success'); } catch (_) {} return; }
+          const pc = p && p.settings && p.settings.phone_check;
+          if (pc && pc.at !== seenAt) reason = pc.status;
         }
         btn.disabled = false;
         btn.textContent = 'Поделиться номером';
-        say('Номер не принят. Нужен белорусский +375, и на нём не должно быть другого аккаунта. Если это ваш номер, напишите в поддержку.');
+        say(REASONS[reason] || 'Номер не принят. Нужен белорусский +375, и на нём не должно быть другого аккаунта. Если это ваш номер, напишите в поддержку.');
       });
     });
   }
