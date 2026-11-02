@@ -1615,10 +1615,10 @@ html body #wbStickyDock {
 }
 
 /* Верхнее меню — зеркало нижнего: плоская чёрная панель до краёв, скруглены нижние углы.
-   Высота 56; отступ экранов 66. Модули по центру: 36px, по 10px сверху и снизу. */
+   Высота 68; отступ экранов 78. Модули по центру: 42px, по 13px сверху и снизу. */
 html body .app-header {
   top: 0 !important; left: 0 !important; right: 0 !important;
-  height: 56px !important;
+  height: 68px !important;
   padding: 16px 10px 0 9px !important;
   background: #000 !important;
   border: 0 !important;
@@ -1649,14 +1649,14 @@ html body .app-header .header-left { order: 0; gap: 0; flex: 0 0 auto; }
 html body .app-header .header-center { order: 1; margin: 0 auto; }
 html body .app-header .header-right { order: 2; flex: 0 0 auto; }
 html body .app-header .header-spacer { display: none !important; }
-html body .app-header .logo-img { height: 36px !important; width: auto; margin: 0 !important; display: block; filter: drop-shadow(0 0 14px rgba(47,123,255,.35)); }
+html body .app-header .logo-img { height: 42px !important; width: auto; margin: 0 !important; display: block; filter: drop-shadow(0 0 14px rgba(47,123,255,.35)); }
 
 html body .app-header .user-card {
-  height: 36px; padding: 0 4px 0 4px !important; gap: 6px !important;
+  height: 42px; padding: 0 4px 0 4px !important; gap: 6px !important;
   background: var(--rd-s2) !important; border: 1px solid var(--rd-line) !important;
   border-radius: 999px !important; box-shadow: none !important;
 }
-html body .app-header .user-avatar { width: 28px !important; height: 28px !important; border: 0 !important; font-size: 14px; }
+html body .app-header .user-avatar { width: 32px !important; height: 32px !important; border: 0 !important; font-size: 14px; }
 html body .app-header .balance-island {
   height: auto !important; padding: 0 !important; gap: 6px !important;
   background: none !important; border: 0 !important;
@@ -1664,18 +1664,18 @@ html body .app-header .balance-island {
 }
 html body .app-header .balance-info { display: flex; flex-direction: column; justify-content: center; min-width: 0; line-height: 1.1; }
 html body .app-header .balance-label { font-size: 10px; font-weight: 600; letter-spacing: .02em; color: var(--rd-tx3) !important; }
-html body .app-header .balance-amount { font-size: 13px !important; font-weight: 800 !important; margin-top: 1px; }
+html body .app-header .balance-amount { font-size: 15px !important; font-weight: 800 !important; margin-top: 1px; }
 html body .app-header .balance-icon svg { height: 13px; }
-html body .app-header .balance-add { width: 28px; height: 28px; font-size: 19px; font-weight: 500; box-shadow: 0 0 0 3px rgba(47,123,255,.18) !important; }
+html body .app-header .balance-add { width: 32px; height: 32px; font-size: 21px; font-weight: 500; box-shadow: 0 0 0 3px rgba(47,123,255,.18) !important; }
 
 html body .app-header .header-center {
-  height: 36px; padding: 0 3px; gap: 0;
+  height: 42px; padding: 0 3px; gap: 0;
   background: var(--rd-s2); border: 1px solid var(--rd-line); border-radius: 999px;
 }
-html body .app-header .header-center .icon-btn { width: 30px !important; height: 30px !important; border-radius: 50% !important; }
-html body .app-header .header-center .icon-btn svg { width: 18px; height: 18px; }
+html body .app-header .header-center .icon-btn { width: 34px !important; height: 34px !important; border-radius: 50% !important; }
+html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; }
 @media (max-width: 359px) {
-  html body .app-header .logo-img { height: 32px !important; }
+  html body .app-header .logo-img { height: 38px !important; }
 }
 
 /* Вещи от клиентов */
