@@ -126,9 +126,7 @@
     }
 
         // ==================== РЕНДЕР ОТЗЫВОВ ====================
-        window.reviewsScreen = window.reviewsScreen || 'hub';
         window.currentReviewsCategory = window.currentReviewsCategory || 'all';
-        window.currentReviewsCountry = window.currentReviewsCountry || 'all';
         window.currentReviewsConfig = window.currentReviewsConfig || null;
         window.likedReviewsCache = window.likedReviewsCache || null;
 
@@ -189,26 +187,218 @@
           return window.currentReviewsConfig;
         }
 
+        // ── Единый экран «Отзывы»: площадки сверху, лента с подгрузкой при прокрутке ──
+        const RV_PAGE = 10;
+        const RV_CATS = [
+          ['all', 'Все'], ['orders', 'Заказы'], ['promotions', 'Акции'], ['dropshipping', 'Дропшиппинг'],
+          ['referral', 'Рефералка'], ['advertising', 'Реклама'], ['academy', 'Обучение'],
+          ['legitcheck', 'Legit Check'], ['partnership', 'Партнёрство']
+        ];
+        const RV_CAT_LABEL = Object.fromEntries(RV_CATS);
+        const rvState = { cat: 'all', items: [], done: false, loading: false, token: 0, obs: null };
+
+        function rvEsc(s) {
+          return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        function rvFmtDate(d) {
+          try { return new Date(d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return ''; }
+        }
+
+        // Первая страница ленты по категории: короткий кэш, чтобы экран открывался сразу
+        async function rvFetchPage(cat, from) {
+          const run = async () => {
+            let q = supabaseClient.from('reviews')
+              .select('id,user_name,category,rating,text,photo_urls,is_verified,is_pinned,likes_count,created_at,review_actions(details)')
+              .eq('is_published', true);
+            if (cat !== 'all') q = q.eq('category', cat);
+            const { data, error } = await q
+              .order('is_pinned', { ascending: false })
+              .order('created_at', { ascending: false })
+              .range(from, from + RV_PAGE - 1);
+            if (error) throw error;
+            return data || [];
+          };
+          if (from === 0 && window.CacheDB) return window.CacheDB.get('reviews_p1_' + cat, run, 60000);
+          return run();
+        }
+
+        async function rvHasPending(config) {
+          if (!userId) return false;
+          const partners = ((config && config.partner_user_ids) || []).map(String);
+          if (partners.includes(String(userId)) || window.userRole === 'partner') return true;
+          try {
+            const { data } = await supabaseClient.from('review_actions').select('id').eq('user_id', userId).eq('status', 'pending').limit(1);
+            return !!(data && data.length);
+          } catch (e) { return false; }
+        }
+
+        function rvPlatformsHtml(config) {
+          const sm = config.social_media_links || {};
+          const list = [
+            ['yandex-maps', 'Яндекс Карты', reviewLink(config.yandex_maps_link, 'https://yandex.by/maps/')],
+            ['google-maps', 'Google Maps', reviewLink(config.google_maps_link, 'https://maps.google.com/')],
+            ['2gis', '2ГИС', reviewLink(config.gis_2_link, 'https://2gis.by/')],
+            ['telegram', 'Telegram', reviewLink(config.telegram_group_link, 'https://t.me/')],
+            ['vk', 'ВКонтакте', reviewLink(sm.vk, 'https://vk.com/')]
+          ];
+          return list.map(([key, name, url]) => `
+            <button type="button" class="rv-plat" data-rv-url="${rvEsc(url)}" aria-label="${name}">
+              <img class="rv-plat-logo" src="/assets/reviews-platforms/${key}.webp" alt="" width="48" height="48" decoding="async">
+              <span class="rv-plat-name">${name}</span>
+              <span class="rv-plat-sub">Оставить отзыв${UI.icon('external', 12)}</span>
+            </button>`).join('');
+        }
+
+        function rvDetailsHtml(r) {
+          let a = r.review_actions;
+          if (Array.isArray(a)) a = a[0];
+          const d = a && a.details;
+          if (!d) return '';
+          const rows = [['Товар', d.product], ['Размер', d.size], ['Доставка', d.delivery], ['Срок', d.term], ['Сумма', d.amount]].filter(x => x[1]);
+          if (!rows.length) return '';
+          return `
+            <button type="button" class="rv-more" data-rv-toggle aria-expanded="false"><span>Детали заказа</span>${UI.icon('chevD', 16)}</button>
+            <div class="rv-det" hidden>${rows.map(([k, v]) => `<div class="rv-det-row"><span>${k}</span><b>${rvEsc(v)}</b></div>`).join('')}</div>`;
+        }
+
+        function rvCardHtml(r) {
+          const photos = Array.isArray(r.photo_urls) ? r.photo_urls.filter(Boolean) : [];
+          const liked = window.likedReviewsCache && window.likedReviewsCache.has(r.id);
+          const rating = Math.max(0, Math.min(5, Number(r.rating) || 0));
+          const name = r.user_name || 'Клиент';
+          const pinBtn = isOwner
+            ? `<button type="button" class="rv-pin ${r.is_pinned ? 'on' : ''}" data-rv-pin aria-label="${r.is_pinned ? 'Открепить' : 'Закрепить'}">${UI.icon('pin', 16, { fill: !!r.is_pinned })}</button>`
+            : (r.is_pinned ? `<span class="rd-status rv-pinned">${UI.icon('pin', 12)}Закреплён</span>` : '');
+          return `
+            <article class="rd-card rv-card" data-review-id="${r.id}">
+              <div class="rv-top">
+                <div class="rv-ava">${rvEsc(name.charAt(0).toUpperCase())}</div>
+                <div class="rv-who">
+                  <div class="rv-name">${rvEsc(name)}${r.is_verified ? `<span class="rv-ok" title="Заказ подтверждён">${UI.icon('checkCircle', 14)}</span>` : ''}</div>
+                  <div class="rv-meta">${rvEsc(RV_CAT_LABEL[r.category] || 'Отзыв')} · ${rvFmtDate(r.created_at)}</div>
+                </div>
+                ${pinBtn}
+              </div>
+              <div class="rv-stars" aria-label="Оценка ${rating} из 5">${[1, 2, 3, 4, 5].map(i => UI.icon('star', 16, { fill: i <= rating })).join('')}</div>
+              <p class="rv-text">${rvEsc(r.text)}</p>
+              ${photos.length ? `<div class="rv-photos">${photos.slice(0, 3).map((u, i) => `<button type="button" class="rv-ph" data-rv-ph="${i}"><img src="${rvEsc(u)}" alt="" loading="lazy" decoding="async">${i === 2 && photos.length > 3 ? `<span class="rv-ph-more">+${photos.length - 3}</span>` : ''}</button>`).join('')}</div>` : ''}
+              ${rvDetailsHtml(r)}
+              <div class="rv-foot">
+                <button type="button" class="rv-like ${liked ? 'on' : ''}" data-rv-like aria-label="Нравится">${UI.icon('heart', 18, { fill: !!liked })}<span class="rv-like-n">${r.likes_count || 0}</span></button>
+              </div>
+            </article>`;
+        }
+
+        function rvSkeleton(n) {
+          return Array.from({ length: n }).map(() => '<div class="rd-card rv-card rv-skel"><div class="rd-shimmer rv-sk-a"></div><div class="rd-shimmer rv-sk-b"></div><div class="rd-shimmer rv-sk-c"></div></div>').join('');
+        }
+
+        function rvEmptyHtml() {
+          return UI.empty({ icon: 'message', title: 'Пока нет отзывов', text: 'Отзывы появляются после получения заказа. Скоро здесь будут первые.' });
+        }
+
+        function rvListHtml(items) {
+          return items.length ? items.map(rvCardHtml).join('') : rvEmptyHtml();
+        }
+
         async function renderReviews() {
           try {
-            const [, config] = await Promise.all([
+            const cat = window.currentReviewsCategory || 'all';
+            rvState.cat = cat;
+            rvState.token++;
+            const config = await loadReviewsConfig();
+            const [, pending, first] = await Promise.all([
               loadUserLikes(),
-              loadReviewsConfig()
+              rvHasPending(config),
+              rvFetchPage(cat, 0).catch(e => { console.error('Reviews feed error:', e); return null; })
             ]);
 
-            // Run async dropshipper action evaluation in background if user is logged in
-            if (userId) {
-              setTimeout(() => checkAndCreateDropshipperAction(), 0);
-            }
+            if (userId) setTimeout(() => checkAndCreateDropshipperAction(), 0);
 
-            if (window.reviewsScreen === 'hub') {
-              return await renderReviewsHub(config);
-            } else {
-              return await renderReviewsFeed(config);
-            }
+            rvState.items = first || [];
+            rvState.done = !first || first.length < RV_PAGE;
+            rvState.loading = false;
+
+            return `
+              <div class="rd-screen page-enter rv" id="rvRoot">
+                <div class="rd-head">
+                  <button type="button" class="rd-back" onclick="window.goBackGlobal()" aria-label="Назад">${UI.icon('chevL', 22)}</button>
+                  <div class="rd-head-txt"><h1 class="rd-head-title">Отзывы</h1><p class="rd-head-sub">Что говорят о нас клиенты</p></div>
+                </div>
+
+                <div class="rv-plats">${rvPlatformsHtml(config)}</div>
+
+                ${pending ? `
+                  <button type="button" class="rd-card rv-ask" data-rv-write>
+                    <span class="rv-ask-ico">${UI.icon('pencil', 20)}</span>
+                    <span class="rv-ask-txt"><b>Вас ждёт отзыв</b><small>Расскажите, как всё прошло</small></span>
+                    ${UI.icon('chevR', 18)}
+                  </button>` : ''}
+
+                <div class="rd-chips rv-chips" id="rvChips">
+                  ${RV_CATS.map(([id, label]) => `<button type="button" class="rd-chip ${cat === id ? 'on' : ''}" data-rv-cat="${id}">${label}</button>`).join('')}
+                </div>
+
+                <div class="rv-list" id="rvList">${first === null ? UI.empty({ icon: 'alert', title: 'Не удалось загрузить', text: 'Проверьте интернет и откройте раздел ещё раз.' }) : rvListHtml(rvState.items)}</div>
+                <div class="rv-sentinel" id="rvSentinel"></div>
+              </div>`;
           } catch (err) {
             console.error('Error rendering reviews screen:', err);
-            return `<div class="p-4 text-center text-red-400">Ошибка загрузки отзывов: ${err.message}</div>`;
+            return UI.empty({ icon: 'alert', title: 'Ошибка загрузки отзывов', text: rvEsc(err.message) });
+          }
+        }
+
+        async function rvLoadMore() {
+          if (rvState.loading || rvState.done) return;
+          const list = document.getElementById('rvList');
+          if (!list || !rvState.items.length) return;
+          const token = rvState.token;
+          rvState.loading = true;
+          const sk = document.createElement('div');
+          sk.className = 'rv-more-skel';
+          sk.innerHTML = rvSkeleton(1);
+          list.appendChild(sk);
+          try {
+            const rows = await rvFetchPage(rvState.cat, rvState.items.length);
+            if (token !== rvState.token) return;
+            const known = new Set(rvState.items.map(r => r.id));
+            const fresh = rows.filter(r => !known.has(r.id));
+            rvState.items = rvState.items.concat(fresh);
+            if (rows.length < RV_PAGE) rvState.done = true;
+            sk.remove();
+            list.insertAdjacentHTML('beforeend', fresh.map(rvCardHtml).join(''));
+          } catch (e) {
+            console.error('Reviews load more failed:', e);
+            sk.remove();
+          } finally {
+            if (token === rvState.token) rvState.loading = false;
+          }
+        }
+
+        async function rvSwitchCategory(cat) {
+          if (cat === rvState.cat) return;
+          window.currentReviewsCategory = cat;
+          rvState.cat = cat;
+          const token = ++rvState.token;
+          rvState.items = [];
+          rvState.done = false;
+          rvState.loading = true;
+          document.querySelectorAll('#rvChips .rd-chip').forEach(c => c.classList.toggle('on', c.dataset.rvCat === cat));
+          const list = document.getElementById('rvList');
+          if (!list) return;
+          list.innerHTML = rvSkeleton(3);
+          try {
+            const rows = await rvFetchPage(cat, 0);
+            if (token !== rvState.token) return;
+            rvState.items = rows;
+            rvState.done = rows.length < RV_PAGE;
+            list.innerHTML = rvListHtml(rows);
+          } catch (e) {
+            console.error('Reviews category load failed:', e);
+            if (token === rvState.token) list.innerHTML = UI.empty({ icon: 'alert', title: 'Не удалось загрузить', text: 'Попробуйте ещё раз.' });
+          } finally {
+            if (token === rvState.token) rvState.loading = false;
           }
         }
 
@@ -261,448 +451,6 @@
           } catch (err) {
             console.error('Error checking/creating dropshipper action:', err);
           }
-        }
-
-        async function renderReviewsHub(config) {
-          let reviewsStats = { count: 0, avg: 0 };
-          try {
-            if (window.CacheDB) {
-              reviewsStats = await window.CacheDB.get('reviews_hub_stats', async () => {
-                const { data } = await supabaseClient.from('reviews').select('rating').eq('is_published', true);
-                if (data && data.length > 0) {
-                  const count = data.length;
-                  const totalStars = data.reduce((sum, r) => sum + (r.rating || 0), 0);
-                  return { count, avg: totalStars / count };
-                }
-                return { count: 0, avg: 0 };
-              }, 60000);
-            }
-          } catch (e) {}
-          const reviewsCount = reviewsStats ? reviewsStats.count : 0;
-          const avgRating = reviewsStats ? reviewsStats.avg : 0;
-
-          const categories = [
-            { id: 'orders', label: 'Заказы', icon: '🛒', desc: 'Отзывы розничных клиентов о доставленных вещах' },
-            { id: 'promotions', label: 'Акции / Розыгрыши', icon: '🎁', desc: 'Впечатления победителей конкурсов и участников акций' },
-            { id: 'dropshipping', label: 'Дропшиппинг', icon: '💼', desc: 'Отзывы оптовых B2B-партнеров нашей программы' },
-            { id: 'referral', label: 'Рефералка', icon: '👥', desc: 'Отзывы участников, получающих реферальные выплаты' },
-            { id: 'advertising', label: 'Реклама', icon: '📢', desc: 'Отзывы блогеров и администраторов об интеграциях' },
-            { id: 'academy', label: 'Обучение', icon: '🎓', desc: 'Отзывы учеников о курсах по самостоятельному выкупу' },
-            { id: 'legitcheck', label: 'Legit Check', icon: '🔍', desc: 'Отзывы о проверке подлинности брендовых вещей' },
-            { id: 'partnership', label: 'Партнерство', icon: '🏢', desc: 'Отзывы от B2B партнеров (ShopByShop, легит-чекеры)' }
-          ];
-
-          return `
-            <div class="page-enter px-4 pb-8 max-w-md mx-auto space-y-4">
-              <!-- Top Navigation Header -->
-              <div class="flex items-center gap-3 mb-2 mt-2">
-                <button type="button" class="global-back-btn !mb-0" onclick="window.goBackGlobal()" title="Назад">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="15 18 9 12 15 6"/>
-                  </svg>
-                </button>
-                <div class="flex-1 min-w-0">
-                  <h2 class="text-xl font-bold text-white tracking-wide">Отзывы клиентов</h2>
-                  <p class="text-[11px] text-white/40">Оценки сервиса, отзывы по категориям</p>
-                </div>
-              </div>
-              <div class="space-y-6 text-left mb-6">
-              <!-- Карточка независимых площадок и отзывов -->
-              <div class="reviews-board p-4 rounded-2xl border border-white/10 text-center relative overflow-hidden bg-white/[0.03]">
-                <div class="absolute -right-10 -top-10 w-28 h-28 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none"></div>
-                <div class="absolute -left-10 -bottom-10 w-28 h-28 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
-                
-                <h3 class="text-white text-sm font-bold tracking-wide">Отзывы на независимых площадках</h3>
-                <p class="text-white/50 text-[11px] mt-1 mb-4">Читайте реальные впечатления и делитесь мнением на картах и в сообществах</p>
-
-                <!-- Внешние гео-ресурсы и соцсети с реальными логотипами -->
-                <div class="grid grid-cols-5 gap-2 border-t border-white/10 pt-3">
-                  <button type="button" data-url="${reviewLink(config.yandex_maps_link, 'https://yandex.by/maps/')}" onclick="openExternalLink(this.dataset.url)" class="btn-secondary py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1.5 border border-white/5 hover:border-white/20 active:scale-95 transition" title="Яндекс Карты">
-                    <img src="${getReviewPlatformLogo('yandex-maps')}" alt="Яндекс Карты" width="32" height="32" class="w-8 h-8 rounded-lg shadow-sm object-contain flex-shrink-0" loading="eager" decoding="sync" fetchpriority="high">
-                    <span class="text-[9.5px] font-bold text-white/80 leading-none">Яндекс</span>
-                  </button>
-                  <button type="button" data-url="${reviewLink(config.google_maps_link, 'https://maps.google.com/')}" onclick="openExternalLink(this.dataset.url)" class="btn-secondary py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1.5 border border-white/5 hover:border-white/20 active:scale-95 transition" title="Google Maps">
-                    <img src="${getReviewPlatformLogo('google-maps')}" alt="Google Maps" width="32" height="32" class="w-8 h-8 rounded-lg shadow-sm object-contain flex-shrink-0" loading="eager" decoding="sync" fetchpriority="high">
-                    <span class="text-[9.5px] font-bold text-white/80 leading-none">Google</span>
-                  </button>
-                  <button type="button" data-url="${reviewLink(config.gis_2_link, 'https://2gis.by/')}" onclick="openExternalLink(this.dataset.url)" class="btn-secondary py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1.5 border border-white/5 hover:border-white/20 active:scale-95 transition" title="2ГИС">
-                    <img src="${getReviewPlatformLogo('2gis')}" alt="2ГИС" width="32" height="32" class="w-8 h-8 rounded-lg shadow-sm object-contain flex-shrink-0" loading="eager" decoding="sync" fetchpriority="high">
-                    <span class="text-[9.5px] font-bold text-white/80 leading-none">2ГИС</span>
-                  </button>
-                  <button type="button" data-url="${reviewLink(config.telegram_group_link, 'https://t.me/')}" onclick="openExternalLink(this.dataset.url)" class="btn-secondary py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1.5 border border-white/5 hover:border-white/20 active:scale-95 transition" title="Telegram Отзывы">
-                    <img src="${getReviewPlatformLogo('telegram')}" alt="Telegram" width="32" height="32" class="w-8 h-8 rounded-lg shadow-sm object-contain flex-shrink-0" loading="eager" decoding="sync" fetchpriority="high">
-                    <span class="text-[9.5px] font-bold text-white/80 leading-none">Telegram</span>
-                  </button>
-                  <button type="button" data-url="${reviewLink(config.social_media_links?.vk, 'https://vk.com/')}" onclick="openExternalLink(this.dataset.url)" class="btn-secondary py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1.5 border border-white/5 hover:border-white/20 active:scale-95 transition" title="ВКонтакте">
-                    <img src="${getReviewPlatformLogo('vk')}" alt="VK" width="32" height="32" class="w-8 h-8 rounded-lg shadow-sm object-contain flex-shrink-0" loading="eager" decoding="sync" fetchpriority="high">
-                    <span class="text-[9.5px] font-bold text-white/80 leading-none">VK</span>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Плиточная сетка категорий -->
-              <div>
-                <p class="text-white/60 text-xs font-black uppercase tracking-widest mb-3">Разделы отзывов</p>
-                <div class="reviews-hub-grid">
-                  <!-- Крупная кнопка Все отзывы -->
-                  <div class="reviews-hub-tile-btn full-width" data-category="all">
-                    <div class="w-12 h-12 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-2xl flex-shrink-0">📦</div>
-                    <div>
-                      <h4 class="text-white font-extrabold text-sm leading-tight">Все отзывы</h4>
-                      <p class="text-white/50 text-[10.5px] mt-0.5 leading-snug">Лента вообще всех отзывов сервиса ICE LOGIX</p>
-                    </div>
-                  </div>
-                  
-                  <!-- Остальные 8 категорий -->
-                  ${categories.map(c => `
-                    <div class="reviews-hub-tile-btn" data-category="${c.id}">
-                      <div class="flex items-center justify-between w-full">
-                        <span class="text-2xl">${c.icon}</span>
-                        <span class="text-white/30 text-xs">➔</span>
-                      </div>
-                      <div>
-                        <h4 class="text-white font-extrabold text-xs leading-tight">${c.label}</h4>
-                        <p class="text-white/50 text-[9.5px] mt-1 leading-snug line-clamp-2">${c.desc}</p>
-                      </div>
-                    </div>
-                  `).join('')}
-                </div>
-              </div>
-            </div>
-            </div>
-            ${renderFooter()}
-          `;
-        }
-
-        async function renderReviewsFeed(config) {
-          const categories = [
-            { id: 'all', label: 'Все отзывы' },
-            { id: 'orders', label: 'Заказы 🛒' },
-            { id: 'promotions', label: 'Акции 🎁' },
-            { id: 'dropshipping', label: 'Дропшиппинг 💼' },
-            { id: 'referral', label: 'Рефералка 💸' },
-            { id: 'advertising', label: 'Реклама 📢' },
-            { id: 'academy', label: 'Обучение 🎓' },
-            { id: 'legitcheck', label: 'Legit Check 🔍' },
-            { id: 'partnership', label: 'Партнерство 🏢' }
-          ];
-
-          const countries = [
-            { id: 'all', label: 'Все страны 🌐', active: true },
-            { id: 'china', label: 'Китай 🇨🇳', active: true },
-            { id: 'russia', label: 'Россия 🇷🇺 (Скоро)', active: false },
-            { id: 'europe', label: 'Евросоюз 🇪🇺 (Скоро)', active: false },
-            { id: 'usa', label: 'США 🇺🇸 (Скоро)', active: false },
-            { id: 'turkey', label: 'Турция 🇹🇷 (Скоро)', active: false },
-            { id: 'japan', label: 'Япония 🇯🇵 (Скоро)', active: false },
-            { id: 'korea', label: 'Южная Корея 🇰🇷 (Скоро)', active: false },
-            { id: 'vietnam', label: 'Вьетнам 🇻🇳 (Скоро)', active: false },
-            { id: 'uae', label: 'ОАЭ 🇦🇪 (Скоро)', active: false }
-          ];
-
-          // 1. Calculate specific category rating & total count
-          let avgRating = 0;
-          let categoryReviewsCount = 0;
-          try {
-            let statsQuery = supabaseClient.from('reviews').select('rating').eq('is_published', true);
-            if (window.currentReviewsCategory !== 'all') {
-              statsQuery = statsQuery.eq('category', window.currentReviewsCategory);
-            }
-            const { data } = await statsQuery;
-            if (data && data.length > 0) {
-              categoryReviewsCount = data.length;
-              const totalStars = data.reduce((sum, r) => sum + (r.rating || 0), 0);
-              avgRating = totalStars / categoryReviewsCount;
-            }
-          } catch(e) {
-            console.error('Error getting feed stats:', e);
-          }
-
-          // 2. Fetch media files for horizontal ribbon gallery
-          let ribbonPhotos = [];
-          try {
-            let ribbonQuery = supabaseClient.from('reviews')
-              .select('photo_urls')
-              .eq('is_published', true)
-              .not('photo_urls', 'is', null);
-              
-            if (window.currentReviewsCategory !== 'all') {
-              ribbonQuery = ribbonQuery.eq('category', window.currentReviewsCategory);
-            }
-            
-            const { data: ribbonData } = await ribbonQuery.order('created_at', { ascending: false }).limit(30);
-            if (ribbonData) {
-              ribbonData.forEach(r => {
-                if (Array.isArray(r.photo_urls)) {
-                  r.photo_urls.forEach(url => {
-                    if (url && ribbonPhotos.length < 15) {
-                      ribbonPhotos.push(url);
-                    }
-                  });
-                }
-              });
-            }
-          } catch (e) {
-            console.error('Error fetching gallery ribbon photos:', e);
-          }
-
-          // 3. Fetch review cards (paginated)
-          const pageSize = 10;
-          const fromRow = (reviewsPage - 1) * pageSize;
-          const toRow = fromRow + pageSize - 1;
-
-          let reviewsQuery = supabaseClient.from('reviews')
-            .select('*, review_actions(*)', { count: 'exact' })
-            .eq('is_published', true);
-
-          if (window.currentReviewsCategory !== 'all') {
-            reviewsQuery = reviewsQuery.eq('category', window.currentReviewsCategory);
-          }
-          if (window.currentReviewsCategory === 'orders' && window.currentReviewsCountry !== 'all') {
-            reviewsQuery = reviewsQuery.eq('region', window.currentReviewsCountry);
-          }
-
-          // Sort: pinned first, then newest
-          const { data: feedReviewsData, count: totalCount, error: fetchErr } = await reviewsQuery
-            .order('is_pinned', { ascending: false })
-            .order('created_at', { ascending: false })
-            .range(fromRow, toRow);
-
-          if (fetchErr) {
-            console.error('Error fetching reviews feed:', fetchErr);
-          }
-
-          const feedReviews = feedReviewsData || [];
-          reviewsTotalPages = Math.ceil((totalCount || 0) / pageSize) || 1;
-
-          let pendingActionsCount = 0;
-          if (userId) {
-            try {
-              const { data } = await supabaseClient.from('review_actions').select('id').eq('user_id', userId).eq('status', 'pending');
-              pendingActionsCount = data ? data.length : 0;
-            } catch (e) {}
-          }
-          const partnerUserIds = config.partner_user_ids || [];
-          const isPartnerUser = userId && (
-            partnerUserIds.map(id => id.toString()).includes(userId.toString()) ||
-            (window.userRole === 'partner')
-          );
-
-          return `
-            <div class="space-y-4 page-enter text-left mb-6">
-              <div class="flex items-center gap-3">
-                <button id="feedBackToHubBtn" type="button" class="global-back-btn !mb-0" title="Назад к хабу отзывов">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="15 18 9 12 15 6"/>
-                  </svg>
-                </button>
-                <div>
-                  <h2 class="text-white text-xl font-bold leading-tight">Лента отзывов</h2>
-                  <p class="text-white/40 text-[10.5px] uppercase font-bold tracking-wider">ICE LOGIX Feed</p>
-                </div>
-              </div>
-
-              <!-- Категории скролл -->
-              <div class="reviews-category-chips pb-1" id="feedCategoryChips">
-                ${categories.map(c => `
-                  <button class="filter-chip ${window.currentReviewsCategory === c.id ? 'active' : ''}" data-category="${c.id}">
-                    ${c.label}
-                  </button>
-                `).join('')}
-              </div>
-
-              <!-- Страны скролл (если Заказы) -->
-              ${window.currentReviewsCategory === 'orders' ? `
-                <div class="reviews-country-chips pb-1" id="feedCountryChips">
-                  ${countries.map(c => {
-                    if (c.active) {
-                      return `
-                        <button class="filter-chip ${window.currentReviewsCountry === c.id ? 'active' : ''}" data-country="${c.id}">
-                          ${c.label}
-                        </button>
-                      `;
-                    } else {
-                      return `
-                        <button class="filter-chip disabled-future" disabled>
-                          ${c.label}
-                        </button>
-                      `;
-                    }
-                  }).join('')}
-                </div>
-              ` : ''}
-
-              <!-- Галерея медиа -->
-              ${ribbonPhotos.length > 0 ? `
-                <div class="space-y-1.5">
-                  <p class="text-white/50 text-[10px] uppercase font-bold tracking-wider">Галерея покупателей</p>
-                  <div class="reviews-gallery-ribbon">
-                    ${ribbonPhotos.map((url, i) => `
-                      <img src="${url}" class="reviews-gallery-item" onclick="event.stopPropagation(); window.showImagePreview(${JSON.stringify(ribbonPhotos)}, ${i})">
-                    `).join('')}
-                  </div>
-                </div>
-              ` : ''}
-
-              <!-- Заголовок подраздела и статистика -->
-              <div class="flex justify-between items-center bg-white/5 p-3 rounded-2xl border border-white/5 text-xs text-white/60">
-                <span>${categoryReviewsCount > 0 ? `⭐ Средняя оценка: ${avgRating.toFixed(1)} / 5.0` : '⭐ Оценки покупателей'}</span>
-                <span>${categoryReviewsCount > 0 ? `Всего отзывов: ${categoryReviewsCount}` : 'Пока нет отзывов'}</span>
-              </div>
-
-              <!-- Список отзывов -->
-              <div class="space-y-4 mt-2">
-                ${feedReviews.length === 0 ? `
-                  <div class="text-center py-12 text-white/50 bg-white/5 rounded-2xl border border-white/5">
-                    <span class="text-3xl block mb-2">📭</span>
-                    Пока нет отзывов в этой категории
-                  </div>
-                ` : feedReviews.map(review => {
-                  const initials = (review.user_name || 'U').substring(0, 1).toUpperCase();
-                  const hasPhotos = Array.isArray(review.photo_urls) && review.photo_urls.length > 0;
-                  const isPinned = review.is_pinned === true;
-
-                  let hasDetails = false;
-                  let detailsHtml = '';
-                  let targetAction = review.review_actions || review.target_action;
-                  if (Array.isArray(targetAction)) {
-                    targetAction = targetAction[0];
-                  }
-
-                  if (targetAction && targetAction.details) {
-                    hasDetails = true;
-                    const details = targetAction.details;
-                    detailsHtml = `
-                      <div class="text-[11px] text-white/70 space-y-1 font-medium text-left">
-                        ${details.product ? `<div>🛍️ Товар: <span class="text-cyan-300">${details.product}</span></div>` : ''}
-                        ${details.size ? `<div>📏 Размер: <span class="text-cyan-300">${details.size}</span></div>` : ''}
-                        ${details.delivery ? `<div>📍 Доставка: <span class="text-cyan-300">${details.delivery}</span></div>` : ''}
-                        ${details.term ? `<div>⏳ Срок: <span class="text-cyan-300">${details.term}</span></div>` : ''}
-                        ${details.amount ? `<div>💰 Сумма: <span class="text-cyan-300">${details.amount}</span></div>` : ''}
-                      </div>
-                    `;
-                  } else if (review.orders && Array.isArray(review.orders.items) && review.orders.items[0]) {
-                    hasDetails = true;
-                    const item = review.orders.items[0];
-                    detailsHtml = `
-                      <div class="text-[11px] text-white/70 space-y-1 font-medium text-left">
-                        <div>🛍️ Товар: <span class="text-cyan-300">${item.title || item.title_translated || 'Товар'}</span></div>
-                        <div>📏 Размер: <span class="text-cyan-300">${item.size || 'не указан'}</span></div>
-                      </div>
-                    `;
-                  }
-
-                  const isLiked = window.likedReviewsCache && window.likedReviewsCache.has(review.id);
-
-                  return `
-                    <div class="review-card-wb relative" data-review-id="${review.id}">
-                      ${isOwner ? `
-                        <button class="review-card-wb-pin-btn ${isPinned ? 'pinned' : ''}" onclick="event.stopPropagation(); toggleReviewPin('${review.id}')" title="${isPinned ? 'Открепить' : 'Закрепить'}">
-                          📌
-                        </button>
-                      ` : (isPinned ? `
-                        <div class="absolute right-4 top-4 bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[9px] font-bold px-2 py-0.5 rounded-full">
-                          📌 Закреплено
-                        </div>
-                      ` : '')}
-
-                      <div class="review-card-wb-header">
-                        <div class="review-card-wb-avatar">${initials}</div>
-                        <div class="review-card-wb-info">
-                          <div class="review-card-wb-name">
-                            <span>${review.user_name || 'Клиент'}</span>
-                          </div>
-                          <div class="review-card-wb-meta">
-                            <span class="review-card-wb-category">${review.category}</span>
-                            <span class="review-card-wb-time">
-                              ${new Date(review.created_at).toLocaleDateString('ru-RU')}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="review-card-wb-body">
-                        ${hasPhotos ? `
-                          <div class="review-card-wb-media-block">
-                            ${review.photo_urls.slice(0, 2).map((url, i) => `
-                              <img src="${url}" class="review-card-wb-media-preview" onclick="event.stopPropagation(); window.showImagePreview(${JSON.stringify(review.photo_urls)}, ${i})">
-                            `).join('')}
-                            ${review.photo_urls.length > 2 ? `
-                              <div class="review-card-wb-media-more" onclick="event.stopPropagation(); window.showImagePreview(${JSON.stringify(review.photo_urls)}, 2)">
-                                <img src="${review.photo_urls[2]}">
-                                <div class="review-card-wb-media-more-overlay">+${review.photo_urls.length - 2}</div>
-                              </div>
-                            ` : ''}
-                          </div>
-                        ` : ''}
-
-                        <div class="review-card-wb-text-container">
-                          <div class="review-card-wb-stars">
-                            ${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}
-                          </div>
-                          <p class="review-card-wb-text">
-                            "${review.text}"
-                          </p>
-
-                          ${hasDetails ? `
-                            <div class="review-card-wb-collapsible">
-                              <div class="review-card-wb-collapsible-trigger" data-expanded="false">
-                                <span>⚙️ Детали действия</span>
-                                <span>▼</span>
-                              </div>
-                              <div class="review-card-wb-collapsible-content">
-                                ${detailsHtml}
-                              </div>
-                            </div>
-                          ` : ''}
-                        </div>
-                      </div>
-
-                      <div class="review-card-wb-footer">
-                        ${review.is_verified ? `
-                          <div class="review-card-wb-verified">
-                            ✓ Заказ проверен
-                          </div>
-                        ` : '<div></div>'}
-                        
-                        <div class="review-like-btn-heart ${isLiked ? 'liked' : ''}" data-review-id="${review.id}">
-                          <svg viewBox="0 0 24 24">
-                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                          </svg>
-                          <span class="likes-count font-bold">${review.likes_count || 0}</span>
-                        </div>
-                      </div>
-                    </div>
-                  `;
-                }).join('')}
-              </div>
-
-              <!-- Пагинация -->
-              ${reviewsTotalPages > 1 ? `
-                <div class="flex justify-center gap-2 mt-6">
-                  <button id="feedPrevPage" class="btn-secondary px-4 py-2 text-xs" ${reviewsPage <= 1 ? 'disabled' : ''}>
-                    Назад
-                  </button>
-                  <span class="text-white/50 text-xs py-2">
-                    Страница ${reviewsPage} из ${reviewsTotalPages}
-                  </span>
-                  <button id="feedNextPage" class="btn-secondary px-4 py-2 text-xs" ${reviewsPage >= reviewsTotalPages ? 'disabled' : ''}>
-                    Вперёд
-                  </button>
-                </div>
-              ` : ''}
-
-              <!-- Плавающая кнопка Оставить отзыв -->
-              ${(pendingActionsCount > 0 || isPartnerUser) ? `
-                <div class="reviews-write-footer-sticky">
-                  <button id="feedLeaveReviewBtn" class="reviews-write-floating-btn">
-                    ✍️ Оставить отзыв
-                  </button>
-                </div>
-              ` : ''}
-            </div>
-            ${renderFooter()}
-          `;
         }
 
         async function openReviewActionModal(preselectedTargetId) {
@@ -767,7 +515,7 @@
                   <div style="width: 48px;"></div>
                 </div>
                 <div class="full-screen-modal-body flex flex-col items-center justify-center text-center p-6 space-y-4">
-                  <span class="text-5xl">🎉</span>
+                  <span style="color: var(--rd-blue);">${UI.icon('checkCircle', 56)}</span>
                   <h3 class="text-white font-bold text-lg">Нет доступных действий</h3>
                   <p class="text-white/60 text-xs">
                     Вы выполнили все доступные действия для написания отзывов! Новые действия появятся автоматически после доставки ваших заказов или участия в реферальной системе.
@@ -915,7 +663,7 @@
                 </div>
 
                 <button id="submitReviewFormBtn" class="btn-primary w-full py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2">
-                  🚀 Отправить отзыв
+                  Отправить отзыв
                 </button>
               </div>
             `;
@@ -1013,7 +761,7 @@
                       const waitMin = Math.ceil(10 - diffMinutes);
                       tgUtil.alert(`Вы не можете оставлять отзывы слишком часто. Пожалуйста, подождите ещё ${waitMin} мин.`);
                       submitBtn.disabled = false;
-                      submitBtn.innerText = '🚀 Отправить отзыв';
+                      submitBtn.innerText = 'Отправить отзыв';
                       return;
                     }
                   }
@@ -1041,7 +789,7 @@
                   const userConfirmed = await tgUtil.confirm(`Бот-помощник адаптировал ваш отзыв для публикации (заменил стоп-слова):\n\n"${processedText}"\n\nПродолжить отправку?`);
                   if (!userConfirmed) {
                     submitBtn.disabled = false;
-                    submitBtn.innerText = '🚀 Отправить отзыв';
+                    submitBtn.innerText = 'Отправить отзыв';
                     return;
                   }
                 }
@@ -1104,7 +852,7 @@
                 console.error('Submit review error:', err);
                 tgUtil.alert('Ошибка отправки: ' + err.message);
                 submitBtn.disabled = false;
-                submitBtn.innerText = '🚀 Отправить отзыв';
+                submitBtn.innerText = 'Отправить отзыв';
               }
             };
           };
@@ -1112,218 +860,135 @@
           showState();
         }
 
-        async function triggerDoubleTapLike(card, reviewId, x, y) {
-          if (!userId) { window.requireAuth('Для взаимодействия с отзывами необходимо войти.'); return; }
-
-          const heart = document.createElement('div');
-          heart.className = 'double-tap-heart';
-          heart.style.left = `${x}px`;
-          heart.style.top = `${y}px`;
-          heart.innerHTML = `
-            <svg viewBox="0 0 24 24" class="w-full h-full">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-            </svg>
-          `;
-          card.appendChild(heart);
-          setTimeout(() => heart.remove(), 800);
-
-          if (window.likedReviewsCache && !window.likedReviewsCache.has(reviewId)) {
-            await toggleReviewLike(card, reviewId);
-          }
+        function rvSetLikeUi(card, liked, count) {
+          const btn = card.querySelector('[data-rv-like]');
+          if (!btn) return;
+          btn.classList.toggle('on', liked);
+          btn.innerHTML = `${UI.icon('heart', 18, { fill: liked })}<span class="rv-like-n">${count}</span>`;
         }
 
-        async function toggleReviewLike(card, reviewId) {
+        async function toggleReviewLike(card, reviewId, forceOn) {
           if (!userId) { window.requireAuth('Для взаимодействия с отзывами необходимо войти.'); return; }
-          
           window.likedReviewsCache = window.likedReviewsCache || new Set();
-          const isLiked = window.likedReviewsCache.has(reviewId);
-          
-          const likeBtn = card.querySelector('.review-like-btn-heart');
-          const countSpan = likeBtn.querySelector('.likes-count');
-          let count = parseInt(countSpan.innerText) || 0;
-
-          if (isLiked) {
-            window.likedReviewsCache.delete(reviewId);
-            likeBtn.classList.remove('liked');
-            count = Math.max(0, count - 1);
-          } else {
-            window.likedReviewsCache.add(reviewId);
-            likeBtn.classList.add('liked');
-            count = count + 1;
-          }
-          countSpan.innerText = count;
-
+          const wasLiked = window.likedReviewsCache.has(reviewId);
+          if (forceOn && wasLiked) return;
+          const nEl = card.querySelector('.rv-like-n');
+          let count = parseInt(nEl && nEl.textContent, 10) || 0;
+          if (wasLiked) { window.likedReviewsCache.delete(reviewId); count = Math.max(0, count - 1); }
+          else { window.likedReviewsCache.add(reviewId); count += 1; }
+          rvSetLikeUi(card, !wasLiked, count);
+          const item = rvState.items.find(r => r.id === reviewId);
+          if (item) item.likes_count = count;
+          if (window.CacheDB && window.CacheDB.clear) { try { window.CacheDB.clear('reviews_p1_' + rvState.cat); } catch (e) {} }
           try {
-            if (isLiked) {
-              await supabaseClient.from('review_likes').delete().eq('review_id', reviewId).eq('user_id', userId);
-            } else {
-              await supabaseClient.from('review_likes').insert({ review_id: reviewId, user_id: userId });
-            }
+            if (wasLiked) await supabaseClient.from('review_likes').delete().eq('review_id', reviewId).eq('user_id', userId);
+            else await supabaseClient.from('review_likes').insert({ review_id: reviewId, user_id: userId });
           } catch (err) {
             console.error('Failed to sync like status:', err);
           }
         }
 
-        async function toggleReviewPin(reviewId) {
+        function triggerDoubleTapLike(card, reviewId, x, y) {
+          const heart = document.createElement('div');
+          heart.className = 'rv-heart-pop';
+          heart.style.left = `${x}px`;
+          heart.style.top = `${y}px`;
+          heart.innerHTML = UI.icon('heart', 64, { fill: true });
+          card.appendChild(heart);
+          setTimeout(() => heart.remove(), 800);
+          toggleReviewLike(card, reviewId, true);
+        }
+
+        async function toggleReviewPin(reviewId, card) {
           if (!isOwner) return;
           try {
-            const { data, error } = await supabaseClient.from('reviews').select('is_pinned').eq('id', reviewId).single();
-            if (error || !data) throw error || new Error('Review not found');
-
-            const newPinned = !data.is_pinned;
-            const { error: updateErr } = await supabaseClient.from('reviews').update({ is_pinned: newPinned }).eq('id', reviewId);
-            if (updateErr) throw updateErr;
-            if (window.adminCache && window.adminCache.reviews) {
-              const r = window.adminCache.reviews.find(r => r.id === reviewId);
-              if (r) r.is_pinned = newPinned;
-            }
+            const item = rvState.items.find(r => r.id === reviewId);
+            const newPinned = !(item && item.is_pinned);
+            const { error } = await supabaseClient.from('reviews').update({ is_pinned: newPinned }).eq('id', reviewId);
+            if (error) throw error;
+            if (item) item.is_pinned = newPinned;
             tgUtil.haptic('success');
-            renderAdminScreen(false);
+            const btn = card && card.querySelector('[data-rv-pin]');
+            if (btn) {
+              btn.classList.toggle('on', newPinned);
+              btn.setAttribute('aria-label', newPinned ? 'Открепить' : 'Закрепить');
+              btn.innerHTML = UI.icon('pin', 16, { fill: newPinned });
+            }
+            if (window.CacheDB && window.CacheDB.clear) { try { window.CacheDB.clear('reviews_p1_' + rvState.cat); } catch (e) {} }
           } catch (e) {
             console.error('Failed to toggle review pin status:', e);
-            tgUtil.alert('Не удалось изменить статус закрепления: ' + e.message);
+            tgUtil.alert('Не удалось изменить закрепление: ' + e.message);
           }
         }
 
         function attachReviewsHandlers() {
-          if (window.reviewsScreen === 'hub') {
-            const tiles = document.querySelectorAll('.reviews-hub-tile-btn');
-            tiles.forEach(tile => {
-              tile.onclick = () => {
-                const cat = tile.getAttribute('data-category');
-                window.currentReviewsCategory = cat;
-                window.currentReviewsCountry = 'all';
-                window.reviewsScreen = 'feed';
-                reviewsPage = 1;
-                renderCurrentScreen();
-              };
-            });
+          const root = document.getElementById('rvRoot');
+          if (!root) return;
 
-            const alertBanner = document.getElementById('hubPendingActionsAlert');
-            if (alertBanner) {
-              alertBanner.onclick = () => {
-                openReviewActionModal();
-              };
+          root.addEventListener('click', (e) => {
+            const t = e.target;
+            const plat = t.closest('[data-rv-url]');
+            if (plat) { openExternalLink(plat.dataset.rvUrl); return; }
+            const chip = t.closest('[data-rv-cat]');
+            if (chip) { rvSwitchCategory(chip.dataset.rvCat); return; }
+            if (t.closest('[data-rv-write]')) { openReviewActionModal(); return; }
+
+            const card = t.closest('.rv-card');
+            if (!card || !card.dataset.reviewId) return;
+            const id = card.dataset.reviewId;
+            if (t.closest('[data-rv-like]')) { toggleReviewLike(card, id); return; }
+            if (t.closest('[data-rv-pin]')) { toggleReviewPin(id, card); return; }
+            const ph = t.closest('[data-rv-ph]');
+            if (ph) {
+              const item = rvState.items.find(r => r.id === id);
+              if (item && window.showImagePreview) window.showImagePreview(item.photo_urls.filter(Boolean), Number(ph.dataset.rvPh));
+              return;
             }
-
-            const leaveBtn = document.getElementById('hubLeaveReviewBtn');
-            if (leaveBtn) {
-              leaveBtn.onclick = () => {
-                openReviewActionModal();
-              };
+            const tg = t.closest('[data-rv-toggle]');
+            if (tg) {
+              const det = card.querySelector('.rv-det');
+              const open = tg.getAttribute('aria-expanded') !== 'true';
+              tg.setAttribute('aria-expanded', open ? 'true' : 'false');
+              if (det) det.hidden = !open;
             }
-          }
+          });
 
-          if (window.reviewsScreen === 'feed') {
-            const backBtn = document.getElementById('feedBackToHubBtn');
-            if (backBtn) {
-              backBtn.onclick = () => {
-                window.reviewsScreen = 'hub';
-                renderCurrentScreen();
-              };
+          // Двойное касание по карточке — лайк
+          let lastTap = 0;
+          root.addEventListener('touchend', (e) => {
+            const card = e.target.closest('.rv-card');
+            if (!card || !card.dataset.reviewId || e.target.closest('button')) return;
+            const now = Date.now();
+            if (now - lastTap < 300 && now - lastTap > 0) {
+              e.preventDefault();
+              const touch = e.changedTouches[0];
+              const rect = card.getBoundingClientRect();
+              triggerDoubleTapLike(card, card.dataset.reviewId, touch.clientX - rect.left - 32, touch.clientY - rect.top - 32);
             }
+            lastTap = now;
+          });
 
-            const catChips = document.querySelectorAll('#feedCategoryChips button');
-            catChips.forEach(chip => {
-              chip.onclick = () => {
-                window.currentReviewsCategory = chip.getAttribute('data-category');
-                window.currentReviewsCountry = 'all';
-                reviewsPage = 1;
-                renderCurrentScreen();
-              };
-            });
-
-            const countryChips = document.querySelectorAll('#feedCountryChips button');
-            countryChips.forEach(chip => {
-              chip.onclick = () => {
-                window.currentReviewsCountry = chip.getAttribute('data-country');
-                reviewsPage = 1;
-                renderCurrentScreen();
-              };
-            });
-
-            const prevBtn = document.getElementById('feedPrevPage');
-            const nextBtn = document.getElementById('feedNextPage');
-            if (prevBtn) prevBtn.onclick = () => { if (reviewsPage > 1) { reviewsPage--; renderAdminScreen(true); } };
-            if (nextBtn) nextBtn.onclick = () => { if (reviewsPage < reviewsTotalPages) { reviewsPage++; renderAdminScreen(true); } };
-
-            const leaveBtn = document.getElementById('feedLeaveReviewBtn');
-            if (leaveBtn) {
-              leaveBtn.onclick = () => {
-                openReviewActionModal();
-              };
-            }
-
-            const collapsibleTriggers = document.querySelectorAll('.review-card-wb-collapsible-trigger');
-            collapsibleTriggers.forEach(trig => {
-              trig.onclick = (e) => {
-                e.stopPropagation();
-                const card = trig.closest('.review-card-wb');
-                const content = card.querySelector('.review-card-wb-collapsible-content');
-                const arrow = trig.querySelector('span:last-child');
-                const isExpanded = trig.getAttribute('data-expanded') === 'true';
-
-                if (isExpanded) {
-                  content.classList.remove('expanded');
-                  trig.setAttribute('data-expanded', 'false');
-                  arrow.style.transform = 'rotate(0deg)';
-                } else {
-                  content.classList.add('expanded');
-                  trig.setAttribute('data-expanded', 'true');
-                  arrow.style.transform = 'rotate(180deg)';
-                }
-              };
-            });
-
-            const cards = document.querySelectorAll('.review-card-wb');
-            cards.forEach(card => {
-              const reviewId = card.getAttribute('data-review-id');
-              let lastTap = 0;
-              card.addEventListener('touchend', (e) => {
-                const currentTime = new Date().getTime();
-                const tapLength = currentTime - lastTap;
-                if (tapLength < 300 && tapLength > 0) {
-                  e.preventDefault();
-                  const touch = e.changedTouches[0];
-                  const rect = card.getBoundingClientRect();
-                  const x = touch.clientX - rect.left;
-                  const y = touch.clientY - rect.top;
-                  triggerDoubleTapLike(card, reviewId, x, y);
-                }
-                lastTap = currentTime;
-              });
-
-              card.addEventListener('dblclick', (e) => {
-                const rect = card.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                triggerDoubleTapLike(card, reviewId, x, y);
-              });
-
-              const likeBtn = card.querySelector('.review-like-btn-heart');
-              if (likeBtn) {
-                likeBtn.onclick = (e) => {
-                  e.stopPropagation();
-                  toggleReviewLike(card, reviewId);
-                };
-              }
-            });
+          // Подгрузка при прокрутке
+          if (rvState.obs) rvState.obs.disconnect();
+          const sentinel = document.getElementById('rvSentinel');
+          if (sentinel && 'IntersectionObserver' in window) {
+            rvState.obs = new IntersectionObserver((entries) => {
+              if (entries.some(en => en.isIntersecting)) rvLoadMore();
+            }, { rootMargin: '600px 0px' });
+            rvState.obs.observe(sentinel);
           }
         }
 
-
-// Global Exports
-if (typeof renderReports === 'function') window.renderReports = renderReports;
-if (typeof attachReportsHandlers === 'function') window.attachReportsHandlers = attachReportsHandlers;
-if (typeof openExternalLink === 'function') window.openExternalLink = openExternalLink;
-if (typeof loadUserLikes === 'function') window.loadUserLikes = loadUserLikes;
-if (typeof loadReviewsConfig === 'function') window.loadReviewsConfig = loadReviewsConfig;
-if (typeof renderReviews === 'function') window.renderReviews = renderReviews;
-if (typeof checkAndCreateDropshipperAction === 'function') window.checkAndCreateDropshipperAction = checkAndCreateDropshipperAction;
-if (typeof renderReviewsHub === 'function') window.renderReviewsHub = renderReviewsHub;
-if (typeof renderReviewsFeed === 'function') window.renderReviewsFeed = renderReviewsFeed;
-if (typeof openReviewActionModal === 'function') window.openReviewActionModal = openReviewActionModal;
-if (typeof triggerDoubleTapLike === 'function') window.triggerDoubleTapLike = triggerDoubleTapLike;
-if (typeof toggleReviewLike === 'function') window.toggleReviewLike = toggleReviewLike;
-if (typeof toggleReviewPin === 'function') window.toggleReviewPin = toggleReviewPin;
-if (typeof attachReviewsHandlers === 'function') window.attachReviewsHandlers = attachReviewsHandlers;
+        // Global Exports
+        if (typeof renderReports === 'function') window.renderReports = renderReports;
+        if (typeof attachReportsHandlers === 'function') window.attachReportsHandlers = attachReportsHandlers;
+        window.openExternalLink = openExternalLink;
+        window.loadUserLikes = loadUserLikes;
+        window.loadReviewsConfig = loadReviewsConfig;
+        window.renderReviews = renderReviews;
+        window.checkAndCreateDropshipperAction = checkAndCreateDropshipperAction;
+        window.openReviewActionModal = openReviewActionModal;
+        window.triggerDoubleTapLike = triggerDoubleTapLike;
+        window.toggleReviewLike = toggleReviewLike;
+        window.toggleReviewPin = toggleReviewPin;
+        window.attachReviewsHandlers = attachReviewsHandlers;

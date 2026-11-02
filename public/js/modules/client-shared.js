@@ -374,8 +374,7 @@ function openReviewForm(actionIdOrOrderId) {
   let tries = 0;
   const timer = setInterval(() => {
     tries++;
-    const btn = document.getElementById('hubLeaveReviewBtn') || document.getElementById('feedLeaveReviewBtn') || document.getElementById('leaveReviewBtn');
-    if (btn) {
+    if (document.getElementById('rvRoot')) {
       clearInterval(timer);
       openReviewActionModal(actionIdOrOrderId);
     } else if (tries > 25) {

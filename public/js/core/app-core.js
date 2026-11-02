@@ -2345,8 +2345,6 @@ let adminOrdersTotalPages = 1;
     let productsFilter = { category: 'all', brand: 'all', sort: 'new' };
     let productsTotalPages = 1;
     let isLoadingMoreProducts = false;
-    let reviewsPage = 1;
-    let reviewsTotalPages = 1;
     
     // AI Legit check state
     window.legitPhotos = [];
@@ -2738,15 +2736,6 @@ let adminOrdersTotalPages = 1;
                 supabaseClient.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'delivered').catch(() => ({ count: 120 }))
               ]);
               return { data: rep || [], count: countRes?.count || 120 };
-            }, 600000).catch(() => {});
-            window.CacheDB.get('reviews_hub_stats', async () => {
-              const { data } = await supabaseClient.from('reviews').select('rating').eq('is_published', true);
-              if (data && data.length > 0) {
-                const count = data.length;
-                const totalStars = data.reduce((sum, r) => sum + (r.rating || 0), 0);
-                return { count, avg: totalStars / count };
-              }
-              return { count: 0, avg: 0 };
             }, 600000).catch(() => {});
             // 5. Pre-warm academy
             window.CacheDB.get('academy_catalog', async () => {
@@ -3508,14 +3497,6 @@ let adminOrdersTotalPages = 1;
         return false;
       }
 
-      // 2c. If in reviews sub-screen (feed) -> return to hub
-      if (currentTab === 'reviews' && window.reviewsScreen === 'feed') {
-        window.reviewsScreen = 'hub';
-        renderCurrentScreen();
-        syncTelegramBackButton();
-        return true;
-      }
-
       // 3b. Админка: настоящий стек экранов (admin/admin-kit.js). Назад возвращает туда, откуда пришли,
       // с прежней прокруткой и фильтрами; с Пульта — в профиль. Кнопка на экране, кнопка Telegram и жест идут сюда же.
       if (window.AD && AD.isAdminTab(currentTab)) {
@@ -3546,8 +3527,7 @@ let adminOrdersTotalPages = 1;
       const hasOrderItems = Boolean(window.tempOrder && window.tempOrder.items && window.tempOrder.items.length > 0);
       const isOrderSubmode = (currentTab === 'neworder' || currentTab === 'new-order') && 
         (Boolean(window.orderAddSubMode) || (Boolean(window.orderAddMode) && hasOrderItems));
-      const isReviewsSubmode = currentTab === 'reviews' && window.reviewsScreen === 'feed';
-      const isRoot = noHeaderBackTabs.includes(currentTab) && !currentSubScreen && !isHomeSubmode && !isOrderSubmode && !isReviewsSubmode;
+      const isRoot = noHeaderBackTabs.includes(currentTab) && !currentSubScreen && !isHomeSubmode && !isOrderSubmode;
       const hasOverlay = !!document.querySelector('.full-screen-modal-overlay, #spotlightModal:not(.opacity-0), #settingsModal, #notificationsModal, #personalDataModal');
       
       if (isRoot && !hasOverlay) {

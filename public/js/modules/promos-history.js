@@ -162,7 +162,7 @@ async function renderHistory() {
   } else if (subScreen === 'reviews') {
     const { data, error } = await supabaseClient.from('reviews').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(50);
     if (error || !data || !data.length) {
-      content = U.empty({ icon: 'message', title: 'Отзывов пока нет', text: 'Расскажите о заказе, и другие покупатели узнают, как всё прошло.', action: 'Оставить отзыв', onclick: "switchTab('reviews')" });
+      content = U.empty({ icon: 'message', title: 'Отзывов пока нет', text: 'Оставить отзыв можно после получения заказа. Он появится здесь.' });
     } else {
       content = `<div class="hs-list">${data.map((r) => `
         <div class="hs-card hs-col">
