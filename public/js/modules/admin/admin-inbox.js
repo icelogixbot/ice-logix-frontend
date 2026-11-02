@@ -38,7 +38,7 @@
     legit: { pending: ['Ждёт вердикта', 'warn'], original: ['Оригинал', 'ok'], fake: ['Подделка', 'bad'], impossible: ['Не удалось проверить', ''] },
     reviews: { pending: ['На модерации', 'warn'], approved: ['Опубликован', 'ok'], rejected: ['Отклонён', 'bad'] },
     ugc: { pending: ['На модерации', 'warn'], approved: ['Одобрено', 'ok'], rejected: ['Отклонено', 'bad'] },
-    resale: { pending: ['На модерации', 'warn'], approved: ['Опубликовано', 'ok'], rejected: ['Отклонено', 'bad'] },
+    resale: { pending: ['На модерации', 'warn'], approved: ['Опубликовано', 'ok'], reserved: ['Куплено, деньги удержаны', 'warn'], sold: ['Продано', 'ok'], rejected: ['Отклонено', 'bad'] },
   };
   const KIND_SET = KINDS.map((k) => k[0]);
 
@@ -446,9 +446,13 @@
       if (d.status === 'pending') h += actions(btn('adInbApprove', 'Одобрить и выдать награду') + btn('adInbReject', 'Отклонить', 'rd-btn-danger'));
     } else {
       h += topCard(k, d, d.title || 'Объявление', textBlock(d.description));
-      if (Number(d.price_byn) > 0) h += `<div class="rd-card ad-pad">${kvRow('Цена', money(d.price_byn))}</div>`;
+      const RS = { new_tags: 'Новое, с бирками', new: 'Новое, без бирок', excellent: 'Отличное', good: 'Хорошее' };
+      const rsPh = (Array.isArray(d.photos) ? d.photos : []).map((x) => { try { return supabaseClient.storage.from('product-screenshots').getPublicUrl(x).data.publicUrl || ''; } catch (_) { return ''; } }).filter(Boolean);
+      if (rsPh.length) h += section('Фото') + mediaGrid(rsPh);
+      h += `<div class="rd-card ad-pad">${Number(d.price_byn) > 0 ? kvRow('Цена', money(d.price_byn)) : ''}${d.size ? kvRow('Размер', d.size) : ''}${d.condition ? kvRow('Состояние', RS[d.condition] || d.condition) : ''}${d.brand ? kvRow('Бренд', d.brand) : ''}${d.buyer_id ? kvRow('Покупатель', String(d.buyer_id)) : ''}</div>`;
       h += linksHtml(d);
       if (d.status === 'pending') h += actions(btn('adInbApprove', 'Опубликовать') + btn('adInbReject', 'Отклонить', 'rd-btn-danger'));
+      if (d.status === 'reserved') h += actions(btn('adInbRelease', 'Вернуть деньги покупателю', 'rd-btn-danger') + '<p class="ad-hint">Деньги вернутся покупателю, вещь снова станет доступна в каталоге.</p>');
     }
     return `<div class="ad-inb-card">${h}</div>`;
   }
@@ -508,6 +512,10 @@
       on('adInbApprove', () => ugcApprove(d));
       on('adInbReject', () => rejectSheet('Отклонить видео', 'Клиент увидит причину. Напишите её понятно.', (v, b) => AD.call(b, 'admin_ugc_decision', { p_id: d.id, p_approve: false, p_reward: 0, p_reason: v }, { ok: 'Видео отклонено' })));
     } else if (k === 'resale') {
+      on('adInbRelease', async () => {
+        if (!await confirmSheet('Вернуть деньги покупателю?', 'Сделка отменится, вещь вернётся в каталог.', 'Вернуть')) return;
+        if (await AD.call(null, 'admin_resale_release', { p_id: d.id, p_relist: true }, { ok: 'Деньги возвращены' }) !== null) leave();
+      });
       on('adInbApprove', async () => {
         if (!await confirmSheet('Опубликовать объявление?', 'Оно появится у клиентов в разделе пристроя.', 'Опубликовать')) return;
         if (await AD.call(null, 'admin_resale_decision', { p_id: d.id, p_approve: true }, { ok: 'Объявление опубликовано' }) !== null) leave();
