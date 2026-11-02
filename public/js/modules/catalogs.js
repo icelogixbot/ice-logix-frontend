@@ -154,18 +154,14 @@ function _mpLogo(mp) {
   return src ? `<img src="${String(src).replace(/"/g, '&quot;')}" alt="" decoding="async">` : window.UI.icon('store', 26);
 }
 
-function _mpLevel(mp) {
-  const d = Number(mp.difficulty) || 0;
-  if (!d || !MP_LEVELS[d]) return '';
-  return `<span class="mp-fact"><span class="mp-dots" aria-hidden="true">${[1, 2, 3].map((i) => `<i${i <= d ? ' class="on"' : ''}></i>`).join('')}</span>${MP_LEVELS[d]}</span>`;
-}
-
 function _mpFacts(mp) {
-  const U = window.UI;
+  const d = Number(mp.difficulty) || 0;
+  const dots = [1, 2, 3].map((n) => `<i${n <= d ? ' class="on"' : ''}></i>`).join('');
+  const tile = (label, value, extra, bad) => `<div class="mp-stat${bad ? ' warn' : ''}"><span class="mp-stat-l">${label}</span><span class="mp-stat-v">${extra || ''}${value}</span></div>`;
   return [
-    _mpLevel(mp),
-    mp.requires_vpn ? `<span class="mp-fact">${U.icon('shield', 14)}Нужен VPN</span>` : '',
-    mp.needs_cn_account ? `<span class="mp-fact">${U.icon('user', 14)}Китайский аккаунт</span>` : ''
+    d && MP_LEVELS[d] ? tile('Сложность', MP_LEVELS[d], `<span class="mp-dots" aria-hidden="true">${dots}</span>`, d === 3) : '',
+    tile('VPN', mp.requires_vpn ? 'Нужен' : 'Не нужен', '', !!mp.requires_vpn),
+    tile('Аккаунт', mp.needs_cn_account ? 'Китайский' : 'Не нужен', '', !!mp.needs_cn_account)
   ].join('');
 }
 
@@ -228,6 +224,10 @@ async function renderMarketplaces() {
           <button type="button" id="backFromMarketplacesBtn" class="rd-back" aria-label="Назад">${window.UI.icon('chevL', 22)}</button>
           <div class="rd-head-txt"><h1 class="rd-head-title">Площадки</h1><p class="rd-head-sub">Где покупать в Китае и как заказать</p></div>
         </div>
+        <div class="mp-hero">
+          <div class="mp-hero-t"><b>Не знаете, с чего начать?</b><span>Найдите вещь на любой площадке, скопируйте ссылку — мы посчитаем цену под ключ.</span></div>
+          <button type="button" class="rd-btn rd-btn-sm" data-mp-calc-top>${window.UI.icon('calc', 16)}Рассчитать</button>
+        </div>
         <div class="mp-list" id="marketplacesGrid">
           ${data.map(_mpCard).join('')}
         </div>
@@ -282,6 +282,7 @@ function attachMarketplacesHandlers() {
   const backBtn = document.getElementById('backFromMarketplacesBtn');
   if (backBtn) backBtn.onclick = () => { currentSubScreen = null; renderCurrentScreen(); };
 
+  document.querySelector('[data-mp-calc-top]')?.addEventListener('click', () => { currentSubScreen = null; window.switchTab('calculator'); });
   const grid = document.getElementById('marketplacesGrid');
   if (!grid) return;
   grid.addEventListener('click', (e) => {
