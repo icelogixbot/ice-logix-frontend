@@ -16,7 +16,7 @@
   function cover(on) { document.documentElement.classList.toggle('pg-wait', !!on); }
   (function () {
     const st = document.createElement('style');
-    st.textContent = 'html.pg-wait body::before{content:"";position:fixed;inset:0;z-index:2147482900;background:#000;}';
+    st.textContent = 'html.pg-wait body::before{content:"";position:fixed;inset:0;z-index:2147483400;background:#000;}';
     document.head.appendChild(st);
     const app = window.Telegram && window.Telegram.WebApp;
     const u = app && app.initDataUnsafe && app.initDataUnsafe.user;
