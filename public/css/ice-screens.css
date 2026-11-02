@@ -1619,11 +1619,11 @@ html body .app-header .byn-sign { color: #fff !important; }
 
 /* Шапка v2: крупный логотип слева; справа капсула «аватар + баланс + пополнить» и блок иконок.
    Высота прежняя (80), рабочая зона 58. */
-html body .app-header { padding: 16px 10px 0 10px !important; align-items: center !important; gap: 6px; }
-html body .app-header .header-right { order: 0; flex: 0 0 auto; }
-html body .app-header .header-spacer { order: 1; flex: 1 1 0; min-width: 4px; display: block !important; }
-html body .app-header .header-left { order: 2; gap: 0; }
-html body .app-header .header-center { order: 3; }
+html body .app-header { padding: 0 10px !important; align-items: center !important; gap: 6px; }
+html body .app-header .header-left { order: 0; gap: 0; flex: 0 0 auto; }
+html body .app-header .header-center { order: 1; margin: 0 auto; }
+html body .app-header .header-right { order: 2; flex: 0 0 auto; }
+html body .app-header .header-spacer { display: none !important; }
 html body .app-header .logo-img { height: 46px !important; width: auto; margin: 0 !important; display: block; filter: drop-shadow(0 0 14px rgba(47,123,255,.35)); }
 
 html body .app-header .user-card {
