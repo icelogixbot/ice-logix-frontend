@@ -416,13 +416,18 @@
         ${fld('Название', inp('name', { value: edit ? m.name : '', ph: 'Например, Poizon' }))}
         ${fld('Сайт', inp('website_url', { value: edit ? m.website_url : '', ph: 'https://…', type: 'url' }))}
         ${fld('Страна', inp('country', { value: edit ? m.country : '', ph: 'Китай' }))}
+        ${fld('Суть одной строкой', inp('tagline', { value: edit ? m.tagline : '', ph: 'Оригиналы с проверкой подлинности' }), 'Показывается под названием в карточке.')}
+        ${fld('Плашки', inp('badges', { value: edit && Array.isArray(m.badges) ? m.badges.join(', ') : '', ph: 'Оригиналы, Ресейл, Кроссовки' }), 'Через запятую, до трёх штук.')}
         ${fld('Описание', area('description', edit ? m.description : '', 'Что покупают на этой площадке', 3))}
-        ${fld('Как заказывать', area('instruction', edit ? m.instruction : '', 'Короткая инструкция для клиента', 3))}
+        ${fld('Шаги «как заказать»', area('steps', edit && Array.isArray(m.steps) ? m.steps.join('\n') : '', 'Каждый шаг с новой строки', 5), 'Если пусто, клиент увидит общие шаги.')}
+        ${fld('Заметка в инструкции', area('instruction', edit ? m.instruction : '', 'Необязательно: важное замечание под шагами', 3))}
+        ${fld('Сложность (1–3)', inp('difficulty', { value: edit && m.difficulty ? m.difficulty : '', ph: '1 — легко, 3 — сложно', type: 'number', mode: 'numeric' }))}
         ${choice('categories', 'Категории', MK_CATS, edit && Array.isArray(m.categories) ? m.categories : [], true)}
         ${choice('gender', 'Для кого', MK_GENDER, edit && Array.isArray(m.gender) ? m.gender : [], true)}
         <div class="rd-ask-field"><span class="rd-label">Логотип</span><div class="ad-st-photos" id="adStLogo"></div></div>
         ${fld('Порядок в списке', inp('sort_order', { value: edit ? (m.sort_order == null ? 0 : m.sort_order) : 0, type: 'number', mode: 'numeric' }), 'Чем меньше число, тем выше площадка.')}
         ${sw('requires_vpn', 'Нужен VPN', edit && m.requires_vpn)}
+        ${sw('needs_cn_account', 'Нужен китайский аккаунт', edit && m.needs_cn_account)}
         ${sw('is_active', 'Площадка включена', edit ? m.is_active !== false : true)}
         ${sw('show_on_home', 'Показывать на главной', edit && m.show_on_home)}
         ${edit ? '<button type="button" class="rd-btn rd-btn-danger rd-btn-block ad-gap" data-del>Удалить площадку</button>' : ''}`,
@@ -449,10 +454,16 @@
         if (!/^https?:\/\//i.test(site)) site = 'https://' + site;
         if (logo.busy) bad('Подождите, логотип ещё загружается.');
         const so = parseInt(val(form, 'sort_order'), 10);
+        const df = parseInt(val(form, 'difficulty'), 10);
         const rec = {
           name, website_url: site, country,
           description: val(form, 'description'),
           instruction: val(form, 'instruction'),
+          tagline: val(form, 'tagline') || null,
+          badges: val(form, 'badges').split(',').map((x) => x.trim()).filter(Boolean).slice(0, 3),
+          steps: val(form, 'steps').split('\n').map((x) => x.trim()).filter(Boolean),
+          difficulty: df >= 1 && df <= 3 ? df : null,
+          needs_cn_account: checked(form, 'needs_cn_account'),
           categories: chipVals(form, 'categories'),
           gender: chipVals(form, 'gender'),
           requires_vpn: checked(form, 'requires_vpn'),
