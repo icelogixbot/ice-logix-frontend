@@ -37,6 +37,7 @@
       '#phoneGate .pg-ico{width:64px;height:64px;margin:0 auto 18px;border-radius:20px;background:var(--rd-s2);border:1px solid var(--rd-line);display:flex;align-items:center;justify-content:center;color:var(--rd-b300);}' +
       '#phoneGate h2{margin:0 0 10px;font-size:20px;font-weight:800;color:var(--rd-tx);}' +
       '#phoneGate p{margin:0 0 20px;font-size:14px;line-height:1.5;color:var(--rd-tx2);}' +
+      '#phoneGate .pg-help{margin-top:12px;background:transparent;border:1px solid var(--rd-line);color:var(--rd-tx2);}' +
       '#phoneGate .pg-note{margin:14px 0 0;font-size:12px;color:var(--rd-tx3);}' +
       '#phoneGate .pg-err{margin:14px 0 0;font-size:13px;color:var(--rd-bad);min-height:0;}';
     document.head.appendChild(st);
@@ -54,10 +55,16 @@
         '<p>Чтобы пользоваться ICE LOGIX, нужен белорусский номер +375. Это защищает ваш аккаунт и бонусы от подделок. Один номер — один аккаунт.</p>' +
         '<button class="rd-btn rd-btn-block" id="pgBtn" type="button">Поделиться номером</button>' +
         '<div class="pg-err" id="pgErr"></div>' +
+        '<button class="rd-btn rd-btn-block pg-help" id="pgHelp" type="button">Не получается? Написать в поддержку</button>' +
         '<div class="pg-note">Номер видит только ICE LOGIX. Мы не звоним без вашего заказа.</div>' +
       '</div>';
     document.body.appendChild(el);
 
+    const help = el.querySelector('#pgHelp');
+    help.addEventListener('click', () => {
+      if (typeof window.openSupport === 'function') window.openSupport({ reason: 'phone' });
+      else if (tg() && tg().openTelegramLink) tg().openTelegramLink('https://t.me/icelogix_support_bot?start=phone');
+    });
     const btn = el.querySelector('#pgBtn');
     const err = el.querySelector('#pgErr');
     const say = (t) => { err.textContent = t || ''; };

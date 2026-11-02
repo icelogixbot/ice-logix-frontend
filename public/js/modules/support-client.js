@@ -13,7 +13,7 @@
 
   function openSupport(opts) {
     const o = opts || {};
-    const payload = o.orderId ? `order_${o.orderId}` : 'app';
+    const payload = o.reason === 'phone' ? 'phone' : o.orderId ? `order_${o.orderId}` : 'app';
     const url = `https://t.me/${BOT}?start=${encodeURIComponent(payload)}`;
     const tg = window.Telegram && window.Telegram.WebApp;
     if (tg && tg.openTelegramLink) tg.openTelegramLink(url);
