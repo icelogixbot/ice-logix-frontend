@@ -591,7 +591,7 @@ window.renderSmartCalculator = async function() {
             <button type="button" id="calcPasteUrlBtn" class="rd-btn rd-btn-tonal rd-btn-sm" title="Вставить из буфера">${window.UI.icon('paste', 16)}Вставить</button>
           </div>
           <button type="button" id="calcAnalyzeLinkBtn" class="rd-btn rd-btn-block">${window.UI.icon('zap', 18)}Рассчитать</button>
-          <button type="button" id="calcCancelLinkBtn" class="rd-btn rd-btn-ghost rd-btn-block hidden">${window.UI.icon('x', 18)}Отменить</button>
+          <button type="button" id="calcCancelLinkBtn" class="rd-btn rd-btn-ghost rd-btn-block" style="display:none">${window.UI.icon('x', 18)}Отменить</button>
           <div id="calcLinkStatusBox" class="cl-status hidden"></div>
           <p class="cl-hint">Подтянем цену, размеры и цвета прямо со страницы товара.</p>
         </div>
@@ -861,11 +861,11 @@ window.renderSmartCalculator = async function() {
               analyzeBtn.disabled = false;
               analyzeBtn.innerHTML = origText;
               urlInp.value = '';
-              if (cancelBtn) cancelBtn.classList.add('hidden');
+              if (cancelBtn) cancelBtn.style.display = 'none';
               if (statusBox) { statusBox.className = 'cl-status hidden'; statusBox.innerHTML = ''; }
             };
             if (cancelBtn) {
-              cancelBtn.classList.remove('hidden');
+              cancelBtn.style.display = '';
               cancelBtn.onclick = () => {
                 if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
                 ctl.abort();
@@ -1188,7 +1188,7 @@ window.renderSmartCalculator = async function() {
               if (!gone()) {
                 analyzeBtn.disabled = false;
                 analyzeBtn.innerHTML = origText;
-                if (cancelBtn) cancelBtn.classList.add('hidden');
+                if (cancelBtn) cancelBtn.style.display = 'none';
               }
             }
           };
