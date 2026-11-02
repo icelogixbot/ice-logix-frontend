@@ -211,6 +211,9 @@ serve(async (req) => {
       // Пульт поддержки открывается и из бота поддержки — его подпись сделана другим токеном
       const supportToken = Deno.env.get('SUPPORT_BOT_TOKEN');
       if (!user && supportToken) user = await verifyTelegramWebAppData(initData, supportToken);
+      // Модерация открывается из бота-модератора — подпись его токеном
+      const moderatorToken = Deno.env.get('MODERATOR_BOT_TOKEN');
+      if (!user && moderatorToken) user = await verifyTelegramWebAppData(initData, moderatorToken);
     } else {
       user = await verifyTelegramWidgetData(widgetData, botToken);
     }
