@@ -1723,3 +1723,6 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 .rv-sentinel{height:1px}
 .rv-heart-pop{position:absolute;color:var(--rd-b300);pointer-events:none;animation:rvPop .8s ease-out forwards}
 @keyframes rvPop{0%{transform:scale(.3);opacity:0}30%{transform:scale(1.1);opacity:1}100%{transform:scale(1.4);opacity:0}}
+
+/* Шапка: активная иконка раздела — синий акцент */
+html body .app-header .header-center .icon-btn.active-header-btn { background: rgba(47,123,255,.18) !important; border-color: transparent !important; color: var(--rd-blue, #2f7bff) !important; box-shadow: none !important; }
