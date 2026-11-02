@@ -2828,6 +2828,10 @@ let adminOrdersTotalPages = 1;
           } else if (sp === 'calc') {
             switchTab('calculator');
           }
+          // Кнопка бота-модератора открывает приложение сразу на экране модерации (только владелец/админ)
+          if (new URLSearchParams(location.search).get('desk') === 'moderator' && typeof isOwner !== 'undefined' && isOwner && window.AD) {
+            setTimeout(() => { try { AD.open('admin_moderator', {}); } catch (e) { console.error('open moderator failed:', e); } }, 400);
+          } else
           // Вернулись из окна поддержки кнопкой «Назад»: открыть админку на прежнем месте без нового ввода код-пароля
           if (window.AD && typeof AD.resume === 'function') AD.resume();
         } catch (dlErr) { console.error('deep-link handling failed:', dlErr); }
