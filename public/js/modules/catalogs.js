@@ -146,7 +146,7 @@ function _mpCard(mp) {
   (mp.categories || []).slice(0, 2).forEach((c) => tags.push(`<span class="rd-status mp-cat">${U.esc(c)}</span>`));
   const url = (mp.website_url || mp.url || '').replace(/'/g, '%27');
   let _logoSrc = (typeof getMarketplaceLogo === 'function') ? getMarketplaceLogo(mp.name, mp.logo_url) : mp.logo_url;
-  if (_logoSrc && !/^data:/.test(_logoSrc) && _logoSrc.indexOf('?') < 0) _logoSrc += '?v=20261102_sq3';
+  if (_logoSrc && !/^data:/.test(_logoSrc) && _logoSrc.indexOf('?') < 0) _logoSrc += '?v=20261102_sq4';
   return `
     <div class="mp-card page-enter">
       <div class="mp-top">
