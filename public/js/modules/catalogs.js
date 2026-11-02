@@ -19,7 +19,7 @@ async function renderCatalogs() {
         </div>
         <div class="rd-row" id="openResaleBtn" role="button" tabindex="0">
           <span class="rd-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.5 1.5 0 0 1 0 2.1l-6.6 6.6a1.5 1.5 0 0 1-2.1 0z"/><circle cx="8" cy="8" r="1.1"/></svg></span>
-          <span class="rd-row-body"><span class="rd-row-title">Наличие</span><span class="rd-row-text">Покупка и продажа вещей клиентов, комиссия 2%.</span></span>
+          <span class="rd-row-body"><span class="rd-row-title">Вещи от клиентов <span id="resaleNewBadge" class="rd-status ok" hidden>Новинка</span></span><span class="rd-row-text">Проверено командой ICE LOGIX. Без комиссии.</span></span>
           <svg class="rd-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg>
         </div>
       </div>
@@ -35,6 +35,13 @@ function attachCatalogsHandlers() {
   if (marketplacesBtn) marketplacesBtn.onclick = () => { currentSubScreen = 'marketplaces'; renderCurrentScreen(); };
   if (productsBtn) productsBtn.onclick = () => { currentSubScreen = 'productsCatalog'; renderCurrentScreen(); };
   if (resaleBtn) resaleBtn.onclick = () => switchTab('resale');
+  if (resaleBtn && window.supabaseClient) {
+    window.supabaseClient.rpc('resale_catalog').then(({ data }) => {
+      const fresh = (data || []).some((x) => x.approved_at && Date.now() - new Date(x.approved_at).getTime() < 7 * 864e5);
+      const b = document.getElementById('resaleNewBadge');
+      if (fresh && b) b.hidden = false;
+    }).catch(() => {});
+  }
 }
 
 // ==================== ДЕФОЛТНЫЙ КАТАЛОГ КИТАЙСКИХ ПЛОЩАДОК ====================
