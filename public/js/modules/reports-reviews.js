@@ -209,7 +209,7 @@
         async function rvFetchPage(cat, from) {
           const run = async () => {
             let q = supabaseClient.from('reviews')
-              .select('id,user_name,category,rating,text,photo_urls,is_verified,is_pinned,likes_count,created_at,review_actions(details)')
+              .select('id,user_name,category,rating,text,photo_urls:media_urls,is_verified,is_pinned,likes_count,created_at,review_actions(details)')
               .eq('is_published', true);
             if (cat !== 'all') q = q.eq('category', cat);
             const { data, error } = await q
@@ -818,7 +818,7 @@
                   text: processedText,
                   user_name: userName || 'Пользователь',
                   is_verified: true,
-                  photo_urls: photoUrls,
+                  media_urls: photoUrls,
                   category: finalCategory,
                   region: finalCountry,
                   target_action_id: (action && action.id !== 'partnership_permanent') ? action.id : null,
