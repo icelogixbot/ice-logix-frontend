@@ -359,6 +359,24 @@ html body button.global-back-btn:has(span), html body button.global-back-btn:not
 .mp-step-t { font-size: 14px; line-height: 1.45; color: var(--rd-tx); padding-top: 4px; }
 .mp-note { margin: 16px 0 0; padding: 12px; background: var(--rd-s2); border-radius: var(--rd-r16, 16px); font-size: 13px; line-height: 1.45; color: var(--rd-tx2); white-space: pre-line; }
 .mp-how-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; }
+/* Мастер «Скачать приложение» */
+.mp-wiz { display: flex; flex-direction: column; gap: 12px; padding-bottom: 8px; }
+.mp-prog { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.mp-prog i { height: 4px; border-radius: 2px; background: var(--rd-s3); }
+.mp-prog i.done, .mp-prog i.on { background: var(--rd-accent, #2f7bff); }
+.mp-prog i.on { opacity: .55; }
+.mp-prog-l { margin: 0; font-size: 12px; color: var(--rd-tx2); }
+.mp-wiz-h { margin: 4px 0 0; font-size: 18px; font-weight: 700; color: var(--rd-tx); }
+.mp-wiz-p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--rd-tx2); }
+.mp-wiz-p b { color: var(--rd-tx); font-weight: 600; }
+.mp-wiz .mp-note { margin: 0; display: flex; gap: 8px; align-items: flex-start; }
+.mp-wiz .mp-steps { margin: 4px 0 0; }
+.mp-dev { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; background: var(--rd-s2); border-radius: 14px; }
+.mp-dev button { height: 38px; border: 0; border-radius: 10px; background: transparent; color: var(--rd-tx2); font-size: 14px; font-weight: 600; }
+.mp-dev button.on { background: var(--rd-s3); color: var(--rd-tx); }
+.mp-fold { background: var(--rd-s2); border-radius: var(--rd-r16, 16px); padding: 12px 14px; }
+.mp-fold summary { font-size: 14px; font-weight: 600; color: var(--rd-tx); cursor: pointer; }
+.mp-mini { margin: 10px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; line-height: 1.45; color: var(--rd-tx2); }
 
 /* ═══ Диалоги (glassModal: alert / confirm / popup) ═══ */
 html body .glass-modal-overlay { background: rgba(2, 4, 8, 0.66) !important; -webkit-backdrop-filter: blur(4px) !important; backdrop-filter: blur(4px) !important; }
@@ -1597,10 +1615,10 @@ html body #wbStickyDock {
 }
 
 /* Верхнее меню — зеркало нижнего: плоская чёрная панель до краёв, скруглены нижние углы.
-   Высота 80 = 16 сверху + 58 рабочих + 6 снизу (как нижнее меню); отступ экранов 90. */
+   Высота 56; отступ экранов 66. Модули по центру: 36px, по 10px сверху и снизу. */
 html body .app-header {
   top: 0 !important; left: 0 !important; right: 0 !important;
-  height: 64px !important;
+  height: 56px !important;
   padding: 16px 10px 0 9px !important;
   background: #000 !important;
   border: 0 !important;
@@ -1631,14 +1649,14 @@ html body .app-header .header-left { order: 0; gap: 0; flex: 0 0 auto; }
 html body .app-header .header-center { order: 1; margin: 0 auto; }
 html body .app-header .header-right { order: 2; flex: 0 0 auto; }
 html body .app-header .header-spacer { display: none !important; }
-html body .app-header .logo-img { height: 40px !important; width: auto; margin: 0 !important; display: block; filter: drop-shadow(0 0 14px rgba(47,123,255,.35)); }
+html body .app-header .logo-img { height: 36px !important; width: auto; margin: 0 !important; display: block; filter: drop-shadow(0 0 14px rgba(47,123,255,.35)); }
 
 html body .app-header .user-card {
-  height: 40px; padding: 0 4px 0 4px !important; gap: 6px !important;
+  height: 36px; padding: 0 4px 0 4px !important; gap: 6px !important;
   background: var(--rd-s2) !important; border: 1px solid var(--rd-line) !important;
   border-radius: 999px !important; box-shadow: none !important;
 }
-html body .app-header .user-avatar { width: 32px !important; height: 32px !important; border: 0 !important; font-size: 14px; }
+html body .app-header .user-avatar { width: 28px !important; height: 28px !important; border: 0 !important; font-size: 14px; }
 html body .app-header .balance-island {
   height: auto !important; padding: 0 !important; gap: 6px !important;
   background: none !important; border: 0 !important;
@@ -1646,18 +1664,18 @@ html body .app-header .balance-island {
 }
 html body .app-header .balance-info { display: flex; flex-direction: column; justify-content: center; min-width: 0; line-height: 1.1; }
 html body .app-header .balance-label { font-size: 10px; font-weight: 600; letter-spacing: .02em; color: var(--rd-tx3) !important; }
-html body .app-header .balance-amount { font-size: 14px !important; font-weight: 800 !important; margin-top: 1px; }
+html body .app-header .balance-amount { font-size: 13px !important; font-weight: 800 !important; margin-top: 1px; }
 html body .app-header .balance-icon svg { height: 13px; }
-html body .app-header .balance-add { width: 30px; height: 30px; font-size: 20px; font-weight: 500; box-shadow: 0 0 0 3px rgba(47,123,255,.18) !important; }
+html body .app-header .balance-add { width: 28px; height: 28px; font-size: 19px; font-weight: 500; box-shadow: 0 0 0 3px rgba(47,123,255,.18) !important; }
 
 html body .app-header .header-center {
-  height: 40px; padding: 0 3px; gap: 0;
+  height: 36px; padding: 0 3px; gap: 0;
   background: var(--rd-s2); border: 1px solid var(--rd-line); border-radius: 999px;
 }
-html body .app-header .header-center .icon-btn { width: 32px !important; height: 32px !important; border-radius: 50% !important; }
-html body .app-header .header-center .icon-btn svg { width: 19px; height: 19px; }
+html body .app-header .header-center .icon-btn { width: 30px !important; height: 30px !important; border-radius: 50% !important; }
+html body .app-header .header-center .icon-btn svg { width: 18px; height: 18px; }
 @media (max-width: 359px) {
-  html body .app-header .logo-img { height: 36px !important; }
+  html body .app-header .logo-img { height: 32px !important; }
 }
 
 /* Вещи от клиентов */
