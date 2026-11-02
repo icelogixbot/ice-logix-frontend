@@ -420,6 +420,9 @@
         ${fld('Плашки', inp('badges', { value: edit && Array.isArray(m.badges) ? m.badges.join(', ') : '', ph: 'Оригиналы, Ресейл, Кроссовки' }), 'Через запятую, до трёх штук.')}
         ${fld('Описание', area('description', edit ? m.description : '', 'Что покупают на этой площадке', 3))}
         ${fld('Шаги «как заказать»', area('steps', edit && Array.isArray(m.steps) ? m.steps.join('\n') : '', 'Каждый шаг с новой строки', 5), 'Если пусто, клиент увидит общие шаги.')}
+        ${fld('Приложение в App Store', inp('app_ios_url', { value: edit ? m.app_ios_url : '', ph: 'https://apps.apple.com/cn/app/…', type: 'url' }), 'Ссылка для iPhone (китайский App Store).')}
+        ${fld('Приложение в Google Play', inp('app_android_url', { value: edit ? m.app_android_url : '', ph: 'https://play.google.com/store/apps/details?id=…', type: 'url' }), 'Для Android. Если приложения нет в Play — оставьте пустым, откроется сайт.')}
+        ${fld('Подсказки по регистрации', area('register_steps', edit && Array.isArray(m.register_steps) ? m.register_steps.join('\n') : '', 'Каждый шаг с новой строки', 4), 'Показываются клиенту в мастере после установки приложения.')}
         ${fld('Заметка в инструкции', area('instruction', edit ? m.instruction : '', 'Необязательно: важное замечание под шагами', 3))}
         ${fld('Сложность (1–3)', inp('difficulty', { value: edit && m.difficulty ? m.difficulty : '', ph: '1 — легко, 3 — сложно', type: 'number', mode: 'numeric' }))}
         ${choice('categories', 'Категории', MK_CATS, edit && Array.isArray(m.categories) ? m.categories : [], true)}
@@ -461,6 +464,9 @@
           instruction: val(form, 'instruction'),
           tagline: val(form, 'tagline') || null,
           badges: val(form, 'badges').split(',').map((x) => x.trim()).filter(Boolean).slice(0, 3),
+          app_ios_url: val(form, 'app_ios_url') || null,
+          app_android_url: val(form, 'app_android_url') || null,
+          register_steps: val(form, 'register_steps').split('\n').map((x) => x.trim()).filter(Boolean),
           steps: val(form, 'steps').split('\n').map((x) => x.trim()).filter(Boolean),
           difficulty: df >= 1 && df <= 3 ? df : null,
           needs_cn_account: checked(form, 'needs_cn_account'),
