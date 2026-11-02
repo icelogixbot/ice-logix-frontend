@@ -33,7 +33,7 @@
     };
   }
 
-  async function fetchProduct(url, onProgress) {
+  async function fetchProduct(url, onProgress, signal) {
     const sb = window.supabaseClient;
     if (!sb) return null;
     const say = (label, pct, partial) => {
@@ -49,6 +49,7 @@
       && window.Telegram.WebApp.initDataUnsafe.user && window.Telegram.WebApp.initDataUnsafe.user.id)) || null;
 
     const { data: created, error } = await sb.rpc('pdd_job_create', { p_kind: 'product', p_input: input, p_user_id: uid });
+    if (signal && signal.aborted) return null;
     if (error) {
       if (/too many active jobs/i.test(error.message || '')) {
         throw new Error('У вас уже три товара в работе. Дождитесь их и попробуйте снова.');
@@ -62,6 +63,7 @@
     let lastPartial = null;
     while (Date.now() - started < MAX_WAIT_MS) {
       await new Promise((r) => setTimeout(r, created.status === 'done' ? 0 : POLL_MS));
+      if (signal && signal.aborted) return null;
       const { data, error: stErr } = await sb.rpc('pdd_job_status', { p_id: created.id, p_token: created.token });
       if (stErr || !data || !data.ok) continue;
       const pr = data.progress || {};

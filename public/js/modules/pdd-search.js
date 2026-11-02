@@ -136,6 +136,7 @@
         <div class="ps-progress-label">${esc(label)}</div>
         <div class="ps-bar"><i style="width:${pct}%"></i></div>
         <p class="ps-note">Ищем прямо в приложении Pinduoduo, это занимает до минуты.</p>
+        <button type="button" class="rd-btn rd-btn-ghost rd-btn-block" id="psCancel">${icon('x', 18)} Отменить</button>
       </div>`;
     }
     if (!S.results) return '';
@@ -193,11 +194,33 @@
     const out = document.getElementById('psOut');
     if (out) out.innerHTML = renderOut();
     bindResults();
+    const cancel = document.getElementById('psCancel');
+    if (cancel) cancel.onclick = cancelSearch;
+  }
+
+  // Отмена: бросаем ожидание, сбрасываем всё к начальному виду и перерисовываем экран
+  function cancelSearch() {
+    haptic('light');
+    S._run = (S._run || 0) + 1;
+    S._polling = false;
+    S.previews.forEach((src) => { try { URL.revokeObjectURL(src); } catch (_) { /* уже освобождён */ } });
+    S.authenticity = 'any';
+    S.priority = 50;
+    S.budget = '';
+    S.files = [];
+    S.previews = [];
+    S.query = '';
+    S.hint = '';
+    S.job = null;
+    S.results = null;
+    S.error = null;
+    if (typeof window.setCalcMode === 'function') window.setCalcMode(S._mode || 'hub');
   }
 
   // ── Обработчики ───────────────────────────────────────────────────────────
   function attach(mode) {
-    const $ = (id) => document.getElementById(id);
+    S._mode = mode;
+    const $ =(id) => document.getElementById(id);
     const drop = $('psDrop');
     const file = $('psFile');
     if (drop && file) {
@@ -303,6 +326,7 @@
     if (!isPhoto && (S.query || '').trim().length < 3) { U()?.toast('Опишите вещь хотя бы парой слов'); return; }
 
     haptic('medium');
+    const myRun = S._run = (S._run || 0) + 1;
     S.results = null;
     S.error = null;
     S.job = { progress: { label: isPhoto ? 'Загружаем фото' : 'Запускаем поиск', pct: 4 } };
@@ -312,6 +336,7 @@
 
     try {
       const { data: online } = await sb.rpc('pdd_worker_online');
+      if (S._run !== myRun) return;
       if (!online) {
         throw Object.assign(new Error('offline'), {
           ui: { title: 'Поиск сейчас недоступен', text: 'Наш сервер поиска не на связи. Попробуйте чуть позже или нажмите «Ввести цену вручную».' },
@@ -329,6 +354,7 @@
       };
       if (isPhoto) {
         input.images = await uploadPhotos();
+        if (S._run !== myRun) return;
         if (S.hint.trim()) input.hint = S.hint.trim().slice(0, 120);
       } else {
         input.text = S.query.trim().slice(0, 160);
@@ -338,6 +364,7 @@
         p_input: input,
         p_user_id: userId(),
       });
+      if (S._run !== myRun) return;
       if (error || !created?.id) {
         const busy = /too many/.test(error?.message || '');
         throw Object.assign(new Error('create'), {
@@ -350,6 +377,7 @@
       redrawOut();
       poll();
     } catch (e) {
+      if (S._run !== myRun) return;
       S.job = null;
       S.error = e.ui || { title: 'Не получилось начать поиск', text: 'Проверьте интернет и попробуйте ещё раз.' };
       haptic('error');
@@ -362,11 +390,13 @@
     const sb = window.supabaseClient;
     if (!S.job || !S.job.id || S._polling) return;
     S._polling = true;
+    const jobId = S.job.id;
     try {
       while (S.job && S.job.status !== 'done') {
         await new Promise((r) => setTimeout(r, POLL_MS));
-        if (!S.job) break;
+        if (!S.job || S.job.id !== jobId) break;
         const { data } = await sb.rpc('pdd_job_status', { p_id: S.job.id, p_token: S.job.token });
+        if (!S.job || S.job.id !== jobId) break; // отменили во время запроса
         if (!data || !data.ok) continue;
         S.job = { ...S.job, ...data };
         if (data.status === 'done' || data.status === 'partial') {
@@ -386,7 +416,7 @@
         redrawOut();
       }
     } finally {
-      S._polling = false;
+      if (!S.job || S.job.id === jobId) S._polling = false;
       const go = document.getElementById('psGo');
       if (go && (S.results || S.error)) go.disabled = false;
     }

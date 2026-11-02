@@ -591,6 +591,7 @@ window.renderSmartCalculator = async function() {
             <button type="button" id="calcPasteUrlBtn" class="rd-btn rd-btn-tonal rd-btn-sm" title="Вставить из буфера">${window.UI.icon('paste', 16)}Вставить</button>
           </div>
           <button type="button" id="calcAnalyzeLinkBtn" class="rd-btn rd-btn-block">${window.UI.icon('zap', 18)}Рассчитать</button>
+          <button type="button" id="calcCancelLinkBtn" class="rd-btn rd-btn-ghost rd-btn-block hidden">${window.UI.icon('x', 18)}Отменить</button>
           <div id="calcLinkStatusBox" class="cl-status hidden"></div>
           <p class="cl-hint">Подтянем цену, размеры и цвета прямо со страницы товара.</p>
         </div>
@@ -852,6 +853,25 @@ window.renderSmartCalculator = async function() {
             }
 
             const origText = analyzeBtn.innerHTML;
+            const ctl = new AbortController();
+            window._calcAbort = ctl;
+            const gone = () => ctl.signal.aborted;
+            const cancelBtn = document.getElementById('calcCancelLinkBtn');
+            const resetLinkForm = () => {
+              analyzeBtn.disabled = false;
+              analyzeBtn.innerHTML = origText;
+              urlInp.value = '';
+              if (cancelBtn) cancelBtn.classList.add('hidden');
+              if (statusBox) { statusBox.className = 'cl-status hidden'; statusBox.innerHTML = ''; }
+            };
+            if (cancelBtn) {
+              cancelBtn.classList.remove('hidden');
+              cancelBtn.onclick = () => {
+                if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+                ctl.abort();
+                resetLinkForm();
+              };
+            }
             analyzeBtn.disabled = true;
             analyzeBtn.innerHTML = '<span class="ug-load"><i></i>Читаем…</span>';
 
@@ -945,6 +965,7 @@ window.renderSmartCalculator = async function() {
             };
 
             const handleParsedBundle = (bundleData) => {
+              if (gone()) return;
               if (statusBox) statusBox.classList.add('hidden');
               const hasOpts = bundleData.has_options || (bundleData.colors && bundleData.colors.length > 0) || (bundleData.sizes && bundleData.sizes.length > 0) || (bundleData.spec_groups && bundleData.spec_groups.length > 0) || (bundleData.visual_options && bundleData.visual_options.length > 0);
               try {
@@ -1041,7 +1062,8 @@ window.renderSmartCalculator = async function() {
                     statusBox.innerHTML = `<span class="ug-load"><i></i>${safe(label)}${pct ? ` · ${Math.min(99, pct)}%` : ''}</span>`
                       + (name ? `<div class="mt-1 opacity-70">${safe(name)}</div>` : '');
                   };
-                  const bundle = await window.PddProduct.fetch(url, showStep);
+                  const bundle = await window.PddProduct.fetch(url, (...a) => { if (!gone()) showStep(...a); }, ctl.signal);
+                  if (gone()) return;
                   if (bundle) {
                     handleParsedBundle(bundle);
                     handled = true;
@@ -1065,6 +1087,7 @@ window.renderSmartCalculator = async function() {
                   const taskId = queueData.id;
                   for (let i = 0; i < 90; i++) {
                     await new Promise(r => setTimeout(r, 2000));
+                    if (gone()) return;
                     const { data: checkData, error: pollErr } = await supabaseClient
                       .from('parse_queue')
                       .select('status, price, title, weight_kg, currency, country, category, description, color, brand, marketplace_name, error_message, image_url')
@@ -1139,6 +1162,7 @@ window.renderSmartCalculator = async function() {
               }
 
             } catch (err) {
+              if (gone()) return;
               let rawMsg = (err && err.message) ? String(err.message) : '';
               let friendlyMsg = 'Не удалось распознать ссылку. Попробуйте еще раз или введите цену вручную.';
               if (rawMsg.includes('распродан') || rawMsg.includes('Распродан') || rawMsg.includes('нет в наличии') || rawMsg.includes('售罄')) {
@@ -1161,8 +1185,11 @@ window.renderSmartCalculator = async function() {
                 statusBox.textContent = friendlyMsg;
               }
             } finally {
-              analyzeBtn.disabled = false;
-              analyzeBtn.innerHTML = origText;
+              if (!gone()) {
+                analyzeBtn.disabled = false;
+                analyzeBtn.innerHTML = origText;
+                if (cancelBtn) cancelBtn.classList.add('hidden');
+              }
             }
           };
         }
