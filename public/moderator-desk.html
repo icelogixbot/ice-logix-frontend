@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Модерация ICE LOGIX</title>
+  <link rel="icon" type="image/png" href="/assets/splash-logo-512.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="/vendor/supabase.min.js"></script>
+  <link rel="stylesheet" href="/css/ice-redesign.css?v=20261031_th1">
+  <link rel="stylesheet" href="/css/ice-screens.css?v=20261031_co6">
+  <link rel="stylesheet" href="/css/moderator-desk.css?v=20261102_01">
+  <script src="/js/modules/ice-ui.js?v=20261102_01"></script>
+</head>
+<body class="md-body">
+  <!-- Проверка входа / нет доступа -->
+  <div id="mdGate" class="md-gate">
+    <div class="md-gate-spin" aria-label="Загрузка"></div>
+  </div>
+
+  <div id="mdApp" class="md-app" hidden>
+    <header class="md-bar">
+      <button type="button" class="md-icon-btn" id="mdBack" aria-label="Назад" hidden></button>
+      <div class="md-bar-txt">
+        <h1 class="md-title" id="mdTitle">Модерация</h1>
+        <p class="md-sub" id="mdSub"></p>
+      </div>
+      <button type="button" class="md-icon-btn" id="mdRefresh" aria-label="Обновить"></button>
+    </header>
+    <div class="md-tabs" id="mdTabs"><div class="rd-chips" id="mdChips"></div></div>
+    <main class="md-main" id="mdBody"></main>
+    <div class="md-cta" id="mdCta" hidden><button type="button" class="rd-btn rd-btn-block" id="mdCtaBtn"></button></div>
+  </div>
+
+  <script src="/js/modules/moderator-desk.js?v=20261102_01"></script>
+</body>
+</html>

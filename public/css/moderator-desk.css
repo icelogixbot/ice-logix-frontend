@@ -1,0 +1,53 @@
+/* ICE LOGIX — Модерация (moderator-desk.html), отдельное мини-приложение бота-модератора.
+   Токены --rd-* и компоненты rd-* из ice-redesign.css. Шапка и нижняя панель — плоские чёрные. Префикс: md-. */
+:root {
+  --md-safe-top: calc(env(safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
+  --md-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --md-h: var(--tg-viewport-height, 100dvh);
+}
+html, body.md-body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; }
+body.md-body { background: var(--rd-bg); color: var(--rd-tx); -webkit-tap-highlight-color: transparent; font-family: 'Inter', system-ui, sans-serif; }
+.md-body *, .md-body *::before, .md-body *::after { box-sizing: border-box; }
+:where(.md-body) button { font: inherit; color: inherit; -webkit-user-select: none; user-select: none; }
+.md-body [hidden] { display: none; }
+
+.md-gate { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.md-gate .rd-empty { max-width: 360px; }
+.md-gate-spin { width: 32px; height: 32px; border-radius: 50%; border: 3px solid var(--rd-line-2); border-top-color: var(--rd-b400); animation: mdSpin .8s linear infinite; }
+@keyframes mdSpin { to { transform: rotate(360deg); } }
+
+.md-app { display: flex; flex-direction: column; height: var(--md-h); overflow: hidden; }
+.md-bar { flex: none; display: flex; align-items: center; gap: 10px; padding: calc(var(--md-safe-top) + 10px) 16px 10px; background: var(--rd-bg); border-bottom: 1px solid var(--rd-line); border-radius: 0 0 22px 22px; }
+.md-bar-txt { flex: 1; min-width: 0; }
+.md-title { margin: 0; font-size: 20px; font-weight: 700; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.md-sub { margin: 2px 0 0; font-size: 13px; color: var(--rd-tx3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.md-icon-btn { flex: none; width: 42px; height: 42px; border-radius: 14px; border: 1px solid var(--rd-line); background: var(--rd-s2); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.md-icon-btn:active { background: var(--rd-s3); }
+.md-icon-btn.md-plain { width: 36px; height: 36px; border-radius: 12px; }
+
+.md-tabs { flex: none; padding: 12px 16px 0; overflow-x: auto; scrollbar-width: none; }
+.md-tabs::-webkit-scrollbar { display: none; }
+.md-tabs .rd-chips { flex-wrap: nowrap; }
+.md-tabs .rd-chip { white-space: nowrap; flex-shrink: 0; }
+
+.md-main { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 14px 16px calc(var(--md-safe-bottom) + 24px); }
+.md-main.has-cta { padding-bottom: calc(var(--md-safe-bottom) + 100px); }
+.md-cta { flex: none; position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(var(--md-safe-bottom) + 12px); background: var(--rd-bg); border-top: 1px solid var(--rd-line); border-radius: 22px 22px 0 0; }
+
+.md-stats { display: flex; gap: 8px; margin-bottom: 12px; }
+.md-stat { flex: 1; padding: 12px 14px; }
+.md-stat b { display: block; font-size: 20px; font-weight: 700; }
+.md-stat span { font-size: 12px; color: var(--rd-tx3); }
+.md-note { padding: 12px 14px; margin-bottom: 12px; display: flex; gap: 10px; align-items: flex-start; }
+.md-hint { margin: 0 0 8px; font-size: 13px; color: var(--rd-tx3); }
+.md-card { padding: 4px 14px; }
+
+.md-sw { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; color: var(--rd-tx); }
+.md-sw-t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.md-sw-t b { font-weight: 600; font-size: 15px; }
+.md-sw-t small { color: var(--rd-tx3); font-size: 12px; }
+.md-fld { display: flex; flex-direction: column; align-items: stretch; gap: 6px; padding: 10px 0; }
+.md-fld + .md-fld, .md-sw + .md-fld, .md-fld + .md-sw, .md-sw + .md-sw { border-top: 1px solid var(--rd-line); }
+.md-fld select { flex: 1; width: 100%; background: transparent; border: 0; outline: 0; color: var(--rd-tx); font-size: 15px; padding: 12px 0; }
+.md-fld textarea { width: 100%; min-height: 72px; resize: vertical; }
+.md-grp { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; }
