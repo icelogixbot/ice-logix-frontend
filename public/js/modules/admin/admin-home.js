@@ -39,6 +39,7 @@
     { id: 'content', icon: 'text', title: 'Контент', text: 'Тексты, вопросы, Академия, отзывы', go: { tab: 'admin_content' } },
     { id: 'team', icon: 'crown', title: 'Сотрудники', text: 'Кто работает и что может', go: { tab: 'admin_team' } },
     { id: 'settings', icon: 'sliders', title: 'Настройки', text: 'Оплата, реквизиты, ставки, рефералы', go: { tab: 'admin_settings' } },
+    { id: 'moderator', icon: 'shield', title: 'Модерация', text: 'Чаты, каналы, комментарии, бан везде', go: { tab: 'admin_moderator' } },
     { id: 'system', icon: 'shield', title: 'Система', text: 'Службы, очереди, журнал действий', go: { tab: 'admin_system' } },
   ];
 
