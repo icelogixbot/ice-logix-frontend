@@ -10,6 +10,22 @@
   const STAFF = ['owner', 'admin', 'support'];
   const ICON = '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 3h3l1.6 4.2-2 1.4a11 11 0 0 0 5.2 5.2l1.4-2L21 13.4v3a2.6 2.6 0 0 1-2.8 2.6A16.6 16.6 0 0 1 4 4.8 2.6 2.6 0 0 1 6.6 3z"/></svg>';
 
+  // Пока идёт проверка, главная закрыта чёрной завесой (ниже экрана блокировки): иначе она мелькает до экрана номера.
+  // Кто уже подтверждён на этом устройстве (флаг в localStorage), завесы не видит.
+  const OK_KEY = 'pg_ok';
+  function cover(on) { document.documentElement.classList.toggle('pg-wait', !!on); }
+  (function () {
+    const st = document.createElement('style');
+    st.textContent = 'html.pg-wait body::before{content:"";position:fixed;inset:0;z-index:2147482900;background:#000;}';
+    document.head.appendChild(st);
+    const app = window.Telegram && window.Telegram.WebApp;
+    const u = app && app.initDataUnsafe && app.initDataUnsafe.user;
+    let ok = null;
+    try { ok = localStorage.getItem(OK_KEY); } catch (_) {}
+    if (app && app.initData && !(u && String(u.id) === ok)) cover(true);
+  })();
+  function markOk(userId) { try { localStorage.setItem(OK_KEY, String(userId)); } catch (_) {} cover(false); }
+
   function tg() { return window.Telegram && window.Telegram.WebApp; }
   function tgUserId() { const u = tg() && tg().initDataUnsafe && tg().initDataUnsafe.user; return u ? u.id : null; }
   function validPhone(p) { return typeof p === 'string' && /^\+375\d{9}$/.test(p.replace(/[\s()-]/g, '')); }
@@ -59,6 +75,7 @@
         '<div class="pg-note">Номер видит только ICE LOGIX. Мы не звоним без вашего заказа.</div>' +
       '</div>';
     document.body.appendChild(el);
+    cover(false);
 
     const help = el.querySelector('#pgHelp');
     help.addEventListener('click', () => {
@@ -86,7 +103,7 @@
         for (let i = 0; i < 40 && !reason; i++) {
           await sleep(i < 6 ? 400 : 800);
           const p = await readProfile(userId);
-          if (p && validPhone(p.phone)) { el.remove(); try { app.HapticFeedback && app.HapticFeedback.notificationOccurred('success'); } catch (_) {} return; }
+          if (p && validPhone(p.phone)) { markOk(userId); el.remove(); try { app.HapticFeedback && app.HapticFeedback.notificationOccurred('success'); } catch (_) {} return; }
           const pc = p && p.settings && p.settings.phone_check;
           if (pc && pc.at !== seenAt) reason = pc.status;
         }
@@ -105,13 +122,15 @@
         if (data && data.session) {
           const p = await readProfile(userId);
           if (!p) { await sleep(800); continue; }
-          if (STAFF.includes(p.role) || validPhone(p.phone)) return;
+          if (STAFF.includes(p.role) || validPhone(p.phone)) { markOk(userId); return; }
+          try { localStorage.removeItem(OK_KEY); } catch (_) {}
           show(userId);
           return;
         }
       }
       await sleep(800);
     }
+    cover(false);
   }
 
   if (tg() && tg().initData) run();
