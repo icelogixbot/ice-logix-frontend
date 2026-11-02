@@ -102,7 +102,7 @@
   <link rel="stylesheet" href="/css/cart.css?v=20261024_48">
   <link rel="stylesheet" href="/css/ice-redesign.css?v=20261102_hd1">
   <link rel="stylesheet" href="/css/ice-redesign-compat.css?v=20261029_07">
-  <link rel="stylesheet" href="/css/ice-screens.css?v=20261103_mp1">
+  <link rel="stylesheet" href="/css/ice-screens.css?v=20261103_hd2">
   <link rel="stylesheet" href="/css/ice-admin.css?v=20261101_ib1">
   <link rel="stylesheet" href="/css/ice-light.css?v=20261102_lg3">
   <script src="/js/modules/browser-gate.js?v=20261101_spl1"></script>
@@ -263,14 +263,25 @@
          HEADER ISLAND - Floating navigation with balance widget
          ═══════════════════════════════════════════════════════════════════════ -->
     <div class="app-header">
-      <!-- LEFT: Balance + avatar -->
+      <!-- LOGO -->
+      <div class="header-right">
+        <img id="logoImg" class="logo-img" src="./assets/logo.png" alt="ICE LOGIX">
+      </div>
+
+      <!-- SPACER -->
+      <div class="header-spacer"></div>
+
+      <!-- Balance + avatar (одна капсула) -->
       <div class="header-left">
         <div class="user-card" id="userCard">
           <div class="user-avatar" id="avatar"></div>
           <div class="balance-island" id="balanceIsland">
+            <div class="balance-info">
+            <span class="balance-label">Баланс</span>
             <div class="balance-amount">
               <span id="headerBalance">0</span>
               <span class="balance-icon" aria-hidden="true" title="Баланс"><svg class="byn-sign byn-cyan" viewBox="0 0 650 800" fill="currentColor" aria-label="BYN" role="img"><path fill-rule="evenodd" d="M113 0H558V89H202V329H412A235 235 0 0 1 647 564A235 235 0 0 1 412 800H113V608H0V519H113V0ZM202 418H412A146 146 0 0 1 558 564A146 146 0 0 1 412 710H202V608H404V519H202V418Z"/></svg></span>
+            </div>
             </div>
             <button class="balance-add" id="addBalanceBtn" title="Пополнить баланс">+</button>
           </div>
@@ -279,9 +290,6 @@
         <button class="icon-btn" id="loginBtn" title="Войти/Зарегистрироваться" style="display:none; background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.4); color: #22d3ee; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 10px; white-space: nowrap;">Войти/Зарегистрироваться</button>
       </div>
       
-      <!-- SPACER 1 -->
-      <div class="header-spacer"></div>
-
       <!-- CENTER: Action buttons -->
       <div class="header-center">
         <button class="icon-btn" id="globalSearchBtn" title="Поиск">
@@ -305,13 +313,6 @@
         </button>
       </div>
 
-      <!-- SPACER 2 -->
-      <div class="header-spacer"></div>
-
-      <!-- RIGHT: Logo -->
-      <div class="header-right">
-        <img id="logoImg" class="logo-img" src="./assets/logo.png" alt="ICE LOGIX">
-      </div>
     </div>
     <script>
       try {
