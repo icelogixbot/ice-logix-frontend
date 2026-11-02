@@ -123,10 +123,13 @@ async function renderResale() {
     </div>`;
   try {
     const sb = window.supabaseClient;
-    const [catRes, subRes] = await Promise.all([
+    const [catRes, subRes, myRes] = await Promise.all([
       sb.rpc('resale_catalog'),
       sb.from('resale_subscriptions').select('user_id').limit(1),
+      sb.rpc('resale_my_purchases'),
     ]);
+    const mine = (myRes.data || []).map((m) => `<div class="rd-row" style="cursor:default"><span class="rd-row-body"><span class="rd-row-title">${U.esc(m.title)}</span><span class="rd-row-text">${U.money(Number(m.price_byn), { keepCents: true })} · деньги у нас, ждём вашего подтверждения</span></span><button type="button" class="rd-btn" onclick="resaleConfirm('${m.id}')">Получил</button></div>`).join('');
+    const mineBlock = mine ? `<div class="rd-card rd-list" style="margin-bottom:16px">${mine}</div>` : '';
     if (catRes.error) throw catRes.error;
     const items = catRes.data || [];
     window._resaleItems = items;
@@ -142,7 +145,7 @@ async function renderResale() {
         ['wallet', 'Деньги в безопасности', 'Оплата с баланса ICE LOGIX. Продавцу деньги уходят после того, как вы получили вещь.'],
       ].map(([ic, t, tx]) => `<div class="rd-row" style="cursor:default"><span class="rd-ico">${U.icon(ic, 22)}</span><span class="rd-row-body"><span class="rd-row-title">${t}</span><span class="rd-row-text">${tx}</span></span></div>`).join('');
       return `<div class="rd-screen page-enter">${head}
-        ${U.empty({ icon: 'tag', title: 'Пока нет вещей', text: 'Как только клиенты выставят новые вещи, они появятся здесь. Мы можем сообщить вам первыми.' })}
+        ${mineBlock}${U.empty({ icon: 'tag', title: 'Пока нет вещей', text: 'Как только клиенты выставят новые вещи, они появятся здесь. Мы можем сообщить вам первыми.' })}
         <div style="margin-top:4px">${subBtn}</div>
         <div class="rd-card rd-list" style="margin-top:20px">${steps}</div>
       </div>${typeof renderFooter === 'function' ? renderFooter() : ''}`;
@@ -158,7 +161,7 @@ async function renderResale() {
       </button>`;
     }).join('');
     return `<div class="rd-screen page-enter">${head}
-      <div class="rs-grid">${cards}</div>
+      ${mineBlock}<div class="rs-grid">${cards}</div>
       <div style="margin-top:18px">${subBtn}</div>
     </div>${typeof renderFooter === 'function' ? renderFooter() : ''}`;
   } catch (e) {
@@ -200,9 +203,24 @@ window.resaleOpen = (id) => {
   });
 };
 
-// Покупка (удержание денег) — подключается вместе с resale_buy
-window.resaleBuy = window.resaleBuy || function () {
-  window.UI.toast('Покупка скоро откроется', 'info');
+window.resaleBuy = async (id) => {
+  const U = window.UI;
+  const { error } = await window.supabaseClient.rpc('resale_buy', { p_id: id });
+  if (error) {
+    U.toast(error.message, 'error');
+    if (typeof renderCurrentScreen === 'function') renderCurrentScreen();
+    return;
+  }
+  U.toast('Куплено. Деньги у нас — продавцу они уйдут, когда вы получите вещь', 'success');
+  if (typeof renderCurrentScreen === 'function') renderCurrentScreen();
+};
+
+window.resaleConfirm = async (id) => {
+  const U = window.UI;
+  const { error } = await window.supabaseClient.rpc('resale_confirm', { p_id: id });
+  if (error) return U.toast(error.message, 'error');
+  U.toast('Спасибо! Сделка завершена', 'success');
+  if (typeof renderCurrentScreen === 'function') renderCurrentScreen();
 };
 
 // Global Exports
