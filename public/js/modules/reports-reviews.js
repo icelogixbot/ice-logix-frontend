@@ -361,11 +361,11 @@
           list.appendChild(sk);
           try {
             const rows = await rvFetchPage(rvState.cat, rvState.items.length);
-            if (token !== rvState.token) return;
+            if (token !== rvState.token) { sk.remove(); return; }
             const known = new Set(rvState.items.map(r => r.id));
             const fresh = rows.filter(r => !known.has(r.id));
             rvState.items = rvState.items.concat(fresh);
-            if (rows.length < RV_PAGE) rvState.done = true;
+            if (rows.length < RV_PAGE || !fresh.length) rvState.done = true;
             sk.remove();
             list.insertAdjacentHTML('beforeend', fresh.map(rvCardHtml).join(''));
           } catch (e) {
@@ -396,7 +396,7 @@
             list.innerHTML = rvListHtml(rows);
           } catch (e) {
             console.error('Reviews category load failed:', e);
-            if (token === rvState.token) list.innerHTML = UI.empty({ icon: 'alert', title: 'Не удалось загрузить', text: 'Попробуйте ещё раз.' });
+            if (token === rvState.token) { rvState.cat = ''; list.innerHTML = UI.empty({ icon: 'alert', title: 'Не удалось загрузить', text: 'Попробуйте ещё раз.' }); }
           } finally {
             if (token === rvState.token) rvState.loading = false;
           }
@@ -954,18 +954,18 @@
           });
 
           // Двойное касание по карточке — лайк
-          let lastTap = 0;
+          let lastTap = 0, lastCard = null;
           root.addEventListener('touchend', (e) => {
             const card = e.target.closest('.rv-card');
             if (!card || !card.dataset.reviewId || e.target.closest('button')) return;
             const now = Date.now();
-            if (now - lastTap < 300 && now - lastTap > 0) {
+            if (lastCard === card && now - lastTap < 300 && now - lastTap > 0) {
               e.preventDefault();
               const touch = e.changedTouches[0];
               const rect = card.getBoundingClientRect();
               triggerDoubleTapLike(card, card.dataset.reviewId, touch.clientX - rect.left - 32, touch.clientY - rect.top - 32);
             }
-            lastTap = now;
+            lastTap = now; lastCard = card;
           });
 
           // Подгрузка при прокрутке
