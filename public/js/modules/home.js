@@ -110,7 +110,7 @@ async function renderHome() {
     const _name = (typeof userName !== 'undefined' && userName && userName !== 'Гость') ? String(userName).split(' ')[0] : '';
     const _wl = (typeof wishlist !== 'undefined' && wishlist) ? wishlist : (window.wishlist || null);
     const _quick = [
-      { story: 'onboarding', icon: 'book', label: 'Покажем всё' },
+      { story: 'onboarding', icon: 'book', label: 'Всё по шагам' },
       { story: 'my_orders', icon: 'box', label: 'Мои заказы' },
       { story: 'promo', icon: 'gift', label: 'Акции' },
       { story: 'reviews', icon: 'star', label: 'Отзывы' },
