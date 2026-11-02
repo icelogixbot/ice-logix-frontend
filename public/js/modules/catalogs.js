@@ -145,10 +145,12 @@ function _mpCard(mp) {
   if (name.includes('tmall') || name.includes('jd')) tags.push('<span class="rd-status">Официальные бренды</span>');
   (mp.categories || []).slice(0, 2).forEach((c) => tags.push(`<span class="rd-status mp-cat">${U.esc(c)}</span>`));
   const url = (mp.website_url || mp.url || '').replace(/'/g, '%27');
+  let _logoSrc = (typeof getMarketplaceLogo === 'function') ? getMarketplaceLogo(mp.name, mp.logo_url) : mp.logo_url;
+  if (_logoSrc && !/^data:/.test(_logoSrc) && _logoSrc.indexOf('?') < 0) _logoSrc += '?v=20261102_1';
   return `
     <div class="mp-card page-enter">
       <div class="mp-top">
-        <span class="mp-logo">${mp.logo_url ? `<img src="${mp.logo_url}?v=20261014_55" alt="" loading="lazy" onerror="this.style.display='none'">` : U.icon('store', 26)}</span>
+        <span class="mp-logo">${_logoSrc ? `<img src="${_logoSrc}" alt="" decoding="async">` : U.icon('store', 26)}</span>
         <div class="mp-info">
           <div class="mp-name">${U.esc(mp.name === '95' ? '95fen' : mp.name)}${mp.requires_vpn ? '<span class="rd-status warn">VPN</span>' : ''}</div>
           <p class="mp-desc">${U.esc(mp.description || '')}</p>
