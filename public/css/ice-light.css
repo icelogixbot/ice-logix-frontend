@@ -184,7 +184,7 @@ html.light-theme .hm-how {
   box-shadow: var(--rd-card-shadow);
 }
 html.light-theme body .hm-q { box-shadow: var(--rd-card-shadow); }
-html.light-theme .hm-mp-logo { box-shadow: none; }
+html.light-theme .hm-mp-logo { border-color: var(--rd-line); box-shadow: var(--rd-card-shadow); }
 
 /* затемнение под окнами: в светлой теме мягче */
 html.light-theme .rd-sheet-backdrop { background: rgba(15, 23, 42, 0.36); }
