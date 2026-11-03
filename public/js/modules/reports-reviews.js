@@ -226,9 +226,9 @@
         function rvPlatformsHtml(config) {
           const sm = config.social_media_links || {};
           const maps = [
-            ['yandex-maps', 'Яндекс Карты', reviewLink(config.yandex_maps_link, 'https://yandex.by/maps/')],
-            ['google-maps', 'Google Maps', reviewLink(config.google_maps_link, 'https://maps.google.com/')],
-            ['2gis', '2ГИС', reviewLink(config.gis_2_link, 'https://2gis.by/')]
+            ['yandex-maps', 'Яндекс Карты', reviewLink(config.yandex_maps_link, 'https://yandex.by/maps/'), 'Яндекс'],
+            ['google-maps', 'Google Карты', reviewLink(config.google_maps_link, 'https://maps.google.com/'), 'Google'],
+            ['2gis', '2ГИС', reviewLink(config.gis_2_link, 'https://2gis.by/'), '2ГИС']
           ];
           const socials = [
             ['telegram', 'Telegram', reviewLink(config.telegram_group_link, 'https://t.me/')],
@@ -237,24 +237,23 @@
             ['instagram', 'Instagram', reviewLink(sm.instagram, 'https://www.instagram.com/')],
             ['facebook', 'Facebook', reviewLink(sm.facebook, 'https://www.facebook.com/')]
           ];
-          // Карты — крупные плитки-ссылки, соцсети — компактная полоса логотипов
-          const mapTile = ([key, name, url]) => `
+          // Карты — три плитки-ссылки (заголовок уже говорит «на картах», поэтому в плитке короткое имя), соцсети — полоса логотипов
+          const mapTile = ([key, name, url, short]) => `
             <button type="button" class="rv-map" data-rv-url="${rvEsc(url)}" aria-label="${name}">
-              <img class="rv-map-logo" src="/assets/reviews-platforms/${key}.webp" alt="" width="34" height="34" decoding="async">
-              <span class="rv-map-name">${name}</span>
-              <span class="rv-map-go">${UI.icon('arrowR', 12)}</span>
+              <img class="rv-map-logo" src="/assets/reviews-platforms/${key}.webp" alt="" width="28" height="28" decoding="async">
+              <span class="rv-map-name">${short}</span>
             </button>`;
           const socTile = ([key, name, url]) => `
             <button type="button" class="rv-soc-btn" data-rv-url="${rvEsc(url)}" aria-label="${name}">
-              <img src="/assets/reviews-platforms/${key}.webp" alt="" width="30" height="30" decoding="async">
+              <img src="/assets/reviews-platforms/${key}.webp" alt="" width="28" height="28" decoding="async">
             </button>`;
           return `
             <div class="rv-hub-head">
-              <div class="rv-eyebrow">${UI.icon('shield', 13)}Независимые площадки</div>
-              <div class="rv-hub-title">Читайте отзывы там, где их <span class="rv-hl">не&nbsp;удалить</span></div>
+              <div class="rv-hub-title">Отзывы о нас на картах</div>
+              <div class="rv-hub-sub">${UI.icon('shield', 14)}Пишут клиенты — удалить их мы не можем</div>
             </div>
             <div class="rv-maps">${maps.map(mapTile).join('')}</div>
-            <div class="rv-soc"><span class="rv-soc-label">И в наших соцсетях</span><div class="rv-soc-row">${socials.map(socTile).join('')}</div></div>`;
+            <div class="rv-soc"><span class="rv-soc-label">Мы в соцсетях</span><div class="rv-soc-row">${socials.map(socTile).join('')}</div></div>`;
         }
 
         function rvDetailsHtml(r) {
