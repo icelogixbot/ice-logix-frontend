@@ -1662,8 +1662,8 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
   box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 8px 18px -8px rgba(0,0,0,.45);
   transition:transform .42s cubic-bezier(.34,1.56,.64,1);animation:rv-tile-in .44s cubic-bezier(.34,1.4,.64,1) backwards;animation-delay:calc(var(--i,0) * 50ms + 120ms)}
 .rv-map:active{transform:scale(.97);transition-duration:.1s}
-.rv-map-logo{display:block;width:calc(100% - 34px);height:auto;aspect-ratio:1;transform:translateX(-5px);filter:drop-shadow(0 1px 1px rgba(0,0,0,.1)) drop-shadow(0 3px 5px rgba(0,0,0,.22))}
-.rv-map-foot{display:flex;flex-direction:column;align-items:center;gap:1px;width:100%;min-width:0;padding:0;transform:translateX(-5px)}
+.rv-map-logo{display:block;width:calc(100% - 34px);height:auto;aspect-ratio:1;transform:translateX(-10px);filter:drop-shadow(0 1px 1px rgba(0,0,0,.1)) drop-shadow(0 3px 5px rgba(0,0,0,.22))}
+.rv-map-foot{display:flex;flex-direction:column;align-items:center;gap:1px;width:100%;min-width:0;padding:0;transform:translateX(-10px)}
 .rv-map-name{max-width:100%;text-align:center;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:800;line-height:16px;letter-spacing:-.02em}
 .rv-map-rate{flex:0 0 auto;display:flex;align-items:center;gap:1px;font-size:12px;font-weight:800;line-height:16px;letter-spacing:-.01em;color:var(--rv-gold-d)}
 .rv-map-rate svg{width:11px;height:11px;color:var(--rv-gold-d)}
