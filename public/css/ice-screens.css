@@ -1667,6 +1667,7 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 .rv-map-name{max-width:100%;text-align:center;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:800;line-height:16px;letter-spacing:-.02em}
 .rv-map-rate{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:1px;margin-top:3px;padding:0 5px 0 9px;transform:translateX(1px);height:20px;border-radius:999px;background:var(--rd-blue);box-shadow:0 1px 4px rgba(0,0,0,.22);font-size:12px;font-weight:800;line-height:20px;letter-spacing:-.01em;color:#fff}
 .rv-map:first-child .rv-map-name{transform:translateX(.5px)}
+.rv-map:first-child .rv-map-rate{transform:translateX(.5px)}
 .rv-map-rate svg{width:11px;height:11px;color:#ffc83d}
 .rv-map-go{position:absolute;top:6px;right:6px;display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--rd-blue);box-shadow:0 1px 4px rgba(0,0,0,.22);color:#fff}
 .rv-map-go svg{width:12px;height:12px;transform:rotate(-45deg)}
