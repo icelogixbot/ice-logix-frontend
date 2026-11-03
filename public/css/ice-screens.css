@@ -1695,28 +1695,41 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 
 /* ===== Отзывы: один экран ===== */
 .rv .rd-chips{margin-bottom:14px}
-/* Площадки отзывов: плоская карточка, как обычные блоки экрана. Акцент — только иконка щита */
-.rv-hub{padding:12px 12px 4px;margin-bottom:12px}
-.rv-hub-head{margin:0 2px 10px}
-.rv-hub-title{font-size:16px;font-weight:700;line-height:20px;letter-spacing:-.01em;color:var(--rd-tx)}
-.rv-hub-sub{display:flex;align-items:center;gap:5px;margin-top:2px;font-size:12.5px;font-weight:500;line-height:16px;color:var(--rd-tx2)}
-.rv-hub-sub svg{flex:0 0 auto;color:var(--rd-b400)}
+/* Площадки отзывов: баннер-«герой» экрана (единственный на экране) — насыщенный синий, белые плитки карт, круглые соцсети */
+.rv-hub{position:relative;overflow:hidden;isolation:isolate;padding:14px 16px 14px;margin-bottom:14px;border:0;border-radius:var(--rd-r26);color:#fff;
+  background:radial-gradient(120% 90% at 0% 0%,color-mix(in srgb,var(--rd-b400) 55%,transparent) 0%,transparent 58%),linear-gradient(135deg,var(--rd-blue-hi) 0%,var(--rd-blue) 52%,color-mix(in srgb,var(--rd-blue) 70%,#000) 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),inset 0 -1px 0 rgba(0,0,0,.18),0 14px 32px -16px color-mix(in srgb,var(--rd-blue) 55%,transparent);
+  animation:rv-hub-in .42s cubic-bezier(.2,.8,.2,1) backwards}
+/* Декор фона: большое кольцо справа и мягкий круг снизу слева */
+.rv-hub::before{content:"";position:absolute;z-index:-1;top:-92px;right:-78px;width:230px;height:230px;border-radius:50%;border:22px solid rgba(255,255,255,.07)}
+.rv-hub::after{content:"";position:absolute;z-index:-1;left:-60px;bottom:-90px;width:200px;height:200px;border-radius:50%;background:color-mix(in srgb,var(--rd-blue) 60%,#000);opacity:.45}
+.rv-hub-art{position:absolute;z-index:-1;top:-4px;right:6px;width:80px;height:80px;transform:rotate(-8deg);pointer-events:none}
+.rv-hub-head{margin:0 0 10px;padding-right:84px}
+.rv-hub-title{font-size:24px;font-weight:800;line-height:1.1;letter-spacing:-.02em;color:#fff}
+.rv-hub-sub{margin-top:5px;font-size:13px;font-weight:500;line-height:17px;color:rgba(255,255,255,.8)}
 .rv-maps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.rv-map{display:flex;align-items:center;gap:8px;min-width:0;height:48px;padding:0 8px;border-radius:var(--rd-r12);background:var(--rd-s2);border:1px solid var(--rd-line);color:var(--rd-tx);text-align:left;-webkit-tap-highlight-color:transparent;transition:transform .12s ease,background-color .12s ease}
-.rv-map:active{transform:scale(.97);background:var(--rd-s3)}
-.rv-map-logo,.rv-soc-btn img{flex:0 0 auto;width:28px;height:28px;border-radius:8px;object-fit:cover;outline:1px solid color-mix(in srgb,var(--rd-tx) 8%,transparent);outline-offset:-1px}
-.rv-map-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:600;line-height:16px;letter-spacing:-.005em}
-.rv-soc{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px -12px 0;padding:0 6px 0 14px;border-top:1px solid var(--rd-line)}
-.rv-soc-label{min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:12.5px;font-weight:500;color:var(--rd-tx2);white-space:nowrap}
-.rv-soc-row{display:flex}
-.rv-soc-btn{display:flex;align-items:center;justify-content:center;width:40px;height:44px;border-radius:var(--rd-r12);-webkit-tap-highlight-color:transparent;transition:transform .12s ease,background-color .12s ease}
-.rv-soc-btn:active{transform:scale(.92);background:var(--rd-s2)}
-/* Телефоны 340–389 (iPhone mini/SE, Android 360): плитки плотнее, чтобы названия не обрезались */
-@media (max-width:389px){.rv-map{gap:6px;padding:0 6px}.rv-map-name{font-size:12.5px}}
-@media (max-width:374px){.rv-map-logo,.rv-soc-btn img{width:24px;height:24px;border-radius:7px}}
-/* Совсем узкие (до 340): логотип над названием, логотипы соцсетей плотнее */
-@media (max-width:339px){.rv-map{flex-direction:column;justify-content:center;gap:4px;height:62px;padding:0 4px}.rv-map-name{flex:0 0 auto;max-width:100%;font-size:12px}.rv-soc-btn{width:34px}.rv-soc{padding-left:12px;padding-right:4px}}
-@media (prefers-reduced-motion:reduce){.rv-map,.rv-soc-btn{transition:none}.rv-map:active,.rv-soc-btn:active{transform:none}}
+.rv-map{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0;padding:10px;border-radius:var(--rd-r16);background:#fff;color:color-mix(in srgb,var(--rd-blue) 20%,#000);text-align:left;-webkit-tap-highlight-color:transparent;
+  box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 8px 18px -8px rgba(0,0,0,.45);
+  transition:transform .42s cubic-bezier(.34,1.56,.64,1);animation:rv-tile-in .44s cubic-bezier(.34,1.4,.64,1) backwards;animation-delay:calc(var(--i,0) * 50ms + 120ms)}
+.rv-map:active{transform:scale(.97);transition-duration:.1s}
+.rv-map-logo{width:40px;height:40px;border-radius:var(--rd-r12);object-fit:cover;box-shadow:0 4px 10px -4px rgba(0,0,0,.35);outline:1px solid rgba(0,0,0,.06);outline-offset:-1px}
+.rv-map-name{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;font-weight:800;line-height:18px;letter-spacing:-.015em}
+.rv-map-go{position:absolute;top:8px;right:8px;display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:color-mix(in srgb,var(--rd-blue) 12%,#fff);color:var(--rd-blue)}
+.rv-map-go svg{transform:rotate(-45deg)}
+.rv-soc{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.16)}
+.rv-soc-label{flex:0 0 auto;font-size:13px;font-weight:700;line-height:16px;color:rgba(255,255,255,.9)}
+.rv-soc-row{display:flex;gap:6px}
+.rv-soc-btn{display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.6);-webkit-tap-highlight-color:transparent;
+  transition:transform .42s cubic-bezier(.34,1.56,.64,1);animation:rv-tile-in .44s cubic-bezier(.34,1.4,.64,1) backwards;animation-delay:calc(var(--i,0) * 50ms + 120ms)}
+.rv-soc-btn:active{transform:scale(.9);transition-duration:.1s}
+.rv-soc-btn img{width:32px;height:32px;border-radius:50%;object-fit:cover}
+@keyframes rv-hub-in{from{opacity:0;transform:translateY(8px) scale(.985)}}
+@keyframes rv-tile-in{from{opacity:0;transform:translateY(8px) scale(.94)}}
+/* Телефоны до 389 (Android 360, iPhone mini): плитки и кружки чуть меньше */
+@media (max-width:389px){.rv-hub{padding:14px 14px 12px}.rv-hub-title{font-size:22px}.rv-hub-sub{font-size:12.5px}.rv-hub-head{padding-right:70px}.rv-hub-art{width:70px;height:70px;right:4px}.rv-map{padding:9px 8px}.rv-map-logo{width:38px;height:38px}.rv-map-name{font-size:14px}.rv-soc-btn{width:40px;height:40px}.rv-soc-btn img{width:30px;height:30px}.rv-soc-row{gap:5px}}
+/* Совсем узкие (до 340): подпись соцсетей убираем, кружки по всей ширине */
+@media (max-width:339px){.rv-soc-label{display:none}.rv-soc-row{flex:1;justify-content:space-between}.rv-map-go{display:none}}
+@media (prefers-reduced-motion:reduce){.rv-hub,.rv-map,.rv-soc-btn{animation:none;transition:none}.rv-map:active,.rv-soc-btn:active{transform:none}}
 .rv-list{display:flex;flex-direction:column;gap:10px}
 .rv-card{position:relative;padding:14px;overflow:hidden}
 .rv-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}

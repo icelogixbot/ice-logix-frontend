@@ -237,23 +237,39 @@
             ['instagram', 'Instagram', reviewLink(sm.instagram, 'https://www.instagram.com/')],
             ['facebook', 'Facebook', reviewLink(sm.facebook, 'https://www.facebook.com/')]
           ];
-          // Карты — три плитки-ссылки (заголовок уже говорит «на картах», поэтому в плитке короткое имя), соцсети — полоса логотипов
-          const mapTile = ([key, name, url, short]) => `
-            <button type="button" class="rv-map" data-rv-url="${rvEsc(url)}" aria-label="${name}">
-              <img class="rv-map-logo" src="/assets/reviews-platforms/${key}.webp" alt="" width="28" height="28" decoding="async">
+          // Карты — три белые плитки на синем баннере (заголовок уже говорит «на картах», в плитке короткое имя), соцсети — круглые кнопки
+          const mapTile = ([key, name, url, short], i) => `
+            <button type="button" class="rv-map" style="--i:${i}" data-rv-url="${rvEsc(url)}" aria-label="${name}">
+              <img class="rv-map-logo" src="/assets/reviews-platforms/${key}.webp" alt="" width="40" height="40" decoding="async">
               <span class="rv-map-name">${short}</span>
+              <span class="rv-map-go">${UI.icon('arrowR', 14, { stroke: 2.2 })}</span>
             </button>`;
-          const socTile = ([key, name, url]) => `
-            <button type="button" class="rv-soc-btn" data-rv-url="${rvEsc(url)}" aria-label="${name}">
-              <img src="/assets/reviews-platforms/${key}.webp" alt="" width="28" height="28" decoding="async">
+          const socTile = ([key, name, url], i) => `
+            <button type="button" class="rv-soc-btn" style="--i:${i + 3}" data-rv-url="${rvEsc(url)}" aria-label="${name}">
+              <img src="/assets/reviews-platforms/${key}.webp" alt="" width="32" height="32" decoding="async">
             </button>`;
-          return `
+          // Объёмная метка карты со звездой — декор баннера
+          const art = `
+            <svg class="rv-hub-art" viewBox="0 0 96 96" aria-hidden="true">
+              <defs>
+                <linearGradient id="rvArtPin" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:#fff"/><stop offset=".55" style="stop-color:var(--rd-b300)"/><stop offset="1" style="stop-color:var(--rd-b400)"/></linearGradient>
+                <linearGradient id="rvArtCore" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--rd-blue-hi)"/><stop offset="1" style="stop-color:var(--rd-blue)"/></linearGradient>
+              </defs>
+              <ellipse cx="50" cy="88" rx="18" ry="4" fill="#000" opacity=".22"/>
+              <path d="M48 8c-16.6 0-30 12.9-30 29 0 20.4 30 48 30 48s30-27.6 30-48C78 20.9 64.6 8 48 8z" fill="url(#rvArtPin)"/>
+              <circle cx="48" cy="37" r="16" fill="url(#rvArtCore)"/>
+              <path d="m48 27.6 3 6.1 6.7.9-4.9 4.7 1.2 6.6-6-3.2-6 3.2 1.2-6.6-4.9-4.7 6.7-.9z" fill="#fff"/>
+              <ellipse cx="36" cy="20" rx="8" ry="4.2" fill="#fff" opacity=".7" transform="rotate(-32 36 20)"/>
+              <path d="M84 12l1.6 4.4L90 18l-4.4 1.6L84 24l-1.6-4.4L78 18l4.4-1.6z" fill="#fff" opacity=".85"/>
+              <path d="M12 58l1 2.8 2.8 1-2.8 1-1 2.8-1-2.8-2.8-1 2.8-1z" fill="#fff" opacity=".6"/>
+            </svg>`;
+          return `${art}
             <div class="rv-hub-head">
-              <div class="rv-hub-title">Отзывы о нас на картах</div>
-              <div class="rv-hub-sub">${UI.icon('shield', 14)}Пишут клиенты — удалить их мы не можем</div>
+              <div class="rv-hub-title">Отзывы на картах</div>
+              <div class="rv-hub-sub">Удалить отзыв не можем даже мы</div>
             </div>
             <div class="rv-maps">${maps.map(mapTile).join('')}</div>
-            <div class="rv-soc"><span class="rv-soc-label">Мы в соцсетях</span><div class="rv-soc-row">${socials.map(socTile).join('')}</div></div>`;
+            <div class="rv-soc"><span class="rv-soc-label">Мы в<br>соцсетях</span><div class="rv-soc-row">${socials.map(socTile).join('')}</div></div>`;
         }
 
         function rvDetailsHtml(r) {
