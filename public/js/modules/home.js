@@ -105,24 +105,33 @@ async function renderHome() {
     }
 
     const _U = window.UI;
-    const _hour = new Date().getHours();
-    const _greet = _hour < 5 ? 'Доброй ночи' : _hour < 12 ? 'Доброе утро' : _hour < 18 ? 'Добрый день' : 'Добрый вечер';
-    const _name = (typeof userName !== 'undefined' && userName && userName !== 'Гость') ? String(userName).split(' ')[0] : '';
+    const _A = window.HOME_ART || {};
     const _wl = (typeof wishlist !== 'undefined' && wishlist) ? wishlist : (window.wishlist || null);
     const _quick = [
-      { story: 'onboarding', icon: 'book', label: 'Всё по шагам' },
-      { story: 'my_orders', icon: 'box', label: 'Мои заказы' },
-      { story: 'promo', icon: 'gift', label: 'Акции' },
-      { story: 'reviews', icon: 'star', label: 'Отзывы' },
-      { story: 'reports', icon: 'camera', label: 'Фотоотчёты' },
-      { story: 'legitcheck', icon: 'shield', label: 'Легит-чек' },
+      { story: 'onboarding', label: 'Всё по шагам' },
+      { story: 'my_orders', label: 'Мои заказы' },
+      { story: 'promo', label: 'Акции' },
+      { story: 'reviews', label: 'Отзывы' },
+      { story: 'reports', label: 'Фотоотчёты' },
+      { story: 'legitcheck', label: 'Легит-чек' },
     ];
+    const _pickCards = homeProductsList.length ? homeProductsList.map(p => _U.productCard(p, _wl && _wl.has ? _wl.has(p.id) : false)).join('') : _U.gridSkeleton(2);
 
     return `
     <div class="hm page-enter">
-      <section class="hm-hello">
-        <div class="hm-hello-k">${_greet}${_name ? ', ' + _U.esc(_name) : ''}</div>
-        <h1 class="hm-hello-t">Что привезём из Китая?</h1>
+      <section class="hm-stories" aria-label="Площадки">
+        ${marketplaces.map((mp, i) => {
+          const logoSrc = getMarketplaceLogo(mp.name, mp.logo_url);
+          return `
+          <button type="button" class="story-card marketplace-story hm-mp" style="--i:${i}" data-url="${mp.website_url || mp.url}" data-name="${mp.name}">
+            <span class="hm-mp-ring"><span class="hm-mp-logo">${logoSrc ? `<img src="${logoSrc}" alt="" loading="eager" decoding="async">` : _U.icon('store', 24)}</span></span>
+            <span class="hm-mp-name">${mp.name === '95' ? '95fen' : mp.name}</span>
+          </button>`;
+        }).join('')}
+        <button type="button" class="hm-mp hm-mp-all" id="moreMarketplacesBtn" style="--i:${marketplaces.length}">
+          <span class="hm-mp-ring hm-mp-ring-all"><span class="hm-mp-logo">${_U.icon('chevR', 22)}</span></span>
+          <span class="hm-mp-name">Все</span>
+        </button>
       </section>
 
       <div class="banner-carousel-wrapper" id="bannerCarouselWrapper">
@@ -132,56 +141,46 @@ async function renderHome() {
         <div class="banner-dots" id="bannerDots"></div>
       </div>
 
-      <section class="hm-quick">
-        ${_quick.map(q => `
-          <button type="button" class="story-card hm-q" data-story="${q.story}">
-            <span class="hm-q-ico">${_U.icon(q.icon, 24)}</span>
+      <section class="hm-hub" id="hmHub">
+        <div class="hm-hub-head">
+          <div>
+            <div class="hm-hub-t">Всё для заказа</div>
+            <div class="hm-hub-s">Из Китая — в Беларусь</div>
+          </div>
+          <span class="hm-hub-art">${_A.hero || ''}</span>
+        </div>
+        <button type="button" class="hm-track" id="hmTrack" hidden>
+          <span class="hm-track-ico">${_A.my_orders || ''}</span>
+          <span class="hm-track-body">
+            <span class="hm-track-k" id="hmTrackK">Ваш заказ</span>
+            <span class="hm-track-t" id="hmTrackT"></span>
+            <span class="hm-track-bar" id="hmTrackBar"></span>
+          </span>
+          <span class="hm-track-go">${_U.icon('chevR', 18)}</span>
+        </button>
+        <div class="hm-tiles">
+          ${_quick.map((q, i) => `
+          <button type="button" class="story-card hm-q" data-story="${q.story}" style="--i:${i}">
+            <span class="hm-q-ico">${_A[q.story] || ''}</span>
             <span class="hm-q-label">${q.label}</span>
           </button>`).join('')}
-      </section>
-
-      <section class="hm-sec">
-        <div class="rd-section"><h2>Площадки</h2><button type="button" class="rd-link" id="moreMarketplacesBtn">Все ${_U.icon('chevR', 16)}</button></div>
-        <div class="hm-mp-row">
-          ${marketplaces.map(mp => {
-            const logoSrc = getMarketplaceLogo(mp.name, mp.logo_url);
-            return `
-            <button type="button" class="story-card marketplace-story hm-mp" data-url="${mp.website_url || mp.url}" data-name="${mp.name}">
-              <span class="hm-mp-logo">${logoSrc ? `<img src="${logoSrc}" alt="" loading="eager" decoding="async">` : _U.icon('store', 26)}</span>
-              <span class="hm-mp-name">${mp.name === '95' ? '95fen' : mp.name}</span>
-            </button>`;
-          }).join('')}
         </div>
       </section>
 
-      <section class="hm-sec">
-        <div class="hm-how">
-          <div class="hm-how-head">
-            <div>
-              <div class="hm-how-k">Как это работает</div>
-              <div class="hm-how-t">Заказ из Китая за 3 шага</div>
-            </div>
-            <span class="hm-how-badge">${_U.icon('zap', 18)}</span>
-          </div>
-          <ol class="hm-how-steps">
-            <li><span>1</span><div><b>Найдите вещь</b><small>На Poizon, Taobao или любой другой площадке</small></div></li>
-            <li><span>2</span><div><b>Вставьте ссылку</b><small>Посчитаем цену под ключ за минуту</small></div></li>
-            <li><span>3</span><div><b>Получите в Беларуси</b><small>Выкупим, проверим и привезём</small></div></li>
-          </ol>
-          <button type="button" class="rd-btn rd-btn-block" onclick="window.switchTab('calculator')">${_U.icon('calc', 20)}Рассчитать заказ</button>
-        </div>
-      </section>
-
-      <section class="hm-sec">
+      <section class="hm-sec" id="hmPickSec"${homeProductsList.length ? '' : ' data-empty-ok="1"'}>
         <div class="rd-section">
           <h2>Подборки дня</h2>
-          ${homeProductsList.length ? `<span class="rd-pill"><i></i>${homeProductsList.length} ${homeProductsList.length === 1 ? 'дроп' : (homeProductsList.length < 5 ? 'дропа' : 'дропов')}</span>` : ''}
+          <span class="hm-badge hm-badge-pick">${_U.icon('flame', 14)}Подборка дня</span>
         </div>
-        <div class="hm-grid" id="homeProductsGrid">
-          ${homeProductsList.length
-            ? homeProductsList.map(p => _U.productCard(p, _wl && _wl.has ? _wl.has(p.id) : false)).join('')
-            : _U.gridSkeleton(4)}
+        <div class="hm-grid" id="homeProductsGrid">${_pickCards}</div>
+      </section>
+
+      <section class="hm-sec" id="hmRecoSec">
+        <div class="rd-section">
+          <h2>Рекомендуем</h2>
+          <span class="hm-badge hm-badge-reco" id="hmRecoBadge">${_U.icon('sparkles', 14)}Для вас</span>
         </div>
+        <div class="hm-grid" id="homeRecoGrid">${_U.gridSkeleton(4)}</div>
       </section>
     </div>
   `;
@@ -246,7 +245,8 @@ function attachHomeHandlers() {
       });
 
       initCardSliders();
-      loadHomeProducts();
+      loadHomeTracker();
+      loadHomeProducts().then(loadHomeReco, loadHomeReco);
 
       document.querySelectorAll('.addToCartBtn').forEach(btn => {
         btn.onclick = (e) => {
@@ -298,7 +298,7 @@ function attachHomeHandlers() {
 
         if (existingCards.length === 0 || existingIds !== newIds) {
           if (data.length === 0) {
-            grid.innerHTML = '<div class="hm-grid-empty">' + window.UI.empty({ icon: 'sparkles', title: 'Подборки готовятся', text: 'Новые дропы появляются каждый день. Загляните чуть позже или посчитайте свой заказ.', action: 'Рассчитать заказ', onclick: "window.switchTab('calculator')" }) + '</div>';
+            const ps = document.getElementById('hmPickSec'); if (ps) ps.hidden = true;
           } else {
             grid.innerHTML = data.map(p => {
               const _inWish = ((typeof wishlist !== 'undefined' && wishlist?.has) ? wishlist.has(p.id) : (window.wishlist?.has ? window.wishlist.has(p.id) : false));
@@ -308,25 +308,9 @@ function attachHomeHandlers() {
           }
         }
 
-    const _cd = document.getElementById('content');
-    if (_cd && currentTab === 'home' && !currentSubScreen) {
-      _tabCache['home:'] = { html: _cd.innerHTML, ts: Date.now() };
-      try { localStorage.setItem('ice_tab_home_v2', _cd.innerHTML); } catch(e){}
-    }
-
-    grid.querySelectorAll('.addToCartBtn').forEach(btn => {
-      btn.onclick = (e) => {
-        e.stopPropagation();
-        const productId = btn.dataset.productId;
-        if (productId) {
-          if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('medium');
-          addToCart(productId, 1, true);
-          if (window.UI) window.UI.toast('Добавлено в корзину');
-          btn.classList.add('added-anim');
-          setTimeout(() => btn.classList.remove('added-anim'), 400);
-        }
-      };
-    });
+    const ps2 = document.getElementById('hmPickSec'); if (ps2 && data.length) ps2.hidden = false;
+    _bindHomeCart(grid);
+    _hmSnapshot();
 
     // Нажатие на карточку открывает страницу товара (см. ice-ui.js, делегированный обработчик)
 
@@ -336,6 +320,119 @@ function attachHomeHandlers() {
     console.error('Ошибка загрузки товаров на главной:', e);
   }
 }
+
+    // Снимок главной в кэш (для мгновенного открытия)
+    function _hmSnapshot() {
+      const _cd = document.getElementById('content');
+      if (_cd && currentTab === 'home' && !currentSubScreen) {
+        _tabCache['home:'] = { html: _cd.innerHTML, ts: Date.now() };
+        try { localStorage.setItem('ice_tab_home_v2', _cd.innerHTML); } catch(e){}
+      }
+    }
+
+    function _bindHomeCart(grid) {
+      grid.querySelectorAll('.addToCartBtn').forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          if (!window.userId) { window.requireAuth('Для добавления в корзину необходимо войти или зарегистрироваться.'); return; }
+          const productId = btn.dataset.productId;
+          if (productId) {
+            if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('medium');
+            addToCart(productId, 1, true);
+            if (window.UI) window.UI.toast('Добавлено в корзину');
+            btn.classList.add('added-anim');
+            setTimeout(() => btn.classList.remove('added-anim'), 400);
+          }
+        };
+      });
+    }
+
+    async function _hmClient() {
+      let c = (typeof supabaseClient !== 'undefined' && supabaseClient) ? supabaseClient : window.supabaseClient;
+      for (let w = 0; !c && w < 40; w++) {
+        await new Promise(r => setTimeout(r, 100));
+        c = (typeof supabaseClient !== 'undefined' && supabaseClient) ? supabaseClient : window.supabaseClient;
+      }
+      return c || null;
+    }
+
+    // Трекер активного заказа в блоке «Всё для заказа»
+    const _HM_STEPS = ['pending', 'paid', 'bought', 'on_sklad_cn', 'in_transit', 'customs', 'in_belarus', 'ready_for_pickup', 'dispatched', 'delivered'];
+    async function loadHomeTracker() {
+      const box = document.getElementById('hmTrack');
+      if (!box || !window.userId) return;
+      try {
+        const sb = await _hmClient();
+        if (!sb) return;
+        const { data } = await sb.from('orders')
+          .select('id,title,status,items,created_at')
+          .eq('user_id', window.userId)
+          .is('archived_at', null)
+          .not('status', 'in', '(delivered,cancelled,refunded)')
+          .order('created_at', { ascending: false })
+          .limit(1);
+        const o = data && data[0];
+        const hub = document.getElementById('hmHub');
+        if (!o) { box.hidden = true; hub && hub.classList.remove('has-order'); _hmSnapshot(); return; }
+        const st = window.UI.orderStatus(o.status);
+        const idx = Math.max(0, _HM_STEPS.indexOf(o.status));
+        const pct = Math.max(8, Math.round((idx + 1) / _HM_STEPS.length * 100));
+        const t = document.getElementById('hmTrackT');
+        const k = document.getElementById('hmTrackK');
+        const bar = document.getElementById('hmTrackBar');
+        if (k) k.textContent = st.tone === 'warn' || st.tone === 'bad' ? 'Нужно внимание' : 'Ваш заказ';
+        if (t) t.textContent = st.text + ' · ' + (window.UI.orderTitle(o) || 'Заказ');
+        if (bar) bar.style.setProperty('--p', pct + '%');
+        box.dataset.tone = st.tone || '';
+        box.hidden = false;
+        hub && hub.classList.add('has-order');
+        box.onclick = () => switchTab('profile', 'myOrders');
+        _hmSnapshot();
+      } catch (e) { console.warn('[ICE] tracker', e); }
+    }
+
+    // «Рекомендуем»: товары каталога, подбор по категориям заказов клиента
+    async function loadHomeReco() {
+      const grid = document.getElementById('homeRecoGrid');
+      const sec = document.getElementById('hmRecoSec');
+      if (!grid) return;
+      try {
+        const sb = await _hmClient();
+        if (!sb) return;
+        const { data } = await sb.from('products').select('*').eq('is_active', true)
+          .order('created_at', { ascending: false }).limit(40);
+        const pickIds = new Set(Array.from(document.querySelectorAll('#homeProductsGrid .product-card')).map(c => c.dataset.productId));
+        let list = preprocessProducts((data || []).filter(p => !pickIds.has(String(p.id))));
+        let personal = false;
+        if (window.userId && list.length) {
+          const { data: ords } = await sb.from('orders').select('items,category').eq('user_id', window.userId).order('created_at', { ascending: false }).limit(10);
+          const cats = new Set();
+          (ords || []).forEach(o => {
+            if (o.category) cats.add(String(o.category).toLowerCase());
+            (Array.isArray(o.items) ? o.items : []).forEach(i => i && i.category && cats.add(String(i.category).toLowerCase()));
+          });
+          if (cats.size) {
+            const hit = list.filter(p => cats.has(String(p.category || '').toLowerCase()));
+            if (hit.length) { personal = true; list = hit.concat(list.filter(p => !hit.includes(p))); }
+          }
+        }
+        list = list.slice(0, 8);
+        if (!list.length) { sec && (sec.hidden = true); _hmSnapshot(); return; }
+        sec && (sec.hidden = false);
+        const badge = document.getElementById('hmRecoBadge');
+        if (badge) badge.lastChild.textContent = personal ? 'Для вас' : 'Новинки';
+        grid.innerHTML = list.map(p => {
+          const w = ((typeof wishlist !== 'undefined' && wishlist?.has) ? wishlist.has(p.id) : (window.wishlist?.has ? window.wishlist.has(p.id) : false));
+          return renderWbProductCard(p, w);
+        }).join('');
+        initCardSliders();
+        _bindHomeCart(grid);
+        _hmSnapshot();
+      } catch (e) {
+        console.warn('[ICE] reco', e);
+        if (sec) sec.hidden = true;
+      }
+    }
 
     function scrollToPageTop() {
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });

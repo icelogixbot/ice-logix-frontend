@@ -3801,8 +3801,17 @@ let adminOrdersTotalPages = 1;
         window._bannerScrollInterval = null;
       }
 
+      // Бесконечная карусель в одну сторону: после последнего слайда — клон первого, затем тихий прыжок на начало
+      container.querySelectorAll('[data-clone]').forEach(n => n.remove());
       const slides = container.querySelectorAll('.banner-slide');
       const count = slides.length;
+      let cloneSlide = null;
+      if (count > 1) {
+        cloneSlide = slides[0].cloneNode(true);
+        cloneSlide.setAttribute('data-clone', '1');
+        cloneSlide.setAttribute('aria-hidden', 'true');
+        container.appendChild(cloneSlide);
+      }
       if (count <= 1) {
         if (dotsContainer) dotsContainer.innerHTML = '';
         return;
@@ -3834,8 +3843,9 @@ let adminOrdersTotalPages = 1;
 
       function scrollToSlide(idx) {
         if (!container || slides.length === 0) return;
+        const wrapAround = idx >= count && cloneSlide;
         currentIndex = (idx + count) % count;
-        const targetSlide = slides[currentIndex];
+        const targetSlide = wrapAround ? cloneSlide : slides[currentIndex];
         if (targetSlide) {
           container.scrollTo({
             left: targetSlide.offsetLeft,
@@ -3847,8 +3857,7 @@ let adminOrdersTotalPages = 1;
 
       function nextSlide() {
         if (isInteracting) return;
-        const next = (currentIndex + 1) % count;
-        scrollToSlide(next);
+        scrollToSlide(currentIndex + 1);
       }
 
       function startTimer() {
@@ -3868,14 +3877,23 @@ let adminOrdersTotalPages = 1;
         if (!container) return;
         const scrollPos = container.scrollLeft;
         const w = container.clientWidth || 1;
-        const newIdx = Math.min(count - 1, Math.max(0, Math.round(scrollPos / w)));
+        const newIdx = Math.max(0, Math.round(scrollPos / w)) % count;
         if (newIdx !== currentIndex) {
           currentIndex = newIdx;
           updateDots(currentIndex);
         }
       }
 
+      let settleTimer = null;
       container.addEventListener('scroll', () => {
+        clearTimeout(settleTimer);
+        settleTimer = setTimeout(() => {
+          if (cloneSlide && container.scrollLeft >= cloneSlide.offsetLeft - 2) {
+            container.style.scrollBehavior = 'auto';
+            container.scrollLeft = 0;
+            requestAnimationFrame(() => { container.style.scrollBehavior = ''; });
+          }
+        }, 140);
         if (!isBannerScrollTicking) {
           isBannerScrollTicking = true;
           window.requestAnimationFrame(() => {
