@@ -269,7 +269,7 @@
               <div class="rv-hub-sub">Удалить отзыв не можем даже мы</div>
             </div>
             <div class="rv-maps">${maps.map(mapTile).join('')}</div>
-            <div class="rv-soc"><span class="rv-soc-label">Мы в<br>соцсетях</span><div class="rv-soc-row">${socials.map(socTile).join('')}</div></div>`;
+            <div class="rv-soc"><span class="rv-soc-label">Отзывы в<br>наших<br>соцсетях</span><div class="rv-soc-row">${socials.map(socTile).join('')}</div></div>`;
         }
 
         function rvDetailsHtml(r) {

@@ -1705,7 +1705,7 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 .rv-hub::after{content:"";position:absolute;z-index:-1;left:-60px;bottom:-90px;width:200px;height:200px;border-radius:50%;background:color-mix(in srgb,var(--rd-blue) 60%,#000);opacity:.45}
 .rv-hub-art{position:absolute;z-index:-1;top:-4px;right:6px;width:80px;height:80px;transform:rotate(-8deg);pointer-events:none}
 .rv-hub-head{margin:0 0 10px;padding-right:84px}
-.rv-hub-title{font-size:24px;font-weight:800;line-height:1.1;letter-spacing:-.02em;color:#fff}
+.rv-hub-title{font-size:24px;font-weight:800;line-height:1.1;letter-spacing:.01em;color:#fff}
 .rv-hub-sub{margin-top:5px;font-size:13px;font-weight:500;line-height:17px;color:rgba(255,255,255,.8)}
 .rv-maps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .rv-map{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0;padding:10px;border-radius:var(--rd-r16);background:#fff;color:color-mix(in srgb,var(--rd-blue) 20%,#000);text-align:left;-webkit-tap-highlight-color:transparent;
@@ -1717,16 +1717,16 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 .rv-map-go{position:absolute;top:8px;right:8px;display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:color-mix(in srgb,var(--rd-blue) 12%,#fff);color:var(--rd-blue)}
 .rv-map-go svg{transform:rotate(-45deg)}
 .rv-soc{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.16)}
-.rv-soc-label{flex:0 0 auto;font-size:13px;font-weight:700;line-height:16px;color:rgba(255,255,255,.9)}
+.rv-soc-label{flex:0 0 auto;font-size:12.5px;font-weight:700;line-height:15px;color:rgba(255,255,255,.9)}
 .rv-soc-row{display:flex;gap:6px}
-.rv-soc-btn{display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.6);-webkit-tap-highlight-color:transparent;
+.rv-soc-btn{display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:12px;-webkit-tap-highlight-color:transparent;
   transition:transform .42s cubic-bezier(.34,1.56,.64,1);animation:rv-tile-in .44s cubic-bezier(.34,1.4,.64,1) backwards;animation-delay:calc(var(--i,0) * 50ms + 120ms)}
 .rv-soc-btn:active{transform:scale(.9);transition-duration:.1s}
-.rv-soc-btn img{width:32px;height:32px;border-radius:50%;object-fit:cover}
+.rv-soc-btn img{width:42px;height:42px;border-radius:12px;object-fit:cover;box-shadow:0 2px 6px rgba(0,20,70,.3)}
 @keyframes rv-hub-in{from{opacity:0;transform:translateY(8px) scale(.985)}}
 @keyframes rv-tile-in{from{opacity:0;transform:translateY(8px) scale(.94)}}
 /* Телефоны до 389 (Android 360, iPhone mini): плитки и кружки чуть меньше */
-@media (max-width:389px){.rv-hub{padding:14px 14px 12px}.rv-hub-title{font-size:22px}.rv-hub-sub{font-size:12.5px}.rv-hub-head{padding-right:70px}.rv-hub-art{width:70px;height:70px;right:4px}.rv-map{padding:9px 8px}.rv-map-logo{width:38px;height:38px}.rv-map-name{font-size:14px}.rv-soc-btn{width:40px;height:40px}.rv-soc-btn img{width:30px;height:30px}.rv-soc-row{gap:5px}}
+@media (max-width:389px){.rv-hub{padding:14px 14px 12px}.rv-hub-title{font-size:22px}.rv-hub-sub{font-size:12.5px}.rv-hub-head{padding-right:70px}.rv-hub-art{width:70px;height:70px;right:4px}.rv-map{padding:9px 8px}.rv-map-logo{width:38px;height:38px}.rv-map-name{font-size:14px}.rv-soc-btn{width:38px;height:38px}.rv-soc-btn img{width:38px;height:38px;border-radius:11px}.rv-soc-row{gap:5px}}
 /* Совсем узкие (до 340): подпись соцсетей убираем, кружки по всей ширине */
 @media (max-width:339px){.rv-soc-label{display:none}.rv-soc-row{flex:1;justify-content:space-between}.rv-map-go{display:none}}
 @media (prefers-reduced-motion:reduce){.rv-hub,.rv-map,.rv-soc-btn{animation:none;transition:none}.rv-map:active,.rv-soc-btn:active{transform:none}}
