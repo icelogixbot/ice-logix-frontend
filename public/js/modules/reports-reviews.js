@@ -194,7 +194,7 @@
           ['legitcheck', 'Legit Check'], ['partnership', 'Партнёрство']
         ];
         const RV_CAT_LABEL = Object.fromEntries(RV_CATS);
-        const RV_SORTS = [['new', 'Новые'], ['best', 'Лучшие'], ['photo', 'С фото']];
+        const RV_SORTS = [['new', 'Новые'], ['best', 'Лучшие'], ['photo', 'С медиа']];
         const rvState = { cat: 'all', sort: 'new', stats: null, demo: false, items: [], done: false, loading: false, token: 0, obs: null, failed: false };
         // Значок «Полезно» (линейный, как остальные иконки)
         const RV_THUMB = '<svg class="rv-thumb" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 11v9H4.5A1.5 1.5 0 0 1 3 18.5v-6A1.5 1.5 0 0 1 4.5 11z"/><path d="m7 11 3.6-7a2 2 0 0 1 3.7 1.3L13.6 9H19a2 2 0 0 1 2 2.4l-1.4 7A2 2 0 0 1 17.6 20H7"/></svg>';
@@ -465,7 +465,7 @@
         }
 
         function rvEmptyHtml() {
-          if (rvState.sort === 'photo') return UI.empty({ icon: 'image', title: 'Пока нет отзывов с фото', text: 'Фотоотзывы появятся здесь, как только клиенты их добавят.' });
+          if (rvState.sort === 'photo') return UI.empty({ icon: 'image', title: 'Пока нет отзывов с медиа', text: 'Фотоотзывы появятся здесь, как только клиенты их добавят.' });
           return UI.empty({ icon: 'message', title: 'Пока нет отзывов', text: 'Отзывы появляются после получения заказа. Скоро здесь будут первые.' });
         }
 
@@ -499,7 +499,7 @@
             all: wrap(`${sh}${cube('#d6ebff', '#5b97ff', '#2358f0')}<polygon points="32,8 55,21 32,34 9,21" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1.2"/>${gl(22, 20, 7, 3, -28)}<path d="M50 6l1.6 4.4L56 12l-4.4 1.6L50 18l-1.6-4.4L44 12l4.4-1.6z" fill="#fff"/>`),
             orders: wrap(`${sh}${cube('#ffd793', '#ffa043', '#e3711a')}<polygon points="18.2,14.5 23.8,17.5 45.8,29.5 40.2,26.5" fill="#fff6dc" opacity=".92"/><polygon points="32,34 40.2,29.5 40.2,53.5 32,58" fill="#fff6dc" opacity=".16"/><rect x="13" y="34" width="9" height="7" rx="1.5" fill="#fff" opacity=".85" transform="skewY(30) translate(0 -7.5)"/>${gl(24, 19, 5, 2.2, -28)}`),
             promotions: wrap(`<defs>${g('p', '#ff9bb0', '#e8266a')}</defs>${sh}<g transform="rotate(-16 32 32)"><path d="M14 24H40L54 36L40 48H14A4 4 0 0 1 10 44V28A4 4 0 0 1 14 24Z" fill="#a8174a"/><path d="M14 18H40L54 30L40 42H14A4 4 0 0 1 10 38V22A4 4 0 0 1 14 18Z" fill="url(#rv3-p)"/><circle cx="44" cy="30" r="3.2" fill="#7a0f33"/><text x="24" y="37" font-size="21" font-weight="900" fill="#fff" text-anchor="middle" font-family="Arial,Helvetica,sans-serif">%</text><ellipse cx="20" cy="22.5" rx="8" ry="2.6" fill="#fff" opacity=".5"/></g>`),
-            dropshipping: wrap(`<defs>${g('d1', '#6cf0c0', '#0e9f78')}${g('d2', '#37d6a2', '#0a7e5e')}</defs>${sh}<polygon points="5,19 10,13 43,13 38,19" fill="#b5f8de"/><rect x="5" y="19" width="33" height="24" rx="3" fill="url(#rv3-d1)"/><path d="M38 27h10l9 9v7H38z" fill="url(#rv3-d2)"/><polygon points="42,29.5 47.5,29.5 52,35 42,35" fill="#d9f6ff"/><circle cx="18" cy="46" r="6.5" fill="#16213d"/><circle cx="18" cy="46" r="2.6" fill="#b9c4e0"/><circle cx="47" cy="46" r="6.5" fill="#16213d"/><circle cx="47" cy="46" r="2.6" fill="#b9c4e0"/><rect x="9" y="24" width="12" height="3" rx="1.5" fill="#fff" opacity=".45"/>`),
+            dropshipping: wrap(`<defs>${g('d1', '#ffe98a', '#f2a30f')}${g('d2', '#7df0b8', '#12a56e')}</defs>${sh}<rect x="6" y="14" width="46" height="26" rx="4" fill="url(#rv3-d2)" transform="rotate(-9 29 27)"/><rect x="10" y="18" width="38" height="18" rx="2.5" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="1.4" transform="rotate(-9 29 27)"/><circle cx="29" cy="26" r="5.2" fill="#fff" opacity=".85" transform="rotate(-9 29 27)"/><ellipse cx="41" cy="50" rx="15" ry="5.6" fill="#b86e00"/><rect x="26" y="40" width="30" height="10" fill="#d98a06"/><ellipse cx="41" cy="40" rx="15" ry="5.6" fill="url(#rv3-d1)"/><ellipse cx="41" cy="40" rx="9.5" ry="3.3" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1.3"/><ellipse cx="22" cy="53" rx="12" ry="4.6" fill="#b86e00"/><rect x="10" y="46" width="24" height="7" fill="#d98a06"/><ellipse cx="22" cy="46" rx="12" ry="4.6" fill="url(#rv3-d1)"/><ellipse cx="22" cy="46" rx="7.2" ry="2.6" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1.2"/>`),
             referral: wrap(`<defs>${g('r1', '#c7a8ff', '#6a35e0')}${g('r2', '#e0ccff', '#8f5af2')}${g('r3', '#ffe27a', '#ffa91f')}</defs>${sh}<rect x="14" y="30" width="36" height="26" rx="4" fill="url(#rv3-r1)"/><rect x="10" y="22" width="44" height="11" rx="4" fill="url(#rv3-r2)"/><rect x="28.5" y="22" width="7" height="34" fill="url(#rv3-r3)"/><ellipse cx="23" cy="16" rx="8" ry="5.2" fill="none" stroke="#ffbe3a" stroke-width="3.4" transform="rotate(-24 23 16)"/><ellipse cx="41" cy="16" rx="8" ry="5.2" fill="none" stroke="#ffbe3a" stroke-width="3.4" transform="rotate(24 41 16)"/><circle cx="32" cy="19.5" r="4" fill="url(#rv3-r3)"/><rect x="16" y="34" width="6" height="14" rx="3" fill="#fff" opacity=".28"/>`),
             advertising: wrap(`<defs>${g('a1', '#ffab7e', '#ee3f24')}</defs>${sh}<path d="M17 38l3 14a3 3 0 0 0 6 -1l-1.6 -12z" fill="#a82712"/><rect x="6" y="25" width="10" height="15" rx="3" fill="#c52f19"/><path d="M14 25L41 11V53L14 40Z" fill="url(#rv3-a1)"/><ellipse cx="42" cy="32" rx="6" ry="21" fill="#ffe3d4"/><ellipse cx="42" cy="32" rx="3.4" ry="15" fill="#ff8a63" opacity=".55"/><path d="M52 21q6 11 0 22" stroke="#ffb597" stroke-width="3.2" fill="none" stroke-linecap="round"/><path d="M58 15q10 17 0 34" stroke="#ffb597" stroke-width="2.6" fill="none" stroke-linecap="round" opacity=".7"/><path d="M18 30L36 21" stroke="#fff" stroke-opacity=".55" stroke-width="3" stroke-linecap="round"/>`),
             legitcheck: wrap(`<defs>${g('l1', '#8bf59a', '#1fae45')}</defs>${sh}<path d="M32 5L54 13V30C54 44 44 53 32 58C20 53 10 44 10 30V13Z" fill="url(#rv3-l1)"/><path d="M32 5L54 13V30C54 44 44 53 32 58Z" fill="#0a7a2c" opacity=".3"/><path d="M21 32L29 40L44 24" stroke="#0a6b27" stroke-opacity=".5" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 2)"/><path d="M21 32L29 40L44 24" stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="22" cy="15" rx="9" ry="3.4" fill="#fff" opacity=".5" transform="rotate(-18 22 15)"/>`),
@@ -511,7 +511,7 @@
           return RV_CATS.map(([id, label], k) => {
             const n = rvCatRows(id).length;
             return `<button type="button" class="rv-cat c-${id} ${rvState.cat === id ? 'on' : ''}" data-rv-cat="${id}" style="--i:${k}" aria-pressed="${rvState.cat === id}">
-              <span class="rv-cat-ic">${RV_3D[id] || RV_3D.all}${n ? `<b class="rv-cat-n">${n}</b>` : ''}</span>
+              ${n ? `<b class="rv-cat-n">${n}</b>` : ''}<span class="rv-cat-ic">${RV_3D[id] || RV_3D.all}</span>
               <span class="rv-cat-t">${label}</span></button>`;
           }).join('');
         }
