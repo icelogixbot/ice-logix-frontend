@@ -356,7 +356,7 @@
             return v >= 1 && v <= 5 ? `<span class="rv-map-rate">${v.toFixed(1).replace('.', ',')}<svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 17.5l-5.9 3.2 1.2-6.6-4.8-4.6 6.6-.9z" fill="currentColor"/></svg></span>` : '';
           };
           const mapTile = ([key, name, url, short, rateKey], i) => `
-            <button type="button" class="rv-map" style="--i:${i}" data-rv-url="${rvEsc(url)}" aria-label="${name}">
+            <button type="button" class="rv-map${mapRate(rateKey) ? ' has-rate' : ''}" style="--i:${i}" data-rv-url="${rvEsc(url)}" aria-label="${name}">
               <img class="rv-map-logo" src="/assets/reviews-platforms/${key}.webp?v=20261103_lg" alt="" width="40" height="40" decoding="async">
               <span class="rv-map-name">${short}</span>${mapRate(rateKey)}
               <span class="rv-map-go">${UI.icon('arrowR', 14, { stroke: 2.2 })}</span>
@@ -480,7 +480,7 @@
           return items.length ? items.map(rvCardHtml).join('') : rvEmptyHtml();
         }
 
-        const RV_STAR = 17;
+        const RV_STAR = 28;
         // Сводка: крупный средний балл и полоски 5–1 звёзд (по настоящим отзывам, у владельца в демо-режиме — по демо)
         function rvSummaryHtml(cat) {
           const rows = rvCatRows(cat).filter(r => Number(r.rating) >= 1);
@@ -495,7 +495,6 @@
               <div class="rv-sum-num">${avg.toFixed(1).replace('.', ',')}</div>
               <div class="rv-sum-mid">
                 <div class="rv-sum-stars"><div class="rv-sum-st-bg">${stars}</div><div class="rv-sum-st-fg" style="width:${fillW.toFixed(1)}px">${stars}</div></div>
-                <div class="rv-sum-cnt">${total} ${rvPlural(total, ['отзыв', 'отзыва', 'отзывов'])}</div>
               </div>
             </section>`;
         }
@@ -522,7 +521,7 @@
           return RV_CATS.map(([id, label], k) => {
             const n = rvCatRows(id).length;
             return `<button type="button" class="rv-cat c-${id} ${rvState.cat === id ? 'on' : ''}" data-rv-cat="${id}" style="--i:${k}" aria-pressed="${rvState.cat === id}">
-              ${n ? `<b class="rv-cat-n">${n}</b>` : ''}<span class="rv-cat-ic">${RV_3D[id] || RV_3D.all}</span>
+              ${n ? `<b class="rv-cat-n">${n > 99 ? '99+' : n}</b>` : ''}<span class="rv-cat-ic">${RV_3D[id] || RV_3D.all}</span>
               <span class="rv-cat-t">${label}</span></button>`;
           }).join('');
         }

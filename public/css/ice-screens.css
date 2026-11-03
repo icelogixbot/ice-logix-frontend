@@ -1663,7 +1663,9 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 .rv-map:active{transform:scale(.97);transition-duration:.1s}
 .rv-map-logo{width:40px;height:40px;border-radius:var(--rd-r12);object-fit:cover;box-shadow:0 4px 10px -4px rgba(0,0,0,.35);outline:1px solid rgba(0,0,0,.06);outline-offset:-1px}
 .rv-map-name{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;font-weight:800;line-height:18px;letter-spacing:-.015em}
-.rv-map-rate{display:flex;align-items:center;gap:2px;font-size:13px;font-weight:800;line-height:1;color:var(--rv-gold)}
+.rv-map-rate{position:absolute;top:10px;right:9px;height:40px;display:flex;align-items:center;gap:2px;font-size:17px;font-weight:800;line-height:1;letter-spacing:-.02em;color:var(--rv-ink)}
+.rv-map-rate svg{width:15px;height:15px;color:var(--rv-gold)}
+.rv-map.has-rate .rv-map-go{display:none}
 .rv-map-go{position:absolute;top:8px;right:8px;display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:color-mix(in srgb,var(--rd-blue) 12%,#fff);color:var(--rd-blue)}
 .rv-map-go svg{transform:rotate(-45deg)}
 .rv-soc{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.16)}
@@ -1700,13 +1702,12 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 .rv-bar{display:flex;align-items:stretch;gap:8px;margin-bottom:12px}
 #rvSum{flex:0 0 auto;display:flex}
 .rv-sum{display:flex;align-items:center;gap:9px;padding:0 14px;border-radius:16px;background:#fff;color:var(--rv-ink);box-shadow:0 10px 22px -14px color-mix(in srgb,var(--rd-blue) 60%,transparent);animation:rv-hub-in .42s cubic-bezier(.2,.8,.2,1) backwards}
-.rv-sum-num{font-size:38px;font-weight:800;line-height:.74;letter-spacing:-.04em;color:var(--rd-blue)}
-.rv-sum-stars{position:relative;width:89px;height:17px;line-height:0}
-.rv-sum-st-bg,.rv-sum-st-fg{display:flex;gap:1px;height:17px}
+.rv-sum-num{font-size:30px;font-weight:800;line-height:.74;letter-spacing:-.04em;color:var(--rd-blue)}
+.rv-sum-stars{position:relative;width:144px;height:28px;line-height:0}
+.rv-sum-st-bg,.rv-sum-st-fg{display:flex;gap:1px;height:28px}
 .rv-sum-st-bg{color:color-mix(in srgb,var(--rd-blue) 14%,#fff)}
 .rv-sum-st-fg{position:absolute;left:0;top:0;overflow:hidden;color:var(--rv-gold)}
 .rv-sum-st-fg svg,.rv-sum-st-bg svg{flex:none}
-.rv-sum-cnt{margin-top:3px;font-size:11px;font-weight:700;white-space:nowrap;color:var(--rv-ink2)}
 .rv-sort{flex:1;min-width:0;display:flex;gap:3px;padding:4px;border-radius:16px;
   background:linear-gradient(135deg,var(--rd-blue-hi) 0%,var(--rd-blue) 60%,color-mix(in srgb,var(--rd-blue) 72%,#000) 100%);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 10px 22px -14px color-mix(in srgb,var(--rd-blue) 70%,transparent)}
@@ -1780,7 +1781,6 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 .rv-lb-slide img{max-width:100%;max-height:100%;object-fit:contain;border-radius:var(--rd-r16);-webkit-user-drag:none}
 @keyframes rv-lb-in{from{opacity:0}}
 @media (max-width:389px){.rv-sort-b{font-size:12px}.rv-card{padding:14px}.rv-ava{width:42px;height:42px}.rv-name{font-size:15px}.rv-text{font-size:14.5px}}
-@media (max-width:339px){.rv-sum-cnt{display:none}}
 @media (prefers-reduced-motion:reduce){.rv-sum,.rv-card,.rv-like.pop .rv-thumb,.rv-lb{animation:none}.rv-sort-b,.rv-like,.rv-pin,.rv-ph img,.rv-lb-track{transition:none}}
 
 /* Шапка: активная иконка раздела — синий акцент */
