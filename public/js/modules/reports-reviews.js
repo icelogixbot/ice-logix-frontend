@@ -357,7 +357,7 @@
           };
           const mapTile = ([key, name, url, short, rateKey], i) => `
             <button type="button" class="rv-map${mapRate(rateKey) ? ' has-rate' : ''}" style="--i:${i}" data-rv-url="${rvEsc(url)}" aria-label="${name}">
-              <img class="rv-map-logo" src="/assets/reviews-platforms/${key}.webp?v=20261103_rv25" alt="" width="128" height="128" decoding="async">
+              <img class="rv-map-logo" src="/assets/reviews-platforms/${key}.webp?v=20261103_rv26" alt="" width="128" height="128" decoding="async">
               <span class="rv-map-foot"><span class="rv-map-name">${short}</span>${mapRate(rateKey)}</span>
               <span class="rv-map-go">${UI.icon('arrowR', 14, { stroke: 2.2 })}</span>
             </button>`;
