@@ -345,7 +345,7 @@ async function renderHome() {
         <div class="hm-tiles">
           ${_quick.map((q, i) => `
           <button type="button" class="hm-q" data-story="${q.story}" style="--i:${i}">
-            <span class="hm-q-ico">${_A[q.story] || ''}</span>
+            <span class="hm-q-ico">${q.story === 'reviews' ? '<img src="/assets/home/reviews-3d.webp?v=20261104_home3" alt="" width="46" height="40" decoding="async" draggable="false">' : (_A[q.story] || '')}</span>
             <span class="hm-q-label">${q.label}</span>
           </button>`).join('')}
         </div>

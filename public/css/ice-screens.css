@@ -1657,19 +1657,20 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 .rv-hub-title{font-size:24px;font-weight:800;line-height:1.1;letter-spacing:.01em;color:#fff}
 .rv-hub-sub{margin-top:5px;font-size:13px;font-weight:500;line-height:17px;color:rgba(255,255,255,.8)}
 .rv-maps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-/* Плитка карты: сетка 10px — поля 10 со всех сторон, стрелка 20×20 в углу (тот же отступ 10), логотип — квадрат слева от неё (зазор 4), ниже через 8px строка «имя … оценка» от левого края логотипа */
-.rv-map{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;padding:12px 10px 10px;border-radius:var(--rd-r16);background:#fff;color:color-mix(in srgb,var(--rd-blue) 20%,#000);text-align:left;-webkit-tap-highlight-color:transparent;
+/* Плитка карты — одинаковый «скелет» Логотип → Имя → Таблетка у всех трёх. Ось плитки на 10px левее центра (справа место стрелке 20×20 в углу): логотип, имя и таблетка лежат строго на ней, зазор --rv-gap везде один. Длина слов и цифр центр не двигает: имя — flex-слот безопасной зоны, таблетка — жёсткий размер; трекинг --rv-ls свой у каждого слова (короткие шире) */
+.rv-map{--rv-gap:5px;--rv-ls:-.02em;--rv-pill-w:64px;position:relative;display:flex;flex-direction:column;align-items:center;gap:var(--rv-gap);min-width:0;padding:12px 10px 10px;border-radius:var(--rd-r16);background:#fff;color:color-mix(in srgb,var(--rd-blue) 20%,#000);text-align:left;-webkit-tap-highlight-color:transparent;
   box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 8px 18px -8px rgba(0,0,0,.45);
   transition:transform .42s cubic-bezier(.34,1.56,.64,1);animation:rv-tile-in .44s cubic-bezier(.34,1.4,.64,1) backwards;animation-delay:calc(var(--i,0) * 50ms + 120ms)}
 .rv-map:active{transform:scale(.97);transition-duration:.1s}
 .rv-map-logo{display:block;width:calc(100% - 34px);height:auto;aspect-ratio:1;transform:translateX(-10px);filter:drop-shadow(0 1px 1px rgba(0,0,0,.1)) drop-shadow(0 3px 5px rgba(0,0,0,.22))}
-.rv-map-foot{display:flex;flex-direction:column;align-items:center;gap:1px;width:100%;min-width:0;padding:0;transform:translateX(-10px)}
-.rv-map-name{max-width:100%;text-align:center;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:800;line-height:16px;letter-spacing:-.02em}
-.rv-map-rate{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:1px;margin-top:3px;padding:0 5px 0 9px;transform:translateX(1px);height:20px;border-radius:999px;background:var(--rd-blue);box-shadow:0 1px 4px rgba(0,0,0,.22);font-size:12px;font-weight:800;line-height:20px;letter-spacing:-.01em;color:#fff}
-.rv-map:first-child .rv-map-name{transform:translateX(.5px)}
-.rv-map:first-child .rv-map-rate{transform:translateX(.5px)}
-.rv-map:nth-child(2) .rv-map-rate{transform:translateX(.5px)}
-.rv-map-rate svg{width:11px;height:11px;color:#ffc83d}
+.rv-map-foot{display:flex;flex-direction:column;align-items:center;gap:var(--rv-gap);width:100%;min-width:0;padding:0;transform:translateX(-10px)}
+/* Слот имени: ширина — безопасная зона плитки (foot минус по 10px вокруг оси), текст строго по центру слота. Трекинг оставляет «хвост» после последней буквы — гасим его полем с другой стороны, чтобы центр шёл по видимым буквам */
+.rv-map-name{display:flex;align-items:center;justify-content:center;box-sizing:border-box;width:calc(100% - 20px);min-width:0;padding:0 max(calc(var(--rv-ls) * -1),0em) 0 max(var(--rv-ls),0em);overflow:hidden;white-space:nowrap;font-size:13px;font-weight:800;line-height:16px;letter-spacing:var(--rv-ls)}
+.rv-map[data-p="google-maps"]{--rv-ls:.02em}
+.rv-map[data-p="2gis"]{--rv-ls:.08em}
+/* Таблетка — жёсткий размер: одна ширина на всех (не шире безопасной зоны), цифры одной ширины, «4,9 ★» по центру без перекоса */
+.rv-map-rate{box-sizing:border-box;flex:none;display:flex;align-items:center;justify-content:center;gap:1px;width:min(var(--rv-pill-w),calc(100% - 20px));height:20px;padding:0 0 0 1px;border-radius:999px;background:var(--rd-blue);box-shadow:0 1px 4px rgba(0,0,0,.22);font-size:12px;font-weight:800;line-height:20px;letter-spacing:-.01em;font-variant-numeric:tabular-nums;white-space:nowrap;color:#fff}
+.rv-map-rate svg{flex:none;width:11px;height:11px;color:#ffc83d}
 .rv-map-go{position:absolute;top:6px;right:6px;display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--rd-blue);box-shadow:0 1px 4px rgba(0,0,0,.22);color:#fff}
 .rv-map-go svg{width:12px;height:12px;transform:rotate(-45deg)}
 .rv-soc{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.16)}
@@ -1879,3 +1880,9 @@ html body .app-header .header-center .icon-btn.active-header-btn { background: r
 .hm-grid .pc-media{aspect-ratio:1/1.05}
 .hm-grid{row-gap:16px}
 .hm-grid .pc-body{padding-top:8px}
+/* home3: 3D-иконка «Отзывы» (картинка вместо SVG) */
+.hm-q-ico img{display:block;width:46px;height:auto;margin:-8px -6px -4px;filter:drop-shadow(0 6px 6px rgba(0,30,120,.35));object-fit:contain}
+.hm .hm-q[data-story="reviews"]{background:radial-gradient(120% 100% at 50% 0%,#6fe4ff 0%,#2f7dff 58%,#1639c0 100%);color:#fff}
+.hm .hm-q[data-story="reviews"] .hm-q-label{color:#fff;text-shadow:0 1px 2px rgba(0,20,90,.4)}
+.rv-hub-art{width:104px!important;height:auto!important;top:-8px!important;right:2px!important;filter:drop-shadow(0 10px 10px rgba(0,10,80,.45))}
+@media (max-width:389px){.rv-hub-art{width:88px!important}}
