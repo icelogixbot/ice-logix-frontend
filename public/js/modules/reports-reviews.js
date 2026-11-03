@@ -336,9 +336,9 @@
         function rvPlatformsHtml(config) {
           const sm = config.social_media_links || {};
           const maps = [
-            ['yandex-maps', 'Яндекс Карты', reviewLink(config.yandex_maps_link, 'https://yandex.by/maps/'), 'Яндекс'],
-            ['google-maps', 'Google Карты', reviewLink(config.google_maps_link, 'https://maps.google.com/'), 'Google'],
-            ['2gis', '2ГИС', reviewLink(config.gis_2_link, 'https://2gis.by/'), '2ГИС']
+            ['yandex-maps', 'Яндекс Карты', reviewLink(config.yandex_maps_link, 'https://yandex.by/maps/'), 'Яндекс', 'yandex_maps_rating'],
+            ['google-maps', 'Google Карты', reviewLink(config.google_maps_link, 'https://maps.google.com/'), 'Google', 'google_maps_rating'],
+            ['2gis', '2ГИС', reviewLink(config.gis_2_link, 'https://2gis.by/'), '2ГИС', 'gis_2_rating']
           ];
           const socials = [
             ['telegram', 'Telegram', reviewLink(config.telegram_group_link, 'https://t.me/')],
@@ -348,10 +348,15 @@
             ['facebook', 'Facebook', reviewLink(sm.facebook, 'https://www.facebook.com/')]
           ];
           // Карты — три белые плитки на синем баннере (заголовок уже говорит «на картах», в плитке короткое имя), соцсети — круглые кнопки
-          const mapTile = ([key, name, url, short], i) => `
+          // Оценка площадки — только настоящая, из settings.reviews_config (yandex_maps_rating и т.д.); нет числа — не показываем
+          const mapRate = (cfgKey) => {
+            const v = Number(String(config[cfgKey] || '').replace(',', '.'));
+            return v >= 1 && v <= 5 ? `<span class="rv-map-rate">${v.toFixed(1).replace('.', ',')}<svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 17.5l-5.9 3.2 1.2-6.6-4.8-4.6 6.6-.9z" fill="currentColor"/></svg></span>` : '';
+          };
+          const mapTile = ([key, name, url, short, rateKey], i) => `
             <button type="button" class="rv-map" style="--i:${i}" data-rv-url="${rvEsc(url)}" aria-label="${name}">
               <img class="rv-map-logo" src="/assets/reviews-platforms/${key}.webp?v=20261103_lg" alt="" width="40" height="40" decoding="async">
-              <span class="rv-map-name">${short}</span>
+              <span class="rv-map-name">${short}</span>${mapRate(rateKey)}
               <span class="rv-map-go">${UI.icon('arrowR', 14, { stroke: 2.2 })}</span>
             </button>`;
           const socTile = ([key, name, url], i) => `
@@ -473,18 +478,22 @@
           return items.length ? items.map(rvCardHtml).join('') : rvEmptyHtml();
         }
 
+        const RV_STAR = 17;
         // Сводка: крупный средний балл и полоски 5–1 звёзд (по настоящим отзывам, у владельца в демо-режиме — по демо)
         function rvSummaryHtml(cat) {
           const rows = rvCatRows(cat).filter(r => Number(r.rating) >= 1);
           if (!rows.length) return '';
           const total = rows.length;
           const avg = rows.reduce((s, r) => s + Math.min(5, Math.round(Number(r.rating))), 0) / total;
+          const full = Math.floor(avg), part = avg - full;
+          const fillW = Math.min(RV_STAR * 5 + 4, full * (RV_STAR + 1) + part * RV_STAR);
+          const stars = [1, 2, 3, 4, 5].map(() => `<svg viewBox="0 0 24 24" width="${RV_STAR}" height="${RV_STAR}" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 17.5l-5.9 3.2 1.2-6.6-4.8-4.6 6.6-.9z" fill="currentColor"/></svg>`).join('');
           return `
             <section class="rv-sum" aria-label="Средняя оценка">
               <div class="rv-sum-num">${avg.toFixed(1).replace('.', ',')}</div>
               <div class="rv-sum-mid">
-                <div class="rv-sum-stars">${[1, 2, 3, 4, 5].map(k => UI.icon('star', 12, { fill: k <= Math.round(avg) })).join('')}</div>
-                <div class="rv-sum-cnt">${total} ${rvPlural(total, ['отзыв', 'отзыва', 'отзывов'])}${rvIsDemo(cat) ? ' · демо' : ''}</div>
+                <div class="rv-sum-stars"><div class="rv-sum-st-bg">${stars}</div><div class="rv-sum-st-fg" style="width:${fillW.toFixed(1)}px">${stars}</div></div>
+                <div class="rv-sum-cnt">${total} ${rvPlural(total, ['отзыв', 'отзыва', 'отзывов'])}</div>
               </div>
             </section>`;
         }
@@ -496,11 +505,11 @@
           const cube = (top, left, right) => `<polygon points="32,8 55,21 32,34 9,21" fill="${top}"/><polygon points="9,21 32,34 32,58 9,45" fill="${left}"/><polygon points="32,34 55,21 55,45 32,58" fill="${right}"/>`;
           const wrap = (inner) => `<svg class="rv-3d" viewBox="0 0 64 64" aria-hidden="true">${inner}</svg>`;
           return {
-            all: wrap(`${sh}${cube('#d6ebff', '#5b97ff', '#2358f0')}<polygon points="32,8 55,21 32,34 9,21" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1.2"/>${gl(22, 20, 7, 3, -28)}<path d="M50 6l1.6 4.4L56 12l-4.4 1.6L50 18l-1.6-4.4L44 12l4.4-1.6z" fill="#fff"/>`),
+            all: wrap(`<defs>${g('a1', '#d6ebff', '#4f8dff')}${g('a2', '#ffe27a', '#ffa91f')}</defs><rect x="6" y="6" width="23" height="23" rx="7" fill="url(#rv3-a1)"/><rect x="35" y="6" width="23" height="23" rx="7" fill="url(#rv3-a1)"/><rect x="6" y="35" width="23" height="23" rx="7" fill="url(#rv3-a1)"/><rect x="35" y="35" width="23" height="23" rx="7" fill="url(#rv3-a2)"/><path d="M46.5 39.5l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5-3.6-3.5 5-.7z" fill="#fff"/><ellipse cx="14" cy="12.5" rx="5" ry="2" fill="#fff" opacity=".6" transform="rotate(-20 14 12.5)"/>`),
             orders: wrap(`${sh}${cube('#ffd793', '#ffa043', '#e3711a')}<polygon points="18.2,14.5 23.8,17.5 45.8,29.5 40.2,26.5" fill="#fff6dc" opacity=".92"/><polygon points="32,34 40.2,29.5 40.2,53.5 32,58" fill="#fff6dc" opacity=".16"/><rect x="13" y="34" width="9" height="7" rx="1.5" fill="#fff" opacity=".85" transform="skewY(30) translate(0 -7.5)"/>${gl(24, 19, 5, 2.2, -28)}`),
-            promotions: wrap(`<defs>${g('p', '#ff9bb0', '#e8266a')}</defs>${sh}<g transform="rotate(-16 32 32)"><path d="M14 24H40L54 36L40 48H14A4 4 0 0 1 10 44V28A4 4 0 0 1 14 24Z" fill="#a8174a"/><path d="M14 18H40L54 30L40 42H14A4 4 0 0 1 10 38V22A4 4 0 0 1 14 18Z" fill="url(#rv3-p)"/><circle cx="44" cy="30" r="3.2" fill="#7a0f33"/><text x="24" y="37" font-size="21" font-weight="900" fill="#fff" text-anchor="middle" font-family="Arial,Helvetica,sans-serif">%</text><ellipse cx="20" cy="22.5" rx="8" ry="2.6" fill="#fff" opacity=".5"/></g>`),
+            promotions: wrap(`<defs>${g('q1', '#c7a8ff', '#6a35e0')}${g('q2', '#e0ccff', '#8f5af2')}${g('q3', '#ffe27a', '#ffa91f')}</defs>${sh}<rect x="14" y="30" width="36" height="26" rx="4" fill="url(#rv3-q1)"/><rect x="10" y="22" width="44" height="11" rx="4" fill="url(#rv3-q2)"/><rect x="28.5" y="22" width="7" height="34" fill="url(#rv3-q3)"/><ellipse cx="23" cy="16" rx="8" ry="5.2" fill="none" stroke="#ffbe3a" stroke-width="3.4" transform="rotate(-24 23 16)"/><ellipse cx="41" cy="16" rx="8" ry="5.2" fill="none" stroke="#ffbe3a" stroke-width="3.4" transform="rotate(24 41 16)"/><circle cx="32" cy="19.5" r="4" fill="url(#rv3-q3)"/><rect x="16" y="34" width="6" height="14" rx="3" fill="#fff" opacity=".28"/>`),
             dropshipping: wrap(`<defs>${g('d1', '#ffe98a', '#f2a30f')}${g('d2', '#7df0b8', '#12a56e')}</defs>${sh}<rect x="6" y="14" width="46" height="26" rx="4" fill="url(#rv3-d2)" transform="rotate(-9 29 27)"/><rect x="10" y="18" width="38" height="18" rx="2.5" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="1.4" transform="rotate(-9 29 27)"/><circle cx="29" cy="26" r="5.2" fill="#fff" opacity=".85" transform="rotate(-9 29 27)"/><ellipse cx="41" cy="50" rx="15" ry="5.6" fill="#b86e00"/><rect x="26" y="40" width="30" height="10" fill="#d98a06"/><ellipse cx="41" cy="40" rx="15" ry="5.6" fill="url(#rv3-d1)"/><ellipse cx="41" cy="40" rx="9.5" ry="3.3" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1.3"/><ellipse cx="22" cy="53" rx="12" ry="4.6" fill="#b86e00"/><rect x="10" y="46" width="24" height="7" fill="#d98a06"/><ellipse cx="22" cy="46" rx="12" ry="4.6" fill="url(#rv3-d1)"/><ellipse cx="22" cy="46" rx="7.2" ry="2.6" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1.2"/>`),
-            referral: wrap(`<defs>${g('r1', '#c7a8ff', '#6a35e0')}${g('r2', '#e0ccff', '#8f5af2')}${g('r3', '#ffe27a', '#ffa91f')}</defs>${sh}<rect x="14" y="30" width="36" height="26" rx="4" fill="url(#rv3-r1)"/><rect x="10" y="22" width="44" height="11" rx="4" fill="url(#rv3-r2)"/><rect x="28.5" y="22" width="7" height="34" fill="url(#rv3-r3)"/><ellipse cx="23" cy="16" rx="8" ry="5.2" fill="none" stroke="#ffbe3a" stroke-width="3.4" transform="rotate(-24 23 16)"/><ellipse cx="41" cy="16" rx="8" ry="5.2" fill="none" stroke="#ffbe3a" stroke-width="3.4" transform="rotate(24 41 16)"/><circle cx="32" cy="19.5" r="4" fill="url(#rv3-r3)"/><rect x="16" y="34" width="6" height="14" rx="3" fill="#fff" opacity=".28"/>`),
+            referral: wrap(`<defs>${g('r1', '#c7a8ff', '#6a35e0')}${g('r2', '#e0ccff', '#8f5af2')}${g('r3', '#ffe27a', '#ffa91f')}</defs><circle cx="41" cy="19" r="7.5" fill="url(#rv3-r2)"/><path d="M29 44c0-8.5 5-13.5 12-13.5s12 5 12 13.5v3H29z" fill="url(#rv3-r2)"/><circle cx="23" cy="23" r="9" fill="url(#rv3-r1)"/><path d="M6 52c0-10 6-16 17-16s17 6 17 16v4H6z" fill="url(#rv3-r1)"/><circle cx="49" cy="47" r="10" fill="url(#rv3-r3)"/><path d="M49 41v12M43 47h12" stroke="#fff" stroke-width="3.6" stroke-linecap="round"/><ellipse cx="18" cy="17" rx="4" ry="2" fill="#fff" opacity=".5" transform="rotate(-30 18 17)"/>`),
             advertising: wrap(`<defs>${g('a1', '#ffab7e', '#ee3f24')}</defs>${sh}<path d="M17 38l3 14a3 3 0 0 0 6 -1l-1.6 -12z" fill="#a82712"/><rect x="6" y="25" width="10" height="15" rx="3" fill="#c52f19"/><path d="M14 25L41 11V53L14 40Z" fill="url(#rv3-a1)"/><ellipse cx="42" cy="32" rx="6" ry="21" fill="#ffe3d4"/><ellipse cx="42" cy="32" rx="3.4" ry="15" fill="#ff8a63" opacity=".55"/><path d="M52 21q6 11 0 22" stroke="#ffb597" stroke-width="3.2" fill="none" stroke-linecap="round"/><path d="M58 15q10 17 0 34" stroke="#ffb597" stroke-width="2.6" fill="none" stroke-linecap="round" opacity=".7"/><path d="M18 30L36 21" stroke="#fff" stroke-opacity=".55" stroke-width="3" stroke-linecap="round"/>`),
             legitcheck: wrap(`<defs>${g('l1', '#8bf59a', '#1fae45')}</defs>${sh}<path d="M32 5L54 13V30C54 44 44 53 32 58C20 53 10 44 10 30V13Z" fill="url(#rv3-l1)"/><path d="M32 5L54 13V30C54 44 44 53 32 58Z" fill="#0a7a2c" opacity=".3"/><path d="M21 32L29 40L44 24" stroke="#0a6b27" stroke-opacity=".5" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 2)"/><path d="M21 32L29 40L44 24" stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="22" cy="15" rx="9" ry="3.4" fill="#fff" opacity=".5" transform="rotate(-18 22 15)"/>`),
             partnership: wrap(`<defs>${g('b1', '#a3adff', '#3a3fd8')}${g('b3', '#ffe27a', '#ffa91f')}</defs>${sh}<path d="M24 24V17a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v7" stroke="#2f34b8" stroke-width="4.2" fill="none"/><rect x="7" y="22" width="50" height="34" rx="6" fill="url(#rv3-b1)"/><rect x="7" y="35" width="50" height="4" fill="#2328a0" opacity=".45"/><rect x="27.5" y="31" width="9" height="12" rx="2.4" fill="url(#rv3-b3)"/><rect x="11" y="26" width="42" height="3.2" rx="1.6" fill="#fff" opacity=".4"/>`)
@@ -1219,8 +1228,26 @@
           const root = document.getElementById('rvRoot');
           if (!root) return;
 
+          // Нажатие на фильтры и сортировку срабатывает сразу при касании (без ожидания click), click потом не дублирует
+          let tapAt = 0, pdX = 0, pdY = 0, pdEl = null;
+          root.addEventListener('pointerdown', (e) => {
+            pdEl = e.target.closest('[data-rv-cat],[data-rv-sort]');
+            pdX = e.clientX; pdY = e.clientY;
+            if (pdEl) pdEl.classList.add('rv-press');
+          });
+          const unpress = () => { root.querySelectorAll('.rv-press').forEach(b => b.classList.remove('rv-press')); };
+          root.addEventListener('pointercancel', () => { pdEl = null; unpress(); });
+          root.addEventListener('pointerup', (e) => {
+            unpress();
+            const el = e.target.closest('[data-rv-cat],[data-rv-sort]');
+            if (!el || el !== pdEl || Math.abs(e.clientX - pdX) > 14 || Math.abs(e.clientY - pdY) > 14) { pdEl = null; return; }
+            pdEl = null; tapAt = Date.now();
+            if (el.dataset.rvSort) rvSwitchSort(el.dataset.rvSort); else rvSwitchCategory(el.dataset.rvCat);
+          });
+
           root.addEventListener('click', (e) => {
             const t = e.target;
+            if (Date.now() - tapAt < 700 && t.closest('[data-rv-cat],[data-rv-sort]')) return;
             const plat = t.closest('[data-rv-url]');
             if (plat) { openExternalLink(plat.dataset.rvUrl); return; }
             const srt = t.closest('[data-rv-sort]');
