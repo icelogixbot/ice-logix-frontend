@@ -237,16 +237,24 @@
             ['instagram', 'Instagram', reviewLink(sm.instagram, 'https://www.instagram.com/')],
             ['facebook', 'Facebook', reviewLink(sm.facebook, 'https://www.facebook.com/')]
           ];
-          const tile = ([key, name, url]) => `
-            <button type="button" class="rv-plat" data-rv-url="${rvEsc(url)}" aria-label="${name}">
-              <img class="rv-plat-logo" src="/assets/reviews-platforms/${key}.webp" alt="" width="42" height="42" decoding="async">
-              <span class="rv-plat-name">${name}</span>
+          // Карты — крупные плитки-ссылки, соцсети — компактная полоса логотипов
+          const mapTile = ([key, name, url]) => `
+            <button type="button" class="rv-map" data-rv-url="${rvEsc(url)}" aria-label="${name}">
+              <img class="rv-map-logo" src="/assets/reviews-platforms/${key}.webp" alt="" width="34" height="34" decoding="async">
+              <span class="rv-map-name">${name}</span>
+              <span class="rv-map-go">${UI.icon('arrowR', 12)}</span>
+            </button>`;
+          const socTile = ([key, name, url]) => `
+            <button type="button" class="rv-soc-btn" data-rv-url="${rvEsc(url)}" aria-label="${name}">
+              <img src="/assets/reviews-platforms/${key}.webp" alt="" width="30" height="30" decoding="async">
             </button>`;
           return `
-            <div class="rv-eyebrow">Независимые площадки</div>
-            <div class="rv-plats">${maps.map(tile).join('')}</div>
-            <div class="rv-eyebrow rv-eyebrow-2">Соцсети</div>
-            <div class="rv-plats">${socials.map(tile).join('')}</div>`;
+            <div class="rv-hub-head">
+              <div class="rv-eyebrow">${UI.icon('shield', 13)}Независимые площадки</div>
+              <div class="rv-hub-title">Читайте отзывы там, где их <span class="rv-hl">не&nbsp;удалить</span></div>
+            </div>
+            <div class="rv-maps">${maps.map(mapTile).join('')}</div>
+            <div class="rv-soc"><span class="rv-soc-label">И в наших соцсетях</span><div class="rv-soc-row">${socials.map(socTile).join('')}</div></div>`;
         }
 
         function rvDetailsHtml(r) {
