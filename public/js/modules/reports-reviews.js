@@ -237,28 +237,16 @@
             ['instagram', 'Instagram', reviewLink(sm.instagram, 'https://www.instagram.com/')],
             ['facebook', 'Facebook', reviewLink(sm.facebook, 'https://www.facebook.com/')]
           ];
-          const logo = (key, size) => `<img class="rv-plat-logo" src="/assets/reviews-platforms/${key}.webp" alt="" width="${size}" height="${size}" decoding="async">`;
-          const mapTile = ([key, name, url]) => `
-            <button type="button" class="rv-map" data-rv-url="${rvEsc(url)}" aria-label="${name}: читать отзывы">
-              ${logo(key, 56)}
-              <span class="rv-map-name">${name}</span>
-              <span class="rv-map-go">Читать${UI.icon('arrowUpRight', 13)}</span>
-            </button>`;
-          const socTile = ([key, name, url]) => `
+          const tile = ([key, name, url]) => `
             <button type="button" class="rv-plat" data-rv-url="${rvEsc(url)}" aria-label="${name}">
-              ${logo(key, 46)}
+              <img class="rv-plat-logo" src="/assets/reviews-platforms/${key}.webp" alt="" width="42" height="42" decoding="async">
               <span class="rv-plat-name">${name}</span>
             </button>`;
           return `
-            <div class="rv-eyebrow"><span class="rv-eyebrow-ic">${UI.icon('shield', 18)}</span>Независимые площадки</div>
-            <h2 class="rv-hub-h">Проверьте нас сами</h2>
-            <p class="rv-hub-t">Оценки и отзывы живых покупателей. Площадки не наши, поэтому смотрите без прикрас.</p>
-            <div class="rv-maps">${maps.map(mapTile).join('')}</div>
-            <div class="rv-hub-sep"></div>
-            <div class="rv-eyebrow rv-eyebrow-soc"><span class="rv-eyebrow-ic">${UI.icon('message', 18)}</span>Соцсети</div>
-            <h2 class="rv-hub-h rv-hub-h2">Истории клиентов</h2>
-            <p class="rv-hub-t">Отзывы, новости и ответы на вопросы. Подпишитесь там, где вам удобнее.</p>
-            <div class="rv-plats">${socials.map(socTile).join('')}</div>`;
+            <div class="rv-eyebrow">Независимые площадки</div>
+            <div class="rv-plats">${maps.map(tile).join('')}</div>
+            <div class="rv-eyebrow rv-eyebrow-2">Соцсети</div>
+            <div class="rv-plats">${socials.map(tile).join('')}</div>`;
         }
 
         function rvDetailsHtml(r) {
