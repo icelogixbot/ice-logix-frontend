@@ -240,13 +240,13 @@
           // Карты — три белые плитки на синем баннере (заголовок уже говорит «на картах», в плитке короткое имя), соцсети — круглые кнопки
           const mapTile = ([key, name, url, short], i) => `
             <button type="button" class="rv-map" style="--i:${i}" data-rv-url="${rvEsc(url)}" aria-label="${name}">
-              <img class="rv-map-logo" src="/assets/reviews-platforms/${key}.webp" alt="" width="40" height="40" decoding="async">
+              <img class="rv-map-logo" src="/assets/reviews-platforms/${key}.webp?v=20261103_lg" alt="" width="40" height="40" decoding="async">
               <span class="rv-map-name">${short}</span>
               <span class="rv-map-go">${UI.icon('arrowR', 14, { stroke: 2.2 })}</span>
             </button>`;
           const socTile = ([key, name, url], i) => `
             <button type="button" class="rv-soc-btn" style="--i:${i + 3}" data-rv-url="${rvEsc(url)}" aria-label="${name}">
-              <img src="/assets/reviews-platforms/${key}.webp" alt="" width="32" height="32" decoding="async">
+              <img src="/assets/reviews-platforms/${key}.webp?v=20261103_lg" alt="" width="32" height="32" decoding="async">
             </button>`;
           // Объёмная метка карты со звездой — декор баннера
           const art = `
