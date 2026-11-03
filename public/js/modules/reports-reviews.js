@@ -500,10 +500,14 @@
             </section>`;
         }
 
+        const RV_CAT_ICON = { all: 'grid', orders: 'package', promotions: 'tag', dropshipping: 'truck', referral: 'users', advertising: 'megaphone', academy: 'academy', legitcheck: 'shieldCheck', partnership: 'briefcase' };
+
         function rvChipsHtml() {
-          return RV_CATS.map(([id, label]) => {
+          return RV_CATS.map(([id, label], k) => {
             const n = rvCatRows(id).length;
-            return `<button type="button" class="rd-chip ${rvState.cat === id ? 'on' : ''}" data-rv-cat="${id}">${label}${n ? `<span class="rv-chip-n">${n}</span>` : ''}</button>`;
+            return `<button type="button" class="rv-cat c-${id} ${rvState.cat === id ? 'on' : ''}" data-rv-cat="${id}" style="--i:${k}" aria-pressed="${rvState.cat === id}">
+              <span class="rv-cat-ic">${UI.icon(RV_CAT_ICON[id] || 'grid', 24)}${n ? `<b class="rv-cat-n">${n}</b>` : ''}</span>
+              <span class="rv-cat-t">${label}</span></button>`;
           }).join('');
         }
 
@@ -552,7 +556,7 @@
 
                 <div id="rvSum">${rvSummaryHtml(cat)}</div>
 
-                <div class="rd-chips rv-chips" id="rvChips">${rvChipsHtml()}</div>
+                <div class="rv-cats" id="rvChips" role="group" aria-label="Разделы">${rvChipsHtml()}</div>
                 <div class="rv-sort" id="rvSort" role="group" aria-label="Сортировка">${rvSortHtml()}</div>
 
                 <div class="rv-list" id="rvList">${rows === null ? UI.empty({ icon: 'alert', title: 'Не удалось загрузить', text: 'Проверьте интернет и откройте раздел ещё раз.' }) : rvListHtml(rvState.items)}</div>
@@ -600,7 +604,7 @@
           rvState.loading = true;
           const list = document.getElementById('rvList');
           if (!list) return;
-          document.querySelectorAll('#rvChips .rd-chip').forEach(c => c.classList.toggle('on', c.dataset.rvCat === rvState.cat));
+          document.querySelectorAll('#rvChips .rv-cat').forEach(c => { const on = c.dataset.rvCat === rvState.cat; c.classList.toggle('on', on); c.setAttribute('aria-pressed', on); });
           document.querySelectorAll('#rvSort .rv-sort-b').forEach(b => b.classList.toggle('on', b.dataset.rvSort === rvState.sort));
           const sum = document.getElementById('rvSum');
           if (sum) sum.innerHTML = rvSummaryHtml(rvState.cat);

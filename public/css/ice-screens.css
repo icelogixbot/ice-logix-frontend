@@ -1694,7 +1694,6 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 .rs-buy{margin-top:12px}
 
 /* ===== Отзывы: один экран ===== */
-.rv .rd-chips{margin-bottom:14px}
 /* Площадки отзывов: баннер-«герой» экрана (единственный на экране) — насыщенный синий, белые плитки карт, круглые соцсети */
 .rv-hub{position:relative;overflow:hidden;isolation:isolate;padding:14px 16px 14px;margin-bottom:14px;border:0;border-radius:var(--rd-r26);color:#fff;
   background:radial-gradient(120% 90% at 0% 0%,color-mix(in srgb,var(--rd-b400) 55%,transparent) 0%,transparent 58%),linear-gradient(135deg,var(--rd-blue-hi) 0%,var(--rd-blue) 52%,color-mix(in srgb,var(--rd-blue) 70%,#000) 100%);
@@ -1732,8 +1731,18 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 @media (prefers-reduced-motion:reduce){.rv-hub,.rv-map,.rv-soc-btn{animation:none;transition:none}.rv-map:active,.rv-soc-btn:active{transform:none}}
 /* Лента отзывов: крупные белые плитки как карты в баннере, цветные аватарки, сводка рейтинга, сортировка, фото на весь экран */
 .rv{--rv-ink:#0b1430;--rv-ink2:#6b7488;--rv-gold:#ffb800}
-.rv-chip-n{margin-left:6px;padding:1px 6px;border-radius:9px;background:rgba(255,255,255,.12);font-size:11px;font-weight:800;line-height:15px}
-.rv .rd-chip.on .rv-chip-n{background:rgba(255,255,255,.28)}
+.rv-cats{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 14px;padding:4px 16px 6px;scroll-snap-type:x proximity}
+.rv-cats::-webkit-scrollbar{display:none}
+.rv-cat{--c1:#4f8cff;--c2:#1f5bff;flex:0 0 auto;width:94px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 4px 10px;border-radius:var(--rd-r22);background:var(--rd-s2);border:1px solid var(--rd-line);color:var(--rd-tx2);scroll-snap-align:start;-webkit-tap-highlight-color:transparent;animation:rvCatIn .5s cubic-bezier(.34,1.56,.64,1) both;animation-delay:calc(var(--i) * 40ms);transition:background .25s,transform .3s cubic-bezier(.34,1.56,.64,1),box-shadow .25s}
+.rv-cat:active{transform:scale(.95)}
+.rv-cat-ic{position:relative;width:48px;height:48px;border-radius:16px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--c1),var(--c2));box-shadow:0 8px 16px -8px var(--c2),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+.rv-cat.on .rv-cat-ic{transform:scale(1.08)}
+.rv-cat-t{font-size:12px;font-weight:700;line-height:1.15;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rv-cat-n{position:absolute;top:-6px;right:-8px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#fff;color:#0b1220;font-size:11px;font-weight:800;line-height:20px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.rv-cat.on{background:#fff;border-color:#fff;color:#0b1220;box-shadow:0 12px 24px -12px rgba(79,140,255,.7)}
+.rv-cat.on .rv-cat-t{font-weight:800}
+.rv-cat.on .rv-cat-n{background:#0b1220;color:#fff}
+.rv-cat.c-orders{--c1:#ffb23e;--c2:#ff7a18}.rv-cat.c-promotions{--c1:#ff6b8b;--c2:#e8266a}.rv-cat.c-dropshipping{--c1:#34d3a0;--c2:#0e9f78}.rv-cat.c-referral{--c1:#b48bff;--c2:#7a42f0}.rv-cat.c-advertising{--c1:#ff8f5a;--c2:#f0452b}.rv-cat.c-academy{--c1:#4fd1ff;--c2:#1795d6}.rv-cat.c-legitcheck{--c1:#6ee77a;--c2:#1fae45}.rv-cat.c-partnership{--c1:#6c7bff;--c2:#3a3fd8}
 .rv-sum{display:flex;align-items:center;gap:16px;margin-bottom:14px;padding:16px;border-radius:var(--rd-r22);background:var(--rd-s1);border:1px solid var(--rd-line);animation:rv-hub-in .42s cubic-bezier(.2,.8,.2,1) backwards}
 .rv-sum-main{position:relative;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;min-width:92px}
 .rv-sum-num{font-size:46px;font-weight:800;line-height:1;letter-spacing:-.03em;color:var(--rd-tx)}
@@ -1802,6 +1811,7 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 .rv-sk-c{height:14px;width:70%;border-radius:8px}
 .rv-sentinel{height:1px}
 .rv-heart-pop{position:absolute;color:var(--rd-blue);pointer-events:none;animation:rvPop .8s ease-out forwards}
+@keyframes rvCatIn{from{transform:translateY(10px) scale(.9);opacity:0}to{transform:none;opacity:1}}
 @keyframes rvPop{0%{transform:scale(.3);opacity:0}30%{transform:scale(1.1);opacity:1}100%{transform:scale(1.4);opacity:0}}
 /* Фото на весь экран */
 .rv-lb{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.96);display:flex;flex-direction:column;animation:rv-lb-in .25s ease-out}
