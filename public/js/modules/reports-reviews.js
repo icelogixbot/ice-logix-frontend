@@ -348,9 +348,11 @@
             ['facebook', 'Facebook', reviewLink(sm.facebook, 'https://www.facebook.com/')]
           ];
           // Карты — три белые плитки на синем баннере (заголовок уже говорит «на картах», в плитке короткое имя), соцсети — круглые кнопки
-          // Оценка площадки — только настоящая, из settings.reviews_config (yandex_maps_rating и т.д.); нет числа — не показываем
+          // Оценка площадки — только настоящая, из settings.reviews_config (yandex_maps_rating и т.д.); нет числа и заглушки — не показываем
+          // Пока аккаунты на площадках не заведены — временные заглушки, настоящая оценка из настроек их перекроет
+          const RATE_STUB = { yandex_maps_rating: 4.9, google_maps_rating: 4.8, gis_2_rating: 4.9 };
           const mapRate = (cfgKey) => {
-            const v = Number(String(config[cfgKey] || '').replace(',', '.'));
+            const v = Number(String(config[cfgKey] || RATE_STUB[cfgKey] || '').replace(',', '.'));
             return v >= 1 && v <= 5 ? `<span class="rv-map-rate">${v.toFixed(1).replace('.', ',')}<svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 17.5l-5.9 3.2 1.2-6.6-4.8-4.6 6.6-.9z" fill="currentColor"/></svg></span>` : '';
           };
           const mapTile = ([key, name, url, short, rateKey], i) => `
