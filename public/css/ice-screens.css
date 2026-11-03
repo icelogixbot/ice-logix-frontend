@@ -1695,18 +1695,14 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 
 /* ===== Отзывы: один экран ===== */
 .rv .rd-chips{margin-bottom:14px}
-.rv-plats{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 14px;padding:0 16px;scroll-snap-type:x proximity}
-.rv-plats::-webkit-scrollbar{display:none}
-.rv-plat{flex:0 0 150px;height:104px;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;padding:12px;background:var(--rd-s1);border:1px solid var(--rd-line);border-radius:var(--rd-r16);color:var(--rd-tx);text-align:left;scroll-snap-align:start;transition:transform .15s}
-.rv-plat:active{transform:scale(.97)}
-.rv-plat-logo{width:48px;height:48px;border-radius:12px;object-fit:cover;background:var(--rd-s2)}
-.rv-plat-name{font-size:14px;font-weight:700;line-height:1.1}
-.rv-plat-sub{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--rd-b300)}
-.rv-ask{display:flex;align-items:center;gap:12px;width:100%;padding:14px;margin-bottom:14px;color:var(--rd-tx);text-align:left}
-.rv-ask-ico{width:40px;height:40px;border-radius:12px;background:var(--rd-tint-2);color:var(--rd-b300);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
-.rv-ask-txt{flex:1;display:flex;flex-direction:column;gap:2px}
-.rv-ask-txt b{font-size:15px}
-.rv-ask-txt small{font-size:12px;color:var(--rd-tx2)}
+.rv-hub{padding:14px;margin-bottom:14px}
+.rv-hub-t{margin:0 0 12px;font-size:13px;line-height:1.35;color:var(--rd-tx2)}
+.rv-hub-sep{height:1px;background:var(--rd-line);margin:14px 0}
+.rv-plats{display:flex;flex-wrap:wrap;gap:16px}
+.rv-plat{display:flex;flex-direction:column;align-items:center;gap:6px;width:64px;padding:0;color:var(--rd-tx);transition:transform .15s}
+.rv-plat:active{transform:scale(.94)}
+.rv-plat-logo{width:44px;height:44px;border-radius:12px;object-fit:cover;background:var(--rd-s2)}
+.rv-plat-name{font-size:11px;font-weight:600;line-height:1.15;text-align:center;color:var(--rd-tx2)}
 .rv-list{display:flex;flex-direction:column;gap:10px}
 .rv-card{position:relative;padding:14px;overflow:hidden}
 .rv-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}

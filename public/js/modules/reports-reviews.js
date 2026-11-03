@@ -223,31 +223,28 @@
           return run();
         }
 
-        async function rvHasPending(config) {
-          if (!userId) return false;
-          const partners = ((config && config.partner_user_ids) || []).map(String);
-          if (partners.includes(String(userId)) || window.userRole === 'partner') return true;
-          try {
-            const { data } = await supabaseClient.from('review_actions').select('id').eq('user_id', userId).eq('status', 'pending').limit(1);
-            return !!(data && data.length);
-          } catch (e) { return false; }
-        }
-
         function rvPlatformsHtml(config) {
           const sm = config.social_media_links || {};
-          const list = [
+          const row = list => list.map(([key, name, url]) => `
+            <button type="button" class="rv-plat" data-rv-url="${rvEsc(url)}" aria-label="${name}">
+              <img class="rv-plat-logo" src="/assets/reviews-platforms/${key}.webp" alt="" width="44" height="44" decoding="async">
+              <span class="rv-plat-name">${name}</span>
+            </button>`).join('');
+          const maps = [
             ['yandex-maps', 'Яндекс Карты', reviewLink(config.yandex_maps_link, 'https://yandex.by/maps/')],
             ['google-maps', 'Google Maps', reviewLink(config.google_maps_link, 'https://maps.google.com/')],
-            ['2gis', '2ГИС', reviewLink(config.gis_2_link, 'https://2gis.by/')],
+            ['2gis', '2ГИС', reviewLink(config.gis_2_link, 'https://2gis.by/')]
+          ];
+          const socials = [
             ['telegram', 'Telegram', reviewLink(config.telegram_group_link, 'https://t.me/')],
             ['vk', 'ВКонтакте', reviewLink(sm.vk, 'https://vk.com/')]
           ];
-          return list.map(([key, name, url]) => `
-            <button type="button" class="rv-plat" data-rv-url="${rvEsc(url)}" aria-label="${name}">
-              <img class="rv-plat-logo" src="/assets/reviews-platforms/${key}.webp" alt="" width="48" height="48" decoding="async">
-              <span class="rv-plat-name">${name}</span>
-              <span class="rv-plat-sub">Оставить отзыв${UI.icon('external', 12)}</span>
-            </button>`).join('');
+          return `
+            <p class="rv-hub-t">Отзывы о нас на независимых площадках</p>
+            <div class="rv-plats">${row(maps)}</div>
+            <div class="rv-hub-sep"></div>
+            <p class="rv-hub-t">А ещё отзывы клиентов есть в наших соцсетях</p>
+            <div class="rv-plats">${row(socials)}</div>`;
         }
 
         function rvDetailsHtml(r) {
@@ -308,9 +305,8 @@
             rvState.cat = cat;
             rvState.token++;
             const config = await loadReviewsConfig();
-            const [, pending, first] = await Promise.all([
+            const [, first] = await Promise.all([
               loadUserLikes(),
-              rvHasPending(config),
               rvFetchPage(cat, 0).catch(e => { console.error('Reviews feed error:', e); return null; })
             ]);
 
@@ -327,14 +323,7 @@
                   <div class="rd-head-txt"><h1 class="rd-head-title">Отзывы</h1><p class="rd-head-sub">Что говорят о нас клиенты</p></div>
                 </div>
 
-                <div class="rv-plats">${rvPlatformsHtml(config)}</div>
-
-                ${pending ? `
-                  <button type="button" class="rd-card rv-ask" data-rv-write>
-                    <span class="rv-ask-ico">${UI.icon('pencil', 20)}</span>
-                    <span class="rv-ask-txt"><b>Вас ждёт отзыв</b><small>Расскажите, как всё прошло</small></span>
-                    ${UI.icon('chevR', 18)}
-                  </button>` : ''}
+                <div class="rd-card rv-hub">${rvPlatformsHtml(config)}</div>
 
                 <div class="rd-chips rv-chips" id="rvChips">
                   ${RV_CATS.map(([id, label]) => `<button type="button" class="rd-chip ${cat === id ? 'on' : ''}" data-rv-cat="${id}">${label}</button>`).join('')}
@@ -931,7 +920,6 @@
             if (plat) { openExternalLink(plat.dataset.rvUrl); return; }
             const chip = t.closest('[data-rv-cat]');
             if (chip) { rvSwitchCategory(chip.dataset.rvCat); return; }
-            if (t.closest('[data-rv-write]')) { openReviewActionModal(); return; }
 
             const card = t.closest('.rv-card');
             if (!card || !card.dataset.reviewId) return;

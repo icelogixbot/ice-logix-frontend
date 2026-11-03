@@ -102,12 +102,12 @@
   <link rel="stylesheet" href="/css/cart.css?v=20261024_48">
   <link rel="stylesheet" href="/css/ice-redesign.css?v=20261103_hd18">
   <link rel="stylesheet" href="/css/ice-redesign-compat.css?v=20261029_07">
-  <link rel="stylesheet" href="/css/ice-screens.css?v=20261103_mp4">
+  <link rel="stylesheet" href="/css/ice-screens.css?v=20261103_rv1">
   <link rel="stylesheet" href="/css/ice-admin.css?v=20261101_ib1">
   <link rel="stylesheet" href="/css/ice-light.css?v=20261102_lg3">
   <script src="/js/modules/browser-gate.js?v=20261101_spl1"></script>
   <script src="/js/data/marketplace-logos-data.js?v=20261102_sq5"></script>
-  <script src="/js/data/reviews-platforms-data.js?v=20261024_01"></script>
+  <script src="/js/data/reviews-platforms-data.js?v=20261103_rv1"></script>
   <script src="/js/ui-dict.js?v=20261005"></script>
   <script src="/js/icons-data.js?v=20261024_30"></script>
   <script src="/js/modules/ice-ui.js?v=20261103_mp3"></script>
@@ -140,7 +140,7 @@
   <script src="/js/modules/pull-refresh.js?v=20261101_spl1"></script>
   <script src="/js/modules/sku-selector.js?v=20261101_blk1"></script>
   <script src="/js/modules/orders.js?v=20261103_rs1"></script>
-  <script src="/js/modules/reports-reviews.js?v=20261103_mp4"></script>
+  <script src="/js/modules/reports-reviews.js?v=20261103_rv1"></script>
   <script src="/js/modules/catalogs.js?v=20261103_mp4"></script>
   <script src="/js/modules/profile-modals.js?v=20261031_ak1"></script>
   <script src="/js/modules/resale.js?v=20261103_rs3"></script>
@@ -349,9 +349,9 @@
     
     <!-- Main Content Area -->
     <div id="content" class="main-content"></div>
-    <script>try{localStorage.removeItem('ice_tab_home_v2');localStorage.removeItem('ice_tab_screens_v2');localStorage.setItem('ice_app_v','20261103_mp4');}catch(e){}
+    <script>try{localStorage.removeItem('ice_tab_home_v2');localStorage.removeItem('ice_tab_screens_v2');localStorage.setItem('ice_app_v','20261103_rv1');}catch(e){}
     // Автообновление: Telegram сворачивает мини-приложение, а не закрывает. При возврате сверяем версию с сервером и перезагружаем страницу.
-    (function(){var V='20261103_mp4',busy=false,last=0;function chk(){var n=Date.now();if(busy||n-last<15000)return;busy=true;last=n;fetch('/?_='+n,{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/ice_app_v','([^']+)'/);if(m&&m[1]!==V)location.reload();}).catch(function(){}).then(function(){busy=false;});}
+    (function(){var V='20261103_rv1',busy=false,last=0;function chk(){var n=Date.now();if(busy||n-last<15000)return;busy=true;last=n;fetch('/?_='+n,{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/ice_app_v','([^']+)'/);if(m&&m[1]!==V)location.reload();}).catch(function(){}).then(function(){busy=false;});}
     document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('focus',chk);setTimeout(chk,4000);})();</script>
     
     <!-- ═══════════════════════════════════════════════════════════════════════
