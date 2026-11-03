@@ -1657,13 +1657,13 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 .rv-hub-title{font-size:24px;font-weight:800;line-height:1.1;letter-spacing:.01em;color:#fff}
 .rv-hub-sub{margin-top:5px;font-size:13px;font-weight:500;line-height:17px;color:rgba(255,255,255,.8)}
 .rv-maps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.rv-map{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0;padding:10px;border-radius:var(--rd-r16);background:#fff;color:color-mix(in srgb,var(--rd-blue) 20%,#000);text-align:left;-webkit-tap-highlight-color:transparent;
+.rv-map{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0;padding:14px 10px 8px;border-radius:var(--rd-r16);background:#fff;color:color-mix(in srgb,var(--rd-blue) 20%,#000);text-align:left;-webkit-tap-highlight-color:transparent;
   box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 8px 18px -8px rgba(0,0,0,.45);
   transition:transform .42s cubic-bezier(.34,1.56,.64,1);animation:rv-tile-in .44s cubic-bezier(.34,1.4,.64,1) backwards;animation-delay:calc(var(--i,0) * 50ms + 120ms)}
 .rv-map:active{transform:scale(.97);transition-duration:.1s}
 .rv-map-logo{width:44px;height:44px;border-radius:var(--rd-r12);object-fit:cover;box-shadow:0 4px 10px -4px rgba(0,0,0,.35);outline:1px solid rgba(0,0,0,.06);outline-offset:-1px}
 .rv-map-name{max-width:100%;margin-left:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;font-weight:800;line-height:18px;letter-spacing:-.015em}
-.rv-map-rate{position:absolute;top:36px;right:9px;height:18px;display:flex;align-items:center;gap:1px;font-size:16px;font-weight:800;line-height:1;letter-spacing:-.02em;color:var(--rv-ink)}
+.rv-map-rate{position:absolute;top:40px;right:9px;height:18px;display:flex;align-items:center;gap:1px;font-size:16px;font-weight:800;line-height:1;letter-spacing:-.02em;color:var(--rv-ink)}
 .rv-map-rate svg{width:14px;height:14px;color:var(--rv-gold)}
 .rv-map-go{position:absolute;top:8px;right:8px;display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:color-mix(in srgb,var(--rd-blue) 12%,#fff);color:var(--rd-blue)}
 .rv-map-go svg{transform:rotate(-45deg)}
@@ -1677,7 +1677,7 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 @keyframes rv-hub-in{from{opacity:0;transform:translateY(8px) scale(.985)}}
 @keyframes rv-tile-in{from{opacity:0;transform:translateY(8px) scale(.94)}}
 /* Телефоны до 389 (Android 360, iPhone mini): плитки и кружки чуть меньше */
-@media (max-width:389px){.rv-hub{padding:14px 14px 12px}.rv-hub-title{font-size:22px}.rv-hub-sub{font-size:12.5px}.rv-hub-head{padding-right:70px}.rv-hub-art{width:70px;height:70px;right:4px}.rv-map{padding:9px 8px}.rv-map-logo{width:42px;height:42px}.rv-map-name{font-size:14px}.rv-soc-btn{width:38px;height:38px}.rv-soc-btn img{width:38px;height:38px;border-radius:11px}.rv-soc-row{gap:5px}}
+@media (max-width:389px){.rv-hub{padding:14px 14px 12px}.rv-hub-title{font-size:22px}.rv-hub-sub{font-size:12.5px}.rv-hub-head{padding-right:70px}.rv-hub-art{width:70px;height:70px;right:4px}.rv-map{padding:13px 8px 7px}.rv-map-logo{width:42px;height:42px}.rv-map-name{font-size:14px}.rv-soc-btn{width:38px;height:38px}.rv-soc-btn img{width:38px;height:38px;border-radius:11px}.rv-soc-row{gap:5px}}
 /* Совсем узкие (до 340): подпись соцсетей убираем, кружки по всей ширине */
 @media (max-width:339px){.rv-soc-label{display:none}.rv-soc-row{flex:1;justify-content:space-between}.rv-map-go{display:none}}
 @media (prefers-reduced-motion:reduce){.rv-hub,.rv-map,.rv-soc-btn{animation:none;transition:none}.rv-map:active,.rv-soc-btn:active{transform:none}}
