@@ -1731,32 +1731,25 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 @media (prefers-reduced-motion:reduce){.rv-hub,.rv-map,.rv-soc-btn{animation:none;transition:none}.rv-map:active,.rv-soc-btn:active{transform:none}}
 /* Лента отзывов: крупные белые плитки как карты в баннере, цветные аватарки, сводка рейтинга, сортировка, фото на весь экран */
 .rv{--rv-ink:#0b1430;--rv-ink2:#6b7488;--rv-gold:#ffb800}
-.rv-cats{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 14px;padding:4px 16px 6px;scroll-padding:0 16px;scroll-snap-type:x proximity}
-.rv-cats::-webkit-scrollbar{display:none}
-.rv-cat{--c1:#4f8cff;--c2:#1f5bff;flex:0 0 auto;width:86px;display:flex;flex-direction:column;align-items:center;gap:7px;padding:10px 3px 9px;border-radius:var(--rd-r16);background:var(--rd-s2);border:1px solid var(--rd-line);color:var(--rd-tx2);scroll-snap-align:start;-webkit-tap-highlight-color:transparent;animation:rvCatIn .5s cubic-bezier(.34,1.56,.64,1) both;animation-delay:calc(var(--i) * 40ms);transition:background .25s,transform .3s cubic-bezier(.34,1.56,.64,1),box-shadow .25s}
+.rv-cats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 12px}
+.rv-cat{flex:none;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 2px 7px;border-radius:var(--rd-r16);background:var(--rd-s2);border:1px solid var(--rd-line);color:var(--rd-tx2);-webkit-tap-highlight-color:transparent;animation:rvCatIn .5s cubic-bezier(.34,1.56,.64,1) both;animation-delay:calc(var(--i) * 40ms);transition:background .25s,transform .3s cubic-bezier(.34,1.56,.64,1),box-shadow .25s}
 .rv-cat:active{transform:scale(.95)}
-.rv-cat-ic{position:relative;width:42px;height:42px;border-radius:14px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--c1),var(--c2));box-shadow:0 8px 16px -8px var(--c2),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
-.rv-cat.on .rv-cat-ic{transform:scale(1.08)}
-.rv-cat-t{font-size:11px;letter-spacing:-.2px;font-weight:700;line-height:1.15;text-align:center;max-width:none;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rv-cat-n{position:absolute;top:-6px;right:-8px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#fff;color:#0b1220;font-size:10.5px;font-weight:800;line-height:18px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.rv-cat-ic{position:relative;width:42px;height:42px;display:block;transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+.rv-3d{width:100%;height:100%;display:block;overflow:visible;filter:drop-shadow(0 5px 5px rgba(0,0,0,.3))}
+.rv-cat.on .rv-cat-ic{transform:translateY(-2px) scale(1.12)}
+.rv-cat-t{font-size:11px;letter-spacing:-.2px;font-weight:700;line-height:1.15;text-align:center;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rv-cat-n{position:absolute;top:-3px;right:-7px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#fff;color:#0b1220;font-size:10px;font-weight:800;line-height:17px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.4)}
 .rv-cat.on{background:#fff;border-color:#fff;color:#0b1220;box-shadow:0 12px 24px -12px rgba(79,140,255,.7)}
 .rv-cat.on .rv-cat-t{font-weight:800}
 .rv-cat.on .rv-cat-n{background:#0b1220;color:#fff}
-.rv-cat.c-orders{--c1:#ffb23e;--c2:#ff7a18}.rv-cat.c-promotions{--c1:#ff6b8b;--c2:#e8266a}.rv-cat.c-dropshipping{--c1:#34d3a0;--c2:#0e9f78}.rv-cat.c-referral{--c1:#b48bff;--c2:#7a42f0}.rv-cat.c-advertising{--c1:#ff8f5a;--c2:#f0452b}.rv-cat.c-academy{--c1:#4fd1ff;--c2:#1795d6}.rv-cat.c-legitcheck{--c1:#6ee77a;--c2:#1fae45}.rv-cat.c-partnership{--c1:#6c7bff;--c2:#3a3fd8}
-.rv-sum{display:flex;align-items:center;gap:16px;margin-bottom:14px;padding:16px;border-radius:var(--rd-r22);background:var(--rd-s1);border:1px solid var(--rd-line);animation:rv-hub-in .42s cubic-bezier(.2,.8,.2,1) backwards}
-.rv-sum-main{position:relative;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;min-width:92px}
-.rv-sum-num{font-size:46px;font-weight:800;line-height:1;letter-spacing:-.03em;color:var(--rd-tx)}
-.rv-sum-stars{display:flex;gap:1px;margin-top:6px;color:var(--rv-gold)}
-.rv-sum-cnt{margin-top:5px;font-size:12px;font-weight:600;color:var(--rd-tx3)}
-.rv-bars{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
-.rv-bar{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--rd-tx2)}
-.rv-bar span{width:8px;text-align:center}
-.rv-bar i{flex:1;height:8px;border-radius:4px;background:var(--rd-s3);overflow:hidden}
-.rv-bar u{display:block;height:100%;width:var(--w);border-radius:4px;background:linear-gradient(90deg,var(--rd-blue),var(--rd-blue-hi));transform-origin:left;animation:rv-bar-in .7s cubic-bezier(.2,.8,.2,1) backwards;animation-delay:calc(var(--i,0)*60ms + 200ms)}
-.rv-bar em{width:22px;text-align:right;font-style:normal;color:var(--rd-tx3)}
-@keyframes rv-bar-in{from{transform:scaleX(0)}}
-.rv-sort{display:flex;gap:4px;margin-bottom:14px;padding:4px;border-radius:14px;background:var(--rd-s2);border:1px solid var(--rd-line)}
-.rv-sort-b{flex:1;padding:9px 6px;border-radius:11px;font-size:13.5px;font-weight:700;color:var(--rd-tx3);transition:background .25s,color .25s,transform .3s cubic-bezier(.34,1.56,.64,1);-webkit-tap-highlight-color:transparent}
+.rv-bar{display:flex;align-items:stretch;gap:8px;margin-bottom:12px}
+#rvSum{flex:0 0 auto;display:flex}
+.rv-sum{display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:14px;background:var(--rd-s1);border:1px solid var(--rd-line);animation:rv-hub-in .42s cubic-bezier(.2,.8,.2,1) backwards}
+.rv-sum-num{font-size:26px;font-weight:800;line-height:1;letter-spacing:-.03em;color:var(--rd-tx)}
+.rv-sum-stars{display:flex;gap:1px;color:var(--rv-gold)}
+.rv-sum-cnt{margin-top:3px;font-size:11px;font-weight:600;white-space:nowrap;color:var(--rd-tx3)}
+.rv-sort{flex:1;min-width:0;display:flex;gap:3px;padding:3px;border-radius:14px;background:var(--rd-s2);border:1px solid var(--rd-line)}
+.rv-sort-b{flex:1;padding:9px 2px;border-radius:11px;font-size:12.5px;font-weight:700;color:var(--rd-tx3);white-space:nowrap;transition:background .25s,color .25s,transform .3s cubic-bezier(.34,1.56,.64,1);-webkit-tap-highlight-color:transparent}
 .rv-sort-b:active{transform:scale(.96)}
 .rv-sort-b.on{background:linear-gradient(135deg,var(--rd-blue-hi),var(--rd-blue));color:#fff;box-shadow:0 6px 14px -6px color-mix(in srgb,var(--rd-blue) 70%,transparent)}
 .rv-list{display:flex;flex-direction:column;gap:12px}
@@ -1824,9 +1817,9 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 .rv-lb-slide{flex:0 0 100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;padding:0 0 calc(env(safe-area-inset-bottom,0px) + 16px)}
 .rv-lb-slide img{max-width:100%;max-height:100%;object-fit:contain;border-radius:var(--rd-r16);-webkit-user-drag:none}
 @keyframes rv-lb-in{from{opacity:0}}
-@media (max-width:389px){.rv-sum{gap:12px;padding:14px}.rv-sum-num{font-size:40px}.rv-sum-main{min-width:80px}.rv-card{padding:14px}.rv-ava{width:42px;height:42px}.rv-name{font-size:15px}.rv-text{font-size:14.5px}}
-@media (max-width:339px){.rv-sum{flex-direction:column;align-items:stretch}.rv-sum-main{align-items:flex-start}.rv-sort-b{font-size:12.5px}}
-@media (prefers-reduced-motion:reduce){.rv-sum,.rv-card,.rv-bar u,.rv-like.pop .rv-thumb,.rv-lb{animation:none}.rv-sort-b,.rv-like,.rv-pin,.rv-ph img,.rv-lb-track{transition:none}}
+@media (max-width:389px){.rv-sort-b{font-size:12px}.rv-card{padding:14px}.rv-ava{width:42px;height:42px}.rv-name{font-size:15px}.rv-text{font-size:14.5px}}
+@media (max-width:339px){.rv-sum-cnt{display:none}}
+@media (prefers-reduced-motion:reduce){.rv-sum,.rv-card,.rv-like.pop .rv-thumb,.rv-lb{animation:none}.rv-sort-b,.rv-like,.rv-pin,.rv-ph img,.rv-lb-track{transition:none}}
 
 /* Шапка: активная иконка раздела — синий акцент */
 html body .app-header .header-center .icon-btn.active-header-btn { background: rgba(47,123,255,.18) !important; border-color: transparent !important; color: var(--rd-blue, #2f7bff) !important; box-shadow: none !important; }

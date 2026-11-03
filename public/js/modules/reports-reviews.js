@@ -190,7 +190,7 @@
         const RV_PAGE = 10;
         const RV_CATS = [
           ['all', 'Все'], ['orders', 'Заказы'], ['promotions', 'Акции'], ['dropshipping', 'Дропшиппинг'],
-          ['referral', 'Рефералка'], ['advertising', 'Реклама'], ['academy', 'Обучение'],
+          ['referral', 'Рефералка'], ['advertising', 'Реклама'],
           ['legitcheck', 'Legit Check'], ['partnership', 'Партнёрство']
         ];
         const RV_CAT_LABEL = Object.fromEntries(RV_CATS);
@@ -294,11 +294,6 @@
               ['Игорь Ш.', 5, 'Размещали рекламу через ICE LOGIX. Охват хороший, прислали понятный отчёт, вопросов не было.', 1, 7, 9, null, 'Игорь, спасибо! Будем рады новым кампаниям.'],
               ['Юлия А.', 5, 'Понравилось, что всё прозрачно: что, где и когда выйдет. Результат — новые клиенты уже в первую неделю.', 0, 18, 5, null, ''],
               ['Максим О.', 4, 'Реклама отработала хорошо, хотелось бы чуть быстрее согласование.', 0, 29, 2, null, '']
-            ],
-            academy: [
-              ['Дарья Е.', 5, 'Прошла уроки по выбору товаров. Объяснено просто, с примерами. Уже применила на практике.', 0, 2, 13, null, 'Дарья, отличный результат! Новые уроки скоро.'],
-              ['Сергей К.', 5, 'Полезно и без воды. Особенно понравился разбор проверки подлинности.', 0, 12, 10, null, ''],
-              ['Лиза Р.', 4, 'Хороший курс, добавьте больше видео, пожалуйста.', 0, 24, 4, null, '']
             ],
             legitcheck: [
               ['Тимофей З.', 5, 'Проверили кроссовки до покупки: прислали подробный разбор по деталям и честное заключение. Спасли от подделки.', 4, 3, 21, null, 'Тимофей, главное, что всё выяснилось до покупки. Спасибо!'],
@@ -482,31 +477,41 @@
         function rvSummaryHtml(cat) {
           const rows = rvCatRows(cat).filter(r => Number(r.rating) >= 1);
           if (!rows.length) return '';
-          const cnt = [0, 0, 0, 0, 0, 0];
-          let sum = 0;
-          rows.forEach(r => { const v = Math.min(5, Math.round(Number(r.rating))); cnt[v]++; sum += v; });
-          const total = rows.length, avg = sum / total;
-          const bars = [5, 4, 3, 2, 1].map((s, k) =>
-            `<div class="rv-bar" style="--i:${k}"><span>${s}</span><i><u style="--w:${Math.round(cnt[s] / total * 100)}%"></u></i><em>${cnt[s]}</em></div>`).join('');
+          const total = rows.length;
+          const avg = rows.reduce((s, r) => s + Math.min(5, Math.round(Number(r.rating))), 0) / total;
           return `
-            <section class="rv-sum">
-              <div class="rv-sum-main">
-                <div class="rv-sum-num">${avg.toFixed(1).replace('.', ',')}</div>
-                <div class="rv-sum-stars">${[1, 2, 3, 4, 5].map(k => UI.icon('star', 15, { fill: k <= Math.round(avg) })).join('')}</div>
-                <div class="rv-sum-cnt">${total} ${rvPlural(total, ['отзыв', 'отзыва', 'отзывов'])}</div>
-                ${rvIsDemo(cat) ? '<span class="rv-demo">Демо</span>' : ''}
+            <section class="rv-sum" aria-label="Средняя оценка">
+              <div class="rv-sum-num">${avg.toFixed(1).replace('.', ',')}</div>
+              <div class="rv-sum-mid">
+                <div class="rv-sum-stars">${[1, 2, 3, 4, 5].map(k => UI.icon('star', 12, { fill: k <= Math.round(avg) })).join('')}</div>
+                <div class="rv-sum-cnt">${total} ${rvPlural(total, ['отзыв', 'отзыва', 'отзывов'])}${rvIsDemo(cat) ? ' · демо' : ''}</div>
               </div>
-              <div class="rv-bars">${bars}</div>
             </section>`;
         }
 
-        const RV_CAT_ICON = { all: 'grid', orders: 'package', promotions: 'tag', dropshipping: 'truck', referral: 'users', advertising: 'megaphone', academy: 'academy', legitcheck: 'shieldCheck', partnership: 'briefcase' };
+        const RV_3D = (() => {
+          const g = (id, a, b) => `<linearGradient id="rv3-${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>`;
+          const sh = '<ellipse cx="32" cy="58" rx="19" ry="3.4" fill="#000" opacity=".28"/>';
+          const gl = (x, y, rx, ry, r) => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="#fff" opacity=".55" transform="rotate(${r} ${x} ${y})"/>`;
+          const cube = (top, left, right) => `<polygon points="32,8 55,21 32,34 9,21" fill="${top}"/><polygon points="9,21 32,34 32,58 9,45" fill="${left}"/><polygon points="32,34 55,21 55,45 32,58" fill="${right}"/>`;
+          const wrap = (inner) => `<svg class="rv-3d" viewBox="0 0 64 64" aria-hidden="true">${inner}</svg>`;
+          return {
+            all: wrap(`${sh}${cube('#d6ebff', '#5b97ff', '#2358f0')}<polygon points="32,8 55,21 32,34 9,21" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1.2"/>${gl(22, 20, 7, 3, -28)}<path d="M50 6l1.6 4.4L56 12l-4.4 1.6L50 18l-1.6-4.4L44 12l4.4-1.6z" fill="#fff"/>`),
+            orders: wrap(`${sh}${cube('#ffd793', '#ffa043', '#e3711a')}<polygon points="18.2,14.5 23.8,17.5 45.8,29.5 40.2,26.5" fill="#fff6dc" opacity=".92"/><polygon points="32,34 40.2,29.5 40.2,53.5 32,58" fill="#fff6dc" opacity=".16"/><rect x="13" y="34" width="9" height="7" rx="1.5" fill="#fff" opacity=".85" transform="skewY(30) translate(0 -7.5)"/>${gl(24, 19, 5, 2.2, -28)}`),
+            promotions: wrap(`<defs>${g('p', '#ff9bb0', '#e8266a')}</defs>${sh}<g transform="rotate(-16 32 32)"><path d="M14 24H40L54 36L40 48H14A4 4 0 0 1 10 44V28A4 4 0 0 1 14 24Z" fill="#a8174a"/><path d="M14 18H40L54 30L40 42H14A4 4 0 0 1 10 38V22A4 4 0 0 1 14 18Z" fill="url(#rv3-p)"/><circle cx="44" cy="30" r="3.2" fill="#7a0f33"/><text x="24" y="37" font-size="21" font-weight="900" fill="#fff" text-anchor="middle" font-family="Arial,Helvetica,sans-serif">%</text><ellipse cx="20" cy="22.5" rx="8" ry="2.6" fill="#fff" opacity=".5"/></g>`),
+            dropshipping: wrap(`<defs>${g('d1', '#6cf0c0', '#0e9f78')}${g('d2', '#37d6a2', '#0a7e5e')}</defs>${sh}<polygon points="5,19 10,13 43,13 38,19" fill="#b5f8de"/><rect x="5" y="19" width="33" height="24" rx="3" fill="url(#rv3-d1)"/><path d="M38 27h10l9 9v7H38z" fill="url(#rv3-d2)"/><polygon points="42,29.5 47.5,29.5 52,35 42,35" fill="#d9f6ff"/><circle cx="18" cy="46" r="6.5" fill="#16213d"/><circle cx="18" cy="46" r="2.6" fill="#b9c4e0"/><circle cx="47" cy="46" r="6.5" fill="#16213d"/><circle cx="47" cy="46" r="2.6" fill="#b9c4e0"/><rect x="9" y="24" width="12" height="3" rx="1.5" fill="#fff" opacity=".45"/>`),
+            referral: wrap(`<defs>${g('r1', '#c7a8ff', '#6a35e0')}${g('r2', '#e0ccff', '#8f5af2')}${g('r3', '#ffe27a', '#ffa91f')}</defs>${sh}<rect x="14" y="30" width="36" height="26" rx="4" fill="url(#rv3-r1)"/><rect x="10" y="22" width="44" height="11" rx="4" fill="url(#rv3-r2)"/><rect x="28.5" y="22" width="7" height="34" fill="url(#rv3-r3)"/><ellipse cx="23" cy="16" rx="8" ry="5.2" fill="none" stroke="#ffbe3a" stroke-width="3.4" transform="rotate(-24 23 16)"/><ellipse cx="41" cy="16" rx="8" ry="5.2" fill="none" stroke="#ffbe3a" stroke-width="3.4" transform="rotate(24 41 16)"/><circle cx="32" cy="19.5" r="4" fill="url(#rv3-r3)"/><rect x="16" y="34" width="6" height="14" rx="3" fill="#fff" opacity=".28"/>`),
+            advertising: wrap(`<defs>${g('a1', '#ffab7e', '#ee3f24')}</defs>${sh}<path d="M17 38l3 14a3 3 0 0 0 6 -1l-1.6 -12z" fill="#a82712"/><rect x="6" y="25" width="10" height="15" rx="3" fill="#c52f19"/><path d="M14 25L41 11V53L14 40Z" fill="url(#rv3-a1)"/><ellipse cx="42" cy="32" rx="6" ry="21" fill="#ffe3d4"/><ellipse cx="42" cy="32" rx="3.4" ry="15" fill="#ff8a63" opacity=".55"/><path d="M52 21q6 11 0 22" stroke="#ffb597" stroke-width="3.2" fill="none" stroke-linecap="round"/><path d="M58 15q10 17 0 34" stroke="#ffb597" stroke-width="2.6" fill="none" stroke-linecap="round" opacity=".7"/><path d="M18 30L36 21" stroke="#fff" stroke-opacity=".55" stroke-width="3" stroke-linecap="round"/>`),
+            legitcheck: wrap(`<defs>${g('l1', '#8bf59a', '#1fae45')}</defs>${sh}<path d="M32 5L54 13V30C54 44 44 53 32 58C20 53 10 44 10 30V13Z" fill="url(#rv3-l1)"/><path d="M32 5L54 13V30C54 44 44 53 32 58Z" fill="#0a7a2c" opacity=".3"/><path d="M21 32L29 40L44 24" stroke="#0a6b27" stroke-opacity=".5" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 2)"/><path d="M21 32L29 40L44 24" stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="22" cy="15" rx="9" ry="3.4" fill="#fff" opacity=".5" transform="rotate(-18 22 15)"/>`),
+            partnership: wrap(`<defs>${g('b1', '#a3adff', '#3a3fd8')}${g('b3', '#ffe27a', '#ffa91f')}</defs>${sh}<path d="M24 24V17a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v7" stroke="#2f34b8" stroke-width="4.2" fill="none"/><rect x="7" y="22" width="50" height="34" rx="6" fill="url(#rv3-b1)"/><rect x="7" y="35" width="50" height="4" fill="#2328a0" opacity=".45"/><rect x="27.5" y="31" width="9" height="12" rx="2.4" fill="url(#rv3-b3)"/><rect x="11" y="26" width="42" height="3.2" rx="1.6" fill="#fff" opacity=".4"/>`)
+          };
+        })();
 
         function rvChipsHtml() {
           return RV_CATS.map(([id, label], k) => {
             const n = rvCatRows(id).length;
             return `<button type="button" class="rv-cat c-${id} ${rvState.cat === id ? 'on' : ''}" data-rv-cat="${id}" style="--i:${k}" aria-pressed="${rvState.cat === id}">
-              <span class="rv-cat-ic">${UI.icon(RV_CAT_ICON[id] || 'grid', 24)}${n ? `<b class="rv-cat-n">${n}</b>` : ''}</span>
+              <span class="rv-cat-ic">${RV_3D[id] || RV_3D.all}${n ? `<b class="rv-cat-n">${n}</b>` : ''}</span>
               <span class="rv-cat-t">${label}</span></button>`;
           }).join('');
         }
@@ -554,10 +559,11 @@
 
                 <div class="rd-card rv-hub">${rvPlatformsHtml(config)}</div>
 
-                <div id="rvSum">${rvSummaryHtml(cat)}</div>
-
                 <div class="rv-cats" id="rvChips" role="group" aria-label="Разделы">${rvChipsHtml()}</div>
-                <div class="rv-sort" id="rvSort" role="group" aria-label="Сортировка">${rvSortHtml()}</div>
+                <div class="rv-bar">
+                  <div id="rvSum">${rvSummaryHtml(cat)}</div>
+                  <div class="rv-sort" id="rvSort" role="group" aria-label="Сортировка">${rvSortHtml()}</div>
+                </div>
 
                 <div class="rv-list" id="rvList">${rows === null ? UI.empty({ icon: 'alert', title: 'Не удалось загрузить', text: 'Проверьте интернет и откройте раздел ещё раз.' }) : rvListHtml(rvState.items)}</div>
                 <div class="rv-sentinel" id="rvSentinel"></div>
@@ -906,7 +912,6 @@
                       <option value="dropshipping">Дропшиппинг 📦</option>
                       <option value="referral">Рефералы 👥</option>
                       <option value="advertising">Реклама 📢</option>
-                      <option value="academy">Академия 🎓</option>
                       <option value="legitcheck">Legit Check 🔍</option>
                       <option value="partnership">Партнерство 🏢</option>
                     </select>
