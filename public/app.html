@@ -102,9 +102,9 @@
   <link rel="stylesheet" href="/css/cart.css?v=20261024_48">
   <link rel="stylesheet" href="/css/ice-redesign.css?v=20261103_hd18">
   <link rel="stylesheet" href="/css/ice-redesign-compat.css?v=20261029_07">
-  <link rel="stylesheet" href="/css/ice-screens.css?v=20261103_rv23">
+  <link rel="stylesheet" href="/css/ice-screens.css?v=20261103_rv24">
   <link rel="stylesheet" href="/css/ice-admin.css?v=20261101_ib1">
-  <link rel="stylesheet" href="/css/ice-light.css?v=20261103_rv23">
+  <link rel="stylesheet" href="/css/ice-light.css?v=20261103_rv24">
   <script src="/js/modules/browser-gate.js?v=20261101_spl1"></script>
   <script src="/js/data/marketplace-logos-data.js?v=20261102_sq5"></script>
   <script src="/js/data/reviews-platforms-data.js?v=20261103_nc1"></script>
@@ -140,7 +140,7 @@
   <script src="/js/modules/pull-refresh.js?v=20261101_spl1"></script>
   <script src="/js/modules/sku-selector.js?v=20261101_blk1"></script>
   <script src="/js/modules/orders.js?v=20261103_rs1"></script>
-  <script src="/js/modules/reports-reviews.js?v=20261103_rv23"></script>
+  <script src="/js/modules/reports-reviews.js?v=20261103_rv24"></script>
   <script src="/js/modules/catalogs.js?v=20261103_mp4"></script>
   <script src="/js/modules/profile-modals.js?v=20261031_ak1"></script>
   <script src="/js/modules/resale.js?v=20261103_rs3"></script>
@@ -349,12 +349,12 @@
     
     <!-- Main Content Area -->
     <div id="content" class="main-content"></div>
-    <script>try{localStorage.removeItem('ice_tab_home_v2');localStorage.removeItem('ice_tab_screens_v2');localStorage.setItem('ice_app_v','20261103_rv23');}catch(e){}
+    <script>try{localStorage.removeItem('ice_tab_home_v2');localStorage.removeItem('ice_tab_screens_v2');localStorage.setItem('ice_app_v','20261103_rv24');}catch(e){}
     // Автообновление: Telegram сворачивает мини-приложение, а не закрывает. Сверяем версию с сервером:
     // при старте, при возврате (visibilitychange, focus, pageshow, событие Telegram «activated») — сразу перезагрузка;
     // раз в минуту в фоне — запоминаем и перезагружаем при следующем переходе (нижнее меню, «назад»), чтобы не сбить ввод.
     // Защита от цикла: на одну и ту же новую версию — не чаще раза в минуту. Версию дополняет отпечаток при сборке (scripts/stamp-versions.js).
-    (function(){var V='20261103_rv23',busy=false,last=0,stale='';
+    (function(){var V='20261103_rv24',busy=false,last=0,stale='';
     function go(){try{var p=JSON.parse(sessionStorage.getItem('ice_reload_to')||'{}');if(p.v===stale&&Date.now()-p.t<60000)return false;sessionStorage.setItem('ice_reload_to',JSON.stringify({v:stale,t:Date.now()}));}catch(e){}location.reload();return true;}
     function chk(now){var n=Date.now();if(busy||n-last<15000)return;busy=true;last=n;fetch('/?_='+n,{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/ice_app_v','([^']+)'/);if(m&&m[1]!==V){stale=m[1];if(now)go();}}).catch(function(){}).then(function(){busy=false;});}
     function wake(){if(document.hidden)return;if(stale)go();else chk(true);}
@@ -452,9 +452,9 @@
       } catch(e) {}
     })();
   </script>
-  <script src="/js/core/app-core.js?v=20261103_rv23"></script>
-  <script src="/js/modules/home-art.js?v=20261103_rv23"></script>
-  <script src="/js/modules/home.js?v=20261103_rv23"></script>
+  <script src="/js/core/app-core.js?v=20261103_rv24"></script>
+  <script src="/js/modules/home-art.js?v=20261103_rv24"></script>
+  <script src="/js/modules/home.js?v=20261103_rv24"></script>
   <script src="/js/modules/pdd-product.js?v=20261103_cancel"></script>
   <script src="/js/modules/pdd-search.js?v=20261103_cancel"></script>
   <script src="/js/modules/calculator.js?v=20261103_cancel2"></script>
