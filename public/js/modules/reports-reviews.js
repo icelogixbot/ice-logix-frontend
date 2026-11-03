@@ -227,7 +227,7 @@
           const sm = config.social_media_links || {};
           const row = list => list.map(([key, name, url]) => `
             <button type="button" class="rv-plat" data-rv-url="${rvEsc(url)}" aria-label="${name}">
-              <img class="rv-plat-logo" src="/assets/reviews-platforms/${key}.webp" alt="" width="44" height="44" decoding="async">
+              <img class="rv-plat-logo" src="/assets/reviews-platforms/${key}.webp" alt="" width="52" height="52" decoding="async">
               <span class="rv-plat-name">${name}</span>
             </button>`).join('');
           const maps = [
