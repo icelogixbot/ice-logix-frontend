@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/splash-lock.js && next build",
+    "build": "node scripts/splash-lock.js && node scripts/stamp-versions.js --write && next build",
     "start": "next start",
     "lint": "next lint"
   },
