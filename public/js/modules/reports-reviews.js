@@ -237,7 +237,10 @@
           ];
           const socials = [
             ['telegram', 'Telegram', reviewLink(config.telegram_group_link, 'https://t.me/')],
-            ['vk', 'ВКонтакте', reviewLink(sm.vk, 'https://vk.com/')]
+            ['vk', 'ВКонтакте', reviewLink(sm.vk, 'https://vk.com/')],
+            ['threads', 'Threads', reviewLink(sm.threads, 'https://www.threads.com/')],
+            ['instagram', 'Instagram', reviewLink(sm.instagram, 'https://www.instagram.com/')],
+            ['facebook', 'Facebook', reviewLink(sm.facebook, 'https://www.facebook.com/')]
           ];
           return `
             <p class="rv-hub-t">Отзывы о нас на независимых площадках</p>
