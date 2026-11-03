@@ -217,7 +217,7 @@
         function rvCacheKey(cat, sort) { return 'reviews_p1_' + cat + '_' + sort; }
         function rvClearCache() {
           if (!(window.CacheDB && window.CacheDB.clear)) return;
-          RV_SORTS.forEach(([s]) => { try { window.CacheDB.clear(rvCacheKey(rvState.cat, s)); } catch (e) {} });
+          [rvState.cat, 'all'].forEach(c => RV_SORTS.forEach(([s]) => { try { window.CacheDB.clear(rvCacheKey(c, s)); } catch (e) {} }));
         }
 
         // Страница ленты: первая — с коротким кэшем, чтобы экран открывался сразу
@@ -480,11 +480,11 @@
 
         // Сводка: крупный средний балл и полоски 5–1 звёзд (по настоящим отзывам, у владельца в демо-режиме — по демо)
         function rvSummaryHtml(cat) {
-          const rows = rvCatRows(cat);
+          const rows = rvCatRows(cat).filter(r => Number(r.rating) >= 1);
           if (!rows.length) return '';
           const cnt = [0, 0, 0, 0, 0, 0];
           let sum = 0;
-          rows.forEach(r => { const v = Math.max(1, Math.min(5, Math.round(Number(r.rating) || 0))); cnt[v]++; sum += v; });
+          rows.forEach(r => { const v = Math.min(5, Math.round(Number(r.rating))); cnt[v]++; sum += v; });
           const total = rows.length, avg = sum / total;
           const bars = [5, 4, 3, 2, 1].map((s, k) =>
             `<div class="rv-bar" style="--i:${k}"><span>${s}</span><i><u style="--w:${Math.round(cnt[s] / total * 100)}%"></u></i><em>${cnt[s]}</em></div>`).join('');
@@ -634,8 +634,7 @@
 
         // Просмотр фото на весь экран: свайп влево-вправо, счётчик, закрытие жестом вниз, крестиком или Esc
         function rvOpenLightbox(urls, start) {
-          const old = document.getElementById('rvLb');
-          if (old) old.remove();
+          if (window.__rvLbClose) window.__rvLbClose();
           const el = document.createElement('div');
           el.id = 'rvLb';
           el.className = 'rv-lb';
@@ -651,12 +650,15 @@
           const onKey = (e) => { if (e.key === 'Escape') close(); };
           function close() {
             document.removeEventListener('keydown', onKey);
+            if (window.__rvLbClose === close) window.__rvLbClose = null;
             el.classList.add('out');
             setTimeout(() => el.remove(), 200);
           }
+          window.__rvLbClose = close;
           document.addEventListener('keydown', onKey);
           el.querySelector('.rv-lb-x').addEventListener('click', close);
-          track.scrollLeft = (start || 0) * track.clientWidth;
+          el.addEventListener('click', (e) => { if (e.target === el || e.target.classList.contains('rv-lb-slide')) close(); });
+          requestAnimationFrame(() => { track.scrollLeft = (start || 0) * track.clientWidth; upd(); });
           upd();
           track.addEventListener('scroll', upd, { passive: true });
           let x0 = 0, y0 = 0, mode = null, dy = 0;
@@ -1225,7 +1227,8 @@
             const ph = t.closest('[data-rv-ph]');
             if (ph) {
               const item = rvState.items.find(r => r.id === id);
-              if (item) rvOpenLightbox(item.photo_urls.filter(Boolean), Number(ph.dataset.rvPh));
+              const urls = item && Array.isArray(item.photo_urls) ? item.photo_urls.filter(Boolean) : [];
+              if (urls.length) rvOpenLightbox(urls, Number(ph.dataset.rvPh));
               return;
             }
             const tg = t.closest('[data-rv-toggle]');
