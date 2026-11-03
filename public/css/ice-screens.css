@@ -1702,9 +1702,9 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 .rv-bar{display:flex;align-items:stretch;gap:8px;margin-bottom:12px}
 #rvSum{flex:0 0 auto;display:flex}
 .rv-sum{display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:16px;background:#fff;color:var(--rv-ink);box-shadow:0 10px 22px -14px color-mix(in srgb,var(--rd-blue) 60%,transparent);animation:rv-hub-in .42s cubic-bezier(.2,.8,.2,1) backwards}
-.rv-sum-num{position:relative;top:4px;font-size:26px;font-weight:800;line-height:.74;letter-spacing:-.04em;color:var(--rd-blue)}
-.rv-sum-stars{position:relative;top:3px;width:94px;height:18px;line-height:0}
-.rv-sum-st-bg,.rv-sum-st-fg{display:flex;gap:1px;height:18px}
+.rv-sum-num{position:relative;top:1px;font-size:24px;font-weight:800;line-height:1;letter-spacing:-.04em;color:var(--rd-blue)}
+.rv-sum-stars{position:relative;width:114px;height:22px;line-height:0}
+.rv-sum-st-bg,.rv-sum-st-fg{display:flex;gap:1px;height:22px}
 .rv-sum-st-bg{color:color-mix(in srgb,var(--rd-blue) 14%,#fff)}
 .rv-sum-st-fg{position:absolute;left:0;top:0;overflow:hidden;color:var(--rv-gold)}
 .rv-sum-st-fg svg,.rv-sum-st-bg svg{flex:none}
