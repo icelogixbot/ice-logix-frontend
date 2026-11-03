@@ -1662,8 +1662,8 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
   box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 8px 18px -8px rgba(0,0,0,.45);
   transition:transform .42s cubic-bezier(.34,1.56,.64,1);animation:rv-tile-in .44s cubic-bezier(.34,1.4,.64,1) backwards;animation-delay:calc(var(--i,0) * 50ms + 120ms)}
 .rv-map:active{transform:scale(.97);transition-duration:.1s}
-.rv-map-logo{display:block;width:calc(100% - 34px);height:auto;aspect-ratio:1;transform:translateX(-10px);filter:drop-shadow(0 1px 1px rgba(0,0,0,.1)) drop-shadow(0 3px 5px rgba(0,0,0,.22))}
-.rv-map-foot{display:flex;flex-direction:column;align-items:center;gap:var(--rv-gap);width:100%;min-width:0;padding:0;transform:translateX(-10px)}
+.rv-map-logo{display:block;width:calc(100% - 40px);height:auto;aspect-ratio:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,.1)) drop-shadow(0 3px 5px rgba(0,0,0,.22))}
+.rv-map-foot{display:flex;flex-direction:column;align-items:center;gap:var(--rv-gap);width:100%;min-width:0;padding:0}
 /* Слот имени: ширина — безопасная зона плитки (foot минус по 10px вокруг оси), текст строго по центру слота. Трекинг оставляет «хвост» после последней буквы — гасим его полем с другой стороны, чтобы центр шёл по видимым буквам */
 .rv-map-name{display:flex;align-items:center;justify-content:center;box-sizing:border-box;width:calc(100% - 20px);min-width:0;padding:0 max(calc(var(--rv-ls) * -1),0em) 0 max(var(--rv-ls),0em);overflow:hidden;white-space:nowrap;font-size:13px;font-weight:800;line-height:16px;letter-spacing:var(--rv-ls)}
 .rv-map[data-p="google-maps"]{--rv-ls:.02em}
