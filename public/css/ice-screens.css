@@ -1881,7 +1881,7 @@ html body .app-header .header-center .icon-btn.active-header-btn { background: r
 .hm-grid{row-gap:16px}
 .hm-grid .pc-body{padding-top:8px}
 /* home3: 3D-иконка «Отзывы» (картинка вместо SVG) */
-.hm-q-ico img{display:block;width:46px;height:auto;margin:-8px -6px -4px;filter:drop-shadow(0 6px 6px rgba(0,30,120,.35));object-fit:contain}
+.hm-q-ico img{display:block;width:100%;height:100%;margin:0;object-fit:contain;background:none;filter:none}
 .hm .hm-q[data-story="reviews"]{background:radial-gradient(120% 100% at 50% 0%,#6fe4ff 0%,#2f7dff 58%,#1639c0 100%);color:#fff}
 .hm .hm-q[data-story="reviews"] .hm-q-label{color:#fff;text-shadow:0 1px 2px rgba(0,20,90,.4)}
 .rv-hub-art{width:104px!important;height:auto!important;top:-8px!important;right:2px!important;filter:drop-shadow(0 10px 10px rgba(0,10,80,.45))}
