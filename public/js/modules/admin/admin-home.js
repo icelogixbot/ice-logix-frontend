@@ -36,7 +36,7 @@
     { id: 'clients', icon: 'users', title: 'Клиенты', text: 'Поиск, баланс, история', go: { tab: 'admin_clients' } },
     { id: 'inbox', icon: 'message', title: 'Обращения', text: 'Поддержка, претензии, споры, отзывы', go: { tab: 'admin_inbox' }, count: (a) => n(a.tickets) + n(a.claims) + n(a.disputes) + n(a.legit) + n(a.reviews) + n(a.ugc) + n(a.resale) },
     { id: 'store', icon: 'store', title: 'Витрина', text: 'Товары, акции, промокоды', go: { tab: 'admin_store' } },
-    { id: 'content', icon: 'text', title: 'Контент', text: 'Тексты, вопросы, Академия, отзывы', go: { tab: 'admin_content' } },
+    { id: 'content', icon: 'text', title: 'Контент', text: 'Тексты, вопросы, отзывы', go: { tab: 'admin_content' } },
     { id: 'team', icon: 'crown', title: 'Сотрудники', text: 'Кто работает и что может', go: { tab: 'admin_team' } },
     { id: 'settings', icon: 'sliders', title: 'Настройки', text: 'Оплата, реквизиты, ставки, рефералы', go: { tab: 'admin_settings' } },
     { id: 'moderator', icon: 'shield', title: 'Модерация', text: 'Чаты, каналы, комментарии, бан везде', go: { tab: 'admin_moderator' } },

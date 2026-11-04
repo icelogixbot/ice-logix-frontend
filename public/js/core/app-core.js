@@ -1011,7 +1011,7 @@
       '💎': 'diamond', '📈': 'trendingUp', '⏱️': 'clock', '🚀': 'arrowUpRight',
       '✨': 'sparkles', '🧮': 'calculator', '🔍': 'search', '📊': 'chart',
       '⚠️': 'warn', '✅': 'check', '⚡': 'flash', '🎁': 'gift', '💼': 'briefcase',
-      '👥': 'users', '📢': 'megaphone', '🎓': 'academy', '🛒': 'cart', '✈️': 'airplane',
+      '👥': 'users', '📢': 'megaphone', '🛒': 'cart', '✈️': 'airplane',
       '🛡️': 'shieldCheck', '⚖️': 'scale', '🛠️': 'settings', '🔔': 'bell', '❤️': 'heart',
       '🔗': 'link', '💰': 'wallet', '📦': 'package'
     };
@@ -2744,14 +2744,6 @@ let adminOrdersTotalPages = 1;
               ]);
               return { data: rep || [], count: countRes?.count || 120 };
             }, 600000).catch(() => {});
-            // 5. Pre-warm academy
-            window.CacheDB.get('academy_catalog', async () => {
-              const { data: courses } = await supabaseClient.from('courses').select('*').eq('is_active', true).order('created_at', { ascending: true });
-              if (!courses || courses.length === 0) return { courses: [], lessons: [] };
-              const courseIds = courses.map(c => c.id);
-              const { data: lessons } = await supabaseClient.from('lessons').select('*').in('course_id', courseIds).order('order_index', { ascending: true });
-              return { courses, lessons: lessons || [] };
-            }, 600000).catch(() => {});
             // 6. Pre-warm reviews config
             if (typeof loadReviewsConfig === 'function') loadReviewsConfig().catch(() => {});
             // 7. Notifications & Legit-checks
@@ -2780,7 +2772,6 @@ let adminOrdersTotalPages = 1;
                 if (!_tabCache['reports:']) renderReports().then(h => { if (h) _tabCache['reports:'] = { html: h, ts: Date.now() }; }).catch(() => {});
                 if (!_tabCache['reviews:']) renderReviews().then(h => { if (h) _tabCache['reviews:'] = { html: h, ts: Date.now() }; }).catch(() => {});
                 if (!_tabCache['promo:']) renderPromoPage().then(h => { if (h) _tabCache['promo:'] = { html: h, ts: Date.now() }; }).catch(() => {});
-                if (!_tabCache['academy:']) renderAcademy().then(h => { if (h) _tabCache['academy:'] = { html: h, ts: Date.now() }; }).catch(() => {});
                 if (userId && !_tabCache['legitcheck:']) renderLegitCheck().then(h => { if (h) _tabCache['legitcheck:'] = { html: h, ts: Date.now() }; }).catch(() => {});
               } catch(e) {}
             }, 400);
@@ -3282,7 +3273,6 @@ let adminOrdersTotalPages = 1;
         else if (tab === 'catalogs') attachCatalogsHandlers();
         else if (tab === 'profile') { attachProfileHandlers(); if (typeof loadProfileExtras === 'function') loadProfileExtras(); }
         else if (tab === 'dropshipper') attachDropshipperHandlers();
-        else if (tab === 'academy') attachAcademyHandlers();
         else if (tab === 'cart') attachCartHandlers();
         else if (tab === 'promo') attachPromoPageHandlers();
         else if (tab === 'history') attachHistoryHandlers();

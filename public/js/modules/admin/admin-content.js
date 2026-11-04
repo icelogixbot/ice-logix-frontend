@@ -1,6 +1,6 @@
-/* ICE LOGIX — Админка, экран «Контент» (этап 6): Тексты, Вопросы, Академия, Отзывы.
-   Логика (таблицы dynamic_texts, faq_items, courses, lessons, settings.reviews_config) перенесена из старых
-   admin.js и academy.js, вид — по ice-design-system. Только владелец; каждое сохранение пишется в журнал. */
+/* ICE LOGIX — Админка, экран «Контент» (этап 6): Тексты, Вопросы, Отзывы.
+   Логика (таблицы dynamic_texts, faq_items, settings.reviews_config) перенесена из старых
+   admin.js, вид — по ice-design-system. Только владелец; каждое сохранение пишется в журнал. */
 (function () {
   'use strict';
   const AD = window.AD;
@@ -12,7 +12,7 @@
   const haptic = (k) => AD.haptic && AD.haptic(k);
   const sb = () => (typeof supabaseClient !== 'undefined' ? supabaseClient : window.supabaseClient);
 
-  const SECTIONS = [['texts', 'Тексты'], ['faq', 'Вопросы'], ['academy', 'Академия'], ['reviews', 'Отзывы']];
+  const SECTIONS = [['texts', 'Тексты'], ['faq', 'Вопросы'], ['reviews', 'Отзывы']];
   let cur = 'texts';
   let token = 0;
   let textQuery = '';
@@ -224,148 +224,6 @@
     });
   }
 
-  // ══════════════════ Академия ══════════════════
-  const ROLES = [['all', 'Все'], ['client', 'Клиенты'], ['dropshipper', 'Дропшипперы']];
-  const ROLE_NAME = { all: 'Все', client: 'Клиенты', dropshipper: 'Дропшипперы' };
-  const LESSON_TYPES = [['text', 'Текст'], ['video', 'Видео'], ['quiz', 'Тест'], ['file', 'Файл']];
-  const LESSON_NAME = { text: 'Текст', video: 'Видео', quiz: 'Тест', file: 'Файл' };
-  let courseRows = [];
-
-  function renderAcademy(host, ctx) {
-    ctx.cta('Добавить курс', () => courseForm(null, ctx));
-    loadInto(host, ctx,
-      () => sb().from('courses').select('*').order('created_at', { ascending: true }),
-      (rows) => {
-        courseRows = rows; ctx.setCount(rows.length);
-        if (!rows.length) {
-          host.innerHTML = AD.emptyHtml({ icon: 'book', title: 'Курсов пока нет', text: 'Создайте первый курс, затем добавьте в него уроки.', action: 'Добавить курс', actionId: 'adCtCourseAdd' });
-          host.querySelector('#adCtCourseAdd').onclick = () => courseForm(null, ctx);
-          return;
-        }
-        host.innerHTML = `<div class="rd-card rd-list">${rows.map((c) => `
-          <div class="rd-row" role="button" tabindex="0" data-id="${esc(c.id)}">
-            <span class="rd-row-body">
-              <span class="rd-row-title">${esc(c.title)}${c.is_active === false ? ' <span class="rd-status warn">Скрыт</span>' : ''}</span>
-              <span class="rd-row-text">${esc(ROLE_NAME[c.role_access] || 'Все')} · ${Number(c.price_ice) > 0 ? esc(c.price_ice) + ' ICE' : 'Бесплатно'}</span>
-            </span></div>`).join('')}</div>`;
-        host.querySelectorAll('.rd-row[data-id]').forEach((r) => {
-          r.onclick = () => courseForm(courseRows.find((c) => String(c.id) === r.dataset.id), ctx);
-        });
-      });
-  }
-
-  function courseForm(c, ctx) {
-    const edit = !!c;
-    openForm({
-      title: edit ? 'Курс' : 'Новый курс',
-      body: `
-        ${fld('Название', inp('title', { value: edit ? c.title : '', ph: 'Например, Старт в дропшиппинге' }))}
-        ${fld('Описание', area('description', edit ? c.description : '', 'О чём курс', 3))}
-        ${fld('Цена в ICE', inp('price_ice', { value: edit ? c.price_ice : 0, mode: 'numeric' }), '0 — курс бесплатный')}
-        ${choice('role_access', 'Кому доступен', ROLES, edit ? (c.role_access || 'all') : 'all')}
-        ${sw('is_active', 'Показывать в Академии', edit ? c.is_active !== false : true)}
-        ${edit ? '<button type="button" class="rd-btn rd-btn-block ad-gap" data-lessons>Уроки курса</button>' : ''}`,
-      onOpen: (form, wrap, close) => {
-        const b = form.querySelector('[data-lessons]');
-        if (b) b.onclick = () => { close(); lessonsSheet(c, ctx); };
-      },
-      save: async (form) => {
-        const title = val(form, 'title');
-        if (!title) bad('Напишите название курса.');
-        const price_ice = intOr(val(form, 'price_ice'), 0);
-        if (price_ice < 0) bad('Цена не может быть отрицательной.');
-        const row = { title, description: val(form, 'description'), price_ice, role_access: chipVal(form, 'role_access') || 'all', is_active: checked(form, 'is_active') };
-        const r = edit ? await sb().from('courses').update(row).eq('id', c.id) : await sb().from('courses').insert(row);
-        if (r.error) throw r.error;
-        logAct(edit ? 'update_course' : 'create_course', { title, price_ice });
-        U().toast(edit ? 'Курс сохранён' : 'Курс добавлен', 'ok');
-        ctx.reload();
-      },
-    });
-  }
-
-  // Уроки курса: список в шторке, тап — правка
-  async function lessonsSheet(course, ctx) {
-    let rows = [];
-    let closeFn = null;
-    const paint = (wrap) => {
-      wrap.innerHTML = `
-        ${rows.length ? `<div class="rd-card rd-list">${rows.map((l) => `
-          <div class="rd-row" role="button" tabindex="0" data-id="${esc(l.id)}">
-            <span class="rd-row-body">
-              <span class="rd-row-title">${esc(l.order_index)}. ${esc(l.title)}</span>
-              <span class="rd-row-text">${esc(LESSON_NAME[l.content_type] || 'Текст')}${l.is_locked ? ' · закрыт' : ''}${Number(l.unlock_delay_hours) > 0 ? ' · откроется через ' + esc(l.unlock_delay_hours) + ' ч' : ''}</span>
-            </span></div>`).join('')}</div>`
-          : '<p class="rd-sub">В курсе пока нет уроков.</p>'}
-        <button type="button" class="rd-btn rd-btn-block ad-gap" data-add>Добавить урок</button>`;
-      wrap.querySelectorAll('.rd-row[data-id]').forEach((r) => {
-        r.onclick = () => { closeFn(); lessonForm(course, rows.find((l) => String(l.id) === r.dataset.id), ctx); };
-      });
-      wrap.querySelector('[data-add]').onclick = () => { closeFn(); lessonForm(course, null, ctx, rows); };
-    };
-    U().sheet({
-      title: esc(course.title),
-      html: '<div id="adCtLessons">' + AD.loadingHtml(2) + '</div>',
-      onOpen: async (wrap, close) => {
-        closeFn = close;
-        const box = wrap.querySelector('#adCtLessons');
-        try {
-          const { data, error } = await sb().from('lessons').select('*').eq('course_id', course.id).order('order_index', { ascending: true });
-          if (error) throw error;
-          rows = data || [];
-          paint(box);
-        } catch (e) {
-          AD.showError(box, 'Не получилось загрузить', AD.errorText(e), () => { close(); lessonsSheet(course, ctx); });
-        }
-      },
-    });
-  }
-
-  function lessonForm(course, l, ctx, siblings) {
-    const edit = !!l;
-    const back = () => lessonsSheet(course, ctx);
-    const next = edit ? null : ((siblings || []).reduce((m, x) => Math.max(m, Number(x.order_index) || 0), 0) + 1);
-    openForm({
-      title: edit ? 'Урок' : 'Новый урок',
-      body: `
-        ${fld('Название', inp('title', { value: edit ? l.title : '', ph: 'Например, Как выбрать поставщика' }))}
-        ${choice('content_type', 'Что внутри', LESSON_TYPES, edit ? (l.content_type || 'text') : 'text')}
-        ${fld('Содержимое', area('content', edit ? l.content : '', 'Текст урока, ссылка на видео или файл', 6))}
-        ${fld('Номер по порядку', inp('order_index', { value: edit ? l.order_index : next, mode: 'numeric' }))}
-        ${fld('Открыть через, часов', inp('unlock_delay_hours', { value: edit ? (l.unlock_delay_hours || 0) : 0, mode: 'numeric' }), '0 — сразу после покупки курса')}
-        ${sw('is_locked', 'Закрыт для клиентов', edit && l.is_locked)}
-        ${edit ? '<button type="button" class="rd-btn rd-btn-danger rd-btn-block ad-gap" data-del>Удалить урок</button>' : ''}`,
-      onOpen: (form, wrap, close) => {
-        const del = form.querySelector('[data-del]');
-        if (del) del.onclick = async () => {
-          if (!(await AD.confirmSheet('Удалить урок?', `«${l.title}» пропадёт из курса. Вернуть его не получится.`, 'Удалить', true))) return;
-          try {
-            const { error } = await sb().from('lessons').delete().eq('id', l.id);
-            if (error) throw error;
-            logAct('delete_lesson', { id: l.id, title: l.title });
-            U().toast('Урок удалён', 'ok'); close(); back();
-          } catch (x) { AD.fail(x, 'Не получилось удалить'); }
-        };
-      },
-      save: async (form) => {
-        const title = val(form, 'title');
-        if (!title) bad('Напишите название урока.');
-        const delay = intOr(val(form, 'unlock_delay_hours'), 0);
-        if (delay < 0) bad('Часы не могут быть отрицательными.');
-        const row = {
-          course_id: course.id, title, content_type: chipVal(form, 'content_type') || 'text',
-          content: form.elements.content.value, order_index: intOr(val(form, 'order_index'), 1),
-          is_locked: checked(form, 'is_locked'), unlock_delay_hours: delay,
-        };
-        const r = edit ? await sb().from('lessons').update(row).eq('id', l.id) : await sb().from('lessons').insert(row);
-        if (r.error) throw r.error;
-        logAct(edit ? 'update_lesson' : 'create_lesson', { course: course.title, title });
-        U().toast(edit ? 'Урок сохранён' : 'Урок добавлен', 'ok');
-        setTimeout(back, 250);
-      },
-    });
-  }
-
   // ══════════════════ Отзывы ══════════════════
   // Читает reports-reviews.js: четыре ссылки и список партнёров. Остальные ключи конфига не трогаем.
   const LINKS = [
@@ -415,7 +273,7 @@
   }
 
   // ══════════════════ Экран ══════════════════
-  const RENDER = { texts: renderTexts, faq: renderFaq, academy: renderAcademy, reviews: renderReviews };
+  const RENDER = { texts: renderTexts, faq: renderFaq, reviews: renderReviews };
   const counts = {};
 
   function chipsHtml() {
@@ -456,7 +314,7 @@
       <div class="rd-screen page-enter ad-screen" id="adContentRoot">
         <div class="rd-head">
           <button type="button" class="rd-back" onclick="window.goBackGlobal()" aria-label="Назад">${I('chevL', 22)}</button>
-          <div class="rd-head-txt"><h1 class="rd-head-title">Контент</h1><p class="rd-head-sub">Тексты, вопросы, Академия и отзывы</p></div>
+          <div class="rd-head-txt"><h1 class="rd-head-title">Контент</h1><p class="rd-head-sub">Тексты, вопросы и отзывы</p></div>
           <button type="button" class="rd-back" id="adContentRefresh" aria-label="Обновить">${I('refresh', 20)}</button>
         </div>
         ${owner ? `<div class="rd-chips ad-chips" id="adContentChips">${chipsHtml()}</div><div id="adContentBody"></div><div class="ad-cta-space"></div>`

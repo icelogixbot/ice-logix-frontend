@@ -742,36 +742,6 @@ html body .wl-amount input { width: 5ch !important; min-width: 0; text-align: ri
 .pr-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; font-size: 12.5px; color: var(--rd-tx3); }
 .pr-foot > span:first-child { display: inline-flex; align-items: center; gap: 5px; }
 
-/* ═══ Академия ═══ */
-.ac-add { color: var(--rd-b300); }
-.ac-list { display: flex; flex-direction: column; gap: 12px; }
-html body .ac-card { padding: 16px !important; cursor: pointer; }
-.ac-top { display: flex; align-items: flex-start; gap: 12px; }
-.ac-ico { width: 48px; height: 48px; flex-shrink: 0; border-radius: 15px; display: flex; align-items: center; justify-content: center; color: #fff; background: linear-gradient(150deg, #4DA3FF, #1650B8); box-shadow: 0 10px 20px -8px rgba(31, 111, 224, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.3); }
-.ac-info { flex: 1; min-width: 0; }
-.ac-info h3 { margin: 0; font-size: 17px; font-weight: 800; color: var(--rd-tx); line-height: 1.25; }
-.ac-info p { margin: 3px 0 0; font-size: 13.5px; line-height: 1.4; color: var(--rd-tx2); }
-.ac-price { flex-shrink: 0; height: 26px; line-height: 26px; padding: 0 10px; border-radius: 999px; background: var(--rd-tint); color: var(--rd-b300); font-size: 12.5px; font-weight: 700; }
-.ac-price.free { background: rgba(61, 214, 140, 0.13); color: var(--rd-ok); }
-.ac-prog { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
-.ac-track { flex: 1; height: 6px; border-radius: 999px; background: var(--rd-s3); overflow: hidden; }
-html body .ac-fill { background: linear-gradient(90deg, #2F86F5, #8CC6FF) !important; border-radius: 999px; transition: width .5s ease; }
-html body .ac-pct { font-size: 12.5px !important; color: var(--rd-tx3) !important; font-variant-numeric: tabular-nums; }
-.ac-more { display: flex; align-items: center; gap: 6px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--rd-line); font-size: 13px; color: var(--rd-tx3); }
-.ac-more span { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; color: var(--rd-b400); font-weight: 600; }
-.ac-card .rd-btn { margin-top: 12px; gap: 8px; }
-html body .ac-cert { background: linear-gradient(135deg, #F6C858, #E4962B) !important; color: #2A1A02 !important; }
-.ac-lessons:not(.hidden) { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
-.ac-lesson { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--rd-s2); cursor: pointer; }
-.ac-lesson.locked { opacity: .5; cursor: default; }
-.ac-l-ico { width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; background: var(--rd-tint); color: var(--rd-b400); display: flex; align-items: center; justify-content: center; }
-.ac-l-ico .ix svg { width: 18px; height: 18px; }
-.ac-l-body { flex: 1; min-width: 0; }
-.ac-l-body p { margin: 0; font-size: 14px; font-weight: 600; color: var(--rd-tx); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ac-l-body span { font-size: 12px; color: var(--rd-tx3); }
-.ac-start { height: 28px; line-height: 28px; padding: 0 12px; border-radius: 999px; background: var(--rd-blue); color: #fff; font-size: 12.5px; font-weight: 700; }
-.ac-none { margin: 0; padding: 10px; text-align: center; font-size: 13px; color: var(--rd-tx3); }
-
 /* ═══ Магазин бонусов ═══ */
 .bs-hero { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px; margin-bottom: 14px; border-radius: 22px; overflow: hidden; background: radial-gradient(120% 140% at 100% 0%, rgba(255, 194, 74, 0.16), transparent 55%), linear-gradient(135deg, #123A80, #0B1B3E 70%); border: 1px solid rgba(140, 198, 255, 0.18); }
 .bs-hero-l { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }

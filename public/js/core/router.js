@@ -2,7 +2,6 @@
 // ICE LOGIX Engine: Router & Lifecycle Watchdog
 // ============================================================
     // [EXTRACTED MODULE] Dropshipper Cabinet is loaded from /js/modules/dropship.js
-    // [EXTRACTED MODULE] Academy is loaded from /js/modules/academy.js
     // [EXTRACTED MODULE] Reports & Reviews is loaded from /js/modules/reports-reviews.js
 
 
@@ -135,9 +134,6 @@
       } else if (currentTab === 'dropshipper') {
         contentDiv.innerHTML = shadowBannerHtml + await renderDropshipper();
         attachDropshipperHandlers();
-      } else if (currentTab === 'academy') {
-        contentDiv.innerHTML = shadowBannerHtml + await renderAcademy();
-        attachAcademyHandlers();
       } else if (currentTab === 'admin' && isOwner) {
         if (!adminAuthenticated) {
           contentDiv.innerHTML = await renderAdmin2FA();
@@ -255,7 +251,7 @@
         window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       }
 
-      if (currentTab !== 'home' && currentTab !== 'catalogs' && currentTab !== 'reports' && currentTab !== 'reviews' && currentTab !== 'reviewItems' && currentTab !== 'academy' && currentTab !== 'dropshipper' && currentTab !== 'products' && currentTab !== 'wishlist' && currentTab !== 'product' && currentTab !== 'search' && currentTab !== 'notifications' && currentTab !== 'settings' && currentTab !== 'topup' && !currentSubScreen) {
+      if (currentTab !== 'home' && currentTab !== 'catalogs' && currentTab !== 'reports' && currentTab !== 'reviews' && currentTab !== 'reviewItems' && currentTab !== 'dropshipper' && currentTab !== 'products' && currentTab !== 'wishlist' && currentTab !== 'product' && currentTab !== 'search' && currentTab !== 'notifications' && currentTab !== 'settings' && currentTab !== 'topup' && !currentSubScreen) {
         ensureBackButton();
       }
       initCardSliders();
@@ -267,7 +263,7 @@
           if (currentTab === 'home' && !currentSubScreen && !contentDiv.innerHTML.includes('Страница не найдена')) {
             localStorage.setItem('ice_tab_home_v2', contentDiv.innerHTML);
           }
-          const _persistKeys = ['reports:', 'reviews:', 'promo:', 'academy:', 'legitcheck:', 'calculator:', 'catalogs:'];
+          const _persistKeys = ['reports:', 'reviews:', 'promo:', 'legitcheck:', 'calculator:', 'catalogs:'];
           if (_persistKeys.includes(_ck)) {
             const _toSave = {};
             _persistKeys.forEach(k => { if (_tabCache[k]?.html) _toSave[k] = _tabCache[k]; });

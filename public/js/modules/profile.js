@@ -150,13 +150,6 @@
     myCardsBtn.onclick = () => switchTab('finances');
   }
 
-  const academyBtn = document.getElementById('academyBtn');
-  if (academyBtn) {
-    academyBtn.onclick = () => switchTab('academy');
-  }
-
-
-
   const adminBtn = document.getElementById('adminPanelBtn');
   if (adminBtn) {
     adminBtn.onclick = () => switchTab('admin');

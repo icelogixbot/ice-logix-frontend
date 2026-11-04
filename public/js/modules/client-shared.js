@@ -80,7 +80,7 @@ function ensureBackButton() {
   const oldBtn = document.getElementById('globalBackBtn');
   if (oldBtn) oldBtn.remove();
   if (window.Telegram?.WebApp?.BackButton) return;
-  if (currentTab !== 'home' && currentTab !== 'catalogs' && currentTab !== 'reports' && currentTab !== 'reviews' && currentTab !== 'academy' && currentTab !== 'dropshipper' && currentTab !== 'products' && currentTab !== 'wishlist' && currentTab !== 'search' && currentTab !== 'notifications' && currentTab !== 'settings' && !document.querySelector('#content .rd-head')) {
+  if (currentTab !== 'home' && currentTab !== 'catalogs' && currentTab !== 'reports' && currentTab !== 'reviews' && currentTab !== 'dropshipper' && currentTab !== 'products' && currentTab !== 'wishlist' && currentTab !== 'search' && currentTab !== 'notifications' && currentTab !== 'settings' && !document.querySelector('#content .rd-head')) {
     const contentDiv = document.getElementById('content');
     const btn = document.createElement('button');
     btn.id = 'globalBackBtn';
