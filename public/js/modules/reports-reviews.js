@@ -195,7 +195,7 @@
         ];
         const RV_CAT_LABEL = Object.fromEntries(RV_CATS);
         const RV_SORTS = [['new', 'Новые'], ['best', 'Лучшие'], ['photo', 'С медиа']];
-        const rvState = { cat: 'all', sort: 'new', stats: null, demo: false, items: [], done: false, loading: false, token: 0, obs: null, failed: false };
+        const rvState = { cat: 'all', sort: 'new', stats: null, items: [], done: false, loading: false, token: 0, obs: null, failed: false };
         // Значок «Полезно» (линейный, как остальные иконки)
         const RV_THUMB = '<svg class="rv-thumb" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 11v9H4.5A1.5 1.5 0 0 1 3 18.5v-6A1.5 1.5 0 0 1 4.5 11z"/><path d="m7 11 3.6-7a2 2 0 0 1 3.7 1.3L13.6 9H19a2 2 0 0 1 2 2.4l-1.4 7A2 2 0 0 1 17.6 20H7"/></svg>';
 
@@ -269,8 +269,8 @@
         async function rvEnrich(rows) {
           if (!rows || !rows.length) return rows || [];
           const orderIds = [];
-          // Медиа отзывов из бота хранятся как {type, file_id} (файл лежит в Telegram) — в ленте показываем только ссылки
-          rows.forEach(r => { r.photo_urls = (Array.isArray(r.photo_urls) ? r.photo_urls : []).filter(u => typeof u === 'string' && u); });
+          // Медиа отзывов из бота — {type, file_id, url}: бот копирует фото в хранилище и дописывает url; без url (файл только в Telegram) фото не показываем
+          rows.forEach(r => { r.photo_urls = (Array.isArray(r.photo_urls) ? r.photo_urls : []).map(u => (u && typeof u === 'object' ? u.url : u)).filter(u => typeof u === 'string' && u); });
           rows.forEach(r => (Array.isArray(r.order_ids) ? r.order_ids : []).forEach(id => { if (!orderIds.includes(id)) orderIds.push(id); }));
           const solvedTask = Promise.resolve(supabaseClient.from('reviews')
             .select('id,user_name,rating,text,created_at,resolves_review_id')
@@ -381,85 +381,6 @@
           return (rvState.stats || []).filter(r => cat === 'all' || r.category === cat);
         }
 
-        // Демо-отзывы видит только владелец и только пока в категории нет настоящих; в базу они не пишутся
-        function rvIsDemo(cat) {
-          return !!isOwner && Array.isArray(rvState.stats) && rvStatsRows(cat).length === 0;
-        }
-
-        let rvDemoCache = null;
-        function rvDemoPhoto(seed) {
-          const h = (seed * 47 + 205) % 360;
-          const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${h},80%,62%)"/><stop offset="1" stop-color="hsl(${(h + 40) % 360},80%,36%)"/></linearGradient></defs><rect width="400" height="400" fill="url(#g)"/><path d="M90 290l80-120 60 80 40-50 70 90z" fill="#fff" opacity=".32"/><circle cx="290" cy="130" r="28" fill="#fff" opacity=".42"/></svg>`;
-          return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
-        }
-        function rvDemoAll() {
-          if (rvDemoCache) return rvDemoCache;
-          const T = 'Команда ICE LOGIX';
-          const seed = {
-            orders: [
-              ['Анна К.', 5, 'Заказывала кроссовки и куртку. Всё пришло в срок, упаковка аккуратная, размер сел идеально. Менеджер отвечал за пару минут и помог с выбором. Буду заказывать ещё!', 3, 2, 14, { product: 'Кроссовки', size: '38', delivery: 'Минск', term: '14 дней' }, 'Анна, спасибо за тёплые слова! Рады, что всё подошло. Ждём вас снова.'],
-              ['Дмитрий Л.', 5, 'Первый раз брал через сервис и сомневался, но всё чётко: фото проверки перед отправкой, трек и понятные сроки.', 2, 6, 9, { product: 'Худи', size: 'L', delivery: 'Гомель', term: '12 дней' }, ''],
-              ['Мария С.', 4, 'Вещь отличная, доставка чуть дольше обещанного, но менеджер заранее предупредил. В целом довольна.', 0, 11, 5, null, 'Мария, спасибо за честную оценку. Следим, чтобы сроки были точнее.'],
-              ['Егор П.', 5, 'Заказал сумку. Проверили на месте, прислали фото деталей. Пришла как на картинке.', 1, 19, 3, { product: 'Сумка', delivery: 'Брест', term: '15 дней' }, '']
-            ],
-            promotions: [
-              ['Ольга В.', 5, 'Попала на акцию с бесплатной доставкой — сэкономила прилично. Условия честные, без скрытых пунктов.', 0, 4, 11, null, ''],
-              ['Никита Т.', 5, 'Пришёл по приглашению, получил бонус на первый заказ. Всё начислилось сразу, как и обещали.', 0, 13, 7, null, 'Никита, приятных покупок!'],
-              ['Алина М.', 4, 'Скидка хорошая, но хотелось бы больше размеров в акции. Сервис отличный.', 1, 22, 2, null, '']
-            ],
-            dropshipping: [
-              ['Виктор Р.', 5, 'Работаю по дропшиппингу второй месяц. Материалы и инструкции понятные, выплаты приходят вовремя, поддержка отвечает быстро.', 2, 5, 16, null, 'Виктор, спасибо, что с нами! Растите дальше.'],
-              ['Светлана Ж.', 5, 'Начала без вложений, первая продажа случилась на второй неделе. Удобно, что всё видно в приложении.', 0, 15, 8, null, ''],
-              ['Артём Б.', 4, 'Хорошая программа, хотелось бы больше готовых баннеров. Но в целом доволен.', 0, 27, 4, null, '']
-            ],
-            referral: [
-              ['Полина Н.', 5, 'Поделилась ссылкой с подругами, бонусы пришли за всех трёх. Очень удобно следить за начислениями.', 0, 3, 12, null, ''],
-              ['Кирилл Д.', 5, 'Рефералка работает честно: друг сделал заказ, мне начислили сразу после доставки.', 0, 10, 6, null, 'Кирилл, спасибо, что рекомендуете нас!'],
-              ['Ева Г.', 4, 'Приятные бонусы. Пригласила двоих, оба остались довольны.', 0, 21, 3, null, '']
-            ],
-            advertising: [
-              ['Игорь Ш.', 5, 'Размещали рекламу через ICE LOGIX. Охват хороший, прислали понятный отчёт, вопросов не было.', 1, 7, 9, null, 'Игорь, спасибо! Будем рады новым кампаниям.'],
-              ['Юлия А.', 5, 'Понравилось, что всё прозрачно: что, где и когда выйдет. Результат — новые клиенты уже в первую неделю.', 0, 18, 5, null, ''],
-              ['Максим О.', 4, 'Реклама отработала хорошо, хотелось бы чуть быстрее согласование.', 0, 29, 2, null, '']
-            ],
-            legitcheck: [
-              ['Тимофей З.', 5, 'Проверили кроссовки до покупки: прислали подробный разбор по деталям и честное заключение. Спасли от подделки.', 4, 3, 21, null, 'Тимофей, главное, что всё выяснилось до покупки. Спасибо!'],
-              ['Каролина Ф.', 5, 'Быстро, понятно и с фото-доказательствами. Теперь без проверки ничего не беру.', 2, 9, 12, null, ''],
-              ['Роман Ч.', 5, 'Заключение пришло в тот же день. Всё по пунктам, без воды.', 1, 17, 7, null, '']
-            ],
-            partnership: [
-              ['Андрей Ц.', 5, 'Сотрудничаем по B2B. Условия прозрачные, менеджер на связи, договорённости соблюдаются.', 0, 6, 8, null, 'Андрей, благодарим за доверие!'],
-              ['Елена У.', 5, 'Приятно работать: чёткие сроки и аккуратная отчётность. Рекомендую.', 0, 20, 5, null, '']
-            ]
-          };
-          const out = [];
-          let n = 0;
-          Object.keys(seed).forEach(cat => seed[cat].forEach(([name, rating, text, ph, days, likes, det, reply]) => {
-            n++;
-            out.push({
-              id: 'demo-' + n, user_name: name, category: cat, rating, text,
-              photo_urls: Array.from({ length: ph }, (_, k) => rvDemoPhoto(n * 7 + k)),
-              is_verified: true, is_pinned: false, likes_count: likes,
-              created_at: new Date(Date.now() - days * 86400000).toISOString(),
-              review_actions: det ? { details: det } : null,
-              reply: reply ? { who: T, text: reply } : null
-            });
-          }));
-          rvDemoCache = out;
-          return out;
-        }
-        function rvDemoItems(cat, sort) {
-          let rows = rvDemoAll().filter(r => cat === 'all' || r.category === cat);
-          if (sort === 'photo') rows = rows.filter(r => r.photo_urls.length);
-          rows = rows.slice();
-          if (sort === 'best') rows.sort((a, b) => (b.likes_count - a.likes_count) || (b.rating - a.rating));
-          else rows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-          return rows;
-        }
-        function rvCatRows(cat) {
-          return rvIsDemo(cat) ? rvDemoItems(cat, 'new') : rvStatsRows(cat);
-        }
-
         function rvPlatformsHtml(config) {
           const sm = config.social_media_links || {};
           const maps = [
@@ -527,8 +448,6 @@
             <button type="button" class="rv-more" data-rv-toggle aria-expanded="false"><span>Детали заказа</span>${UI.icon('chevD', 16)}</button>
             <div class="rv-det" hidden>${rows.map(([k, v]) => `<div class="rv-det-row"><span>${k}</span><b>${rvEsc(v)}</b></div>`).join('')}</div>`;
         }
-
-        function rvIsDemoItem(r) { return String(r && r.id).indexOf('demo-') === 0; }
 
         // Цвет аватарки зависит от имени: у каждого клиента свой градиент
         function rvAvatarStyle(name) {
@@ -603,12 +522,9 @@
           const liked = window.likedReviewsCache && window.likedReviewsCache.has(r.id);
           const rating = Math.max(0, Math.min(5, Number(r.rating) || 0));
           const name = r.user_name || 'Клиент';
-          const demo = rvIsDemoItem(r);
-          const corner = demo
-            ? '<span class="rv-demo">Демо</span>'
-            : (isOwner
-              ? `<button type="button" class="rv-pin ${r.is_pinned ? 'on' : ''}" data-rv-pin aria-label="${r.is_pinned ? 'Открепить' : 'Закрепить'}">${UI.icon('pin', 16, { fill: !!r.is_pinned })}</button>`
-              : (r.is_pinned ? `<span class="rv-pinned">${UI.icon('pin', 12, { fill: true })}Закреплён</span>` : ''));
+          const corner = isOwner
+            ? `<button type="button" class="rv-pin ${r.is_pinned ? 'on' : ''}" data-rv-pin aria-label="${r.is_pinned ? 'Открепить' : 'Закрепить'}">${UI.icon('pin', 16, { fill: !!r.is_pinned })}</button>`
+            : (r.is_pinned ? `<span class="rv-pinned">${UI.icon('pin', 12, { fill: true })}Закреплён</span>` : '');
           return `
             <article class="rv-card" data-review-id="${r.id}" style="--i:${Math.min(i || 0, 8)}">
               <div class="rv-top">
@@ -650,9 +566,9 @@
         }
 
         const RV_STAR = 22;
-        // Сводка: крупный средний балл и полоски 5–1 звёзд (по настоящим отзывам, у владельца в демо-режиме — по демо)
+        // Сводка: крупный средний балл и полоски 5–1 звёзд 
         function rvSummaryHtml(cat) {
-          const rows = rvCatRows(cat).filter(r => Number(r.rating) >= 1);
+          const rows = rvStatsRows(cat).filter(r => Number(r.rating) >= 1);
           if (!rows.length) return '';
           const total = rows.length;
           const avg = rows.reduce((s, r) => s + Math.min(5, Math.round(Number(r.rating))), 0) / total;
@@ -687,7 +603,7 @@
 
         function rvChipsHtml() {
           return RV_CATS.map(([id, label], k) => {
-            const n = rvCatRows(id).length;
+            const n = rvStatsRows(id).length;
             return `<button type="button" class="rv-cat c-${id} ${rvState.cat === id ? 'on' : ''}" data-rv-cat="${id}" style="--i:${k}" aria-pressed="${rvState.cat === id}">
               ${n ? `<b class="rv-cat-n">${n > 99 ? '99+' : n}</b>` : ''}<span class="rv-cat-ic">${RV_3D[id] || RV_3D.all}</span>
               <span class="rv-cat-t">${label}</span></button>`;
@@ -698,9 +614,8 @@
           return RV_SORTS.map(([id, label]) => `<button type="button" class="rv-sort-b ${rvState.sort === id ? 'on' : ''}" data-rv-sort="${id}">${label}</button>`).join('');
         }
 
-        // Первая страница ленты: у владельца в пустой категории — демо, иначе из базы
+        // Первая страница ленты из базы
         async function rvLoadFeed(cat, sort) {
-          if (rvIsDemo(cat)) return { rows: rvDemoItems(cat, sort), done: true };
           const rows = await rvFetchPage(cat, sort, 0);
           return { rows, done: rows.length < RV_PAGE };
         }
@@ -723,9 +638,8 @@
 
             rvState.stats = stats;
             let rows = feed ? feed.rows : null;
-            if (feed && rvIsDemo(cat)) rows = rvDemoItems(cat, 'new');
             rvState.items = rows || [];
-            rvState.done = !rows || rvIsDemo(cat) || rows.length < RV_PAGE;
+            rvState.done = !rows || rows.length < RV_PAGE;
             rvState.loading = false;
 
             return `
@@ -1351,7 +1265,6 @@
           const item = rvState.items.find(r => r.id === reviewId);
           if (item) item.likes_count = count;
           if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
-          if (rvIsDemoItem({ id: reviewId })) return;
           rvClearCache();
           try {
             if (wasLiked) await supabaseClient.from('review_likes').delete().eq('review_id', reviewId).eq('user_id', userId);

@@ -1749,8 +1749,6 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 .rv-who{flex:1;min-width:0}
 .rv-name{font-weight:800;font-size:16px;line-height:20px;letter-spacing:-.015em;color:var(--rv-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rv-meta{font-size:12.5px;font-weight:500;color:var(--rv-ink2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rv-demo{flex:0 0 auto;padding:3px 9px;border-radius:9px;background:#fff3d6;color:#9a6700;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
-.rv-sum .rv-demo{position:absolute;top:-8px;left:-6px;background:#ffb800;color:#3b2a00;transform:rotate(-6deg)}
 .rv-pin{flex:0 0 auto;width:36px;height:36px;border-radius:12px;background:#eef1f7;color:#8a93a8;display:flex;align-items:center;justify-content:center;transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
 .rv-pin:active{transform:scale(.9)}
 .rv-pin.on{background:color-mix(in srgb,var(--rd-blue) 14%,#fff);color:var(--rd-blue)}
