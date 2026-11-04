@@ -1657,6 +1657,31 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 /* Совсем узкие (до 340): подпись соцсетей убираем, кружки по всей ширине */
 @media (max-width:339px){.rv-soc-label{display:none}.rv-soc-row{flex:1;justify-content:space-between}.rv-map{padding:8px 6px 6px}.rv-map-go{top:4px;right:4px;width:18px;height:18px}.rv-map-go svg{width:11px;height:11px}.rv-map-name{font-size:11px;line-height:14px}.rv-map-rate{font-size:10px;line-height:14px}.rv-map-rate svg{width:9px;height:9px}}
 @media (prefers-reduced-motion:reduce){.rv-hub,.rv-map,.rv-soc-btn{animation:none;transition:none}.rv-map:active,.rv-soc-btn:active{transform:none}}
+/* ICE BONUS: герой-карточка баланса (профиль, кошелёк) — тот же язык, что .rv-hub: синий градиент, объёмная монета, крупная цифра, белые плитки */
+.ib{position:relative;overflow:hidden;isolation:isolate;padding:16px 16px 14px;margin:0 0 14px;border-radius:var(--rd-r26);color:#fff;
+  background:radial-gradient(120% 90% at 0% 0%,color-mix(in srgb,var(--rd-b400) 55%,transparent) 0%,transparent 58%),linear-gradient(135deg,var(--rd-blue-hi) 0%,var(--rd-blue) 52%,color-mix(in srgb,var(--rd-blue) 70%,#000) 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),inset 0 -1px 0 rgba(0,0,0,.18),0 14px 32px -16px color-mix(in srgb,var(--rd-blue) 55%,transparent);
+  animation:rv-hub-in .42s cubic-bezier(.2,.8,.2,1) backwards}
+.ib::before{content:"";position:absolute;z-index:-1;top:-92px;right:-78px;width:230px;height:230px;border-radius:50%;border:22px solid rgba(255,255,255,.07)}
+.ib::after{content:"";position:absolute;z-index:-1;left:-60px;bottom:-90px;width:200px;height:200px;border-radius:50%;background:color-mix(in srgb,var(--rd-blue) 60%,#000);opacity:.45}
+.ib-art{position:absolute;z-index:-1;top:6px;right:10px;width:96px;height:96px;transform:rotate(-10deg);pointer-events:none;filter:drop-shadow(0 8px 10px rgba(0,20,70,.35))}
+.ib-title{font-size:24px;font-weight:800;line-height:1.1;letter-spacing:.01em}
+.ib-sub{margin-top:5px;padding-right:100px;font-size:13px;font-weight:500;line-height:17px;color:rgba(255,255,255,.8)}
+.ib-num{display:flex;align-items:baseline;gap:8px;margin:12px 0 12px}
+.ib-num b{font-size:46px;font-weight:800;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.ib-num span{font-size:15px;font-weight:700;color:rgba(255,255,255,.88)}
+.ib-tiles{display:grid;grid-template-columns:1fr;gap:8px}
+.ib-tile{padding:12px 14px;border-radius:var(--rd-r16);background:#fff;color:color-mix(in srgb,var(--rd-blue) 20%,#000);box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 8px 18px -8px rgba(0,0,0,.45);animation:rv-tile-in .44s cubic-bezier(.34,1.4,.64,1) backwards;animation-delay:calc(var(--i,0) * 60ms + 120ms)}
+.ib-tile-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:13px;font-weight:800;line-height:16px}
+.ib-tile-h em{font-style:normal;font-variant-numeric:tabular-nums;color:var(--rd-blue)}
+.ib-bar{height:8px;margin-top:8px;border-radius:999px;background:color-mix(in srgb,var(--rd-blue) 14%,#fff);overflow:hidden}
+.ib-bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--rd-blue-hi),var(--rd-blue))}
+.ib-tile-t{margin-top:6px;font-size:12.5px;font-weight:500;line-height:16px;color:color-mix(in srgb,var(--rd-blue) 25%,#556)}
+.ib-way{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;font-weight:600;line-height:18px}
+.ib-way + .ib-way{margin-top:6px}
+.ib-way b{flex:none;padding:2px 9px;border-radius:999px;background:var(--rd-blue);color:#fff;font-size:12px;font-weight:800;line-height:18px}
+@media (max-width:389px){.ib{padding:14px 14px 12px}.ib-title{font-size:22px}.ib-sub{font-size:12.5px;padding-right:84px}.ib-art{width:80px;height:80px}.ib-num b{font-size:40px}}
+@media (prefers-reduced-motion:reduce){.ib,.ib-tile{animation:none}}
 /* Лента отзывов: крупные белые плитки как карты в баннере, цветные аватарки, сводка рейтинга, сортировка, фото на весь экран */
 .rv{--rv-ink:#0b1430;--rv-ink2:#6b7488;--rv-gold:#ffb800;--rv-gold-d:#f0a000}
 .rv-cats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 12px}

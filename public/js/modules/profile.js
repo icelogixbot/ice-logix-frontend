@@ -1,6 +1,43 @@
 // ============================================================
 // ICE LOGIX Module: Profile & Referral System
 // ============================================================
+        // ==================== КАРТОЧКА ICE BONUS (профиль и кошелёк) ====================
+        window.loadIceBonus = async function () {
+          if (typeof supabaseClient === 'undefined' || !supabaseClient || !window.userId) return null;
+          try {
+            const res = await Promise.race([
+              supabaseClient.rpc('my_ice_bonus'),
+              new Promise(resolve => setTimeout(() => resolve(null), 3000))
+            ]);
+            return res && !res.error && res.data ? res.data : null;
+          } catch (_) { return null; }
+        };
+
+        window.iceBonusCard = function (d) {
+          const bal = Math.max(0, Number(d && d.balance) || 0);
+          const cap = Math.max(1, Number(d && d.ugc_cap) || 15);
+          const got = Math.min(cap, Math.max(0, Number(d && d.ugc_earned) || 0));
+          const sign = typeof window.bynSign === 'function' ? window.bynSign() : '₽';
+          const coin = `<svg class="ib-art" viewBox="0 0 96 96" aria-hidden="true"><defs><linearGradient id="ibCoinG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:#fff"/><stop offset=".55" style="stop-color:var(--rd-b300)"/><stop offset="1" style="stop-color:var(--rd-b400)"/></linearGradient></defs><ellipse cx="50" cy="90" rx="22" ry="4" fill="#000" opacity=".22"/><circle cx="48" cy="46" r="40" fill="url(#ibCoinG)"/><circle cx="48" cy="46" r="31" fill="none" style="stroke:var(--rd-blue)" stroke-opacity=".5" stroke-width="3"/><path d="m48 24 6.4 13 14.4 2.1-10.4 10.100 2.500 14.300L48 56.700 35.100 63.500l2.500-14.300L27.200 39.100l14.400-2.100z" style="fill:var(--rd-blue)"/><ellipse cx="33" cy="22" rx="10" ry="5" fill="#fff" opacity=".65" transform="rotate(-32 33 22)"/></svg>`;
+          return `
+    <section class="ib">
+      ${coin}
+      <div class="ib-title">ICE BONUS</div>
+      <div class="ib-sub">1 бонус = −1% комиссии на заказ. Не сгорает.</div>
+      <div class="ib-num"><b>${bal}</b><span>${bal % 10 === 1 && bal % 100 !== 11 ? 'бонус' : (bal % 10 >= 2 && bal % 10 <= 4 && (bal % 100 < 12 || bal % 100 > 14) ? 'бонуса' : 'бонусов')}</span></div>
+      <div class="ib-tiles">
+        <div class="ib-tile" style="--i:0">
+          <div class="ib-tile-h">За видео в отзывах<em>${got} из ${cap}</em></div>
+          <div class="ib-bar"><i style="width:${Math.round(got / cap * 100)}%"></i></div>
+        </div>
+        <div class="ib-tile" style="--i:1">
+          <div class="ib-way">Видео в отзыве<b>+1</b></div>
+          <div class="ib-way">Друг заказал на 50 ${sign} и больше<b>+3</b></div>
+        </div>
+      </div>
+    </section>`;
+        };
+
         // ==================== РЕНДЕР ПРОФИЛЯ (С РЕФЕРАЛКАМИ) ====================
         async function renderProfile() {
       let isDropshipper = false;
@@ -21,6 +58,7 @@
         } catch(_) {}
       }
 
+      const _ib = await window.loadIceBonus();
       const U = window.UI;
       const _bal = (typeof balance !== 'undefined' && balance != null) ? Number(String(balance).replace(',', '.')) || 0 : 0;
       const _wishCount = (typeof wishlist !== 'undefined' && wishlist && wishlist.size != null) ? wishlist.size : 0;
@@ -73,6 +111,8 @@
       </button>
     </section>
 
+    ${window.iceBonusCard(_ib)}
+
     <div class="pf-group-t">Покупки</div>
     <div class="rd-card rd-list">
       ${row('myOrdersRowBtn', 'box', 'Мои заказы', 'Статусы, трек-номера и фото со склада', "currentSubScreen = 'myOrders'; renderCurrentScreen();")}
@@ -83,7 +123,7 @@
 
     <div class="pf-group-t">Бонусы и заработок</div>
     <div class="rd-card rd-list">
-      ${row('referralBtn', 'users', 'Приглашайте друзей', '7% вам и 3% другу с каждого заказа', "switchTab('referral')", '<span class="rd-badge">7% + 3%</span>')}
+      ${row('referralBtn', 'users', 'Приглашайте друзей', '+3 ICE BONUS вам и 3% кешбэка другу', "switchTab('referral')", '<span class="rd-badge">+3</span>')}
       ${row('bonusShopBtn', 'gift', 'Магазин бонусов', 'Меняйте баллы ICE на и подарки', "switchTab('bonus_shop')")}
       ${row('dropshipperProfileBtn', 'store', isDropshipper ? t('dropshipper_cabinet', 'Кабинет дропшиппера') : t('earn_with_us', 'Зарабатывайте с нами'), isDropshipper ? t('dropshipper_cabinet_sub', 'Управление магазином') : t('earn_with_us_sub', 'Станьте партнёром ICE LOGIX'), "switchTab('dropshipper')")}
     </div>

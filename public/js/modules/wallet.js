@@ -166,7 +166,7 @@
       <div class="wl-feats">
         <div class="wl-feat"><span>${U.icon('zap', 18)}</span><b>Быстрый выкуп</b><p>Байер покупает вещь сразу, без ожидания перевода</p></div>
         <div class="wl-feat"><span>${U.icon('refresh', 18)}</span><b>Возврат за минуту</b><p>Если вещи нет, деньги сразу вернутся на счёт</p></div>
-        <div class="wl-feat"><span>${U.icon('users', 18)}</span><b>7% за друзей</b><p>Бонусы за приглашённых падают прямо сюда</p></div>
+        <div class="wl-feat"><span>${U.icon('users', 18)}</span><b>+3 ICE BONUS</b><p>За каждого друга, который заказал на 50 и больше</p></div>
         <div class="wl-feat"><span>${U.icon('shield', 18)}</span><b>0% комиссии</b><p>Ни при пополнении, ни при оплате заказов</p></div>
       </div>
     `;
@@ -262,7 +262,7 @@
       }).catch(() => {});
     }
 
-    const entries = await loadLedgerHistory();
+    const [entries, iceBonus] = await Promise.all([loadLedgerHistory(), window.loadIceBonus ? window.loadIceBonus() : null]);
 
     const U = window.UI;
     return `
@@ -272,6 +272,7 @@
           <div class="rd-head-txt"><h1 class="rd-head-title">Кошелёк</h1><p class="rd-head-sub">Счёт ICE LOGIX PAY для оплаты заказов</p></div>
         </div>
         ${renderWalletVirtualCard(curBal, curUser)}
+        ${window.iceBonusCard ? window.iceBonusCard(iceBonus) : ''}
         ${renderTopupTabHtml(curBal)}
         <div class="rd-section"><h2>Операции</h2><span class="wl-note">последние 30</span></div>
         <div id="walletHistoryContainer">

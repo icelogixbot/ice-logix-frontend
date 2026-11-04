@@ -102,7 +102,7 @@
   <link rel="stylesheet" href="/css/cart.css?v=20261024_48">
   <link rel="stylesheet" href="/css/ice-redesign.css?v=20261103_hd18">
   <link rel="stylesheet" href="/css/ice-redesign-compat.css?v=20261029_07">
-  <link rel="stylesheet" href="/css/ice-screens.css?v=20261104_noacad">
+  <link rel="stylesheet" href="/css/ice-screens.css?v=20261104_icebonus">
   <link rel="stylesheet" href="/css/ice-admin.css?v=20261101_ib1">
   <link rel="stylesheet" href="/css/ice-light.css?v=20261104_home4">
   <script src="/js/modules/browser-gate.js?v=20261101_spl1"></script>
@@ -128,11 +128,11 @@
   <script src="/js/modules/admin/admin-orders.js?v=20261104_rv2"></script>
   <script src="/js/modules/admin/admin-money.js?v=20261101_pm2"></script>
   <script src="/js/modules/admin/admin-clients.js?v=20261104_rv2"></script>
-  <script src="/js/modules/admin/admin-inbox.js?v=20261104_rv2"></script>
+  <script src="/js/modules/admin/admin-inbox.js?v=20261104_icebonus"></script>
   <script src="/js/modules/admin/admin-store.js?v=20261103_mp3"></script>
   <script src="/js/modules/admin/admin-store-promo.js?v=20261101_st1"></script>
   <script src="/js/modules/admin/admin-content.js?v=20261104_noacad"></script>
-  <script src="/js/modules/admin/admin-settings.js?v=20261101_st2"></script>
+  <script src="/js/modules/admin/admin-settings.js?v=20261104_icebonus"></script>
   <script src="/js/modules/admin/admin-system.js?v=20261101_st1"></script>
   <script src="/js/modules/admin/admin-moderator.js?v=20261102_mod1"></script>
   <script src="/js/modules/photo-viewer.js?v=20261101_car1"></script>
@@ -348,12 +348,12 @@
     
     <!-- Main Content Area -->
     <div id="content" class="main-content"></div>
-    <script>try{localStorage.removeItem('ice_tab_home_v2');localStorage.removeItem('ice_tab_screens_v2');localStorage.setItem('ice_app_v','20261104_noacad');}catch(e){}
+    <script>try{localStorage.removeItem('ice_tab_home_v2');localStorage.removeItem('ice_tab_screens_v2');localStorage.setItem('ice_app_v','20261104_icebonus');}catch(e){}
     // Автообновление: Telegram сворачивает мини-приложение, а не закрывает. Сверяем версию с сервером:
     // при старте, при возврате (visibilitychange, focus, pageshow, событие Telegram «activated») — сразу перезагрузка;
     // раз в минуту в фоне — запоминаем и перезагружаем при следующем переходе (нижнее меню, «назад»), чтобы не сбить ввод.
     // Защита от цикла: на одну и ту же новую версию — не чаще раза в минуту. Версию дополняет отпечаток при сборке (scripts/stamp-versions.js).
-    (function(){var V='20261104_noacad',busy=false,last=0,stale='';
+    (function(){var V='20261104_icebonus',busy=false,last=0,stale='';
     function go(){try{var p=JSON.parse(sessionStorage.getItem('ice_reload_to')||'{}');if(p.v===stale&&Date.now()-p.t<60000)return false;sessionStorage.setItem('ice_reload_to',JSON.stringify({v:stale,t:Date.now()}));}catch(e){}location.reload();return true;}
     function chk(now){var n=Date.now();if(busy||n-last<15000)return;busy=true;last=n;fetch('/?_='+n,{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/ice_app_v','([^']+)'/);if(m&&m[1]!==V){stale=m[1];if(now)go();}}).catch(function(){}).then(function(){busy=false;});}
     function wake(){if(document.hidden)return;if(stale)go();else chk(true);}
@@ -457,9 +457,9 @@
   <script src="/js/modules/pdd-product.js?v=20261103_cancel"></script>
   <script src="/js/modules/pdd-search.js?v=20261103_cancel"></script>
   <script src="/js/modules/calculator.js?v=20261103_cancel2"></script>
-  <script src="/js/modules/profile.js?v=20261104_noacad"></script>
+  <script src="/js/modules/profile.js?v=20261104_icebonus"></script>
   <script src="/js/modules/finances.js?v=20261101_pm2"></script>
-  <script src="/js/modules/wallet.js?v=20261101_pm3"></script>
+  <script src="/js/modules/wallet.js?v=20261104_icebonus"></script>
   <script src="/js/modules/ice-pay.js?v=20261030_co1"></script>
   <script src="/js/modules/checkout-ui.js?v=20261101_pm2"></script>
   <script defer src="/js/core/router.js?v=20261104_noacad"></script>

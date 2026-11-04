@@ -431,8 +431,8 @@
       const media = (Array.isArray(d.media_urls) ? d.media_urls : []).filter((u) => /^https?:\/\//i.test(String(u)));
       h += topCard(k, d, `Оценка ${Number(d.rating) || 0} из 5${d.category ? ' · ' + d.category : ''}`, textBlock(d.text || 'Клиент не оставил текста'));
       if (media.length) h += section('Фото и видео') + mediaGrid(media);
-      h += `<div class="rd-card ad-pad">${kvRow('Бонус за отзыв', Number(d.media_count) ? (d.bonus_given ? 'уже выдан' : 'будет выдан при одобрении') : 'не положен')}</div>`;
-      h += '<p class="ad-hint">Бонус — сумма из настроек денег, и только за отзыв с фото или видео. Без них клиент ничего не получает.</p>';
+      h += `<div class="rd-card ad-pad">${kvRow('ICE BONUS за отзыв', reviewHasVideo(d) ? (d.bonus_given ? 'уже выдан' : '+1, при одобрении') : 'не положен')}</div>`;
+      h += '<p class="ad-hint">ICE BONUS даётся только за отзыв с видео: 1 бонус = минус 1 п.п. комиссии. С одними фото бонуса нет, отзыв всё равно можно принять.</p>';
       if (d.status === 'rejected' && d.moderation_reason) h += noteBlock('bad', 'Причина отказа', d.moderation_reason);
       h += '<div id="adRvMore"></div>';
       // заказы с номерами ICE и оценками рисует reviewMore, здесь только клиент
@@ -755,13 +755,20 @@
     });
   }
 
+  // как ice_review_has_video в БД: у бота медиа — объекты {type}, у Mini App — ссылки
+  function reviewHasVideo(d) {
+    return (Array.isArray(d.media_urls) ? d.media_urls : []).some((m) => (m && typeof m === 'object')
+      ? (m.type === 'video' || m.type === 'video_note')
+      : /\.(mp4|mov|webm|m4v)(\?|$)/i.test(String(m)));
+  }
+
   async function reviewApprove(d) {
-    const hasMedia = Number(d.media_count) > 0;
-    const text = hasMedia
-      ? (d.bonus_given ? 'Отзыв увидят все клиенты. Бонус за него уже выдан раньше.' : 'Отзыв увидят все клиенты. Клиент получит бонус за фото или видео.')
-      : 'Отзыв увидят все клиенты. Бонус не начисляется: он положен только за отзыв с фото или видео.';
+    const hasVideo = reviewHasVideo(d);
+    const text = hasVideo
+      ? (d.bonus_given ? 'Отзыв увидят все клиенты. ICE BONUS за него уже выдан раньше.' : 'Отзыв увидят все клиенты. Клиент получит ICE BONUS за видео (если не исчерпан лимит на заказ или всего).')
+      : 'Отзыв увидят все клиенты. ICE BONUS не начисляется: он положен только за отзыв с видео.';
     if (!await confirmSheet('Принять отзыв?', text, 'Принять и опубликовать')) return;
-    if (await AD.call(null, 'admin_review_decision', { p_review: d.id, p_approve: true }, { ok: hasMedia && !d.bonus_given ? 'Отзыв опубликован, бонус начислен' : 'Отзыв опубликован' }) !== null) leave();
+    if (await AD.call(null, 'admin_review_decision', { p_review: d.id, p_approve: true }, { ok: hasVideo && !d.bonus_given ? 'Отзыв опубликован, ICE BONUS начислен' : 'Отзыв опубликован' }) !== null) leave();
   }
 
   function ugcApprove(d) {
