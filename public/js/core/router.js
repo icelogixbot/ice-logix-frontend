@@ -163,6 +163,8 @@
       } else if (currentTab === 'reports') {
         contentDiv.innerHTML = shadowBannerHtml + await renderReports();
         attachReportsHandlers();
+      } else if (currentTab === 'reviewItems') {
+        contentDiv.innerHTML = shadowBannerHtml + await renderReviewItems(); attachReviewItemsHandlers();
       } else if (currentTab === 'reviews') {
         contentDiv.innerHTML = shadowBannerHtml + await renderReviews();
         attachReviewsHandlers();
@@ -253,7 +255,7 @@
         window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       }
 
-      if (currentTab !== 'home' && currentTab !== 'catalogs' && currentTab !== 'reports' && currentTab !== 'reviews' && currentTab !== 'academy' && currentTab !== 'dropshipper' && currentTab !== 'products' && currentTab !== 'wishlist' && currentTab !== 'product' && currentTab !== 'search' && currentTab !== 'notifications' && currentTab !== 'settings' && currentTab !== 'topup' && !currentSubScreen) {
+      if (currentTab !== 'home' && currentTab !== 'catalogs' && currentTab !== 'reports' && currentTab !== 'reviews' && currentTab !== 'reviewItems' && currentTab !== 'academy' && currentTab !== 'dropshipper' && currentTab !== 'products' && currentTab !== 'wishlist' && currentTab !== 'product' && currentTab !== 'search' && currentTab !== 'notifications' && currentTab !== 'settings' && currentTab !== 'topup' && !currentSubScreen) {
         ensureBackButton();
       }
       initCardSliders();

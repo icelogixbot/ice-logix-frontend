@@ -1788,6 +1788,50 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 @media (max-width:389px){.rv-sort-b{font-size:12px}.rv-card{padding:14px}.rv-ava{width:42px;height:42px}.rv-name{font-size:15px}.rv-text{font-size:14.5px}}
 @media (prefers-reduced-motion:reduce){.rv-sum,.rv-card,.rv-like.pop .rv-thumb,.rv-lb{animation:none}.rv-sort-b,.rv-like,.rv-pin,.rv-ph img,.rv-lb-track{transition:none}}
 
+/* Отзывы, этап 1: номера заказов, ответ ICE LOGIX, «Решено», «Хочу так же», «Вас ждёт отзыв», экран «Товары из отзыва» */
+.rv-ask{position:relative;display:flex;align-items:center;gap:12px;width:100%;margin:0 0 14px;padding:12px 14px;border:0;border-radius:var(--rd-r22);overflow:hidden;isolation:isolate;text-align:left;color:#fff;
+  background:radial-gradient(90% 120% at 100% 0%,color-mix(in srgb,var(--rd-b400) 50%,transparent) 0%,transparent 60%),linear-gradient(135deg,var(--rd-blue-hi) 0%,var(--rd-blue) 60%,color-mix(in srgb,var(--rd-blue) 70%,#000) 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 14px 28px -16px color-mix(in srgb,var(--rd-blue) 90%,transparent);animation:rv-hub-in .42s cubic-bezier(.2,.8,.2,1) backwards;transition:transform .15s}
+.rv-ask::after{content:"";position:absolute;z-index:-1;right:-40px;top:-50px;width:130px;height:130px;border-radius:50%;border:16px solid rgba(255,255,255,.08)}
+.rv-ask:active{transform:scale(.97)}
+.rv-ask-ic{flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:50%;background:#fff;color:var(--rd-blue);box-shadow:0 0 0 3px rgba(255,255,255,.25),0 8px 16px -8px rgba(0,0,0,.45)}
+.rv-ask-b{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.rv-ask-b b{font-size:17px;font-weight:800;line-height:21px;letter-spacing:-.01em}
+.rv-ask-b small{font-size:13px;font-weight:500;line-height:17px;color:rgba(255,255,255,.82)}
+.rv-ask-go{flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:12px;background:rgba(255,255,255,.18)}
+.rv-orders{display:flex;align-items:center;gap:7px;margin-top:12px;font-size:13px;font-weight:600;color:var(--rv-ink2)}
+.rv-orders svg{flex:0 0 auto;color:var(--rd-blue)}
+.rv-orders b{font-weight:800;color:var(--rv-ink);letter-spacing:.01em}
+.rv-mreply .rv-reply-h b{font-weight:800}
+.rv-mreply-t{white-space:pre-wrap;word-break:break-word}
+.rv-solved{margin-top:10px;padding:10px 12px;border-radius:14px;background:#fff;box-shadow:0 6px 14px -10px color-mix(in srgb,var(--rd-blue) 70%,transparent)}
+.rv-solved-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rv-solved-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px 3px 7px;border-radius:999px;background:var(--rd-green,#22c55e);color:#fff;font-size:12px;font-weight:800}
+.rv-solved-meta{font-size:12px;font-weight:600;color:var(--rv-ink2)}
+.rv-solved-stars{display:flex;gap:2px;margin-top:6px;color:var(--rv-gold)}
+.rv .rv-reply .rv-solved-t,.rv-solved-t{margin:6px 0 0;font-size:14px;line-height:1.45;font-weight:500;color:var(--rv-ink);white-space:pre-wrap;word-break:break-word}
+.rv-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.rv-act{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 10px;border:0;border-radius:14px;background:color-mix(in srgb,var(--rd-blue) 10%,#fff);color:var(--rd-blue);font-size:14px;font-weight:800;line-height:1.1;transition:transform .15s}
+.rv-act-main{background:linear-gradient(135deg,var(--rd-blue-hi),var(--rd-blue));color:#fff;box-shadow:0 10px 20px -12px color-mix(in srgb,var(--rd-blue) 90%,transparent)}
+.rv-act:active{transform:scale(.97)}
+.rv-ipage{--rv-ink:#0b1430;--rv-ink2:#6b7488}
+.rv-ihero{min-height:150px;padding:18px 16px 16px}
+.rv-ihero-art{position:absolute;right:8px;top:10px;width:108px;height:108px;filter:drop-shadow(0 12px 18px rgba(0,0,0,.3));animation:rv-tile-in .5s .1s cubic-bezier(.34,1.4,.64,1) backwards}
+.rv-ihero-t{position:relative;max-width:calc(100% - 112px);font-size:24px;font-weight:800;line-height:1.1;color:#fff}
+.rv-ihero-s{position:relative;max-width:calc(100% - 112px);margin-top:6px;font-size:13px;font-weight:500;line-height:17px;color:rgba(255,255,255,.82)}
+.rv-ihero-nums{position:relative;display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.rv-ihero-nums span{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:12px;background:#fff;color:var(--rv-ink);font-size:13px;font-weight:800}
+.rv-ihero-nums svg{color:var(--rd-blue)}
+.rv-items{display:flex;flex-direction:column;gap:10px}
+.rv-item{display:flex;gap:12px;padding:12px;border-radius:var(--rd-r22);background:#fff;color:var(--rv-ink);box-shadow:0 10px 24px -14px rgba(0,0,0,.6);animation:rv-tile-in .44s cubic-bezier(.34,1.4,.64,1) backwards;animation-delay:calc(var(--i,0)*50ms + 60ms)}
+.rv-item-ph{position:relative;flex:0 0 auto;width:84px;height:84px;border-radius:var(--rd-r16);overflow:hidden;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--rd-blue) 10%,#fff);color:var(--rd-blue)}
+.rv-item-ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.rv-item-b{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.rv-item-t{font-size:15px;font-weight:800;line-height:19px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rv-item-m{font-size:12.5px;font-weight:600;color:var(--rv-ink2)}
+.rv-item-want{margin-top:auto;align-self:flex-start;min-height:38px;padding:0 14px}
+@media (prefers-reduced-motion:reduce){.rv-ask,.rv-item,.rv-ihero-art{animation:none}.rv-ask,.rv-act{transition:none}.rv-ask:active,.rv-act:active{transform:none}}
+
 /* Шапка: активная иконка раздела — синий акцент */
 html body .app-header .header-center .icon-btn.active-header-btn { background: rgba(47,123,255,.18) !important; border-color: transparent !important; color: var(--rd-blue, #2f7bff) !important; box-shadow: none !important; }
 

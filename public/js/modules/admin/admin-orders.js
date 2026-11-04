@@ -81,12 +81,13 @@
       if (k === 'work') return Object.entries(c).reduce((a, [s, n]) => (WORK_EXCLUDED.includes(s) ? a : a + Number(n)), 0);
       return Number(c[k]) || 0;
     },
-    searchPlaceholder: 'Номер, имя, @ник, трек или товар',
+    searchPlaceholder: 'ICE-номер, имя, @ник, трек или товар',
     pageSize: PAGE,
     listClass: 'ad-orders',
     args: (st, limit, offset) => ({ p_stage: st.chip, p_search: st.q || null, p_limit: limit, p_offset: offset }),
     // при поиске смотрим все этапы, иначе заказ из архива не найдётся
-    onSearch: (st) => { if (st.q && st.chip === 'work') st.chip = 'all'; },
+    onSearch: (st) => { if (st.q && st.chip === 'work') st.chip = 'all'; findByIce(st.q); },
+    onData: (d) => loadIceNums((d.rows || []).map((r) => r.id)),
     rowHtml: orderRowHtml,
     onRow: (id) => openOrder(id),
     empty: (st) => ({
@@ -95,6 +96,35 @@
       text: st.q ? 'Проверьте номер, имя или трек и попробуйте ещё раз.' : 'На этом этапе заказов нет. Загляните в другие этапы выше.',
     }),
   });
+
+  // ══ Публичный номер ICE-1234567 ══
+  // admin_orders_list номер не отдаёт и по нему не ищет — дочитываем из orders (админу RLS разрешает)
+  const iceNums = {};
+  const iceLabel = (id) => iceNums[id] || '#' + shortId(id);
+
+  async function loadIceNums(ids) {
+    const need = ids.filter((id) => id && !iceNums[id]);
+    if (!need.length || !window.supabaseClient) return;
+    const { data, error } = await window.supabaseClient.from('orders').select('id, public_number').in('id', need);
+    if (error || !data) return;
+    data.forEach((r) => { if (r.public_number) iceNums[r.id] = r.public_number; });
+    document.querySelectorAll('[data-ice]').forEach((el) => {
+      const n = iceNums[el.getAttribute('data-ice')];
+      if (n) el.textContent = n;
+    });
+  }
+
+  // «ICE-1234567» в поиске — сразу открываем заказ
+  let iceSeq = 0;
+  async function findByIce(q) {
+    const m = /^#?\s*ICE[-\s]?(\d{7})$/i.exec(String(q || '').trim());
+    if (!m || !window.supabaseClient) return;
+    const seq = ++iceSeq;
+    const { data, error } = await window.supabaseClient.from('orders').select('id, public_number').eq('public_number', 'ICE-' + m[1]).limit(1);
+    if (seq !== iceSeq || error) return;
+    if (data && data[0]) { iceNums[data[0].id] = data[0].public_number; openOrder(data[0].id); }
+    else if (window.UI) window.UI.toast('Заказа ICE-' + m[1] + ' нет', 'info');
+  }
 
   function orderRowHtml(r) {
     const days = daysSince(r.updated_at);
@@ -107,7 +137,7 @@
         <span class="ad-thumb">${/^https?:\/\//i.test(r.image || '') ? `<img src="${esc(r.image)}" alt="" loading="lazy">` : I('box', 22)}</span>
         <span class="ad-order-body">
           <span class="ad-order-title">${esc(r.title || 'Заказ')}${esc(extra)}</span>
-          <span class="ad-order-sub">${esc(who)}${r.toxic ? ' · <b class="ad-warn-text">сложный клиент</b>' : ''} · #${esc(shortId(r.id))}</span>
+          <span class="ad-order-sub">${esc(who)}${r.toxic ? ' · <b class="ad-warn-text">сложный клиент</b>' : ''} · <span data-ice="${esc(r.id)}">${esc(iceLabel(r.id))}</span></span>
           <span class="ad-order-foot">
             ${statusBadge(r.status)}
             ${stuck ? `<span class="rd-status bad">${days} дн. без движения</span>` : ''}
@@ -141,7 +171,7 @@
       <div class="rd-screen page-enter ad-screen">
         <div class="rd-head">
           <button type="button" class="rd-back" onclick="window.goBackGlobal()" aria-label="Назад">${I('chevL', 22)}</button>
-          <div class="rd-head-txt"><h1 class="rd-head-title">Заказ #${esc(shortId(id))}</h1><p class="rd-head-sub" id="adOrderSub">Загружаем…</p></div>
+          <div class="rd-head-txt"><h1 class="rd-head-title" id="adOrderTitle">Заказ ${esc(iceLabel(id))}</h1><p class="rd-head-sub" id="adOrderSub">Загружаем…</p></div>
           <button type="button" class="rd-back" id="adOrderRefresh" aria-label="Обновить">${I('refresh', 20)}</button>
         </div>
         <div id="adOrderBody">${AD.loadingHtml()}</div>
@@ -166,6 +196,11 @@
     card = data;
     const sub = document.getElementById('adOrderSub');
     if (sub) sub.textContent = `Оформлен ${dateTime(card.order.created_at)}`;
+    if (card.order.public_number) {
+      iceNums[card.order.id] = card.order.public_number;
+      const t = document.getElementById('adOrderTitle');
+      if (t) t.textContent = 'Заказ ' + card.order.public_number;
+    }
     body.innerHTML = cardHtml();
     bindCard();
     AD.restoreScroll();
@@ -180,7 +215,7 @@
       case 'on_sklad_cn': return { label: 'Отправлен в Беларусь', run: () => advanceSheet('in_transit') };
       case 'in_transit': return weighed ? { label: 'Прибыл в Беларусь', run: () => advanceSheet('in_belarus') } : { label: 'Записать вес и доставку', run: weighSheet };
       case 'paid_second': return { label: 'Прибыл в Беларусь', run: () => advanceSheet('in_belarus') };
-      case 'in_belarus': return { label: 'Клиент получил заказ', run: () => advanceSheet('delivered') };
+      case 'in_belarus': return deliveryKind(o) ? { label: 'Выдан', run: markDelivered } : { label: 'Клиент получил заказ', run: () => advanceSheet('delivered') };
       default: return null;
     }
   }
@@ -523,6 +558,43 @@
         return !!data;
       },
     });
+  }
+
+  // ── «Выдан»: Европочта, Белпочта, самовывоз или встреча в Несвиже ──
+  const KIND_LABEL = { europost: 'Европочта', belpost: 'Белпочта', pickup: 'самовывоз или встреча в Несвиже' };
+  function deliveryKind(o) {
+    // перевозчик в начале адреса важнее метода: в базе есть SELF_PICKUP с «Европочта | …»
+    const src = [o.tracking_number_by, address(o)].map((x) => String(x || '').trim());
+    if (src.some((x) => /^Европочта/i.test(x))) return 'europost';
+    if (src.some((x) => /^Белпочта/i.test(x))) return 'belpost';
+    if (o.selected_receiving_method === 'SELF_PICKUP') return 'pickup';
+    return null;
+  }
+
+  // status='delivered' и delivered_at ставит admin_order_advance; клиенту — одно уведомление (триггер на смену статуса)
+  let delivering = false;
+  async function markDelivered() {
+    if (delivering) return;
+    const o = card.order;
+    const kind = deliveryKind(o);
+    const how = kind === 'pickup' ? 'Клиент забрал заказ сам или на встрече.' : `Посылка вручена через ${KIND_LABEL[kind]}.`;
+    delivering = true;
+    try {
+      const yes = await confirmSheet('Заказ выдан?', `${how} Заказ завершится, клиенту придёт уведомление, а позже — просьба оценить заказ. Отменить этот шаг сможет только владелец.`, 'Да, выдан');
+      if (!yes || !card || card.order.id !== o.id || card.order.status !== 'in_belarus') return;
+      const btn = document.getElementById('adNextStep');
+      await call(btn, 'admin_order_advance', { p_order: o.id, p_to: 'delivered', p_track: null, p_comment: 'Выдан: ' + KIND_LABEL[kind] }, 'Заказ отмечен выданным');
+    } finally {
+      delivering = false;
+    }
+  }
+
+  // Заготовка: автостатусы Европочты и Белпочты. Когда появится доступ к их API отслеживания,
+  // здесь по треку из tracking_number_by узнаём «вручено» и вызываем тот же admin_order_advance(p_to:'delivered'),
+  // чтобы уведомление и запрос отзыва шли тем же путём, что и по кнопке «Выдан». Сейчас ничего не делает.
+  // eslint-disable-next-line no-unused-vars
+  async function syncPostalStatus(o) {
+    return null;
   }
 
   // ── Простые шаги ──

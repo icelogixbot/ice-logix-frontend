@@ -2289,7 +2289,7 @@ async function renderMyOrders() {
             <span class="oc-thumb">${img ? `<img src="${U.esc(img)}" alt="" loading="lazy" onerror="this.remove()">` : ''}${U.icon('box', 22)}</span>
             <div class="oc-hinfo">
               <div class="oc-title">${U.esc(orderTitle(order))}</div>
-              <div class="oc-sub"><span class="rd-status ${badge.tone} oc-st">${badge.text}</span><span>№ ${order.id.slice(0, 8).toUpperCase()} · ${dateStr}</span></div>
+              <div class="oc-sub"><span class="rd-status ${badge.tone} oc-st">${badge.text}</span><span>${order.public_number || "№ " + order.id.slice(0, 8).toUpperCase()} · ${dateStr}</span></div>
             </div>
           </header>
           ${progress}
@@ -4096,7 +4096,7 @@ window.generateShippingManifest = async (orderId) => {
           
           <div style="margin-bottom: 20px; border-top: 1px dashed #000; padding-top: 15px;">
             <p style="margin: 0; font-size: 10px; color: #555; text-transform: uppercase;">Заказ:</p>
-            <p style="margin: 2px 0 0 0; font-size: 14px; font-weight: bold;">#${order.id.slice(0,8).toUpperCase()}</p>
+            <p style="margin: 2px 0 0 0; font-size: 14px; font-weight: bold;">${order.public_number || "#" + order.id.slice(0,8).toUpperCase()}</p>
             <p style="margin: 5px 0 0 0; font-size: 12px;">Вес: ${order.weight_actual || order.weight_estimated || '?'} кг</p>
           </div>
         </div>

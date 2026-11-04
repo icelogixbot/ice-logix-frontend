@@ -434,8 +434,10 @@
       h += `<div class="rd-card ad-pad">${kvRow('Бонус за отзыв', Number(d.media_count) ? (d.bonus_given ? 'уже выдан' : 'будет выдан при одобрении') : 'не положен')}</div>`;
       h += '<p class="ad-hint">Бонус — сумма из настроек денег, и только за отзыв с фото или видео. Без них клиент ничего не получает.</p>';
       if (d.status === 'rejected' && d.moderation_reason) h += noteBlock('bad', 'Причина отказа', d.moderation_reason);
-      h += linksHtml(d);
-      if (d.status === 'pending') h += actions(btn('adInbApprove', 'Опубликовать') + btn('adInbReject', 'Отклонить', 'rd-btn-danger'));
+      h += '<div id="adRvMore"></div>';
+      // заказы с номерами ICE и оценками рисует reviewMore, здесь только клиент
+      h += linksHtml(Object.assign({}, d, { order_id: null, order: null }));
+      h += actions((d.status === 'pending' ? btn('adInbApprove', 'Принять') + btn('adInbReject', 'Отклонить', 'rd-btn-danger') : '') + btn('adRvReply', 'Ответить клиенту', 'rd-btn-ghost'));
     } else if (k === 'ugc') {
       const v = /^https?:\/\//i.test(String(d.video_url || '')) ? d.video_url : '';
       h += topCard(k, d, 'Видео-распаковка', textBlock(d.caption));
@@ -507,6 +509,7 @@
       on('adInbImpossible', () => legitVerdict(d, 'impossible'));
     } else if (k === 'reviews') {
       on('adInbApprove', () => reviewApprove(d));
+      reviewMore(d, root, on, reload);
       on('adInbReject', () => rejectSheet('Отклонить отзыв', 'Отзыв не будет опубликован. Напишите причину.', (v, b) => AD.call(b, 'admin_review_decision', { p_review: d.id, p_approve: false, p_reason: v }, { ok: 'Отзыв отклонён' })));
     } else if (k === 'ugc') {
       on('adInbApprove', () => ugcApprove(d));
@@ -685,12 +688,79 @@
     });
   }
 
+  // Новые поля отзыва (этап 1): номера ICE, оценки по заказам, источник, согласие, ответ менеджера.
+  // admin_inbox_list их не отдаёт — дочитываем из reviews/orders (админу RLS разрешает).
+  async function reviewMore(d, root, on, reload) {
+    let extra = null;
+    on('adRvReply', () => reviewReply(d, extra, reload));
+    const sb = window.supabaseClient;
+    const box = root.querySelector('#adRvMore');
+    if (!sb || !box) return;
+    const { data: r, error } = await sb.from('reviews')
+      .select('order_id, order_ids, order_ratings, source, consent_at, consent_version, manager_reply, manager_reply_at')
+      .eq('id', d.id).maybeSingle();
+    if (!box.isConnected) return;
+    if (error || !r) {
+      if (d.order_id) box.innerHTML = linksHtml({ order_id: d.order_id });
+      box.querySelectorAll('[data-order]').forEach((x) => { x.onclick = () => AD.open('admin_order', { id: x.dataset.order }); });
+      return;
+    }
+    extra = r;
+    const ratings = r.order_ratings && typeof r.order_ratings === 'object' ? r.order_ratings : {};
+    const ids = [...new Set([...(Array.isArray(r.order_ids) ? r.order_ids : []), ...Object.keys(ratings), r.order_id].filter(Boolean))];
+    const nums = {};
+    if (ids.length) {
+      const o = await sb.from('orders').select('id, public_number').in('id', ids);
+      (o.data || []).forEach((x) => { nums[x.id] = x.public_number; });
+      if (!box.isConnected) return;
+    }
+    const star = (n) => (Number(n) ? `${Number(n)} из 5` : 'без оценки');
+    let h = '';
+    if (ids.length) {
+      h += section(ids.length > 1 ? 'Заказы в отзыве' : 'Заказ в отзыве') + '<div class="rd-card rd-list">' + ids.map((id) => `
+        <div class="rd-row" role="button" tabindex="0" data-order="${esc(id)}">
+          <span class="rd-ico">${I('box', 22)}</span>
+          <span class="rd-row-body"><span class="rd-row-title">${esc(nums[id] || 'Заказ ' + AD.shortId(id))}</span><span class="rd-row-text">Оценка: ${esc(star(ratings[id]))}</span></span>
+          ${I('chevR', 22, { cls: 'rd-chev' })}
+        </div>`).join('') + '</div>';
+    }
+    h += `<div class="rd-card ad-pad">${kvRow('Откуда', r.source === 'bot' ? 'Telegram-бот' : 'Приложение')}${kvRow('Согласие на публикацию', r.consent_at ? esc('дано ' + when(r.consent_at)) : 'нет')}</div>`;
+    if (r.manager_reply) h += noteBlock('', 'Ваш ответ' + (r.manager_reply_at ? ' · ' + when(r.manager_reply_at) : ''), r.manager_reply);
+    box.innerHTML = h;
+    box.querySelectorAll('[data-order]').forEach((x) => { x.onclick = () => AD.open('admin_order', { id: x.dataset.order }); });
+    const b = root.querySelector('#adRvReply');
+    if (b && r.manager_reply) b.textContent = 'Изменить ответ';
+  }
+
+  function reviewReply(d, extra, reload) {
+    textSheet({
+      title: 'Ответ клиенту',
+      text: 'Ответ увидят под отзывом. Пишите спокойно и по делу.',
+      label: 'Ответ',
+      value: (extra && extra.manager_reply) || '',
+      placeholder: 'Спасибо за отзыв! …',
+      min: 2,
+      minText: 'Напишите ответ',
+      max: 1000,
+      action: 'Сохранить ответ',
+      onSubmit: async (v) => {
+        const { error } = await window.supabaseClient.from('reviews')
+          .update({ manager_reply: v, manager_reply_at: new Date().toISOString() }).eq('id', d.id);
+        if (error) { AD.fail(error); return false; }
+        AD.haptic('success');
+        U().toast('Ответ сохранён', 'ok');
+        reload();
+        return true;
+      },
+    });
+  }
+
   async function reviewApprove(d) {
     const hasMedia = Number(d.media_count) > 0;
     const text = hasMedia
       ? (d.bonus_given ? 'Отзыв увидят все клиенты. Бонус за него уже выдан раньше.' : 'Отзыв увидят все клиенты. Клиент получит бонус за фото или видео.')
       : 'Отзыв увидят все клиенты. Бонус не начисляется: он положен только за отзыв с фото или видео.';
-    if (!await confirmSheet('Опубликовать отзыв?', text, 'Опубликовать')) return;
+    if (!await confirmSheet('Принять отзыв?', text, 'Принять и опубликовать')) return;
     if (await AD.call(null, 'admin_review_decision', { p_review: d.id, p_approve: true }, { ok: hasMedia && !d.bonus_given ? 'Отзыв опубликован, бонус начислен' : 'Отзыв опубликован' }) !== null) leave();
   }
 

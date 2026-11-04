@@ -465,7 +465,7 @@
     // 1. Personal Orders Binding (Instant profile tracking)
     if (userCtx.orders && userCtx.orders.length > 0) {
       const topOrder = userCtx.orders[0];
-      const ordNum = topOrder.order_number || topOrder.id?.slice(0, 8);
+      const ordNum = topOrder.public_number || topOrder.id?.slice(0, 8);
       const isOrderQuery = q.includes('заказ') || q.includes('посылк') || q.includes('трек') || q.includes('где');
       
       if (isOrderQuery || (ordNum && String(ordNum).toLowerCase().includes(q))) {
@@ -474,11 +474,11 @@
           text: `Мой заказ #${ordNum}`,
           q: `где посылка #${ordNum}`
         });
-        if (topOrder.track_number) {
+        if (topOrder.tracking_number_intl) {
           suggestions.push({
             icon: '📍',
-            text: `Трек-номер: ${topOrder.track_number}`,
-            q: topOrder.track_number
+            text: `Трек-номер: ${topOrder.tracking_number_intl}`,
+            q: topOrder.tracking_number_intl
           });
         }
       }
@@ -910,7 +910,7 @@
   }
 
   function orderLine(o) {
-    const n = o.order_number || String(o.id || '').slice(0, 8);
+    const n = o.public_number || String(o.id || '').slice(0, 8);
     const title = o.title || o.product_name || 'без названия';
     return `№${n} — ${title}: ${formatOrderStatus(o.status)}`;
   }
@@ -918,16 +918,16 @@
   async function findOwnOrder(num, userCtx) {
     const key = String(num).toLowerCase();
     const hit = (userCtx.orders || []).find(o =>
-      [o.order_number, o.id, o.track_number, o.tracking_number].some(v => v != null && String(v).toLowerCase() === key));
+      [o.public_number, o.id, o.tracking_number_intl, o.tracking_number_cn].some(v => v != null && String(v).toLowerCase() === key));
     if (hit) return hit;
     if (!window.supabaseClient || !userCtx.userId) return null;
     const safe = key.replace(/[^a-zа-я0-9-]/g, '');
     if (!safe) return null;
     const { data } = await window.supabaseClient
       .from('orders')
-      .select('id, order_number, track_number, tracking_number, status, title, price_byn, created_at')
+      .select('id, public_number, tracking_number_intl, tracking_number_cn, status, title, price_byn, created_at')
       .eq('user_id', userCtx.userId)
-      .or(`order_number.eq.${safe},track_number.eq.${safe}`)
+      .or(`public_number.eq.${safe},tracking_number_intl.eq.${safe}`)
       .limit(1);
     return (data && data[0]) || null;
   }
@@ -1666,8 +1666,8 @@
 
       let matched = orders.filter(o => {
         const idStr = String(o.id || '');
-        const numStr = String(o.order_number || '');
-        const trackStr = String(o.track_number || o.tracking_number || '').toLowerCase();
+        const numStr = String(o.public_number || '');
+        const trackStr = String(o.tracking_number_intl || o.tracking_number_cn || '').toLowerCase();
         const titleStr = String(o.title || o.product_name || '').toLowerCase();
         const qLower = clean.toLowerCase();
 
@@ -1683,9 +1683,9 @@
       if (matched.length === 0 && window.supabaseClient && clean.length >= 3) {
         const { data } = await window.supabaseClient
           .from('orders')
-          .select('id, order_number, track_number, tracking_number, status, title, price_byn, created_at')
+          .select('id, public_number, tracking_number_intl, tracking_number_cn, status, title, price_byn, created_at')
           .eq('user_id', userCtx.userId)
-          .or(`order_number.ilike.%${clean}%,track_number.ilike.%${clean}%,title.ilike.%${clean}%`)
+          .or(`public_number.ilike.%${clean}%,tracking_number_intl.ilike.%${clean}%,title.ilike.%${clean}%`)
           .limit(4);
 
         if (data && data.length > 0) {
@@ -1859,10 +1859,10 @@
       if (matchingOrders.length > 0) {
         const topOrder = matchingOrders[0];
         const statusTitle = formatOrderStatus(topOrder.status);
-        const orderNum = topOrder.order_number || topOrder.id?.slice(0, 8);
+        const orderNum = topOrder.public_number || topOrder.id?.slice(0, 8);
         bodyHtml = `Здравствуйте, ${userCtx.userName}! По вашему запросу найден заказ <span class="text-white font-bold">#${orderNum}</span> (${topOrder.title || 'Товар с Poizon'}). Текущий этап: <span class="text-cyan-300 font-extrabold">${statusTitle}</span>.`;
         bullets = [
-          `📍 <span class="font-bold text-white">Трек-номер:</span> ${topOrder.track_number ? `<code class="px-1.5 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[11px]">${topOrder.track_number}</code>` : '<span class="text-white/60">Формируется на складе в Китае</span>'}.`,
+          `📍 <span class="font-bold text-white">Трек-номер:</span> ${topOrder.tracking_number_intl ? `<code class="px-1.5 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[11px]">${topOrder.tracking_number_intl}</code>` : '<span class="text-white/60">Формируется на складе в Китае</span>'}.`,
           `✈️ <span class="font-bold text-white">Маршрут:</span> Транзитный склад Китая → Сортировочный хаб в Минске → Пункт выдачи (${userCtx.deliveryInfo?.city || 'Беларусь / РФ'}).`,
           `🛡️ <span class="font-bold text-white">Страховка:</span> Страховка по желанию: «Голубая белка», 2% от стоимости товара.`
         ];
@@ -2074,15 +2074,15 @@
               <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-400/30 flex items-center justify-between transition cursor-pointer" onclick="window.spotlightOpenOrder('${o.id}')">
                 <div class="flex-1 min-w-0 pr-3">
                   <div class="flex items-center gap-2 mb-1">
-                    <span class="text-xs font-bold text-white">#${highlightMatches(o.order_number || o.id?.slice(0, 8), query)}</span>
+                    <span class="text-xs font-bold text-white">#${highlightMatches(o.public_number || o.id?.slice(0, 8), query)}</span>
                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
                       ${formatOrderStatus(o.status)}
                     </span>
                   </div>
-                  ${o.track_number ? `
+                  ${o.tracking_number_intl ? `
                     <div class="flex items-center gap-2 mt-1">
-                      <span class="text-[10px] text-white/50 font-mono">Трек: ${highlightMatches(o.track_number, query)}</span>
-                      <button type="button" class="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold px-1.5 py-0.5 rounded bg-cyan-400/10 active:scale-95 transition" onclick="event.stopPropagation(); if (navigator.clipboard) navigator.clipboard.writeText('${o.track_number}'); if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light'); if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Трек-номер скопирован: ${o.track_number}');">
+                      <span class="text-[10px] text-white/50 font-mono">Трек: ${highlightMatches(o.tracking_number_intl, query)}</span>
+                      <button type="button" class="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold px-1.5 py-0.5 rounded bg-cyan-400/10 active:scale-95 transition" onclick="event.stopPropagation(); if (navigator.clipboard) navigator.clipboard.writeText('${o.tracking_number_intl}'); if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light'); if (typeof tgUtil !== 'undefined' && tgUtil.alert) tgUtil.alert('Трек-номер скопирован: ${o.tracking_number_intl}');">
                         Копировать
                       </button>
                     </div>

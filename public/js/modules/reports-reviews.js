@@ -224,8 +224,9 @@
         async function rvFetchPage(cat, sort, from) {
           const run = async () => {
             let q = supabaseClient.from('reviews')
-              .select('id,user_name,category,rating,text,photo_urls:media_urls,is_verified,is_pinned,likes_count,created_at,review_actions(details)')
-              .eq('is_published', true);
+              .select('id,user_name,category,rating,text,photo_urls:media_urls,is_verified,is_pinned,likes_count,created_at,order_ids,manager_reply,review_actions(details)')
+              .eq('is_published', true)
+              .is('resolves_review_id', null);
             if (cat !== 'all') q = q.eq('category', cat);
             if (sort === 'photo') q = q.neq('media_urls', '[]');
             if (sort === 'best') q = q.order('likes_count', { ascending: false }).order('rating', { ascending: false });
@@ -234,10 +235,136 @@
               .order('created_at', { ascending: false })
               .range(from, from + RV_PAGE - 1);
             if (error) throw error;
-            return data || [];
+            return rvEnrich(data || []);
           };
           if (from === 0 && window.CacheDB) return window.CacheDB.get(rvCacheKey(cat, sort), run, 60000);
           return run();
+        }
+
+        // Заказы из отзывов: номер ICE-… и товары. Сначала публичная функция review_orders_public (если она есть в базе),
+        // иначе прямой запрос — RLS отдаст только свои и семейные заказы, остальные просто не покажутся
+        const rvOrderMap = {};
+        let rvOrdersRpcOff = false;
+        async function rvFetchOrders(ids) {
+          const need = ids.filter(id => id && !(id in rvOrderMap));
+          if (!need.length) return;
+          let rows = null;
+          if (!rvOrdersRpcOff) {
+            try {
+              const { data, error } = await supabaseClient.rpc('review_orders_public', { p_order_ids: need });
+              if (error) rvOrdersRpcOff = true; else rows = data || [];
+            } catch (e) { rvOrdersRpcOff = true; }
+          }
+          if (!rows) {
+            try {
+              const { data } = await supabaseClient.from('orders')
+                .select('id,public_number,items,source_url,title,title_translated').in('id', need);
+              rows = data || [];
+            } catch (e) { rows = []; }
+          }
+          rows.forEach(o => { if (o && o.id) rvOrderMap[o.id] = o; });
+          need.forEach(id => { if (!(id in rvOrderMap)) rvOrderMap[id] = null; });
+        }
+
+        async function rvEnrich(rows) {
+          if (!rows || !rows.length) return rows || [];
+          const orderIds = [];
+          // Медиа отзывов из бота хранятся как {type, file_id} (файл лежит в Telegram) — в ленте показываем только ссылки
+          rows.forEach(r => { r.photo_urls = (Array.isArray(r.photo_urls) ? r.photo_urls : []).filter(u => typeof u === 'string' && u); });
+          rows.forEach(r => (Array.isArray(r.order_ids) ? r.order_ids : []).forEach(id => { if (!orderIds.includes(id)) orderIds.push(id); }));
+          const solvedTask = Promise.resolve(supabaseClient.from('reviews')
+            .select('id,user_name,rating,text,created_at,resolves_review_id')
+            .eq('is_published', true).in('resolves_review_id', rows.map(r => r.id))
+            .order('created_at', { ascending: true }))
+            .then(({ data }) => {
+              rows.forEach(r => { r.solved = []; });
+              (data || []).forEach(c => { const p = rows.find(r => r.id === c.resolves_review_id); if (p) (p.solved = p.solved || []).push(c); });
+            }, () => {});
+          await Promise.all([solvedTask, orderIds.length ? rvFetchOrders(orderIds) : null]);
+          rows.forEach(r => { r.orders = (Array.isArray(r.order_ids) ? r.order_ids : []).map(id => rvOrderMap[id]).filter(Boolean); });
+          return rows;
+        }
+
+        // Товары заказов отзыва: картинка, название, ссылка для «Хочу так же»
+        function rvOrderItems(r) {
+          const out = [];
+          const okUrl = (u) => (typeof u === 'string' && /^https?:\/\//i.test(u) ? u : '');
+          ((r && r.orders) || []).forEach(o => {
+            const list = Array.isArray(o.items) && o.items.length ? o.items : [{ url: o.source_url, title: o.title_translated || o.title }];
+            list.forEach(it => {
+              if (!it) return;
+              out.push({
+                url: okUrl(it.url) || (list.length === 1 ? okUrl(o.source_url) : ''),
+                title: it.title || o.title_translated || o.title || 'Товар',
+                img: okUrl(it.imageUrl || it.image_url || it.image),
+                num: o.public_number || '',
+                meta: [it.size, it.color].filter(Boolean).join(' · ')
+              });
+            });
+          });
+          return out;
+        }
+
+        // Отзыв по id: из ленты или отдельным запросом (для ссылок из группы)
+        async function rvGetReview(id) {
+          const known = (rvState.items || []).find(x => x.id === id);
+          if (known && known.orders) return known;
+          const { data } = await supabaseClient.from('reviews')
+            .select('id,user_name,rating,order_ids').eq('id', id).maybeSingle();
+          if (!data) return null;
+          const list = await rvEnrich([data]);
+          return list[0] || null;
+        }
+
+        // «Хочу так же» — «Расчёт по ссылке» с готовой ссылкой, расчёт стартует сам
+        async function rvWantSame(reviewId, url) {
+          if (!url && reviewId) {
+            try {
+              const r = await rvGetReview(reviewId);
+              const it = rvOrderItems(r).find(x => x.url);
+              url = it ? it.url : '';
+            } catch (e) { url = ''; }
+          }
+          if (!url) { UI.toast('Товары этого отзыва пока недоступны'); return; }
+          window._pendingCalcUrl = url;
+          switchTab('calculator');
+          if (typeof window.setCalcMode === 'function') window.setCalcMode('link');
+        }
+
+        function openReviewItems(reviewId) {
+          if (!reviewId) return;
+          window._rvItemsReviewId = reviewId;
+          switchTab('reviewItems');
+        }
+
+        // Карточка «Вас ждёт отзыв» над лентой — только если в боте открыт запрос отзыва
+        async function rvLoadAsk() {
+          const box = document.getElementById('rvAsk');
+          if (!box || !userId) return;
+          try {
+            const { data, error } = await supabaseClient.from('review_requests')
+              .select('id,status,order_ids').eq('user_id', userId).in('status', ['rating', 'writing'])
+              .order('created_at', { ascending: false }).limit(1);
+            if (error || !data || !data.length) { box.innerHTML = ''; return; }
+            const rq = data[0];
+            const many = Array.isArray(rq.order_ids) && rq.order_ids.length > 1;
+            const sub = rq.status === 'rating'
+              ? (many ? 'Оцените заказы — это займёт минуту' : 'Оцените заказ — это займёт минуту')
+              : 'Расскажите в боте, как всё прошло';
+            box.innerHTML = `
+              <button type="button" class="rv-ask" data-rv-ask>
+                <span class="rv-ask-ic">${UI.icon('message', 24, { stroke: 2.2 })}</span>
+                <span class="rv-ask-b"><b>Вас ждёт отзыв</b><small>${sub}</small></span>
+                <span class="rv-ask-go">${UI.icon('chevR', 18, { stroke: 2.6 })}</span>
+              </button>`;
+          } catch (e) { /* нет сети — карточку просто не показываем */ }
+        }
+
+        function rvOpenBotReview() {
+          const u = 'https://t.me/icelogix_bot?start=review';
+          const tgw = window.Telegram && window.Telegram.WebApp;
+          if (tgw && typeof tgw.openTelegramLink === 'function') tgw.openTelegramLink(u);
+          else openExternalLink(u);
         }
 
         // Лёгкая выборка оценок и категорий — для сводки рейтинга и счётчиков на чипах
@@ -428,6 +555,45 @@
             </div>`;
         }
 
+        function rvOrdersHtml(r) {
+          const nums = (r.orders || []).map(o => o.public_number || (o.id ? String(o.id).slice(0, 8).toUpperCase() : '')).filter(Boolean);
+          if (!nums.length) return '';
+          return `<div class="rv-orders">${UI.icon('box', 15, { stroke: 2.2 })}<span>${nums.length > 1 ? 'Заказы' : 'Заказ'}: <b>${nums.map(rvEsc).join(', ')}</b></span></div>`;
+        }
+
+        function rvSolvedHtml(c) {
+          const rating = Math.max(0, Math.min(5, Number(c.rating) || 0));
+          return `
+            <div class="rv-solved">
+              <div class="rv-solved-h">
+                <span class="rv-solved-badge">${UI.icon('checkCircle', 13, { stroke: 2.4 })}Решено</span>
+                <span class="rv-solved-meta">${rvEsc(c.user_name || 'Клиент')} · ${rvFmtDate(c.created_at)}</span>
+              </div>
+              ${rating ? `<div class="rv-solved-stars" aria-label="Оценка ${rating} из 5">${[1, 2, 3, 4, 5].map(k => UI.icon('star', 14, { fill: k <= rating })).join('')}</div>` : ''}
+              ${c.text ? `<p class="rv-solved-t">${rvEsc(c.text)}</p>` : ''}
+            </div>`;
+        }
+
+        // Ответ менеджера под отзывом и новые отзывы клиента с плашкой «Решено»
+        function rvManagerReplyHtml(r) {
+          const solved = Array.isArray(r.solved) ? r.solved : [];
+          if (!r.manager_reply && !solved.length) return '';
+          return `
+            <div class="rv-reply rv-mreply">
+              ${r.manager_reply ? `<div class="rv-reply-h"><span class="rv-reply-ic">${UI.icon('shield', 13, { stroke: 2.4 })}</span><b>Ответ ICE LOGIX</b></div><p class="rv-mreply-t">${rvEsc(r.manager_reply)}</p>` : ''}
+              ${solved.map(rvSolvedHtml).join('')}
+            </div>`;
+        }
+
+        function rvActsHtml(r) {
+          if (!Array.isArray(r.order_ids) || !r.order_ids.length) return '';
+          return `
+            <div class="rv-acts">
+              <button type="button" class="rv-act rv-act-main" data-rv-want>${UI.icon('sparkles', 17, { stroke: 2.2 })}<span>Хочу так же</span></button>
+              <button type="button" class="rv-act" data-rv-items>${UI.icon('bag', 17, { stroke: 2.2 })}<span>Товары из отзыва</span></button>
+            </div>`;
+        }
+
         function rvLikeInner(count) {
           return `${RV_THUMB}<span class="rv-like-t">Полезно</span><span class="rv-like-n">${count > 0 ? count : ''}</span>`;
         }
@@ -460,7 +626,10 @@
               <p class="rv-text">${rvEsc(r.text)}</p>
               ${rvPhotosHtml(photos)}
               ${rvDetailsHtml(r)}
+              ${rvOrdersHtml(r)}
               ${rvReplyHtml(r)}
+              ${rvManagerReplyHtml(r)}
+              ${rvActsHtml(r)}
               <div class="rv-foot">
                 <button type="button" class="rv-like ${liked ? 'on' : ''}" data-rv-like aria-label="Полезный отзыв">${rvLikeInner(r.likes_count || 0)}</button>
               </div>
@@ -567,6 +736,7 @@
                 </div>
 
                 <div class="rd-card rv-hub">${rvPlatformsHtml(config)}</div>
+                <div id="rvAsk"></div>
 
                 <div class="rv-cats" id="rvChips" role="group" aria-label="Разделы">${rvChipsHtml()}</div>
                 <div class="rv-bar">
@@ -1250,6 +1420,7 @@
             if (Date.now() - tapAt < 700 && t.closest('[data-rv-cat],[data-rv-sort]')) return;
             const plat = t.closest('[data-rv-url]');
             if (plat) { openExternalLink(plat.dataset.rvUrl); return; }
+            if (t.closest('[data-rv-ask]')) { rvOpenBotReview(); return; }
             const srt = t.closest('[data-rv-sort]');
             if (srt) { rvSwitchSort(srt.dataset.rvSort); return; }
             const chip = t.closest('[data-rv-cat]');
@@ -1260,6 +1431,8 @@
             const id = card.dataset.reviewId;
             if (t.closest('[data-rv-like]')) { toggleReviewLike(card, id); return; }
             if (t.closest('[data-rv-pin]')) { toggleReviewPin(id, card); return; }
+            if (t.closest('[data-rv-want]')) { rvWantSame(id); return; }
+            if (t.closest('[data-rv-items]')) { openReviewItems(id); return; }
             const ph = t.closest('[data-rv-ph]');
             if (ph) {
               const item = rvState.items.find(r => r.id === id);
@@ -1291,6 +1464,8 @@
             lastTap = now; lastCard = card;
           });
 
+          rvLoadAsk();
+
           // Подгрузка при прокрутке
           if (rvState.obs) rvState.obs.disconnect();
           const sentinel = document.getElementById('rvSentinel');
@@ -1300,6 +1475,66 @@
             }, { rootMargin: '600px 0px' });
             rvState.obs.observe(sentinel);
           }
+        }
+
+        const RV_BAG_ART = `<svg class="rv-ihero-art" viewBox="0 0 96 96" aria-hidden="true">
+            <defs>
+              <linearGradient id="rvBagA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#cfe0ff"/></linearGradient>
+              <linearGradient id="rvBagB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9cc0ff"/><stop offset="1" stop-color="#5b8fff"/></linearGradient>
+            </defs>
+            <path d="M24 34h48l-4 46a6 6 0 0 1-6 5H34a6 6 0 0 1-6-5z" fill="url(#rvBagB)" transform="translate(6 4)" opacity=".55"/>
+            <path d="M20 30h52l-4 48a6 6 0 0 1-6 5H30a6 6 0 0 1-6-5z" fill="url(#rvBagA)"/>
+            <path d="M34 38V26a12 12 0 0 1 24 0v12" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+            <circle cx="34" cy="40" r="3.4" fill="#5b8fff"/><circle cx="58" cy="40" r="3.4" fill="#5b8fff"/>
+            <path d="m38 58 6 6 12-12" fill="none" stroke="#2f7bff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>`;
+
+        // Экран «Товары из отзыва»: список товаров заказов, у каждого «Хочу так же»
+        async function renderReviewItems() {
+          const id = window._rvItemsReviewId;
+          let r = null;
+          try { r = id ? await rvGetReview(id) : null; } catch (e) { r = null; }
+          const items = r ? rvOrderItems(r) : [];
+          const nums = r ? (r.orders || []).map(o => o.public_number).filter(Boolean) : [];
+          const rating = r ? Math.max(0, Math.min(5, Number(r.rating) || 0)) : 0;
+          const list = items.length
+            ? `<div class="rv-items">${items.map((it, i) => `
+                <div class="rv-item" style="--i:${Math.min(i, 8)}">
+                  <div class="rv-item-ph">${UI.icon('bag', 26)}${it.img ? `<img src="${rvEsc(it.img)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</div>
+                  <div class="rv-item-b">
+                    <div class="rv-item-t">${rvEsc(it.title)}</div>
+                    ${it.meta || it.num ? `<div class="rv-item-m">${rvEsc([it.num, it.meta].filter(Boolean).join(' · '))}</div>` : ''}
+                    ${it.url ? `<button type="button" class="rv-act rv-act-main rv-item-want" data-rv-want-url="${rvEsc(it.url)}">${UI.icon('sparkles', 16, { stroke: 2.2 })}<span>Хочу так же</span></button>` : ''}
+                  </div>
+                </div>`).join('')}</div>`
+            : UI.empty({ icon: 'bag', title: 'Товары пока недоступны', text: 'Список товаров этого отзыва ещё не открыт. Загляните чуть позже.' });
+          return `
+            <div class="rd-screen page-enter rv-ipage" id="rvItemsRoot">
+              <div class="rd-head">
+                <button type="button" class="rd-back" data-rv-back aria-label="Назад">${UI.icon('chevL', 22)}</button>
+                <div class="rd-head-txt"><h1 class="rd-head-title">Товары из отзыва</h1><p class="rd-head-sub">Закажите то же самое в пару касаний</p></div>
+              </div>
+              <section class="rd-card rv-hub rv-ihero">
+                ${RV_BAG_ART}
+                <div class="rv-ihero-t">${items.length ? `${items.length} ${rvPlural(items.length, ['товар', 'товара', 'товаров'])}` : 'Товары'}</div>
+                <div class="rv-ihero-s">${r ? `${rvEsc(r.user_name || 'Клиент')}${rating ? ` · оценка ${rating} из 5` : ''}` : 'Отзыв не найден'}</div>
+                ${nums.length ? `<div class="rv-ihero-nums">${nums.map(n => `<span>${UI.icon('box', 14, { stroke: 2.2 })}${rvEsc(n)}</span>`).join('')}</div>` : ''}
+              </section>
+              ${list}
+            </div>`;
+        }
+
+        function attachReviewItemsHandlers() {
+          const root = document.getElementById('rvItemsRoot');
+          if (!root) return;
+          root.addEventListener('click', (e) => {
+            if (e.target.closest('[data-rv-back]')) {
+              if (typeof window.goBackGlobal === 'function') window.goBackGlobal(); else switchTab('reviews');
+              return;
+            }
+            const w = e.target.closest('[data-rv-want-url]');
+            if (w) rvWantSame(null, w.dataset.rvWantUrl);
+          });
         }
 
         // Global Exports
@@ -1315,3 +1550,7 @@
         window.toggleReviewLike = toggleReviewLike;
         window.toggleReviewPin = toggleReviewPin;
         window.attachReviewsHandlers = attachReviewsHandlers;
+        window.renderReviewItems = renderReviewItems;
+        window.attachReviewItemsHandlers = attachReviewItemsHandlers;
+        window.rvWantSame = rvWantSame;
+        window.openReviewItems = openReviewItems;

@@ -283,6 +283,7 @@
     const rows = [];
     if (canRestrict(p)) rows.push(actionRow('restrict', 'shield', 'Ограничения', 'Блокировка, предупреждение, пометка «сложный клиент»'));
     if (isOwner === true) rows.push(actionRow('balance', 'wallet', 'Изменить баланс', 'Начислить или списать вручную, с причиной'));
+    rows.push(actionRow('review', 'star', 'Запросить отзыв', 'Бот попросит оценить заказы, Legit Check, партнёрство или другое'));
     if (!rows.length) return '';
     return section('Действия') + `<div class="rd-card rd-list">${rows.join('')}</div>`;
   }
@@ -310,7 +311,7 @@
         <span class="rd-ico">${I('box', 22)}</span>
         <span class="rd-row-body">
           <span class="rd-row-title">${esc(o.title || 'Заказ')}</span>
-          <span class="rd-row-text">#${esc(shortId(o.id))} · ${esc(when(o.created_at))}</span>
+          <span class="rd-row-text"><span data-ice="${esc(o.id)}">${esc(o.public_number || '#' + shortId(o.id))}</span> · ${esc(when(o.created_at))}</span>
           <span class="ad-order-foot">${AD.statusBadge(ORDER_STATUS, o.status)}${o.archived ? '<span class="rd-status">В архиве</span>' : ''}</span>
         </span>
         <span class="ad-order-sum">${money(o.total)}</span>
@@ -425,11 +426,66 @@
     body.querySelectorAll('[data-client]').forEach((r) => { r.onclick = () => AD.open('admin_client', { id: r.dataset.client }); });
     body.querySelectorAll('[data-kyc]').forEach((r) => { r.onclick = () => AD.open('admin_kyc_item', { id: r.dataset.kyc }); });
     body.querySelectorAll('[data-ticket]').forEach((r) => { r.onclick = () => AD.openDesk('ticket=' + r.dataset.ticket); });
+    loadIceNums(body);
+  }
+
+  // Номера ICE-1234567 у заказов: admin_client_card их не отдаёт — дочитываем из orders
+  async function loadIceNums(body) {
+    const spans = [...body.querySelectorAll('[data-ice]')].filter((el) => !/^ICE-/.test(el.textContent));
+    if (!spans.length || !window.supabaseClient) return;
+    const { data, error } = await window.supabaseClient.from('orders').select('id, public_number').in('id', spans.map((el) => el.dataset.ice));
+    if (error || !data) return;
+    const nums = {};
+    data.forEach((r) => { nums[r.id] = r.public_number; });
+    spans.forEach((el) => { if (nums[el.dataset.ice]) el.textContent = nums[el.dataset.ice]; });
   }
 
   function runAction(id) {
     if (id === 'restrict') restrictSheet();
     else if (id === 'balance') balanceFlow();
+    else if (id === 'review') reviewRequestSheet();
+  }
+
+  // ── Запрос отзыва ── строку в review_requests подхватывает бот (review_flow.py) и пишет клиенту
+  const REVIEW_TOPICS = [
+    ['orders', 'box', 'Заказы', 'Оценить последние полученные заказы'],
+    ['legit_check', 'scan', 'Legit Check', 'Проверку на подлинность'],
+    ['referral', 'users', 'Рефералка', 'Реферальную программу'],
+    ['promo', 'gift', 'Акции/Розыгрыши', 'Акции и розыгрыши'],
+    ['dropshipping', 'truck', 'Дропшиппинг', 'Работу по дропшиппингу'],
+    ['partnership', 'shield', 'Партнёрство', 'Сотрудничество с нами'],
+    ['ads', 'tag', 'Реклама', 'Рекламу у нас'],
+  ];
+
+  function reviewRequestSheet() {
+    U().sheet({
+      title: 'О чём попросить отзыв',
+      html: `<div class="rd-card rd-list">${REVIEW_TOPICS.map((t) => `<div class="rd-row ad-row-sm" role="button" tabindex="0" data-t="${t[0]}"><span class="rd-ico">${I(t[1], 22)}</span><span class="rd-row-body"><span class="rd-row-title">${t[2]}</span><span class="rd-row-text">${t[3]}</span></span></div>`).join('')}</div>`,
+      onOpen: (wrap, close) => {
+        wrap.querySelectorAll('[data-t]').forEach((row) => {
+          row.onclick = () => { const k = row.dataset.t; close(); setTimeout(() => reviewRequestSend(k), 180); };
+        });
+      },
+    });
+  }
+
+  let reviewSending = false;
+  async function reviewRequestSend(topic) {
+    if (reviewSending || !card) return;
+    const t = REVIEW_TOPICS.find((x) => x[0] === topic);
+    const uid = Number(card.profile.user_id);
+    if (!t || !uid) return;
+    if (!await confirmSheet('Запросить отзыв?', `Тема: ${t[2]}. Бот в ближайшие минуты напишет ${nameOf(card.profile)} и попросит поставить оценку и пару слов.`, 'Отправить запрос')) return;
+    reviewSending = true;
+    try {
+      const { error } = await window.supabaseClient.from('review_requests')
+        .insert({ user_id: uid, order_ids: [], topic, send_at: new Date().toISOString(), status: 'scheduled' });
+      if (error) { haptic('error'); AD.fail(error); return; }
+      haptic('success');
+      U().toast('Запрос отзыва отправлен', 'ok');
+    } finally {
+      reviewSending = false;
+    }
   }
 
   // ── Ограничения ──

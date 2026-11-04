@@ -2819,6 +2819,14 @@ let adminOrdersTotalPages = 1;
           if (sp && sp.indexOf('review_') === 0) {
             const orderId = sp.slice('review_'.length);
             setTimeout(() => { try { openReviewForm(orderId); } catch (e) { console.error('openReviewForm failed:', e); } }, 600);
+          } else if (sp.indexOf('rv_want_') === 0) {
+            // ?startapp=rv_want_<review_id> → «Расчёт по ссылке» с товаром из отзыва
+            const rvId = sp.slice('rv_want_'.length);
+            setTimeout(() => { try { window.rvWantSame && window.rvWantSame(rvId); } catch (e) { console.error('rvWantSame failed:', e); } }, 600);
+          } else if (sp.indexOf('rv_items_') === 0) {
+            // ?startapp=rv_items_<review_id> → экран «Товары из отзыва»
+            const rvId = sp.slice('rv_items_'.length);
+            setTimeout(() => { try { window.openReviewItems && window.openReviewItems(rvId); } catch (e) { console.error('openReviewItems failed:', e); } }, 600);
           } else if (sp === 'orders') {
             switchTab('profile', 'myOrders');
           } else if (sp === 'calc') {
@@ -3282,6 +3290,7 @@ let adminOrdersTotalPages = 1;
           if (typeof attachFinancesHandlers === 'function') attachFinancesHandlers();
         }
         else if (tab === 'reviews') attachReviewsHandlers();
+        else if (tab === 'reviewItems' && typeof attachReviewItemsHandlers === 'function') attachReviewItemsHandlers();
         else if (tab === 'ugc') attachUGCHandlers();
         else if (tab === 'reftree') attachReferralTreeHandlers();
         initCardSliders();
@@ -3401,7 +3410,7 @@ let adminOrdersTotalPages = 1;
       const _ck = (tabName || '') + ':' + (subScreen || '');
       // Оформление всегда строим заново: кнопка оплаты и шторки живут в body, в сохранённом HTML их нет, и сумма зависит от tempOrder
       // Все вкладки админки (admin, admin_*) тоже строятся заново: в сохранённой копии нет обработчиков и плавающих кнопок
-      const dynamicTabs = ['finances', 'search', 'notifications', 'settings', 'topup', 'wallet', 'cart', 'product', 'neworder', 'admin', 'admin_team', 'admin_orders', 'admin_order',
+      const dynamicTabs = ['reviewItems', 'finances', 'search', 'notifications', 'settings', 'topup', 'wallet', 'cart', 'product', 'neworder', 'admin', 'admin_team', 'admin_orders', 'admin_order',
         'admin_money', 'admin_clients', 'admin_client', 'admin_kyc', 'admin_kyc_item', 'admin_inbox', 'admin_inbox_item', 'admin_store', 'admin_content', 'admin_settings', 'admin_system', 'admin_moderator', 'admin_mod_chat'];
       const _isAdminTab = String(tabName || '').startsWith('admin');
       // «Мои заказы» тоже всегда свежие: статусы и оплаты меняются на сервере

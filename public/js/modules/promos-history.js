@@ -153,7 +153,7 @@ async function renderHistory() {
             <span class="hs-thumb">${img ? `<img src="${U.esc(img)}" alt="" loading="lazy" onerror="this.remove()">` : ''}${U.icon('box', 22)}</span>
             <div class="hs-body">
               <div class="hs-title">${U.esc(title)}</div>
-              <div class="hs-sub">№ ${o.id.slice(0, 8).toUpperCase()} · ${fmtDate(o.created_at)}</div>
+              <div class="hs-sub">${o.public_number || "№ " + o.id.slice(0, 8).toUpperCase()} · ${fmtDate(o.created_at)}</div>
               <div class="hs-foot"><span class="rd-status ${st.tone}">${st.text}</span>${total ? `<span class="hs-sum">${U.money(total, { keepCents: true, digits: 2 })}</span>` : ''}</div>
             </div>
           </div>`;
