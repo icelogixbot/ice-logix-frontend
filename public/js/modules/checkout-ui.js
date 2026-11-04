@@ -234,6 +234,17 @@
           </div>
         </div>
 
+        <section class="co-bonus" id="coBonus" hidden>
+          <svg class="co-bonus-art" viewBox="0 0 96 96" aria-hidden="true"><defs><linearGradient id="cbCoinG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:#fff"/><stop offset=".55" style="stop-color:var(--rd-b300)"/><stop offset="1" style="stop-color:var(--rd-b400)"/></linearGradient></defs><ellipse cx="50" cy="90" rx="22" ry="4" fill="#000" opacity=".22"/><circle cx="48" cy="46" r="40" fill="url(#cbCoinG)"/><circle cx="48" cy="46" r="31" fill="none" style="stroke:var(--rd-blue)" stroke-opacity=".5" stroke-width="3"/><path d="m48 24 6.4 13 14.4 2.1-10.4 10.1 2.5 14.3L48 56.7 35.1 63.5l2.5-14.3L27.2 39.1l14.4-2.1z" style="fill:var(--rd-blue)"/><ellipse cx="33" cy="22" rx="10" ry="5" fill="#fff" opacity=".65" transform="rotate(-32 33 22)"/></svg>
+          <div class="co-bonus-title">ICE BONUS</div>
+          <div class="co-bonus-sub" id="coBonusSub"></div>
+          <div class="co-bonus-tile">
+            <div class="co-bonus-line"><span id="coBonusCount"></span><b id="coBonusVal"></b></div>
+            <input type="range" id="coBonusRange" class="co-bonus-range" min="0" max="0" step="1" value="0" aria-label="Сколько бонусов потратить">
+            <div class="co-bonus-scale" id="coBonusScale"></div>
+          </div>
+        </section>
+
         <div id="customsSplitPlaceholder"></div>
 
         <div class="rd-section co-sub"><h2>Итог</h2></div>
@@ -324,6 +335,17 @@
         toggle.classList.toggle('open', !box.hidden);
       };
     }
+    const bonusRange = $('coBonusRange');
+    if (bonusRange) {
+      bonusRange.addEventListener('input', () => {
+        if (!window.tempOrder) return;
+        const v = Number(bonusRange.value) || 0;
+        if (v !== window.tempOrder.iceBonusChoice) haptic('selection');
+        window.tempOrder.iceBonusChoice = v;
+        window.recalculateOrderTotals();
+      });
+    }
+    loadBonus();
     window.setCheckoutPaymentMethod(window._checkoutPaymentMethod || 'card');
     if (window._coUnpaid) syncUnpaid().then(() => window.recalculateOrderTotals());
     if (window.IcePay) {
@@ -420,13 +442,15 @@
     const services = (Number(t.extras_total) || 0) + (Number(b.video_check_byn) || 0);
     const local = Number(b.local_delivery_byn) || 0;
     const discount = Number(t.discountAmount) || 0;
-    const goods = Math.round(((Number(t.total_byn) || 0) - packaging - duty - services - local + discount) * 100) / 100;
+    const bonus = Number(t.iceBonusDiscount) || 0;
+    const goods = Math.round(((Number(t.total_byn) || 0) - packaging - duty - services - local + discount + bonus) * 100) / 100;
     return moneyRow('Вещи', goods) + [
       ['Упаковка', packaging],
       ['Пошлина', duty],
       ['Услуги', services],
       ['Доставка по Беларуси', local],
-      ['Скидка', -discount]
+      ['Скидка', -discount],
+      ['Бонусы ICE BONUS', -bonus]
     ].filter((r) => r[1] !== 0).map((r) => moneyRow(r[0], r[1])).join('');
   }
 
@@ -528,6 +552,38 @@
     if (el) el.innerHTML = html;
   }
 
+  // Ползунок бонусов: скрыт у гостя, при нуле бонусов и у участника семьи; сам input не пересоздаём, иначе рвётся перетаскивание
+  function refreshBonus(t) {
+    const box = $('coBonus');
+    if (!box) return;
+    const max = Number(t.iceBonusMax) || 0;
+    const show = Boolean(window.iceBonusInfo) && max > 0 && !isFamilyMember();
+    box.hidden = !show;
+    if (!show) return;
+    const n = Number(t.iceBonusN) || 0;
+    const info = window.iceBonusInfo;
+    const range = $('coBonusRange');
+    if (range) {
+      if (Number(range.max) !== max) range.max = String(max);
+      if (Number(range.value) !== n) range.value = String(n);
+      range.style.setProperty('--fill', `${max ? Math.round(n / max * 100) : 0}%`);
+    }
+    const bal = Math.max(0, Math.floor(Number(info.balance) || 0));
+    const word = (k) => plural(k, 'бонус', 'бонуса', 'бонусов');
+    setText('coBonusSub', `У вас ${bal} ${word(bal)}. 1 бонус = −1% комиссии, не сгорают.`);
+    setText('coBonusCount', n > 0 ? `Тратим ${n} ${word(n)}` : 'Не тратить');
+    setText('coBonusVal', n > 0 ? `−${num(t.iceBonusDiscount)}${sign()}` : `до −${num(window.iceBonusCalc(t.breakdown?.commission_byn, max).discount)}${sign()}`);
+    setHtml('coBonusScale', Array.from({ length: max + 1 }, (_, i) => `<span${i === n ? ' class="on"' : ''}>${i}</span>`).join(''));
+  }
+
+  function loadBonus() {
+    if (typeof window.loadIceBonus !== 'function') return;
+    window.loadIceBonus().then((info) => {
+      window.iceBonusInfo = info || null;
+      if (window.tempOrder && $('coBonus')) window.recalculateOrderTotals();
+    });
+  }
+
   function refresh() {
     const t = window.tempOrder;
     if (!t || !$('coRowDeliveryTitle')) return;
@@ -549,6 +605,8 @@
     }
 
     setHtml('coRowPromoText', t.appliedPromo?.code ? `${U().esc(t.appliedPromo.code)} · скидка ${num(t.discountAmount)}${sign()}` : 'Если есть');
+
+    refreshBonus(t);
 
     const extraIds = ['orderExtraPhoto', 'orderExtraMeasure', 'extraCheck', 'orderRequiresVideoCheck', 'extraBubble', 'extraWood', 'orderKeepBox', 'pkgConsolidationCheck', 'orderIsGift'];
     const on = extraIds.filter((id) => $(id)?.checked).length;

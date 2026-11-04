@@ -991,6 +991,9 @@ window.applySmartShareLink = applySmartShareLink;
                   auto_cancel_reason: isFamilyMember ? 'family_approval_pending' : null,
                   discount_applied: window.tempOrder.discountAmount || 0,
                   promo_code: window.tempOrder.appliedPromo?.code || null,
+                  // ICE BONUS: сервер сверяет число и скидку, списывает при оплате; у участника семьи бонусов нет
+                  ice_bonus_n: (isFamilyMember || !window.iceBonusInfo) ? 0 : (window.tempOrder.iceBonusN || 0),
+                  ice_bonus_discount: (isFamilyMember || !window.iceBonusInfo) ? 0 : (window.tempOrder.iceBonusDiscount || 0),
                   tracking_number_by: pvsAddress || null
                 };
 
@@ -1142,6 +1145,14 @@ window.applySmartShareLink = applySmartShareLink;
                 if (pm) { pm.innerText = err.message; pm.style.color = 'var(--rd-bad)'; pm.classList.remove('hidden'); }
                 try { await recalculateOrderTotals(); } catch (_) {}
                 tgUtil.alert(`${err.message}. Код убран из заказа, сумма пересчитана. Проверьте её и нажмите кнопку ещё раз.`);
+              } else if (/ice_bonus_(invalid|insufficient)/.test(String(err && err.message))) {
+                // Баланс бонусов изменился или сервер не согласен с суммой скидки: берём свежие данные и пересчитываем
+                try {
+                  window.iceBonusInfo = (await window.loadIceBonus()) || null;
+                  window.tempOrder.iceBonusChoice = undefined;
+                  await recalculateOrderTotals();
+                } catch (_) {}
+                tgUtil.alert('Бонусы ICE BONUS изменились, пока вы оформляли заказ. Сумма пересчитана. Проверьте её и нажмите кнопку ещё раз.');
               } else {
                 tgUtil.alert('Не получилось оформить заказ: ' + err.message);
               }

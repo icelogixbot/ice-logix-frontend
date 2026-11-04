@@ -1443,6 +1443,24 @@ if (typeof attachCalculatorHandlers === 'function') {
       return 'PL'; // Default to Europe/Poland
     }
 
+    // ICE BONUS: 1 бонус = −1 п.п. комиссии. Формула та же, что в _ice_bonus_order_check на сервере (допуск сервера 0,01).
+    // chosen === undefined → «авто»: наименьшее число бонусов, дающее максимальную выгоду.
+    window.iceBonusCalc = (commission, chosen) => {
+      const info = window.iceBonusInfo;
+      const comm = Math.max(0, Number(commission) || 0);
+      const fam = window.userSettings && window.userSettings.family;
+      if (fam && fam.role === 'member' && fam.head_id) return { n: 0, discount: 0, max: 0 }; // платит глава семьи
+      const pct = Number(info && info.commission_pct) || 0;
+      const cap = info ? Math.min(Math.max(0, Math.floor(Number(info.balance) || 0)), Math.max(0, Math.floor(Number(info.max_spend) || 0))) : 0;
+      if (!pct || !comm || cap <= 0) return { n: 0, discount: 0, max: 0 };
+      const maxBenefit = Number.isFinite(Number(info.max_benefit_byn)) ? Number(info.max_benefit_byn) : Infinity;
+      const d = (k) => Math.round(Math.min(k * comm / pct, maxBenefit, comm / 2) * 100) / 100;
+      let max = cap;
+      while (max > 1 && d(max - 1) === d(cap)) max--;
+      const n = chosen === undefined || chosen === null ? max : Math.min(Math.max(0, Math.floor(Number(chosen) || 0)), max);
+      return { n, discount: d(n), max };
+    };
+
     window.recalculateOrderTotals = async () => {
       if (!window.tempOrder || !window.tempOrder.items) return;
 
@@ -1682,7 +1700,14 @@ if (typeof attachCalculatorHandlers === 'function') {
       aggregatedBreakdown.delivery_reserve_byn = Math.round(aggregatedBreakdown.delivery_cost_byn * 0.70 * 100) / 100;
       aggregatedBreakdown.delivery_remainder_est_byn = Math.round((aggregatedBreakdown.delivery_cost_byn - aggregatedBreakdown.delivery_reserve_byn) * 100) / 100;
 
-      // 1-й платеж (Товар + Буфер + Комиссия + Фирменная упаковка 18 BYN + Резерв 70% + Допуслуги - Скидка)
+      // Бонусы ICE BONUS: скидка на комиссию; промо-база ниже остаётся «чистой» (сервер считает её от суммы после бонусов)
+      const bonus = window.iceBonusCalc(aggregatedBreakdown.commission_byn, window.tempOrder.iceBonusChoice);
+      const bonusDiscount = bonus.discount;
+      window.tempOrder.iceBonusN = bonus.n;
+      window.tempOrder.iceBonusMax = bonus.max;
+      window.tempOrder.iceBonusDiscount = bonusDiscount;
+
+      // 1-й платеж (Товар + Буфер + Комиссия + Фирменная упаковка 18 BYN + Резерв 70% + Допуслуги - Скидка - Бонусы)
       const firstPaymentRaw = Math.round((
         aggregatedBreakdown.product_cost_byn +
         aggregatedBreakdown.currency_buffer_byn +
@@ -1692,7 +1717,8 @@ if (typeof attachCalculatorHandlers === 'function') {
         aggregatedBreakdown.video_check_byn +
         aggregatedBreakdown.customs_duty_byn +
         (extraServicesTotal - consolidationDiscountTotal) -
-        discount
+        discount -
+        bonusDiscount
       ) * 100) / 100;
 
       // Ориентировочный 2-й платеж (Остаток доставки ~30% + страховка 2% + доставка по РБ)

@@ -1682,6 +1682,33 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 .ib-way b{flex:none;padding:2px 9px;border-radius:999px;background:var(--rd-blue);color:#fff;font-size:12px;font-weight:800;line-height:18px}
 @media (max-width:389px){.ib{padding:14px 14px 12px}.ib-title{font-size:22px}.ib-sub{font-size:12.5px;padding-right:84px}.ib-art{width:80px;height:80px}.ib-num b{font-size:40px}}
 @media (prefers-reduced-motion:reduce){.ib,.ib-tile{animation:none}}
+/* ICE BONUS на экране оплаты: тот же герой, белая плитка с ползунком 0…max */
+.co-bonus{position:relative;overflow:hidden;isolation:isolate;padding:16px 16px 14px;margin:0 0 14px;border-radius:var(--rd-r26);color:#fff;
+  background:radial-gradient(120% 90% at 0% 0%,color-mix(in srgb,var(--rd-b400) 55%,transparent) 0%,transparent 58%),linear-gradient(135deg,var(--rd-blue-hi) 0%,var(--rd-blue) 52%,color-mix(in srgb,var(--rd-blue) 70%,#000) 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),inset 0 -1px 0 rgba(0,0,0,.18),0 14px 32px -16px color-mix(in srgb,var(--rd-blue) 55%,transparent);
+  animation:rv-hub-in .42s cubic-bezier(.2,.8,.2,1) backwards}
+.co-bonus[hidden]{display:none}
+.co-bonus::before{content:"";position:absolute;z-index:-1;top:-92px;right:-78px;width:230px;height:230px;border-radius:50%;border:22px solid rgba(255,255,255,.07)}
+.co-bonus::after{content:"";position:absolute;z-index:-1;left:-60px;bottom:-90px;width:200px;height:200px;border-radius:50%;background:color-mix(in srgb,var(--rd-blue) 60%,#000);opacity:.45}
+.co-bonus-art{position:absolute;z-index:-1;top:6px;right:10px;width:88px;height:88px;transform:rotate(-10deg);pointer-events:none;filter:drop-shadow(0 8px 10px rgba(0,20,70,.35))}
+.co-bonus-title{font-size:24px;font-weight:800;line-height:1.1;letter-spacing:.01em}
+.co-bonus-sub{margin-top:5px;padding-right:92px;font-size:13px;font-weight:500;line-height:17px;color:rgba(255,255,255,.8)}
+.co-bonus-tile{margin-top:12px;padding:12px 14px 10px;border-radius:var(--rd-r16);background:#fff;color:color-mix(in srgb,var(--rd-blue) 20%,#000);box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 8px 18px -8px rgba(0,0,0,.45);animation:rv-tile-in .44s cubic-bezier(.34,1.4,.64,1) backwards;animation-delay:140ms}
+.co-bonus-line{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:14px;font-weight:800;line-height:18px}
+.co-bonus-line b{font-size:18px;font-variant-numeric:tabular-nums;color:var(--rd-blue)}
+.co-bonus-range{display:block;width:100%;height:28px;margin:6px 0 0;padding:0;background:transparent;-webkit-appearance:none;appearance:none;touch-action:pan-y;cursor:pointer;--fill:0%}
+.co-bonus-range,.co-bonus-range:focus{background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;outline:none}
+.co-bonus-range::-webkit-slider-runnable-track{height:8px;border-radius:999px;background:linear-gradient(90deg,var(--rd-blue) var(--fill),color-mix(in srgb,var(--rd-blue) 14%,#fff) var(--fill))}
+.co-bonus-range::-moz-range-track{height:8px;border-radius:999px;background:color-mix(in srgb,var(--rd-blue) 14%,#fff)}
+.co-bonus-range::-moz-range-progress{height:8px;border-radius:999px;background:var(--rd-blue)}
+.co-bonus-range::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;margin-top:-10px;border-radius:50%;background:#fff;border:3px solid var(--rd-blue);box-shadow:0 3px 8px rgba(0,20,70,.35)}
+.co-bonus-range::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#fff;border:3px solid var(--rd-blue);box-shadow:0 3px 8px rgba(0,20,70,.35)}
+.co-bonus-range:active::-webkit-slider-thumb{transform:scale(1.1)}
+.co-bonus-scale{display:flex;justify-content:space-between;margin-top:2px;font-size:12px;font-weight:600;line-height:16px;color:color-mix(in srgb,var(--rd-blue) 25%,#556);font-variant-numeric:tabular-nums}
+.co-bonus-scale span{min-width:14px;text-align:center}
+.co-bonus-scale span.on{font-weight:800;color:var(--rd-blue)}
+@media (max-width:389px){.co-bonus{padding:14px 14px 12px}.co-bonus-title{font-size:22px}.co-bonus-sub{font-size:12.5px;padding-right:76px}.co-bonus-art{width:72px;height:72px}}
+@media (prefers-reduced-motion:reduce){.co-bonus,.co-bonus-tile{animation:none}}
 /* Лента отзывов: крупные белые плитки как карты в баннере, цветные аватарки, сводка рейтинга, сортировка, фото на весь экран */
 .rv{--rv-ink:#0b1430;--rv-ink2:#6b7488;--rv-gold:#ffb800;--rv-gold-d:#f0a000}
 .rv-cats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 12px}
