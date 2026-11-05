@@ -119,9 +119,9 @@ function attachAboutUsHandlers() {
       const social = btn.getAttribute('data-social');
       if (social === 'tg') {
         if (window.Telegram?.WebApp?.openTelegramLink) {
-          window.Telegram.WebApp.openTelegramLink('https://t.me/icelogix_channel');
+          window.Telegram.WebApp.openTelegramLink('https://t.me/icelogix');
         } else {
-          window.open('https://t.me/icelogix_channel', '_blank');
+          window.open('https://t.me/icelogix', '_blank');
         }
       } else {
         tgUtil.alert('Наш профиль в этой соцсети будет запущен в ближайшем релизе!');

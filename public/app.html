@@ -115,7 +115,7 @@
   <script src="/js/modules/app-lock.js?v=20261102_hdr2"></script>
   <script src="/js/pvz-data.js?v=20261005"></script>
   <script src="/js/modules/dropship.js?v=20261031_lf1"></script>
-  <script src="/js/modules/about-faq.js?v=20261031_term1"></script>
+  <script src="/js/modules/about-faq.js?v=20261105_tglink"></script>
   <script src="/js/modules/cart.js?v=20261101_nosum"></script>
   <script src="/js/modules/product-detail.js?v=20261030_05"></script>
   <script src="/js/modules/promos-history.js?v=20261104_rv2"></script>
@@ -348,12 +348,12 @@
     
     <!-- Main Content Area -->
     <div id="content" class="main-content"></div>
-    <script>try{localStorage.removeItem('ice_tab_home_v2');localStorage.removeItem('ice_tab_screens_v2');localStorage.setItem('ice_app_v','20261105_postkind');}catch(e){}
+    <script>try{localStorage.removeItem('ice_tab_home_v2');localStorage.removeItem('ice_tab_screens_v2');localStorage.setItem('ice_app_v','20261105_tglink');}catch(e){}
     // Автообновление: Telegram сворачивает мини-приложение, а не закрывает. Сверяем версию с сервером:
     // при старте, при возврате (visibilitychange, focus, pageshow, событие Telegram «activated») — сразу перезагрузка;
     // раз в минуту в фоне — запоминаем и перезагружаем при следующем переходе (нижнее меню, «назад»), чтобы не сбить ввод.
     // Защита от цикла: на одну и ту же новую версию — не чаще раза в минуту. Версию дополняет отпечаток при сборке (scripts/stamp-versions.js).
-    (function(){var V='20261105_postkind',busy=false,last=0,stale='';
+    (function(){var V='20261105_tglink',busy=false,last=0,stale='';
     function go(){try{var p=JSON.parse(sessionStorage.getItem('ice_reload_to')||'{}');if(p.v===stale&&Date.now()-p.t<60000)return false;sessionStorage.setItem('ice_reload_to',JSON.stringify({v:stale,t:Date.now()}));}catch(e){}location.reload();return true;}
     function chk(now){var n=Date.now();if(busy||n-last<15000)return;busy=true;last=n;fetch('/?_='+n,{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/ice_app_v','([^']+)'/);if(m&&m[1]!==V){stale=m[1];if(now)go();}}).catch(function(){}).then(function(){busy=false;});}
     function wake(){if(document.hidden)return;if(stale)go();else chk(true);}
