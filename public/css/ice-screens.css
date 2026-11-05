@@ -1745,7 +1745,7 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 .rv-list{display:flex;flex-direction:column;gap:12px}
 .rv-card{position:relative;padding:16px;overflow:hidden;border-radius:var(--rd-r22);background:#fff;color:var(--rv-ink);box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 10px 24px -14px rgba(0,0,0,.6);animation:rv-tile-in .44s cubic-bezier(.34,1.4,.64,1) backwards;animation-delay:calc(var(--i,0)*50ms + 60ms)}
 .rv-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-.rv-ava{width:46px;height:46px;border-radius:16px;color:#fff;font-size:20px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;box-shadow:0 6px 14px -6px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.35)}
+.rv-ava{position:relative;overflow:hidden;width:46px;height:46px;border-radius:16px;color:#fff;font-size:20px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;box-shadow:0 6px 14px -6px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.35)}
 .rv-who{flex:1;min-width:0}
 .rv-name{font-weight:800;font-size:16px;line-height:20px;letter-spacing:-.015em;color:var(--rv-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rv-meta{font-size:12.5px;font-weight:500;color:var(--rv-ink2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1780,6 +1780,7 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 .rv-reply-h{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--rd-blue)}
 .rv-reply-ic{display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--rd-blue);color:#fff}
 .rv-reply p{margin:6px 0 0;font-size:14px;line-height:1.45;font-weight:500;color:var(--rv-ink)}
+.rv-ava img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .rv-foot{display:flex;justify-content:flex-end;margin-top:12px}
 .rv-like{display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:14px;background:#eef1f7;color:var(--rv-ink2);font-size:13.5px;font-weight:800;transition:transform .35s cubic-bezier(.34,1.56,.64,1),background .25s,color .25s;-webkit-tap-highlight-color:transparent}
 .rv-like:active{transform:scale(.94)}
@@ -1831,6 +1832,8 @@ html body .app-header .header-center .icon-btn svg { width: 20px; height: 20px; 
 .rv-solved-stars{display:flex;gap:2px;margin-top:6px;color:var(--rv-gold)}
 .rv .rv-reply .rv-solved-t,.rv-solved-t{margin:6px 0 0;font-size:14px;line-height:1.45;font-weight:500;color:var(--rv-ink);white-space:pre-wrap;word-break:break-word}
 .rv-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.rv-acts .rv-act-wide{grid-column:1/-1}
+.rv-acts .rv-like{justify-content:center;min-height:44px;padding:0 10px}
 .rv-act{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 10px;border:0;border-radius:14px;background:color-mix(in srgb,var(--rd-blue) 10%,#fff);color:var(--rd-blue);font-size:14px;font-weight:800;line-height:1.1;transition:transform .15s}
 .rv-act-main{background:linear-gradient(135deg,var(--rd-blue-hi),var(--rd-blue));color:#fff;box-shadow:0 10px 20px -12px color-mix(in srgb,var(--rd-blue) 90%,transparent)}
 .rv-act:active{transform:scale(.97)}

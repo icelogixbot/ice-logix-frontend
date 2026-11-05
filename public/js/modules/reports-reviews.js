@@ -204,7 +204,7 @@
         }
 
         function rvFmtDate(d) {
-          try { return new Date(d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return ''; }
+          try { return new Date(d).toLocaleString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Minsk' }).replace(' г.,', ','); } catch (e) { return ''; }
         }
 
         function rvPlural(n, f) {
@@ -266,6 +266,23 @@
           need.forEach(id => { if (!(id in rvOrderMap)) rvOrderMap[id] = null; });
         }
 
+        // Аватарки авторов: как в профиле Mini App (users.avatar_url). RLS чужие профили не отдаёт — спрашиваем публичную функцию; нет её/фото — остаётся буква
+        const rvAvaMap = {};
+        let rvAvaRpcOff = false;
+        async function rvFetchAvatars(rows) {
+          if (rvAvaRpcOff) return;
+          const need = rows.map(r => r.id).filter(id => id && !(id in rvAvaMap));
+          if (need.length) {
+            try {
+              const { data, error } = await supabaseClient.rpc('review_avatars_public', { p_review_ids: need });
+              if (error) { rvAvaRpcOff = true; return; }
+              need.forEach(id => { rvAvaMap[id] = null; });
+              (data || []).forEach(a => { if (a && a.review_id) rvAvaMap[a.review_id] = a.avatar_url || null; });
+            } catch (e) { rvAvaRpcOff = true; return; }
+          }
+          rows.forEach(r => { r.avatar_url = rvAvaMap[r.id] || null; });
+        }
+
         async function rvEnrich(rows) {
           if (!rows || !rows.length) return rows || [];
           const orderIds = [];
@@ -280,7 +297,8 @@
               rows.forEach(r => { r.solved = []; });
               (data || []).forEach(c => { const p = rows.find(r => r.id === c.resolves_review_id); if (p) (p.solved = p.solved || []).push(c); });
             }, () => {});
-          await Promise.all([solvedTask, orderIds.length ? rvFetchOrders(orderIds) : null]);
+          const avaTask = rvFetchAvatars(rows);
+          await Promise.all([solvedTask, avaTask, orderIds.length ? rvFetchOrders(orderIds) : null]);
           rows.forEach(r => { r.orders = (Array.isArray(r.order_ids) ? r.order_ids : []).map(id => rvOrderMap[id]).filter(Boolean); });
           return rows;
         }
@@ -454,6 +472,8 @@
             <div class="rv-det" hidden>${rows.map(([k, v]) => `<div class="rv-det-row"><span>${k}</span><b>${rvEsc(v)}</b></div>`).join('')}</div>`;
         }
 
+        function rvAvaUrl(u) { return typeof u === 'string' && /^https:\/\//i.test(u) ? u : ''; }
+
         // Цвет аватарки зависит от имени: у каждого клиента свой градиент
         function rvAvatarStyle(name) {
           let h = 0;
@@ -509,12 +529,16 @@
             </div>`;
         }
 
-        function rvActsHtml(r) {
-          if (!Array.isArray(r.order_ids) || !r.order_ids.length) return '';
+        // Нижний блок карточки: сверху «Товар/Товары из отзыва» на всю ширину, ниже «Хочу так же» и «Полезно» на одном уровне
+        function rvBottomHtml(r, liked) {
+          const likeBtn = `<button type="button" class="rv-like ${liked ? 'on' : ''}" data-rv-like aria-label="Полезный отзыв">${rvLikeInner(r.likes_count || 0)}</button>`;
+          if (!Array.isArray(r.order_ids) || !r.order_ids.length) return `<div class="rv-foot">${likeBtn}</div>`;
+          const cnt = rvOrderItems(r).length || r.order_ids.length;
           return `
             <div class="rv-acts">
+              <button type="button" class="rv-act rv-act-wide" data-rv-items>${UI.icon('bag', 17, { stroke: 2.2 })}<span>${cnt > 1 ? 'Товары из отзыва' : 'Товар из отзыва'}</span></button>
               <button type="button" class="rv-act rv-act-main" data-rv-want>${UI.icon('sparkles', 17, { stroke: 2.2 })}<span>Хочу так же</span></button>
-              <button type="button" class="rv-act" data-rv-items>${UI.icon('bag', 17, { stroke: 2.2 })}<span>Товары из отзыва</span></button>
+              ${likeBtn}
             </div>`;
         }
 
@@ -533,7 +557,7 @@
           return `
             <article class="rv-card" data-review-id="${r.id}" style="--i:${Math.min(i || 0, 8)}">
               <div class="rv-top">
-                <div class="rv-ava" style="${rvAvatarStyle(name)}">${rvEsc(name.charAt(0).toUpperCase())}</div>
+                <div class="rv-ava" style="${rvAvatarStyle(name)}">${rvEsc(name.charAt(0).toUpperCase())}${rvAvaUrl(r.avatar_url) ? `<img src="${rvEsc(rvAvaUrl(r.avatar_url))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</div>
                 <div class="rv-who">
                   <div class="rv-name">${rvEsc(name)}</div>
                   <div class="rv-meta">${rvEsc(RV_CAT_LABEL[r.category] || 'Отзыв')} · ${rvFmtDate(r.created_at)}</div>
@@ -550,10 +574,7 @@
               ${rvOrdersHtml(r)}
               ${rvReplyHtml(r)}
               ${rvManagerReplyHtml(r)}
-              ${rvActsHtml(r)}
-              <div class="rv-foot">
-                <button type="button" class="rv-like ${liked ? 'on' : ''}" data-rv-like aria-label="Полезный отзыв">${rvLikeInner(r.likes_count || 0)}</button>
-              </div>
+              ${rvBottomHtml(r, liked)}
             </article>`;
         }
 
