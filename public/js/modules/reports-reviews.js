@@ -204,7 +204,13 @@
         }
 
         function rvFmtDate(d) {
-          try { return new Date(d).toLocaleString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Minsk' }).replace(' г.,', ','); } catch (e) { return ''; }
+          try {
+            const dt = new Date(d);
+            if (!d || isNaN(dt)) return '';
+            const day = dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Minsk' }).replace(/\s*г\.?$/, '');
+            const time = dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Minsk' });
+            return day + ', ' + time;
+          } catch (e) { return ''; }
         }
 
         function rvPlural(n, f) {
@@ -270,15 +276,16 @@
         const rvAvaMap = {};
         let rvAvaRpcOff = false;
         async function rvFetchAvatars(rows) {
-          if (rvAvaRpcOff) return;
           const need = rows.map(r => r.id).filter(id => id && !(id in rvAvaMap));
-          if (need.length) {
+          if (need.length && !rvAvaRpcOff) {
             try {
               const { data, error } = await supabaseClient.rpc('review_avatars_public', { p_review_ids: need });
-              if (error) { rvAvaRpcOff = true; return; }
+              if (error) { rvAvaRpcOff = true; }
+              else {
               need.forEach(id => { rvAvaMap[id] = null; });
               (data || []).forEach(a => { if (a && a.review_id) rvAvaMap[a.review_id] = a.avatar_url || null; });
-            } catch (e) { rvAvaRpcOff = true; return; }
+              }
+            } catch (e) { rvAvaRpcOff = true; }
           }
           rows.forEach(r => { r.avatar_url = rvAvaMap[r.id] || null; });
         }
