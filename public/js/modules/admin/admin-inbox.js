@@ -456,7 +456,7 @@
       const link = /^https?:\/\//i.test(String(d.url || '')) ? d.url : '';
       const isPost = d.kind === 'post';
       h += topCard(k, d, `${isPost ? 'Пост' : 'Story'} · ${PLATFORM[d.platform] || 'площадка'}`, textBlock(isPost ? 'Клиент прислал ссылку на публичный пост с заказом. Откройте её и проверьте, что пост открыт всем и заказ виден.' : 'Клиент прислал ссылку на Story с заказом. Откройте её и проверьте, что Story живая и заказ виден.'));
-      h += `<div class="rd-card ad-pad">${kvRow('Заказ', esc(d.order_number || (d.order_id ? AD.shortId(d.order_id) : 'не указан')))}${d.order_title ? kvRow('Товар', esc(d.order_title)) : ''}${kvRow('ICE BONUS', d.status === 'approved' ? (Number(d.bonus_applied) > 0 ? '+' + Number(d.bonus_applied) + ' выдан' : 'не начислен (лимит)') : '+1, при принятии')}</div>`;
+      h += `<div class="rd-card ad-pad">${kvRow('Заказ', esc(d.order_number || (d.order_id ? AD.shortId(d.order_id) : 'не указан')))}${d.order_title ? kvRow('Товар', esc(d.order_title)) : ''}${kvRow('ICE BONUS', d.status === 'approved' ? (Number(d.bonus_applied) > 0 ? '+' + String(Math.round(Number(d.bonus_applied) * 10) / 10).replace('.', ',') + ' выдан' : 'не начислен (лимит)') : (d.kind === 'story' && d.platform === 'telegram' ? '+1, с Premium 1,5, при принятии' : '+1, при принятии'))}</div>`;
       h += link ? btn('adStOpen', isPost ? 'Открыть пост' : 'Открыть Story', 'rd-btn-ghost') : '<p class="ad-hint">Ссылка не открывается: адрес указан неверно.</p>';
       if (d.status === 'rejected' && d.reject_reason) h += noteBlock('bad', 'Причина отказа', d.reject_reason);
       h += linksHtml(d);
@@ -536,7 +536,7 @@
       });
       on('adInbApprove', async () => {
         const isPost = d.kind === 'post';
-        if (!await confirmSheet(isPost ? 'Принять пост?' : 'Принять Story?', 'Клиент получит +1 ICE BONUS (если не исчерпан лимит на заказ или всего).', 'Принять')) return;
+        if (!await confirmSheet(isPost ? 'Принять пост?' : 'Принять Story?', (!isPost && d.platform === 'telegram' ? 'Клиент получит +1 ICE BONUS, а с Telegram Premium +1,5 (бот сам определил по проверке)' : 'Клиент получит +1 ICE BONUS') + ' (если не исчерпан лимит на заказ или всего).', 'Принять')) return;
         if (await AD.call(null, 'admin_story_decision', { p_story: d.id, p_approve: true }, { ok: isPost ? 'Пост принят' : 'Story принята' }) !== null) leave();
       });
       on('adInbReject', () => rejectSheet(d.kind === 'post' ? 'Отклонить пост' : 'Отклонить Story', d.kind === 'post' ? 'Клиент увидит причину и сможет прислать пост заново.' : 'Клиент увидит причину и сможет прислать Story заново.', (v, b) => AD.call(b, 'admin_story_decision', { p_story: d.id, p_approve: false, p_reason: v }, { ok: d.kind === 'post' ? 'Пост отклонён' : 'Story отклонена' })));
