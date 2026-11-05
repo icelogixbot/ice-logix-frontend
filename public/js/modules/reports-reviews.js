@@ -582,8 +582,9 @@
         function rvLikeHtml(r, liked) {
           const mine = !!userId && r.user_id != null && String(r.user_id) === String(userId);
           const sent = rvReported.has(r.id);
-          const flag = rvIsDemoId(r.id) || mine ? '' : `<button type="button" class="rv-flag${sent ? ' sent' : ''}" data-rv-report aria-pressed="${sent ? 'true' : 'false'}" aria-label="${sent ? 'Отозвать жалобу' : 'Пожаловаться на отзыв'}" title="${sent ? 'Отозвать жалобу' : 'Пожаловаться'}">${RV_FLAG}</button>`;
-          return `<div class="rv-foot"><div class="rv-likebox"><button type="button" class="rv-like ${liked ? 'on' : ''}" data-rv-like aria-pressed="${liked ? 'true' : 'false'}" aria-label="Полезный отзыв">${rvHeart(liked)}</button><span class="rv-like-n">${r.likes_count || 0}</span></div><span class="rv-foot-r"><span class="rv-foot-t">Хотите пожаловаться?</span>${flag}</span></div>`;
+          // автору (и демо-карточке) жаловаться не на что — надпись и флажок не показываем
+          const right = rvIsDemoId(r.id) || mine ? '' : `<span class="rv-foot-r"><span class="rv-foot-t">Хотите пожаловаться?</span><button type="button" class="rv-flag${sent ? ' sent' : ''}" data-rv-report aria-pressed="${sent ? 'true' : 'false'}" aria-label="${sent ? 'Отозвать жалобу' : 'Пожаловаться на отзыв'}" title="${sent ? 'Отозвать жалобу' : 'Пожаловаться'}">${RV_FLAG}</button></span>`;
+          return `<div class="rv-foot"><div class="rv-likebox"><button type="button" class="rv-like ${liked ? 'on' : ''}" data-rv-like aria-pressed="${liked ? 'true' : 'false'}" aria-label="Полезный отзыв">${rvHeart(liked)}</button><span class="rv-like-n">${r.likes_count || 0}</span></div>${right}</div>`;
         }
 
         function rvIsDemoId(id) { return typeof id === 'string' && id.indexOf('demo-') === 0; }
@@ -628,7 +629,7 @@
             <div class="rv-vnote${can ? '' : ' off'}" data-rv-vnote data-dur="${m.duration || 0}" data-src="${rvEsc(m.url || '')}"${demo ? ' data-demo="1"' : ''}${m.url && !demo ? ' data-rv-auto' : ''}>
               <div class="rv-vn-disc">${inner}</div>
               ${m.url && !demo ? `<span class="rv-vn-snd" aria-hidden="true">${RV_MUTE}</span>` : ''}
-              <svg class="rv-vn-ring" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="48" pathLength="100" class="rv-vn-arc"/></svg>
+              <svg class="rv-vn-ring" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="48" class="rv-vn-track"/><circle cx="50" cy="50" r="48" pathLength="100" class="rv-vn-arc"/></svg>
               ${can ? `<button type="button" class="rv-vn-btn" data-rv-play aria-label="Воспроизвести кружок">${RV_PLAY}</button>` : `<span class="rv-vn-btn rv-vn-off">${RV_CAM}</span>`}
               ${m.duration ? `<span class="rv-vn-time" data-rv-time>${rvFmtDur(m.duration)}</span>` : ''}
               ${can ? '' : '<span class="rv-vn-cap">Кружок в Telegram</span>'}
@@ -1517,7 +1518,8 @@
           el.classList.toggle('playing', playing);
           el.style.setProperty('--p', dur ? Math.min(1, Math.max(0, t / dur)).toFixed(3) : '0');
           const b = el.querySelector('[data-rv-play]');
-          if (b) { b.innerHTML = playing ? RV_PAUSE : RV_PLAY; b.setAttribute('aria-label', playing ? 'Пауза' : 'Воспроизвести'); }
+          // иконку меняем только при смене состояния: перерисовка кнопки на каждом timeupdate нагружала главный поток
+          if (b && el._pb !== playing) { el._pb = playing; b.innerHTML = playing ? RV_PAUSE : RV_PLAY; b.setAttribute('aria-label', playing ? 'Пауза' : 'Воспроизвести'); }
           const bars = el.querySelectorAll('.rv-wave i');
           if (bars.length) { const k = Math.round((dur ? t / dur : 0) * bars.length); bars.forEach((b, n) => b.classList.toggle('on', n < k)); }
           const tm = el.querySelector('[data-rv-time]');
@@ -1531,21 +1533,24 @@
           rvCur = null;
           if (!c) return;
           clearInterval(c.timer);
+          cancelAnimationFrame(c.raf);
           if (c.ctx) { try { c.ctx.close(); } catch (e) {} }
           const el = c.el;
           let t = c.t || 0;
           if (el._m) { try { el._m.pause(); } catch (e) {} t = el._m.currentTime || 0; }
           if (el.dataset.demo) el._t = t;
           if (el.isConnected) rvMediaPaint(el, false, t, c.dur);
+          if (revert && el._ph) { rvVnDrop(el); return; }
           if (revert && el.isConnected) rvVnBack(el);
         }
 
         function rvMediaEnd(el, dur) {
-          if (rvCur && rvCur.el === el) { clearInterval(rvCur.timer); if (rvCur.ctx) { try { rvCur.ctx.close(); } catch (e) {} } rvCur = null; }
+          if (rvCur && rvCur.el === el) { clearInterval(rvCur.timer); cancelAnimationFrame(rvCur.raf); if (rvCur.ctx) { try { rvCur.ctx.close(); } catch (e) {} } rvCur = null; }
           el._t = 0;
           if (el._m) { try { el._m.currentTime = 0; } catch (e) {} }
           if (el.isConnected) rvMediaPaint(el, false, 0, dur);
-          if (el.isConnected) rvVnBack(el);
+          if (el._ph) rvVnDrop(el);
+          else if (el.isConnected) rvVnBack(el);
         }
 
         // ---- Кружки как в Telegram: на экране сами играют по кругу без звука, тап — звук с начала ----
@@ -1558,8 +1563,99 @@
           if (!v) return;
           if (el._snd) { el._snd = false; el.classList.remove('snd'); try { v.currentTime = 0; } catch (e) {} }
           v.muted = true; v.loop = true;
-          if (el._vis) { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
+          if (el._vis) { v.preload = 'auto'; const p = v.play(); if (p && p.catch) p.catch(() => {}); }
           else { try { v.pause(); } catch (e) {} }
+        }
+
+        // ---- Плавающий кружок (как в Telegram): со звуком ушёл с экрана — не останавливается, а едет в правый верхний угол ----
+        let rvFloatTimer = null;
+        const RV_X = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+
+        function rvVnFloatBox() {
+          let box = document.getElementById('rvFloat');
+          if (!box) {
+            box = document.createElement('div');
+            box.id = 'rvFloat';
+            box.addEventListener('click', (e) => {
+              const el = e.target.closest('[data-rv-vnote]');
+              if (!el) return;
+              if (e.target.closest('[data-rv-fclose]')) rvVnDrop(el); else rvMediaToggle(el);
+            });
+            document.body.appendChild(box);
+          }
+          return box;
+        }
+
+        // Убрать пустую коробку и таймер, когда плавающих кружков не осталось
+        function rvVnFloatSync() {
+          const box = document.getElementById('rvFloat');
+          if (box && !box.children.length) box.remove();
+          if (!document.getElementById('rvFloat') && rvFloatTimer) { clearInterval(rvFloatTimer); rvFloatTimer = null; }
+        }
+
+        function rvVnFloat(el) {
+          if (el._ph || !el.isConnected) return;
+          document.querySelectorAll('#rvFloat [data-rv-vnote]').forEach(o => rvVnDrop(o));
+          const box = rvVnFloatBox();
+          // на месте кружка в ленте остаётся пустышка того же размера: за ней следим, чтобы вернуть кружок обратно
+          const ph = document.createElement('div');
+          ph.className = 'rv-vn-ph';
+          ph._fl = el; el._ph = ph;
+          el.replaceWith(ph);
+          box.appendChild(el);
+          el.classList.add('rv-vn-fl');
+          const x = document.createElement('button');
+          x.type = 'button'; x.className = 'rv-vn-x'; x.setAttribute('data-rv-fclose', ''); x.setAttribute('aria-label', 'Закрыть кружок');
+          x.innerHTML = RV_X;
+          el.appendChild(x);
+          el._vis = false;
+          if (rvVnObs) { rvVnObs.unobserve(el); rvVnObs.observe(ph); }
+          const v = el.querySelector('video');
+          if (v && v.paused && rvCur && rvCur.el === el) { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
+          if (!rvFloatTimer) {
+            rvFloatTimer = setInterval(() => {
+              document.querySelectorAll('#rvFloat [data-rv-vnote]').forEach(o => { if (!o._ph || !o._ph.isConnected) rvVnDrop(o); });
+              rvVnFloatSync();
+            }, 1000);
+          }
+        }
+
+        // Место кружка в ленте снова видно: вернуть его на карточку
+        function rvVnUnfloat(el) {
+          const ph = el._ph;
+          if (!ph || !ph.isConnected) return;
+          ph.replaceWith(el);
+          el.classList.remove('rv-vn-fl');
+          const x = el.querySelector('[data-rv-fclose]');
+          if (x) x.remove();
+          el._ph = null;
+          el._vis = true;
+          if (rvVnObs) { rvVnObs.unobserve(ph); rvVnObs.observe(el); }
+          const v = el.querySelector('video');
+          if (v && v.paused && rvCur && rvCur.el === el) { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
+          rvVnFloatSync();
+        }
+
+        // Закрыть плавающий кружок: звук стоп, на карточку — обратно в тихий автоплей (если карточки уже нет — убрать)
+        function rvVnDrop(el) {
+          if (rvCur && rvCur.el === el) rvStopMedia();
+          const ph = el._ph;
+          const v = el.querySelector('video');
+          if (v) { try { v.pause(); } catch (e) {} }
+          el._ph = null;
+          el.classList.remove('rv-vn-fl');
+          const x = el.querySelector('[data-rv-fclose]');
+          if (x) x.remove();
+          if (ph) { if (rvVnObs) rvVnObs.unobserve(ph); ph._fl = null; }
+          if (ph && ph.isConnected) {
+            ph.replaceWith(el);
+            if (rvVnObs) rvVnObs.observe(el);
+            rvVnBack(el);
+          } else {
+            el._vo = false;
+            el.remove();
+          }
+          rvVnFloatSync();
         }
 
         function rvVnScan() {
@@ -1567,29 +1663,35 @@
           if (!rvVnObs) {
             rvVnObs = new IntersectionObserver((entries) => {
               entries.forEach(en => {
-                const el = en.target;
-                el._vis = en.isIntersecting;
-                if (!el.isConnected) return;
+                const tgt = en.target, r = en.intersectionRatio;
+                // пустышка на месте уехавшего кружка: место снова видно — кружок возвращается
+                if (tgt._fl) { if (r >= 0.6 && tgt._fl._ph === tgt) rvVnUnfloat(tgt._fl); return; }
+                const el = tgt;
+                el._vis = r >= 0.6;
+                if (!el.isConnected || el._ph) return;
                 if (el._vis) {
                   if (!el._snd) rvVnBack(el);
                 } else if (el._snd) {
-                  if (rvCur && rvCur.el === el) rvStopMedia();
-                  rvVnBack(el);
+                  // совсем ушёл с экрана: играет со звуком — летит в угол, на паузе — возвращается в тихий режим
+                  if (r < 0.05) { if (rvCur && rvCur.el === el) rvVnFloat(el); else rvVnBack(el); }
                 } else {
                   const v = el.querySelector('video');
                   if (v) { try { v.pause(); } catch (e) {} }
                 }
               });
-            }, { threshold: 0.6 });
+            }, { threshold: [0, 0.05, 0.6] });
           }
           document.querySelectorAll('#rvRoot [data-rv-auto]').forEach(el => { if (!el._vo) { el._vo = true; rvVnObs.observe(el); } });
         }
 
-        function rvVnReset() { if (rvVnObs) { rvVnObs.disconnect(); rvVnObs = null; } }
+        function rvVnReset() {
+          document.querySelectorAll('#rvFloat [data-rv-vnote]').forEach(o => rvVnDrop(o));
+          if (rvVnObs) { rvVnObs.disconnect(); rvVnObs = null; }
+        }
 
         function rvMediaPlay(el) {
           rvStopMedia(true);
-          document.querySelectorAll('#rvRoot [data-rv-auto].snd').forEach(o => { if (o !== el) rvVnBack(o); });
+          document.querySelectorAll('[data-rv-auto].snd').forEach(o => { if (o === el) return; if (o._ph) rvVnDrop(o); else rvVnBack(o); });
           const video = el.hasAttribute('data-rv-vnote');
           let dur = Number(el.dataset.dur) || 0;
           const cur = { el, dur, t: 0 };
@@ -1642,12 +1744,31 @@
           }
           if (video) {
             // тап по играющему без звука кружку: со звуком и с начала; повторный тап после паузы продолжает с места
-            node.muted = false; node.loop = false;
-            if (!el._snd) { el._snd = true; el.classList.add('snd'); try { node.currentTime = 0; } catch (e) {} }
+            // пауза → перемотка → звук → старт: так картинка и звук стартуют вместе, без «хвоста» от тихого цикла
+            node.loop = false;
+            if (!el._snd) {
+              el._snd = true; el.classList.add('snd');
+              try { node.pause(); if (node.currentTime > 0.05) node.currentTime = 0; } catch (e) {}
+            }
+            node.muted = false;
           }
           rvMediaPaint(el, true, node.currentTime || 0, dur || node.duration || 0);
           const p = node.play();
           if (p && p.catch) p.catch(() => { if (rvCur && rvCur.el === el) rvCur = null; rvMediaPaint(el, false, 0, dur); UI.toast('Не удалось воспроизвести'); });
+          if (video) rvRingTick(cur, node);
+        }
+
+        // Кольцо вокруг кружка двигаем каждый кадр по реальному времени видео — плавно, без «ступенек» timeupdate
+        function rvRingTick(cur, node) {
+          const el = cur.el;
+          const step = () => {
+            if (rvCur !== cur || !el.isConnected) return;
+            const d = Number(el.dataset.dur) || node.duration || 0;
+            if (d) el.style.setProperty('--p', Math.min(1, node.currentTime / d).toFixed(4));
+            cur.raf = requestAnimationFrame(step);
+          };
+          cancelAnimationFrame(cur.raf);
+          cur.raf = requestAnimationFrame(step);
         }
 
         function rvMediaToggle(el) {
