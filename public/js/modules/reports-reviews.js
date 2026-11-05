@@ -196,8 +196,14 @@
         const RV_CAT_LABEL = Object.fromEntries(RV_CATS);
         const RV_SORTS = [['new', 'Новые'], ['best', 'Лучшие'], ['photo', 'С медиа']];
         const rvState = { cat: 'all', sort: 'new', stats: null, items: [], done: false, loading: false, token: 0, obs: null, failed: false };
-        // Значок «Полезно» (линейный, как остальные иконки)
-        const RV_THUMB = '<svg class="rv-thumb" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 11v9H4.5A1.5 1.5 0 0 1 3 18.5v-6A1.5 1.5 0 0 1 4.5 11z"/><path d="m7 11 3.6-7a2 2 0 0 1 3.7 1.3L13.6 9H19a2 2 0 0 1 2 2.4l-1.4 7A2 2 0 0 1 17.6 20H7"/></svg>';
+        rvState.demoN = 0;
+        // Сердечко лайка: пустое — контур, поставленный лайк — залитое
+        function rvHeart(liked) { return UI.icon('heart', 24, { stroke: 2.2, fill: !!liked }); }
+        // Значки плеера (линейные/залитые, как остальные иконки)
+        const RV_PLAY = '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8.5 5.6v12.8a1 1 0 0 0 1.5.86l10.4-6.4a1 1 0 0 0 0-1.72L10 4.74a1 1 0 0 0-1.5.86z"/></svg>';
+        const RV_PAUSE = '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4.2" height="14" rx="1.4"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.4"/></svg>';
+        const RV_MIC = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>';
+        const RV_CAM = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="12.5" height="12" rx="3"/><path d="m15.5 10.5 5-2.7v8.4l-5-2.7"/></svg>';
 
         function rvEsc(s) {
           return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -294,7 +300,13 @@
           if (!rows || !rows.length) return rows || [];
           const orderIds = [];
           // Медиа отзывов из бота — {type, file_id, url}: бот копирует фото в хранилище и дописывает url; без url (файл только в Telegram) фото не показываем
-          rows.forEach(r => { r.photo_urls = (Array.isArray(r.photo_urls) ? r.photo_urls : []).map(u => (u && typeof u === 'object' ? u.url : u)).filter(u => typeof u === 'string' && u); });
+          // Голосовые и кружки (voice / video_note) держим отдельным списком: url может не быть (файл только в Telegram) — тогда покажем плитку-заглушку
+          rows.forEach(r => {
+            const raw = Array.isArray(r.photo_urls) ? r.photo_urls : [];
+            r.media = raw.filter(m => m && typeof m === 'object' && (m.type === 'voice' || m.type === 'video_note'))
+              .map(m => ({ type: m.type, url: typeof m.url === 'string' && /^https:\/\//i.test(m.url) ? m.url : '', duration: Math.max(0, Math.round(Number(m.duration) || 0)) }));
+            r.photo_urls = raw.map(u => (u && typeof u === 'object' ? (u.type === 'voice' || u.type === 'video_note' ? '' : u.url) : u)).filter(u => typeof u === 'string' && u);
+          });
           rows.forEach(r => (Array.isArray(r.order_ids) ? r.order_ids : []).forEach(id => { if (!orderIds.includes(id)) orderIds.push(id); }));
           const solvedTask = Promise.resolve(supabaseClient.from('reviews')
             .select('id,user_name,rating,text,created_at,resolves_review_id')
@@ -547,14 +559,69 @@
             </div>`;
         }
 
-        // Квадрат с лайком справа вверху карточки, под ним счётчик
+        // Сердечко с счётчиком внизу карточки: зона касания 44x44, один тап ставит и снимает лайк
         function rvLikeHtml(r, liked) {
-          return `<div class="rv-likebox"><button type="button" class="rv-like ${liked ? 'on' : ''}" data-rv-like aria-label="Полезный отзыв">${RV_THUMB}</button><span class="rv-like-n">${r.likes_count || 0}</span></div>`;
+          return `<div class="rv-foot"><div class="rv-likebox"><button type="button" class="rv-like ${liked ? 'on' : ''}" data-rv-like aria-pressed="${liked ? 'true' : 'false'}" aria-label="Полезный отзыв">${rvHeart(liked)}</button><span class="rv-like-n">${r.likes_count || 0}</span></div><span class="rv-foot-t">Полезно?</span></div>`;
+        }
+
+        function rvIsDemoId(id) { return typeof id === 'string' && id.indexOf('demo-') === 0; }
+        const rvDemoLiked = new Set();
+        function rvIsLiked(r) {
+          if (rvIsDemoId(r.id)) return rvDemoLiked.has(r.id);
+          return !!(window.likedReviewsCache && window.likedReviewsCache.has(r.id));
+        }
+
+        function rvFmtDur(s) {
+          s = Math.max(0, Math.round(Number(s) || 0));
+          return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+        }
+
+        // Голосовое: кнопка, «волна» с прогрессом и время. Нет ссылки на файл — аккуратная плитка без кнопки
+        function rvVoiceHtml(m, seed, demo) {
+          const bars = 30;
+          let h = 7;
+          for (const c of String(seed)) h = (h * 33 + c.charCodeAt(0)) % 9973;
+          const wave = Array.from({ length: bars }).map((_, k) => {
+            h = (h * 31 + 17 + k) % 9973;
+            return `<i style="--h:${22 + (h % 70)}%"></i>`;
+          }).join('');
+          const can = !!(m.url || demo);
+          return `
+            <div class="rv-voice${can ? '' : ' off'}" data-rv-voice data-dur="${m.duration || 0}" data-src="${rvEsc(m.url || '')}"${demo ? ' data-demo="1"' : ''}>
+              ${can ? `<button type="button" class="rv-vplay" data-rv-play aria-label="Воспроизвести голосовое">${RV_PLAY}</button>` : `<span class="rv-vplay rv-vmic">${RV_MIC}</span>`}
+              <div class="rv-vbody"><div class="rv-wave" aria-hidden="true">${wave}</div>${can ? '' : '<span class="rv-vnote-s">Голосовое сообщение в Telegram</span>'}</div>
+              <span class="rv-vtime" data-rv-time>${m.duration ? rvFmtDur(m.duration) : ''}</span>
+            </div>`;
+        }
+
+        // Кружок: круглое видео ~160px, тап запускает со звуком; кольцо вокруг — прогресс
+        function rvVnoteHtml(m, seed, demo) {
+          const can = !!(m.url || demo);
+          let h = 0;
+          for (const c of String(seed)) h = (h * 31 + c.charCodeAt(0)) % 360;
+          const inner = m.url
+            ? `<video playsinline webkit-playsinline preload="metadata" src="${rvEsc(m.url)}#t=0.1"></video>`
+            : `<span class="rv-vn-bg" style="background:linear-gradient(135deg,hsl(${h} 85% 60%),hsl(${(h + 40) % 360} 80% 38%))"></span>`;
+          return `
+            <div class="rv-vnote${can ? '' : ' off'}" data-rv-vnote data-dur="${m.duration || 0}" data-src="${rvEsc(m.url || '')}"${demo ? ' data-demo="1"' : ''}>
+              <div class="rv-vn-disc">${inner}</div>
+              <svg class="rv-vn-ring" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="48" pathLength="100" class="rv-vn-arc"/></svg>
+              ${can ? `<button type="button" class="rv-vn-btn" data-rv-play aria-label="Воспроизвести кружок">${RV_PLAY}</button>` : `<span class="rv-vn-btn rv-vn-off">${RV_CAM}</span>`}
+              ${m.duration ? `<span class="rv-vn-time" data-rv-time>${rvFmtDur(m.duration)}</span>` : ''}
+              ${can ? '' : '<span class="rv-vn-cap">Кружок в Telegram</span>'}
+            </div>`;
+        }
+
+        function rvMediaHtml(r) {
+          const list = Array.isArray(r.media) ? r.media : [];
+          if (!list.length) return '';
+          const demo = rvIsDemoId(r.id);
+          return `<div class="rv-media">${list.map((m, k) => m.type === 'voice' ? rvVoiceHtml(m, r.id + k, demo) : rvVnoteHtml(m, r.id + k, demo)).join('')}</div>`;
         }
 
         function rvCardHtml(r, i) {
           const photos = Array.isArray(r.photo_urls) ? r.photo_urls.filter(Boolean) : [];
-          const liked = window.likedReviewsCache && window.likedReviewsCache.has(r.id);
+          const liked = rvIsLiked(r);
           const rating = Math.max(0, Math.min(5, Number(r.rating) || 0));
           const name = r.user_name || 'Клиент';
           return `
@@ -565,20 +632,97 @@
                   <div class="rv-name">${rvEsc(name)}</div>
                   <div class="rv-meta">${rvEsc(RV_CAT_LABEL[r.category] || 'Отзыв')} · ${rvFmtDate(r.created_at)}</div>
                 </div>
-                ${rvLikeHtml(r, liked)}
               </div>
               <div class="rv-rate">
                 <div class="rv-stars" aria-label="Оценка ${rating} из 5">${[1, 2, 3, 4, 5].map(k => UI.icon('star', 17, { fill: k <= rating })).join('')}</div>
                 ${r.is_verified ? `<span class="rv-ok">${UI.icon('checkCircle', 13, { stroke: 2.4 })}Заказ подтверждён</span>` : ''}
+                ${rvIsDemoId(r.id) ? '<span class="rv-demo" title="Пример для администратора, клиенты его не видят">Демо</span>' : ''}
               </div>
               <p class="rv-text">${rvEsc(r.text)}</p>
               ${rvPhotosHtml(photos)}
+              ${rvMediaHtml(r)}
               ${rvDetailsHtml(r)}
               ${rvOrdersHtml(r)}
               ${rvReplyHtml(r)}
               ${rvManagerReplyHtml(r)}
               ${rvBottomHtml(r)}
+              ${rvLikeHtml(r, liked)}
             </article>`;
+        }
+
+        // ---- Демо-отзывы: только во фронтенде и только для администратора. В базу не пишутся, лайки локальные ----
+        function rvIsAdmin() { return typeof isOwner !== 'undefined' && !!isOwner; }
+        function rvDemoPhoto(h1, h2) {
+          const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${h1},85%,62%)"/><stop offset="1" stop-color="hsl(${h2},80%,36%)"/></linearGradient></defs><rect width="400" height="300" fill="url(#g)"/><circle cx="300" cy="80" r="70" fill="#fff" opacity=".16"/><circle cx="90" cy="250" r="90" fill="#fff" opacity=".1"/></svg>`;
+          return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+        }
+        // n — имя, r — оценка, t — текст, l — лайки, d — дней назад, p — фото (пары оттенков), v — голосовое (секунды), c — кружок (секунды)
+        const RV_DEMO_RAW = {
+          promotions: [
+            { n: 'Анна К.', r: 5, t: 'Участвовала в акции, всё прошло чётко: условия объяснили заранее, заказ собрали без задержек. Осталась очень довольна.', l: 7, d: 1, p: [[215, 250]], v: 24 },
+            { n: 'Дмитрий С.', r: 5, t: 'Понравилось, что в акции всё прозрачно, без скрытых условий. Менеджер отвечал быстро и по делу.', l: 4, d: 3 },
+            { n: 'Марина П.', r: 4, t: 'Хорошая акция, подарок пришёл вместе с заказом. Единственное, хотелось бы больше вариантов на выбор.', l: 2, d: 6, p: [[330, 20], [170, 210]] }
+          ],
+          dropshipping: [
+            { n: 'Сергей Л.', r: 5, t: 'Работаю по дропшиппингу уже несколько месяцев. Посылки уходят вовремя, трек выдают сразу, клиенты не жалуются.', l: 9, d: 1, c: 31 },
+            { n: 'Екатерина В.', r: 5, t: 'Удобно, что не надо думать о складе и упаковке. Всё берут на себя, а мне остаётся общаться с покупателями.', l: 5, d: 2, p: [[200, 240]] },
+            { n: 'Игорь Т.', r: 4, t: 'Хороший сервис для старта. Сначала разбирался с условиями, поддержка помогла и подсказала.', l: 3, d: 5 },
+            { n: 'Алёна Ж.', r: 5, t: 'Запустила маленький магазин, заказы сопровождают на каждом шаге. Рекомендую всем, кто начинает.', l: 6, d: 8, v: 38 }
+          ],
+          referral: [
+            { n: 'Павел Н.', r: 5, t: 'Позвал друзей по своей ссылке, бонусы пришли без лишних вопросов. Система простая и понятная.', l: 6, d: 1, v: 19 },
+            { n: 'Ольга М.', r: 5, t: 'Реферальная программа порадовала: видно, кто зарегистрировался, и бонусы начисляются сразу.', l: 4, d: 4, p: [[280, 330]] },
+            { n: 'Артём Б.', r: 4, t: 'Удобно делиться ссылкой в мессенджере. Хотелось бы побольше подсказок, как приглашать, но в целом отлично.', l: 2, d: 7 }
+          ],
+          advertising: [
+            { n: 'Ирина Ф.', r: 5, t: 'Заказывала рекламу у ICE LOGIX: внятно объяснили, где и как она будет показываться. Отклик пришёл уже в первые дни.', l: 8, d: 2, c: 27 },
+            { n: 'Максим Д.', r: 5, t: 'Всё по делу, без воды. Макеты согласовали быстро, отчёт после запуска прислали вовремя.', l: 3, d: 3, p: [[20, 350], [190, 230]] },
+            { n: 'Юлия Р.', r: 4, t: 'Хорошая команда, быстро отвечают. Небольшие правки в тексте внесли в тот же день.', l: 2, d: 9 }
+          ],
+          legitcheck: [
+            { n: 'Владислав К.', r: 5, t: 'Отправил кроссовки на проверку оригинальности. Получил подробный отчёт с фото деталей, всё понятно и убедительно.', l: 11, d: 1, p: [[140, 190], [215, 265]], v: 21 },
+            { n: 'Наталья Г.', r: 5, t: 'Сомневалась, оригинал ли сумка. Эксперты разобрали каждую деталь и объяснили, на что смотрели. Теперь спокойна.', l: 7, d: 3, c: 34 },
+            { n: 'Роман Е.', r: 4, t: 'Проверка прошла чётко, результат пришёл в срок. Спасибо за честное заключение.', l: 3, d: 6 },
+            { n: 'Диана С.', r: 5, t: 'Очень помогла проверка перед покупкой на площадке. Рада, что не потратила деньги зря.', l: 5, d: 10, p: [[300, 350]] }
+          ],
+          partnership: [
+            { n: 'Андрей Ш.', r: 5, t: 'Договорились о сотрудничестве быстро, условия понятные с первого разговора. Работать вместе комфортно.', l: 5, d: 2, v: 29 },
+            { n: 'Елена Ч.', r: 5, t: 'Партнёрство оказалось взаимно полезным: общая аудитория, чёткие договорённости и живая обратная связь.', l: 4, d: 5, c: 25 },
+            { n: 'Николай А.', r: 4, t: 'Хорошие люди, держат слово. Все этапы согласовывали заранее, сюрпризов не было.', l: 2, d: 11, p: [[180, 220]] }
+          ]
+        };
+
+        // Демо для ленты: категория «Заказы» без демо, в «Все» — по одному из каждого раздела
+        function rvDemoRows(cat, sort) {
+          if (!rvIsAdmin() || cat === 'orders') return [];
+          const cats = cat === 'all' ? Object.keys(RV_DEMO_RAW) : (RV_DEMO_RAW[cat] ? [cat] : []);
+          const now = Date.now();
+          let rows = [];
+          cats.forEach(c => {
+            const list = cat === 'all' ? RV_DEMO_RAW[c].slice(0, 1) : RV_DEMO_RAW[c];
+            list.forEach((d, k) => {
+              const media = [];
+              if (d.v) media.push({ type: 'voice', url: '', duration: d.v });
+              if (d.c) media.push({ type: 'video_note', url: '', duration: d.c });
+              rows.push({
+                id: `demo-${c}-${k}`, user_name: d.n, category: c, rating: d.r, text: d.t,
+                photo_urls: (d.p || []).map(([a, b]) => rvDemoPhoto(a, b)), media,
+                is_verified: false, likes_count: d.l, created_at: new Date(now - d.d * 86400000).toISOString(),
+                order_ids: null, avatar_url: null
+              });
+            });
+          });
+          if (sort === 'photo') rows = rows.filter(r => r.photo_urls.length || r.media.length);
+          if (sort === 'best') rows.sort((a, b) => (b.likes_count - a.likes_count) || (b.rating - a.rating));
+          else rows.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+          return rows;
+        }
+
+        // Первая страница ленты с демо впереди (для администратора); demoN нужен, чтобы подгрузка не сбивалась
+        function rvWithDemo(rows, cat, sort) {
+          const demo = rvDemoRows(cat, sort);
+          rvState.demoN = demo.length;
+          return demo.concat(rows || []);
         }
 
         function rvSkeleton(n) {
@@ -667,8 +811,9 @@
 
             rvState.stats = stats;
             let rows = feed ? feed.rows : null;
-            rvState.items = rows || [];
             rvState.done = !rows || rows.length < RV_PAGE;
+            rvState.items = rvWithDemo(rows, cat, 'new');
+            rows = rows === null && !rvState.demoN ? null : rvState.items;
             rvState.loading = false;
 
             return `
@@ -707,7 +852,7 @@
           sk.innerHTML = rvSkeleton(1);
           list.appendChild(sk);
           try {
-            const rows = await rvFetchPage(rvState.cat, rvState.sort, rvState.items.length);
+            const rows = await rvFetchPage(rvState.cat, rvState.sort, Math.max(0, rvState.items.length - (rvState.demoN || 0)));
             if (token !== rvState.token) { sk.remove(); return; }
             const known = new Set(rvState.items.map(r => r.id));
             const fresh = rows.filter(r => !known.has(r.id));
@@ -726,7 +871,9 @@
         // Перезагрузка ленты при смене категории или сортировки: сводка и чипы обновляются сразу
         async function rvReload() {
           const token = ++rvState.token;
+          rvStopMedia();
           rvState.items = [];
+          rvState.demoN = 0;
           rvState.done = false;
           rvState.failed = false;
           rvState.loading = true;
@@ -740,9 +887,9 @@
           try {
             const { rows, done } = await rvLoadFeed(rvState.cat, rvState.sort);
             if (token !== rvState.token) return;
-            rvState.items = rows;
+            rvState.items = rvWithDemo(rows, rvState.cat, rvState.sort);
             rvState.done = done;
-            list.innerHTML = rvListHtml(rows);
+            list.innerHTML = rvListHtml(rvState.items);
           } catch (e) {
             console.error('Reviews reload failed:', e);
             if (token === rvState.token) { rvState.failed = true; list.innerHTML = UI.empty({ icon: 'alert', title: 'Не удалось загрузить', text: 'Попробуйте ещё раз.' }); }
@@ -1277,25 +1424,29 @@
           const btn = card.querySelector('[data-rv-like]');
           if (!btn) return;
           btn.classList.toggle('on', liked);
-          btn.innerHTML = RV_THUMB;
+          btn.setAttribute('aria-pressed', liked ? 'true' : 'false');
+          btn.innerHTML = rvHeart(liked);
           const n = card.querySelector('.rv-like-n');
           if (n) n.textContent = count;
           if (liked) { btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop'); }
         }
 
         async function toggleReviewLike(card, reviewId, forceOn) {
-          if (!userId) { window.requireAuth('Для взаимодействия с отзывами необходимо войти.'); return; }
+          const demo = rvIsDemoId(reviewId);
+          if (!demo && !userId) { window.requireAuth('Для взаимодействия с отзывами необходимо войти.'); return; }
           window.likedReviewsCache = window.likedReviewsCache || new Set();
-          const wasLiked = window.likedReviewsCache.has(reviewId);
+          const store = demo ? rvDemoLiked : window.likedReviewsCache;
+          const wasLiked = store.has(reviewId);
           if (forceOn && wasLiked) return;
           const nEl = card.querySelector('.rv-like-n');
           let count = parseInt(nEl && nEl.textContent, 10) || 0;
-          if (wasLiked) { window.likedReviewsCache.delete(reviewId); count = Math.max(0, count - 1); }
-          else { window.likedReviewsCache.add(reviewId); count += 1; }
+          if (wasLiked) { store.delete(reviewId); count = Math.max(0, count - 1); }
+          else { store.add(reviewId); count += 1; }
           rvSetLikeUi(card, !wasLiked, count);
           const item = rvState.items.find(r => r.id === reviewId);
           if (item) item.likes_count = count;
           if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+          if (demo) return; // демо-отзывы живут только на экране: ни базы, ни кэша
           rvClearCache();
           try {
             if (wasLiked) await supabaseClient.from('review_likes').delete().eq('review_id', reviewId).eq('user_id', userId);
@@ -1303,6 +1454,102 @@
           } catch (err) {
             console.error('Failed to sync like status:', err);
           }
+        }
+
+        // ---- Плеер голосовых и кружков: играет одно за раз; настоящий файл или демо-имитация (таймер + тихий тон) ----
+        let rvCur = null;
+        function rvMediaPaint(el, playing, t, dur) {
+          el.classList.toggle('playing', playing);
+          el.style.setProperty('--p', dur ? Math.min(1, Math.max(0, t / dur)).toFixed(3) : '0');
+          const b = el.querySelector('[data-rv-play]');
+          if (b) { b.innerHTML = playing ? RV_PAUSE : RV_PLAY; b.setAttribute('aria-label', playing ? 'Пауза' : 'Воспроизвести'); }
+          const bars = el.querySelectorAll('.rv-wave i');
+          if (bars.length) { const k = Math.round((dur ? t / dur : 0) * bars.length); bars.forEach((b, n) => b.classList.toggle('on', n < k)); }
+          const tm = el.querySelector('[data-rv-time]');
+          if (tm) tm.textContent = (playing || t > 0.05) ? rvFmtDur(t) : (dur ? rvFmtDur(dur) : '');
+        }
+
+        // Пауза (прогресс остаётся). Вызывается при переключении, смене ленты и уходе с экрана
+        function rvStopMedia() {
+          const c = rvCur;
+          rvCur = null;
+          if (!c) return;
+          clearInterval(c.timer);
+          if (c.ctx) { try { c.ctx.close(); } catch (e) {} }
+          const el = c.el;
+          let t = c.t || 0;
+          if (el._m) { try { el._m.pause(); } catch (e) {} t = el._m.currentTime || 0; }
+          if (el.dataset.demo) el._t = t;
+          if (el.isConnected) rvMediaPaint(el, false, t, c.dur);
+        }
+
+        function rvMediaEnd(el, dur) {
+          if (rvCur && rvCur.el === el) { clearInterval(rvCur.timer); if (rvCur.ctx) { try { rvCur.ctx.close(); } catch (e) {} } rvCur = null; }
+          el._t = 0;
+          if (el._m) { try { el._m.currentTime = 0; } catch (e) {} }
+          if (el.isConnected) rvMediaPaint(el, false, 0, dur);
+        }
+
+        function rvMediaPlay(el) {
+          rvStopMedia();
+          const video = el.hasAttribute('data-rv-vnote');
+          let dur = Number(el.dataset.dur) || 0;
+          const cur = { el, dur, t: 0 };
+          rvCur = cur;
+          if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+          if (el.dataset.demo) {
+            dur = dur || 20;
+            cur.dur = dur;
+            cur.t = el._t || 0;
+            if (!video) {
+              try {
+                const AC = window.AudioContext || window.webkitAudioContext;
+                if (AC) {
+                  cur.ctx = new AC();
+                  cur.osc = cur.ctx.createOscillator();
+                  const g = cur.ctx.createGain();
+                  g.gain.value = 0.03;
+                  cur.osc.type = 'sine';
+                  cur.osc.connect(g); g.connect(cur.ctx.destination);
+                  cur.osc.start();
+                }
+              } catch (e) { cur.ctx = null; cur.osc = null; }
+            }
+            rvMediaPaint(el, true, cur.t, dur);
+            cur.timer = setInterval(() => {
+              if (!el.isConnected) { rvStopMedia(); return; }
+              cur.t += 0.1;
+              if (cur.osc) { try { cur.osc.frequency.value = [392, 523, 659, 523, 440][Math.floor(cur.t * 2.5) % 5]; } catch (e) {} }
+              if (cur.t >= dur) { rvMediaEnd(el, dur); return; }
+              rvMediaPaint(el, true, cur.t, dur);
+            }, 100);
+            return;
+          }
+          let node = el._m;
+          if (!node) {
+            node = video ? el.querySelector('video') : new Audio(el.dataset.src);
+            if (!node) { rvCur = null; return; }
+            node.preload = 'auto';
+            if (video) { node.muted = false; node.playsInline = true; }
+            node.addEventListener('timeupdate', () => {
+              if (!el.isConnected) { if (rvCur && rvCur.el === el) rvStopMedia(); else { try { node.pause(); } catch (e) {} } return; }
+              if (rvCur && rvCur.el === el) rvMediaPaint(el, true, node.currentTime, Number(el.dataset.dur) || node.duration || 0);
+            });
+            node.addEventListener('ended', () => rvMediaEnd(el, Number(el.dataset.dur) || node.duration || 0));
+            node.addEventListener('error', () => {
+              if (rvCur && rvCur.el === el) rvCur = null;
+              if (el.isConnected) { rvMediaPaint(el, false, 0, Number(el.dataset.dur) || 0); UI.toast('Не удалось воспроизвести'); }
+            });
+            el._m = node;
+          }
+          rvMediaPaint(el, true, node.currentTime || 0, dur || node.duration || 0);
+          const p = node.play();
+          if (p && p.catch) p.catch(() => { if (rvCur && rvCur.el === el) rvCur = null; rvMediaPaint(el, false, 0, dur); UI.toast('Не удалось воспроизвести'); });
+        }
+
+        function rvMediaToggle(el) {
+          if (!el || el.classList.contains('off')) return;
+          if (rvCur && rvCur.el === el) rvStopMedia(); else rvMediaPlay(el);
         }
 
         function triggerDoubleTapLike(card, reviewId, x, y) {
@@ -1319,6 +1566,7 @@
         function attachReviewsHandlers() {
           const root = document.getElementById('rvRoot');
           if (!root) return;
+          rvStopMedia();
 
           // Нажатие на фильтры и сортировку срабатывает сразу при касании (без ожидания click), click потом не дублирует
           let tapAt = 0, pdX = 0, pdY = 0, pdEl = null;
@@ -1351,7 +1599,16 @@
             const card = t.closest('.rv-card');
             if (!card || !card.dataset.reviewId) return;
             const id = card.dataset.reviewId;
-            if (t.closest('[data-rv-like]')) { toggleReviewLike(card, id); return; }
+            if (t.closest('[data-rv-like]')) {
+              // двойной тап по сердцу = одно переключение, а не два
+              const nowL = Date.now();
+              if (card._rvLikeAt && nowL - card._rvLikeAt < 450) return;
+              card._rvLikeAt = nowL;
+              toggleReviewLike(card, id);
+              return;
+            }
+            const med = t.closest('[data-rv-voice],[data-rv-vnote]');
+            if (med) { rvMediaToggle(med); return; }
             if (t.closest('[data-rv-want]')) { rvWantSame(id); return; }
             if (t.closest('[data-rv-items]')) { openReviewItems(id); return; }
             const ph = t.closest('[data-rv-ph]');
@@ -1370,19 +1627,30 @@
             }
           });
 
-          // Двойное касание по карточке — лайк
-          let lastTap = 0, lastCard = null;
-          root.addEventListener('touchend', (e) => {
+          // Двойное касание по карточке — лайк: окно 450 мс, допуск дрожания пальца 30 px, работает и мышью
+          // (кнопки, фото и плееры не считаются: у них свои нажатия)
+          let lastTap = 0, lastCard = null, lastX = 0, lastY = 0, dnX = 0, dnY = 0, dnOk = false;
+          const rvTapSkip = '[data-rv-like],[data-rv-ph],[data-rv-voice],[data-rv-vnote],[data-rv-want],[data-rv-items],[data-rv-toggle],button,a,input,textarea';
+          root.addEventListener('pointerdown', (e) => {
+            dnX = e.clientX; dnY = e.clientY;
+            dnOk = e.isPrimary !== false && (e.pointerType !== 'mouse' || e.button === 0);
+          });
+          root.addEventListener('pointercancel', () => { dnOk = false; lastTap = 0; lastCard = null; });
+          root.addEventListener('pointerup', (e) => {
+            if (!dnOk) return;
+            dnOk = false;
             const card = e.target.closest('.rv-card');
-            if (!card || !card.dataset.reviewId || e.target.closest('button')) return;
+            if (!card || !card.dataset.reviewId || e.target.closest(rvTapSkip)) { lastTap = 0; lastCard = null; return; }
+            // сдвиг больше 10 px — это прокрутка, а не касание
+            if (Math.abs(e.clientX - dnX) > 10 || Math.abs(e.clientY - dnY) > 10) { lastTap = 0; lastCard = null; return; }
             const now = Date.now();
-            if (lastCard === card && now - lastTap < 300 && now - lastTap > 0) {
-              e.preventDefault();
-              const touch = e.changedTouches[0];
+            if (lastCard === card && now - lastTap < 450 && Math.hypot(e.clientX - lastX, e.clientY - lastY) <= 30) {
               const rect = card.getBoundingClientRect();
-              triggerDoubleTapLike(card, card.dataset.reviewId, touch.clientX - rect.left - 32, touch.clientY - rect.top - 32);
+              triggerDoubleTapLike(card, card.dataset.reviewId, e.clientX - rect.left - 32, e.clientY - rect.top - 32);
+              lastTap = 0; lastCard = null;
+              return;
             }
-            lastTap = now; lastCard = card;
+            lastTap = now; lastCard = card; lastX = e.clientX; lastY = e.clientY;
           });
 
           rvLoadAsk();
