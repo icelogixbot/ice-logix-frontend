@@ -251,8 +251,25 @@
             if (error) throw error;
             return rvEnrich(data || []);
           };
-          if (from === 0 && window.CacheDB) return window.CacheDB.get(rvCacheKey(cat, sort), run, 60000);
-          return run();
+          const rows = (from === 0 && window.CacheDB) ? await window.CacheDB.get(rvCacheKey(cat, sort), run, 60000) : await run();
+          await rvSyncReported(rows);
+          return rows;
+        }
+
+        // На какие отзывы из ленты этот человек уже пожаловался (жалобы из мини-приложения и из чата — одна и та же запись)
+        const rvReported = new Set();
+        async function rvSyncReported(rows) {
+          if (!userId || !Array.isArray(rows)) return;
+          const ids = rows.map(r => r.id).filter(id => id && !rvIsDemoId(id));
+          if (!ids.length) return;
+          try {
+            const { data, error } = await supabaseClient.rpc('review_my_reports', { p_reporter: userId, p_ids: ids });
+            if (error || !Array.isArray(data)) return;
+            ids.forEach(id => rvReported.delete(id));
+            data.forEach(id => rvReported.add(typeof id === 'object' && id ? Object.values(id)[0] : id));
+          } catch (e) {
+            console.error('Failed to load user reports:', e);
+          }
         }
 
         // Заказы из отзывов: номер ICE-… и товары. Сначала публичная функция review_orders_public (если она есть в базе),
@@ -564,8 +581,9 @@
         // Сердечко с счётчиком внизу карточки: зона касания 44x44, один тап ставит и снимает лайк
         function rvLikeHtml(r, liked) {
           const mine = !!userId && r.user_id != null && String(r.user_id) === String(userId);
-          const flag = rvIsDemoId(r.id) || mine ? '' : `<button type="button" class="rv-flag" data-rv-report aria-label="Пожаловаться на отзыв" title="Пожаловаться">${RV_FLAG}</button>`;
-          return `<div class="rv-foot"><div class="rv-likebox"><button type="button" class="rv-like ${liked ? 'on' : ''}" data-rv-like aria-pressed="${liked ? 'true' : 'false'}" aria-label="Полезный отзыв">${rvHeart(liked)}</button><span class="rv-like-n">${r.likes_count || 0}</span></div><span class="rv-foot-r"><span class="rv-foot-t">Полезно?</span>${flag}</span></div>`;
+          const sent = rvReported.has(r.id);
+          const flag = rvIsDemoId(r.id) || mine ? '' : `<button type="button" class="rv-flag${sent ? ' sent' : ''}" data-rv-report aria-pressed="${sent ? 'true' : 'false'}" aria-label="${sent ? 'Отозвать жалобу' : 'Пожаловаться на отзыв'}" title="${sent ? 'Отозвать жалобу' : 'Пожаловаться'}">${RV_FLAG}</button>`;
+          return `<div class="rv-foot"><div class="rv-likebox"><button type="button" class="rv-like ${liked ? 'on' : ''}" data-rv-like aria-pressed="${liked ? 'true' : 'false'}" aria-label="Полезный отзыв">${rvHeart(liked)}</button><span class="rv-like-n">${r.likes_count || 0}</span></div><span class="rv-foot-r"><span class="rv-foot-t">Хотите пожаловаться?</span>${flag}</span></div>`;
         }
 
         function rvIsDemoId(id) { return typeof id === 'string' && id.indexOf('demo-') === 0; }
@@ -1464,27 +1482,32 @@
           }
         }
 
-        // Жалоба на отзыв (ADR-051): пишет функция review_report_app, 3 разных жалобщика скрывают отзыв (бот, REVIEW-004)
+        // Жалоба на отзыв (ADR-051/052): повторное нажатие на флажок отзывает жалобу.
+        // Пишут функции review_report_app / review_report_cancel; 3 разных жалобщика (мини-приложение + чат) скрывают отзыв (бот, REVIEW-004)
         async function rvReportReview(card, reviewId) {
           if (!userId) { window.requireAuth('Для жалобы необходимо войти.'); return; }
           const btn = card.querySelector('[data-rv-report]');
           if (!btn || btn.disabled) return;
           if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+          const cancel = rvReported.has(reviewId);
           btn.disabled = true;
           try {
-            const { data, error } = await supabaseClient.rpc('review_report_app', { p_review_id: reviewId, p_reporter: userId });
+            const { data, error } = await supabaseClient.rpc(cancel ? 'review_report_cancel' : 'review_report_app', { p_review_id: reviewId, p_reporter: userId });
             if (error) throw error;
-            if (data === 'own') { btn.remove(); UI.toast('Это ваш отзыв'); return; }
-            if (data === 'gone') { btn.classList.add('sent'); UI.toast('Отзыв уже скрыт'); return; }
+            if (!cancel && data === 'own') { btn.remove(); UI.toast('Это ваш отзыв'); return; }
+            if (!cancel && data === 'gone') { rvReported.add(reviewId); btn.classList.add('sent'); btn.disabled = false; UI.toast('Отзыв уже скрыт'); return; }
             if (data !== 'ok') throw new Error('bad');
-            btn.classList.add('sent');
-            btn.setAttribute('aria-label', 'Жалоба отправлена');
-            btn.title = 'Жалоба отправлена';
-            UI.toast('Жалоба отправлена');
+            if (cancel) rvReported.delete(reviewId); else rvReported.add(reviewId);
+            btn.classList.toggle('sent', !cancel);
+            btn.setAttribute('aria-pressed', cancel ? 'false' : 'true');
+            btn.setAttribute('aria-label', cancel ? 'Пожаловаться на отзыв' : 'Отозвать жалобу');
+            btn.title = cancel ? 'Пожаловаться' : 'Отозвать жалобу';
+            btn.disabled = false;
+            UI.toast(cancel ? 'Жалоба отозвана' : 'Жалоба отправлена. Нажмите ещё раз, чтобы отозвать');
           } catch (err) {
             console.error('Review report failed:', err);
             btn.disabled = false;
-            UI.toast('Не удалось отправить');
+            UI.toast('Не удалось выполнить');
           }
         }
 
