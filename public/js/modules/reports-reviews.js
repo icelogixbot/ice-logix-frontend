@@ -338,7 +338,7 @@
         }
 
         // Карточка «Вас ждёт отзыв» над лентой — только если в боте открыт запрос отзыва
-        // Рядом — карточка «ICE BONUS за Stories»: только тем, у кого есть доставленный заказ (бот принимает Stories только по ним)
+        // Предложение Stories в приложении не показываем — его присылает только бот
         async function rvLoadAsk() {
           const box = document.getElementById('rvAsk');
           if (!box || !userId) return;
@@ -357,18 +357,6 @@
               <button type="button" class="rv-ask" data-rv-ask>
                 <span class="rv-ask-ic">${UI.icon('message', 24, { stroke: 2.2 })}</span>
                 <span class="rv-ask-b"><b>Вас ждёт отзыв</b><small>${sub}</small></span>
-                <span class="rv-ask-go">${UI.icon('chevR', 18, { stroke: 2.6 })}</span>
-              </button>`;
-            }
-          } catch (e) { /* нет сети — карточку просто не показываем */ }
-          try {
-            const { data: done, error: dErr } = await supabaseClient.from('orders')
-              .select('id').eq('user_id', userId).eq('status', 'delivered').limit(1);
-            if (!dErr && done && done.length) {
-              html += `
-              <button type="button" class="rv-ask" data-rv-stories>
-                <span class="rv-ask-ic">${UI.icon('gift', 24, { stroke: 2.2 })}</span>
-                <span class="rv-ask-b"><b>ICE BONUS за Stories</b><small>+1 за каждую площадку — Telegram, Instagram, TikTok</small></span>
                 <span class="rv-ask-go">${UI.icon('chevR', 18, { stroke: 2.6 })}</span>
               </button>`;
             }
@@ -1351,7 +1339,6 @@
             const plat = t.closest('[data-rv-url]');
             if (plat) { openExternalLink(plat.dataset.rvUrl); return; }
             if (t.closest('[data-rv-ask]')) { rvOpenBotReview(); return; }
-            if (t.closest('[data-rv-stories]')) { rvOpenBot('stories'); return; }
             const srt = t.closest('[data-rv-sort]');
             if (srt) { rvSwitchSort(srt.dataset.rvSort); return; }
             const chip = t.closest('[data-rv-cat]');
