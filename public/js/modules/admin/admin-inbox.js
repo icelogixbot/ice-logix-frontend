@@ -1,12 +1,12 @@
 // ============================================================
 // ICE LOGIX · Админ-панель: Обращения (этап 4 ADMIN_PLAN.md)
 // Одна очередь на всё, что ждёт решения: поддержка, претензии, споры, Legit-Check,
-// отзывы, видео-распаковки и пристрой. Экран admin_inbox — чипы со счётчиками, переключатель
+// отзывы, видео-распаковки, Stories за ICE BONUS и пристрой. Экран admin_inbox — чипы со счётчиками, переключатель
 // «Ждут / Готово» и список по 20 штук. Карточка admin_inbox_item — данные и кнопки решения.
 // Поддержку здесь не дублируем: строка открывает окно поддержки (AD.openDesk('ticket=…')).
 // Сервер (миграция 20261031210000_admin_inbox): admin_inbox_counts, admin_inbox_list, admin_dispute_card,
 // admin_dispute_reply, admin_dispute_decision, admin_legit_verdict, admin_resale_decision, а также прежние
-// admin_claim_decision, admin_review_decision, admin_ugc_decision. Роли проверяет сервер.
+// admin_claim_decision, admin_review_decision, admin_ugc_decision, admin_story_decision. Роли проверяет сервер.
 // Деньги (возврат по претензии и спору, «не удалось проверить», награда за видео) — через код-пароль.
 // ============================================================
 (function () {
@@ -15,13 +15,13 @@
   const PAGE = 20;
   const KINDS = [
     ['support', 'Поддержка'], ['claims', 'Претензии'], ['disputes', 'Споры'], ['legit', 'Legit-Check'],
-    ['reviews', 'Отзывы'], ['ugc', 'Распаковки'], ['resale', 'Пристрой'],
+    ['reviews', 'Отзывы'], ['ugc', 'Распаковки'], ['stories', 'Stories'], ['resale', 'Пристрой'],
   ];
   const ONE = {
     support: 'Обращение', claims: 'Страховая претензия', disputes: 'Спор по заказу', legit: 'Legit-Check',
-    reviews: 'Отзыв', ugc: 'Видео-распаковка', resale: 'Пристрой',
+    reviews: 'Отзыв', ugc: 'Видео-распаковка', stories: 'Story клиента', resale: 'Пристрой',
   };
-  const ICON = { support: 'message', claims: 'shield', disputes: 'alert', legit: 'scan', reviews: 'star', ugc: 'camera', resale: 'tag' };
+  const ICON = { support: 'message', claims: 'shield', disputes: 'alert', legit: 'scan', reviews: 'star', ugc: 'camera', stories: 'camera', resale: 'tag' };
   const EMPTY = {
     support: ['message', 'Все обращения отвечены', 'Новые сообщения клиентов появятся здесь.'],
     claims: ['shield', 'Претензий на проверке нет', 'Когда клиент сообщит о потерянной или повреждённой посылке, заявка появится здесь.'],
@@ -29,8 +29,10 @@
     legit: ['scan', 'Заявок на проверку нет', 'Клиенты присылают фото, а вы выносите вердикт.'],
     reviews: ['star', 'Отзывов на модерации нет', 'Новые отзывы клиентов появятся здесь.'],
     ugc: ['camera', 'Видео на модерации нет', 'Распаковки клиентов за награду появятся здесь.'],
+    stories: ['camera', 'Stories на проверке нет', 'Ссылки на Stories клиентов за ICE BONUS появятся здесь.'],
     resale: ['tag', 'Объявлений на модерации нет', 'Объявления о перепродаже появятся здесь.'],
   };
+  const PLATFORM = { telegram: 'Telegram', instagram: 'Instagram', tiktok: 'TikTok' };
   const STATUS = {
     support: { open: ['Открыто', 'warn'], new: ['Новое', 'warn'], pending: ['Ждёт ответа', 'warn'], in_progress: ['В работе', ''], answered: ['Отвечено', ''], resolved: ['Решено', 'ok'], closed: ['Закрыто', ''] },
     claims: { pending: ['Ждёт решения', 'warn'], approved: ['Одобрена', 'ok'], rejected: ['Отклонена', 'bad'] },
@@ -38,6 +40,7 @@
     legit: { pending: ['Ждёт вердикта', 'warn'], original: ['Оригинал', 'ok'], fake: ['Подделка', 'bad'], impossible: ['Не удалось проверить', ''] },
     reviews: { pending: ['На модерации', 'warn'], approved: ['Опубликован', 'ok'], rejected: ['Отклонён', 'bad'] },
     ugc: { pending: ['На модерации', 'warn'], approved: ['Одобрено', 'ok'], rejected: ['Отклонено', 'bad'] },
+    stories: { pending: ['На проверке', 'warn'], approved: ['Принята', 'ok'], rejected: ['Отклонена', 'bad'] },
     resale: { pending: ['На модерации', 'warn'], approved: ['Опубликовано', 'ok'], reserved: ['Куплено, деньги удержаны', 'warn'], sold: ['Продано', 'ok'], rejected: ['Отклонено', 'bad'] },
   };
   const KIND_SET = KINDS.map((k) => k[0]);
@@ -173,6 +176,9 @@
     }
     if (k === 'ugc') {
       return { title: 'Видео-распаковка', text: r.caption || 'Без подписи', badge: badge(k, r.status), time: r.created_at };
+    }
+    if (k === 'stories') {
+      return { title: `Story · ${PLATFORM[r.platform] || 'площадка'}`, text: r.url || 'Без ссылки', badge: badge(k, r.status), extra: r.order_number ? `Заказ ${r.order_number}` : '', time: r.created_at };
     }
     return { title: r.title || 'Объявление', text: r.description || 'Без описания', badge: badge(k, r.status), extra: Number(r.price_byn) > 0 ? `Цена ${money(r.price_byn)}` : '', time: r.created_at };
   }
@@ -446,6 +452,14 @@
       if (d.status === 'rejected' && d.reject_reason) h += noteBlock('bad', 'Причина отказа', d.reject_reason);
       h += linksHtml(d);
       if (d.status === 'pending') h += actions(btn('adInbApprove', 'Одобрить и выдать награду') + btn('adInbReject', 'Отклонить', 'rd-btn-danger'));
+    } else if (k === 'stories') {
+      const link = /^https?:\/\//i.test(String(d.url || '')) ? d.url : '';
+      h += topCard(k, d, `Story · ${PLATFORM[d.platform] || 'площадка'}`, textBlock('Клиент прислал ссылку на Story с заказом. Откройте её и проверьте, что Story живая и заказ виден.'));
+      h += `<div class="rd-card ad-pad">${kvRow('Заказ', esc(d.order_number || (d.order_id ? AD.shortId(d.order_id) : 'не указан')))}${d.order_title ? kvRow('Товар', esc(d.order_title)) : ''}${kvRow('ICE BONUS', d.status === 'approved' ? (Number(d.bonus_applied) > 0 ? '+' + Number(d.bonus_applied) + ' выдан' : 'не начислен (лимит)') : '+1, при принятии')}</div>`;
+      h += link ? btn('adStOpen', 'Открыть Story', 'rd-btn-ghost') : '<p class="ad-hint">Ссылка не открывается: адрес указан неверно.</p>';
+      if (d.status === 'rejected' && d.reject_reason) h += noteBlock('bad', 'Причина отказа', d.reject_reason);
+      h += linksHtml(d);
+      if (d.status === 'pending') h += actions(btn('adInbApprove', 'Принять и выдать ICE BONUS') + btn('adInbReject', 'Отклонить', 'rd-btn-danger') + '<p class="ad-hint">Клиент получит уведомление в боте. После отказа он сможет прислать Story заново.</p>');
     } else {
       h += topCard(k, d, d.title || 'Объявление', textBlock(d.description));
       const RS = { new_tags: 'Новое, с бирками', new: 'Новое, без бирок', excellent: 'Отличное', good: 'Хорошее' };
@@ -514,6 +528,16 @@
     } else if (k === 'ugc') {
       on('adInbApprove', () => ugcApprove(d));
       on('adInbReject', () => rejectSheet('Отклонить видео', 'Клиент увидит причину. Напишите её понятно.', (v, b) => AD.call(b, 'admin_ugc_decision', { p_id: d.id, p_approve: false, p_reward: 0, p_reason: v }, { ok: 'Видео отклонено' })));
+    } else if (k === 'stories') {
+      on('adStOpen', () => {
+        const tg = window.Telegram && Telegram.WebApp;
+        if (tg && typeof tg.openLink === 'function') tg.openLink(d.url); else window.open(d.url, '_blank', 'noopener');
+      });
+      on('adInbApprove', async () => {
+        if (!await confirmSheet('Принять Story?', 'Клиент получит +1 ICE BONUS (если не исчерпан лимит на заказ или всего).', 'Принять')) return;
+        if (await AD.call(null, 'admin_story_decision', { p_story: d.id, p_approve: true }, { ok: 'Story принята' }) !== null) leave();
+      });
+      on('adInbReject', () => rejectSheet('Отклонить Story', 'Клиент увидит причину и сможет прислать Story заново.', (v, b) => AD.call(b, 'admin_story_decision', { p_story: d.id, p_approve: false, p_reason: v }, { ok: 'Story отклонена' })));
     } else if (k === 'resale') {
       on('adInbRelease', async () => {
         if (!await confirmSheet('Вернуть деньги покупателю?', 'Сделка отменится, вещь вернётся в каталог.', 'Вернуть')) return;

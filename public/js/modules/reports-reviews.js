@@ -338,34 +338,51 @@
         }
 
         // Карточка «Вас ждёт отзыв» над лентой — только если в боте открыт запрос отзыва
+        // Рядом — карточка «ICE BONUS за Stories»: только тем, у кого есть доставленный заказ (бот принимает Stories только по ним)
         async function rvLoadAsk() {
           const box = document.getElementById('rvAsk');
           if (!box || !userId) return;
+          let html = '';
           try {
             const { data, error } = await supabaseClient.from('review_requests')
               .select('id,status,order_ids').eq('user_id', userId).in('status', ['rating', 'writing'])
               .order('created_at', { ascending: false }).limit(1);
-            if (error || !data || !data.length) { box.innerHTML = ''; return; }
-            const rq = data[0];
-            const many = Array.isArray(rq.order_ids) && rq.order_ids.length > 1;
-            const sub = rq.status === 'rating'
-              ? (many ? 'Оцените заказы — это займёт минуту' : 'Оцените заказ — это займёт минуту')
-              : 'Расскажите в боте, как всё прошло';
-            box.innerHTML = `
+            if (!error && data && data.length) {
+              const rq = data[0];
+              const many = Array.isArray(rq.order_ids) && rq.order_ids.length > 1;
+              const sub = rq.status === 'rating'
+                ? (many ? 'Оцените заказы — это займёт минуту' : 'Оцените заказ — это займёт минуту')
+                : 'Расскажите в боте, как всё прошло';
+              html += `
               <button type="button" class="rv-ask" data-rv-ask>
                 <span class="rv-ask-ic">${UI.icon('message', 24, { stroke: 2.2 })}</span>
                 <span class="rv-ask-b"><b>Вас ждёт отзыв</b><small>${sub}</small></span>
                 <span class="rv-ask-go">${UI.icon('chevR', 18, { stroke: 2.6 })}</span>
               </button>`;
+            }
           } catch (e) { /* нет сети — карточку просто не показываем */ }
+          try {
+            const { data: done, error: dErr } = await supabaseClient.from('orders')
+              .select('id').eq('user_id', userId).eq('status', 'delivered').limit(1);
+            if (!dErr && done && done.length) {
+              html += `
+              <button type="button" class="rv-ask" data-rv-stories>
+                <span class="rv-ask-ic">${UI.icon('gift', 24, { stroke: 2.2 })}</span>
+                <span class="rv-ask-b"><b>ICE BONUS за Stories</b><small>+1 за каждую площадку — Telegram, Instagram, TikTok</small></span>
+                <span class="rv-ask-go">${UI.icon('chevR', 18, { stroke: 2.6 })}</span>
+              </button>`;
+            }
+          } catch (e) { /* нет сети — карточку просто не показываем */ }
+          box.innerHTML = html;
         }
 
-        function rvOpenBotReview() {
-          const u = 'https://t.me/icelogix_bot?start=review';
+        function rvOpenBot(start) {
+          const u = 'https://t.me/icelogix_bot?start=' + start;
           const tgw = window.Telegram && window.Telegram.WebApp;
           if (tgw && typeof tgw.openTelegramLink === 'function') tgw.openTelegramLink(u);
           else openExternalLink(u);
         }
+        function rvOpenBotReview() { rvOpenBot('review'); }
 
         // Лёгкая выборка оценок и категорий — для сводки рейтинга и счётчиков на чипах
         async function rvFetchStats() {
@@ -1334,6 +1351,7 @@
             const plat = t.closest('[data-rv-url]');
             if (plat) { openExternalLink(plat.dataset.rvUrl); return; }
             if (t.closest('[data-rv-ask]')) { rvOpenBotReview(); return; }
+            if (t.closest('[data-rv-stories]')) { rvOpenBot('stories'); return; }
             const srt = t.closest('[data-rv-sort]');
             if (srt) { rvSwitchSort(srt.dataset.rvSort); return; }
             const chip = t.closest('[data-rv-cat]');
