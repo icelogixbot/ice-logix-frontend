@@ -178,7 +178,7 @@
       return { title: 'Видео-распаковка', text: r.caption || 'Без подписи', badge: badge(k, r.status), time: r.created_at };
     }
     if (k === 'stories') {
-      return { title: `Story · ${PLATFORM[r.platform] || 'площадка'}`, text: r.url || 'Без ссылки', badge: badge(k, r.status), extra: r.order_number ? `Заказ ${r.order_number}` : '', time: r.created_at };
+      return { title: `${r.kind === 'post' ? 'Пост' : 'Story'} · ${PLATFORM[r.platform] || 'площадка'}`, text: r.url || 'Без ссылки', badge: badge(k, r.status), extra: r.order_number ? `Заказ ${r.order_number}` : '', time: r.created_at };
     }
     return { title: r.title || 'Объявление', text: r.description || 'Без описания', badge: badge(k, r.status), extra: Number(r.price_byn) > 0 ? `Цена ${money(r.price_byn)}` : '', time: r.created_at };
   }
@@ -454,12 +454,13 @@
       if (d.status === 'pending') h += actions(btn('adInbApprove', 'Одобрить и выдать награду') + btn('adInbReject', 'Отклонить', 'rd-btn-danger'));
     } else if (k === 'stories') {
       const link = /^https?:\/\//i.test(String(d.url || '')) ? d.url : '';
-      h += topCard(k, d, `Story · ${PLATFORM[d.platform] || 'площадка'}`, textBlock('Клиент прислал ссылку на Story с заказом. Откройте её и проверьте, что Story живая и заказ виден.'));
+      const isPost = d.kind === 'post';
+      h += topCard(k, d, `${isPost ? 'Пост' : 'Story'} · ${PLATFORM[d.platform] || 'площадка'}`, textBlock(isPost ? 'Клиент прислал ссылку на публичный пост с заказом. Откройте её и проверьте, что пост открыт всем и заказ виден.' : 'Клиент прислал ссылку на Story с заказом. Откройте её и проверьте, что Story живая и заказ виден.'));
       h += `<div class="rd-card ad-pad">${kvRow('Заказ', esc(d.order_number || (d.order_id ? AD.shortId(d.order_id) : 'не указан')))}${d.order_title ? kvRow('Товар', esc(d.order_title)) : ''}${kvRow('ICE BONUS', d.status === 'approved' ? (Number(d.bonus_applied) > 0 ? '+' + Number(d.bonus_applied) + ' выдан' : 'не начислен (лимит)') : '+1, при принятии')}</div>`;
-      h += link ? btn('adStOpen', 'Открыть Story', 'rd-btn-ghost') : '<p class="ad-hint">Ссылка не открывается: адрес указан неверно.</p>';
+      h += link ? btn('adStOpen', isPost ? 'Открыть пост' : 'Открыть Story', 'rd-btn-ghost') : '<p class="ad-hint">Ссылка не открывается: адрес указан неверно.</p>';
       if (d.status === 'rejected' && d.reject_reason) h += noteBlock('bad', 'Причина отказа', d.reject_reason);
       h += linksHtml(d);
-      if (d.status === 'pending') h += actions(btn('adInbApprove', 'Принять и выдать ICE BONUS') + btn('adInbReject', 'Отклонить', 'rd-btn-danger') + '<p class="ad-hint">Клиент получит уведомление в боте. После отказа он сможет прислать Story заново.</p>');
+      if (d.status === 'pending') h += actions(btn('adInbApprove', 'Принять и выдать ICE BONUS') + btn('adInbReject', 'Отклонить', 'rd-btn-danger') + '<p class="ad-hint">Клиент получит уведомление в боте. После отказа он сможет прислать ' + (isPost ? 'пост' : 'Story') + ' заново.</p>');
     } else {
       h += topCard(k, d, d.title || 'Объявление', textBlock(d.description));
       const RS = { new_tags: 'Новое, с бирками', new: 'Новое, без бирок', excellent: 'Отличное', good: 'Хорошее' };
@@ -534,10 +535,11 @@
         if (tg && typeof tg.openLink === 'function') tg.openLink(d.url); else window.open(d.url, '_blank', 'noopener');
       });
       on('adInbApprove', async () => {
-        if (!await confirmSheet('Принять Story?', 'Клиент получит +1 ICE BONUS (если не исчерпан лимит на заказ или всего).', 'Принять')) return;
-        if (await AD.call(null, 'admin_story_decision', { p_story: d.id, p_approve: true }, { ok: 'Story принята' }) !== null) leave();
+        const isPost = d.kind === 'post';
+        if (!await confirmSheet(isPost ? 'Принять пост?' : 'Принять Story?', 'Клиент получит +1 ICE BONUS (если не исчерпан лимит на заказ или всего).', 'Принять')) return;
+        if (await AD.call(null, 'admin_story_decision', { p_story: d.id, p_approve: true }, { ok: isPost ? 'Пост принят' : 'Story принята' }) !== null) leave();
       });
-      on('adInbReject', () => rejectSheet('Отклонить Story', 'Клиент увидит причину и сможет прислать Story заново.', (v, b) => AD.call(b, 'admin_story_decision', { p_story: d.id, p_approve: false, p_reason: v }, { ok: 'Story отклонена' })));
+      on('adInbReject', () => rejectSheet(d.kind === 'post' ? 'Отклонить пост' : 'Отклонить Story', d.kind === 'post' ? 'Клиент увидит причину и сможет прислать пост заново.' : 'Клиент увидит причину и сможет прислать Story заново.', (v, b) => AD.call(b, 'admin_story_decision', { p_story: d.id, p_approve: false, p_reason: v }, { ok: d.kind === 'post' ? 'Пост отклонён' : 'Story отклонена' })));
     } else if (k === 'resale') {
       on('adInbRelease', async () => {
         if (!await confirmSheet('Вернуть деньги покупателю?', 'Сделка отменится, вещь вернётся в каталог.', 'Вернуть')) return;
