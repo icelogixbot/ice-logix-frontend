@@ -443,7 +443,7 @@
       h += '<div id="adRvMore"></div>';
       // заказы с номерами ICE и оценками рисует reviewMore, здесь только клиент
       h += linksHtml(Object.assign({}, d, { order_id: null, order: null }));
-      h += actions((d.status === 'pending' ? btn('adInbApprove', 'Принять') + btn('adInbReject', 'Отклонить', 'rd-btn-danger') : '') + btn('adRvReply', 'Ответить клиенту', 'rd-btn-ghost'));
+      h += actions((d.status === 'pending' ? btn('adInbApprove', 'Принять') + btn('adInbReject', 'Отклонить', 'rd-btn-danger') : '') + (d.status === 'approved' ? btn('adRvHide', 'Скрыть отзыв', 'rd-btn-danger') : '') + btn('adRvReply', 'Ответить клиенту', 'rd-btn-ghost'));
     } else if (k === 'ugc') {
       const v = /^https?:\/\//i.test(String(d.video_url || '')) ? d.video_url : '';
       h += topCard(k, d, 'Видео-распаковка', textBlock(d.caption));
@@ -525,6 +525,7 @@
     } else if (k === 'reviews') {
       on('adInbApprove', () => reviewApprove(d));
       reviewMore(d, root, on, reload);
+      on('adRvHide', () => reviewHide(d));
       on('adInbReject', () => rejectSheet('Отклонить отзыв', 'Отзыв не будет опубликован. Напишите причину.', (v, b) => AD.call(b, 'admin_review_decision', { p_review: d.id, p_approve: false, p_reason: v }, { ok: 'Отзыв отклонён' })));
     } else if (k === 'ugc') {
       on('adInbApprove', () => ugcApprove(d));
@@ -779,6 +780,19 @@
         return true;
       },
     });
+  }
+
+  // Скрыть опубликованный отзыв: статус rejected с пометкой «Скрыто» — бот в течение минуты уберёт пост из группы, письмо клиенту не уходит.
+  async function reviewHide(d) {
+    if (!await confirmSheet('Скрыть отзыв?', 'Отзыв пропадёт из группы и приложения. Клиенту ничего не придёт, ICE BONUS не отзывается.', 'Скрыть')) return;
+    const { data, error } = await window.supabaseClient.from('reviews')
+      .update({ moderation_status: 'rejected', is_published: false, moderation_reason: 'Скрыто: админка', moderated_at: new Date().toISOString() })
+      .eq('id', d.id).eq('moderation_status', 'approved').select('id');
+    if (error) { AD.fail(error); return; }
+    if (!data || !data.length) { U().toast('Отзыв уже скрыт или изменён', 'info'); return; }
+    AD.haptic('success');
+    U().toast('Отзыв скрыт', 'ok');
+    leave();
   }
 
   // как ice_review_has_video в БД: у бота медиа — объекты {type}, у Mini App — ссылки
