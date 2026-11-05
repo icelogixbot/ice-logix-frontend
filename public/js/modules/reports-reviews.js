@@ -207,9 +207,10 @@
           try {
             const dt = new Date(d);
             if (!d || isNaN(dt)) return '';
-            const day = dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Minsk' }).replace(/\s*г\.?$/, '');
-            const time = dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Minsk' });
-            return day + ', ' + time;
+            const o = { timeZone: 'Europe/Minsk' };
+            const day = dt.toLocaleDateString('ru-RU', { ...o, day: '2-digit', month: '2-digit', year: '2-digit' });
+            const time = dt.toLocaleTimeString('ru-RU', { ...o, hour: '2-digit', minute: '2-digit' });
+            return time + ', ' + day;
           } catch (e) { return ''; }
         }
 
@@ -535,21 +536,20 @@
             </div>`;
         }
 
-        // Нижний блок карточки: сверху «Товар/Товары из отзыва» на всю ширину, ниже «Хочу так же» и «Полезно» на одном уровне
-        function rvBottomHtml(r, liked) {
-          const likeBtn = `<button type="button" class="rv-like ${liked ? 'on' : ''}" data-rv-like aria-label="Полезный отзыв">${rvLikeInner(r.likes_count || 0)}</button>`;
-          if (!Array.isArray(r.order_ids) || !r.order_ids.length) return `<div class="rv-foot">${likeBtn}</div>`;
+        // Нижний блок карточки: «Хочу так же» и «Товар/Товары из отзыва» на одном уровне (только если у отзыва есть заказ)
+        function rvBottomHtml(r) {
+          if (!Array.isArray(r.order_ids) || !r.order_ids.length) return '';
           const cnt = rvOrderItems(r).length || r.order_ids.length;
           return `
             <div class="rv-acts">
-              <button type="button" class="rv-act rv-act-wide" data-rv-items>${UI.icon('bag', 17, { stroke: 2.2 })}<span>${cnt > 1 ? 'Товары из отзыва' : 'Товар из отзыва'}</span></button>
               <button type="button" class="rv-act rv-act-main" data-rv-want>${UI.icon('sparkles', 17, { stroke: 2.2 })}<span>Хочу так же</span></button>
-              ${likeBtn}
+              <button type="button" class="rv-act" data-rv-items>${UI.icon('bag', 17, { stroke: 2.2 })}<span>${cnt > 1 ? 'Товары из отзыва' : 'Товар из отзыва'}</span></button>
             </div>`;
         }
 
-        function rvLikeInner(count) {
-          return `${RV_THUMB}<span class="rv-like-t">Полезно</span><span class="rv-like-n">${count > 0 ? count : ''}</span>`;
+        // Квадрат с лайком справа вверху карточки, под ним счётчик
+        function rvLikeHtml(r, liked) {
+          return `<div class="rv-likebox"><button type="button" class="rv-like ${liked ? 'on' : ''}" data-rv-like aria-label="Полезный отзыв">${RV_THUMB}</button><span class="rv-like-n">${r.likes_count || 0}</span></div>`;
         }
 
         function rvCardHtml(r, i) {
@@ -565,6 +565,7 @@
                   <div class="rv-name">${rvEsc(name)}</div>
                   <div class="rv-meta">${rvEsc(RV_CAT_LABEL[r.category] || 'Отзыв')} · ${rvFmtDate(r.created_at)}</div>
                 </div>
+                ${rvLikeHtml(r, liked)}
               </div>
               <div class="rv-rate">
                 <div class="rv-stars" aria-label="Оценка ${rating} из 5">${[1, 2, 3, 4, 5].map(k => UI.icon('star', 17, { fill: k <= rating })).join('')}</div>
@@ -576,7 +577,7 @@
               ${rvOrdersHtml(r)}
               ${rvReplyHtml(r)}
               ${rvManagerReplyHtml(r)}
-              ${rvBottomHtml(r, liked)}
+              ${rvBottomHtml(r)}
             </article>`;
         }
 
@@ -1276,7 +1277,9 @@
           const btn = card.querySelector('[data-rv-like]');
           if (!btn) return;
           btn.classList.toggle('on', liked);
-          btn.innerHTML = rvLikeInner(count);
+          btn.innerHTML = RV_THUMB;
+          const n = card.querySelector('.rv-like-n');
+          if (n) n.textContent = count;
           if (liked) { btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop'); }
         }
 
