@@ -15,7 +15,7 @@
 
         window.iceBonusCard = function (d) {
           const bal = Math.max(0, Number(d && d.balance) || 0);
-          const cap = Math.max(1, Number(d && d.ugc_cap) || 15);
+          const cap = Math.max(1, Number(d && d.ugc_cap) || 30);
           const got = Math.min(cap, Math.max(0, Number(d && d.ugc_earned) || 0));
           const sign = typeof window.bynSign === 'function' ? window.bynSign() : '₽';
           const coin = `<svg class="ib-art" viewBox="0 0 96 96" aria-hidden="true"><defs><linearGradient id="ibCoinG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:#fff"/><stop offset=".55" style="stop-color:var(--rd-b300)"/><stop offset="1" style="stop-color:var(--rd-b400)"/></linearGradient></defs><ellipse cx="50" cy="90" rx="22" ry="4" fill="#000" opacity=".22"/><circle cx="48" cy="46" r="40" fill="url(#ibCoinG)"/><circle cx="48" cy="46" r="31" fill="none" style="stroke:var(--rd-blue)" stroke-opacity=".5" stroke-width="3"/><path d="m48 24 6.4 13 14.4 2.1-10.4 10.100 2.500 14.300L48 56.700 35.100 63.500l2.500-14.300L27.200 39.100l14.400-2.100z" style="fill:var(--rd-blue)"/><ellipse cx="33" cy="22" rx="10" ry="5" fill="#fff" opacity=".65" transform="rotate(-32 33 22)"/></svg>`;
