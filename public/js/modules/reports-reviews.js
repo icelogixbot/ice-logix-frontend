@@ -230,13 +230,12 @@
         async function rvFetchPage(cat, sort, from) {
           const run = async () => {
             let q = supabaseClient.from('reviews')
-              .select('id,user_name,category,rating,text,photo_urls:media_urls,is_verified,is_pinned,likes_count,created_at,order_ids,manager_reply,review_actions(details)')
+              .select('id,user_name,category,rating,text,photo_urls:media_urls,is_verified,likes_count,created_at,order_ids,manager_reply,review_actions(details)')
               .eq('is_published', true)
               .is('resolves_review_id', null);
             if (cat !== 'all') q = q.eq('category', cat);
             if (sort === 'photo') q = q.neq('media_urls', '[]');
             if (sort === 'best') q = q.order('likes_count', { ascending: false }).order('rating', { ascending: false });
-            else q = q.order('is_pinned', { ascending: false });
             const { data, error } = await q
               .order('created_at', { ascending: false })
               .range(from, from + RV_PAGE - 1);
@@ -558,9 +557,6 @@
           const liked = window.likedReviewsCache && window.likedReviewsCache.has(r.id);
           const rating = Math.max(0, Math.min(5, Number(r.rating) || 0));
           const name = r.user_name || 'Клиент';
-          const corner = isOwner
-            ? `<button type="button" class="rv-pin ${r.is_pinned ? 'on' : ''}" data-rv-pin aria-label="${r.is_pinned ? 'Открепить' : 'Закрепить'}">${UI.icon('pin', 16, { fill: !!r.is_pinned })}</button>`
-            : (r.is_pinned ? `<span class="rv-pinned">${UI.icon('pin', 12, { fill: true })}Закреплён</span>` : '');
           return `
             <article class="rv-card" data-review-id="${r.id}" style="--i:${Math.min(i || 0, 8)}">
               <div class="rv-top">
@@ -569,7 +565,6 @@
                   <div class="rv-name">${rvEsc(name)}</div>
                   <div class="rv-meta">${rvEsc(RV_CAT_LABEL[r.category] || 'Отзыв')} · ${rvFmtDate(r.created_at)}</div>
                 </div>
-                ${corner}
               </div>
               <div class="rv-rate">
                 <div class="rv-stars" aria-label="Оценка ${rating} из 5">${[1, 2, 3, 4, 5].map(k => UI.icon('star', 17, { fill: k <= rating })).join('')}</div>
@@ -1318,28 +1313,6 @@
           toggleReviewLike(card, reviewId, true);
         }
 
-        async function toggleReviewPin(reviewId, card) {
-          if (!isOwner) return;
-          try {
-            const item = rvState.items.find(r => r.id === reviewId);
-            const newPinned = !(item && item.is_pinned);
-            const { error } = await supabaseClient.from('reviews').update({ is_pinned: newPinned }).eq('id', reviewId);
-            if (error) throw error;
-            if (item) item.is_pinned = newPinned;
-            tgUtil.haptic('success');
-            const btn = card && card.querySelector('[data-rv-pin]');
-            if (btn) {
-              btn.classList.toggle('on', newPinned);
-              btn.setAttribute('aria-label', newPinned ? 'Открепить' : 'Закрепить');
-              btn.innerHTML = UI.icon('pin', 16, { fill: newPinned });
-            }
-            rvClearCache();
-          } catch (e) {
-            console.error('Failed to toggle review pin status:', e);
-            tgUtil.alert('Не удалось изменить закрепление: ' + e.message);
-          }
-        }
-
         function attachReviewsHandlers() {
           const root = document.getElementById('rvRoot');
           if (!root) return;
@@ -1376,7 +1349,6 @@
             if (!card || !card.dataset.reviewId) return;
             const id = card.dataset.reviewId;
             if (t.closest('[data-rv-like]')) { toggleReviewLike(card, id); return; }
-            if (t.closest('[data-rv-pin]')) { toggleReviewPin(id, card); return; }
             if (t.closest('[data-rv-want]')) { rvWantSame(id); return; }
             if (t.closest('[data-rv-items]')) { openReviewItems(id); return; }
             const ph = t.closest('[data-rv-ph]');
@@ -1494,7 +1466,6 @@
         window.openReviewActionModal = openReviewActionModal;
         window.triggerDoubleTapLike = triggerDoubleTapLike;
         window.toggleReviewLike = toggleReviewLike;
-        window.toggleReviewPin = toggleReviewPin;
         window.attachReviewsHandlers = attachReviewsHandlers;
         window.renderReviewItems = renderReviewItems;
         window.attachReviewItemsHandlers = attachReviewItemsHandlers;
