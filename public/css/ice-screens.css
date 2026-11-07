@@ -2016,3 +2016,33 @@ html body .app-header .header-center .icon-btn.active-header-btn { background: r
 .hm .hm-q[data-story="reviews"]{background:radial-gradient(120% 100% at 50% 0%,#6fe4ff 0%,#2f7dff 58%,#1639c0 100%);color:#fff}
 .hm .hm-q[data-story="reviews"] .hm-q-label{color:#fff;text-shadow:0 1px 2px rgba(0,20,90,.4)}
 
+
+/* Жалоба на отзыв (ADR-058): окно по центру, синий герой + крупные плитки */
+.rv-rp{position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.66);overscroll-behavior:contain;animation:rv-rp-fade .2s ease-out}
+.rv-rp.out{opacity:0;transition:opacity .2s;pointer-events:none}
+.rv-rp-box{width:100%;max-width:400px;max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain;border-radius:var(--rd-r22);background:var(--rd-s1);border:1px solid var(--rd-line);box-shadow:0 24px 60px -20px rgba(0,0,0,.8);animation:rv-rp-pop .42s cubic-bezier(.2,.8,.2,1) backwards}
+.rv-rp.out .rv-rp-box{transform:translateY(8px) scale(.97);transition:transform .2s}
+.rv-rp-head{position:relative;overflow:hidden;isolation:isolate;padding:18px 16px 16px;color:#fff;background:radial-gradient(120% 90% at 0% 0%,color-mix(in srgb,var(--rd-b400) 55%,transparent) 0%,transparent 58%),linear-gradient(135deg,var(--rd-blue-hi) 0%,var(--rd-blue) 52%,color-mix(in srgb,var(--rd-blue) 70%,#000) 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.28)}
+.rv-rp-head::before{content:"";position:absolute;z-index:-1;top:-70px;right:-60px;width:170px;height:170px;border-radius:50%;border:18px solid rgba(255,255,255,.08)}
+.rv-rp-ic{display:flex;align-items:center;justify-content:center;width:48px;height:48px;margin-bottom:10px;border-radius:16px;background:rgba(255,255,255,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 8px 18px -8px rgba(0,0,0,.4);transform:rotate(-6deg)}
+.rv-rp-title{font-size:22px;font-weight:800;line-height:1.15;letter-spacing:.01em}
+.rv-rp-sub{margin-top:5px;font-size:13px;font-weight:500;line-height:17px;color:rgba(255,255,255,.82)}
+.rv-rp-list{display:flex;flex-direction:column;gap:8px;padding:14px 14px 0}
+.rv-rp-opt{display:flex;align-items:center;gap:12px;min-height:52px;padding:0 14px;border:2px solid transparent;border-radius:var(--rd-r16);background:#fff;color:#0b1220;font:inherit;font-size:15px;font-weight:700;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .15s,border-color .15s,background .15s;animation:rv-rp-item .36s cubic-bezier(.2,.8,.2,1) backwards;animation-delay:calc(var(--i) * 45ms + 120ms)}
+.rv-rp-opt:active{transform:scale(.98)}
+.rv-rp-dot{flex:none;width:22px;height:22px;border-radius:50%;border:2px solid #b8c2d6;background:#fff;transition:border .15s,background .15s,box-shadow .15s}
+.rv-rp-opt.on{border-color:var(--rd-blue);background:#eaf2ff}
+.rv-rp-opt.on .rv-rp-dot{border-color:var(--rd-blue);background:var(--rd-blue);box-shadow:inset 0 0 0 4px #fff}
+.rv-rp-text{display:block;width:calc(100% - 28px);margin:8px 14px 0;padding:12px 14px;box-sizing:border-box;border:1px solid var(--rd-line);border-radius:var(--rd-r16);background:var(--rd-s2);color:#fff;font:inherit;font-size:16px;line-height:22px;resize:none;outline:none}
+.rv-rp-text[hidden]{display:none}
+.rv-rp-text:focus{border-color:var(--rd-blue)}
+.rv-rp-btns{display:flex;flex-direction:column;gap:8px;padding:14px}
+.rv-rp-send,.rv-rp-cancel{min-height:50px;border:0;border-radius:var(--rd-r16);font:inherit;font-size:16px;font-weight:800;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .15s,opacity .15s}
+.rv-rp-send{color:#fff;background:linear-gradient(135deg,var(--rd-blue-hi),var(--rd-blue));box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 14px 28px -16px color-mix(in srgb,var(--rd-blue) 90%,transparent)}
+.rv-rp-send:disabled{opacity:.4;box-shadow:none;cursor:default}
+.rv-rp-cancel{background:var(--rd-s2);color:#fff;border:1px solid var(--rd-line)}
+.rv-rp-send:not(:disabled):active,.rv-rp-cancel:active{transform:scale(.98)}
+@keyframes rv-rp-fade{from{opacity:0}}
+@keyframes rv-rp-pop{from{opacity:0;transform:translateY(14px) scale(.96)}}
+@keyframes rv-rp-item{from{opacity:0;transform:translateY(8px)}}
+@media (prefers-reduced-motion:reduce){.rv-rp,.rv-rp-box,.rv-rp-opt{animation:none;transition:none}}

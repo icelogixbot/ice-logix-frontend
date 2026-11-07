@@ -1482,33 +1482,99 @@
           }
         }
 
-        // Жалоба на отзыв (ADR-051/052): повторное нажатие на флажок отзывает жалобу.
-        // Пишут функции review_report_app / review_report_cancel; 3 разных жалобщика (мини-приложение + чат) скрывают отзыв (бот, REVIEW-004)
+        // Жалоба на отзыв (ADR-058): первый тап открывает окно с причиной (review_report_add), повторный — отзывает жалобу (review_report_cancel).
+        const RV_RP_REASONS = [
+          ['spam', 'Спам или реклама'],
+          ['abuse', 'Оскорбления или мат'],
+          ['fake', 'Ложный отзыв — автор не клиент'],
+          ['personal', 'Личные данные'],
+          ['other', 'Другое']
+        ];
+        function rvMarkReported(card, reviewId, on) {
+          if (on) rvReported.add(reviewId); else rvReported.delete(reviewId);
+          const btn = card && card.querySelector('[data-rv-report]');
+          if (!btn) return;
+          btn.classList.toggle('sent', on);
+          btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+          btn.setAttribute('aria-label', on ? 'Отозвать жалобу' : 'Пожаловаться на отзыв');
+          btn.title = on ? 'Отозвать жалобу' : 'Пожаловаться';
+        }
+        function rvReportDialog(onSend) {
+          const wrap = document.createElement('div');
+          wrap.className = 'rv-rp';
+          wrap.innerHTML = '<div class="rv-rp-box" role="dialog" aria-modal="true" aria-label="Жалоба на отзыв">'
+            + '<div class="rv-rp-head"><span class="rv-rp-ic"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4h12l-2 4 2 4H5"/></svg></span>'
+            + '<div class="rv-rp-title">Что не так с отзывом?</div><div class="rv-rp-sub">Выберите причину, мы передадим жалобу модераторам</div></div>'
+            + '<div class="rv-rp-list">' + RV_RP_REASONS.map((x, i) => '<button type="button" class="rv-rp-opt" data-rp="' + x[0] + '" style="--i:' + i + '"><span class="rv-rp-dot"></span><span class="rv-rp-lbl">' + x[1] + '</span></button>').join('') + '</div>'
+            + '<textarea class="rv-rp-text" maxlength="500" rows="3" placeholder="Расскажите, что случилось (по желанию)" hidden></textarea>'
+            + '<div class="rv-rp-btns"><button type="button" class="rv-rp-send" disabled>Отправить жалобу</button><button type="button" class="rv-rp-cancel">Отмена</button></div></div>';
+          let reason = '';
+          let closed = false;
+          const close = () => {
+            if (closed) return;
+            closed = true;
+            wrap.classList.add('out');
+            setTimeout(() => wrap.remove(), 200);
+          };
+          const sendBtn = wrap.querySelector('.rv-rp-send');
+          const ta = wrap.querySelector('.rv-rp-text');
+          wrap.addEventListener('click', (e) => {
+            if (e.target === wrap) { close(); return; }
+            const opt = e.target.closest('.rv-rp-opt');
+            if (opt) {
+              reason = opt.dataset.rp;
+              wrap.querySelectorAll('.rv-rp-opt').forEach(o => o.classList.toggle('on', o === opt));
+              ta.hidden = reason !== 'other';
+              sendBtn.disabled = false;
+              if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
+              return;
+            }
+            if (e.target.closest('.rv-rp-cancel')) { close(); return; }
+            if (e.target.closest('.rv-rp-send') && reason && !sendBtn.disabled) {
+              sendBtn.disabled = true;
+              onSend(reason, reason === 'other' ? ta.value.trim().slice(0, 500) : '').finally(close);
+            }
+          });
+          document.body.appendChild(wrap);
+        }
         async function rvReportReview(card, reviewId) {
           if (!userId) { window.requireAuth('Для жалобы необходимо войти.'); return; }
           const btn = card.querySelector('[data-rv-report]');
           if (!btn || btn.disabled) return;
           if (typeof tgUtil !== 'undefined' && tgUtil.haptic) tgUtil.haptic('light');
-          const cancel = rvReported.has(reviewId);
+          if (!rvReported.has(reviewId)) {
+            rvReportDialog(async (reason, text) => {
+              try {
+                const { data, error } = await supabaseClient.rpc('review_report_add', { p_review_id: reviewId, p_reporter: userId, p_source: 'app', p_reason: reason, p_text: text || null });
+                if (error) throw error;
+                const st = data && data.status;
+                if (st === 'ok') { rvMarkReported(card, reviewId, true); UI.toast('Жалоба отправлена. Спасибо'); }
+                else if (st === 'dup') { rvMarkReported(card, reviewId, true); UI.toast(data.source === 'chat' ? 'Вы уже пожаловались на этот отзыв в чате' : 'Вы уже пожаловались на этот отзыв'); }
+                else if (st === 'handled') { rvMarkReported(card, reviewId, true); UI.toast('Жалобу на этот отзыв уже рассмотрели'); }
+                else if (st === 'own') { btn.remove(); UI.toast('Нельзя пожаловаться на свой отзыв'); }
+                else if (st === 'gone') UI.toast('Этот отзыв уже скрыт');
+                else throw new Error('bad');
+              } catch (err) {
+                console.error('Review report failed:', err);
+                UI.toast('Не получилось отправить, попробуйте ещё раз');
+              }
+            });
+            return;
+          }
+          const okCancel = await tgUtil.confirm('Отозвать вашу жалобу на этот отзыв?');
+          if (!okCancel) return;
           btn.disabled = true;
           try {
-            const { data, error } = await supabaseClient.rpc(cancel ? 'review_report_cancel' : 'review_report_app', { p_review_id: reviewId, p_reporter: userId });
+            const { data, error } = await supabaseClient.rpc('review_report_cancel', { p_review_id: reviewId, p_reporter: userId });
             if (error) throw error;
-            if (!cancel && data === 'own') { btn.remove(); UI.toast('Это ваш отзыв'); return; }
-            if (!cancel && data === 'gone') { rvReported.add(reviewId); btn.classList.add('sent'); btn.disabled = false; UI.toast('Отзыв уже скрыт'); return; }
-            if (data !== 'ok') throw new Error('bad');
-            if (cancel) rvReported.delete(reviewId); else rvReported.add(reviewId);
-            btn.classList.toggle('sent', !cancel);
-            btn.setAttribute('aria-pressed', cancel ? 'false' : 'true');
-            btn.setAttribute('aria-label', cancel ? 'Пожаловаться на отзыв' : 'Отозвать жалобу');
-            btn.title = cancel ? 'Пожаловаться' : 'Отозвать жалобу';
-            btn.disabled = false;
-            UI.toast(cancel ? 'Жалоба отозвана' : 'Жалоба отправлена. Нажмите ещё раз, чтобы отозвать');
+            if (data === 'ok') { rvMarkReported(card, reviewId, false); UI.toast('Жалоба отозвана'); }
+            else if (data === 'handled') UI.toast('Жалобу уже рассмотрели, отозвать нельзя');
+            else throw new Error('bad');
           } catch (err) {
-            console.error('Review report failed:', err);
-            btn.disabled = false;
+            console.error('Review report cancel failed:', err);
             UI.toast('Не удалось выполнить');
           }
+          btn.disabled = false;
         }
 
         // ---- Плеер голосовых и кружков: играет одно за раз; настоящий файл или демо-имитация (таймер + тихий тон) ----
