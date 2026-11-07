@@ -189,7 +189,7 @@
 
         const RV_PAGE = 10;
         const RV_CATS = [
-          ['all', 'Все'], ['orders', 'Заказы'], ['promotions', 'Акции'], ['referral', 'Рефералка'],
+          ['all', 'Все'], ['orders', 'Заказы'], ['promotions', 'Бонусы'], ['referral', 'Рефералка'],
           ['dropshipping', 'Дропшиппинг'], ['legitcheck', 'Legit Check'],
           ['advertising', 'Реклама'], ['partnership', 'Партнёрство']
         ];
@@ -1204,7 +1204,7 @@
                     <label class="text-white/60 text-xs font-bold uppercase tracking-wider">Категория</label>
                     <select id="reviewFormCategory" class="btn-secondary w-full p-3 rounded-xl border border-white/10 text-white text-sm">
                       <option value="orders">Заказы 🛒</option>
-                      <option value="promotions">Акции 🔥</option>
+                      <option value="promotions">Бонусы 🔥</option>
                       <option value="dropshipping">Дропшиппинг 📦</option>
                       <option value="referral">Рефералы 👥</option>
                       <option value="advertising">Реклама 📢</option>

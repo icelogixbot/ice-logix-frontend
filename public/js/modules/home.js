@@ -307,7 +307,7 @@ async function renderHome() {
     const _quick = [
       { story: 'onboarding', label: 'Всё по шагам' },
       { story: 'my_orders', label: 'Мои заказы' },
-      { story: 'promo', label: 'Акции' },
+      { story: 'promo', label: 'Бонусы' },
       { story: 'reviews', label: 'Отзывы' },
       { story: 'reports', label: 'Фотоотчёты' },
       { story: 'legitcheck', label: 'Легит-чек' },

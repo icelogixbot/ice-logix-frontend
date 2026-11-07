@@ -1,7 +1,7 @@
 // ============================================================
 // ICE LOGIX Module: Promotions & History
 // ============================================================
-// ==================== АКЦИИ (ПРОМО + КОЛЕСО ФОРТУНЫ) ====================
+// ==================== БОНУСЫ (ПРОМО + КОЛЕСО ФОРТУНЫ) ====================
 // Акция видна, только пока она идёт: выключенную, ещё не начавшуюся и просроченную не показываем
 function isPromotionLive(p) {
   const now = Date.now();
@@ -49,7 +49,7 @@ async function renderPromoPage() {
     <div class="rd-screen page-enter pr">
       <div class="rd-head">
         <button type="button" class="rd-back" onclick="window.goBackGlobal()" aria-label="Назад">${U.icon('chevL', 22)}</button>
-        <div class="rd-head-txt"><h1 class="rd-head-title">Акции</h1><p class="rd-head-sub">Скидки и розыгрыши</p></div>
+        <div class="rd-head-txt"><h1 class="rd-head-title">Бонусы</h1><p class="rd-head-sub">Скидки и розыгрыши</p></div>
       </div>
 
       <div class="rd-section"><h2>Сейчас действуют</h2>${promos && promos.length ? `<span class="rd-pill">${promos.length}</span>` : ''}</div>
@@ -252,7 +252,7 @@ async function renderHistory() {
     ['historyTabCalculations', 'calculations', 'calc', 'Расчёты'],
     ['historyTabReviews', 'reviews', 'message', 'Отзывы'],
     ['historyTabLegit', 'legitchecks', 'shield', 'Легит-чеки'],
-    ['historyTabPromo', 'promotions', 'gift', 'Акции'],
+    ['historyTabPromo', 'promotions', 'gift', 'Бонусы'],
     ['historyTabFamily', 'family', 'users', 'Семья'],
   ];
 
@@ -677,7 +677,7 @@ async function renderSettingsPage(initialTab = 'account') {
     <div class="rd-card rd-list">
       ${infoRow('truck', 'Статусы заказов', 'Выкуп, склад в Китае, доставка', '<span class="st-end">Всегда</span>')}
       ${switchRow('notifyNews', 'bell', 'Новости сервиса', 'Новые возможности, тарифы, график работы', notif.news)}
-      ${switchRow('notifyPromotions', 'gift', 'Акции и промокоды', 'Скидки на доставку и розыгрыши', notif.promotions)}
+      ${switchRow('notifyPromotions', 'gift', 'Бонусы и промокоды', 'Скидки на доставку и розыгрыши', notif.promotions)}
     </div>
 
     <p class="st-cap">Не беспокоить</p>
@@ -1053,7 +1053,7 @@ async function renderNotificationsPage() {
   const unreadCount = notifications.filter(n => !n.is_read).length;
   const activeFilter = window._notifActiveFilter || 'all';
   const U = window.UI;
-  const tabs = [['all', 'Все'], ['orders', 'Заказы'], ['news', 'Новости'], ['promos', 'Акции']];
+  const tabs = [['all', 'Все'], ['orders', 'Заказы'], ['news', 'Новости'], ['promos', 'Бонусы']];
 
   return `
     <div class="rd-screen page-enter nt">
