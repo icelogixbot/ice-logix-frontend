@@ -1404,7 +1404,6 @@
                   rating: selectedStars,
                   text: processedText,
                   user_name: userName || 'Пользователь',
-                  is_verified: true,
                   media_urls: photoUrls,
                   category: finalCategory,
                   region: finalCountry,
