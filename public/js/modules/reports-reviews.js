@@ -189,9 +189,9 @@
 
         const RV_PAGE = 10;
         const RV_CATS = [
-          ['all', 'Все'], ['orders', 'Заказы'], ['promotions', 'Акции'], ['dropshipping', 'Дропшиппинг'],
-          ['referral', 'Рефералка'], ['advertising', 'Реклама'],
-          ['legitcheck', 'Legit Check'], ['partnership', 'Партнёрство']
+          ['all', 'Все'], ['orders', 'Заказы'], ['promotions', 'Акции'], ['referral', 'Рефералка'],
+          ['dropshipping', 'Дропшиппинг'], ['legitcheck', 'Legit Check'],
+          ['advertising', 'Реклама'], ['partnership', 'Партнёрство']
         ];
         const RV_CAT_LABEL = Object.fromEntries(RV_CATS);
         const RV_SORTS = [['new', 'Новые'], ['best', 'Лучшие'], ['photo', 'С медиа']];
