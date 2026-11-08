@@ -193,7 +193,7 @@
   }
 
   function renderSlide(s, idx) {
-    const art = s.art === 'logo' ? '<img src="/assets/logo.png" alt="">' : ic(s.art);
+    const art = s.art === 'logo' ? '<img src="/assets/logo.png?v=20261108n" alt="">' : ic(s.art);
     const artStyle = s.art === 'logo' ? 'background:linear-gradient(150deg,#123A80,#0B1B3E)' : (s.a ? `--a:${s.a};--s:${s.s}` : '');
     const listHtml = s.list ? `<ul class="ice-slide-list">${s.list.map(([icon, text]) => `<li><i>${ic(icon)}</i><span>${text}</span></li>`).join('')}</ul>` : '';
     const billHtml = s.bill ? `

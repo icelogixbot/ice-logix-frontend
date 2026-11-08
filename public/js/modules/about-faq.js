@@ -12,7 +12,7 @@ async function renderAboutUs() {
     </div>
 
     <div class="ab-hero">
-      <img src="/assets/logo.png" alt="ICE LOGIX" class="ab-logo">
+      <img src="/assets/logo.png?v=20261108n" alt="ICE LOGIX" class="ab-logo">
       <h2>ICE LOGIX</h2>
       <p>Выкупаем вещи в Китае и привозим в Беларусь</p>
       <div class="ab-tags">

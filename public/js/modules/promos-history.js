@@ -1255,7 +1255,7 @@ function showAuthPage() {
       </button>
       
       <div class="text-center mb-6 mt-2">
-        <img src="/assets/logo.png" class="auth-logo" alt="ICE LOGIX">
+        <img src="/assets/logo.png?v=20261108n" class="auth-logo" alt="ICE LOGIX">
         <h2 class="text-white text-2xl font-bold mb-1">ICE LOGIX</h2>
         <p class="text-white/50 text-sm" id="authSubtitle">Войдите, чтобы заказывать и следить за посылками</p>
       </div>
