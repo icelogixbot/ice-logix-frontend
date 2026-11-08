@@ -135,16 +135,16 @@ function _hmSlide(o) {
 
 function _hmPromoSlide(p) {
   const pct = String(p.discount_type || '').includes('percent') && Number(p.discount_value) > 0 ? Math.round(Number(p.discount_value)) : 0;
-  const t = _esc(p.title || 'Бонус');
+  const t = _esc(p.title || 'Акция');
   const id = _esc(p.id);
   if (p.banner_url) {
     return `<div class="hb-slide hb-img" data-promo="${id}">
       <img src="${_esc(p.banner_url)}" alt="" draggable="false" decoding="async">
-      <div class="hb-txt"><span class="hb-k">Бонус</span><span class="hb-t">${t}</span></div>
+      <div class="hb-txt"><span class="hb-k">Акция</span><span class="hb-t">${t}</span></div>
     </div>`;
   }
   return _hmSlide({
-    tone: 'promo', attr: `data-promo="${id}"`, k: 'Бонус',
+    tone: 'promo', attr: `data-promo="${id}"`, k: 'Акция',
     t: pct ? `−${pct}%` : t,
     s: pct ? t : _esc(p.description || 'Скидка применится в калькуляторе'),
     btn: 'Применить', art: (window.HOME_ART || {}).bPromo
@@ -307,7 +307,7 @@ async function renderHome() {
     const _quick = [
       { story: 'onboarding', label: 'Всё по шагам' },
       { story: 'my_orders', label: 'Мои заказы' },
-      { story: 'promo', label: 'Бонусы' },
+      { story: 'promo', label: 'Акции' },
       { story: 'reviews', label: 'Отзывы' },
       { story: 'reports', label: 'Фотоотчёты' },
       { story: 'legitcheck', label: 'Легит-чек' },
@@ -400,7 +400,7 @@ function _hmOnClick(e) {
     const act = slide.getAttribute('data-act');
     if (promoId) {
       window.activePromotionId = promoId;
-      if (window.UI) window.UI.toast('Бонус применится в калькуляторе');
+      if (window.UI) window.UI.toast('Акция применится в калькуляторе');
       switchTab('calculator');
       window.activePromotionId = promoId;
     } else if (act === 'calc') switchTab('calculator');

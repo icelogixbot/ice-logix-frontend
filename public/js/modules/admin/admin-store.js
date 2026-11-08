@@ -521,14 +521,14 @@
   const fromLocalInput = (v) => { if (!v) return null; const d = new Date(v); return isNaN(d) ? null : d.toISOString(); };
 
   function renderPromos(host, ctx) {
-    ctx.cta('Добавить бонус', () => promoForm(null, ctx));
+    ctx.cta('Добавить акцию', () => promoForm(null, ctx));
     loadInto(host, ctx,
       () => sb().from('promotions').select('*').order('created_at', { ascending: false }),
       (rows) => {
         prRows = rows; ctx.setCount(rows.length);
-        const note = `<div class="ad-note">${I('info', 18)}<div><b>Бонус только рассказывает</b><p>Скидка в заказе работает через промокод. Создайте его в разделе «Промокоды».</p></div></div>`;
+        const note = `<div class="ad-note">${I('info', 18)}<div><b>Акция только рассказывает</b><p>Скидка в заказе работает через промокод. Создайте его в разделе «Промокоды».</p></div></div>`;
         if (!rows.length) {
-          host.innerHTML = AD.emptyHtml({ icon: 'tag', title: 'Бонусов пока нет', text: 'Бонус — это баннер и условия для клиентов. Добавьте первую, когда будет что предложить.', action: 'Добавить бонус', actionId: 'adStEmptyAdd' }) + note;
+          host.innerHTML = AD.emptyHtml({ icon: 'tag', title: 'Акций пока нет', text: 'Акция — это баннер и условия для клиентов. Добавьте первую, когда будет что предложить.', action: 'Добавить акцию', actionId: 'adStEmptyAdd' }) + note;
           host.querySelector('#adStEmptyAdd').onclick = () => promoForm(null, ctx);
           return;
         }
@@ -551,7 +551,7 @@
     const edit = !!p;
     let banner;
     openForm({
-      title: edit ? 'Бонус' : 'Новый бонус',
+      title: edit ? 'Акция' : 'Новая акция',
       body: `
         ${fld('Название', inp('title', { value: edit ? p.title : '', ph: 'Например, Чёрная пятница' }))}
         ${fld('Описание', area('description', edit ? p.description : '', 'Условия простыми словами', 3))}
@@ -564,33 +564,33 @@
         ${fld('Сколько раз можно применить', inp('usage_limit', { value: edit && p.usage_limit != null ? p.usage_limit : '', type: 'number', mode: 'numeric', ph: 'Без ограничений' }))}
         ${fld('Текст пуша', area('push_text', edit ? p.push_text : '', 'Пусто — пуш не отправляем', 2))}
         ${fld('За сколько минут до начала слать пуш', inp('push_minutes_before', { value: edit && p.push_minutes_before != null ? p.push_minutes_before : 60, type: 'number', mode: 'numeric' }))}
-        ${sw('is_active', 'Бонус включён', edit ? p.is_active !== false : true)}
+        ${sw('is_active', 'Акция включена', edit ? p.is_active !== false : true)}
         ${edit ? sw('push_again', 'Отправить пуш заново', false, 'Пуш уйдёт ещё раз в назначенное время') : ''}
-        ${edit ? '<button type="button" class="rd-btn rd-btn-danger rd-btn-block ad-gap" data-del>Удалить бонус</button>' : ''}`,
+        ${edit ? '<button type="button" class="rd-btn rd-btn-danger rd-btn-block ad-gap" data-del>Удалить акцию</button>' : ''}`,
       onOpen: (form, wrap, close) => {
         banner = photoBlock(form, 'adStBanner', edit && p.banner_url ? [p.banner_url] : [], 1, (f) => (typeof uploadProductImage === 'function' ? uploadProductImage(f) : bad('Загрузка фото сейчас недоступна')), 'Загрузить');
         const del = form.querySelector('[data-del]');
         if (del) del.onclick = async () => {
-          if (!(await AD.confirmSheet('Удалить бонус?', `«${p.title || 'Бонус'}» пропадёт у клиентов. Вернуть её не получится.`, 'Удалить', true))) return;
+          if (!(await AD.confirmSheet('Удалить акцию?', `«${p.title || 'Акция'}» пропадёт у клиентов. Вернуть её не получится.`, 'Удалить', true))) return;
           try {
             const { error } = await sb().from('promotions').delete().eq('id', p.id);
             if (error) throw error;
             logAct('delete_promotion', { id: p.id, title: p.title });
-            U().toast('Бонус удалён', 'ok'); close(); ctx.reload();
+            U().toast('Акция удалена', 'ok'); close(); ctx.reload();
           } catch (x) { AD.fail(x, 'Не получилось удалить'); }
         };
       },
       save: async (form) => {
         const title = val(form, 'title');
         const dv = parseFloat(String(val(form, 'discount_value')).replace(',', '.'));
-        if (!title) bad('Напишите название бонуса.');
+        if (!title) bad('Напишите название акции.');
         if (!isFinite(dv) || dv <= 0) bad('Укажите размер скидки числом больше нуля.');
         const type = chipVals(form, 'discount_type')[0] || 'percent';
         if (type === 'percent' && dv > 100) bad('Скидка в процентах не может быть больше 100.');
         if (banner.busy) bad('Подождите, баннер ещё загружается.');
         const starts = fromLocalInput(val(form, 'starts_at'));
         const ends = fromLocalInput(val(form, 'expires_at'));
-        if (starts && ends && new Date(ends) <= new Date(starts)) bad('Конец бонуса должен быть позже начала.');
+        if (starts && ends && new Date(ends) <= new Date(starts)) bad('Конец акции должен быть позже начала.');
         const ul = parseInt(val(form, 'usage_limit'), 10);
         const pm = parseInt(val(form, 'push_minutes_before'), 10);
         const mo = parseFloat(String(val(form, 'min_order_amount')).replace(',', '.'));
@@ -618,7 +618,7 @@
           if (error) throw error;
           logAct('create_promotion', { title });
         }
-        U().toast(edit ? 'Бонус сохранён' : 'Бонус добавлен', 'ok');
+        U().toast(edit ? 'Акция сохранена' : 'Акция добавлена', 'ok');
         ctx.reload();
       },
     });
@@ -732,7 +732,7 @@
   // ══════════════════ Регистрация разделов (порядок важен) ══════════════════
   store.addSection('products', 'Товары', 'box', renderProducts);
   store.addSection('markets', 'Площадки', 'store', renderMarkets);
-  store.addSection('promos', 'Бонусы', 'tag', renderPromos);
+  store.addSection('promos', 'Акции', 'tag', renderPromos);
   store.addSection('drops', 'Дропы', 'flame', renderDrops);
 
   // ══════════════════ Экран ══════════════════
@@ -742,7 +742,7 @@
       <div class="rd-screen page-enter ad-screen" id="adStoreRoot">
         <div class="rd-head">
           <button type="button" class="rd-back" onclick="window.goBackGlobal()" aria-label="Назад">${I('chevL', 22)}</button>
-          <div class="rd-head-txt"><h1 class="rd-head-title">Витрина</h1><p class="rd-head-sub">Товары, площадки, бонусы и дропы</p></div>
+          <div class="rd-head-txt"><h1 class="rd-head-title">Витрина</h1><p class="rd-head-sub">Товары, площадки, акции и дропы</p></div>
           <button type="button" class="rd-back" id="adStoreRefresh" aria-label="Обновить">${I('refresh', 20)}</button>
         </div>
         <div class="rd-chips ad-chips" id="adStoreChips">${chipsHtml()}</div>

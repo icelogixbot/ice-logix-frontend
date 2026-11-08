@@ -1,7 +1,7 @@
 // ============================================================
 // ICE LOGIX Module: Promotions & History
 // ============================================================
-// ==================== БОНУСЫ (ПРОМО + КОЛЕСО ФОРТУНЫ) ====================
+// ==================== АКЦИИ (ПРОМО + КОЛЕСО ФОРТУНЫ) ====================
 // Акция видна, только пока она идёт: выключенную, ещё не начавшуюся и просроченную не показываем
 function isPromotionLive(p) {
   const now = Date.now();
@@ -37,19 +37,19 @@ async function renderPromoPage() {
             ${disc ? `<span class="pr-disc">${disc}</span>` : ''}
           </div>
           <div class="pr-body">
-            <h3>${U.esc(p.title || 'Бонус')}</h3>
+            <h3>${U.esc(p.title || 'Акция')}</h3>
             ${p.description ? `<p>${U.esc(p.description)}</p>` : ''}
             <div class="pr-foot">${until ? `<span>${U.icon('clock', 14)}${until}</span>` : '<span>Без срока</span>'}<span class="rd-link">Подробнее${U.icon('chevR', 14)}</span></div>
           </div>
         </article>`;
       }).join('')
-    : U.empty({ icon: 'gift', title: 'Сейчас бонусов нет', text: 'Новые скидки и розыгрыши появятся здесь и в нашем канале.' });
+    : U.empty({ icon: 'gift', title: 'Сейчас акций нет', text: 'Новые скидки и розыгрыши появятся здесь и в нашем канале.' });
 
   return `
     <div class="rd-screen page-enter pr">
       <div class="rd-head">
         <button type="button" class="rd-back" onclick="window.goBackGlobal()" aria-label="Назад">${U.icon('chevL', 22)}</button>
-        <div class="rd-head-txt"><h1 class="rd-head-title">Бонусы</h1><p class="rd-head-sub">Скидки и розыгрыши</p></div>
+        <div class="rd-head-txt"><h1 class="rd-head-title">Акции</h1><p class="rd-head-sub">Скидки и розыгрыши</p></div>
       </div>
 
       <div class="rd-section"><h2>Сейчас действуют</h2>${promos && promos.length ? `<span class="rd-pill">${promos.length}</span>` : ''}</div>
@@ -65,8 +65,8 @@ function attachPromoPageHandlers() {
   });
   document.querySelectorAll('[data-promotion-id]').forEach(el => {
     el.addEventListener('click', () => {
-      if (!window.userId) { window.requireAuth('Авторизуйтесь, чтобы участвовать в бонусах!'); return; }
-      window.UI.toast('Условия бонуса скоро появятся здесь');
+      if (!window.userId) { window.requireAuth('Авторизуйтесь, чтобы участвовать в акциях!'); return; }
+      window.UI.toast('Условия акции скоро появятся здесь');
     });
   });
 }
@@ -191,7 +191,7 @@ async function renderHistory() {
   } else if (subScreen === 'promotions') {
     const { data, error } = await supabaseClient.from('promotions').select('*').order('created_at', { ascending: false }).limit(50);
     if (error || !data || !data.length) {
-      content = U.empty({ icon: 'gift', title: 'Бонусов пока не было', text: 'Скидки и розыгрыши появятся здесь, следите за новостями.' });
+      content = U.empty({ icon: 'gift', title: 'Акций пока не было', text: 'Скидки и розыгрыши появятся здесь, следите за новостями.' });
     } else {
       content = `<div class="hs-list">${data.map((pr) => {
         const disc = pr.discount_type === 'percent' ? `−${pr.discount_value}%` : `−${U.money(pr.discount_value)}`;
@@ -199,7 +199,7 @@ async function renderHistory() {
         return `
           <div class="hs-card hs-col hs-promo">
             ${pr.banner_url ? `<div class="hs-banner" style="background-image:url('${U.esc(pr.banner_url)}')"></div>` : ''}
-            <div class="hs-row-top"><span class="hs-title">${U.esc(pr.title || 'Бонус')}</span><span class="rd-status ${pr.is_active ? 'ok' : ''}">${pr.is_active ? 'Идёт' : 'Завершена'}</span></div>
+            <div class="hs-row-top"><span class="hs-title">${U.esc(pr.title || 'Акция')}</span><span class="rd-status ${pr.is_active ? 'ok' : ''}">${pr.is_active ? 'Идёт' : 'Завершена'}</span></div>
             ${pr.description ? `<p class="hs-text">${U.esc(pr.description)}</p>` : ''}
             <div class="hs-foot"><span class="hs-disc">${disc}</span><span class="hs-sub">${until}</span></div>
           </div>`;
@@ -252,7 +252,7 @@ async function renderHistory() {
     ['historyTabCalculations', 'calculations', 'calc', 'Расчёты'],
     ['historyTabReviews', 'reviews', 'message', 'Отзывы'],
     ['historyTabLegit', 'legitchecks', 'shield', 'Легит-чеки'],
-    ['historyTabPromo', 'promotions', 'gift', 'Бонусы'],
+    ['historyTabPromo', 'promotions', 'gift', 'Акции'],
     ['historyTabFamily', 'family', 'users', 'Семья'],
   ];
 
@@ -677,12 +677,12 @@ async function renderSettingsPage(initialTab = 'account') {
     <div class="rd-card rd-list">
       ${infoRow('truck', 'Статусы заказов', 'Выкуп, склад в Китае, доставка', '<span class="st-end">Всегда</span>')}
       ${switchRow('notifyNews', 'bell', 'Новости сервиса', 'Новые возможности, тарифы, график работы', notif.news)}
-      ${switchRow('notifyPromotions', 'gift', 'Бонусы и промокоды', 'Скидки на доставку и розыгрыши', notif.promotions)}
+      ${switchRow('notifyPromotions', 'gift', 'Акции и промокоды', 'Скидки на доставку и розыгрыши', notif.promotions)}
     </div>
 
     <p class="st-cap">Не беспокоить</p>
     <div class="rd-card rd-list">
-      ${switchRow('quietHoursSwitch', 'moon', 'Тихие часы', 'Новости, бонусы и курс придут утром. Статусы заказов — сразу', quietOn)}
+      ${switchRow('quietHoursSwitch', 'moon', 'Тихие часы', 'Новости, акции и курс придут утром. Статусы заказов — сразу', quietOn)}
       <div class="rd-row" role="button" tabindex="0" id="quietHoursTimeBtn" ${quietOn ? '' : 'hidden'}>
         <span class="rd-ico">${U.icon('clock', 22)}</span>${body('Время', `<span id="quietHoursTimeText">${quietText}</span>`)}${chev}
       </div>
@@ -965,7 +965,7 @@ function attachSettingsPageHandlers(initialTab = 'account') {
     const hm = /^([01]\d|2[0-3]):[0-5]\d$/;
     const v = await U.ask({
       title: 'Тихие часы',
-      text: 'В это время бот не пришлёт новости, бонусы и сигнал курса — они придут, когда тихие часы закончатся. Статусы заказов приходят всегда.',
+      text: 'В это время бот не пришлёт новости, акции и сигнал курса — они придут, когда тихие часы закончатся. Статусы заказов приходят всегда.',
       fields: [
         { name: 'from', label: 'С', type: 'time', value: q.from, placeholder: '23:00' },
         { name: 'to', label: 'До', type: 'time', value: q.to, placeholder: '09:00' }
@@ -1053,7 +1053,7 @@ async function renderNotificationsPage() {
   const unreadCount = notifications.filter(n => !n.is_read).length;
   const activeFilter = window._notifActiveFilter || 'all';
   const U = window.UI;
-  const tabs = [['all', 'Все'], ['orders', 'Заказы'], ['news', 'Новости'], ['promos', 'Бонусы']];
+  const tabs = [['all', 'Все'], ['orders', 'Заказы'], ['news', 'Новости'], ['promos', 'Акции']];
 
   return `
     <div class="rd-screen page-enter nt">

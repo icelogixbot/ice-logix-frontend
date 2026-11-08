@@ -3703,7 +3703,7 @@ let adminOrdersTotalPages = 1;
               isDb: true,
               bannerUrl: p.banner_url,
               title: p.title || 'Специальное предложение',
-              subtitle: p.description || 'Активируйте бонус для расчета в калькуляторе'
+              subtitle: p.description || 'Активируйте акцию для расчета в калькуляторе'
             });
           });
         }
@@ -3764,7 +3764,7 @@ let adminOrdersTotalPages = 1;
             return `
               <div class="banner-slide" data-promotion-id="${s.id}" style="background-image: url('${s.bannerUrl}');">
                 <div class="banner-content">
-                  <span class="banner-badge">БОНУС ICE LOGIX</span>
+                  <span class="banner-badge">АКЦИЯ ICE LOGIX</span>
                   <h3 class="banner-title">${s.title}</h3>
                   <p class="banner-subtitle">${s.subtitle}</p>
                   <span class="banner-btn">Применить скидку →</span>
