@@ -943,6 +943,8 @@ window.applySmartShareLink = applySmartShareLink;
               if (!createdOrderId) {
                 const orderInsertPayload = {
                   user_id: userId,
+                  // Название для уведомлений бота и админки: первая позиция корзины
+                  title: String(window.tempOrder.items?.[0]?.title || window.tempOrder.items?.[0]?.name || '').slice(0, 300) || null,
                   source_url: consolidatedOrder.url,
                   items: window.tempOrder.items,
                   cart_items: window.tempOrder.items,
@@ -976,6 +978,8 @@ window.applySmartShareLink = applySmartShareLink;
                     extra_photo: window.tempOrder.extraPhoto || false,
                     extra_measure: window.tempOrder.extraMeasure || false,
                     is_gift: window.tempOrder.isGift || false,
+                    // Адрес получения; tracking_number_by — только для настоящего трека по Беларуси
+                    receiving_address: pvsAddress || null,
                     // Условия приняты кнопкой в шторке подтверждения: что и когда, на случай спора
                     terms_accepted: { at: new Date().toISOString(), version: 'draft-2026-10-30', docs: ['offer', 'delivery-rules', 'privacy'] }
                   },
@@ -993,8 +997,7 @@ window.applySmartShareLink = applySmartShareLink;
                   promo_code: window.tempOrder.appliedPromo?.code || null,
                   // ICE BONUS: сервер сверяет число и скидку, списывает при оплате; у участника семьи бонусов нет
                   ice_bonus_n: (isFamilyMember || !window.iceBonusInfo) ? 0 : (window.tempOrder.iceBonusN || 0),
-                  ice_bonus_discount: (isFamilyMember || !window.iceBonusInfo) ? 0 : (window.tempOrder.iceBonusDiscount || 0),
-                  tracking_number_by: pvsAddress || null
+                  ice_bonus_discount: (isFamilyMember || !window.iceBonusInfo) ? 0 : (window.tempOrder.iceBonusDiscount || 0)
                 };
 
                 const { data, error } = await supabaseClient.from('orders').insert(orderInsertPayload).select();
@@ -2271,7 +2274,8 @@ async function renderMyOrders() {
       const tracks = [
         order.tracking_number_cn ? ['Трек в Китае', order.tracking_number_cn] : null,
         order.sbs_tracking_id ? ['Трек SBS', order.sbs_tracking_id] : null,
-        order.tracking_number_by ? ['Трек по Беларуси', order.tracking_number_by] : null,
+        // в старых заказах здесь лежал адрес получения — его треком не показываем
+        order.tracking_number_by && !/[ А-Яа-яЁё|]/.test(order.tracking_number_by) ? ['Трек по Беларуси', order.tracking_number_by] : null,
       ].filter(Boolean);
 
       const photos = Array.isArray(order.photo_reports) && order.photo_reports.length ? `
@@ -4080,7 +4084,7 @@ window.generateShippingManifest = async (orderId) => {
     manifestEl.style.left = '-9999px';
     manifestEl.style.top = '-9999px';
     
-    const address = order.tracking_number_by || 'Самовывоз / Не указан';
+    const address = order.extra_services?.receiving_address || order.tracking_number_by || 'Самовывоз / Не указан';
     
     manifestEl.innerHTML = `
       <div style="border: 2px solid #000; padding: 15px; height: 100%; box-sizing: border-box; display: flex; flex-direction: column;">
