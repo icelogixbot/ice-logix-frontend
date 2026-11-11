@@ -10,7 +10,9 @@
   'use strict';
 
   const POLL_MS = 1500;
-  const MAX_WAIT_MS = 4 * 60 * 1000;
+  // Эмулятор нажимает каждый вариант (цены не додумываем): большой товар — до 8 минут.
+  // pdd_job_create сам отменяет задачи старше 10 минут, дольше ждать незачем
+  const MAX_WAIT_MS = 10 * 60 * 1000;
 
   // Результат движка → формат старого sku_bundle (product.to_legacy_bundle на ноуте делает то же)
   function toBundle(res) {
