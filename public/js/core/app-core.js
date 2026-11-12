@@ -1041,6 +1041,77 @@ window.refreshLiveScreens = async function () {
         }
       }
     }
+    await window.refreshLiveTab?.();
+  } catch (_) {}
+};
+
+// Живая перерисовка текущей вкладки (кошелёк, финансы, уведомления, профиль и др.): только если данные на сервере изменились
+window.refreshLiveTab = async function () {
+  try {
+    if (currentSubScreen) return;
+    const tab = currentTab;
+    const G = window;
+    const pairs = {
+      wallet: ['renderWallet', 'attachWalletHandlers'],
+      topup: ['renderWallet', 'attachWalletHandlers'],
+      finances: ['renderFinances', 'attachFinancesHandlers'],
+      notifications: ['renderNotificationsPage', 'attachNotificationsPageHandlers'],
+      profile: ['renderProfile', 'attachProfileHandlers', 'loadProfileExtras'],
+      referral: ['renderReferralPage', 'attachReferralPageHandlers'],
+      bonus_shop: ['renderBonusShop', 'attachBonusShopHandlers'],
+      dropshipper: ['renderDropshipper', 'attachDropshipperHandlers'],
+      legitcheck: ['renderLegitCheck', 'attachLegitCheckHandlers'],
+      reviewItems: ['renderReviewItems', 'attachReviewItemsHandlers'],
+      reviews: ['renderReviews', 'attachReviewsHandlers'],
+      history: ['renderHistory', 'attachHistoryHandlers'],
+      reftree: ['renderReferralTree', 'attachReferralTreeHandlers']
+    };
+    const p = pairs[tab];
+    const box = document.getElementById('content');
+    if (!p || !box || typeof G[p[0]] !== 'function') return;
+    const busy = () => {
+      const ae = document.activeElement;
+      if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return true;
+      return Array.from(document.body.children).some((el) => {
+        if (/^(SCRIPT|STYLE|LINK)$/.test(el.tagName) || el.contains(box)) return false;
+        const cs = getComputedStyle(el);
+        if (cs.position !== 'fixed' || cs.display === 'none' || cs.visibility === 'hidden') return false;
+        const r = el.getBoundingClientRect();
+        return r.width >= innerWidth * 0.8 && r.height >= innerHeight * 0.3;
+      });
+    };
+    if (busy()) return;
+    const epoch = window._navEpoch;
+    const uid = window.userId;
+    // сбрасываем кэши, чтобы экран взял свежие данные с сервера
+    if (tab === 'finances') window._financesCache = null;
+    if (window.CacheDB?.clear) {
+      if (tab === 'dropshipper') window.CacheDB.clear('dropship_' + uid);
+      if (tab === 'profile' || tab === 'referral') window.CacheDB.clear('ref_' + uid);
+      if (tab === 'legitcheck') window.CacheDB.clear('legit_checks_' + uid);
+    }
+    const fn = (n) => G[n];
+    const render = fn(p[0]);
+    if (typeof render !== 'function') return;
+    const html = String((await render()) || '').replace(/page-enter/g, '');
+    if (!html) return;
+    const sig = tab + '|' + html.length + ':' + html.replace(/\s+/g, '').slice(0, 4000);
+    if (box.dataset.liveSig === undefined || box.dataset.liveTab !== tab) {
+      box.dataset.liveSig = sig; box.dataset.liveTab = tab;
+      return;
+    }
+    if (box.dataset.liveSig === sig) return;
+    if (currentTab !== tab || currentSubScreen || window._navEpoch !== epoch || busy()) return;
+    const top = window.scrollY;
+    box.innerHTML = html;
+    box.dataset.liveSig = sig;
+    const attach = fn(p[1]); if (typeof attach === 'function') attach();
+    const extra = p[2] && fn(p[2]); if (typeof extra === 'function') extra();
+    G.ensureGlobalFooter?.();
+    if (!['reports', 'reviews', 'reviewItems', 'dropshipper', 'notifications', 'topup'].includes(tab)) G.ensureBackButton?.();
+    try { initCardSliders(); } catch (_) {}
+    window.scrollTo({ top, left: 0, behavior: 'instant' });
+    try { _tabCache[tab + ':'] = { html: box.innerHTML, ts: Date.now() }; } catch (_) {}
   } catch (_) {}
 };
 
