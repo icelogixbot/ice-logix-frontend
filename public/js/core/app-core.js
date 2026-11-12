@@ -1002,6 +1002,21 @@
         if (data) window.setUserBalance(data.ices_balance || 0);
       } catch (_) {}
     };
+    // Баланс обновляется сам: при возврате в приложение и раз в 20 секунд, пока оно открыто
+    (() => {
+      let last = 0;
+      const tick = () => {
+        if (document.hidden) return;
+        const now = Date.now();
+        if (now - last < 5000) return;
+        last = now;
+        window.refreshUserBalance();
+      };
+      document.addEventListener('visibilitychange', tick);
+      window.addEventListener('focus', tick);
+      try { window.Telegram?.WebApp?.onEvent?.('activated', tick); } catch (_) {}
+      setInterval(tick, 20000);
+    })();
 
     // Legacy content still contains emoji in a number of dynamically-rendered
     // modules. Normalize it at the DOM boundary so every screen uses one icon
