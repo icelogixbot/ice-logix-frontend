@@ -1002,7 +1002,49 @@
         if (data) window.setUserBalance(data.ices_balance || 0);
       } catch (_) {}
     };
-    // Баланс обновляется сам: при возврате в приложение и раз в 20 секунд, пока оно открыто
+    // Всё остальное, что меняется на сервере (уведомления, заказ на главной, «Мои заказы»), тоже обновляется само
+window.refreshLiveScreens = async function () {
+  try {
+    const sb = window.supabaseClient;
+    const uid = window.userId;
+    if (!sb || !uid) return;
+    // колокольчик: число непрочитанных (показываем и прячем)
+    const { data: notifs } = await sb.from('user_notifications').select('id,is_read').eq('user_id', uid).eq('is_read', false).limit(100);
+    const badge = document.getElementById('notifBadge');
+    if (badge && Array.isArray(notifs)) {
+      const n = notifs.length;
+      badge.textContent = n > 99 ? '99+' : String(n);
+      badge.classList.toggle('hidden', n === 0);
+    }
+    // карточка заказа на главной
+    if (document.getElementById('hmTrack') && window.loadHomeTracker) window.loadHomeTracker();
+    // экран «Мои заказы»: перерисовываем, только если что-то реально изменилось
+    const back = document.getElementById('backToProfileBtn');
+    const scr = back && back.closest('.rd-screen');
+    const ae = document.activeElement;
+    if (scr && typeof window.renderMyOrders === 'function' && !(ae && /^(INPUT|TEXTAREA)$/.test(ae.tagName))) {
+      const html = (await window.renderMyOrders()).replace(/page-enter/g, '');
+      const sig = html.length + ':' + html.replace(/\s+/g, '').slice(0, 4000);
+      if (scr.dataset.sig === undefined) {
+        scr.dataset.sig = sig;
+      } else if (scr.dataset.sig !== sig && document.body.contains(scr)) {
+        const top = window.scrollY;
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html;
+        const fresh = tmp.firstElementChild;
+        if (fresh) {
+          fresh.dataset.sig = sig;
+          scr.replaceWith(fresh);
+          const b = document.getElementById('backToProfileBtn');
+          if (b) b.onclick = () => { window.goBackGlobal(); };
+          window.scrollTo(0, top);
+        }
+      }
+    }
+  } catch (_) {}
+};
+
+// Баланс обновляется сам: при возврате в приложение и раз в 20 секунд, пока оно открыто
     (() => {
       let last = 0;
       const tick = () => {
@@ -1011,6 +1053,7 @@
         if (now - last < 5000) return;
         last = now;
         window.refreshUserBalance();
+        window.refreshLiveScreens?.();
       };
       document.addEventListener('visibilitychange', tick);
       window.addEventListener('focus', tick);

@@ -442,6 +442,7 @@ function attachHomeHandlers() {
   _hmLatePromos();
 
   if (typeof initCardSliders === 'function') initCardSliders();
+  window.loadHomeTracker = loadHomeTracker;
   loadHomeTracker();
   loadHomeProducts().then(loadHomeReco, loadHomeReco);
 
