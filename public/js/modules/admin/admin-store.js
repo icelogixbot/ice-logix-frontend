@@ -232,7 +232,8 @@
   let prodFilter = 'all';
   let prodRows = [];
 
-  const price = (p) => `${esc(String(p.price == null ? 0 : p.price))} ${esc(p.currency === 'CNY' || !p.currency ? '¥' : p.currency)}`;
+  const curSign = (c) => (c === 'CNY' || !c ? '¥' : (c === 'BYN' ? (typeof window.bynSign === 'function' ? window.bynSign() : '₽') : c)); // design-ok: код валюты
+  const price = (p) => `${esc(String(p.price == null ? 0 : p.price))} ${esc(curSign(p.currency))}`;
 
   function renderProducts(host, ctx) {
     ctx.cta('Добавить товар', () => productForm(null, ctx));
