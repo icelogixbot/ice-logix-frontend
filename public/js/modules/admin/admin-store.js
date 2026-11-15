@@ -232,8 +232,9 @@
   let prodFilter = 'all';
   let prodRows = [];
 
-  const curSign = (c) => (c === 'CNY' || !c ? '¥' : (c === 'BYN' ? (typeof window.bynSign === 'function' ? window.bynSign() : '₽') : c)); // design-ok: код валюты
-  const price = (p) => `${esc(String(p.price == null ? 0 : p.price))} ${esc(curSign(p.currency))}`;
+  // bynSign() отдаёт готовую SVG-разметку — её нельзя экранировать; остальные значки экранируем
+  const curSign = (c) => (c === 'BYN' && typeof window.bynSign === 'function' ? window.bynSign() : esc(c === 'CNY' || !c ? '¥' : (c === 'BYN' ? '₽' : c))); // design-ok: код валюты
+  const price = (p) => `${esc(String(p.price == null ? 0 : p.price))} ${curSign(p.currency)}`;
 
   function renderProducts(host, ctx) {
     ctx.cta('Добавить товар', () => productForm(null, ctx));
