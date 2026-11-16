@@ -239,22 +239,15 @@
     const ext = 'jpg';
     const filePath = `kyc_${userId}_${Date.now()}.${ext}`;
 
-    // Попытка загрузки в бакет kyc-documents (с fallback в order-photos)
-    let bucketName = 'kyc-documents';
-    let { data, error } = await supabaseClient.storage.from(bucketName).upload(filePath, compressed, {
+    // Бакет приватный; ссылку формата /kyc-documents/<путь> разбирает admin_kyc_photo
+    const bucketName = 'kyc-documents';
+    const { data, error } = await supabaseClient.storage.from(bucketName).upload(filePath, compressed, {
       cacheControl: '3600',
-      upsert: true
+      upsert: false
     });
-
     if (error) {
-      console.warn('Storage bucket kyc-documents unavailable, falling back to order-photos:', error);
-      bucketName = 'order-photos';
-      const fallbackUpload = await supabaseClient.storage.from(bucketName).upload(`kyc/${filePath}`, compressed, {
-        cacheControl: '3600',
-        upsert: true
-      });
-      if (fallbackUpload.error) throw fallbackUpload.error;
-      data = fallbackUpload.data;
+      console.warn('KYC upload failed:', error);
+      throw new Error('Не удалось загрузить фото. Попробуйте ещё раз.');
     }
 
     const { data: urlData } = supabaseClient.storage.from(bucketName).getPublicUrl(data.path);

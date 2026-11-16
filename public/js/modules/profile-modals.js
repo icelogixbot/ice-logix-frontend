@@ -1552,7 +1552,7 @@ async function signAgreement() {
     // Генерируем PDF (заглушка – в будущем можно использовать Edge Function)
     const agreementText = `ДОГОВОР ОКАЗАНИЯ УСЛУГ\n\nКлиент: ${userName}\nID: ${userId}\nДата: ${new Date().toLocaleString('ru-RU')}\n\nУсловия: ...`;
     const blob = new Blob([agreementText], { type: 'application/pdf' });
-    const file = new File([blob], `agreement_${userId}.pdf`);
+    const file = new File([blob], `agreement_${userId}.pdf`, { type: 'application/pdf' });
     
     // Загружаем в Storage
     const { data: uploadData, error: uploadError } = await supabaseClient.storage
@@ -1589,11 +1589,20 @@ async function downloadAgreement() {
     .order('signed_at', { ascending: false })
     .limit(1)
     .single();
-  if (data?.agreement_url) {
-    window.open(data.agreement_url, '_blank');
-  } else {
+  if (!data?.agreement_url) {
     tgUtil.alert('Договор не найден. Сначала подпишите его.');
+    return;
   }
+  // Бакет agreements приватный: открываем по временной ссылке на 5 минут
+  const path = String(data.agreement_url).split('/agreements/')[1]?.split(/[?#]/)[0];
+  const { data: signed, error } = path
+    ? await supabaseClient.storage.from('agreements').createSignedUrl(decodeURIComponent(path), 300)
+    : { data: null, error: true };
+  if (error || !signed?.signedUrl) {
+    tgUtil.alert('Не удалось открыть договор. Попробуйте позже.');
+    return;
+  }
+  window.open(signed.signedUrl, '_blank');
 }
 
 // Загрузка дополнительных данных профиля (аватар, транзакции)
