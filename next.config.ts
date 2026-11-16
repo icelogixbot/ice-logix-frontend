@@ -55,14 +55,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  async rewrites() {
-    return [
-      {
-        source: "/api/go/:path*",
-        destination: `${process.env.GO_BACKEND_URL || "http://localhost:8080"}/api/:path*`,
-      },
-    ];
-  },
 };
 
 export default nextConfig;
