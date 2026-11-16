@@ -237,6 +237,7 @@
     bind();
     await Promise.all([loadTickets(), loadTeamNames()]);
     subscribe();
+    window.addEventListener('pagehide', () => { if (S.channel) { try { S.sb.removeChannel(S.channel); } catch (_) {} S.channel = null; } });
 
     const params = new URLSearchParams(location.search);
     const start = params.get('ticket') || (isDesktop() ? store.get('sd_active') : null);

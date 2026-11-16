@@ -92,14 +92,14 @@
                 <div class="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar">
                   ${mediaUrls.map((url, idx) => `
                     <div class="w-full flex-shrink-0 snap-start relative h-[320px]">
-                      ${report.type === 'video' ? `<video src="${url}" class="w-full h-full object-cover" controls></video>` : `<img src="${url}" class="w-full h-full object-cover" alt="${report.title}" onclick="tgUtil.popup('${url}', 'Фото отчета')">`}
+                      ${report.type === 'video' ? `<video src="${window.UI.esc(url)}" class="w-full h-full object-cover" controls></video>` : `<img src="${window.UI.esc(url)}" class="w-full h-full object-cover" alt="${window.UI.esc(report.title)}" onclick="tgUtil.popup(${window.UI.esc(JSON.stringify(String(url)))}, 'Фото отчета')">`}
                       ${mediaUrls.length > 1 ? `<div class="absolute bottom-2 right-2 bg-black/60 px-2 py-1 rounded-full text-white text-[10px]">${idx + 1} / ${mediaUrls.length}</div>` : ''}
                     </div>
                   `).join('')}
                 </div>
                 <div class="p-4">
-                  <h3 class="text-white font-bold text-lg leading-tight">${report.title}</h3>
-                  <p class="text-white/70 text-sm mt-2 whitespace-pre-wrap">${report.description || ''}</p>
+                  <h3 class="text-white font-bold text-lg leading-tight">${window.UI.esc(report.title)}</h3>
+                  <p class="text-white/70 text-sm mt-2 whitespace-pre-wrap">${window.UI.esc(report.description || '')}</p>
                   <div class="flex justify-between items-center mt-4">
                     <span class="text-white/40 text-[10px] uppercase font-bold tracking-wider">${new Date(report.created_at).toLocaleDateString('ru-RU')}</span>
                     ${report.product_url ? `<button class="btn-primary orderFromReportBtn transition !py-1.5 !px-3 !text-xs" data-url="${report.product_url}"><span class="ix text-[12px]"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span> Хочу такой же</button>` : ''}
@@ -1192,11 +1192,11 @@
               <div class="full-screen-modal-body space-y-4 text-left">
                 ${action ? `
                   <div class="p-3 bg-white/5 rounded-xl border border-white/5 text-xs text-white/70 space-y-1 text-left">
-                    <div class="font-bold text-cyan-400">Действие: ${action.title}</div>
+                    <div class="font-bold text-cyan-400">Действие: ${window.UI.esc(action.title)}</div>
                     ${action.details && action.details.product ? `
-                      <div>🛍️ Товар: ${action.details.product}</div>
-                      ${action.details.size ? `<div>📏 Размер: ${action.details.size}</div>` : ''}
-                      ${action.details.delivery ? `<div>📍 Направление: ${action.details.delivery}</div>` : ''}
+                      <div>🛍️ Товар: ${window.UI.esc(action.details.product)}</div>
+                      ${action.details.size ? `<div>📏 Размер: ${window.UI.esc(action.details.size)}</div>` : ''}
+                      ${action.details.delivery ? `<div>📍 Направление: ${window.UI.esc(action.details.delivery)}</div>` : ''}
                     ` : ''}
                   </div>
                 ` : `

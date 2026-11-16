@@ -706,7 +706,7 @@ window.renderSmartCalculator = async function() {
     }
 
     const money2 = (v) => (window.UI ? window.UI.money(v, { keepCents: true, digits: 2 }) : Number(v).toFixed(2));
-    const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     const isBundle = window._calcBundleItems && window._calcBundleItems.length > 1;
     return `
       <div class="rd-screen page-enter cl">
@@ -1076,7 +1076,8 @@ window.renderSmartCalculator = async function() {
                   statusBox.innerHTML = '<span class=\"ug-load\"><i></i>Подключение к аппаратному мосту Pinduoduo...</span>';
                 }
 
-                const currentUserId = window.userId || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) || 6107097715;
+                const currentUserId = window.userId || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
+                if (!currentUserId) throw new Error('Не удалось определить ваш аккаунт. Откройте приложение через Telegram и попробуйте снова.');
                 const { data: queueData, error: qErr } = await supabaseClient
                   .from('parse_queue')
                   .insert({ user_id: currentUserId, url, status: initialStatus })

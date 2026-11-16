@@ -252,7 +252,7 @@
         };
       });
       document.querySelectorAll('.content-download-btn').forEach(btn => {
-        btn.onclick = () => { window.open(btn.dataset.url, '_blank'); };
+        btn.onclick = () => { try { if (!/^(https?|tg):$/i.test(new URL(String(btn.dataset.url), location.href).protocol)) return; } catch (_) { return; } window.open(btn.dataset.url, '_blank'); };
       });
     }
 

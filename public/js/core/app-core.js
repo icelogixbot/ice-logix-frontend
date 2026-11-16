@@ -1,6 +1,9 @@
 // ============================================================
 // ICE LOGIX Engine: Core & Global State
 // ============================================================
+// Глобальный перехват необработанных ошибок: только запись в консоль, пользователю ничего не показываем
+window.addEventListener('unhandledrejection', (ev) => { console.error('[ICE] unhandledrejection', ev && ev.reason); });
+window.addEventListener('error', (ev) => { console.error('[ICE] error', ev && (ev.error || ev.message)); });
     if (localStorage.getItem('theme') === 'light') {
       document.documentElement.classList.add('light-theme');
     }
@@ -2247,6 +2250,7 @@ window.refreshLiveTab = async function () {
       },
       openLink(url) {
         if (!url) return;
+        try { if (!/^(https?|tg):$/i.test(new URL(String(url), location.href).protocol)) return; } catch (_) { return; }
         try {
           const w = this._tg;
           if (w?.openLink) {
@@ -2587,7 +2591,7 @@ let adminOrdersTotalPages = 1;
               if (_cu.userAvatarUrl) {
                 userAvatarUrl = _cu.userAvatarUrl;
                 const _av = document.getElementById('avatar');
-                if (_av) _av.innerHTML = `<img src="${userAvatarUrl}" class="w-full h-full object-cover">`;
+                if (_av && /^https:\/\//i.test(userAvatarUrl)) _av.innerHTML = `<img src="${window._esc(userAvatarUrl)}" class="w-full h-full object-cover">`;
               }
               if (_cu.userId) userId = _cu.userId;
               if (_cu.isOwner !== undefined) isOwner = _cu.isOwner;
@@ -2615,7 +2619,7 @@ let adminOrdersTotalPages = 1;
             if (!userName || userName === 'Гость') userName = user.first_name || user.username || 'Гость';
             if (!userAvatarUrl && user.photo_url) userAvatarUrl = user.photo_url;
             const _av = document.getElementById('avatar');
-            if (_av && userAvatarUrl) _av.innerHTML = `<img src="${userAvatarUrl}" class="w-full h-full object-cover">`;
+            if (_av && userAvatarUrl && /^https:\/\//i.test(userAvatarUrl)) _av.innerHTML = `<img src="${window._esc(userAvatarUrl)}" class="w-full h-full object-cover">`;
           }
         } else {
           console.warn('Telegram WebApp is not available. Running in browser preview mode.');
@@ -2722,8 +2726,8 @@ let adminOrdersTotalPages = 1;
         if (avatarDiv) {
           if (userAvatarUrl) {
             const currentImg = avatarDiv.querySelector('img');
-            if (!currentImg || currentImg.getAttribute('src') !== userAvatarUrl) {
-              avatarDiv.innerHTML = `<img src="${userAvatarUrl}" class="w-full h-full object-cover">`;
+            if (/^https:\/\//i.test(userAvatarUrl) && (!currentImg || currentImg.getAttribute('src') !== userAvatarUrl)) {
+              avatarDiv.innerHTML = `<img src="${window._esc(userAvatarUrl)}" class="w-full h-full object-cover">`;
             }
           } else {
             const initial = (userName || 'Гость').charAt(0).toUpperCase();
@@ -3028,8 +3032,8 @@ let adminOrdersTotalPages = 1;
         if (avatarDiv) {
           if (userAvatarUrl) {
             const currentImg = avatarDiv.querySelector('img');
-            if (!currentImg || currentImg.getAttribute('src') !== userAvatarUrl) {
-              avatarDiv.innerHTML = `<img src="${userAvatarUrl}" class="w-full h-full object-cover">`;
+            if (/^https:\/\//i.test(userAvatarUrl) && (!currentImg || currentImg.getAttribute('src') !== userAvatarUrl)) {
+              avatarDiv.innerHTML = `<img src="${window._esc(userAvatarUrl)}" class="w-full h-full object-cover">`;
             }
           } else {
             const initial = (userName || 'Гость').charAt(0).toUpperCase();

@@ -1023,7 +1023,7 @@ window.applySmartShareLink = applySmartShareLink;
                     calculated_price_byn: Math.round((it.price || 0) * (bk.rates?.CNY_to_BYN || 0.45) * 100) / 100,
                     item_status: 'PENDING'
                   }));
-                  await supabaseClient.from('order_items').insert(itemRows).catch(() => {});
+                  await supabaseClient.from('order_items').insert(itemRows).catch(e => console.warn('[ICE] order_items insert failed', e));
                 }
 
                 // AI-оценка доставки (Раздел 46 ТЗ: shipping_estimates)
@@ -1162,14 +1162,14 @@ window.applySmartShareLink = applySmartShareLink;
               window.CheckoutUI.setBusy(false);
             }
           };
-          let submitting = false;
           createBtn.onclick = async () => {
-            if (submitting) return;
-            submitting = true;
+            // Флаг общий на всё приложение: повторный тап (в том числе после перерисовки шага) не создаст второй заказ
+            if (window._orderSubmitting) return;
+            window._orderSubmitting = true;
             try {
               await submitOrder();
             } finally {
-              submitting = false;
+              window._orderSubmitting = false;
             }
           };
         }

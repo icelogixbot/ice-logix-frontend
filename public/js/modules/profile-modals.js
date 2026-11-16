@@ -1230,10 +1230,10 @@ async function showPersonalDataForm() {
             listContainer.innerHTML = data.map(r => `
                 <div class="flex justify-between items-center bg-white/5 p-3 rounded-xl mb-2">
                     <div>
-                        <p class="text-white font-bold text-sm">${r.full_name}</p>
+                        <p class="text-white font-bold text-sm">${window.UI.esc(r.full_name)}</p>
                         <p class="text-white/50 text-xs">Паспорт: ***${r.passport.slice(-4)}</p>
                     </div>
-                    <button class="deleteRecipientBtn text-white/30 hover:text-red-400 transition" data-id="${r.id}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></button>
+                    <button class="deleteRecipientBtn text-white/30 hover:text-red-400 transition" data-id="${window.UI.esc(r.id)}"><span class="ix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></button>
                 </div>
             `).join('');
             

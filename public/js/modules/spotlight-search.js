@@ -1840,7 +1840,7 @@
       } else if (profileMatch.type === 'address') {
         const addr = userCtx.deliveryInfo;
         bodyHtml = addr
-          ? `Ваш текущий сохраненный адрес доставки: <span class="text-white font-bold">${addr.city || ''}, ${addr.address || addr.pvz_address || 'Пункт выдачи'}</span> (служба: ${addr.carrier || 'Европочта / СДЭК'}).`
+          ? `Ваш текущий сохраненный адрес доставки: <span class="text-white font-bold">${window.UI.esc(addr.city || '')}, ${window.UI.esc(addr.address || addr.pvz_address || 'Пункт выдачи')}</span> (служба: ${window.UI.esc(addr.carrier || 'Европочта / СДЭК')}).`
           : `В вашем профиле еще не сохранен адрес пункта выдачи. Вы сможете указать ближайшее отделение СДЭК или Европочты при первом оформлении заказа.`;
         bullets = [
           `📦 <span class="font-bold text-white">Службы выдачи:</span> Европочта (вся Беларусь), СДЭК (Беларусь и РФ), Белпочта.`,
@@ -1860,15 +1860,15 @@
         const topOrder = matchingOrders[0];
         const statusTitle = formatOrderStatus(topOrder.status);
         const orderNum = topOrder.public_number || topOrder.id?.slice(0, 8);
-        bodyHtml = `Здравствуйте, ${userCtx.userName}! По вашему запросу найден заказ <span class="text-white font-bold">#${orderNum}</span> (${topOrder.title || 'Товар с Poizon'}). Текущий этап: <span class="text-cyan-300 font-extrabold">${statusTitle}</span>.`;
+        bodyHtml = `Здравствуйте, ${window.UI.esc(userCtx.userName)}! По вашему запросу найден заказ <span class="text-white font-bold">#${window.UI.esc(orderNum)}</span> (${window.UI.esc(topOrder.title || 'Товар с Poizon')}). Текущий этап: <span class="text-cyan-300 font-extrabold">${statusTitle}</span>.`;
         bullets = [
-          `📍 <span class="font-bold text-white">Трек-номер:</span> ${topOrder.tracking_number_intl ? `<code class="px-1.5 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[11px]">${topOrder.tracking_number_intl}</code>` : '<span class="text-white/60">Формируется на складе в Китае</span>'}.`,
-          `✈️ <span class="font-bold text-white">Маршрут:</span> Транзитный склад Китая → Сортировочный хаб в Минске → Пункт выдачи (${userCtx.deliveryInfo?.city || 'Беларусь / РФ'}).`,
+          `📍 <span class="font-bold text-white">Трек-номер:</span> ${topOrder.tracking_number_intl ? `<code class="px-1.5 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[11px]">${window.UI.esc(topOrder.tracking_number_intl)}</code>` : '<span class="text-white/60">Формируется на складе в Китае</span>'}.`,
+          `✈️ <span class="font-bold text-white">Маршрут:</span> Транзитный склад Китая → Сортировочный хаб в Минске → Пункт выдачи (${window.UI.esc(userCtx.deliveryInfo?.city || 'Беларусь / РФ')}).`,
           `🛡️ <span class="font-bold text-white">Страховка:</span> Страховка по желанию: «Голубая белка», 2% от стоимости товара.`
         ];
         actions = [
-          `<button class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md" onclick="window.spotlightOpenOrder('${topOrder.id}')">
-            Открыть детали заказа #${orderNum} →
+          `<button class="px-3.5 py-2 rounded-xl bg-cyan-400 text-black font-black text-xs hover:bg-cyan-300 transition active:scale-95 shadow-md" onclick="window.spotlightOpenOrder('${window.UI.esc(topOrder.id)}')">
+            Открыть детали заказа #${window.UI.esc(orderNum)} →
           </button>`
         ];
         sources = [`👤 Профиль @${userCtx.userId || 'user'}`, `📦 База заказов Supabase`, `📍 Трекинг ShopbyShop`];
