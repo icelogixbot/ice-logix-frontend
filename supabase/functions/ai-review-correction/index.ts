@@ -82,8 +82,16 @@ Deno.serve(async (req) => {
     new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
-  const payload = await req.json().catch(() => null);
+  // Лимит размера запроса и текста (отзыв — это несколько абзацев, не книга)
+  const MAX_TEXT_CHARS = 4000;
+  if (Number(req.headers.get("content-length") || 0) > 50_000) return json({ error: "Запрос слишком большой" }, 413);
+  const rawBody = await req.text().catch(() => "");
+  if (rawBody.length > 50_000) return json({ error: "Запрос слишком большой" }, 413);
+  let payload: any = null;
+  try { payload = JSON.parse(rawBody); } catch { payload = null; }
   if (!payload || typeof payload !== "object" || !payload.text) return json({ error: "Missing text in request body" }, 400);
+  if (typeof payload.text !== "string") return json({ error: "Текст должен быть строкой" }, 400);
+  if (payload.text.length > MAX_TEXT_CHARS) return json({ error: "Текст слишком длинный (не больше 4000 знаков)" }, 413);
 
   const text = String(payload.text).trim();
   const corrected = correctReview(text);

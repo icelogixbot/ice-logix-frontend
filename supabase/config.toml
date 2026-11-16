@@ -1,0 +1,29 @@
+# Режим проверки входа (verify_jwt) для функций ICE LOGIX — как на сервере Supabase.
+# Выкладка: supabase functions deploy <имя> (флаг берётся отсюда).
+
+[functions.parse-screenshot]
+verify_jwt = true
+
+[functions.bepaid-checkout]
+verify_jwt = true
+
+[functions.ai-review-correction]
+verify_jwt = false
+
+[functions.ai-calculator]
+verify_jwt = false
+
+[functions.app-lock]
+verify_jwt = true
+
+[functions.payments]
+verify_jwt = true
+
+[functions.support-api]
+verify_jwt = false
+
+[functions.assistant-chat]
+verify_jwt = true
+
+# telegram-auth (verify_jwt = false) и instagram-webhook (verify_jwt = false)
+# живут в папке supabase-functions/supabase/functions/, см. supabase-functions/supabase/config.toml

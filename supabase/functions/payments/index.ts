@@ -304,13 +304,20 @@ async function bepaid(endpoint: string, payload: unknown, checkoutApi: boolean):
 // ---------------------------------------------------------------------------
 // Уведомления bePaid
 // ---------------------------------------------------------------------------
+function sameString(a: string, b: string): boolean {
+  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 async function handleWebhook(req: Request): Promise<Response> {
   const raw = await req.text();
   if (!GATEWAY_ON) return new Response("disabled", { status: 404 });
 
   // 1) Basic: id магазина и секретный ключ
   const basic = req.headers.get("Authorization") || "";
-  if (basic !== "Basic " + btoa(`${SHOP_ID}:${SECRET}`)) {
+  if (!sameString(basic, "Basic " + btoa(`${SHOP_ID}:${SECRET}`))) {
     console.warn("webhook: bad basic auth");
     return new Response("unauthorized", { status: 401 });
   }

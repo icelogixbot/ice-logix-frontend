@@ -645,6 +645,26 @@ function estimateWeightByRules(text: string): { weight: number; product_name: st
 
 
 
+// Лимиты входных данных
+const MAX_BODY_CHARS = 12_000_000;      // кадры документа в base64
+const MAX_SMALL_BODY_CHARS = 100_000;   // все остальные действия
+const MAX_FRAME_CHARS = 6_000_000;      // один кадр документа
+const MAX_PRICE = 100_000_000;
+const MAX_WEIGHT_KG = 1000;
+// Адрес сервера распознавания документов (по умолчанию наш VPS)
+const DOC_AI_URL = (Deno.env.get("DOC_AI_URL") || "https://80.94.235.37").replace(/\/$/, "");
+
+function isShortText(v: unknown, max: number): boolean {
+  return v === undefined || v === null || (typeof v === "string" && v.length <= max);
+}
+
+function badInput(message: string): Response {
+  return new Response(
+    JSON.stringify({ ok: false, error: message }),
+    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -658,7 +678,23 @@ serve(async (req) => {
       );
     }
 
-    const payload = await req.json().catch(() => null);
+    // Размер запроса: кадры документа (base64) большие, остальные действия — крошечные
+    const declaredLen = Number(req.headers.get("content-length") || 0);
+    if (declaredLen > MAX_BODY_CHARS) {
+      return new Response(
+        JSON.stringify({ ok: false, error: "Запрос слишком большой" }),
+        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const rawBody = await req.text().catch(() => "");
+    if (rawBody.length > MAX_BODY_CHARS) {
+      return new Response(
+        JSON.stringify({ ok: false, error: "Запрос слишком большой" }),
+        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    let payload: any = null;
+    try { payload = JSON.parse(rawBody); } catch { payload = null; }
     if (!payload || typeof payload !== "object") {
       return new Response(
         JSON.stringify({ error: "Invalid request payload" }),
@@ -667,11 +703,18 @@ serve(async (req) => {
     }
 
     const { action } = payload;
+    if (action !== "parse_passport_alipay" && rawBody.length > MAX_SMALL_BODY_CHARS) {
+      return new Response(
+        JSON.stringify({ ok: false, error: "Запрос слишком большой" }),
+        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
 
 
     if (action === "estimate_weight") {
       const { description } = payload;
+      if (!isShortText(description, 500)) return badInput("Слишком длинное описание");
       if (!description || !String(description).trim()) {
         return new Response(
           JSON.stringify({ ok: false, error: "Укажите, что за вещь, чтобы оценить вес" }),
@@ -693,6 +736,23 @@ serve(async (req) => {
     } else if (action === "calculate") {
       const { title, price, currency, country, weight, local_delivery, additional_services } = payload;
 
+      // Проверка входных данных (формулы ниже не менялись)
+      if (!isShortText(title, 300) || !isShortText(currency, 3) || !isShortText(country, 10) || !isShortText(local_delivery, 20)) {
+        return badInput("Некорректные данные запроса");
+      }
+      if (additional_services != null && (typeof additional_services !== "object" || Array.isArray(additional_services))) {
+        return badInput("Некорректные данные запроса");
+      }
+      const priceNum = Number(price);
+      if (price !== undefined && price !== null && price !== "" && (!Number.isFinite(priceNum) || priceNum < 0 || priceNum > MAX_PRICE)) {
+        return badInput("Укажите цену товара числом");
+      }
+      if (weight != null && weight !== "") {
+        const w = parseFloat(weight);
+        // Нечисловой текст, как и раньше, считается за 0 ниже; отсекаем только явно неверные числа
+        if (Number.isFinite(w) && (w < 0 || w > MAX_WEIGHT_KG)) return badInput("Укажите вес числом в килограммах");
+      }
+
       if (!title || price === undefined || !currency || !country) {
         return new Response(
           JSON.stringify({ ok: false, error: "Missing required fields" }),
@@ -705,7 +765,7 @@ serve(async (req) => {
       // Convert product price to BYN
       const rateKey = `${currency}_to_BYN`;
       const rate = rates[rateKey] || 1;
-      const productCostBYN = price * rate;
+      const productCostBYN = priceNum * rate;
 
       // 30% Service Commission
       const commissionBYN = productCostBYN * 0.30;
@@ -801,6 +861,7 @@ serve(async (req) => {
       );
     } else if (action === "resolve_address") {
       const { city, street, house, region } = payload;
+      if (![city, street, house, region].every((v) => isShortText(v, 200))) return badInput("Слишком длинный адрес");
       const pc = lookupBelarusPostcode(city, street, house);
       const reg = normalizeBelarusRegion(region, city);
       return new Response(
@@ -814,6 +875,9 @@ serve(async (req) => {
       );
     } else if (action === "parse_passport_alipay") {
       const { frame1, frame2, frame3, mode } = payload;
+      if (![frame1, frame2, frame3].every((v) => v == null || (typeof v === "string" && v.length <= MAX_FRAME_CHARS)) || !isShortText(mode, 20)) {
+        return badInput("Фото документа слишком большое или повреждено");
+      }
       if (!frame2 && !frame1 && !frame3) {
         return new Response(
           JSON.stringify({ ok: false, error: "Отсутствуют кадры документа для распознавания" }),
@@ -825,7 +889,7 @@ serve(async (req) => {
       try {
         const vpsController = new AbortController();
         const vpsTimer = setTimeout(() => vpsController.abort(), 40000); // 40 секунд гарантируют завершение при любом качестве мобильного интернета
-        const vpsResp = await fetch("https://80.94.235.37/scan-passport", {
+        const vpsResp = await fetch(`${DOC_AI_URL}/scan-passport`, {
           method: "POST",
           // Без ключа Nginx на VPS отвечает 401 (секрет DOC_AI_KEY)
           headers: { "Content-Type": "application/json", "X-Ice-Ai-Key": Deno.env.get("DOC_AI_KEY") || "" },
@@ -907,7 +971,7 @@ serve(async (req) => {
     }
 
   } catch (err) {
-    const rawMsg = err.message || "";
+    const rawMsg = (err as any)?.message || "";
     console.error("ai-calculator fatal error:", rawMsg);
     let userMsg = "Не удалось распознать документ на фотографии. Пожалуйста, попробуйте еще раз или заполните поля вручную.";
 
@@ -915,7 +979,6 @@ serve(async (req) => {
       JSON.stringify({
         ok: false,
         error: userMsg,
-        technical_details: rawMsg,
         error_step: 0
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

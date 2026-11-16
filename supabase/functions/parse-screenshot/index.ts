@@ -135,15 +135,52 @@ Deno.serve(async (req) => {
   let jobId: string | null = null;
  
   try {
-    const body = (await req.json()) as Partial<RequestBody>;
-    if (!body.jobId || !body.screenshotPath) {
-      return new Response(
-        JSON.stringify({ error: "Missing jobId or screenshotPath" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    const bad = (message: string, status = 400) =>
+      new Response(
+        JSON.stringify({ ok: false, error: message }),
+        { status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+
+    // Размер запроса: тут только два коротких поля
+    if (Number(req.headers.get("content-length") || 0) > 5000) return bad("Запрос слишком большой", 413);
+    const rawBody = await req.text();
+    if (rawBody.length > 5000) return bad("Запрос слишком большой", 413);
+    let body: Partial<RequestBody> = {};
+    try { body = JSON.parse(rawBody) as Partial<RequestBody>; } catch { return bad("Некорректный запрос"); }
+    if (!body || typeof body !== "object" || !body.jobId || !body.screenshotPath) {
+      return bad("Missing jobId or screenshotPath");
     }
-    jobId = body.jobId;
-    const screenshotPath = body.screenshotPath;
+
+    // Проверка формата: номер задачи — число или UUID; путь — <папка-сессия>/<файл>, без «..» и без чужих папок
+    const rawJobId = String(body.jobId);
+    if (!/^(\d{1,18}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/.test(rawJobId)) {
+      return bad("Некорректный номер задачи");
+    }
+    const screenshotPath = typeof body.screenshotPath === "string" ? body.screenshotPath : "";
+    const pathParts = screenshotPath.split("/");
+    if (
+      screenshotPath.length > 200 ||
+      pathParts.length !== 2 ||
+      !/^[0-9a-fA-F-]{36}$/.test(pathParts[0]) ||
+      !/^[A-Za-z0-9._-]{1,120}$/.test(pathParts[1]) ||
+      pathParts[1] === "." || pathParts[1] === ".."
+    ) {
+      return bad("Некорректный путь к файлу");
+    }
+
+    // Задача должна существовать и принадлежать тому, кто вызывает: читаем её от имени пользователя (защита RLS)
+    const authHeader = req.headers.get("Authorization") || "";
+    const userClient = createClient(supabaseUrl, sbPublishableKey() || "", {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: ownJob } = await userClient
+      .from("parse_queue")
+      .select("id")
+      .eq("id", rawJobId)
+      .maybeSingle();
+    if (!ownJob) return bad("Задача не найдена", 404);
+
+    jobId = rawJobId;
     log(`Job ${jobId}: screenshot=${screenshotPath}`);
  
     // 1. Помечаем job как pending — фронт увидит, что обработка началась
@@ -230,13 +267,13 @@ Deno.serve(async (req) => {
         .from("parse_queue")
         .update({
           status: "manual_required",
-          error_message: `Ошибка распознавания скриншота: ${msg.slice(0, 200)}. Введите данные вручную.`,
+          error_message: "Не удалось распознать скриншот. Введите данные вручную.",
           parse_method: "screenshot_error",
         })
         .eq("id", jobId);
     }
     return new Response(
-      JSON.stringify({ ok: false, error: msg }),
+      JSON.stringify({ ok: false, error: "Внутренняя ошибка. Попробуйте позже или введите данные вручную" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }

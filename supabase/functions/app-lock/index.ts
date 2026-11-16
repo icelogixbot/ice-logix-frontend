@@ -156,9 +156,9 @@ serve(async (req) => {
       const tg = await verifyInitData(String(body.init_data || ""), Deno.env.get("BOT_TOKEN") || "");
       if (!tg) return json({ ok: false, error: "telegram" });
       // Telegram, из которого включают код, должен быть тем же, что привязан к аккаунту
-      const metaTg = Number(user.user_metadata?.telegram_id || 0);
-      if (metaTg !== tg.id && user.email !== `tg_${tg.id}@icelogix.by`) return json({ ok: false, error: "telegram_mismatch" });
+      // Доверяем только почте, которую создал сервер входа, и строке в таблице users, а не user_metadata (его пользователь может править сам)
       const { data: profile } = await db.from("users").select("user_id").eq("auth_id", user.id).maybeSingle();
+      if (user.email !== `tg_${tg.id}@icelogix.by` && Number(profile?.user_id || 0) !== tg.id) return json({ ok: false, error: "telegram_mismatch" });
       const { error } = await db.from("app_locks").insert({
         auth_id: user.id, user_id: profile?.user_id ?? null, telegram_id: tg.id, ...(await newPinFields(pin)),
       });

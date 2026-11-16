@@ -78,6 +78,13 @@ const SEND_BY_TYPE: Record<string, [string, string]> = {
 
 const LINK_TTL_SEC = 10 * 60;
 
+function sameString(a: string, b: string): boolean {
+  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 async function linkSig(token: string, messageId: string, exp: number): Promise<string> {
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(`support-file:${token}`),
     { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
@@ -131,7 +138,7 @@ Deno.serve(async (req) => {
       const exp = Number(url.searchParams.get("exp") ?? 0);
       const sig = url.searchParams.get("sig") ?? "";
       if (!m || !exp || exp < Date.now() / 1000) return json({ ok: false, error: "Ссылка устарела, откройте файл из пульта заново" }, 410);
-      if (sig !== await linkSig(token, m, exp)) return json({ ok: false, error: "Неверная ссылка" }, 403);
+      if (!sameString(sig, await linkSig(token, m, exp))) return json({ ok: false, error: "Неверная ссылка" }, 403);
       return await streamFile(admin, token, m, true);
     }
 
