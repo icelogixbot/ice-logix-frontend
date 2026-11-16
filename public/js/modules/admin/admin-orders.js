@@ -228,6 +228,7 @@
     if (o.status === 'awaiting_payment') note('warn', 'receipt', `Ждём доплату ${money(o.amount_due)}`, 'Клиенту пришло уведомление, оплата в приложении. После оплаты заказ перейдёт дальше сам.');
     const flags = Array.isArray(o.flags) ? o.flags : [];
     if (o.status === 'paid' && flags.includes('client_priced')) note('warn', 'calc', 'Сверьте цену перед выкупом', 'Сумму посчитало приложение клиента. Сравните её с ценой на площадке.');
+    if (flags.includes('price_mismatch')) note('bad', 'alert', 'Цена не сходится с формулой', flags.filter(f => typeof f === 'string' && f.startsWith('price:')).map(f => esc(f.slice(6))).join('; ') || 'Сервер пересчитал сумму, и она не совпала. Сверьте цену перед выкупом.');
     const est = Number(o.weight_estimated) || 0;
     const act = Number(o.weight_actual) || 0;
     if (act && est && act - est > Math.max(0.3, est * 0.2)) note('bad', 'alert', 'Вес больше расчётного', `Ожидали ${est} кг, по факту ${act} кг. Проверьте, всё ли верно.`);
